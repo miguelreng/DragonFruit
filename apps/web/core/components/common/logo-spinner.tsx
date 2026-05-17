@@ -5,18 +5,25 @@
  */
 
 import { useTheme } from "next-themes";
-// assets
-import LogoSpinnerDark from "@/app/assets/images/logo-spinner-dark.gif?url";
-import LogoSpinnerLight from "@/app/assets/images/logo-spinner-light.gif?url";
+import { DragonfruitLogo } from "@plane/propel/icons";
 
+/**
+ * Loading spinner using the Dragonfruit mark.
+ * Light mode: brand magenta. Dark mode: white.
+ * Animation uses Tailwind's `animate-spin` (1s linear, infinite).
+ */
 export function LogoSpinner() {
   const { resolvedTheme } = useTheme();
-
-  const logoSrc = resolvedTheme === "dark" ? LogoSpinnerDark : LogoSpinnerLight;
+  const isDark = resolvedTheme === "dark";
 
   return (
     <div className="flex items-center justify-center">
-      <img src={logoSrc} alt="logo" className="h-6 w-auto object-contain sm:h-11" />
+      <DragonfruitLogo
+        width="100%"
+        height="100%"
+        className="h-6 w-auto animate-spin sm:h-11"
+        color={isDark ? "#FFFFFF" : "#8A0052"}
+      />
     </div>
   );
 }
