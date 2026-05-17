@@ -1,0 +1,223 @@
+/*
+ * Dragon Fruit — Craft.do-inspired editor refinements
+ *
+ * This stylesheet sits on top of editor.css and variables.css. It does NOT
+ * fork the base styles — it only overlays the visual choices that make the
+ * editor feel like a beautiful, calm writing surface (Craft.do as reference).
+ *
+ * Design intent:
+ *  - Warm, slightly serif-leaning headings paired with a humanist sans body
+ *  - Generous vertical rhythm and a tighter measure (~ 680px) for prose
+ *  - Soft accent palette (peach / pink / amber) instead of clinical neon
+ *  - Quieter, less-busy UI: thin dividers, gentle hover states
+ *
+ * Toggle: the `.dragonfruit` class on `.editor-container` opts a page into
+ * this look. The web app applies it by default; setting `data-theme-variant`
+ * to "classic" on a page falls back to the base Plane look.
+ */
+
+/* ─── 1. Font stack ────────────────────────────────────────────────────── */
+
+.editor-container.dragonfruit {
+  /* Pair a humanist sans for body with a refined display family for headings.
+   * We rely on system fallbacks so this works before web fonts are bundled. */
+  --font-style: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-style-display:
+    "Newsreader", "Source Serif Pro", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  --font-style-display-sans:
+    "Inter Display", "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ─── 2. Layout: tighter measure for prose ─────────────────────────────── */
+
+.editor-container.dragonfruit {
+  /* Craft uses ~680px column — comfortable for reading without feeling cramped. */
+  --normal-content-width: 680px;
+  --wide-content-width: 1040px;
+}
+
+/* ─── 3. Type scale & rhythm overrides ─────────────────────────────────── */
+
+.editor-container.dragonfruit.large-font,
+.editor-container.dragonfruit:not(.small-font):not(.mobile-font) {
+  --font-size-h1: 2rem;
+  --font-size-h2: 1.5rem;
+  --font-size-h3: 1.25rem;
+  --font-size-h4: 1.125rem;
+  --font-size-h5: 1rem;
+  --font-size-h6: 0.9375rem;
+  --font-size-regular: 1.0625rem;
+  --font-size-code: 0.9rem;
+  --font-size-list: var(--font-size-regular);
+
+  --line-height-h1: 2.5rem;
+  --line-height-h2: 2rem;
+  --line-height-h3: 1.75rem;
+  --line-height-h4: 1.625rem;
+  --line-height-h5: 1.5rem;
+  --line-height-h6: 1.5rem;
+  --line-height-regular: 1.7;
+  --line-height-code: 1.55;
+  --line-height-list: 1.65;
+}
+
+.editor-container.dragonfruit.line-spacing-regular,
+.editor-container.dragonfruit:not(.line-spacing-small):not(.line-spacing-mobile-regular) {
+  --heading-1-padding-top: 36px;
+  --heading-1-padding-bottom: 6px;
+  --heading-2-padding-top: 32px;
+  --heading-2-padding-bottom: 6px;
+  --heading-3-padding-top: 24px;
+  --heading-3-padding-bottom: 4px;
+  --heading-4-padding-top: 20px;
+  --heading-4-padding-bottom: 4px;
+  --heading-5-padding-top: 16px;
+  --heading-5-padding-bottom: 4px;
+  --heading-6-padding-top: 14px;
+  --heading-6-padding-bottom: 4px;
+  --paragraph-padding-top: 4px;
+  --paragraph-padding-bottom: 4px;
+  --paragraph-padding-between: 10px;
+}
+
+/* ─── 4. Headings: serif display, refined tracking ─────────────────────── */
+
+.editor-container.dragonfruit .ProseMirror h1.editor-heading-block,
+.editor-container.dragonfruit .ProseMirror h2.editor-heading-block,
+.editor-container.dragonfruit .ProseMirror h3.editor-heading-block {
+  font-family: var(--font-style-display);
+  font-weight: 500 !important;
+  letter-spacing: -0.018em;
+}
+
+.editor-container.dragonfruit .ProseMirror h1.editor-heading-block {
+  letter-spacing: -0.022em;
+}
+
+.editor-container.dragonfruit .ProseMirror h4.editor-heading-block,
+.editor-container.dragonfruit .ProseMirror h5.editor-heading-block,
+.editor-container.dragonfruit .ProseMirror h6.editor-heading-block {
+  font-family: var(--font-style-display-sans);
+  font-weight: 600 !important;
+  letter-spacing: -0.012em;
+}
+
+/* Title editor — the giant page title at the top of a doc */
+.editor-container.dragonfruit.page-title-editor .ProseMirror {
+  font-family: var(--font-style-display);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1.15;
+}
+
+/* ─── 5. Body prose: humanist sans with relaxed rhythm ─────────────────── */
+
+.editor-container.dragonfruit .ProseMirror {
+  font-feature-settings:
+    "ss01" on,
+    "cv01" on,
+    "cv11" on;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.editor-container.dragonfruit .ProseMirror p.editor-paragraph-block {
+  letter-spacing: -0.003em;
+}
+
+/* ─── 6. Blockquote: a calmer, more editorial pull-quote ───────────────── */
+
+.editor-container.dragonfruit .ProseMirror blockquote {
+  border-left-width: 2px;
+  padding-inline-start: 1.25rem;
+  margin-block: 1.25rem;
+  font-family: var(--font-style-display);
+  font-style: italic;
+  font-size: 1.0625rem;
+  color: color-mix(in srgb, var(--text-color-primary) 82%, transparent);
+}
+
+/* ─── 7. Inline code & code blocks: warmer treatment ───────────────────── */
+
+.editor-container.dragonfruit .ProseMirror code {
+  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+  background-color: color-mix(in srgb, var(--background-color-accent-primary) 8%, transparent);
+  color: color-mix(in srgb, var(--text-color-primary) 92%, var(--background-color-accent-primary));
+}
+
+.editor-container.dragonfruit .ProseMirror pre {
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  background-color: color-mix(in srgb, var(--text-color-primary) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-color-primary) 7%, transparent);
+}
+
+.editor-container.dragonfruit .ProseMirror pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* ─── 8. Horizontal rule: a hairline, not a slab ───────────────────────── */
+
+.editor-container.dragonfruit .ProseMirror div[data-type="horizontalRule"] > div {
+  border-bottom-width: 1px !important;
+  border-color: color-mix(in srgb, var(--text-color-primary) 12%, transparent) !important;
+}
+
+/* ─── 9. Task lists: rounder, calmer checkbox ──────────────────────────── */
+
+.editor-container.dragonfruit ul[data-type="taskList"] li > label input[type="checkbox"] {
+  border-radius: 4px !important;
+  width: 0.95rem;
+  height: 0.95rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.editor-container.dragonfruit ul[data-type="taskList"] li[data-checked="true"] > div > p.editor-paragraph-block {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--text-color-primary) 30%, transparent);
+  text-decoration-thickness: 1px;
+}
+
+/* ─── 10. Selection: soft peach instead of harsh blue ──────────────────── */
+
+.editor-container.dragonfruit .ProseMirror ::selection {
+  background-color: color-mix(in srgb, #ff7a8c 28%, transparent);
+}
+
+/* ─── 11. Drop cap (optional, opt-in via .dragonfruit.drop-cap) ────────── */
+
+.editor-container.dragonfruit.drop-cap .ProseMirror > p.editor-paragraph-block:first-of-type::first-letter {
+  font-family: var(--font-style-display);
+  font-weight: 500;
+  float: left;
+  font-size: 3.25em;
+  line-height: 0.85;
+  padding: 0.05em 0.12em 0 0;
+  color: color-mix(in srgb, var(--text-color-primary) 95%, var(--background-color-accent-primary));
+}
+
+/* ─── 12. Focus mode (opt-in via .dragonfruit.focus-mode) ──────────────── */
+
+.editor-container.dragonfruit.focus-mode .ProseMirror p.editor-paragraph-block,
+.editor-container.dragonfruit.focus-mode .ProseMirror ul,
+.editor-container.dragonfruit.focus-mode .ProseMirror ol {
+  opacity: 0.4;
+  transition: opacity 0.25s ease;
+}
+
+.editor-container.dragonfruit.focus-mode .ProseMirror p.editor-paragraph-block.has-focus,
+.editor-container.dragonfruit.focus-mode .ProseMirror p.editor-paragraph-block:hover,
+.editor-container.dragonfruit.focus-mode .ProseMirror ul:has(.has-focus),
+.editor-container.dragonfruit.focus-mode .ProseMirror ol:has(.has-focus) {
+  opacity: 1;
+}
