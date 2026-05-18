@@ -142,7 +142,7 @@ ROOT_URLCONF = "plane.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": ["templates"],
+        "DIRS": [os.path.join(BASE_DIR, "..", "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -161,6 +161,15 @@ CORS_ALLOW_CREDENTIALS = True
 cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "")
 # filter out empty strings
 cors_allowed_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
+# Mirror localhost <-> 127.0.0.1 so requests from either host pass CORS/CSRF checks
+_mirrored = []
+for origin in cors_allowed_origins:
+    _mirrored.append(origin)
+    if "://localhost" in origin:
+        _mirrored.append(origin.replace("://localhost", "://127.0.0.1"))
+    elif "://127.0.0.1" in origin:
+        _mirrored.append(origin.replace("://127.0.0.1", "://localhost"))
+cors_allowed_origins = list(dict.fromkeys(_mirrored))
 if cors_allowed_origins:
     CORS_ALLOWED_ORIGINS = cors_allowed_origins
     secure_origins = False if [origin for origin in cors_allowed_origins if "http:" in origin] else True
