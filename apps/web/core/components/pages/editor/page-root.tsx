@@ -11,6 +11,7 @@ import type { CollaborationState, EditorRefApi } from "@plane/editor";
 import type { TDocumentPayload, TPage, TPageVersion, TWebhookConnectionQueryParams } from "@plane/types";
 // hooks
 import { usePageFallback } from "@/hooks/use-page-fallback";
+import { useUnsyncedPageTracker } from "@/hooks/use-unsynced-page-tracker";
 // plane web import
 import type { PageUpdateHandler, TCustomEventHandlers } from "@/hooks/use-realtime-page-events";
 import { PageModals } from "@/plane-web/components/pages";
@@ -78,6 +79,15 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
     page,
     collaborationState,
     updatePageDescription: handlers.updateDescription,
+  });
+
+  // Track local unsynced edits so the Drafts page can surface them.
+  useUnsyncedPageTracker({
+    pageId: page.id,
+    pageName: page.name,
+    workspaceSlug,
+    projectId,
+    collaborationState,
   });
 
   const handleEditorReady = useCallback(
