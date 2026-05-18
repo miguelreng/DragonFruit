@@ -6,18 +6,19 @@
 
 // components
 import { observer } from "mobx-react";
+import { Link } from "react-router";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@plane/utils";
 import { TopNavPowerK } from "@/components/navigation";
 import { HelpMenuRoot } from "@/components/workspace/sidebar/help-section/root";
 import { UserMenuRoot } from "@/components/workspace/sidebar/user-menu-root";
-import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { Tooltip } from "@plane/propel/tooltip";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { InboxIcon } from "@plane/propel/icons";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
+import dragonfruitLogo from "@/app/assets/plane-logos/icon.svg?url";
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
@@ -47,9 +48,11 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
         "px-2": !showLabel,
       })}
     >
-      {/* Workspace Menu */}
-      <div className="flex-1 shrink-0">
-        <WorkspaceMenuRoot variant="top-navigation" />
+      {/* DragonFruit logo */}
+      <div className="flex flex-1 shrink-0 items-center">
+        <Link to={`/${workspaceSlug?.toString() ?? ""}/`} className="inline-flex items-center" aria-label="DragonFruit home">
+          <img src={dragonfruitLogo} alt="" className="size-7" />
+        </Link>
       </div>
       {/* Power K Search */}
       <div className="shrink-0">

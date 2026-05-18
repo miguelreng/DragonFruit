@@ -12,6 +12,7 @@ import { PreferencesIcon } from "@plane/propel/icons";
 import { ScrollArea } from "@plane/propel/scrollarea";
 // components
 import { CustomizeNavigationDialog } from "@/components/navigation/customize-navigation-dialog";
+import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useSize from "@/hooks/use-window-size";
@@ -52,7 +53,10 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
       <CustomizeNavigationDialog isOpen={isCustomizeNavDialogOpen} onClose={() => setIsCustomizeNavDialogOpen(false)} />
       <div ref={ref} className="flex h-full w-full animate-fade-in flex-col">
         <div className="flex flex-col gap-3 px-3">
-          {/* Workspace switcher and settings */}
+          {/* Workspace switcher */}
+          <div className="px-2 pt-2">
+            <WorkspaceMenuRoot variant="top-navigation" />
+          </div>
 
           <div className="flex items-center justify-between gap-2 px-2">
             <span className="pt-1 text-16 font-medium text-primary">{title}</span>
