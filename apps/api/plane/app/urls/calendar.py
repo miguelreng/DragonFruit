@@ -10,10 +10,16 @@ from plane.app.views import (
     CalendarAccountEventsEndpoint,
     GoogleCalendarStartEndpoint,
     GoogleCalendarCallbackEndpoint,
+    MyCalendarTasksEndpoint,
 )
 
 
 urlpatterns = [
+    path(
+        "workspaces/<str:slug>/my-calendar-tasks/",
+        MyCalendarTasksEndpoint.as_view(),
+        name="workspace-my-calendar-tasks",
+    ),
     path(
         "users/me/calendar-accounts/",
         CalendarAccountsListEndpoint.as_view(),
