@@ -29,8 +29,10 @@ export class ProjectPageService extends APIService {
       });
   }
 
-  async fetchWorkspacePages(workspaceSlug: string): Promise<TPage[]> {
-    return this.get(`/api/workspaces/${workspaceSlug}/pages/`)
+  async fetchWorkspacePages(workspaceSlug: string, pageType?: TPage["page_type"]): Promise<TPage[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/pages/`, {
+      params: pageType ? { page_type: pageType } : undefined,
+    })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

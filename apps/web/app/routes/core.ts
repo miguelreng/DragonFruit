@@ -87,6 +87,16 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/docs", "./(all)/[workspaceSlug]/(projects)/docs/page.tsx"),
         ]),
 
+        // Diagrams (workspace-wide list of mermaid-typed pages)
+        layout("./(all)/[workspaceSlug]/(projects)/diagrams/layout.tsx", [
+          route(":workspaceSlug/diagrams", "./(all)/[workspaceSlug]/(projects)/diagrams/page.tsx"),
+        ]),
+
+        // Whiteboards (workspace-wide list of excalidraw-typed pages)
+        layout("./(all)/[workspaceSlug]/(projects)/whiteboards/layout.tsx", [
+          route(":workspaceSlug/whiteboards", "./(all)/[workspaceSlug]/(projects)/whiteboards/page.tsx"),
+        ]),
+
         // Notifications
         layout("./(all)/[workspaceSlug]/(projects)/notifications/layout.tsx", [
           route(":workspaceSlug/notifications", "./(all)/[workspaceSlug]/(projects)/notifications/page.tsx"),

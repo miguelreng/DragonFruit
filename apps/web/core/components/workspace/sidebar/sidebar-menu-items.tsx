@@ -74,13 +74,21 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
         sort_order: personalPreferences.items.drafts.sort_order,
       });
     }
-    // Docs: always shown at top level, after drafts.
-    if (WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["docs"]) {
-      personalItems.push({
-        ...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["docs"],
-        sort_order: Number.MAX_SAFE_INTEGER,
-      });
-    }
+    // Docs / Diagrams / Whiteboards: always shown at top level, after drafts.
+    const alwaysOn: Array<keyof typeof WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS> = [
+      "docs",
+      "diagrams",
+      "whiteboards",
+    ];
+    alwaysOn.forEach((key, index) => {
+      const item = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS[key];
+      if (item) {
+        personalItems.push({
+          ...item,
+          sort_order: Number.MAX_SAFE_INTEGER - (alwaysOn.length - index),
+        });
+      }
+    });
 
     // Sort personal items by sort_order
     personalItems.sort((a, b) => a.sort_order - b.sort_order);
