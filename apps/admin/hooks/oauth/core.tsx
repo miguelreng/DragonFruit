@@ -37,7 +37,7 @@ export const getCoreAuthenticationModesMap: (
     key: "unique-codes",
     name: "Unique codes",
     description:
-      "Log in or sign up for Plane using codes sent via email. You need to have set up SMTP to use this method.",
+      "Log in or sign up for DragonFruit using codes sent via email. You need to have set up SMTP to use this method.",
     icon: <Mails className="h-6 w-6 p-0.5 text-tertiary" />,
     config: <EmailCodesConfiguration disabled={disabled} updateConfig={updateConfig} />,
     enabledConfigKey: "ENABLE_MAGIC_LINK_LOGIN",

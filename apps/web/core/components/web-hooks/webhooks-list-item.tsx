@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-// Plane imports
+// DragonFruit imports
 import type { IWebhook } from "@plane/types";
 import { ToggleSwitch } from "@plane/ui";
 // hooks
