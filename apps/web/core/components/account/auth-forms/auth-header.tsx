@@ -28,29 +28,29 @@ const Titles = {
   [EAuthModes.SIGN_IN]: {
     [EAuthSteps.EMAIL]: {
       header: "Plan, write, and ship beautifully.",
-      subHeader: "Welcome back to Dragon Fruit.",
+      subHeader: "Welcome back to DragonFruit.",
     },
     [EAuthSteps.PASSWORD]: {
       header: "Plan, write, and ship beautifully.",
-      subHeader: "Welcome back to Dragon Fruit.",
+      subHeader: "Welcome back to DragonFruit.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
       header: "Plan, write, and ship beautifully.",
-      subHeader: "Welcome back to Dragon Fruit.",
+      subHeader: "Welcome back to DragonFruit.",
     },
   },
   [EAuthModes.SIGN_UP]: {
     [EAuthSteps.EMAIL]: {
       header: "Plan, write, and ship beautifully.",
-      subHeader: "Create your Dragon Fruit account.",
+      subHeader: "Create your DragonFruit account.",
     },
     [EAuthSteps.PASSWORD]: {
       header: "Plan, write, and ship beautifully.",
-      subHeader: "Create your Dragon Fruit account.",
+      subHeader: "Create your DragonFruit account.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
       header: "Plan, write, and ship beautifully.",
-      subHeader: "Create your Dragon Fruit account.",
+      subHeader: "Create your DragonFruit account.",
     },
   },
 };
@@ -74,11 +74,11 @@ export const AuthHeader = observer(function AuthHeader(props: TAuthHeader) {
   const getHeaderSubHeader = (
     step: EAuthSteps,
     mode: EAuthModes,
-    invitation: IWorkspaceMemberInvitation | undefined,
+    invitationData: IWorkspaceMemberInvitation | undefined,
     email: string | undefined
   ) => {
-    if (invitation && email && invitation.email === email && invitation.workspace) {
-      const workspace = invitation.workspace;
+    if (invitationData && email && invitationData.email === email && invitationData.workspace) {
+      const workspace = invitationData.workspace;
       return {
         header: (
           <div className="relative inline-flex items-center gap-2">
