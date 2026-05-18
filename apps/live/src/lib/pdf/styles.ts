@@ -18,7 +18,7 @@ import {
 export const pdfStyles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: "Inter",
+    fontFamily: "Figtree",
     fontSize: 11,
     lineHeight: 1.6,
     color: TEXT_COLORS.primary,
