@@ -27,13 +27,16 @@ import { LogoSpinner } from "@/components/common/logo-spinner";
 // local
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
-// fonts
+// fonts – side-effect imports
+// oxlint-disable-next-line no-unassigned-import
 import "@fontsource-variable/inter";
 import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+// oxlint-disable-next-line no-unassigned-import
 import "@fontsource/material-symbols-rounded";
+// oxlint-disable-next-line no-unassigned-import
 import "@fontsource/ibm-plex-mono";
 
-const APP_TITLE = "Dragon Fruit — Beautiful project management & docs";
+const APP_TITLE = "DragonFruit — Beautiful project management & docs";
 
 export const links: LinksFunction = () => [
   { rel: "icon", type: "image/png", sizes: "32x32", href: favicon32 },
@@ -64,7 +67,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#fff" />
         {/* Meta info for PWA */}
-        <meta name="application-name" content="Dragon Fruit" />
+        <meta name="application-name" content="DragonFruit" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content={SITE_NAME} />

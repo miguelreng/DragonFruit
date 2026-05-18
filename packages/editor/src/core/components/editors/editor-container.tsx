@@ -32,6 +32,13 @@ type Props = {
   state?: TCollabValue["state"];
 };
 
+const handleContainerMouseLeave = () => {
+  const dragHandleElement = document.querySelector("#editor-side-menu");
+  if (!dragHandleElement?.classList.contains("side-menu-hidden")) {
+    dragHandleElement?.classList.add("side-menu-hidden");
+  }
+};
+
 export function EditorContainer(props: Props) {
   const { children, displayConfig, editor, editorContainerClassName, id, isTouchDevice, provider, state } = props;
   // refs
@@ -153,22 +160,17 @@ export function EditorContainer(props: Props) {
     }
   };
 
-  const handleContainerMouseLeave = () => {
-    const dragHandleElement = document.querySelector("#editor-side-menu");
-    if (!dragHandleElement?.classList.contains("side-menu-hidden")) {
-      dragHandleElement?.classList.add("side-menu-hidden");
-    }
-  };
-
   return (
     <>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
+        role="textbox"
         ref={containerRef}
         id={`editor-container-${id}`}
         onClick={handleContainerClick}
         onMouseLeave={handleContainerMouseLeave}
         className={cn(
-          // Dragon Fruit: the `dragonfruit` class opts every editor surface into
+          // DragonFruit: the `dragonfruit` class opts every editor surface into
           // the refined typography & rhythm defined in styles/dragonfruit.css.
           `editor-container dragonfruit relative cursor-text line-spacing-${displayConfig.lineSpacing ?? DEFAULT_DISPLAY_CONFIG.lineSpacing}`,
           {

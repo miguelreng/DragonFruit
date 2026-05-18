@@ -1,8 +1,8 @@
-# Dragon Fruit
+# DragonFruit
 
 > Beautiful, customizable project management & docs — built on Plane, with a Craft.do-inspired writing experience.
 
-Dragon Fruit is an opinionated fork of [Plane](https://github.com/makeplane/plane) (AGPL-3.0). It keeps Plane's solid project-management foundation (workspaces, projects, work items, cycles, modules, views, pages) and rebuilds the parts that matter most to us: **the editor and the visual design**.
+DragonFruit is an opinionated fork of [Plane](https://github.com/makeplane/plane) (AGPL-3.0). It keeps Plane's solid project-management foundation (workspaces, projects, work items, cycles, modules, views, pages) and rebuilds the parts that matter most to us: **the editor and the visual design**.
 
 The goal is a single workspace where the docs feel as good as the project tracker — something we'd actually want to write in.
 
@@ -22,14 +22,14 @@ We didn't want to rebuild any of that. We wanted to **change how it looks and fe
 
 ## What's different (so far)
 
-| Area | Change |
-|---|---|
+| Area              | Change                                                                                                                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Editor typography | New `packages/editor/src/styles/dragonfruit.css` layer — serif display headings, humanist sans body, relaxed 1.7 line-height, ~680px measure, soft peach selection color, refined task lists, optional focus mode and drop cap |
-| Editor surface | Every `<EditorContainer>` now carries a `.dragonfruit` class so the new look applies everywhere automatically |
-| Site metadata | `SITE_NAME`, `SITE_DESCRIPTION`, OG tags, PWA app name |
-| Auth screens | "Plan, write, and ship beautifully." / "Welcome back to Dragon Fruit." |
-| Onboarding | New welcome copy framing docs + projects as one workspace |
-| Constants | `packages/constants/src/metadata.ts` |
+| Editor surface    | Every `<EditorContainer>` now carries a `.dragonfruit` class so the new look applies everywhere automatically                                                                                                                  |
+| Site metadata     | `SITE_NAME`, `SITE_DESCRIPTION`, OG tags, PWA app name                                                                                                                                                                         |
+| Auth screens      | "Plan, write, and ship beautifully." / "Welcome back to DragonFruit."                                                                                                                                                          |
+| Onboarding        | New welcome copy framing docs + projects as one workspace                                                                                                                                                                      |
+| Constants         | `packages/constants/src/metadata.ts`                                                                                                                                                                                           |
 
 The underlying Plane code remains intact, so upstream fixes can be merged in cleanly. See [Staying in sync with Plane](#staying-in-sync-with-plane).
 
@@ -37,13 +37,13 @@ The underlying Plane code remains intact, so upstream fixes can be merged in cle
 
 ## Stack
 
-| Layer | Tech |
-|---|---|
+| Layer    | Tech                                                           |
+| -------- | -------------------------------------------------------------- |
 | Frontend | React Router 7 (the `apps/web` app), TipTap, Zustand, Tailwind |
-| Backend | Django + DRF (Python) |
-| Realtime | Node service (`apps/live`) using HocusPocus |
-| Storage | Postgres, Redis, S3-compatible object store |
-| Tooling | pnpm workspaces, Turborepo, oxlint, oxfmt, husky |
+| Backend  | Django + DRF (Python)                                          |
+| Realtime | Node service (`apps/live`) using HocusPocus                    |
+| Storage  | Postgres, Redis, S3-compatible object store                    |
+| Tooling  | pnpm workspaces, Turborepo, oxlint, oxfmt, husky               |
 
 Node ≥ 22.18, pnpm 10.32, Python 3.12+.
 
@@ -82,7 +82,7 @@ apps/
   proxy/      — nginx reverse proxy
 
 packages/
-  editor/     — TipTap editor + Dragon Fruit visual layer (styles/dragonfruit.css)
+  editor/     — TipTap editor + DragonFruit visual layer (styles/dragonfruit.css)
   ui/         — shared UI components
   constants/  — branding strings, feature flags
   types/      — shared TypeScript types
@@ -90,7 +90,7 @@ packages/
   ...
 ```
 
-## Where the Dragon Fruit changes live
+## Where the DragonFruit changes live
 
 If you want to see exactly what we changed (vs. Plane), look at:
 
@@ -114,17 +114,19 @@ git fetch upstream-plane
 git merge upstream-plane/preview   # or main, depending on the branch you want
 ```
 
-Conflicts will surface in the files listed in [Where the Dragon Fruit changes live](#where-the-dragon-fruit-changes-live). The Craft.do CSS layer is purely additive, so it should never conflict.
+Conflicts will surface in the files listed in [Where the DragonFruit changes live](#where-the-dragonfruit-changes-live). The Craft.do CSS layer is purely additive, so it should never conflict.
 
 ## Roadmap
 
 Near-term (visual polish):
+
 - [ ] Replace logos, favicons, and OG image
 - [ ] Bundle Newsreader / Inter Display web fonts so the serif headings work without system fallbacks
 - [ ] Page-level toggle for focus mode and drop cap (currently CSS-only)
 - [ ] Sidebar refresh — quieter dividers, softer accent
 
 Mid-term (functionality):
+
 - [ ] Slash-menu polish to match Craft's quick-block UX
 - [ ] Quote-block variants (callout, note, warning) with Craft-like cards
 - [ ] Page covers and emoji headers with refined defaults
@@ -132,7 +134,7 @@ Mid-term (functionality):
 
 ## License
 
-AGPL-3.0, inherited from Plane. See [`LICENSE.txt`](./LICENSE.txt). All original Plane code remains © Plane Software, Inc. Dragon Fruit modifications are AGPL-3.0 as well.
+AGPL-3.0, inherited from Plane. See [`LICENSE.txt`](./LICENSE.txt). All original Plane code remains © Plane Software, Inc. DragonFruit modifications are AGPL-3.0 as well.
 
 ## Credits
 
