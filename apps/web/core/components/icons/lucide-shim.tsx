@@ -107,6 +107,8 @@ export {
   Check as CheckIcon,
   CaretDown as ChevronDown,
   CaretDown as ChevronDownIcon,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
   CaretUpDown as ChevronsUpDown,
   CircleHalf as CircleDot,
   CircleDashed as CircleDotDashed,

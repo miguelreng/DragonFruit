@@ -25,6 +25,7 @@ import {
   createViewDay,
 } from "@schedule-x/calendar";
 import { createEventsServicePlugin } from "@schedule-x/events-service";
+import { createCalendarControlsPlugin } from "@schedule-x/calendar-controls";
 import "@schedule-x/theme-default/dist/index.css";
 
 // Schedule-X v4 expects Temporal types. The runtime Temporal API isn't shipped
@@ -32,7 +33,8 @@ import "@schedule-x/theme-default/dist/index.css";
 // Lib-types prefer the built-in, but the polyfill is API-compatible at runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const T = Temporal as any;
-import { Calendar as CalendarIcon, Check, Plus, Trash2 } from "@/components/icons/lucide-shim";
+import { Menu } from "@headlessui/react";
+import { Calendar as CalendarIcon, Check, ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2 } from "@/components/icons/lucide-shim";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 import {
   CalendarService,
@@ -150,7 +152,16 @@ export function CalendarRoot() {
   }, [tasksRes, gEventsRes, workspaceSlug]);
 
   const eventsService = useRef(createEventsServicePlugin()).current;
+  const calendarControls = useRef(createCalendarControlsPlugin()).current;
   const calendarAppRef = useRef<ReturnType<typeof createCalendar> | null>(null);
+  // Tracks the calendar's current view + visible month so the custom toolbar
+  // can render the right label and active state without polling the plugin.
+  const [view, setViewState] = useState<string>("month-grid");
+  const [visibleMonth, setVisibleMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.toLocaleString("en-US", { month: "long" })} ${now.getFullYear()}`;
+  });
+
   // Keep the latest setQuickAddDate accessible from the (one-time) Schedule-X
   // callbacks closure — we don't want to recreate the calendar on every render.
   const openQuickAddRef = useRef<(date: string) => void>(() => {});
@@ -162,16 +173,47 @@ export function CalendarRoot() {
       defaultView: createViewMonthGrid().name,
       events: sxEvents,
       calendars: CALENDARS_CONFIG,
-      plugins: [eventsService],
+      plugins: [eventsService, calendarControls],
       callbacks: {
-        // Month-grid: clicking an empty day cell.
         onClickDate: (date) => openQuickAddRef.current(typeof date === "string" ? date.slice(0, 10) : ""),
-        // Week / day: clicking an empty time slot.
         onClickDateTime: (dateTime) =>
           openQuickAddRef.current(typeof dateTime === "string" ? dateTime.slice(0, 10) : ""),
+        onRangeUpdate: () => {
+          // Fires when navigation moves to a different month/week/day. Use it
+          // to re-derive the visible-month label for our custom toolbar.
+          try {
+            const cur = calendarControls.getDate();
+            const d = new Date(cur.toString());
+            setVisibleMonth(`${d.toLocaleString("en-US", { month: "long" })} ${d.getFullYear()}`);
+          } catch {
+            // ignore — plugin not ready
+          }
+        },
       },
     });
   }
+
+  const handleViewChange = (next: string) => {
+    calendarControls.setView(next);
+    setViewState(next);
+  };
+  const handleSetDate = (d: Date) => {
+    const iso = d.toISOString().slice(0, 10);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const GlobalT = (globalThis as any).Temporal as typeof Temporal | undefined;
+    if (!GlobalT) return;
+    calendarControls.setDate(GlobalT.PlainDate.from(iso));
+    setVisibleMonth(`${d.toLocaleString("en-US", { month: "long" })} ${d.getFullYear()}`);
+  };
+  const handleToday = () => handleSetDate(new Date());
+  const handleStep = (delta: -1 | 1) => {
+    const cur = calendarControls.getDate();
+    const d = new Date(cur.toString());
+    if (view === "month-grid") d.setMonth(d.getMonth() + delta);
+    else if (view === "week") d.setDate(d.getDate() + delta * 7);
+    else d.setDate(d.getDate() + delta);
+    handleSetDate(d);
+  };
 
   useEffect(() => {
     if (!eventsService) return;
@@ -187,6 +229,14 @@ export function CalendarRoot() {
         googleAccount={googleAccount}
         refetchAccounts={refetchAccounts}
         onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
+      />
+      <CalendarToolbar
+        view={view}
+        visibleMonth={visibleMonth}
+        onToday={handleToday}
+        onPrev={() => handleStep(-1)}
+        onNext={() => handleStep(1)}
+        onViewChange={handleViewChange}
       />
       <div className="dragonfruit-calendar relative h-full w-full flex-1 overflow-hidden">
         {calendarAppRef.current && <ScheduleXCalendar calendarApp={calendarAppRef.current} />}
@@ -301,5 +351,78 @@ function LegendDot({ color }: { color: string }) {
   return <span className="inline-block size-2 rounded-full" style={{ backgroundColor: color }} />;
 }
 
-// Suppress unused-import warning — Check is reserved for future state-group toggles.
-void Check;
+// ── Custom toolbar ────────────────────────────────────────────────────────
+// Schedule-X's stock toolbar uses Material Design widgets. We hide it via
+// CSS and render this in its place so View / Date / chevrons all match
+// DragonFruit's design system.
+
+type ToolbarProps = {
+  view: string;
+  visibleMonth: string;
+  onToday: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onViewChange: (next: string) => void;
+};
+
+const VIEW_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "month-grid", label: "Month" },
+  { value: "week", label: "Week" },
+  { value: "day", label: "Day" },
+];
+
+function CalendarToolbar({ view, visibleMonth, onToday, onPrev, onNext, onViewChange }: ToolbarProps) {
+  const currentViewLabel = VIEW_OPTIONS.find((o) => o.value === view)?.label ?? "Month";
+  return (
+    <div className="flex items-center justify-between gap-3 px-6 py-2">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onToday}
+          className="rounded-md border border-subtle-1 bg-canvas px-3 py-1 text-13 font-medium text-primary hover:bg-layer-1-hover"
+        >
+          Today
+        </button>
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={onPrev}
+            aria-label="Previous"
+            className="grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-1-hover hover:text-primary"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            aria-label="Next"
+            className="grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-1-hover hover:text-primary"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+        <div className="ml-1 text-15 font-medium text-primary">{visibleMonth}</div>
+      </div>
+      <Menu as="div" className="relative">
+        <Menu.Button className="inline-flex items-center gap-1.5 rounded-md border border-subtle-1 bg-canvas px-2.5 py-1 text-13 font-medium text-primary hover:bg-layer-1-hover">
+          {currentViewLabel}
+          <ChevronDown className="size-3.5 text-tertiary" />
+        </Menu.Button>
+        <Menu.Items className="absolute right-0 z-30 mt-1 w-32 rounded-md border border-subtle-1 bg-canvas py-1 shadow-lg outline-none">
+          {VIEW_OPTIONS.map((opt) => (
+            <Menu.Item key={opt.value}>
+              <button
+                type="button"
+                onClick={() => onViewChange(opt.value)}
+                className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
+              >
+                {opt.label}
+                {view === opt.value && <Check className="size-3.5 text-tertiary" />}
+              </button>
+            </Menu.Item>
+          ))}
+        </Menu.Items>
+      </Menu>
+    </div>
+  );
+}

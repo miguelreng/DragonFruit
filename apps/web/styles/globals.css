@@ -266,6 +266,12 @@
   box-shadow: none !important;
 }
 
+/* Hide Schedule-X's built-in toolbar (Today / chevrons / View / Date) —
+ * we render our own using design-system components above the grid. */
+.dragonfruit-calendar .sx__calendar-header {
+  display: none !important;
+}
+
 /* Toolbar: replace the default chunky controls with our pill style.
  * Note: the chevron arrows use Schedule-X's own glyph font, so we do NOT
  * touch font-family on .sx__chevron-wrapper — only on text buttons. */
