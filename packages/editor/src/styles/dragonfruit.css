@@ -39,14 +39,14 @@
 
 .editor-container.dragonfruit.large-font,
 .editor-container.dragonfruit:not(.small-font):not(.mobile-font) {
-  --font-size-h1: 2rem;
-  --font-size-h2: 1.5rem;
-  --font-size-h3: 1.25rem;
-  --font-size-h4: 1.125rem;
-  --font-size-h5: 1rem;
-  --font-size-h6: 0.9375rem;
-  --font-size-regular: 1.0625rem;
-  --font-size-code: 0.9rem;
+  --font-size-h1: 1.875rem;
+  --font-size-h2: 1.4375rem;
+  --font-size-h3: 1.1875rem;
+  --font-size-h4: 1.0625rem;
+  --font-size-h5: 0.9375rem;
+  --font-size-h6: 0.875rem;
+  --font-size-regular: 0.9375rem;
+  --font-size-code: 0.8125rem;
   --font-size-list: var(--font-size-regular);
 
   --line-height-h1: 2.5rem;
