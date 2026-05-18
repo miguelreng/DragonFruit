@@ -4,9 +4,10 @@
  * See the LICENSE file for details.
  */
 
+import type { Content } from "@tiptap/core";
 import type { Editor } from "@tiptap/react";
 
-export const insertContentAtSavedSelection = (editor: Editor, content: string) => {
+export const insertContentAtSavedSelection = (editor: Editor, content: Content) => {
   if (!editor || editor.isDestroyed) {
     console.error("Editor reference is not available or has been destroyed.");
     return;

@@ -6,7 +6,12 @@ from django.urls import path
 
 
 from plane.app.views import UnsplashEndpoint
-from plane.app.views import GPTIntegrationEndpoint, WorkspaceGPTIntegrationEndpoint
+from plane.app.views import (
+    GPTIntegrationEndpoint,
+    TranscriptToDocEndpoint,
+    WorkspaceGPTIntegrationEndpoint,
+    WorkspaceLLMConfigEndpoint,
+)
 
 
 urlpatterns = [
@@ -20,5 +25,15 @@ urlpatterns = [
         "workspaces/<str:slug>/ai-assistant/",
         WorkspaceGPTIntegrationEndpoint.as_view(),
         name="importer",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/transcript-to-doc/",
+        TranscriptToDocEndpoint.as_view(),
+        name="transcript-to-doc",
+    ),
+    path(
+        "workspaces/<str:slug>/llm-config/",
+        WorkspaceLLMConfigEndpoint.as_view(),
+        name="workspace-llm-config",
     ),
 ]

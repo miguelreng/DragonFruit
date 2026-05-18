@@ -5,6 +5,8 @@
  */
 
 import type { Extensions } from "@tiptap/core";
+// extensions
+import { BlockCommentExtension } from "@/extensions/block-comment";
 // types
 import type { IEditorProps } from "@/types";
 
@@ -13,7 +15,6 @@ export type TCoreAdditionalExtensionsProps = Pick<
   "disabledExtensions" | "flaggedExtensions" | "fileHandler" | "extendedEditorProps"
 >;
 
-export const CoreEditorAdditionalExtensions = (props: TCoreAdditionalExtensionsProps): Extensions => {
-  const {} = props;
-  return [];
-};
+export const CoreEditorAdditionalExtensions = (_props: TCoreAdditionalExtensionsProps): Extensions => [
+  BlockCommentExtension,
+];
