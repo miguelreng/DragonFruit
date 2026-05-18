@@ -182,6 +182,14 @@ from .agent_webhook.base import (
     WorkspaceAgentWebhookDispatchEndpoint,
 )
 
+from .calendar.base import (
+    CalendarAccountsListEndpoint,
+    CalendarAccountDetailEndpoint,
+    CalendarAccountEventsEndpoint,
+    GoogleCalendarStartEndpoint,
+    GoogleCalendarCallbackEndpoint,
+)
+
 from .search.base import GlobalSearchEndpoint, SearchEndpoint
 from .search.issue import IssueSearchEndpoint
 

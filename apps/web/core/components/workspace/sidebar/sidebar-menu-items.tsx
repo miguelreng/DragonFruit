@@ -74,11 +74,12 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
         sort_order: personalPreferences.items.drafts.sort_order,
       });
     }
-    // Docs / Diagrams / Whiteboards: always shown at top level, after drafts.
+    // Docs / Diagrams / Whiteboards / Calendar: always shown at top level, after drafts.
     const alwaysOn: Array<keyof typeof WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS> = [
       "docs",
       "diagrams",
       "whiteboards",
+      "calendar",
     ];
     alwaysOn.forEach((key, index) => {
       const item = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS[key];

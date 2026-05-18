@@ -23,6 +23,7 @@ from .workspace import urlpatterns as workspace_urls
 from .timezone import urlpatterns as timezone_urls
 from .exporter import urlpatterns as exporter_urls
 from .agent_webhook import urlpatterns as agent_webhook_urls
+from .calendar import urlpatterns as calendar_urls
 
 urlpatterns = [
     *analytic_urls,
@@ -46,4 +47,5 @@ urlpatterns = [
     *timezone_urls,
     *exporter_urls,
     *agent_webhook_urls,
+    *calendar_urls,
 ]
