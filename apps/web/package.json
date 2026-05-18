@@ -43,6 +43,7 @@
     "@react-pdf/renderer": "^3.4.5",
     "@react-router/node": "catalog:",
     "@schedule-x/calendar": "^4.6.0",
+    "@schedule-x/calendar-controls": "^4.6.0",
     "@schedule-x/events-service": "^4.6.0",
     "@schedule-x/react": "^4.1.0",
     "@schedule-x/theme-default": "^4.6.0",
