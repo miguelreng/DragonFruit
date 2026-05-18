@@ -13,7 +13,9 @@
   font-style: normal;
   font-weight: 300 900;
   font-display: swap;
-  src: url("/fonts/Figtree-Variable.ttf") format("truetype-variations");
+  src:
+    url("/fonts/Figtree-Variable.woff2") format("woff2"),
+    url("/fonts/Figtree-Variable.ttf") format("truetype-variations");
 }
 @font-face {
   font-family: "Figtree Variable";
@@ -21,6 +23,22 @@
   font-weight: 300 900;
   font-display: swap;
   src: url("/fonts/Figtree-Italic-Variable.ttf") format("truetype-variations");
+}
+
+/* Newsreader — self-hosted variable font, used for doc-editor headings. */
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/Newsreader-Variable.ttf") format("truetype-variations");
+}
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/Newsreader-Italic-Variable.ttf") format("truetype-variations");
 }
 
 /* stickies and editor colors */
