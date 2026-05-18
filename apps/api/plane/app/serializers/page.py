@@ -14,6 +14,7 @@ from plane.utils.content_validator import (
 )
 from plane.db.models import (
     Page,
+    PageBlockComment,
     PageLabel,
     Label,
     ProjectPage,
@@ -223,3 +224,31 @@ class PageBinaryUpdateSerializer(serializers.Serializer):
 
         instance.save()
         return instance
+
+
+class PageBlockCommentSerializer(BaseSerializer):
+    class Meta:
+        model = PageBlockComment
+        fields = [
+            "id",
+            "workspace",
+            "page",
+            "block_id",
+            "parent",
+            "content",
+            "resolved_at",
+            "resolved_by",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "workspace",
+            "page",
+            "created_by",
+            "created_at",
+            "updated_at",
+            "resolved_by",
+            "resolved_at",
+        ]

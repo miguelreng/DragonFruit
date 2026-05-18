@@ -7,7 +7,7 @@
 import { Extension } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import { ReactRenderer } from "@tiptap/react";
-import Suggestion from "@tiptap/suggestion";
+import { Suggestion } from "@tiptap/suggestion";
 import type { SuggestionOptions } from "@tiptap/suggestion";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
@@ -15,12 +15,16 @@ import { CORE_EXTENSIONS } from "@/constants/extension";
 import { updateFloatingUIFloaterPosition } from "@/helpers/floating-ui";
 import type { CommandListInstance } from "@/helpers/tippy";
 import { DROPDOWN_NAVIGATION_KEYS } from "@/helpers/tippy";
+// plane editor types
+import type { TEmbedConfig } from "@/plane-editor/types/issue-embed";
 // types
 import type { IEditorProps, ISlashCommandItem, TEditorCommands, TSlashCommandSectionKeys } from "@/types";
 // components
 import { getSlashCommandFilteredSections } from "./command-items-list";
 import type { SlashCommandsMenuProps } from "./command-menu";
 import { SlashCommandsMenu } from "./command-menu";
+
+const NO_OP = (): void => {};
 
 export type SlashCommandOptions = {
   suggestion: Omit<SuggestionOptions, "editor">;
@@ -60,7 +64,7 @@ const Command = Extension.create<SlashCommandOptions>({
         editor: this.editor,
         render: () => {
           let component: ReactRenderer<CommandListInstance, SlashCommandsMenuProps> | null = null;
-          let cleanup: () => void = () => {};
+          let cleanup: () => void = NO_OP;
           let editorRef: Editor | null = null;
 
           const handleClose = (editor?: Editor) => {
@@ -125,6 +129,7 @@ const Command = Extension.create<SlashCommandOptions>({
 
 export type TExtensionProps = Pick<IEditorProps, "disabledExtensions" | "flaggedExtensions"> & {
   additionalOptions?: TSlashCommandAdditionalOption[];
+  embedConfig?: TEmbedConfig;
 };
 
 export function SlashCommands(props: TExtensionProps) {

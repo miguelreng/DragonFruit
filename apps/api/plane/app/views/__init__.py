@@ -174,6 +174,7 @@ from .page.base import (
     PageDuplicateEndpoint,
 )
 from .page.version import PageVersionEndpoint
+from .page.comment import PageBlockCommentEndpoint, PageBlockCommentDetailEndpoint
 
 from .search.base import GlobalSearchEndpoint, SearchEndpoint
 from .search.issue import IssueSearchEndpoint
@@ -181,8 +182,10 @@ from .search.issue import IssueSearchEndpoint
 
 from .external.base import (
     GPTIntegrationEndpoint,
+    TranscriptToDocEndpoint,
     UnsplashEndpoint,
     WorkspaceGPTIntegrationEndpoint,
+    WorkspaceLLMConfigEndpoint,
 )
 from .estimate.base import (
     ProjectEstimatePointEndpoint,

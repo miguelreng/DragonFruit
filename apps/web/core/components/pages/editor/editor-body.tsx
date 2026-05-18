@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { LIVE_BASE_PATH, LIVE_BASE_URL } from "@plane/constants";
@@ -24,6 +24,13 @@ import type { TSearchEntityRequestPayload, TSearchResponse, TWebhookConnectionQu
 import { ERowVariant, Row } from "@plane/ui";
 import { cn, generateRandomColor, hslToHex } from "@plane/utils";
 // components
+import {
+  BLOCK_COMMENT_REQUEST_EVENT,
+  BLOCK_COMMENT_TOGGLE_PANEL_EVENT,
+  BlockCommentComposer,
+  BlockCommentsPanel,
+  type BlockCommentRequestDetail,
+} from "@/components/editor/comments";
 import { EditorMentionsRoot } from "@/components/editor/embeds/mentions";
 // hooks
 import { useEditorMention } from "@/hooks/editor";
@@ -32,6 +39,7 @@ import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser } from "@/hooks/store/user";
 import { usePageFilters } from "@/hooks/use-page-filters";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
+import { useIssueEmbed } from "@/plane-web/hooks/use-issue-embed";
 // plane web imports
 import type { TCustomEventHandlers } from "@/hooks/use-realtime-page-events";
 import { useRealtimePageEvents } from "@/hooks/use-realtime-page-events";
@@ -110,6 +118,60 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     enableAdvancedMentions: true,
     searchEntity: handlers.fetchEntity,
   });
+  // use issue embed
+  const insertGeneratedSpec = useCallback(
+    (doc: object) => {
+      editorRef?.setEditorValueAtCursorPosition(doc as Parameters<typeof editorRef.setEditorValueAtCursorPosition>[0]);
+    },
+    [editorRef]
+  );
+  const {
+    issueEmbedProps,
+    renderPicker: renderWorkItemPicker,
+    renderTranscriptModal,
+  } = useIssueEmbed({
+    fetchEmbedSuggestions: handlers.fetchEntity,
+    projectId,
+    workspaceSlug,
+    onInsertGeneratedContent: insertGeneratedSpec,
+  });
+  const embedConfig = useMemo(() => ({ issue: issueEmbedProps }), [issueEmbedProps]);
+  // block-level comments — composer + panel are mounted at the end of the editor tree
+  const [composerCommentId, setComposerCommentId] = useState<string | null>(null);
+  const composerCancelRef = useRef<(() => void) | null>(null);
+  const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
+  const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
+
+  useEffect(() => {
+    // The slash commands dispatch CustomEvent({ bubbles: true }) on the editor DOM;
+    // they bubble up to window, so we listen there to stay agnostic of the editor ref shape.
+    const onRequest = (e: Event) => {
+      const detail = (e as CustomEvent<BlockCommentRequestDetail>).detail;
+      composerCancelRef.current = detail.cancel;
+      setComposerCommentId(detail.commentId);
+    };
+    const onTogglePanel = () => setCommentsPanelOpen((v) => !v);
+    window.addEventListener(BLOCK_COMMENT_REQUEST_EVENT, onRequest);
+    window.addEventListener(BLOCK_COMMENT_TOGGLE_PANEL_EVENT, onTogglePanel);
+    return () => {
+      window.removeEventListener(BLOCK_COMMENT_REQUEST_EVENT, onRequest);
+      window.removeEventListener(BLOCK_COMMENT_TOGGLE_PANEL_EVENT, onTogglePanel);
+    };
+  }, []);
+
+  const handleComposerSubmit = useCallback(() => {
+    composerCancelRef.current = null; // keep the mark
+    setComposerCommentId(null);
+    setCommentsRefreshKey((k) => k + 1);
+    setCommentsPanelOpen(true);
+  }, []);
+
+  const handleComposerCancel = useCallback(() => {
+    composerCancelRef.current?.();
+    composerCancelRef.current = null;
+    setComposerCommentId(null);
+  }, []);
+
   // editor flaggings
   const { document: documentEditorExtensions } = useEditorFlagging({
     workspaceSlug,
@@ -244,14 +306,14 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
           <div className="page-summary-container absolute top-[64px] right-0 z-[5] h-full">
             <div className="sticky top-[72px]">
               <div className="group/page-toc relative px-page-x">
-                <div
-                  className="max-h-[50vh] !cursor-pointer overflow-hidden"
-                  role="button"
+                <button
+                  type="button"
+                  className="max-h-[50vh] !cursor-pointer overflow-hidden text-left"
                   aria-label={t("page_navigation_pane.outline_floating_button")}
                   onClick={handleOpenNavigationPane}
                 >
                   <PageContentBrowser className="overflow-y-auto" editorRef={editorRef} showOutline />
-                </div>
+                </button>
                 <div className="vertical-scrollbar pointer-events-none absolute top-0 right-0 scrollbar-sm max-h-[70vh] w-52 translate-x-1/2 overflow-y-scroll rounded-sm bg-surface-2 p-4 whitespace-nowrap opacity-0 transition-all duration-300 group-hover/page-toc:pointer-events-auto group-hover/page-toc:-translate-x-1/4 group-hover/page-toc:opacity-100">
                   <PageContentBrowser className="overflow-y-auto" editorRef={editorRef} />
                 </div>
@@ -281,7 +343,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
                 if (!res) throw new Error("Failed in fetching mentions");
                 return res;
               },
-              renderComponent: (props) => <EditorMentionsRoot {...props} />,
+              renderComponent: (mentionProps) => <EditorMentionsRoot {...mentionProps} />,
               getMentionedEntityDetails: (id: string) => ({ display_name: getUserDetails(id)?.display_name ?? "" }),
             }}
             updatePageProperties={updatePageProperties}
@@ -293,9 +355,29 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             aiHandler={{
               menu: getAIMenu,
             }}
+            embedConfig={embedConfig}
             onAssetChange={updateAssetsList}
             extendedEditorProps={extendedEditorProps}
             isFetchingFallbackBinary={isFetchingFallbackBinary}
+          />
+          {renderWorkItemPicker()}
+          {renderTranscriptModal()}
+          <BlockCommentComposer
+            isOpen={composerCommentId !== null}
+            commentId={composerCommentId}
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            pageId={pageId}
+            onSubmitted={handleComposerSubmit}
+            onCancel={handleComposerCancel}
+          />
+          <BlockCommentsPanel
+            isOpen={commentsPanelOpen}
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            pageId={pageId}
+            onClose={() => setCommentsPanelOpen(false)}
+            refreshKey={commentsRefreshKey}
           />
         </div>
       </div>

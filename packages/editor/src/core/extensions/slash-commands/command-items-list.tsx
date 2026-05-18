@@ -15,15 +15,21 @@ import {
   Heading5,
   Heading6,
   ImageIcon,
+  Link as LinkIcon,
   List,
   ListOrdered,
   ListTodo,
+  MessageCircle,
   MessageSquareText,
   MinusSquare,
+  PanelRightOpen,
+  Plus,
   Smile,
+  Sparkles,
   Table,
   TextQuote,
 } from "lucide-react";
+import { v4 as generateUuid } from "uuid";
 // constants
 import { COLORS_LIST } from "@/constants/common";
 // helpers
@@ -57,7 +63,7 @@ export type TSlashCommandSection = {
 export const getSlashCommandFilteredSections =
   (args: TExtensionProps) =>
   ({ query }: { query: string }): TSlashCommandSection[] => {
-    const { additionalOptions: externalAdditionalOptions, disabledExtensions, flaggedExtensions } = args;
+    const { additionalOptions: externalAdditionalOptions, disabledExtensions, embedConfig, flaggedExtensions } = args;
     const SLASH_COMMAND_SECTIONS: TSlashCommandSection[] = [
       {
         key: "general",
@@ -211,6 +217,144 @@ export const getSlashCommandFilteredSections =
           },
         ],
       },
+      ...(() => {
+        const workItems: ISlashCommandItem[] = [];
+        if (embedConfig?.issue?.onPickerRequest) {
+          workItems.push({
+            commandKey: "issue-embed",
+            key: "embed-work-item",
+            title: "Embed work item",
+            description: "Search and link an existing task",
+            searchTerms: ["embed", "issue", "task", "work item", "link"],
+            icon: <LinkIcon className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              embedConfig.issue?.onPickerRequest?.({
+                mode: "embed",
+                insertEmbed: ({ workItemId, projectId, workspaceSlug }) => {
+                  editor
+                    .chain()
+                    .focus()
+                    .deleteRange(range)
+                    .insertContent({
+                      type: "work-item-embed",
+                      attrs: {
+                        entity_identifier: workItemId,
+                        project_identifier: projectId,
+                        workspace_identifier: workspaceSlug,
+                        entity_name: "work_item",
+                      },
+                    })
+                    .run();
+                },
+              });
+            },
+          });
+          workItems.push({
+            commandKey: "issue-embed",
+            key: "new-work-item",
+            title: "New work item",
+            description: "Create a task here and embed it",
+            searchTerms: ["new", "create", "task", "work item", "issue"],
+            icon: <Plus className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              embedConfig.issue?.onPickerRequest?.({
+                mode: "create",
+                insertEmbed: ({ workItemId, projectId, workspaceSlug }) => {
+                  editor
+                    .chain()
+                    .focus()
+                    .deleteRange(range)
+                    .insertContent({
+                      type: "work-item-embed",
+                      attrs: {
+                        entity_identifier: workItemId,
+                        project_identifier: projectId,
+                        workspace_identifier: workspaceSlug,
+                        entity_name: "work_item",
+                      },
+                    })
+                    .run();
+                },
+              });
+            },
+          });
+        }
+        if (embedConfig?.issue?.onTranscriptRequest) {
+          workItems.push({
+            commandKey: "issue-embed",
+            key: "spec-from-transcript",
+            title: "Spec from transcript",
+            description: "Paste a meeting, get a draft",
+            searchTerms: ["spec", "transcript", "meeting", "ai", "summary", "draft"],
+            icon: <Sparkles className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              editor.chain().focus().deleteRange(range).run();
+              embedConfig.issue?.onTranscriptRequest?.();
+            },
+          });
+        }
+        workItems.push({
+          commandKey: "issue-embed",
+          key: "add-block-comment",
+          title: "Comment on this block",
+          description: "Leave a comment thread on the current block",
+          searchTerms: ["comment", "feedback", "review", "suggest", "thread"],
+          icon: <MessageCircle className="size-3.5" />,
+          command: ({ editor, range }: CommandProps) => {
+            // Remove the slash text first.
+            editor.chain().focus().deleteRange(range).run();
+            // Mark the parent block's text range with a fresh comment id.
+            const { $from } = editor.state.selection;
+            const start = $from.start();
+            const end = $from.end();
+            if (start === end) return; // empty block — nothing to mark
+            const commentId = generateUuid();
+            editor
+              .chain()
+              .setTextSelection({ from: start, to: end })
+              .setBlockComment(commentId)
+              .setTextSelection($from.pos)
+              .run();
+            // Ask the host to open the composer popover.
+            editor.view.dom.dispatchEvent(
+              new CustomEvent("dragonfruit:request-block-comment", {
+                bubbles: true,
+                detail: {
+                  commentId,
+                  cancel: () => {
+                    editor
+                      .chain()
+                      .setTextSelection({ from: start, to: end })
+                      .unsetBlockComment()
+                      .setTextSelection($from.pos)
+                      .run();
+                  },
+                },
+              })
+            );
+          },
+        });
+        workItems.push({
+          commandKey: "issue-embed",
+          key: "open-comments-panel",
+          title: "Show comments",
+          description: "Toggle the comments side panel",
+          searchTerms: ["comments", "show", "panel", "review", "discussion"],
+          icon: <PanelRightOpen className="size-3.5" />,
+          command: ({ editor, range }: CommandProps) => {
+            editor.chain().focus().deleteRange(range).run();
+            editor.view.dom.dispatchEvent(new CustomEvent("dragonfruit:toggle-comments-panel", { bubbles: true }));
+          },
+        });
+        if (workItems.length === 0) return [];
+        return [
+          {
+            key: "work" as const,
+            title: "Work",
+            items: workItems,
+          } as TSlashCommandSection,
+        ];
+      })(),
       {
         key: "text-colors",
         title: "Colors",
@@ -319,19 +463,19 @@ export const getSlashCommandFilteredSections =
       }
     });
 
-    const filteredSlashSections = SLASH_COMMAND_SECTIONS.map((section) => ({
-      ...section,
-      items: section.items.filter((item) => {
-        if (typeof query !== "string") return;
-
-        const lowercaseQuery = query.toLowerCase();
-        return (
+    const lowercaseQuery = typeof query === "string" ? query.toLowerCase() : null;
+    for (const section of SLASH_COMMAND_SECTIONS) {
+      if (lowercaseQuery === null) {
+        section.items = [];
+        continue;
+      }
+      section.items = section.items.filter(
+        (item) =>
           item.title.toLowerCase().includes(lowercaseQuery) ||
           item.description.toLowerCase().includes(lowercaseQuery) ||
           item.searchTerms.some((t) => t.includes(lowercaseQuery))
-        );
-      }),
-    }));
+      );
+    }
 
-    return filteredSlashSections.filter((s) => s.items.length !== 0);
+    return SLASH_COMMAND_SECTIONS.filter((s) => s.items.length !== 0);
   };

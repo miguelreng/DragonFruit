@@ -19,6 +19,7 @@ import type {
   TExtendedEditorCommands,
   ICollaborativeDocumentEditorPropsExtended,
 } from "@/plane-editor/types/editor-extended";
+import type { TEmbedConfig } from "@/plane-editor/types/issue-embed";
 // types
 import type {
   IMarking,
@@ -141,7 +142,7 @@ export type CoreEditorRefApi = {
 
   scrollToNodeViaDOMCoordinates: ({ pos, behavior }: { pos?: number; behavior?: ScrollBehavior }) => void;
   setEditorValue: (content: string, emitUpdate?: boolean) => void;
-  setEditorValueAtCursorPosition: (content: string) => void;
+  setEditorValueAtCursorPosition: (content: Content) => void;
   setFocusAtPosition: (position: number) => void;
   setProviderDocument: (value: Uint8Array) => void;
   undo: () => void;
@@ -182,6 +183,7 @@ export type IEditorProps = {
   value?: string | null;
   extendedEditorProps: IEditorPropsExtended;
   workItemIdentifier?: string | null;
+  embedConfig?: TEmbedConfig;
 };
 
 export type ILiteTextEditorProps = IEditorProps;

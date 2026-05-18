@@ -4,5 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export * from "./issue-embed-card";
-export * from "./issue-embed-upgrade-card";
+export * from "./picker";
