@@ -28,9 +28,7 @@ import { LogoSpinner } from "@/components/common/logo-spinner";
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
 // fonts – side-effect imports
-// oxlint-disable-next-line no-unassigned-import
-import "@fontsource-variable/figtree";
-import figtreeVariableWoff2 from "@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2?url";
+// Figtree is self-hosted from /public/fonts via @font-face in globals.css.
 // oxlint-disable-next-line no-unassigned-import
 import "@fontsource/material-symbols-rounded";
 // oxlint-disable-next-line no-unassigned-import
@@ -50,9 +48,9 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
-    href: figtreeVariableWoff2,
+    href: "/fonts/Figtree-Variable.ttf",
     as: "font",
-    type: "font/woff2",
+    type: "font/ttf",
     crossOrigin: "anonymous",
   },
 ];
