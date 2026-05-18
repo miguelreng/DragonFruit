@@ -74,6 +74,13 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
         sort_order: personalPreferences.items.drafts.sort_order,
       });
     }
+    // Docs: always shown at top level, after drafts.
+    if (WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["docs"]) {
+      personalItems.push({
+        ...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["docs"],
+        sort_order: Number.MAX_SAFE_INTEGER,
+      });
+    }
 
     // Sort personal items by sort_order
     personalItems.sort((a, b) => a.sort_order - b.sort_order);
