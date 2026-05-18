@@ -32,6 +32,7 @@ function DocumentEditor(props: IDocumentEditorProps) {
     displayConfig = DEFAULT_DISPLAY_CONFIG,
     editable,
     editorClassName = "",
+    embedConfig,
     extendedEditorProps,
     fileHandler,
     flaggedExtensions,
@@ -55,6 +56,7 @@ function DocumentEditor(props: IDocumentEditorProps) {
       HeadingListExtension,
       ...DocumentEditorAdditionalExtensions({
         disabledExtensions,
+        embedConfig,
         extendedEditorProps,
         flaggedExtensions,
         isEditable: editable,
@@ -67,7 +69,7 @@ function DocumentEditor(props: IDocumentEditorProps) {
       })
     );
     return additionalExtensions;
-  }, [disabledExtensions, editable, extendedEditorProps, fileHandler, flaggedExtensions, user]);
+  }, [disabledExtensions, editable, embedConfig, extendedEditorProps, fileHandler, flaggedExtensions, user]);
 
   const editor = useEditor({
     disabledExtensions,

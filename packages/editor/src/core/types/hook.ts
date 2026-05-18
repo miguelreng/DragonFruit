@@ -14,6 +14,7 @@ type TCoreHookProps = Pick<
   | "disabledExtensions"
   | "editorClassName"
   | "editorProps"
+  | "embedConfig"
   | "extendedEditorProps"
   | "extensions"
   | "flaggedExtensions"

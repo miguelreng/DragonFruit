@@ -11,6 +11,8 @@ from plane.app.views import (
     PagesDescriptionViewSet,
     PageVersionEndpoint,
     PageDuplicateEndpoint,
+    PageBlockCommentEndpoint,
+    PageBlockCommentDetailEndpoint,
 )
 
 urlpatterns = [
@@ -72,5 +74,16 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/duplicate/",
         PageDuplicateEndpoint.as_view(),
         name="page-duplicate",
+    ),
+    # Block-level comments on a page (Dragon Fruit)
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/block-comments/",
+        PageBlockCommentEndpoint.as_view(),
+        name="page-block-comments",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/block-comments/<uuid:comment_id>/",
+        PageBlockCommentDetailEndpoint.as_view(),
+        name="page-block-comment-detail",
     ),
 ]

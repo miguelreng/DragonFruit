@@ -220,3 +220,21 @@
 .editor-container.dragonfruit.focus-mode .ProseMirror ol:has(.has-focus) {
   opacity: 1;
 }
+
+/* ─── 13. Block comments ──────────────────────────────────────────────── */
+
+.ProseMirror .dragonfruit-block-comment {
+  background-color: color-mix(in srgb, var(--background-color-accent-primary) 14%, transparent);
+  border-bottom: 1px dotted color-mix(in srgb, var(--background-color-accent-primary) 60%, transparent);
+  border-radius: 1px;
+  cursor: help;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.ProseMirror .dragonfruit-block-comment:hover,
+.ProseMirror .dragonfruit-block-comment[data-active="true"] {
+  background-color: color-mix(in srgb, var(--background-color-accent-primary) 28%, transparent);
+  border-bottom-style: solid;
+}

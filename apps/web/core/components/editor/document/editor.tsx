@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { forwardRef } from "react";
+import { forwardRef, useMemo } from "react";
 // plane imports
 import { DocumentEditorWithRef } from "@plane/editor";
 import type { IEditorPropsExtended, EditorRefApi, IDocumentEditorProps, TFileHandler } from "@plane/editor";
@@ -16,6 +16,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
 // plane web hooks
 import { useEditorFlagging } from "@/plane-web/hooks/use-editor-flagging";
+import { useIssueEmbed } from "@/plane-web/hooks/use-issue-embed";
 // local imports
 import { EditorMentionsRoot } from "../embeds/mentions";
 
@@ -70,36 +71,47 @@ export const DocumentEditor = forwardRef(function DocumentEditor(
     enableAdvancedMentions: true,
     searchEntity: editable ? async (payload) => await props.searchMentionCallback(payload) : async () => ({}),
   });
+  // use issue embed
+  const { issueEmbedProps, renderPicker: renderWorkItemPicker } = useIssueEmbed({
+    fetchEmbedSuggestions: editable ? async (payload) => await props.searchMentionCallback(payload) : undefined,
+    projectId,
+    workspaceSlug,
+  });
+  const embedConfig = useMemo(() => ({ issue: issueEmbedProps }), [issueEmbedProps]);
   // editor config
   const { getEditorFileHandlers } = useEditorConfig();
 
   return (
-    <DocumentEditorWithRef
-      ref={ref}
-      disabledExtensions={[...documentEditorExtensions.disabled, ...(additionalDisabledExtensions ?? [])]}
-      editable={editable}
-      flaggedExtensions={documentEditorExtensions.flagged}
-      fileHandler={getEditorFileHandlers({
-        projectId,
-        uploadFile: editable ? props.uploadFile : async () => "",
-        duplicateFile: editable ? props.duplicateFile : async () => "",
-        workspaceId,
-        workspaceSlug,
-      })}
-      getEditorMetaData={getEditorMetaData}
-      mentionHandler={{
-        searchCallback: async (query) => {
-          const res = await fetchMentions(query);
-          if (!res) throw new Error("Failed in fetching mentions");
-          return res;
-        },
-        renderComponent: EditorMentionsRoot,
-        getMentionedEntityDetails: (id: string) => ({ display_name: getUserDetails(id)?.display_name ?? "" }),
-      }}
-      extendedEditorProps={extendedEditorProps}
-      {...rest}
-      containerClassName={cn("relative pb-3 pl-3", containerClassName)}
-    />
+    <>
+      <DocumentEditorWithRef
+        ref={ref}
+        disabledExtensions={[...documentEditorExtensions.disabled, ...(additionalDisabledExtensions ?? [])]}
+        editable={editable}
+        flaggedExtensions={documentEditorExtensions.flagged}
+        fileHandler={getEditorFileHandlers({
+          projectId,
+          uploadFile: editable ? props.uploadFile : async () => "",
+          duplicateFile: editable ? props.duplicateFile : async () => "",
+          workspaceId,
+          workspaceSlug,
+        })}
+        getEditorMetaData={getEditorMetaData}
+        mentionHandler={{
+          searchCallback: async (query) => {
+            const res = await fetchMentions(query);
+            if (!res) throw new Error("Failed in fetching mentions");
+            return res;
+          },
+          renderComponent: EditorMentionsRoot,
+          getMentionedEntityDetails: (id: string) => ({ display_name: getUserDetails(id)?.display_name ?? "" }),
+        }}
+        extendedEditorProps={extendedEditorProps}
+        {...rest}
+        embedConfig={embedConfig}
+        containerClassName={cn("relative pb-3 pl-3", containerClassName)}
+      />
+      {renderWorkItemPicker()}
+    </>
   );
 });
 

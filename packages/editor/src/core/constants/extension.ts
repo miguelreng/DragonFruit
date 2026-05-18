@@ -49,6 +49,7 @@ export enum CORE_EXTENSIONS {
   WORK_ITEM_EMBED = "issue-embed-component",
   EMOJI = "emoji",
   UNIQUE_ID = "uniqueID",
+  BLOCK_COMMENT = "blockComment",
 }
 
 export const BLOCK_NODE_TYPES = [

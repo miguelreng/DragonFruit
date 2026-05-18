@@ -180,3 +180,42 @@ class PageVersion(BaseModel):
             else strip_tags(self.description_html)
         )
         super(PageVersion, self).save(*args, **kwargs)
+
+
+class PageBlockComment(BaseModel):
+    """
+    A comment attached to a specific span of text inside a Page's description.
+
+    The editor renders a TipTap mark with `data-block-comment-id="<uuid>"`. That UUID
+    is the `block_id` here. Multiple comments can share the same `block_id` to form a thread.
+    """
+
+    workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="page_block_comments")
+    page = models.ForeignKey("db.Page", on_delete=models.CASCADE, related_name="block_comments")
+    block_id = models.CharField(max_length=64)
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="replies",
+    )
+    content = models.TextField()
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_page_block_comments",
+    )
+
+    class Meta:
+        verbose_name = "Page Block Comment"
+        verbose_name_plural = "Page Block Comments"
+        db_table = "page_block_comments"
+        ordering = ("created_at",)
+        indexes = [
+            models.Index(fields=["page", "block_id"]),
+            models.Index(fields=["page", "resolved_at"]),
+        ]

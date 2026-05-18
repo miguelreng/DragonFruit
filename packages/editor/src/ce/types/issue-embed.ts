@@ -10,14 +10,29 @@ export type TEmbedConfig = {
 
 export type TReadOnlyEmbedConfig = TEmbedConfig;
 
+export type TWorkItemEmbedInsertAttrs = {
+  workItemId: string;
+  projectId: string;
+  workspaceSlug: string;
+};
+
+export type TWorkItemPickerMode = "embed" | "create";
+
+export type TWorkItemPickerRequest = {
+  mode: TWorkItemPickerMode;
+  insertEmbed: (attrs: TWorkItemEmbedInsertAttrs) => void;
+};
+
 export type TIssueEmbedConfig = {
-  widgetCallback: ({
-    issueId,
-    projectId,
-    workspaceSlug,
-  }: {
+  widgetCallback: (args: {
     issueId: string;
     projectId: string | undefined;
     workspaceSlug: string | undefined;
+    draft: boolean;
+    draftTitle: string | undefined;
+    draftDescription: string | undefined;
+    promote: (attrs: TWorkItemEmbedInsertAttrs) => void;
   }) => React.ReactNode;
+  onPickerRequest?: (request: TWorkItemPickerRequest) => void;
+  onTranscriptRequest?: () => void;
 };

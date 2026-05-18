@@ -6,7 +6,7 @@
 
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import type { Extensions } from "@tiptap/core";
-import Collaboration from "@tiptap/extension-collaboration";
+import { Collaboration } from "@tiptap/extension-collaboration";
 // react
 import type React from "react";
 import { useEffect, useMemo } from "react";
@@ -47,6 +47,7 @@ export const useCollaborativeEditor = (props: UseCollaborativeEditorArgs) => {
     editable,
     editorClassName = "",
     editorProps = {},
+    embedConfig,
     extendedEditorProps,
     extensions = [],
     fileHandler,
@@ -84,6 +85,7 @@ export const useCollaborativeEditor = (props: UseCollaborativeEditorArgs) => {
       ...extensions,
       ...DocumentEditorAdditionalExtensions({
         disabledExtensions,
+        embedConfig,
         extendedEditorProps,
         fileHandler,
         flaggedExtensions,
@@ -97,6 +99,7 @@ export const useCollaborativeEditor = (props: UseCollaborativeEditorArgs) => {
       provider,
       disabledExtensions,
       dragDropEnabled,
+      embedConfig,
       extensions,
       extendedEditorProps,
       fileHandler,

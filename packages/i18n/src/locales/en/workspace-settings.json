@@ -97,6 +97,21 @@
           }
         }
       },
+      "ai": {
+        "title": "AI",
+        "heading": "AI",
+        "description": "Bring your own LLM key for AI features in this workspace. Overrides the instance-level LLM settings.",
+        "provider_label": "Provider",
+        "model_label": "Model",
+        "api_key_label": "API key",
+        "api_key_placeholder": "Paste your provider API key",
+        "current_key": "Current key:",
+        "no_override": "No workspace override. Falling back to the instance LLM settings.",
+        "save": "Save",
+        "clear": "Remove workspace override",
+        "saved": "Saved",
+        "save_error": "Couldn't save. Check the key and provider/model combination."
+      },
       "webhooks": {
         "heading": "Webhooks",
         "description": "Automate notifications to external services when project events occur.",
