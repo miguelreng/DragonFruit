@@ -188,6 +188,7 @@ from .calendar.base import (
     CalendarAccountEventsEndpoint,
     GoogleCalendarStartEndpoint,
     GoogleCalendarCallbackEndpoint,
+    MyCalendarTasksEndpoint,
 )
 
 from .search.base import GlobalSearchEndpoint, SearchEndpoint

@@ -7,6 +7,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+import { Temporal } from "@js-temporal/polyfill";
+
+// Schedule-X v4 checks events.start with `instanceof Temporal.ZonedDateTime`
+// against the *global* Temporal. The polyfill lives in its own module scope
+// by default, so we have to install it as a global before Schedule-X runs.
+if (typeof globalThis !== "undefined" && !(globalThis as { Temporal?: unknown }).Temporal) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).Temporal = Temporal;
+}
+
 import { ScheduleXCalendar } from "@schedule-x/react";
 import {
   createCalendar,
@@ -16,57 +26,173 @@ import {
 } from "@schedule-x/calendar";
 import { createEventsServicePlugin } from "@schedule-x/events-service";
 import "@schedule-x/theme-default/dist/index.css";
-import { Calendar as CalendarIcon, Trash2 } from "@/components/icons/lucide-shim";
-import { CalendarService, type TCalendarAccount, type TCalendarEvent } from "@/services/calendar.service";
+
+// Schedule-X v4 expects Temporal types. The runtime Temporal API isn't shipped
+// in browsers yet (Stage 3 proposal); the polyfill makes it available globally.
+// Lib-types prefer the built-in, but the polyfill is API-compatible at runtime.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const T = Temporal as any;
+import { Calendar as CalendarIcon, Check, Trash2 } from "@/components/icons/lucide-shim";
+import {
+  CalendarService,
+  type TCalendarAccount,
+  type TCalendarEvent,
+  type TCalendarTask,
+} from "@/services/calendar.service";
 
 const calendarService = new CalendarService();
+const TASKS_CALENDAR_ID = "tasks";
+const GOOGLE_CALENDAR_ID = "google";
 
-// Schedule-X expects "YYYY-MM-DD HH:mm" for timed events and "YYYY-MM-DD" for all-day.
-function toScheduleXTime(iso: string, allDay: boolean): string {
-  if (!iso) return "";
-  if (allDay) return iso.slice(0, 10);
-  const d = new Date(iso);
-  const pad = (n: number) => `${n}`.padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+// Schedule-X v4: events use Temporal types. All-day -> PlainDate; timed -> ZonedDateTime.
+// We pull Temporal off the global (the same namespace Schedule-X's instanceof
+// checks read from) to guarantee constructor identity.
+function toTemporal(iso: string, allDay: boolean) {
+  if (!iso) return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const GlobalT = (globalThis as any).Temporal as typeof Temporal | undefined;
+  if (!GlobalT) return null;
+  const dateOnly = allDay || iso.length === 10;
+  if (dateOnly) {
+    return GlobalT.PlainDate.from(iso.slice(0, 10));
+  }
+  const normalized = iso.endsWith("Z") ? iso.slice(0, -1) + "+00:00" : iso;
+  return GlobalT.ZonedDateTime.from(`${normalized}[UTC]`);
 }
 
-function toScheduleXEvent(e: TCalendarEvent) {
+function taskToScheduleXEvent(t: TCalendarTask, workspaceSlug: string) {
+  const startSrc = t.start ?? t.end;
+  const endSrc = t.end ?? t.start;
+  if (!startSrc || !endSrc) return null;
+  const allDay = startSrc.length === 10;
+  const start = toTemporal(startSrc, allDay);
+  const end = toTemporal(endSrc, allDay);
+  if (!start || !end) return null;
   return {
-    id: e.id,
-    title: e.title,
-    description: e.description,
-    location: e.location,
-    start: toScheduleXTime(e.start, e.all_day),
-    end: toScheduleXTime(e.end, e.all_day),
+    id: `task-${t.id}`,
+    title: t.project_identifier && t.sequence_id ? `${t.project_identifier}-${t.sequence_id}  ${t.title}` : t.title,
+    start,
+    end,
+    calendarId: TASKS_CALENDAR_ID,
+    description: t.state_name ? `Status: ${t.state_name}` : "",
+    _dragonfruit: { kind: "task" as const, projectId: t.project_id, taskId: t.id, workspaceSlug },
   };
 }
 
+function googleEventToScheduleXEvent(e: TCalendarEvent) {
+  const start = toTemporal(e.start, e.all_day);
+  const end = toTemporal(e.end, e.all_day);
+  if (!start || !end) return null;
+  return {
+    id: `gcal-${e.id}`,
+    title: e.title,
+    start,
+    end,
+    calendarId: GOOGLE_CALENDAR_ID,
+    description: e.description,
+    location: e.location,
+  };
+}
+
+const CALENDARS_CONFIG = {
+  [TASKS_CALENDAR_ID]: {
+    colorName: "tasks",
+    lightColors: { main: "#ec4899", container: "#fce7f3", onContainer: "#831843" },
+    darkColors: { main: "#f9a8d4", container: "#831843", onContainer: "#fce7f3" },
+  },
+  [GOOGLE_CALENDAR_ID]: {
+    colorName: "google",
+    lightColors: { main: "#2563eb", container: "#dbeafe", onContainer: "#1e3a8a" },
+    darkColors: { main: "#93c5fd", container: "#1e3a8a", onContainer: "#dbeafe" },
+  },
+};
+
 export function CalendarRoot() {
-  const { data: accounts, isLoading, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>(
+  const { workspaceSlug } = useParams() as { workspaceSlug: string };
+
+  // Tasks: always loaded.
+  const taskRange = useMemo(() => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const to = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59).toISOString();
+    return { from, to };
+  }, []);
+  const { data: tasksRes } = useSWR(
+    workspaceSlug ? `CALENDAR_TASKS_${workspaceSlug}` : null,
+    () => calendarService.tasks(workspaceSlug, taskRange)
+  );
+
+  // Google: optional overlay.
+  const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>(
     "CALENDAR_ACCOUNTS",
     () => calendarService.list()
   );
-  const account = accounts?.[0];
+  const googleAccount = accounts?.[0];
 
-  if (isLoading) return <CalendarSkeleton />;
-  if (!account) return <ConnectGoogleEmptyState refetchAccounts={refetchAccounts} />;
-  return <ConnectedCalendar account={account} refetchAccounts={refetchAccounts} />;
+  const { data: gEventsRes } = useSWR(
+    googleAccount ? `CALENDAR_EVENTS_${googleAccount.id}` : null,
+    () => calendarService.events(googleAccount!.id, taskRange)
+  );
+
+  const sxEvents = useMemo(() => {
+    const taskEvents = (tasksRes?.tasks ?? [])
+      .map((t) => taskToScheduleXEvent(t, workspaceSlug))
+      .filter((e): e is NonNullable<typeof e> => e !== null);
+    const gEvents = (gEventsRes?.events ?? [])
+      .map(googleEventToScheduleXEvent)
+      .filter((e): e is NonNullable<typeof e> => e !== null);
+    return [...taskEvents, ...gEvents];
+  }, [tasksRes, gEventsRes, workspaceSlug]);
+
+  const eventsService = useRef(createEventsServicePlugin()).current;
+  const calendarAppRef = useRef<ReturnType<typeof createCalendar> | null>(null);
+  if (!calendarAppRef.current) {
+    calendarAppRef.current = createCalendar({
+      views: [createViewMonthGrid(), createViewWeek(), createViewDay()],
+      defaultView: createViewMonthGrid().name,
+      events: sxEvents,
+      calendars: CALENDARS_CONFIG,
+      plugins: [eventsService],
+    });
+  }
+
+  useEffect(() => {
+    if (!eventsService) return;
+    eventsService.set(sxEvents);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sxEvents]);
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      <CalendarHeader
+        workspaceSlug={workspaceSlug}
+        taskCount={tasksRes?.tasks?.length ?? 0}
+        googleAccount={googleAccount}
+        refetchAccounts={refetchAccounts}
+      />
+      <div className="dragonfruit-calendar relative h-full w-full flex-1 overflow-hidden">
+        {calendarAppRef.current && <ScheduleXCalendar calendarApp={calendarAppRef.current} />}
+      </div>
+    </div>
+  );
 }
 
-function ConnectGoogleEmptyState({ refetchAccounts }: { refetchAccounts: () => void }) {
-  const { workspaceSlug } = useParams() as { workspaceSlug?: string };
+type CalendarHeaderProps = {
+  workspaceSlug: string;
+  taskCount: number;
+  googleAccount: TCalendarAccount | undefined;
+  refetchAccounts: () => void;
+};
+
+function CalendarHeader({ taskCount, googleAccount, refetchAccounts, workspaceSlug }: CalendarHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
     setIsConnecting(true);
-    // Remember which workspace to return to after Google bounces us through
-    // the top-level callback route.
-    if (workspaceSlug) {
-      try {
-        window.localStorage.setItem("last_workspace_slug", workspaceSlug);
-      } catch {
-        // ignore storage failures; the callback will fall back to /
-      }
+    try {
+      if (workspaceSlug) window.localStorage.setItem("last_workspace_slug", workspaceSlug);
+    } catch {
+      // ignore
     }
     try {
       const { authorize_url } = await calendarService.startGoogle();
@@ -77,105 +203,57 @@ function ConnectGoogleEmptyState({ refetchAccounts }: { refetchAccounts: () => v
     }
   };
 
-  return (
-    <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-4 p-8 text-center">
-      <CalendarIcon className="size-10 text-tertiary" />
-      <div>
-        <div className="text-base font-medium">Connect your calendar</div>
-        <div className="mt-1 text-sm text-tertiary">
-          See your Google Calendar events alongside DragonFruit. Read-only — we never modify your calendar.
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={handleConnect}
-        disabled={isConnecting}
-        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-      >
-        {isConnecting ? "Redirecting to Google…" : "Connect Google Calendar"}
-      </button>
-    </div>
-  );
-}
-
-function ConnectedCalendar({
-  account,
-  refetchAccounts,
-}: {
-  account: TCalendarAccount;
-  refetchAccounts: () => void;
-}) {
-  const eventsService = useRef(createEventsServicePlugin()).current;
-
-  // Range covers roughly the visible month grid plus a buffer.
-  const [range] = useState(() => {
-    const now = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-    const to = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
-    return { from, to };
-  });
-
-  const { data: eventsRes, isLoading } = useSWR(
-    account ? `CALENDAR_EVENTS_${account.id}` : null,
-    () => calendarService.events(account.id, range)
-  );
-
-  const sxEvents = useMemo(
-    () => (eventsRes?.events ?? []).map(toScheduleXEvent),
-    [eventsRes]
-  );
-
-  // Build the calendar once. Schedule-X expects a stable instance across
-  // renders; later event updates flow through the eventsService plugin.
-  const calendarAppRef = useRef<ReturnType<typeof createCalendar> | null>(null);
-  if (!calendarAppRef.current) {
-    calendarAppRef.current = createCalendar({
-      views: [createViewMonthGrid(), createViewWeek(), createViewDay()],
-      defaultView: createViewMonthGrid().name,
-      events: sxEvents,
-      plugins: [eventsService],
-    });
-  }
-
-  // When the events list refetches, sync the service.
-  useEffect(() => {
-    if (!eventsService) return;
-    eventsService.set(sxEvents);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sxEvents]);
-
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect this calendar? Events will stop showing.")) return;
-    await calendarService.disconnect(account.id);
+    if (!googleAccount) return;
+    if (!confirm("Disconnect Google Calendar?")) return;
+    await calendarService.disconnect(googleAccount.id);
     refetchAccounts();
   };
 
   return (
-    <div className="flex h-full w-full flex-col">
-      <div className="flex items-center justify-between border-b border-subtle-1 px-6 py-3">
-        <div className="flex items-center gap-2 text-sm">
-          <CalendarIcon className="size-4 text-tertiary" />
-          <span className="font-medium">{account.account_email || "Google Calendar"}</span>
-          {isLoading && <span className="text-xs text-tertiary">syncing…</span>}
-        </div>
-        <button
-          type="button"
-          onClick={handleDisconnect}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-tertiary hover:bg-layer-1-hover hover:text-primary"
-        >
-          <Trash2 className="size-3.5" />
-          Disconnect
-        </button>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle-1 px-6 py-3">
+      <div className="flex items-center gap-3 text-sm">
+        <LegendDot color="#ec4899" />
+        <span>
+          Your tasks <span className="ml-1 text-xs text-tertiary">· {taskCount}</span>
+        </span>
+        {googleAccount && (
+          <>
+            <span className="text-tertiary">·</span>
+            <LegendDot color="#2563eb" />
+            <span className="truncate">{googleAccount.account_email || "Google Calendar"}</span>
+          </>
+        )}
       </div>
-      <div className="dragonfruit-calendar h-full w-full flex-1 overflow-hidden">
-        {calendarAppRef.current && <ScheduleXCalendar calendarApp={calendarAppRef.current} />}
+      <div className="flex items-center gap-2">
+        {googleAccount ? (
+          <button
+            type="button"
+            onClick={handleDisconnect}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-tertiary hover:bg-layer-1-hover hover:text-primary"
+          >
+            <Trash2 className="size-3.5" />
+            Disconnect Google
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleConnect}
+            disabled={isConnecting}
+            className="flex items-center gap-1.5 rounded-md border border-subtle-1 px-2.5 py-1 text-xs font-medium text-primary hover:bg-layer-1-hover disabled:opacity-50"
+          >
+            <CalendarIcon className="size-3.5" />
+            {isConnecting ? "Redirecting…" : "Connect Google Calendar"}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-function CalendarSkeleton() {
-  return (
-    <div className="flex h-full w-full items-center justify-center text-sm text-tertiary">Loading calendar…</div>
-  );
+function LegendDot({ color }: { color: string }) {
+  return <span className="inline-block size-2 rounded-full" style={{ backgroundColor: color }} />;
 }
+
+// Suppress unused-import warning — Check is reserved for future state-group toggles.
+void Check;

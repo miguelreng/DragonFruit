@@ -2,21 +2,17 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-"""Google Calendar connection + read-only events fetch.
+"""Workspace calendar: native DragonFruit task calendar + optional Google overlay.
 
-Flow:
-  1. Frontend calls GET /api/users/me/calendar-accounts/google/start/
-     -> server returns { authorize_url } using its registered Google
-        OAuth client + the calendar.readonly scope.
-  2. User completes Google consent, Google redirects to the server's
-     callback URL with ?code=.
-  3. Server exchanges the code for tokens, hits the Calendar API once
-     to learn the user's primary calendar id + email, stores tokens
-     Fernet-encrypted.
-  4. Frontend fetches events for a date range via
-     GET /api/users/me/calendar-accounts/<id>/events/?from=&to=.
+There are two halves to this module:
 
-Read-only by design (no calendar.events write scope). v1.
+(1) Native task feed: `MyCalendarTasksEndpoint` returns issues across the
+    workspace where the current user is the assignee or creator, with a
+    target_date in the requested range. This drives the always-on calendar
+    view — no third-party connection required.
+
+(2) Google Calendar integration: read-only OAuth + events fetch. Optional
+    overlay on top of the native task feed. Tokens stored Fernet-encrypted.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -24,11 +20,12 @@ from urllib.parse import urlencode
 
 import requests
 from django.conf import settings
-from django.shortcuts import redirect
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
 
-from plane.db.models import UserCalendarAccount
+from plane.app.permissions import allow_permission, ROLE
+from plane.db.models import Issue, IssueAssignee, UserCalendarAccount
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 
 from ..base import BaseAPIView
@@ -276,3 +273,66 @@ def _event_to_dict(e: dict) -> dict:
         "html_link": e.get("htmlLink", ""),
         "status": e.get("status", ""),
     }
+
+
+class MyCalendarTasksEndpoint(BaseAPIView):
+    """Return tasks (issues) for the current user that fall within a date range.
+
+    Pulled across every project in the workspace where the user is a member.
+    Each entry is shaped for the Schedule-X frontend — title, start, end,
+    project, state, and the URL slug needed to link back.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def get(self, request, slug):
+        time_from = request.query_params.get("from")
+        time_to = request.query_params.get("to")
+        if not time_from or not time_to:
+            return Response({"error": "from and to are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from_dt = datetime.fromisoformat(time_from.replace("Z", "+00:00"))
+            to_dt = datetime.fromisoformat(time_to.replace("Z", "+00:00"))
+        except ValueError:
+            return Response({"error": "from/to must be ISO-8601"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+
+        # A task lands on the calendar if either its target_date or start_date
+        # intersects the visible range. Assigned-to-me OR created-by-me, scoped
+        # to projects the user is an active member of.
+        issues = (
+            Issue.issue_objects.filter(workspace__slug=slug)
+            .filter(project__project_projectmember__member=user, project__project_projectmember__is_active=True)
+            .filter(Q(assignees=user) | Q(created_by=user))
+            .filter(
+                Q(target_date__range=(from_dt.date(), to_dt.date()))
+                | Q(start_date__range=(from_dt.date(), to_dt.date()))
+            )
+            .select_related("project", "state")
+            .distinct()
+            .order_by("target_date", "start_date")
+        )
+
+        tasks = []
+        for issue in issues:
+            start = issue.start_date or issue.target_date
+            end = issue.target_date or issue.start_date
+            tasks.append(
+                {
+                    "id": str(issue.id),
+                    "sequence_id": issue.sequence_id,
+                    "title": issue.name,
+                    "project_id": str(issue.project_id) if issue.project_id else None,
+                    "project_identifier": issue.project.identifier if issue.project else "",
+                    "state_id": str(issue.state_id) if issue.state_id else None,
+                    "state_name": issue.state.name if issue.state else "",
+                    "state_color": issue.state.color if issue.state else "#9ca3af",
+                    "state_group": issue.state.group if issue.state else "",
+                    "start": start.isoformat() if start else None,
+                    "end": end.isoformat() if end else None,
+                    "priority": issue.priority,
+                    "completed": issue.state.group == "completed" if issue.state else False,
+                }
+            )
+        return Response({"tasks": tasks}, status=status.HTTP_200_OK)

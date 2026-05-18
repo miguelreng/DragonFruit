@@ -29,9 +29,29 @@ export type TCalendarEvent = {
   status: string;
 };
 
+export type TCalendarTask = {
+  id: string;
+  sequence_id: number;
+  title: string;
+  project_id: string | null;
+  project_identifier: string;
+  state_id: string | null;
+  state_name: string;
+  state_color: string;
+  state_group: string;
+  start: string | null;
+  end: string | null;
+  priority: string;
+  completed: boolean;
+};
+
 export class CalendarService extends APIService {
   constructor() {
     super(API_BASE_URL);
+  }
+
+  async tasks(workspaceSlug: string, params: { from: string; to: string }): Promise<{ tasks: TCalendarTask[] }> {
+    return this.get(`/api/workspaces/${workspaceSlug}/my-calendar-tasks/`, { params }).then((r) => r?.data);
   }
 
   async list(): Promise<TCalendarAccount[]> {
