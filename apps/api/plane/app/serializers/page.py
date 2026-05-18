@@ -39,6 +39,7 @@ class PageSerializer(BaseSerializer):
         fields = [
             "id",
             "name",
+            "page_type",
             "owned_by",
             "access",
             "color",

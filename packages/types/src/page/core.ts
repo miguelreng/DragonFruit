@@ -8,6 +8,12 @@ import type { TLogoProps } from "../common";
 import type { EPageAccess } from "../enums";
 import type { TPageExtended } from "./extended";
 
+/**
+ * Page sub-type. "doc" is the existing collaborative rich-text editor;
+ * "diagram" renders Mermaid; "whiteboard" renders Excalidraw.
+ */
+export type TPageType = "doc" | "diagram" | "whiteboard";
+
 export type TPage = {
   access: EPageAccess | undefined;
   archived_at: string | null | undefined;
@@ -21,6 +27,7 @@ export type TPage = {
   is_locked: boolean;
   label_ids: string[] | undefined;
   name: string | undefined;
+  page_type?: TPageType;
   owned_by: string | undefined;
   project_ids?: string[] | undefined;
   updated_at: Date | undefined;

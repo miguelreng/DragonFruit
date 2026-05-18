@@ -7,15 +7,17 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Menu } from "@headlessui/react";
 // constants
 import { EPageAccess } from "@plane/constants";
 // plane types
 import { Button } from "@plane/propel/button";
 import { PageIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage } from "@plane/types";
+import type { TPage, TPageType } from "@plane/types";
 // plane ui
 import { Breadcrumbs, Header } from "@plane/ui";
+import { ChevronDown, FileText, GitBranch, PenTool } from "@/components/icons/lucide-shim";
 // helpers
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // hooks
@@ -36,11 +38,12 @@ export const PagesListHeader = observer(function PagesListHeader() {
   const { currentProjectDetails, loader } = useProject();
   const { canCurrentUserCreatePage, createPage } = usePageStore(EPageStoreType.PROJECT);
   // handle page create
-  const handleCreatePage = async () => {
+  const handleCreatePage = async (kind: TPageType = "doc") => {
     setIsCreatingPage(true);
 
     const payload: Partial<TPage> = {
       access: pageType === "private" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
+      page_type: kind,
     };
 
     await createPage(payload)
@@ -78,9 +81,54 @@ export const PagesListHeader = observer(function PagesListHeader() {
       </Header.LeftItem>
       {canCurrentUserCreatePage && (
         <Header.RightItem>
-          <Button variant="primary" size="lg" onClick={handleCreatePage} loading={isCreatingPage}>
-            {isCreatingPage ? "Adding" : "Add page"}
-          </Button>
+          <Menu as="div" className="relative">
+            <div className="flex items-stretch">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => handleCreatePage("doc")}
+                loading={isCreatingPage}
+                className="rounded-r-none"
+              >
+                {isCreatingPage ? "Adding" : "Add page"}
+              </Button>
+              <Menu.Button
+                aria-label="Add page menu"
+                className="flex items-center rounded-r-md border-l border-white/20 bg-primary px-2 text-primary-foreground hover:opacity-90"
+              >
+                <ChevronDown className="size-4" />
+              </Menu.Button>
+            </div>
+            <Menu.Items className="absolute right-0 z-30 mt-1 w-48 rounded-md border border-subtle-1 bg-canvas py-1 shadow-lg outline-none">
+              <Menu.Item>
+                <button
+                  type="button"
+                  onClick={() => handleCreatePage("doc")}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
+                >
+                  <FileText className="size-4" /> Doc
+                </button>
+              </Menu.Item>
+              <Menu.Item>
+                <button
+                  type="button"
+                  onClick={() => handleCreatePage("diagram")}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
+                >
+                  <GitBranch className="size-4" /> Diagram
+                </button>
+              </Menu.Item>
+              <Menu.Item>
+                <button
+                  type="button"
+                  onClick={() => handleCreatePage("whiteboard")}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
+                >
+                  <PenTool className="size-4" /> Whiteboard
+                </button>
+              </Menu.Item>
+            </Menu.Items>
+          </Menu>
         </Header.RightItem>
       )}
     </Header>
