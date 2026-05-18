@@ -199,9 +199,9 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
           if (!isDraggingAllowed) {
             setToast({
               type: TOAST_TYPE.WARNING,
-              title: "Cannot move work item",
+              title: "Cannot move task",
               message: !canEditIssueProperties
-                ? "You are not allowed to move this work item"
+                ? "You are not allowed to move this task"
                 : "Drag and drop is disabled for the current grouping",
             });
           }
@@ -215,7 +215,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                 <Tooltip
                   tooltipContent={
                     <>
-                      Only work items within the current
+                      Only tasks within the current
                       <br />
                       project can be selected.
                     </>

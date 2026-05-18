@@ -28,7 +28,7 @@ export function TransferIssues(props: Props) {
       {canTransferIssues && (
         <div>
           <Button variant="primary" size="lg" prependIcon={<TransferIcon />} onClick={handleClick} disabled={disabled}>
-            Transfer work items
+            Transfer tasks
           </Button>
         </div>
       )}

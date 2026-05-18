@@ -35,7 +35,7 @@ export const useNavigationItems = ({
       {
         i18n_key: "sidebar.work_items",
         key: "work_items",
-        name: "Work items",
+        name: "Tasks",
         href: `/${workspaceSlug}/projects/${projectId}/issues`,
         icon: WorkItemsIcon,
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],

@@ -172,7 +172,7 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
               <Tooltip
                 isMobile={isMobile}
                 tooltipContent={`There are ${workItemsCount} ${
-                  workItemsCount > 1 ? "work items" : "work item"
+                  workItemsCount > 1 ? "tasks" : "task"
                 } in this cycle`}
                 position="bottom"
               >

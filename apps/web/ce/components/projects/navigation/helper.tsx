@@ -24,7 +24,7 @@ export const getProjectFeatureNavigation = (
   {
     i18n_key: "sidebar.work_items",
     key: EProjectFeatureKey.WORK_ITEMS,
-    name: "Work items",
+    name: "Tasks",
     href: `/${workspaceSlug}/projects/${projectId}/issues`,
     icon: WorkItemsIcon,
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],

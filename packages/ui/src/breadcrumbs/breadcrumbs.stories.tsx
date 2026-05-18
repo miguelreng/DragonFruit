@@ -180,7 +180,7 @@ export const WithNavigationDropdownAndIcons: Story = {
               },
               {
                 key: "feature-2",
-                title: "Work items",
+                title: "Tasks",
                 icon: LayersIcon,
 
                 // disabled: true,

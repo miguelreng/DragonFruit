@@ -454,7 +454,7 @@
         "app_consent_unapproved_description": "Pastikan Anda memercayai aplikasi ini sebelum menghubungkannya ke ruang kerja Anda.",
         "go_to_app": "Buka aplikasi",
         "enable_app_mentions": "Aktifkan penyebutan aplikasi",
-        "enable_app_mentions_tooltip": "Saat ini diaktifkan, pengguna dapat menyebut atau menetapkan Work Items ke aplikasi ini.",
+        "enable_app_mentions_tooltip": "Saat ini diaktifkan, pengguna dapat menyebut atau menetapkan Tasks ke aplikasi ini.",
         "scopes": "Lingkup",
         "select_scopes": "Pilih Lingkup",
         "read_access_to": "Akses baca-saja ke",

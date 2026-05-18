@@ -88,13 +88,13 @@ const RealEmbedCard = observer(function RealEmbedCard(props: {
   );
 
   if (!issueId || !projectId || !workspaceSlug) {
-    return <EmbedShell variant="error">Linked work item — missing identifiers</EmbedShell>;
+    return <EmbedShell variant="error">Linked task — missing identifiers</EmbedShell>;
   }
   if (hasFetchError) {
-    return <EmbedShell variant="error">Linked work item — you don&apos;t have access</EmbedShell>;
+    return <EmbedShell variant="error">Linked task — you don&apos;t have access</EmbedShell>;
   }
   if (!issue) {
-    return <EmbedShell variant="loading">Loading work item…</EmbedShell>;
+    return <EmbedShell variant="loading">Loading task…</EmbedShell>;
   }
 
   const projectIdentifier = getProjectIdentifierById(projectId);
@@ -171,7 +171,7 @@ function DraftEmbedCard(props: {
       });
       onPromoted?.({ workItemId: issue.id, projectId, workspaceSlug });
     } catch {
-      setError("Couldn't create the work item.");
+      setError("Couldn't create the task.");
     } finally {
       setIsCreating(false);
     }

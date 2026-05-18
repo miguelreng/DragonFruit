@@ -166,7 +166,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
               <Tooltip
                 isMobile={isMobile}
                 tooltipContent={`There are ${workItemsCount} ${
-                  workItemsCount > 1 ? "work items" : "work item"
+                  workItemsCount > 1 ? "tasks" : "task"
                 } in this module`}
                 position="bottom"
               >
@@ -243,7 +243,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
                 }}
                 data-ph-element={WORK_ITEM_TRACKER_ELEMENTS.HEADER_ADD_BUTTON.MODULE}
               >
-                Add work item
+                Add task
               </Button>
             </>
           ) : (

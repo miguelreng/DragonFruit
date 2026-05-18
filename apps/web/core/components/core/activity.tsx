@@ -56,7 +56,7 @@ export function IssueLink({ activity }: { activity: IIssueActivity }) {
 
   return (
     <Tooltip
-      tooltipContent={activity?.issue_detail ? activity.issue_detail.name : "This work item has been deleted"}
+      tooltipContent={activity?.issue_detail ? activity.issue_detail.name : "This task has been deleted"}
       isMobile={isMobile}
     >
       {activity?.issue_detail ? (
@@ -72,7 +72,7 @@ export function IssueLink({ activity }: { activity: IIssueActivity }) {
         </a>
       ) : (
         <span className="inline-flex items-center gap-1 font-medium whitespace-nowrap text-primary">
-          {" a work item"}{" "}
+          {" a task"}{" "}
         </span>
       )}
     </Tooltip>
@@ -118,20 +118,20 @@ const LabelPill = observer(function LabelPill({ labelId, workspaceSlug }: { labe
 
 const inboxActivityMessage = {
   declined: {
-    showIssue: "declined work item",
-    noIssue: "declined this work item from intake.",
+    showIssue: "declined task",
+    noIssue: "declined this task from intake.",
   },
   snoozed: {
-    showIssue: "snoozed work item",
-    noIssue: "snoozed this work item.",
+    showIssue: "snoozed task",
+    noIssue: "snoozed this task.",
   },
   accepted: {
-    showIssue: "accepted work item",
-    noIssue: "accepted this work item from intake.",
+    showIssue: "accepted task",
+    noIssue: "accepted this task from intake.",
   },
   markedDuplicate: {
-    showIssue: "declined work item",
-    noIssue: "declined this work item from intake by marking a duplicate work item.",
+    showIssue: "declined task",
+    noIssue: "declined this task from intake by marking a duplicate task.",
   },
 };
 
@@ -146,7 +146,7 @@ const getInboxUserActivityMessage = (activity: IIssueActivity, showIssue: boolea
     case "2":
       return showIssue ? inboxActivityMessage.markedDuplicate.showIssue : inboxActivityMessage.markedDuplicate.noIssue;
     default:
-      return "updated intake work item status.";
+      return "updated intake task status.";
   }
 };
 
@@ -308,7 +308,7 @@ const activityDetails: {
       else if (activity.verb === "converted")
         return (
           <>
-            converted <IssueLink activity={activity} /> to a work item
+            converted <IssueLink activity={activity} /> to a task
           </>
         );
       else
@@ -428,7 +428,7 @@ const activityDetails: {
         return (
           <>
             <span className="flex-shrink-0">
-              added {showIssue ? <IssueLink activity={activity} /> : "this work item"}{" "}
+              added {showIssue ? <IssueLink activity={activity} /> : "this task"}{" "}
               <span className="whitespace-nowrap">to the cycle</span>{" "}
             </span>
             <a
@@ -477,7 +477,7 @@ const activityDetails: {
       if (activity.verb === "created")
         return (
           <>
-            added {showIssue ? <IssueLink activity={activity} /> : "this work item"} to the module{" "}
+            added {showIssue ? <IssueLink activity={activity} /> : "this task"} to the module{" "}
             <a
               href={`/${workspaceSlug}/projects/${activity.project}/modules/${activity.new_identifier}`}
               target="_blank"
@@ -584,7 +584,7 @@ const activityDetails: {
       if (activity.old_value === "")
         return (
           <>
-            marked that {showIssue ? <IssueLink activity={activity} /> : "this work item"} relates to{" "}
+            marked that {showIssue ? <IssueLink activity={activity} /> : "this task"} relates to{" "}
             <span className="font-medium whitespace-nowrap text-primary">{activity.new_value}</span>.
           </>
         );
@@ -603,14 +603,14 @@ const activityDetails: {
       if (activity.old_value === "")
         return (
           <>
-            marked {showIssue ? <IssueLink activity={activity} /> : "this work item"} is blocking work item{" "}
+            marked {showIssue ? <IssueLink activity={activity} /> : "this task"} is blocking task{" "}
             <span className="font-medium whitespace-nowrap text-primary">{activity.new_value}</span>.
           </>
         );
       else
         return (
           <>
-            removed the blocking work item{" "}
+            removed the blocking task{" "}
             <span className="font-medium whitespace-nowrap text-primary">{activity.old_value}</span>.
           </>
         );
@@ -622,14 +622,14 @@ const activityDetails: {
       if (activity.old_value === "")
         return (
           <>
-            marked {showIssue ? <IssueLink activity={activity} /> : "this work item"} is being blocked by{" "}
+            marked {showIssue ? <IssueLink activity={activity} /> : "this task"} is being blocked by{" "}
             <span className="font-medium whitespace-nowrap text-primary">{activity.new_value}</span>.
           </>
         );
       else
         return (
           <>
-            removed {showIssue ? <IssueLink activity={activity} /> : "this work item"} being blocked by work item{" "}
+            removed {showIssue ? <IssueLink activity={activity} /> : "this task"} being blocked by task{" "}
             <span className="font-medium whitespace-nowrap text-primary">{activity.old_value}</span>.
           </>
         );
@@ -641,14 +641,14 @@ const activityDetails: {
       if (activity.old_value === "")
         return (
           <>
-            marked {showIssue ? <IssueLink activity={activity} /> : "this work item"} as duplicate of{" "}
+            marked {showIssue ? <IssueLink activity={activity} /> : "this task"} as duplicate of{" "}
             <span className="font-medium whitespace-nowrap text-primary">{activity.new_value}</span>.
           </>
         );
       else
         return (
           <>
-            removed {showIssue ? <IssueLink activity={activity} /> : "this work item"} as a duplicate of{" "}
+            removed {showIssue ? <IssueLink activity={activity} /> : "this task"} as a duplicate of{" "}
             <span className="font-medium whitespace-nowrap text-primary">{activity.old_value}</span>.
           </>
         );
@@ -742,7 +742,7 @@ const activityDetails: {
             <IssueLink activity={activity} />
           </>
         )}
-        {activity.verb === "2" && ` from intake by marking a duplicate work item.`}
+        {activity.verb === "2" && ` from intake by marking a duplicate task.`}
       </>
     ),
     icon: <IntakeIcon className="size-3 text-secondary" aria-hidden="true" />,

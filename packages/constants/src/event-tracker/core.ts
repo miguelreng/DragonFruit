@@ -127,7 +127,7 @@ export const MODULE_TRACKER_ELEMENTS = {
 
 /**
  * ===========================================================================
- * Work Item Events and Elements
+ * Task Events and Elements
  * ===========================================================================
  */
 export const WORK_ITEM_TRACKER_EVENTS = {
