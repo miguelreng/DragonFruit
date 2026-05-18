@@ -4,26 +4,32 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { DragonfruitLogo } from "@plane/propel/icons";
+// plane utils — pre-baked unicode braille spinners (see packages/utils/src/unicode-spinners.ts)
+import { UNICODE_SPINNERS, type UnicodeSpinnerName } from "@plane/utils";
 
-/**
- * Loading spinner using the Dragonfruit mark.
- * Light mode: brand magenta. Dark mode: white.
- * Animation uses Tailwind's `animate-spin` (1s linear, infinite).
- */
+const SPINNER_NAME: UnicodeSpinnerName = "helix";
+
 export function LogoSpinner() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+  const { frames, interval } = UNICODE_SPINNERS[SPINNER_NAME];
+  const [i, setI] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setI((n) => (n + 1) % frames.length), interval);
+    return () => window.clearInterval(id);
+  }, [frames.length, interval]);
 
   return (
-    <div className="flex items-center justify-center">
-      <DragonfruitLogo
-        width="100%"
-        height="100%"
-        className="h-6 w-auto animate-spin sm:h-11"
-        color={isDark ? "#FFFFFF" : "#8A0052"}
-      />
+    <div
+      role="status"
+      aria-label="Loading"
+      className="font-mono flex items-center justify-center leading-none whitespace-pre select-none"
+      style={{ color: isDark ? "#FFFFFF" : "#8A0052", fontSize: "2.25rem" }}
+    >
+      {frames[i]}
     </div>
   );
 }
