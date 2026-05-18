@@ -32,6 +32,15 @@ export const WorkItemEmbedExtensionConfig = Node.create({
       entity_name: {
         default: undefined,
       },
+      draft: {
+        default: undefined,
+      },
+      draft_title: {
+        default: undefined,
+      },
+      draft_description: {
+        default: undefined,
+      },
     };
   },
 

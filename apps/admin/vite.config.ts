@@ -36,6 +36,13 @@ export default defineConfig(() => ({
   },
   server: {
     host: "127.0.0.1",
+    // Proxy backend routes to the Django API container so requests stay same-origin
+    // in dev (admin :3001 → API :8000). Mirrors the proxy in apps/web/vite.config.ts.
+    proxy: {
+      "/api": { target: "http://localhost:8000", changeOrigin: true },
+      "/auth": { target: "http://localhost:8000", changeOrigin: true },
+      "/spaces": { target: "http://localhost:8000", changeOrigin: true },
+    },
   },
   // No SSR-specific overrides needed; alias resolves to ESM build
 }));
