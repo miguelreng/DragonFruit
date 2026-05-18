@@ -33,6 +33,13 @@ export default defineConfig(() => ({
   },
   server: {
     host: "127.0.0.1",
+    // Proxy backend routes to the Django API container so the browser sees same-origin
+    // requests and CORS isn't required in dev. Matches the routes in apps/api/plane/urls.py.
+    proxy: {
+      "/api": { target: "http://localhost:8000", changeOrigin: true },
+      "/auth": { target: "http://localhost:8000", changeOrigin: true },
+      "/spaces": { target: "http://localhost:8000", changeOrigin: true },
+    },
   },
   // No SSR-specific overrides needed; alias resolves to ESM build
 }));
