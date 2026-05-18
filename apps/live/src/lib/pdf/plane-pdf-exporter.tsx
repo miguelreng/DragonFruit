@@ -14,36 +14,36 @@ import type { PDFExportOptions, TipTapDocument } from "./types";
 // Use createRequire for ESM compatibility to resolve font file paths
 const require = createRequire(import.meta.url);
 
-// Resolve local font file paths from @fontsource/inter package
-const interFontDir = path.dirname(require.resolve("@fontsource/inter/package.json"));
+// Resolve local font file paths from @fontsource/figtree package
+const figtreeFontDir = path.dirname(require.resolve("@fontsource/figtree/package.json"));
 
 Font.register({
-  family: "Inter",
+  family: "Figtree",
   fonts: [
     {
-      src: path.join(interFontDir, "files/inter-latin-400-normal.woff"),
+      src: path.join(figtreeFontDir, "files/figtree-latin-400-normal.woff"),
       fontWeight: 400,
     },
     {
-      src: path.join(interFontDir, "files/inter-latin-400-italic.woff"),
+      src: path.join(figtreeFontDir, "files/figtree-latin-400-italic.woff"),
       fontWeight: 400,
       fontStyle: "italic",
     },
     {
-      src: path.join(interFontDir, "files/inter-latin-600-normal.woff"),
+      src: path.join(figtreeFontDir, "files/figtree-latin-600-normal.woff"),
       fontWeight: 600,
     },
     {
-      src: path.join(interFontDir, "files/inter-latin-600-italic.woff"),
+      src: path.join(figtreeFontDir, "files/figtree-latin-600-italic.woff"),
       fontWeight: 600,
       fontStyle: "italic",
     },
     {
-      src: path.join(interFontDir, "files/inter-latin-700-normal.woff"),
+      src: path.join(figtreeFontDir, "files/figtree-latin-700-normal.woff"),
       fontWeight: 700,
     },
     {
-      src: path.join(interFontDir, "files/inter-latin-700-italic.woff"),
+      src: path.join(figtreeFontDir, "files/figtree-latin-700-italic.woff"),
       fontWeight: 700,
       fontStyle: "italic",
     },
