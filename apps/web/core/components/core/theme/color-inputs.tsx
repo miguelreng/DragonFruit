@@ -18,6 +18,7 @@ type Props = {
 export const CustomThemeColorInputs = observer(function CustomThemeColorInputs(props: Props) {
   const { control } = props;
 
+  // eslint-disable-next-line unicorn/consistent-function-scoping
   const handleValueChange = (val: string | undefined, onChange: (...args: unknown[]) => void) => {
     let hex = val;
     // prepend a hashtag if it doesn't exist
@@ -81,7 +82,7 @@ export const CustomThemeColorInputs = observer(function CustomThemeColorInputs(p
                 name="primary"
                 value={value}
                 onChange={(val) => handleValueChange(val, onChange)}
-                placeholder="#3f76ff"
+                placeholder="#aa0276"
                 className="w-full placeholder:text-placeholder"
                 style={{
                   backgroundColor: value,
