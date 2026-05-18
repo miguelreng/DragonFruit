@@ -82,7 +82,7 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
     window.addEventListener("resize", handleToggleProfileSidebar);
     handleToggleProfileSidebar();
     return () => window.removeEventListener("resize", handleToggleProfileSidebar);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
@@ -210,7 +210,7 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
                                 <div
                                   className="h-1 rounded-sm"
                                   style={{
-                                    backgroundColor: "#3f76ff",
+                                    backgroundColor: "#aa0276",
                                     width: `${(project.assigned_issues / totalIssues) * 100}%`,
                                   }}
                                 />
@@ -242,7 +242,7 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
                               </div>
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                  <div className="h-2.5 w-2.5 rounded-xs bg-[#3f76ff]" />
+                                  <div className="h-2.5 w-2.5 rounded-xs bg-[#aa0276]" />
                                   Assigned
                                 </div>
                                 <div className="font-medium">
