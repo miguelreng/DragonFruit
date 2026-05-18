@@ -148,18 +148,18 @@ export const NEUTRAL_COLORS = {
 
 // Brand colors (light theme accent)
 export const BRAND_COLORS = {
-  default: "#3f76ff", // oklch(0.4799 0.1158 242.91) - primary accent blue
-  100: "#f5f8ff",
-  200: "#e8f0ff",
-  300: "#d1e1ff",
-  400: "#b3d0ff",
-  500: "#8ab8ff",
-  600: "#5c9aff",
-  700: "#3f76ff",
-  900: "#2952b3",
-  1000: "#1e3d80",
-  1100: "#142b5c",
-  1200: "#0d1f40",
+  default: "#aa0276", // oklch(0.4901 0.2056 347.17) - primary accent magenta
+  100: "#fff8fb",
+  200: "#fff1f8",
+  300: "#ffe3f1",
+  400: "#ffcee6",
+  500: "#ffaed8",
+  600: "#ff80c7",
+  700: "#ff2cb5",
+  900: "#910064",
+  1000: "#650445",
+  1100: "#44052e",
+  1200: "#2f041f",
 } as const;
 
 // Semantic text colors
