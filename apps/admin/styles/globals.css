@@ -1,5 +1,21 @@
 @import "@plane/tailwind-config/index.css";
 
+/* Figtree — self-hosted variable font served from /public/fonts. */
+@font-face {
+  font-family: "Figtree Variable";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("/god-mode/fonts/Figtree-Variable.ttf") format("truetype-variations");
+}
+@font-face {
+  font-family: "Figtree Variable";
+  font-style: italic;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("/god-mode/fonts/Figtree-Italic-Variable.ttf") format("truetype-variations");
+}
+
 .shadow-custom {
   box-shadow: 2px 2px 8px 2px rgba(234, 231, 250, 0.3); /* Convert #EAE7FA4D to rgba */
 }
