@@ -212,7 +212,7 @@ export function InstanceGiteaConfigForm(props: Props) {
           </div>
           <div className="col-span-2 md:col-span-1">
             <div className="flex flex-col gap-y-4 rounded-lg bg-layer-1 px-6 pt-1.5 pb-4">
-              <div className="pt-2 text-18 font-medium">Dragon Fruit-provided details for Gitea</div>
+              <div className="pt-2 text-18 font-medium">DragonFruit-provided details for Gitea</div>
               {GITEA_SERVICE_FIELD.map((field) => (
                 <CopyField key={field.key} label={field.label} url={field.url} description={field.description} />
               ))}
