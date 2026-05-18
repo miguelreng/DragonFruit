@@ -74,7 +74,7 @@ export const WorkItemPicker = observer(function WorkItemPicker(props: Props) {
         setResults(res.issue ?? []);
         setError(null);
       } catch {
-        setError("Couldn't search work items.");
+        setError("Couldn't search tasks.");
         setResults([]);
       } finally {
         setIsSearching(false);
@@ -103,7 +103,7 @@ export const WorkItemPicker = observer(function WorkItemPicker(props: Props) {
 
   const handleCreate = async () => {
     if (!workspaceSlug || !projectId) {
-      setError("Open a project page to create a work item.");
+      setError("Open a project page to create a task.");
       return;
     }
     const title = query.trim();
@@ -119,13 +119,13 @@ export const WorkItemPicker = observer(function WorkItemPicker(props: Props) {
       });
       onClose();
     } catch {
-      setError("Couldn't create the work item.");
+      setError("Couldn't create the task.");
     } finally {
       setIsCreating(false);
     }
   };
 
-  const placeholder = mode === "embed" ? "Search work items by name or identifier…" : "Title of the new work item…";
+  const placeholder = mode === "embed" ? "Search tasks by name or identifier…" : "Title of the new task…";
 
   return (
     <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
@@ -157,7 +157,7 @@ export const WorkItemPicker = observer(function WorkItemPicker(props: Props) {
         {mode === "embed" && (
           <div className="max-h-80 overflow-y-auto py-1">
             {results.length === 0 && !isSearching && query.trim().length > 0 && (
-              <div className="px-4 py-3 text-13 text-tertiary">No work items match &ldquo;{query}&rdquo;.</div>
+              <div className="px-4 py-3 text-13 text-tertiary">No tasks match &ldquo;{query}&rdquo;.</div>
             )}
             {results.length === 0 && !isSearching && query.trim().length === 0 && (
               <div className="px-4 py-3 text-13 text-tertiary">Start typing to search.</div>
@@ -187,8 +187,8 @@ export const WorkItemPicker = observer(function WorkItemPicker(props: Props) {
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <p className="text-12 text-tertiary">
               {projectId
-                ? "A new work item will be created in this project and embedded here."
-                : "Open a project page to create a work item from a doc."}
+                ? "A new task will be created in this project and embedded here."
+                : "Open a project page to create a task from a doc."}
             </p>
             <button
               type="button"
@@ -199,7 +199,7 @@ export const WorkItemPicker = observer(function WorkItemPicker(props: Props) {
                 !canCreate && "cursor-not-allowed opacity-50"
               )}
             >
-              {isCreating ? "Creating…" : "Create work item"}
+              {isCreating ? "Creating…" : "Create task"}
             </button>
           </div>
         )}

@@ -97,7 +97,7 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
         .catch((errors) => {
           const isPermissionError =
             errors?.error ===
-            `Only admin or creator can delete the ${isSubIssue ? "sub-work item" : isEpic ? "epic" : "work item"}`;
+            `Only admin or creator can delete the ${isSubIssue ? "sub-task" : isEpic ? "epic" : "task"}`;
           const currentError = isPermissionError
             ? PROJECT_ERROR_MESSAGES.permissionError
             : PROJECT_ERROR_MESSAGES.issueDeleteError;
@@ -120,11 +120,11 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
       content={
         <>
           {/* TODO: Translate here */}
-          {`Are you sure you want to delete ${isEpic ? "epic" : "work item"} `}
+          {`Are you sure you want to delete ${isEpic ? "epic" : "task"} `}
           <span className="font-medium break-words text-primary">
             {projectDetails?.identifier}-{issue?.sequence_id}
           </span>
-          {` ? All of the data related to the ${isEpic ? "epic" : "work item"} will be permanently removed. This action cannot be undone.`}
+          {` ? All of the data related to the ${isEpic ? "epic" : "task"} will be permanently removed. This action cannot be undone.`}
         </>
       }
     />

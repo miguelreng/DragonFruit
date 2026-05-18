@@ -454,7 +454,7 @@
         "app_consent_unapproved_description": "Hãy chắc chắn rằng bạn tin tưởng ứng dụng này trước khi kết nối nó với không gian làm việc của bạn.",
         "go_to_app": "Đi đến ứng dụng",
         "enable_app_mentions": "Bật đề cập ứng dụng",
-        "enable_app_mentions_tooltip": "Khi bật tính năng này, người dùng có thể đề cập hoặc gán Work Items cho ứng dụng này.",
+        "enable_app_mentions_tooltip": "Khi bật tính năng này, người dùng có thể đề cập hoặc gán Tasks cho ứng dụng này.",
         "scopes": "Phạm vi",
         "select_scopes": "Chọn phạm vi",
         "read_access_to": "Quyền truy cập chỉ đọc tới",

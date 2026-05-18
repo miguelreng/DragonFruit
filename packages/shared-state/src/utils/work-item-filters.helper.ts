@@ -19,9 +19,9 @@ import { buildTempFilterExpressionFromConditions } from "./rich-filter.helper";
 export type TWorkItemFilterCondition = TFilterConditionForBuild<TWorkItemFilterProperty, TFilterValue>;
 
 /**
- * Builds a work item filter expression from conditions.
+ * Builds a task filter expression from conditions.
  * @param params.conditions - The conditions for building the filter expression.
- * @returns The work item filter expression.
+ * @returns The task filter expression.
  */
 export const buildWorkItemFilterExpressionFromConditions = (
   params: Omit<
@@ -33,6 +33,6 @@ export const buildWorkItemFilterExpressionFromConditions = (
     ...params,
     adapter: workItemFiltersAdapter,
   });
-  if (!workItemFilterExpression) console.error("Failed to build work item filter expression from conditions");
+  if (!workItemFilterExpression) console.error("Failed to build task filter expression from conditions");
   return workItemFilterExpression;
 };

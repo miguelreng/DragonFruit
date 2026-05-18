@@ -24,7 +24,7 @@ import { FilterAdapter } from "../rich-filters/adapter";
 
 class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWorkItemFilterExpression> {
   /**
-   * Converts external work item filter expression to internal filter tree
+   * Converts external task filter expression to internal filter tree
    * @param externalFilter - The external filter expression
    * @returns Internal filter expression or null
    */
@@ -140,12 +140,12 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
     const hasLogicalOperators = keys.some((key) => key === LOGICAL_OPERATOR.AND);
     if (hasLogicalOperators) return false;
 
-    // All keys must match the work item filter condition key pattern
+    // All keys must match the task filter condition key pattern
     return keys.every((key) => this._isValidWorkItemFilterConditionKey(key));
   };
 
   /**
-   * Validates if a key is a valid work item filter condition key
+   * Validates if a key is a valid task filter condition key
    * @param key - The key to validate
    * @returns True if the key is valid
    */
@@ -176,7 +176,7 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
   };
 
   /**
-   * Extracts property, operator and value from work item filter condition data
+   * Extracts property, operator and value from task filter condition data
    * @param data - The condition data
    * @returns Tuple of property, operator and value, or null if invalid
    */
@@ -185,13 +185,13 @@ class WorkItemFiltersAdapter extends FilterAdapter<TWorkItemFilterProperty, TWor
   ): [TWorkItemFilterProperty, TSupportedOperators, SingleOrArray<TFilterValue>] | null => {
     const keys = Object.keys(data);
     if (keys.length !== 1) {
-      console.error("Work item filter condition data must have exactly one key");
+      console.error("Task filter condition data must have exactly one key");
       return null;
     }
 
     const key = keys[0];
     if (!this._isValidWorkItemFilterConditionKey(key)) {
-      console.error(`Invalid work item filter condition key: ${key}`);
+      console.error(`Invalid task filter condition key: ${key}`);
       return null;
     }
 

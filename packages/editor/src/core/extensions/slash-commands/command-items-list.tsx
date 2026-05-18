@@ -223,9 +223,9 @@ export const getSlashCommandFilteredSections =
           workItems.push({
             commandKey: "issue-embed",
             key: "embed-work-item",
-            title: "Embed work item",
+            title: "Embed task",
             description: "Search and link an existing task",
-            searchTerms: ["embed", "issue", "task", "work item", "link"],
+            searchTerms: ["embed", "issue", "task", "task", "link"],
             icon: <LinkIcon className="size-3.5" />,
             command: ({ editor, range }: CommandProps) => {
               embedConfig.issue?.onPickerRequest?.({
@@ -252,9 +252,9 @@ export const getSlashCommandFilteredSections =
           workItems.push({
             commandKey: "issue-embed",
             key: "new-work-item",
-            title: "New work item",
+            title: "New task",
             description: "Create a task here and embed it",
-            searchTerms: ["new", "create", "task", "work item", "issue"],
+            searchTerms: ["new", "create", "task", "task", "issue"],
             icon: <Plus className="size-3.5" />,
             command: ({ editor, range }: CommandProps) => {
               embedConfig.issue?.onPickerRequest?.({

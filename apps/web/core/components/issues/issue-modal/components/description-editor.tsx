@@ -122,7 +122,7 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
     aiService
       .createGptTask(workspaceSlug.toString(), {
         prompt: issueName,
-        task: "Generate a proper description for this work item.",
+        task: "Generate a proper description for this task.",
       })
       .then((res) => {
         if (res.response === "")
@@ -130,7 +130,7 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
             type: TOAST_TYPE.ERROR,
             title: "Error!",
             message:
-              "Work item title isn't informative enough to generate the description. Please try with a different title.",
+              "Task title isn't informative enough to generate the description. Please try with a different title.",
           });
         else handleAiAssistance(res.response_html);
       })

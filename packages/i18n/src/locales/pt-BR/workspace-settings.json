@@ -454,7 +454,7 @@
         "app_consent_unapproved_description": "Certifique-se de confiar neste aplicativo antes de conectá-lo ao seu espaço de trabalho.",
         "go_to_app": "Ir para o aplicativo",
         "enable_app_mentions": "Ativar menções do aplicativo",
-        "enable_app_mentions_tooltip": "Quando isso está ativado, os usuários podem mencionar ou atribuir Work Items a este aplicativo.",
+        "enable_app_mentions_tooltip": "Quando isso está ativado, os usuários podem mencionar ou atribuir Tasks a este aplicativo.",
         "scopes": "Escopos",
         "select_scopes": "Selecionar escopos",
         "read_access_to": "Acesso somente leitura a",

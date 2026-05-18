@@ -454,7 +454,7 @@
         "app_consent_unapproved_description": "Assicurati di fidarti di questa app prima di connetterla al tuo spazio di lavoro.",
         "go_to_app": "Vai all'app",
         "enable_app_mentions": "Abilita menzioni dell'app",
-        "enable_app_mentions_tooltip": "Quando è abilitato, gli utenti possono menzionare o assegnare Work Item a questa applicazione.",
+        "enable_app_mentions_tooltip": "Quando è abilitato, gli utenti possono menzionare o assegnare Task a questa applicazione.",
         "scopes": "Ambiti",
         "select_scopes": "Seleziona ambiti",
         "read_access_to": "Accesso in sola lettura a",

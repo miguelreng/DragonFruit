@@ -43,7 +43,7 @@ export const Default: Story = {
     // Example navigation items (matching actual Plane project navigation)
     const navItems = [
       { key: "overview", name: "Overview", href: "#overview", icon: OverviewIcon },
-      { key: "work_items", name: "Work items", href: "#work_items", icon: WorkItemsIcon },
+      { key: "work_items", name: "Tasks", href: "#work_items", icon: WorkItemsIcon },
       { key: "cycles", name: "Cycles", href: "#cycles", icon: CycleIcon },
       { key: "modules", name: "Modules", href: "#modules", icon: ModuleIcon },
       { key: "views", name: "Views", href: "#views", icon: ViewsIcon },
