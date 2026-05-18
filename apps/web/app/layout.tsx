@@ -6,7 +6,8 @@
 
 import Script from "next/script";
 
-// styles
+// styles – side-effect import
+// oxlint-disable-next-line no-unassigned-import
 import "@/styles/globals.css";
 
 import { SITE_DESCRIPTION, SITE_NAME } from "@plane/constants";
@@ -25,7 +26,7 @@ import icon512 from "@/app/assets/icons/icon-512x512.png?url";
 import { AppProvider } from "./provider";
 
 export const meta = () => [
-  { title: "Dragon Fruit — Beautiful project management & docs" },
+  { title: "DragonFruit — Beautiful project management & docs" },
   { name: "description", content: SITE_DESCRIPTION },
   {
     name: "keywords",
@@ -37,7 +38,7 @@ export const meta = () => [
     content:
       "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
   },
-  { property: "og:title", content: "Dragon Fruit — Beautiful project management & docs" },
+  { property: "og:title", content: "DragonFruit — Beautiful project management & docs" },
   {
     property: "og:description",
     content: SITE_DESCRIPTION,
@@ -45,11 +46,11 @@ export const meta = () => [
   { property: "og:url", content: "https://dragonfruit.app/" },
   { property: "og:image:width", content: "1200" },
   { property: "og:image:height", content: "630" },
-  { property: "og:image:alt", content: "Dragon Fruit — Beautiful project management & docs" },
+  { property: "og:image:alt", content: "DragonFruit — Beautiful project management & docs" },
   { name: "twitter:card", content: "summary_large_image" },
   { name: "twitter:image:width", content: "1200" },
   { name: "twitter:image:height", content: "630" },
-  { name: "twitter:image:alt", content: "Dragon Fruit — Beautiful project management & docs" },
+  { name: "twitter:image:alt", content: "DragonFruit — Beautiful project management & docs" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -64,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/site.webmanifest.json" />
         <link rel="shortcut icon" href={faviconIco} />
         {/* Meta info for PWA */}
-        <meta name="application-name" content="Dragon Fruit" />
+        <meta name="application-name" content="DragonFruit" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
