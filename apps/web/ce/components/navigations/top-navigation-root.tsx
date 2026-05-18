@@ -18,7 +18,7 @@ import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 import { InboxIcon } from "@plane/propel/icons";
 import useSWR from "swr";
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
-import dragonfruitLogo from "@/app/assets/plane-logos/icon.svg?url";
+import dragonfruitLogo from "@/app/assets/plane-logos/logo.svg?url";
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
@@ -51,7 +51,7 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
       {/* DragonFruit logo */}
       <div className="flex flex-1 shrink-0 items-center">
         <Link to={`/${workspaceSlug?.toString() ?? ""}/`} className="inline-flex items-center" aria-label="DragonFruit home">
-          <img src={dragonfruitLogo} alt="" className="size-7" />
+          <img src={dragonfruitLogo} alt="DragonFruit" className="h-6 w-auto" />
         </Link>
       </div>
       {/* Power K Search */}
