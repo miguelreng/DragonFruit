@@ -637,3 +637,35 @@ class PageDuplicateEndpoint(BaseAPIView):
         )
         serializer = PageDetailSerializer(page)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class WorkspacePagesListEndpoint(BaseAPIView):
+    """List every page across the workspace that the user can access.
+
+    Returns top-level (non-child) pages where the user is an active member of at
+    least one of the page's projects, the project is not archived, and the page
+    is either public or owned by the user. Annotates `project_ids` so the
+    frontend can filter by project without an extra round trip.
+    """
+
+    def get(self, request, slug):
+        pages = (
+            Page.objects.filter(workspace__slug=slug)
+            .filter(
+                projects__project_projectmember__member=request.user,
+                projects__project_projectmember__is_active=True,
+                projects__archived_at__isnull=True,
+            )
+            .filter(parent__isnull=True)
+            .filter(Q(owned_by=request.user) | Q(access=0))
+            .annotate(
+                project_ids=Coalesce(
+                    ArrayAgg("projects__id", distinct=True, filter=~Q(projects__id=True)),
+                    Value([], output_field=ArrayField(UUIDField())),
+                )
+            )
+            .select_related("workspace", "owned_by")
+            .distinct()
+            .order_by("-updated_at")
+        )
+        return Response(PageSerializer(pages, many=True).data, status=status.HTTP_200_OK)
