@@ -6,6 +6,7 @@
 
 import {
   Archive,
+  CalendarBlank,
   ChartBar,
   CircleHalfTilt,
   FileText,
@@ -50,5 +51,7 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
       return <FlowArrow className={cls} />;
     case "whiteboards":
       return <PaintBrush className={cls} />;
+    case "calendar":
+      return <CalendarBlank className={cls} />;
   }
 };

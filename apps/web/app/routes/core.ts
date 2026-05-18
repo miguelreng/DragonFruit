@@ -43,6 +43,12 @@ export const coreRoutes: RouteConfigEntry[] = [
     route("workspace-invitations", "./(all)/workspace-invitations/page.tsx"),
   ]),
 
+  // Calendar OAuth callback (top-level so Google's redirect URI stays
+  // workspace-agnostic; the page bounces the user into their workspace).
+  layout("./(all)/calendar-oauth-callback/layout.tsx", [
+    route("calendar/oauth/callback", "./(all)/calendar-oauth-callback/page.tsx"),
+  ]),
+
   // ========================================================================
   // ALL APP ROUTES
   // ========================================================================
@@ -95,6 +101,11 @@ export const coreRoutes: RouteConfigEntry[] = [
         // Whiteboards (workspace-wide list of excalidraw-typed pages)
         layout("./(all)/[workspaceSlug]/(projects)/whiteboards/layout.tsx", [
           route(":workspaceSlug/whiteboards", "./(all)/[workspaceSlug]/(projects)/whiteboards/page.tsx"),
+        ]),
+
+        // Calendar (Google Calendar integration)
+        layout("./(all)/[workspaceSlug]/(projects)/calendar/layout.tsx", [
+          route(":workspaceSlug/calendar", "./(all)/[workspaceSlug]/(projects)/calendar/page.tsx"),
         ]),
 
         // Notifications
