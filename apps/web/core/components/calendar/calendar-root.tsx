@@ -211,7 +211,7 @@ function CalendarHeader({ taskCount, googleAccount, refetchAccounts, workspaceSl
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-subtle-1 px-6 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
       <div className="flex items-center gap-3 text-sm">
         <LegendDot color="#ec4899" />
         <span>
