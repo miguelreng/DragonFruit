@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { CloudOff, Dot } from "lucide-react";
+import { CloudOff, Dot } from "@/components/icons/lucide-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { Badge } from "@plane/propel/badge";
 

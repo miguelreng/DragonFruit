@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { Download } from "lucide-react";
+import { Download } from "@/components/icons/lucide-shim";
 // plane imports
 import { CORE_EXTENSIONS } from "@plane/editor";
 import type { TEditorAsset } from "@plane/editor";

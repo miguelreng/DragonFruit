@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { FileText, FolderPlus, Layers, SquarePlus } from "lucide-react";
+import { FileText, FolderPlus, Layers, SquarePlus } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { ContrastIcon, DiceIcon, LayersIcon } from "@plane/propel/icons";

@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { SmilePlus } from "lucide-react";
+import { SmilePlus } from "@/components/icons/lucide-shim";
 // plane imports
 import { EmojiPicker, EmojiIconPickerTypes } from "@plane/propel/emoji-icon-picker";
 import { cn } from "@plane/utils";

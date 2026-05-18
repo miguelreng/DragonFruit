@@ -5,8 +5,8 @@
  */
 
 import type React from "react";
-import type { LucideIcon } from "lucide-react";
-import { Activity, Bell, CircleUser, KeyRound, LockIcon, Settings2 } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
+import { Activity, Bell, CircleUser, KeyRound, LockIcon, Settings2 } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
 // plane imports

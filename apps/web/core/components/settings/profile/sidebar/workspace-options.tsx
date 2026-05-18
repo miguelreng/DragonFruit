@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CirclePlus, Mails } from "lucide-react";
+import { CirclePlus, Mails } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";

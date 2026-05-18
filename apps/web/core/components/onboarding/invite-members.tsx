@@ -17,7 +17,7 @@ import type {
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 // icons
 import { usePopper } from "react-popper";
-import { XCircle } from "lucide-react";
+import { XCircle } from "@/components/icons/lucide-shim";
 import { Listbox } from "@headlessui/react";
 // plane imports
 import type { EUserPermissions } from "@plane/constants";

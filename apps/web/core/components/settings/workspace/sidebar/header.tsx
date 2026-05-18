@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 // plane imports
 import { ROLE_DETAILS } from "@plane/constants";

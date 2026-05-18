@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";

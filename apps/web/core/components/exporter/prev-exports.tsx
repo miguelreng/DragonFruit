@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import useSWR, { mutate } from "swr";
-import { MoveLeft, MoveRight, RefreshCw } from "lucide-react";
+import { MoveLeft, MoveRight, RefreshCw } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";

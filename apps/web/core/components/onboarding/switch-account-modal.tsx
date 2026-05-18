@@ -7,7 +7,7 @@
 import React, { useState } from "react";
 
 import { useTheme } from "next-themes";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft } from "@/components/icons/lucide-shim";
 import { Dialog, Transition } from "@headlessui/react";
 // ui
 import { Button } from "@plane/propel/button";

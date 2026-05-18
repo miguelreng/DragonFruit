@@ -7,7 +7,7 @@
 "use client";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
-import { SettingsIcon } from "lucide-react";
+import { SettingsIcon } from "@/components/icons/lucide-shim";
 import { ContextMenu } from "@plane/propel/context-menu";
 import { CheckIcon } from "@plane/propel/icons";
 import { cn } from "@plane/utils";

@@ -5,7 +5,7 @@
  */
 
 import { useCallback } from "react";
-import { X } from "lucide-react";
+import { X } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 // plane imports
 import { IconButton } from "@plane/propel/icon-button";

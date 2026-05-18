@@ -17,7 +17,7 @@ import {
   UserMinus2,
   UserPlus2,
   Users,
-} from "lucide-react";
+} from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

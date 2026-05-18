@@ -5,7 +5,7 @@
  */
 
 import { memo } from "react";
-import { ALargeSmall, Ban } from "lucide-react";
+import { ALargeSmall, Ban } from "@/components/icons/lucide-shim";
 import { Popover } from "@headlessui/react";
 // plane editor
 import { COLORS_LIST } from "@plane/editor";

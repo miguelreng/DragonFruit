@@ -6,7 +6,7 @@
 
 import type { ReactNode } from "react";
 import { observer } from "mobx-react";
-import { CheckCircle, Clock, MoreVertical } from "lucide-react";
+import { CheckCircle, Clock, MoreVertical } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 // plane imports
 import { ArchiveIcon, CheckIcon } from "@plane/propel/icons";

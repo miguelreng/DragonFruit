@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Expand, Shrink } from "lucide-react";
+import { Expand, Shrink } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 // plane
 import type { TGanttViews } from "@plane/types";

@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
 import { IconButton } from "@plane/propel/icon-button";

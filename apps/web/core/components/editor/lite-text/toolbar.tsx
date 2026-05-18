@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 
 import { EIssueCommentAccessSpecifier } from "@plane/constants";
 // editor

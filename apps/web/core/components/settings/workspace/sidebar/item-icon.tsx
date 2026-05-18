@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import type { LucideIcon } from "lucide-react";
-import { ArrowUpToLine, Building, CreditCard, Sparkles, Users, Webhook } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
+import { ArrowUpToLine, Building, CreditCard, Sparkles, Users, Webhook } from "@/components/icons/lucide-shim";
 // plane imports
 import type { ISvgIcons } from "@plane/propel/icons";
 import type { TWorkspaceSettingsTabs } from "@plane/types";

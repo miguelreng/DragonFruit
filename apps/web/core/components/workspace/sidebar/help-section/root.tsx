@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
-import { HelpCircle, User } from "lucide-react";
+import { HelpCircle, User } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { PageIcon } from "@plane/propel/icons";
 // ui

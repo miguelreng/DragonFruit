@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Paperclip } from "lucide-react";
+import { Paperclip } from "@/components/icons/lucide-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // components

@@ -19,7 +19,7 @@ import { attachInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree
 import { orderBy } from "lodash-es";
 import { useParams } from "next/navigation";
 import { createRoot } from "react-dom/client";
-import { Star, MoreHorizontal, GripVertical } from "lucide-react";
+import { Star, MoreHorizontal, GripVertical } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";

@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { PanelRight } from "lucide-react";
+import { PanelRight } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Tooltip } from "@plane/propel/tooltip";

@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
-import { ArrowUpToLine, Clipboard, History } from "lucide-react";
+import { ArrowUpToLine, Clipboard, History } from "@/components/icons/lucide-shim";
 // plane imports
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { ToggleSwitch } from "@plane/ui";

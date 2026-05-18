@@ -8,7 +8,7 @@ import { useMemo } from "react";
 import { observer } from "mobx-react";
 import type { Control, UseFormSetValue } from "react-hook-form";
 import { Controller } from "react-hook-form";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "@/components/icons/lucide-shim";
 // plane package imports
 import { ANALYTICS_X_AXIS_VALUES, ANALYTICS_Y_AXIS_VALUES } from "@plane/constants";
 import { CalendarLayoutIcon } from "@plane/propel/icons";

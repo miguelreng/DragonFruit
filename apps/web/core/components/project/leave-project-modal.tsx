@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
-import { AlertTriangleIcon } from "lucide-react";
+import { AlertTriangleIcon } from "@/components/icons/lucide-shim";
 // DragonFruit imports
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";

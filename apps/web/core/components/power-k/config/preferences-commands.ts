@@ -6,7 +6,7 @@
 
 import { useCallback } from "react";
 import { useTheme } from "next-themes";
-import { Calendar, Earth, Languages, Palette } from "lucide-react";
+import { Calendar, Earth, Languages, Palette } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";

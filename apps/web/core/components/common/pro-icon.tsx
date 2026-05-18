@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Crown } from "lucide-react";
+import { Crown } from "@/components/icons/lucide-shim";
 // helpers
 import { cn } from "@plane/utils";
 

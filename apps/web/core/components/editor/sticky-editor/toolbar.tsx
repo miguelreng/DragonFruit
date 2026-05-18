@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Palette } from "lucide-react";
+import { Palette } from "@/components/icons/lucide-shim";
 // editor
 import type { EditorRefApi } from "@plane/editor";
 // ui

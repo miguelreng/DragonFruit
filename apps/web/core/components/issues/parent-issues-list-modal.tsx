@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 // icons
-import { Rocket } from "lucide-react";
+import { Rocket } from "@/components/icons/lucide-shim";
 // headless ui
 import { Combobox } from "@headlessui/react";
 // i18n

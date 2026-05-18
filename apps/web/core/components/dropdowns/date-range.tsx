@@ -9,7 +9,7 @@ import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
 import { createPortal } from "react-dom";
 import { usePopper } from "react-popper";
-import { ArrowRight, CalendarDays } from "lucide-react";
+import { ArrowRight, CalendarDays } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";

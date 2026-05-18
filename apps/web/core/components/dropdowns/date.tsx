@@ -8,7 +8,7 @@ import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { createPortal } from "react-dom";
 import { usePopper } from "react-popper";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 // ui
 import type { Matcher } from "@plane/propel/calendar";

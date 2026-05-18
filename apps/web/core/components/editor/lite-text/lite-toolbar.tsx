@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { ArrowUp, Paperclip } from "lucide-react";
+import { ArrowUp, Paperclip } from "@/components/icons/lucide-shim";
 // constants
 import type { ToolbarMenuItem } from "@/constants/editor";
 import { IMAGE_ITEM } from "@/constants/editor";

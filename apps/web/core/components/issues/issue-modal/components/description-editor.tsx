@@ -8,7 +8,7 @@ import React, { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
-import { Sparkle } from "lucide-react";
+import { Sparkle } from "@/components/icons/lucide-shim";
 // plane imports
 import { ETabIndices } from "@plane/constants";
 import type { EditorRefApi } from "@plane/editor";

@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { Circle } from "lucide-react";
+import { Circle } from "@/components/icons/lucide-shim";
 import { ChevronDownIcon, ChevronUpIcon } from "@plane/propel/icons";
 // DragonFruit
 import type { TIssueGroupByOptions, TIssueKanbanFilters } from "@plane/types";

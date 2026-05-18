@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { CircleAlert } from "lucide-react";
+import { CircleAlert } from "@/components/icons/lucide-shim";
 // plane imports
 import type { TExternalFilter, TFilterProperty } from "@plane/types";
 // local imports

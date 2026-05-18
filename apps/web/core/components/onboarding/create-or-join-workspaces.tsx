@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { OctagonAlert } from "lucide-react";
+import { OctagonAlert } from "@/components/icons/lucide-shim";
 // plane imports
 import type { IWorkspaceMemberInvitation, TOnboardingSteps } from "@plane/types";
 // components

@@ -7,7 +7,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 import { EEstimateSystem } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

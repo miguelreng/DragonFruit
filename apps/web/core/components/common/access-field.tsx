@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane ui
 import { useTranslation } from "@plane/i18n";
 import type { ISvgIcons } from "@plane/propel/icons";

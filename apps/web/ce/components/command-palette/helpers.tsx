@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid } from "@/components/icons/lucide-shim";
 // plane imports
 import { CycleIcon, ModuleIcon, PageIcon, ProjectIcon, ViewsIcon } from "@plane/propel/icons";
 import type {

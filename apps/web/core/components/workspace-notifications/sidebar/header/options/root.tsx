@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { CheckCheck, RefreshCw } from "lucide-react";
+import { CheckCheck, RefreshCw } from "@/components/icons/lucide-shim";
 // plane imports
 import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

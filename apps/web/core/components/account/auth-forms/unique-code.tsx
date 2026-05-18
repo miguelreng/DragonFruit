@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { CircleCheck, XCircle } from "lucide-react";
+import { CircleCheck, XCircle } from "@/components/icons/lucide-shim";
 import { API_BASE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";

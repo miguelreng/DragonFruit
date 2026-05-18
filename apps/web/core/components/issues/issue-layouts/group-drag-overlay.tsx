@@ -5,7 +5,7 @@
  */
 
 import { useRef } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle } from "@/components/icons/lucide-shim";
 // plane imports
 import { ISSUE_ORDER_BY_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

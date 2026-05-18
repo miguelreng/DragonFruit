@@ -7,7 +7,7 @@
 import { useCallback } from "react";
 import { observer } from "mobx-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRightCircle } from "lucide-react";
+import { ArrowRightCircle } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Tabs } from "@plane/propel/tabs";

@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { Box, PenTool, Rocket, Monitor, RefreshCw } from "lucide-react";
+import { Box, PenTool, Rocket, Monitor, RefreshCw } from "@/components/icons/lucide-shim";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { CheckIcon, ViewsIcon } from "@plane/propel/icons";

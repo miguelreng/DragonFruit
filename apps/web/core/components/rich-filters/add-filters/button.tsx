@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
 import type { TButtonSize, TButtonVariant } from "@plane/propel/button";
 import { getButtonStyling } from "@plane/propel/button";

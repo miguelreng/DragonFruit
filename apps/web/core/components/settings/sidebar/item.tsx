@@ -8,7 +8,7 @@ import React from "react";
 import Link from "next/link";
 // plane imports
 import { cn } from "@plane/utils";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 import type { ISvgIcons } from "@plane/propel/icons";
 
 type Props = {

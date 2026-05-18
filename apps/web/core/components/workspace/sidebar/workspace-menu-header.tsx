@@ -7,7 +7,7 @@
 import { useState, useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreHorizontal, ArchiveIcon, Settings } from "lucide-react";
+import { MoreHorizontal, ArchiveIcon, Settings } from "@/components/icons/lucide-shim";
 import { Disclosure } from "@headlessui/react";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";

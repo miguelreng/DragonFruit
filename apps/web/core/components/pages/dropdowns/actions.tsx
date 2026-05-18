@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { ArchiveRestoreIcon, FileOutput, LockKeyhole, LockKeyholeOpen } from "lucide-react";
+import { ArchiveRestoreIcon, FileOutput, LockKeyhole, LockKeyholeOpen } from "@/components/icons/lucide-shim";
 // constants
 import { EPageAccess } from "@plane/constants";
 // plane editor

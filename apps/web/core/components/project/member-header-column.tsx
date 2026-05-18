@@ -6,7 +6,7 @@
 
 // ui
 import { observer } from "mobx-react";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, CheckIcon, ChevronDownIcon, Eraser, MoveRight } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, CheckIcon, ChevronDownIcon, Eraser, MoveRight } from "@/components/icons/lucide-shim";
 // constants
 import type { IProjectMemberDisplayProperties, TMemberOrderByOptions } from "@plane/constants";
 import { MEMBER_PROPERTY_DETAILS } from "@plane/constants";

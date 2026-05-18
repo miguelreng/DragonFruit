@@ -5,7 +5,7 @@
  */
 
 import { useCallback } from "react";
-import { LogOut, Mails } from "lucide-react";
+import { LogOut, Mails } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";

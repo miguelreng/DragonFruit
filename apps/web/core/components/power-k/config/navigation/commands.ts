@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { BarChart2, Briefcase, FileText, Home, Inbox, Layers, PenSquare, Settings } from "lucide-react";
+import { BarChart2, Briefcase, FileText, Home, Inbox, Layers, PenSquare, Settings } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
 import { ArchiveIcon, UserActivityIcon, LayersIcon, ContrastIcon, DiceIcon, Intake } from "@plane/propel/icons";

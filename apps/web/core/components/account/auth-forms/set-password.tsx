@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 // icons
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "@/components/icons/lucide-shim";
 // plane imports
 import { E_PASSWORD_STRENGTH } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

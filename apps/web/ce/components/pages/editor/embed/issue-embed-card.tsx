@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Loader2, Plus, Sparkles } from "lucide-react";
+import { Loader2, Plus, Sparkles } from "@/components/icons/lucide-shim";
 // plane imports
 import { cn, getDate, renderFormattedPayloadDate } from "@plane/utils";
 // components

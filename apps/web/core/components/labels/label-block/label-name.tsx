@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Component } from "lucide-react";
+import { Component } from "@/components/icons/lucide-shim";
 
 interface ILabelName {
   name: string;

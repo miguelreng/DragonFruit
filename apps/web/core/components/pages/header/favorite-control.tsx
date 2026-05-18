@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Star } from "lucide-react";
+import { Star } from "@/components/icons/lucide-shim";
 // ui
 import { IconButton } from "@plane/propel/icon-button";
 // hooks

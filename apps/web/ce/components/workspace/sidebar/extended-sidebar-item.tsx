@@ -11,7 +11,7 @@ import { attachInstruction, extractInstruction } from "@atlaskit/pragmatic-drag-
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { Pin, PinOff } from "lucide-react";
+import { Pin, PinOff } from "@/components/icons/lucide-shim";
 // plane imports
 import type { IWorkspaceSidebarNavigationItem } from "@plane/constants";
 import { EUserPermissionsLevel } from "@plane/constants";

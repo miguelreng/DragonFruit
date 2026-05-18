@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Info } from "lucide-react";
+import { Info } from "@/components/icons/lucide-shim";
 import { NETWORK_CHOICES } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // plane imports

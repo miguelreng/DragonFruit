@@ -22,7 +22,7 @@ import {
   SignalMediumIcon,
   MessageSquareIcon,
   UsersIcon,
-} from "lucide-react";
+} from "@/components/icons/lucide-shim";
 import {
   BlockedIcon,
   BlockerIcon,

@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
-import { Boxes, Share2, Star, User2 } from "lucide-react";
+import { Boxes, Share2, Star, User2 } from "@/components/icons/lucide-shim";
 import { CheckIcon, CloseIcon } from "@plane/propel/icons";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";

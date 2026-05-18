@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 // plane helpers
 import { MODULE_VIEW_LAYOUTS } from "@plane/constants";
 import { useOutsideClickDetector } from "@plane/hooks";

@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { XCircle } from "lucide-react";
+import { XCircle } from "@/components/icons/lucide-shim";
 // plane imports
 import { PROFILE_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
 import { Tooltip } from "@plane/propel/tooltip";

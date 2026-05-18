@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, Settings2 } from "lucide-react";
+import { LogOut, Settings, Settings2 } from "@/components/icons/lucide-shim";
 // plane imports
 import { GOD_MODE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

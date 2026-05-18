@@ -7,6 +7,7 @@
 import { lazy, Suspense } from "react";
 import { useTheme } from "next-themes";
 import { SWRConfig } from "swr";
+import { IconContext } from "@phosphor-icons/react";
 // DragonFruit Imports
 import { WEB_SWR_CONFIG } from "@plane/constants";
 import { TranslationProvider } from "@plane/i18n";
@@ -39,20 +40,22 @@ export function AppProvider(props: IAppProvider) {
   const { resolvedTheme } = useTheme();
 
   return (
-    <StoreProvider>
-      <>
-        <AppProgressBar />
-        <TranslationProvider>
-          <Toast theme={resolveGeneralTheme(resolvedTheme)} />
-          <StoreWrapper>
-            <InstanceWrapper>
-              <Suspense>
-                <SWRConfig value={WEB_SWR_CONFIG}>{children}</SWRConfig>
-              </Suspense>
-            </InstanceWrapper>
-          </StoreWrapper>
-        </TranslationProvider>
-      </>
-    </StoreProvider>
+    <IconContext.Provider value={{ weight: "light", size: "1em" }}>
+      <StoreProvider>
+        <>
+          <AppProgressBar />
+          <TranslationProvider>
+            <Toast theme={resolveGeneralTheme(resolvedTheme)} />
+            <StoreWrapper>
+              <InstanceWrapper>
+                <Suspense>
+                  <SWRConfig value={WEB_SWR_CONFIG}>{children}</SWRConfig>
+                </Suspense>
+              </InstanceWrapper>
+            </StoreWrapper>
+          </TranslationProvider>
+        </>
+      </StoreProvider>
+    </IconContext.Provider>
   );
 }

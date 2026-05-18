@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { Eye, ArrowRight, CalendarDays } from "lucide-react";
+import { Eye, ArrowRight, CalendarDays } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { FileText } from "lucide-react";
+import { FileText } from "@/components/icons/lucide-shim";
 import {
   AnalyticsIcon,
   ArchiveIcon,

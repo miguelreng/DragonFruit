@@ -8,7 +8,7 @@ import { useState, Fragment, useEffect } from "react";
 import { TwitterPicker } from "react-color";
 import { Controller, useForm } from "react-hook-form";
 import { usePopper } from "react-popper";
-import { Loader } from "lucide-react";
+import { Loader } from "@/components/icons/lucide-shim";
 import { Popover } from "@headlessui/react";
 import { PlusIcon, CloseIcon } from "@plane/propel/icons";
 import type { IIssueLabel } from "@plane/types";

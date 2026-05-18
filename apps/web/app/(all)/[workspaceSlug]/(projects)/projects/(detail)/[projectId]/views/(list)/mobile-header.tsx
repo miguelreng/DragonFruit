@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // icons
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 import { ChevronDownIcon } from "@plane/propel/icons";
 // components
 import { Row } from "@plane/ui";

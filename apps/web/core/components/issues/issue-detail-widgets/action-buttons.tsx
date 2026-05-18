@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { Paperclip } from "lucide-react";
+import { Paperclip } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { LinkIcon, ViewsIcon, RelationPropertyIcon } from "@plane/propel/icons";
 // plane imports

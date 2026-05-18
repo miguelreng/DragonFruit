@@ -6,7 +6,7 @@
 
 import React, { useCallback, useState } from "react";
 import { observer } from "mobx-react";
-import { ListFilterPlus } from "lucide-react";
+import { ListFilterPlus } from "@/components/icons/lucide-shim";
 import { Transition } from "@headlessui/react";
 // plane imports
 import { Button } from "@plane/propel/button";

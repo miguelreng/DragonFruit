@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { isNil } from "lodash-es";
 import { observer } from "mobx-react";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff } from "@/components/icons/lucide-shim";
 // plane-i18n
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { cn } from "@plane/utils";

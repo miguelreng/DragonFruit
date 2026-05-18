@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { add } from "date-fns";
 import { Controller, useForm } from "react-hook-form";
-import { Calendar } from "lucide-react";
+import { Calendar } from "@/components/icons/lucide-shim";
 // types
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";

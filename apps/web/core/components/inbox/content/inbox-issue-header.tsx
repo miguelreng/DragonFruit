@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { Clock, FileStack, MoreHorizontal, MoveRight } from "lucide-react";
+import { Clock, FileStack, MoreHorizontal, MoveRight } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

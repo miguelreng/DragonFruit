@@ -7,7 +7,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Fragment } from "react";
 import { observer } from "mobx-react";
-import { Clock } from "lucide-react";
+import { Clock } from "@/components/icons/lucide-shim";
 import { Popover, Transition } from "@headlessui/react";
 // plane imports
 import { NOTIFICATION_SNOOZE_OPTIONS } from "@plane/constants";

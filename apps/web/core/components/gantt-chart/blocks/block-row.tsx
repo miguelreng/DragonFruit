@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/icons/lucide-shim";
 // helpers
 import type { IBlockUpdateData, IGanttBlock } from "@plane/types";
 import { cn } from "@plane/utils";

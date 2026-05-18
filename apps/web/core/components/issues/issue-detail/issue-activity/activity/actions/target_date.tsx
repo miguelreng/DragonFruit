@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays } from "@/components/icons/lucide-shim";
 // hooks
 import { renderFormattedDate } from "@plane/utils";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";

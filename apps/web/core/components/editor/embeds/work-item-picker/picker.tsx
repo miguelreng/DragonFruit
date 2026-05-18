@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Plus, Search } from "lucide-react";
+import { Loader2, Plus, Search } from "@/components/icons/lucide-shim";
 // plane imports
 import type { TIssueSearchResponse, TSearchEntityRequestPayload, TSearchResponse } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Briefcase, FileText, Layers, LayoutGrid } from "lucide-react";
+import { Briefcase, FileText, Layers, LayoutGrid } from "@/components/icons/lucide-shim";
 // plane imports
 import { ContrastIcon, DiceIcon } from "@plane/propel/icons";
 import type {

@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { ArchiveRestore } from "lucide-react";
+import { ArchiveRestore } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { ArchiveIcon } from "@plane/propel/icons";

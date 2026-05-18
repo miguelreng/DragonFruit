@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CheckCircle2, Minus, MinusCircle } from "lucide-react";
+import { CheckCircle2, Minus, MinusCircle } from "@/components/icons/lucide-shim";
 import type { EProductSubscriptionEnum } from "@plane/types";
 // plane imports
 // constants

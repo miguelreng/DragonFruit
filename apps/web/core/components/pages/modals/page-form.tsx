@@ -6,7 +6,7 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 
 // plane imports
 import { ETabIndices, EPageAccess } from "@plane/constants";

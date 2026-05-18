@@ -6,7 +6,7 @@
 
 import type { Styles } from "@react-pdf/renderer";
 import { StyleSheet } from "@react-pdf/renderer";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 import {
   AlignCenter,
   AlignLeft,
@@ -29,7 +29,7 @@ import {
   Table,
   TextQuote,
   Underline,
-} from "lucide-react";
+} from "@/components/icons/lucide-shim";
 // plane imports
 import type { TCommandExtraProps, TEditorCommands, TEditorFontStyle } from "@plane/editor";
 import { MonospaceIcon, SansSerifIcon, SerifIcon } from "@plane/propel/icons";

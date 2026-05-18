@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from "react";
-import { Network } from "lucide-react";
+import { Network } from "@/components/icons/lucide-shim";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
 import { renderFormattedTime, renderFormattedDate, calculateTimeAgo } from "@plane/utils";

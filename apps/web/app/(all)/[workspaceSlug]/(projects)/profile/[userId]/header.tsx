@@ -7,7 +7,7 @@
 // ui
 import { observer } from "mobx-react";
 import { useParams, useRouter } from "next/navigation";
-import { PanelRight } from "lucide-react";
+import { PanelRight } from "@/components/icons/lucide-shim";
 import { PROFILE_VIEWER_TAB, PROFILE_ADMINS_TAB, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { YourWorkIcon, ChevronDownIcon } from "@plane/propel/icons";

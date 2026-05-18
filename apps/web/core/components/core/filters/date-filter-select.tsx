@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays } from "@/components/icons/lucide-shim";
 // ui
 import { CalendarAfterIcon, CalendarBeforeIcon } from "@plane/propel/icons";
 import { CustomSelect } from "@plane/ui";

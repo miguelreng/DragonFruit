@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { AtSign, Briefcase } from "lucide-react";
+import { AtSign, Briefcase } from "@/components/icons/lucide-shim";
 // plane imports
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import {
