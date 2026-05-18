@@ -99,10 +99,10 @@ export const TourRoot = observer(function TourRoot(props: TOnboardingTourProps) 
             </div>
             <div className="flex flex-col overflow-y-auto p-6">
               <h3 className="font-semibold sm:text-18">
-                Welcome to Dragon Fruit, {currentUser?.first_name} {currentUser?.last_name}
+                Welcome to DragonFruit, {currentUser?.first_name} {currentUser?.last_name}
               </h3>
               <p className="mt-3 text-13 text-secondary">
-                We{"'"}re glad you{"'"}re here. Dragon Fruit gives you a single, beautiful workspace for projects and
+                We{"'"}re glad you{"'"}re here. DragonFruit gives you a single, beautiful workspace for projects and
                 docs. Get started by creating your first project — or open a page to try the editor.
               </p>
               <div className="flex h-full items-end">
