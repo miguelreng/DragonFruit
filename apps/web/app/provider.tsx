@@ -40,7 +40,7 @@ export function AppProvider(props: IAppProvider) {
   const { resolvedTheme } = useTheme();
 
   return (
-    <IconContext.Provider value={{ weight: "light", size: "1em" }}>
+    <IconContext.Provider value={{ weight: "regular", size: "1em" }}>
       <StoreProvider>
         <>
           <AppProgressBar />
