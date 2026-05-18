@@ -4,44 +4,51 @@
  * See the LICENSE file for details.
  */
 
-import { FileText } from "@/components/icons/lucide-shim";
 import {
-  AnalyticsIcon,
-  ArchiveIcon,
-  CycleIcon,
-  DraftIcon,
-  HomeIcon,
-  InboxIcon,
-  MultipleStickyIcon,
-  ProjectIcon,
-  ViewsIcon,
-  YourWorkIcon,
-} from "@plane/propel/icons";
+  Archive,
+  ChartBar,
+  CircleHalfTilt,
+  FileText,
+  FlowArrow,
+  House,
+  Notebook,
+  PaintBrush,
+  Pencil,
+  StackSimple,
+  Tray,
+  UserCirclePlus,
+} from "@phosphor-icons/react";
+import { Briefcase } from "@/components/icons/lucide-shim";
 import { cn } from "@plane/utils";
 
 export const getSidebarNavigationItemIcon = (key: string, className: string = "") => {
+  const cls = cn("size-4 flex-shrink-0", className);
   switch (key) {
     case "home":
-      return <HomeIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <House className={cls} />;
     case "inbox":
-      return <InboxIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <Tray className={cls} />;
     case "projects":
-      return <ProjectIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <Briefcase className={cls} />;
     case "views":
-      return <ViewsIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <StackSimple className={cls} />;
     case "active_cycles":
-      return <CycleIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <CircleHalfTilt className={cls} />;
     case "analytics":
-      return <AnalyticsIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <ChartBar className={cls} />;
     case "your_work":
-      return <YourWorkIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <UserCirclePlus className={cls} />;
     case "drafts":
-      return <DraftIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <Pencil className={cls} />;
     case "archives":
-      return <ArchiveIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <Archive className={cls} />;
     case "stickies":
-      return <MultipleStickyIcon className={cn("size-4 flex-shrink-0", className)} />;
+      return <Notebook className={cls} />;
     case "docs":
-      return <FileText className={cn("size-4 flex-shrink-0", className)} />;
+      return <FileText className={cls} />;
+    case "diagrams":
+      return <FlowArrow className={cls} />;
+    case "whiteboards":
+      return <PaintBrush className={cls} />;
   }
 };

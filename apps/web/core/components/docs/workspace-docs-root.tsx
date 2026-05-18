@@ -31,16 +31,24 @@ const pageService = new ProjectPageService();
 
 type Props = {
   workspaceSlug: string;
+  /** Filter the workspace pages list by type. Omit to show docs only. */
+  pageType?: TPage["page_type"];
+  /** Override the empty-state copy for non-doc surfaces (Diagrams, Whiteboard). */
+  labels?: {
+    emptyTitle?: string;
+    emptyDescription?: string;
+    filteredEmptyTitle?: string;
+  };
 };
 
-export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({ workspaceSlug }: Props) {
+export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({ workspaceSlug, pageType = "doc", labels }: Props) {
   const { getProjectById } = useProject();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   const { data: pages, isLoading } = useSWR(
-    workspaceSlug ? `WORKSPACE_DOCS_${workspaceSlug}` : null,
-    workspaceSlug ? () => pageService.fetchWorkspacePages(workspaceSlug) : null
+    workspaceSlug ? `WORKSPACE_PAGES_${workspaceSlug}_${pageType}` : null,
+    workspaceSlug ? () => pageService.fetchWorkspacePages(workspaceSlug, pageType) : null
   );
 
   const visiblePages = useMemo(() => (pages ?? []).filter((p) => !p.archived_at), [pages]);
@@ -92,11 +100,15 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({ workspace
       {filteredPages.length === 0 ? (
         <EmptyStateDetailed
           assetKey={hasFilters ? "search" : "page"}
-          title={hasFilters ? "No docs match your filters" : "No docs yet"}
+          title={
+            hasFilters
+              ? labels?.filteredEmptyTitle ?? "No docs match your filters"
+              : labels?.emptyTitle ?? "No docs yet"
+          }
           description={
             hasFilters
               ? "Try clearing the search or project filter."
-              : "Create your first page from inside a project to see it here."
+              : labels?.emptyDescription ?? "Create your first page from inside a project to see it here."
           }
         />
       ) : (

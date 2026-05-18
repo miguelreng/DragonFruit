@@ -646,10 +646,14 @@ class WorkspacePagesListEndpoint(BaseAPIView):
     least one of the page's projects, the project is not archived, and the page
     is either public or owned by the user. Annotates `project_ids` so the
     frontend can filter by project without an extra round trip.
+
+    Accepts `?page_type=<doc|diagram|whiteboard>` to scope to a single type.
     """
 
+    ALLOWED_PAGE_TYPES = {choice[0] for choice in Page.PAGE_TYPE_CHOICES}
+
     def get(self, request, slug):
-        pages = (
+        qs = (
             Page.objects.filter(workspace__slug=slug)
             .filter(
                 projects__project_projectmember__member=request.user,
@@ -658,7 +662,14 @@ class WorkspacePagesListEndpoint(BaseAPIView):
             )
             .filter(parent__isnull=True)
             .filter(Q(owned_by=request.user) | Q(access=0))
-            .annotate(
+        )
+
+        page_type = request.query_params.get("page_type")
+        if page_type and page_type in self.ALLOWED_PAGE_TYPES:
+            qs = qs.filter(page_type=page_type)
+
+        pages = (
+            qs.annotate(
                 project_ids=Coalesce(
                     ArrayAgg("projects__id", distinct=True, filter=~Q(projects__id=True)),
                     Value([], output_field=ArrayField(UUIDField())),
