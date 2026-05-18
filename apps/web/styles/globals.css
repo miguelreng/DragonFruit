@@ -234,3 +234,103 @@
     0 0 4px --alpha(var(--background-color-accent-primary) / 40%) !important;
   will-change: transform, opacity;
 }
+
+/* Schedule-X (calendar) — DragonFruit theme overrides.
+ * Scoped to .dragonfruit-calendar so this never leaks into anywhere else
+ * that might use Schedule-X. Swap Schedule-X's built-in tokens for our own
+ * and replace its default toolbar with our pill / border style. */
+.dragonfruit-calendar {
+  --sx-color-primary: var(--background-color-accent-primary);
+  --sx-color-on-primary: #ffffff;
+  --sx-color-primary-container: color-mix(in srgb, var(--background-color-accent-primary) 14%, transparent);
+  --sx-color-on-primary-container: var(--text-color-primary);
+  /* Day cells should sit on the canvas, not the layer-1 grey. */
+  --sx-color-surface: var(--background-color-canvas);
+  --sx-color-surface-variant: var(--background-color-canvas);
+  --sx-color-on-surface: var(--text-color-primary);
+  --sx-color-on-surface-variant: var(--text-color-tertiary);
+  --sx-color-background: var(--background-color-canvas);
+  --sx-color-outline: var(--border-color-subtle-1);
+  --sx-color-outline-variant: var(--border-color-subtle);
+  --sx-internal-color-text: var(--text-color-primary);
+  --sx-internal-color-line: var(--border-color-subtle);
+  --sx-color-shadow: rgba(0, 0, 0, 0.08);
+  font-family: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Strip the default Schedule-X outer frame so the calendar sits flush with
+ * surrounding chrome (the page already provides borders). */
+.dragonfruit-calendar .sx__calendar,
+.dragonfruit-calendar .sx__calendar-wrapper {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Toolbar: replace the default chunky controls with our pill style.
+ * Note: the chevron arrows use Schedule-X's own glyph font, so we do NOT
+ * touch font-family on .sx__chevron-wrapper — only on text buttons. */
+.dragonfruit-calendar .sx__today-button,
+.dragonfruit-calendar .sx__view-selection,
+.dragonfruit-calendar .sx__date-input {
+  border-radius: 6px !important;
+  font-family: "Figtree Variable", ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  color: var(--text-color-primary) !important;
+}
+
+.dragonfruit-calendar .sx__today-button {
+  background-color: var(--background-color-canvas) !important;
+  border: 1px solid var(--border-color-subtle-1) !important;
+  padding: 4px 10px !important;
+  transition: background-color 0.12s ease;
+}
+.dragonfruit-calendar .sx__today-button:hover {
+  background-color: var(--background-color-layer-1) !important;
+}
+
+.dragonfruit-calendar .sx__chevron-wrapper {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+}
+.dragonfruit-calendar .sx__chevron-wrapper:hover {
+  background-color: var(--background-color-layer-1) !important;
+}
+
+/* Header row (Mon, Tue, …) — quieter, matches our caption type. */
+.dragonfruit-calendar .sx__week-grid__day-name,
+.dragonfruit-calendar .sx__month-grid-day__header {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  color: var(--text-color-tertiary) !important;
+}
+
+/* Cells */
+.dragonfruit-calendar .sx__month-grid-day,
+.dragonfruit-calendar .sx__week-grid__date {
+  background-color: var(--background-color-canvas) !important;
+}
+
+/* Today highlight: pill with our accent. */
+.dragonfruit-calendar .sx__month-grid-day__header-day-name--today,
+.dragonfruit-calendar .sx__week-grid__day-name-and-date--today .sx__week-grid__date-number {
+  background-color: var(--background-color-accent-primary) !important;
+  color: #ffffff !important;
+}
+
+/* "+N events" overflow chip */
+.dragonfruit-calendar .sx__month-grid-day__events-more {
+  font-size: 11px !important;
+  color: var(--text-color-tertiary) !important;
+  background-color: transparent !important;
+}
+
+/* Event chips: tighter, rounder. */
+.dragonfruit-calendar .sx__event {
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  padding: 2px 6px !important;
+}

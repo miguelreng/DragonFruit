@@ -25,6 +25,8 @@
     "@fontsource/ibm-plex-mono": "5.2.7",
     "@fontsource/material-symbols-rounded": "5.2.30",
     "@headlessui/react": "^1.7.19",
+    "@hugeicons/core-free-icons": "^4.1.4",
+    "@hugeicons/react": "^1.1.6",
     "@js-temporal/polyfill": "^0.5.1",
     "@phosphor-icons/react": "^2.1.10",
     "@plane/constants": "workspace:*",

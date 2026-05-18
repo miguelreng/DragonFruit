@@ -32,7 +32,8 @@ import "@schedule-x/theme-default/dist/index.css";
 // Lib-types prefer the built-in, but the polyfill is API-compatible at runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const T = Temporal as any;
-import { Calendar as CalendarIcon, Check, Trash2 } from "@/components/icons/lucide-shim";
+import { Calendar as CalendarIcon, Check, Plus, Trash2 } from "@/components/icons/lucide-shim";
+import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 import {
   CalendarService,
   type TCalendarAccount,
@@ -117,10 +118,14 @@ export function CalendarRoot() {
     const to = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59).toISOString();
     return { from, to };
   }, []);
-  const { data: tasksRes } = useSWR(
+  const { data: tasksRes, mutate: refetchTasks } = useSWR(
     workspaceSlug ? `CALENDAR_TASKS_${workspaceSlug}` : null,
     () => calendarService.tasks(workspaceSlug, taskRange)
   );
+
+  // "Quick add" task: opened via Schedule-X day-click. Holds the date the
+  // user clicked so we can preload the CreateUpdateIssueModal.
+  const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
 
   // Google: optional overlay.
   const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>(
@@ -146,6 +151,11 @@ export function CalendarRoot() {
 
   const eventsService = useRef(createEventsServicePlugin()).current;
   const calendarAppRef = useRef<ReturnType<typeof createCalendar> | null>(null);
+  // Keep the latest setQuickAddDate accessible from the (one-time) Schedule-X
+  // callbacks closure — we don't want to recreate the calendar on every render.
+  const openQuickAddRef = useRef<(date: string) => void>(() => {});
+  openQuickAddRef.current = (date) => setQuickAddDate(date);
+
   if (!calendarAppRef.current) {
     calendarAppRef.current = createCalendar({
       views: [createViewMonthGrid(), createViewWeek(), createViewDay()],
@@ -153,6 +163,13 @@ export function CalendarRoot() {
       events: sxEvents,
       calendars: CALENDARS_CONFIG,
       plugins: [eventsService],
+      callbacks: {
+        // Month-grid: clicking an empty day cell.
+        onClickDate: (date) => openQuickAddRef.current(typeof date === "string" ? date.slice(0, 10) : ""),
+        // Week / day: clicking an empty time slot.
+        onClickDateTime: (dateTime) =>
+          openQuickAddRef.current(typeof dateTime === "string" ? dateTime.slice(0, 10) : ""),
+      },
     });
   }
 
@@ -169,10 +186,30 @@ export function CalendarRoot() {
         taskCount={tasksRes?.tasks?.length ?? 0}
         googleAccount={googleAccount}
         refetchAccounts={refetchAccounts}
+        onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
       />
       <div className="dragonfruit-calendar relative h-full w-full flex-1 overflow-hidden">
         {calendarAppRef.current && <ScheduleXCalendar calendarApp={calendarAppRef.current} />}
       </div>
+
+      {/* Click-a-day → quick-create task. The existing CreateUpdateIssueModal
+          handles project selection, validation, and submit; we just preload
+          the date the user clicked into. */}
+      <CreateUpdateIssueModal
+        isOpen={quickAddDate !== null}
+        onClose={() => setQuickAddDate(null)}
+        onSubmit={async () => {
+          await refetchTasks();
+        }}
+        data={
+          quickAddDate
+            ? {
+                start_date: quickAddDate,
+                target_date: quickAddDate,
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }
@@ -182,9 +219,10 @@ type CalendarHeaderProps = {
   taskCount: number;
   googleAccount: TCalendarAccount | undefined;
   refetchAccounts: () => void;
+  onQuickAdd: () => void;
 };
 
-function CalendarHeader({ taskCount, googleAccount, refetchAccounts, workspaceSlug }: CalendarHeaderProps) {
+function CalendarHeader({ taskCount, googleAccount, refetchAccounts, workspaceSlug, onQuickAdd }: CalendarHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
@@ -226,11 +264,19 @@ function CalendarHeader({ taskCount, googleAccount, refetchAccounts, workspaceSl
         )}
       </div>
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onQuickAdd}
+          className="inline-flex items-center gap-1.5 rounded-md bg-accent-primary px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+        >
+          <Plus className="size-3.5" />
+          New task
+        </button>
         {googleAccount ? (
           <button
             type="button"
             onClick={handleDisconnect}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-tertiary hover:bg-layer-1-hover hover:text-primary"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-tertiary hover:bg-layer-1-hover hover:text-primary"
           >
             <Trash2 className="size-3.5" />
             Disconnect Google
@@ -240,7 +286,7 @@ function CalendarHeader({ taskCount, googleAccount, refetchAccounts, workspaceSl
             type="button"
             onClick={handleConnect}
             disabled={isConnecting}
-            className="flex items-center gap-1.5 rounded-md border border-subtle-1 px-2.5 py-1 text-xs font-medium text-primary hover:bg-layer-1-hover disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-subtle-1 bg-canvas px-2.5 py-1 text-xs font-medium text-primary hover:bg-layer-1-hover disabled:opacity-50"
           >
             <CalendarIcon className="size-3.5" />
             {isConnecting ? "Redirecting…" : "Connect Google Calendar"}
