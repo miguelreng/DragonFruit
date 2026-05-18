@@ -80,18 +80,27 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     }
   }, [prompt, workspaceSlug, projectId, pageId]);
 
+  // Global Escape-to-close while open.
+  useEffect(() => {
+    if (!isOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !isSending) setIsOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, isSending]);
+
   if (!isOpen) return null;
 
   return (
     <div
       role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-start justify-center bg-black/30 pt-32"
-      onClick={() => !isSending && setIsOpen(false)}
+      aria-modal="false"
+      className="pointer-events-none fixed inset-x-0 bottom-10 z-[100] flex justify-center"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl rounded-lg border border-subtle-1 bg-canvas p-4 shadow-lg"
+        className="pointer-events-auto w-full max-w-xl rounded-xl border border-subtle-1 bg-canvas p-4 shadow-raised-200 animate-in fade-in slide-in-from-bottom-2 duration-150"
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
