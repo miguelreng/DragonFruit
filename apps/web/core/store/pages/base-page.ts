@@ -85,6 +85,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
   // page properties
   id: string | undefined;
   name: string | undefined;
+  page_type: TPage["page_type"];
   logo_props: TLogoProps | undefined;
   description_json: object | undefined;
   description_html: string | undefined;
@@ -122,6 +123,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
 
     this.id = page?.id || undefined;
     this.name = page?.name;
+    this.page_type = page?.page_type ?? "doc";
     this.logo_props = page?.logo_props || undefined;
     this.description_json = page?.description_json || undefined;
     this.description_html = page?.description_html || undefined;
@@ -147,6 +149,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       // page properties
       id: observable.ref,
       name: observable.ref,
+      page_type: observable.ref,
       logo_props: observable.ref,
       description_json: observable.ref,
       description_html: observable.ref,
@@ -223,6 +226,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     return {
       id: this.id,
       name: this.name,
+      page_type: this.page_type,
       description_json: this.description_json,
       description_html: this.description_html,
       color: this.color,

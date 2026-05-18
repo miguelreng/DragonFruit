@@ -27,8 +27,22 @@ class Page(BaseModel):
 
     ACCESS_CHOICES = ((PRIVATE_ACCESS, "Private"), (PUBLIC_ACCESS, "Public"))
 
+    # DragonFruit page types. "doc" is the existing collaborative editor;
+    # "diagram" renders Mermaid; "whiteboard" renders Excalidraw. The renderer
+    # picks based on this field; description_html / description_json carry
+    # the body in a type-specific shape.
+    PAGE_TYPE_DOC = "doc"
+    PAGE_TYPE_DIAGRAM = "diagram"
+    PAGE_TYPE_WHITEBOARD = "whiteboard"
+    PAGE_TYPE_CHOICES = (
+        (PAGE_TYPE_DOC, "Doc"),
+        (PAGE_TYPE_DIAGRAM, "Diagram"),
+        (PAGE_TYPE_WHITEBOARD, "Whiteboard"),
+    )
+
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="pages")
     name = models.TextField(blank=True)
+    page_type = models.CharField(max_length=16, choices=PAGE_TYPE_CHOICES, default=PAGE_TYPE_DOC)
     description_json = models.JSONField(default=dict, blank=True)
     description_binary = models.BinaryField(null=True)
     description_html = models.TextField(blank=True, default="<p></p>")

@@ -23,6 +23,8 @@ import type { TPageInstance } from "@/store/pages/base-page";
 import { PageNavigationPaneRoot } from "../navigation-pane";
 import { PageVersionsOverlay } from "../version";
 import { PagesVersionEditor } from "../version/editor";
+import { MermaidEditor } from "../diagram/mermaid-editor";
+import { ExcalidrawEditor } from "../whiteboard/excalidraw-editor";
 import { ContentLimitBanner } from "./content-limit-banner";
 import { PageEditorBody } from "./editor-body";
 import type { TEditorBodyConfig, TEditorBodyHandlers } from "./editor-body";
@@ -180,24 +182,30 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           page={page}
         />
         {showContentTooLargeBanner && <ContentLimitBanner className="px-page-x" />}
-        <PageEditorBody
-          config={config}
-          customRealtimeEventHandlers={mergedCustomEventHandlers}
-          editorReady={editorReady}
-          editorForwardRef={editorRef}
-          handleEditorReady={handleEditorReady}
-          handleOpenNavigationPane={handleOpenNavigationPane}
-          handlers={handlers}
-          isNavigationPaneOpen={isNavigationPaneOpen}
-          page={page}
-          projectId={projectId}
-          storeType={storeType}
-          webhookConnectionParams={webhookConnectionParams}
-          workspaceSlug={workspaceSlug}
-          extendedEditorProps={extendedEditorProps}
-          isFetchingFallbackBinary={isFetchingFallbackBinary}
-          onCollaborationStateChange={setCollaborationState}
-        />
+        {page.page_type === "diagram" ? (
+          <MermaidEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+        ) : page.page_type === "whiteboard" ? (
+          <ExcalidrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+        ) : (
+          <PageEditorBody
+            config={config}
+            customRealtimeEventHandlers={mergedCustomEventHandlers}
+            editorReady={editorReady}
+            editorForwardRef={editorRef}
+            handleEditorReady={handleEditorReady}
+            handleOpenNavigationPane={handleOpenNavigationPane}
+            handlers={handlers}
+            isNavigationPaneOpen={isNavigationPaneOpen}
+            page={page}
+            projectId={projectId}
+            storeType={storeType}
+            webhookConnectionParams={webhookConnectionParams}
+            workspaceSlug={workspaceSlug}
+            extendedEditorProps={extendedEditorProps}
+            isFetchingFallbackBinary={isFetchingFallbackBinary}
+            onCollaborationStateChange={setCollaborationState}
+          />
+        )}
       </div>
       <PageNavigationPaneRoot
         storeType={storeType}
