@@ -15,15 +15,16 @@ import { LogoSpinner } from "@/components/common/logo-spinner";
 import globalStyles from "@/styles/globals.css?url";
 import { AppProviders } from "@/providers";
 import type { Route } from "./+types/root";
-// fonts
+// fonts — side-effect imports register font CSS at bundle time
+/* eslint-disable import/no-unassigned-import */
 import "@fontsource-variable/inter";
 import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 import "@fontsource/material-symbols-rounded";
 import "@fontsource/ibm-plex-mono";
+/* eslint-enable import/no-unassigned-import */
 
-const APP_TITLE = "Plane | Simple, extensible, open-source project management tool.";
-const APP_DESCRIPTION =
-  "Open-source project management tool to manage work items, sprints, and product roadmaps with peace of mind.";
+const APP_TITLE = "Dragon Fruit Admin | Instance administration console";
+const APP_DESCRIPTION = "Admin console for the Dragon Fruit instance — manage users, integrations, and configuration.";
 
 export const links: LinksFunction = () => [
   { rel: "apple-touch-icon", sizes: "180x180", href: appleTouchIcon },

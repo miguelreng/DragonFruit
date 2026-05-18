@@ -11,7 +11,7 @@ export const MODULE_STATUS_COLORS: {
   [key in TModuleStatus]: string;
 } = {
   backlog: "#a3a3a2",
-  planned: "#3f76ff",
+  planned: "#aa0276",
   paused: "#525252",
   completed: "#16a34a",
   cancelled: "#ef4444",
