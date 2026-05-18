@@ -235,13 +235,19 @@ export const TopNavPowerK = observer(() => {
             onMouseDown={handleMouseDown}
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
-            placeholder="Search commands..."
+            placeholder="Search"
             className="placeholder-text-placeholder min-w-0 flex-1 bg-transparent text-13 text-primary outline-none"
           />
-          {searchTerm && (
+          {searchTerm ? (
             <button type="button" onClick={handleClear} className="ml-2 shrink-0">
               <CloseIcon className="size-3.5 text-placeholder hover:text-primary" />
             </button>
+          ) : (
+            !isOpen && (
+              <kbd className="ml-2 shrink-0 rounded border border-subtle-1 bg-canvas px-1.5 py-0.5 font-sans text-11 text-tertiary">
+                ⌘ K
+              </kbd>
+            )
           )}
         </div>
       </div>
