@@ -177,6 +177,11 @@ from .page.base import (
 from .page.version import PageVersionEndpoint
 from .page.comment import PageBlockCommentEndpoint, PageBlockCommentDetailEndpoint
 
+from .agent_webhook.base import (
+    WorkspaceAgentWebhookEndpoint,
+    WorkspaceAgentWebhookDispatchEndpoint,
+)
+
 from .search.base import GlobalSearchEndpoint, SearchEndpoint
 from .search.issue import IssueSearchEndpoint
 
