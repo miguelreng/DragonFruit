@@ -20,7 +20,7 @@ import {
   Timer,
   ListTodo,
   Layers,
-} from "lucide-react";
+} from "@/components/icons/lucide-shim";
 // components
 
 import {

@@ -11,7 +11,7 @@ import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-d
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane helpers
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "@/components/icons/lucide-shim";
 import { useOutsideClickDetector } from "@plane/hooks";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";

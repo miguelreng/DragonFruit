@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
 import type { TActivityFilters, TActivityFilterOption } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

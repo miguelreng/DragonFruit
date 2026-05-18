@@ -6,7 +6,7 @@
 
 import { useMemo } from "react";
 import { observer } from "mobx-react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
 import { EIssueCommentAccessSpecifier } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

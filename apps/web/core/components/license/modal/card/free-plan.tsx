@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { CircleX } from "lucide-react";
+import { CircleX } from "@/components/icons/lucide-shim";
 // plane constants
 import { FREE_PLAN_UPGRADE_FEATURES } from "@plane/constants";
 // helpers

@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Link } from "react-router";
-import { MoreHorizontal, Pin } from "lucide-react";
+import { MoreHorizontal, Pin } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { SetAsDefaultIcon } from "@plane/propel/icons";

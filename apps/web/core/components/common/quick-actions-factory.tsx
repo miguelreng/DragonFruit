@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Pencil, ExternalLink, Link, Trash2, ArchiveRestoreIcon } from "lucide-react";
+import { Pencil, ExternalLink, Link, Trash2, ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { ArchiveIcon } from "@plane/propel/icons";
 import type { TContextMenuItem } from "@plane/ui";

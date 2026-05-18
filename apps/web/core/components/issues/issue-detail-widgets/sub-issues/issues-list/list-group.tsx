@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { CircleDashed } from "lucide-react";
+import { CircleDashed } from "@/components/icons/lucide-shim";
 import { ALL_ISSUES } from "@plane/constants";
 import { ChevronRightIcon } from "@plane/propel/icons";
 import type { IGroupByColumn, TIssue, TIssueServiceType, TSubIssueOperations } from "@plane/types";

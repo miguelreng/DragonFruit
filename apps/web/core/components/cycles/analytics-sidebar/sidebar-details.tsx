@@ -7,7 +7,7 @@
 import React from "react";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
-import { SquareUser } from "lucide-react";
+import { SquareUser } from "@/components/icons/lucide-shim";
 // plane types
 import { EEstimateSystem } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

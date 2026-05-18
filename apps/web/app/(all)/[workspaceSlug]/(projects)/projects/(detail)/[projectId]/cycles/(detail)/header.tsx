@@ -8,7 +8,7 @@ import { useCallback, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
-import { ChartNoAxesColumn, PanelRight, SlidersHorizontal } from "lucide-react";
+import { ChartNoAxesColumn, PanelRight, SlidersHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
 import {
   EIssueFilterType,

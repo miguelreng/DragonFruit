@@ -6,7 +6,7 @@
 
 import { useEffect } from "react";
 import { observer } from "mobx-react";
-import { Layers } from "lucide-react";
+import { Layers } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { cn } from "@plane/utils";

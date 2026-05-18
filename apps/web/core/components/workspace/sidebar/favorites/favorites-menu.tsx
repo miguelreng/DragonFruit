@@ -15,7 +15,7 @@ import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element
 import { orderBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { FolderPlus } from "lucide-react";
+import { FolderPlus } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 import { IS_FAVORITE_MENU_OPEN } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

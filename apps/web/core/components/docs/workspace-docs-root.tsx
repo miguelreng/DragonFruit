@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Link } from "react-router";
 import useSWR from "swr";
-import { Check, ChevronDown, FileText, Search, X } from "lucide-react";
+import { Check, ChevronDown, FileText, Search, X } from "@/components/icons/lucide-shim";
 import { renderFormattedDate } from "@plane/utils";
 import type { TPage } from "@plane/types";
 import { useProject } from "@/hooks/store/use-project";

@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { CircleArrowUp, CornerDownRight, RefreshCcw, Sparkles } from "lucide-react";
+import { CircleArrowUp, CornerDownRight, RefreshCcw, Sparkles } from "@/components/icons/lucide-shim";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
 // components

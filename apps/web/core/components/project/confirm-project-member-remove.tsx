@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "@/components/icons/lucide-shim";
 // types
 import { Button } from "@plane/propel/button";
 import type { IUserLite } from "@plane/types";

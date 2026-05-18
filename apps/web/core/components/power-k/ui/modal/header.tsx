@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Command } from "cmdk";
-import { X } from "lucide-react";
+import { X } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 // plane imports
 import { SearchIcon } from "@plane/propel/icons";

@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { CircleDashed } from "lucide-react";
+import { CircleDashed } from "@/components/icons/lucide-shim";
 import { PlusIcon } from "@plane/propel/icons";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";

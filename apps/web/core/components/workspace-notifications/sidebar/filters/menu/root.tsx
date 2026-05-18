@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
 import type { ENotificationFilterType } from "@plane/constants";
 import { FILTER_TYPE_OPTIONS } from "@plane/constants";

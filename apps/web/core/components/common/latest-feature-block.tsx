@@ -7,7 +7,7 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 // icons
-import { Lightbulb } from "lucide-react";
+import { Lightbulb } from "@/components/icons/lucide-shim";
 // images
 import latestFeatures from "@/app/assets/onboarding/onboarding-pages.webp?url";
 

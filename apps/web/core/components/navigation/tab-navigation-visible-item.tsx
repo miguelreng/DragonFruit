@@ -5,7 +5,7 @@
  */
 
 import { Link } from "react-router";
-import { PinOff } from "lucide-react";
+import { PinOff } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { ContextMenu } from "@plane/propel/context-menu";

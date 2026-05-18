@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { FileText } from "lucide-react";
+import { FileText } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { Breadcrumbs, Header } from "@plane/ui";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";

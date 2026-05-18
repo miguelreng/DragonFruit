@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CircleDot, XCircle } from "lucide-react";
+import { CircleDot, XCircle } from "@/components/icons/lucide-shim";
 import { RelatedIcon, DuplicatePropertyIcon } from "@plane/propel/icons";
 import type { TRelationObject } from "@/components/issues/issue-detail-widgets/relations";
 import type { TIssueRelationTypes } from "../../types";

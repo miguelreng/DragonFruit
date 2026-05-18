@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon } from "@/components/icons/lucide-shim";
 // plane imports
 import { E_PASSWORD_STRENGTH } from "@plane/constants";
 import { Button } from "@plane/propel/button";

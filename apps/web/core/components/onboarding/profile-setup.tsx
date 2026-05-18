@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "@/components/icons/lucide-shim";
 import { E_PASSWORD_STRENGTH } from "@plane/constants";
 // types
 import { useTranslation } from "@plane/i18n";

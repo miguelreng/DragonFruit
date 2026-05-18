@@ -9,7 +9,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Hotel } from "lucide-react";
+import { Hotel } from "@/components/icons/lucide-shim";
 // plane ui
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";

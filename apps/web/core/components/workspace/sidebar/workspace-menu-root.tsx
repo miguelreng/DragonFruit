@@ -8,7 +8,7 @@ import { Fragment, useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
-import { CirclePlus, LogOut, Mails } from "lucide-react";
+import { CirclePlus, LogOut, Mails } from "@/components/icons/lucide-shim";
 // ui
 import { Menu, Transition } from "@headlessui/react";
 // plane imports

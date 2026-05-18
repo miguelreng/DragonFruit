@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 import { VIEW_ACCESS_SPECIFIERS as VIEW_ACCESS_SPECIFIERS_CONSTANTS } from "@plane/constants";
 import { GlobeIcon, LockIcon } from "@plane/propel/icons";
 

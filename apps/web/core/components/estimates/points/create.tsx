@@ -7,7 +7,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { Info } from "lucide-react";
+import { Info } from "@/components/icons/lucide-shim";
 import { EEstimateSystem, MAX_ESTIMATE_POINT_INPUT_LENGTH } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { CheckIcon, CloseIcon } from "@plane/propel/icons";

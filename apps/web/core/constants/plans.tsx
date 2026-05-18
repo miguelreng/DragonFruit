@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Mail, MessageCircle, MessageSquare } from "lucide-react";
+import { Mail, MessageCircle, MessageSquare } from "@/components/icons/lucide-shim";
 import { EProductSubscriptionEnum } from "@plane/types";
 // plane imports
 import { cn } from "@plane/utils";

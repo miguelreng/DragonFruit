@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
-import { Circle } from "lucide-react";
+import { Circle } from "@/components/icons/lucide-shim";
 // plane imports
 import {
   EUserPermissions,

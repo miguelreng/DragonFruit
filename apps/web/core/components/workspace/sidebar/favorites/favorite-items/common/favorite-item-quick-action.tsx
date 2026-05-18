@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { MoreHorizontal, Star } from "lucide-react";
+import { MoreHorizontal, Star } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import type { IFavorite } from "@plane/types";

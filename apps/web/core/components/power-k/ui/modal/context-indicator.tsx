@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { X } from "lucide-react";
+import { X } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 // local imports

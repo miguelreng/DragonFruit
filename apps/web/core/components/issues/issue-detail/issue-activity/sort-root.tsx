@@ -5,7 +5,7 @@
  */
 
 import { memo } from "react";
-import { ArrowUpWideNarrow, ArrowDownWideNarrow } from "lucide-react";
+import { ArrowUpWideNarrow, ArrowDownWideNarrow } from "@/components/icons/lucide-shim";
 // plane package imports
 import { E_SORT_ORDER } from "@plane/constants";
 import { IconButton } from "@plane/propel/icon-button";

@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 // ui
-import { LogOut } from "lucide-react";
+import { LogOut } from "@/components/icons/lucide-shim";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { DragonfruitLogo } from "@plane/propel/icons";

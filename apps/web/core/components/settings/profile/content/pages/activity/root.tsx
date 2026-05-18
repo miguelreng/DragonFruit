@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
 // plane imports

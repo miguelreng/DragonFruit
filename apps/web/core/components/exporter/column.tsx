@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Download } from "lucide-react";
+import { Download } from "@/components/icons/lucide-shim";
 import type { IExportData } from "@plane/types";
 import { getDate, getFileURL, renderFormattedDate } from "@plane/utils";
 

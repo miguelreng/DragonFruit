@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle } from "@/components/icons/lucide-shim";
 import { Tab } from "@headlessui/react";
 // plane imports
 // helpers

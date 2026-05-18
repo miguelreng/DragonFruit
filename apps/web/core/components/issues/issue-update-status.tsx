@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw } from "@/components/icons/lucide-shim";
 // types
 import type { TNameDescriptionLoader } from "@plane/types";
 

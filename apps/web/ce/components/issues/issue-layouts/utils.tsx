@@ -5,7 +5,7 @@
  */
 
 import type { FC } from "react";
-import { CalendarDays, LayersIcon, Paperclip } from "lucide-react";
+import { CalendarDays, LayersIcon, Paperclip } from "@/components/icons/lucide-shim";
 // types
 import { ISSUE_GROUP_BY_OPTIONS } from "@plane/constants";
 import type { ISvgIcons } from "@plane/propel/icons";

@@ -6,7 +6,7 @@
 
 import type { SetStateAction } from "react";
 import { observer } from "mobx-react";
-import { GripVertical } from "lucide-react";
+import { GripVertical } from "@/components/icons/lucide-shim";
 import { EIconSize, STATE_TRACKER_ELEMENTS } from "@plane/constants";
 // plane imports
 import { EditIcon, StateGroupIcon } from "@plane/propel/icons";

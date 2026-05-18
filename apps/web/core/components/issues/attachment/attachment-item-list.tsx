@@ -8,7 +8,7 @@ import { useCallback, useState } from "react";
 import { observer } from "mobx-react";
 import type { FileRejection } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssueServiceType } from "@plane/types";

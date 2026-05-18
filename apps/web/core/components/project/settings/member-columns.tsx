@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { Controller, useForm } from "react-hook-form";
-import { CircleMinus } from "lucide-react";
+import { CircleMinus } from "@/components/icons/lucide-shim";
 import { Disclosure } from "@headlessui/react";
 // plane imports
 import { ROLE, EUserPermissions, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";

@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "@/components/icons/lucide-shim";
 // DragonFruit Imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";

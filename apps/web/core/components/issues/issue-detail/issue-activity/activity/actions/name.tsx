@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Type } from "lucide-react";
+import { Type } from "@/components/icons/lucide-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // components

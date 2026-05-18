@@ -5,7 +5,7 @@
  */
 
 import type { FC, ReactNode } from "react";
-import { Network } from "lucide-react";
+import { Network } from "@/components/icons/lucide-shim";
 // types
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TWorkspaceBaseActivity } from "@plane/types";

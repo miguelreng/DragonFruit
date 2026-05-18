@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp } from "@/components/icons/lucide-shim";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { cn } from "@plane/utils";

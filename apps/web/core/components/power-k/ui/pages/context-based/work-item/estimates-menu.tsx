@@ -6,7 +6,7 @@
 
 import { Command } from "cmdk";
 import { observer } from "mobx-react";
-import { Triangle } from "lucide-react";
+import { Triangle } from "@/components/icons/lucide-shim";
 // plane types
 import { useTranslation } from "@plane/i18n";
 import { EEstimateSystem } from "@plane/types";

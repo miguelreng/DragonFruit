@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle } from "@/components/icons/lucide-shim";
 // plane imports
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 import { cn } from "@plane/utils";

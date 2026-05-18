@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert } from "@/components/icons/lucide-shim";
 import { cn } from "@plane/utils";
 
 type Props = {

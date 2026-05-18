@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare } from "@/components/icons/lucide-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // components

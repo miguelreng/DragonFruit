@@ -8,7 +8,7 @@ import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { StickyNote as StickyIcon } from "lucide-react";
+import { StickyNote as StickyIcon } from "@/components/icons/lucide-shim";
 // plane hooks
 import { useOutsideClickDetector } from "@plane/hooks";
 // plane ui

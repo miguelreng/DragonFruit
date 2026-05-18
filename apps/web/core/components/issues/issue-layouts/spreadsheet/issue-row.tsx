@@ -8,7 +8,7 @@ import type { Dispatch, MouseEvent, MutableRefObject, SetStateAction } from "rea
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "@/components/icons/lucide-shim";
 import { SPREADSHEET_SELECT_GROUP } from "@plane/constants";
 // plane helpers
 import { useOutsideClickDetector } from "@plane/hooks";

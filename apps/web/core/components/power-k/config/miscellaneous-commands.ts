@@ -5,7 +5,7 @@
  */
 
 import { useCallback } from "react";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { LinkIcon, SearchIcon } from "@plane/propel/icons";
 // plane imports

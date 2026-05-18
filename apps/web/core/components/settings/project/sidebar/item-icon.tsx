@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import type { LucideIcon } from "lucide-react";
-import { Users, Zap } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
+import { Users, Zap } from "@/components/icons/lucide-shim";
 // plane imports
 import type { ISvgIcons } from "@plane/propel/icons";
 import {

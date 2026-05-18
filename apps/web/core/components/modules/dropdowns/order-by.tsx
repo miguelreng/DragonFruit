@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowDownWideNarrow, ArrowUpWideNarrow } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpWideNarrow } from "@/components/icons/lucide-shim";
 import { MODULE_ORDER_BY_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { getButtonStyling } from "@plane/propel/button";

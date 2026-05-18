@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateCompact } from "@plane/propel/empty-state";

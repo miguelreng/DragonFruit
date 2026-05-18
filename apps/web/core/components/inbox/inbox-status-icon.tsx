@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, XCircle } from "@/components/icons/lucide-shim";
 import { CopyIcon } from "@plane/propel/icons";
 import type { TInboxIssueStatus } from "@plane/types";
 import { EInboxIssueStatus } from "@plane/types";

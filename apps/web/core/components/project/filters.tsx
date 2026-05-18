@@ -7,7 +7,7 @@
 import { useCallback } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import type { TProjectFilters } from "@plane/types";

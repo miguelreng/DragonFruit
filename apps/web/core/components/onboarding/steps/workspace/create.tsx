@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { CircleCheck } from "lucide-react";
+import { CircleCheck } from "@/components/icons/lucide-shim";
 // plane imports
 import { ORGANIZATION_SIZE, RESTRICTED_URLS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

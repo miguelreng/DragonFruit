@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Earth, Info, Minus } from "lucide-react";
+import { Earth, Info, Minus } from "@/components/icons/lucide-shim";
 // plane imports
 import { LockIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";

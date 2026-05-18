@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
 import type { IIssueDisplayFilterOptions, ILayoutDisplayFiltersOptions, IIssueDisplayProperties } from "@plane/types";
 import { cn } from "@plane/utils";

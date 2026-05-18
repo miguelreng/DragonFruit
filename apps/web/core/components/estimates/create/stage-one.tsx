@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Info } from "lucide-react";
+import { Info } from "@/components/icons/lucide-shim";
 // plane imports
 import { EEstimateSystem, ESTIMATE_SYSTEMS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

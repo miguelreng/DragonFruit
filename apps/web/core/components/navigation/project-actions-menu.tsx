@@ -6,7 +6,7 @@
 
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
-import { LogOut, MoreHorizontal, Settings, Share2, ArchiveIcon } from "lucide-react";
+import { LogOut, MoreHorizontal, Settings, Share2, ArchiveIcon } from "@/components/icons/lucide-shim";
 // plane imports
 import { MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

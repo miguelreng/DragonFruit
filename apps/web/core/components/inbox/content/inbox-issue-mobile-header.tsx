@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Clock, FileStack, MoreHorizontal, PanelLeft, MoveRight } from "lucide-react";
+import { Clock, FileStack, MoreHorizontal, PanelLeft, MoveRight } from "@/components/icons/lucide-shim";
 import { IconButton, getIconButtonStyling } from "@plane/propel/icon-button";
 import {
   LinkIcon,

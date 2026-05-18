@@ -8,7 +8,7 @@ import type { FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // icons
-import { CircleAlert, XCircle } from "lucide-react";
+import { CircleAlert, XCircle } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";

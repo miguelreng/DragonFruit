@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { usePopper } from "react-popper";
-import { SignalHigh } from "lucide-react";
+import { SignalHigh } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 import { ISSUE_PRIORITIES } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

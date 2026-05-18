@@ -5,8 +5,8 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import type { LucideIcon } from "lucide-react";
-import { CornerDownRight, RefreshCcw, Sparkles, TriangleAlert } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
+import { CornerDownRight, RefreshCcw, Sparkles, TriangleAlert } from "@/components/icons/lucide-shim";
 // plane editor
 import type { EditorRefApi } from "@plane/editor";
 import { ChevronRightIcon } from "@plane/propel/icons";

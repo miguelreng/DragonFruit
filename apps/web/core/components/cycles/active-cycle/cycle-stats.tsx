@@ -8,7 +8,7 @@ import { Fragment, useCallback, useRef, useState } from "react";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck } from "@/components/icons/lucide-shim";
 // headless ui
 import { Tab } from "@headlessui/react";
 // plane imports

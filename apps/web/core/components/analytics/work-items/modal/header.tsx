@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane package imports
-import { Expand, Shrink } from "lucide-react";
+import { Expand, Shrink } from "@/components/icons/lucide-shim";
 import { CloseIcon } from "@plane/propel/icons";
 import type { ICycle, IModule } from "@plane/types";
 // icons

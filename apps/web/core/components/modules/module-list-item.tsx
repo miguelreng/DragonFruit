@@ -8,7 +8,7 @@ import React, { useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 // icons
-import { Info } from "lucide-react";
+import { Info } from "@/components/icons/lucide-shim";
 import { CheckIcon } from "@plane/propel/icons";
 // ui
 import { CircularProgressIndicator } from "@plane/ui";

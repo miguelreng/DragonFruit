@@ -8,7 +8,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Placement } from "@popperjs/core";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
-import { Component, Loader } from "lucide-react";
+import { Component, Loader } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 import { getRandomLabelColor } from "@plane/constants";
 // plane imports

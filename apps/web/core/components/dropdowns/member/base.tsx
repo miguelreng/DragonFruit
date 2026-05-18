@@ -6,7 +6,7 @@
 
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { ChevronDownIcon } from "@plane/propel/icons";
 // plane imports

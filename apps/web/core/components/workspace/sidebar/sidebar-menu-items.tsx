@@ -6,7 +6,7 @@
 
 import React, { useMemo } from "react";
 import { observer } from "mobx-react";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import {

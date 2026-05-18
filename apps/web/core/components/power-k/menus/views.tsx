@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { Layers } from "lucide-react";
+import { Layers } from "@/components/icons/lucide-shim";
 // plane imports
 import type { IProjectView } from "@plane/types";
 // local imports

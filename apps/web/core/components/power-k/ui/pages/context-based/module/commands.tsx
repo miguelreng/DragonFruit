@@ -6,7 +6,7 @@
 
 import { useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Star, StarOff, Users } from "lucide-react";
+import { Star, StarOff, Users } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

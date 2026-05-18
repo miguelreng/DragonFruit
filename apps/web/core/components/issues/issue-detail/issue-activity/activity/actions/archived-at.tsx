@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw } from "@/components/icons/lucide-shim";
 // hooks
 import { ArchiveIcon } from "@plane/propel/icons";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";

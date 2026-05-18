@@ -6,7 +6,7 @@
 
 // plane package imports
 import React from "react";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingDown, TrendingUp } from "@/components/icons/lucide-shim";
 import { cn } from "@plane/utils";
 // plane web components
 

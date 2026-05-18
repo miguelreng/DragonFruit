@@ -8,7 +8,7 @@ import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArchiveRestoreIcon, Settings, UserPlus } from "lucide-react";
+import { ArchiveRestoreIcon, Settings, UserPlus } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";

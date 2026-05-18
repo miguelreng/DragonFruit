@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { ArchiveIcon, Earth } from "lucide-react";
+import { ArchiveIcon, Earth } from "@/components/icons/lucide-shim";
 import { EPageAccess } from "@plane/constants";
 import { LockIcon } from "@plane/propel/icons";
 import type { TPage } from "@plane/types";

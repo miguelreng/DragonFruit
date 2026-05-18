@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { GripVertical } from "lucide-react";
+import { GripVertical } from "@/components/icons/lucide-shim";
 // plane imports
 import { EEstimateSystem, estimateCount } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

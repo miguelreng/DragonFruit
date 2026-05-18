@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Shapes } from "lucide-react";
+import { Shapes } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";

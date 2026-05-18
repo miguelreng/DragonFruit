@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 import { getButtonStyling } from "@plane/propel/button";
 // plane imports
 import { ChevronDownIcon } from "@plane/propel/icons";

@@ -7,7 +7,7 @@
 import { useState, useRef, forwardRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
 import { Popover } from "@plane/propel/popover";

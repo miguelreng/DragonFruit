@@ -7,7 +7,7 @@
 import { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { ListFilter } from "lucide-react";
+import { ListFilter } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import type { GroupByColumnTypes, TIssue, TIssueServiceType, TSubIssueOperations } from "@plane/types";

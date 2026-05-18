@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CalendarDays } from "lucide-react";
+import { CalendarDays } from "@/components/icons/lucide-shim";
 // plane imports
 import { DueDatePropertyIcon, StartDatePropertyIcon } from "@plane/propel/icons";
 import type { TStateGroups } from "@plane/types";

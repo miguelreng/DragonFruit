@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
-import { EyeIcon, TriangleAlert } from "lucide-react";
+import { EyeIcon, TriangleAlert } from "@/components/icons/lucide-shim";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";

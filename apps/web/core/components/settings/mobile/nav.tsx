@@ -6,7 +6,7 @@
 
 import { useRef } from "react";
 import { observer } from "mobx-react";
-import { Menu } from "lucide-react";
+import { Menu } from "@/components/icons/lucide-shim";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { ChevronRightIcon } from "@plane/propel/icons";

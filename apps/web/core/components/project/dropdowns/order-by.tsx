@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowDownWideNarrow } from "lucide-react";
+import { ArrowDownWideNarrow } from "@/components/icons/lucide-shim";
 // plane imports
 import { PROJECT_ORDER_BY_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

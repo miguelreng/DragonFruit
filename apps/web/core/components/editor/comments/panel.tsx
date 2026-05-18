@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, MessageCircle, X } from "lucide-react";
+import { Check, MessageCircle, X } from "@/components/icons/lucide-shim";
 // plane imports
 import { cn } from "@plane/utils";
 // services

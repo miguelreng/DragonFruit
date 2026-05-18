@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
-import { MinusCircle } from "lucide-react";
+import { MinusCircle } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import type { TIssue } from "@plane/types";
 // component

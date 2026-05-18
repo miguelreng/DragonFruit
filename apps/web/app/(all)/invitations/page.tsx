@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 
 import useSWR, { mutate } from "swr";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "@/components/icons/lucide-shim";
 // plane imports
 import { ROLE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";

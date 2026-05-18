@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { History, MessageSquare } from "lucide-react";
+import { History, MessageSquare } from "@/components/icons/lucide-shim";
 // plane imports
 import type { IUserActivityResponse } from "@plane/types";
 import { calculateTimeAgo, getFileURL } from "@plane/utils";
