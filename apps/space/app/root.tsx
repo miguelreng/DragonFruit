@@ -20,8 +20,8 @@ import ErrorPage from "./error";
 import { AppProviders } from "./providers";
 // fonts — side-effect imports register font CSS at bundle time
 /* eslint-disable import/no-unassigned-import */
-import "@fontsource-variable/inter";
-import interVariableWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+import "@fontsource-variable/figtree";
+import figtreeVariableWoff2 from "@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2?url";
 import "@fontsource/material-symbols-rounded";
 import "@fontsource/ibm-plex-mono";
 /* eslint-enable import/no-unassigned-import */
@@ -38,7 +38,7 @@ export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
-    href: interVariableWoff2,
+    href: figtreeVariableWoff2,
     as: "font",
     type: "font/woff2",
     crossOrigin: "anonymous",
