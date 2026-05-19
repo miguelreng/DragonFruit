@@ -264,6 +264,25 @@
 .dragonfruit-calendar .sx__calendar-wrapper {
   border: none !important;
   box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Square corners + white cells everywhere — no soft greys, no rounded edges
+ * fighting the surrounding chrome. */
+.dragonfruit-calendar,
+.dragonfruit-calendar *,
+.dragonfruit-calendar *::before,
+.dragonfruit-calendar *::after {
+  border-radius: 0 !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-day,
+.dragonfruit-calendar .sx__week-grid__date,
+.dragonfruit-calendar .sx__month-grid-day--leading,
+.dragonfruit-calendar .sx__month-grid-day--trailing,
+.dragonfruit-calendar .sx__week-grid,
+.dragonfruit-calendar .sx__month-grid {
+  background-color: #ffffff !important;
 }
 
 /* Hide Schedule-X's built-in toolbar (Today / chevrons / View / Date) —
@@ -312,12 +331,6 @@
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
   color: var(--text-color-tertiary) !important;
-}
-
-/* Cells */
-.dragonfruit-calendar .sx__month-grid-day,
-.dragonfruit-calendar .sx__week-grid__date {
-  background-color: var(--background-color-canvas) !important;
 }
 
 /* Today highlight: pill with our accent. */
