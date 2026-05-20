@@ -9,11 +9,11 @@ import secrets
 import uuid
 from datetime import datetime, timezone
 
-import requests
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import allow_permission, ROLE
+from plane.bgtasks.agent_webhook_task import dispatch_agent_webhook
 from plane.db.models import Workspace, WorkspaceAgentWebhook
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 
@@ -94,12 +94,11 @@ class WorkspaceAgentWebhookDispatchEndpoint(BaseAPIView):
     """Forward a `/agent` invocation from the editor to the configured webhook.
 
     Fire-and-forget: we sign the payload with HMAC-SHA256 using the workspace
-    secret and POST it to the webhook URL with a short timeout. We do NOT wait
-    for the agent's actual work — the agent writes back through the normal
-    Pages / Issues API on its own schedule.
+    secret and hand the outbound POST off to Celery. The editor sees a 202
+    as soon as we've validated the request and enqueued the task — no
+    gunicorn worker waits on the remote endpoint. The agent writes back
+    through the normal Pages / Issues API on its own schedule.
     """
-
-    DISPATCH_TIMEOUT_SECONDS = 5
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug):
@@ -143,25 +142,23 @@ class WorkspaceAgentWebhookDispatchEndpoint(BaseAPIView):
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         secret = decrypt_data(webhook.secret_encrypted)
         signature = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "DragonFruit-Agent-Webhook/1",
+            "X-Dragonfruit-Event": "agent.invoke",
+            "X-Dragonfruit-Signature": f"sha256={signature}",
+            "X-Dragonfruit-Dispatch-Id": dispatch_id,
+        }
 
-        try:
-            requests.post(
-                webhook.url,
-                data=body,
-                headers={
-                    "Content-Type": "application/json",
-                    "User-Agent": "DragonFruit-Agent-Webhook/1",
-                    "X-Dragonfruit-Event": "agent.invoke",
-                    "X-Dragonfruit-Signature": f"sha256={signature}",
-                    "X-Dragonfruit-Dispatch-Id": dispatch_id,
-                },
-                timeout=self.DISPATCH_TIMEOUT_SECONDS,
-            )
-        except requests.RequestException as exc:
-            return Response(
-                {"error": f"Failed to reach webhook: {exc.__class__.__name__}"},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
+        # Hand off to the bg worker — this is non-blocking and won't raise
+        # for network failures. Receiver errors get logged + retried with
+        # backoff inside the task; the editor never has to know.
+        dispatch_agent_webhook.delay(
+            url=webhook.url,
+            body=body,
+            headers=headers,
+            dispatch_id=dispatch_id,
+        )
 
         return Response(
             {"dispatched": True, "dispatch_id": dispatch_id},
