@@ -114,7 +114,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
             {variant === "top-navigation" && (
               <Menu.Button
                 className={cn(
-                  "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm p-1 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
+                  "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm py-1 pl-4 pr-1 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
                   {
                     "bg-layer-1": open,
                   }
@@ -157,7 +157,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                   )}
                 >
                   <div className="vertical-scrollbar flex scrollbar-sm max-h-96 flex-col items-start justify-start overflow-x-hidden overflow-y-scroll">
-                    <span className="sticky top-0 z-21 h-full w-full flex-shrink-0 truncate rounded-md bg-surface-1 px-4 pt-3 pb-1 text-left text-13 font-medium text-placeholder">
+                    <span className="sticky top-0 z-21 h-full w-full flex-shrink-0 truncate rounded-md bg-surface-1 px-2 pt-3 pb-1 text-left text-13 font-medium text-placeholder">
                       {currentUser?.email}
                     </span>
                     {workspacesList ? (
@@ -188,7 +188,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       </div>
                     )}
                   </div>
-                  <div className="flex w-full flex-col items-start justify-start gap-2 px-4 py-2 text-13">
+                  <div className="flex w-full flex-col items-start justify-start gap-2 px-2 py-2 text-13">
                     {!isWorkspaceCreationDisabled && (
                       <Link href="/create-workspace" className="w-full">
                         <Menu.Item
@@ -215,7 +215,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       <Menu.Item
                         as="button"
                         type="button"
-                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium text-danger-primary hover:bg-layer-transparent-hover"
+                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
                         onClick={handleSignOut}
                       >
                         <LogOut className="size-4 flex-shrink-0" />

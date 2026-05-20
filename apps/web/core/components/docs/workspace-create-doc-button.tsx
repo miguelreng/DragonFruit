@@ -16,7 +16,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TPage, TPageType } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 import { cn } from "@plane/utils";
-import { ChevronDown, FileText, GitBranch, PenTool, Search } from "@/components/icons/lucide-shim";
+import { ChevronDown, FileText, PenTool, Search } from "@/components/icons/lucide-shim";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { ProjectPageService } from "@/services/page/project-page.service";
@@ -25,7 +25,6 @@ const pageService = new ProjectPageService();
 
 const TYPE_META: Record<TPageType, { label: string; Icon: typeof FileText }> = {
   doc: { label: "Doc", Icon: FileText },
-  diagram: { label: "Diagram", Icon: GitBranch },
   whiteboard: { label: "Whiteboard", Icon: PenTool },
 };
 
@@ -106,7 +105,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
   return (
     <Menu as="div" className="relative">
       <div ref={setReferenceElement} className="flex items-stretch">
-        <Menu.Button as={Button} variant="primary" size="base" loading={isCreating} className="gap-1.5 rounded-r-none">
+        <Menu.Button as={Button} variant="primary" size="lg" loading={isCreating} className="gap-1.5 rounded-r-none">
           <meta.Icon className="size-3.5" />
           {isCreating ? "Adding" : `New ${meta.label.toLowerCase()}`}
         </Menu.Button>

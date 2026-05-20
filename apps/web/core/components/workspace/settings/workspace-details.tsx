@@ -12,15 +12,20 @@ import { ORGANIZATION_SIZE, EUserPermissions, EUserPermissionsLevel } from "@pla
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EditIcon } from "@plane/propel/icons";
-import { RefreshCw } from "@/components/icons/lucide-shim";
+import { Tooltip } from "@plane/propel/tooltip";
+import { Copy, RefreshCw } from "@/components/icons/lucide-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspace } from "@plane/types";
 import { CustomSelect, Input } from "@plane/ui";
-import { cn, copyUrlToClipboard, getFileURL, validateWorkspaceName } from "@plane/utils";
+import { cn, copyUrlToClipboard, validateWorkspaceName } from "@plane/utils";
 // components
 import { WorkspaceImageUploadModal } from "@/components/core/modals/workspace-image-upload-modal";
 import { TimezoneSelect } from "@/components/global/timezone-select";
-import { randomizeDefaultWorkspaceLogo, useDefaultWorkspaceLogo } from "@/components/workspace/default-logos";
+import {
+  isDefaultWorkspaceLogo,
+  pickRandomDefaultWorkspaceLogo,
+  resolveWorkspaceLogoSrc,
+} from "@/components/workspace/default-logos";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -49,6 +54,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
     handleSubmit,
     control,
     reset,
+    setValue,
     watch,
     formState: { errors },
   } = useForm<IWorkspace>({
@@ -56,8 +62,10 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
   });
   // derived values
   const workspaceLogo = watch("logo_url");
-  const defaultLogo = useDefaultWorkspaceLogo(currentWorkspace?.id);
-  const hasCustomLogo = !!workspaceLogo && workspaceLogo !== "";
+  const isUsingDefaultLogo = !workspaceLogo || workspaceLogo === "" || isDefaultWorkspaceLogo(workspaceLogo);
+  const logoSrc = resolveWorkspaceLogoSrc(workspaceLogo, currentWorkspace?.id);
+  const workspaceHost = typeof window !== "undefined" ? window.location.host : "";
+  const workspaceUrl = currentWorkspace ? `${workspaceHost}/${currentWorkspace.slug}` : "";
 
   const onSubmit = async (formData: IWorkspace) => {
     if (!currentWorkspace) return;
@@ -103,6 +111,29 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
         type: TOAST_TYPE.ERROR,
         title: "Error!",
         message: "There was some error in deleting your profile picture. Please try again.",
+      });
+    }
+  };
+
+  const handleRandomizeLogo = async () => {
+    if (!currentWorkspace) return;
+    const nextLogo = pickRandomDefaultWorkspaceLogo(workspaceLogo);
+    try {
+      // Server-side: `logo_url` is read-only (it's computed from logo_asset.asset_url || logo),
+      // so we write the underlying `logo` column and null out any uploaded asset. We also
+      // include logo_url in the payload so the store's local update reflects the new value
+      // immediately (the backend ignores read-only fields).
+      await updateWorkspace(currentWorkspace.slug, {
+        logo: nextLogo,
+        logo_asset: null,
+        logo_url: nextLogo,
+      });
+      setValue("logo_url", nextLogo, { shouldDirty: false });
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Could not update workspace logo. Please try again.",
       });
     }
   };
@@ -155,7 +186,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
             <button type="button" onClick={() => setIsImageUploadModalOpen(true)} disabled={!isAdmin}>
               <div className="relative flex size-14">
                 <img
-                  src={hasCustomLogo ? getFileURL(workspaceLogo as string) : defaultLogo}
+                  src={logoSrc}
                   className="absolute top-0 left-0 size-full rounded-md object-cover"
                   alt="Workspace Logo"
                 />
@@ -163,35 +194,38 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
             </button>
           </div>
           <div className="flex flex-col gap-1">
-            <div className="mb:-my-5 text-h5-semibold leading-6">{watch("name")}</div>
-            <button type="button" onClick={handleCopyUrl} className="text-left text-body-xs-regular tracking-tight">{`${
-              typeof window !== "undefined" && window.location.origin.replace("http://", "").replace("https://", "")
-            }/${currentWorkspace.slug}`}</button>
+            <div className="mb:-my-5 text-h5-semibold leading-6 text-secondary">{watch("name")}</div>
+            <Tooltip tooltipContent="Copy workspace URL" position="right">
+              <button
+                type="button"
+                onClick={handleCopyUrl}
+                className="group inline-flex w-fit items-center gap-1.5 text-body-xs-medium text-tertiary transition-colors hover:text-secondary"
+              >
+                <Copy className="size-3 text-tertiary opacity-70 transition-opacity group-hover:opacity-100" />
+                <span>{workspaceUrl}</span>
+              </button>
+            </Tooltip>
             {isAdmin && (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 text-left text-caption-sm-medium text-accent-primary"
+              <div className="-ml-1 mt-0.5 flex items-center gap-1">
+                <Button
+                  variant="link-accent"
+                  size="sm"
                   onClick={() => setIsImageUploadModalOpen(true)}
+                  prependIcon={isUsingDefaultLogo ? undefined : <EditIcon />}
                 >
-                  {hasCustomLogo ? (
-                    <>
-                      <EditIcon className="h-3 w-3" />
-                      {t("workspace_settings.settings.general.edit_logo")}
-                    </>
-                  ) : (
-                    t("workspace_settings.settings.general.upload_logo")
-                  )}
-                </button>
-                {!hasCustomLogo && (
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 text-left text-caption-sm-medium text-secondary hover:text-primary"
-                    onClick={() => currentWorkspace?.id && randomizeDefaultWorkspaceLogo(currentWorkspace.id)}
+                  {isUsingDefaultLogo
+                    ? t("workspace_settings.settings.general.upload_logo")
+                    : t("workspace_settings.settings.general.edit_logo")}
+                </Button>
+                {isUsingDefaultLogo && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void handleRandomizeLogo()}
+                    prependIcon={<RefreshCw />}
                   >
-                    <RefreshCw className="h-3 w-3" />
                     Randomize
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -262,10 +296,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
                     id="url"
                     name="url"
                     type="url"
-                    value={`${
-                      typeof window !== "undefined" &&
-                      window.location.origin.replace("http://", "").replace("https://", "")
-                    }/${currentWorkspace.slug}`}
+                    value={workspaceUrl}
                     onChange={onChange}
                     ref={ref}
                     hasError={Boolean(errors.url)}

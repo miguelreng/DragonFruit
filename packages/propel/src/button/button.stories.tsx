@@ -73,6 +73,13 @@ export const Link: Story = {
   },
 };
 
+export const LinkAccent: Story = {
+  args: {
+    variant: "link-accent",
+    children: "Link Accent Button",
+  },
+};
+
 export const Small: Story = {
   args: {
     size: "sm",
@@ -169,6 +176,7 @@ export const AllVariants: Story = {
             <Button variant="tertiary">Tertiary</Button>
             <Button variant="ghost">Ghost</Button>
             <Button variant="link">Link</Button>
+            <Button variant="link-accent">Link Accent</Button>
           </div>
         </div>
       </div>

@@ -9,10 +9,10 @@ import type { EPageAccess } from "../enums";
 import type { TPageExtended } from "./extended";
 
 /**
- * Page sub-type. "doc" is the existing collaborative rich-text editor;
- * "diagram" renders Mermaid; "whiteboard" renders Excalidraw.
+ * Page sub-type. "doc" is the collaborative rich-text editor;
+ * "whiteboard" renders a tldraw canvas.
  */
-export type TPageType = "doc" | "diagram" | "whiteboard";
+export type TPageType = "doc" | "whiteboard";
 
 export type TPage = {
   access: EPageAccess | undefined;
@@ -85,9 +85,9 @@ export type TPageVersion = {
 /**
  * Body for `PATCH /pages/{id}/description/`. All three fields are independently
  * optional on the API (`PageBinaryUpdateSerializer`). Sending only the keys you
- * want to change avoids overwriting the others — important for whiteboard /
- * diagram pages, which only persist `description_json` and would otherwise
- * blow away the Yjs binary by sending `description_binary: ""`.
+ * want to change avoids overwriting the others — important for whiteboard
+ * pages, which only persist `description_json` and would otherwise blow away
+ * the Yjs binary by sending `description_binary: ""`.
  */
 export type TDocumentPayload = {
   description_binary?: string;

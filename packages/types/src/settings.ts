@@ -13,11 +13,12 @@ export type TProfileSettingsTabs = "general" | "preferences" | "activity" | "not
 export type TWorkspaceSettingsTabs =
   | "general"
   | "members"
-  | "billing-and-plans"
   | "export"
+  | "imports"
   | "webhooks"
   | "ai"
-  | "agents";
+  | "agents"
+  | "about";
 export type TWorkspaceSettingsItem = {
   key: TWorkspaceSettingsTabs;
   i18n_label: string;

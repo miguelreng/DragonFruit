@@ -78,7 +78,7 @@ export const IssueLinkCreateUpdateModal = observer(function IssueLinkCreateUpdat
     <ModalCore isOpen={isModalOpen} handleClose={onClose}>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div className="space-y-5 p-5">
-          <h3 className="text-h4-medium text-secondary">
+          <h3 className="text-h5-medium text-secondary">
             {preloadedData?.id ? t("common.update_link") : t("common.add_link")}
           </h3>
           <div className="mt-2 space-y-3">

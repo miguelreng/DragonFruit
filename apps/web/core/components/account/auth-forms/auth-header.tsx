@@ -120,8 +120,8 @@ export function AuthHeaderBase(props: TAuthHeaderBase) {
     <div className="flex flex-col items-start gap-4">
       <img src={dragonMark} alt="" aria-hidden className="h-12 w-auto self-start" />
       <div className="flex flex-col gap-1">
-        <span className="text-h4-semibold text-primary">{props.header}</span>
-        <span className="text-h4-semibold text-placeholder">{props.subHeader}</span>
+        <span className="text-h5-semibold text-primary">{props.header}</span>
+        <span className="text-h5-semibold text-placeholder">{props.subHeader}</span>
       </div>
     </div>
   );

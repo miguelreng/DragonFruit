@@ -41,13 +41,6 @@ export const WORKSPACE_SETTINGS: Record<TWorkspaceSettingsTabs, TWorkspaceSettin
     access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/members/`,
   },
-  "billing-and-plans": {
-    key: "billing-and-plans",
-    i18n_label: "workspace_settings.settings.billing_and_plans.title",
-    href: `/settings/billing`,
-    access: [EUserWorkspaceRoles.ADMIN],
-    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/billing/`,
-  },
   export: {
     key: "export",
     i18n_label: "workspace_settings.settings.exports.title",
@@ -76,6 +69,20 @@ export const WORKSPACE_SETTINGS: Record<TWorkspaceSettingsTabs, TWorkspaceSettin
     access: [EUserWorkspaceRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/agents/`,
   },
+  imports: {
+    key: "imports",
+    i18n_label: "workspace_settings.settings.imports.title",
+    href: `/settings/imports`,
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/imports/`,
+  },
+  about: {
+    key: "about",
+    i18n_label: "workspace_settings.settings.about.title",
+    href: `/settings/about`,
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/about/`,
+  },
 };
 
 export const WORKSPACE_SETTINGS_ACCESS = Object.fromEntries(
@@ -86,8 +93,9 @@ export const GROUPED_WORKSPACE_SETTINGS: Record<WORKSPACE_SETTINGS_CATEGORY, TWo
   [WORKSPACE_SETTINGS_CATEGORY.ADMINISTRATION]: [
     WORKSPACE_SETTINGS["general"],
     WORKSPACE_SETTINGS["members"],
-    WORKSPACE_SETTINGS["billing-and-plans"],
     WORKSPACE_SETTINGS["export"],
+    WORKSPACE_SETTINGS["imports"],
+    WORKSPACE_SETTINGS["about"],
   ],
   [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [WORKSPACE_SETTINGS["ai"], WORKSPACE_SETTINGS["agents"]],
   [WORKSPACE_SETTINGS_CATEGORY.DEVELOPER]: [WORKSPACE_SETTINGS["webhooks"]],

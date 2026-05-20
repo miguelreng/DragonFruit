@@ -8,6 +8,7 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 
 // plane ui
+import { Button } from "@plane/propel/button";
 import { RecentStickyIcon, PlusIcon, CloseIcon } from "@plane/propel/icons";
 // hooks
 import { useSticky } from "@/hooks/use-stickies";
@@ -41,25 +42,18 @@ export const Stickies = observer(function Stickies(props: TProps) {
         {/* actions */}
         <div className="flex gap-2">
           <StickySearch />
-          <button
+          <Button
+            variant="link-accent"
+            size="sm"
+            prependIcon={<PlusIcon />}
             onClick={() => {
               toggleShowNewSticky(true);
               stickyOperations.create();
             }}
-            className="my-auto flex gap-1 text-13 font-medium text-accent-primary"
-            disabled={creatingSticky}
+            loading={creatingSticky}
           >
-            <PlusIcon className="my-auto size-4" /> <span>Add sticky</span>
-            {creatingSticky && (
-              <div className="ml-2 flex items-center justify-center">
-                <div
-                  className={`h-4 w-4 animate-spin rounded-full border-2 border-accent-strong border-t-transparent`}
-                  role="status"
-                  aria-label="loading"
-                />
-              </div>
-            )}
-          </button>
+            Add sticky
+          </Button>
           {handleClose && (
             <button
               type="button"

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type Ref } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { Minimize2 } from "@/components/icons/lucide-shim";
@@ -18,6 +18,7 @@ import { useSticky } from "@/hooks/use-stickies";
 import { STICKY_COLORS_LIST } from "../../editor/sticky-editor/color-palette";
 import { StickyDeleteModal } from "../delete-modal";
 import { StickyInput } from "./inputs";
+import { StickyItemDragHandle } from "./sticky-item-drag-handle";
 import { getRandomStickyColor, useStickyOperations } from "./use-operations";
 
 type TProps = {
@@ -27,9 +28,10 @@ type TProps = {
   stickyId: string | undefined;
   showToolbar?: boolean;
   handleLayout?: () => void;
+  dragHandleRef?: Ref<HTMLDivElement>;
 };
 export const StickyNote = observer(function StickyNote(props: TProps) {
-  const { onClose, workspaceSlug, className = "", stickyId, showToolbar, handleLayout } = props;
+  const { onClose, workspaceSlug, className = "", stickyId, showToolbar, handleLayout, dragHandleRef } = props;
   // navigation
   // const pathName = usePathname();
   // states
@@ -80,12 +82,12 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
         handleClose={() => setIsDeleteModalOpen(false)}
       />
       <div
-        className={cn("group/sticky flex h-fit w-full flex-col overflow-y-scroll rounded-sm", className)}
+        className={cn("group/sticky relative flex h-fit w-full flex-col overflow-y-scroll rounded-sm", className)}
         style={{
           backgroundColor,
         }}
       >
-        {/* {isStickiesPage && <StickyItemDragHandle isDragging={false} />}{" "} */}
+        {dragHandleRef && <StickyItemDragHandle ref={dragHandleRef} />}
         {onClose && (
           <button type="button" className="flex flex-shrink-0 justify-end p-2.5" onClick={onClose}>
             <Minimize2 className="size-4" />

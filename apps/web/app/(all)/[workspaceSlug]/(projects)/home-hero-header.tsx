@@ -50,7 +50,10 @@ export function HomeHeroHeader({ user }: Props) {
   const heroBg = greeting === "morning" ? heroBgMorning : greeting === "afternoon" ? heroBgAfternoon : heroBgEvening;
 
   return (
-    <div className="relative flex h-[250px] w-full items-center overflow-hidden">
+    <div
+      className="relative flex w-full shrink-0 items-center overflow-hidden"
+      style={{ height: 250 }}
+    >
       {/* Background image — replaceable */}
       <div aria-hidden className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroBg})` }} />
       {/* Backdrop — full-cover dark tint for text legibility */}

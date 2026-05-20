@@ -87,6 +87,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
           buttonClassName={(data?.assignee_ids || [])?.length > 0 ? "hover:bg-transparent" : ""}
           placeholder="Assignees"
           multiple
+          includeAgents
           tabIndex={getIndex("assignee_ids")}
         />
       </div>

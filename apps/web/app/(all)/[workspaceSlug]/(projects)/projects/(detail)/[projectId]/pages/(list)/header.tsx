@@ -17,7 +17,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TPage, TPageType } from "@plane/types";
 // plane ui
 import { Breadcrumbs, Header } from "@plane/ui";
-import { ChevronDown, FileText, GitBranch, PenTool } from "@/components/icons/lucide-shim";
+import { ChevronDown, FileText, PenTool } from "@/components/icons/lucide-shim";
 // helpers
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // hooks
@@ -107,15 +107,6 @@ export const PagesListHeader = observer(function PagesListHeader() {
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
                 >
                   <FileText className="size-4" /> Doc
-                </button>
-              </Menu.Item>
-              <Menu.Item>
-                <button
-                  type="button"
-                  onClick={() => handleCreatePage("diagram")}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
-                >
-                  <GitBranch className="size-4" /> Diagram
                 </button>
               </Menu.Item>
               <Menu.Item>

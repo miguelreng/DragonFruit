@@ -130,9 +130,9 @@ class PageSerializer(BaseSerializer):
 
 class PageDetailSerializer(PageSerializer):
     description_html = serializers.CharField()
-    # `description_json` carries the Excalidraw scene for whiteboard pages and
-    # the Mermaid source for diagram pages. Doc pages keep their state in the
-    # Yjs blob (description_binary), so it's harmless there too.
+    # `description_json` carries the tldraw snapshot for whiteboard pages.
+    # Doc pages keep their state in the Yjs blob (description_binary), so it's
+    # harmless there too.
     description_json = serializers.JSONField(required=False, allow_null=True)
 
     class Meta(PageSerializer.Meta):

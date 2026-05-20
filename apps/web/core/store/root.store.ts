@@ -66,6 +66,8 @@ import { ThemeStore } from "./theme.store";
 import type { IUserStore } from "./user";
 import { UserStore } from "./user";
 import type { IWorkspaceRootStore } from "./workspace";
+import type { IAgentStore } from "./agent.store";
+import { AgentStore } from "./agent.store";
 
 enableStaticRendering(typeof window === "undefined");
 
@@ -73,6 +75,7 @@ export class CoreRootStore {
   workspaceRoot: IWorkspaceRootStore;
   projectRoot: IProjectRootStore;
   memberRoot: IMemberRootStore;
+  agent: IAgentStore;
   cycle: ICycleStore;
   cycleFilter: ICycleFilterStore;
   module: IModuleStore;
@@ -128,6 +131,7 @@ export class CoreRootStore {
     this.analytics = new AnalyticsStore();
     this.workItemFilters = new WorkItemFilterStore();
     this.powerK = new PowerKStore();
+    this.agent = new AgentStore();
   }
 
   resetOnSignOut() {
@@ -160,5 +164,6 @@ export class CoreRootStore {
     this.editorAssetStore = new EditorAssetStore();
     this.workItemFilters = new WorkItemFilterStore();
     this.powerK = new PowerKStore();
+    this.agent = new AgentStore();
   }
 }

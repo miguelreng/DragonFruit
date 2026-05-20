@@ -48,34 +48,60 @@ class LLMProvider:
 
 class OpenAIProvider(LLMProvider):
     name = "OpenAI"
-    models = ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4o", "o1-mini", "o1-preview"]
-    default_model = "gpt-4o-mini"
+    models = [
+        # GPT-5.5 (frontier)
+        "gpt-5.5",
+        "gpt-5.5-pro",
+        # GPT-5.4
+        "gpt-5.4",
+        "gpt-5.4-mini",
+        "gpt-5.4-nano",
+        # GPT-5
+        "gpt-5",
+        "gpt-5-pro",
+        "gpt-5-mini",
+        "gpt-5-nano",
+        # GPT-4.1
+        "gpt-4.1",
+        "gpt-4.1-mini",
+        # o-series reasoning
+        "o3",
+        "o3-pro",
+        # GPT-4o (legacy, still callable)
+        "gpt-4o",
+        "gpt-4o-mini",
+    ]
+    default_model = "gpt-5.4-mini"
 
 
 class AnthropicProvider(LLMProvider):
     name = "Anthropic"
     models = [
-        # Claude 4.x
+        # Claude 4.x (current)
         "claude-opus-4-7",
         "claude-sonnet-4-6",
         "claude-haiku-4-5",
-        # Claude 3.5 / 3.x (legacy, still callable)
-        "claude-3-5-sonnet-20240620",
-        "claude-3-haiku-20240307",
-        "claude-3-opus-20240229",
-        "claude-3-sonnet-20240229",
-        "claude-2.1",
-        "claude-2",
-        "claude-instant-1.2",
-        "claude-instant-1",
+        # Claude 4.x (legacy, still callable)
+        "claude-opus-4-6",
+        "claude-sonnet-4-5",
+        "claude-opus-4-5",
+        "claude-opus-4-1",
     ]
     default_model = "claude-sonnet-4-6"
 
 
 class GeminiProvider(LLMProvider):
     name = "Gemini"
-    models = ["gemini-pro", "gemini-1.5-pro-latest", "gemini-pro-vision"]
-    default_model = "gemini-pro"
+    models = [
+        # Gemini 3
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
+        # Gemini 2.5
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+    ]
+    default_model = "gemini-2.5-flash"
 
 
 SUPPORTED_PROVIDERS = {

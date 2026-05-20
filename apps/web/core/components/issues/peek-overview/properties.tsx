@@ -105,6 +105,7 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
             projectId={projectId}
             placeholder={t("issue.add.assignee")}
             multiple
+            includeAgents
             buttonVariant={issue?.assignee_ids?.length > 1 ? "transparent-without-text" : "transparent-with-text"}
             className="group w-full grow"
             buttonContainerClassName="w-full text-left h-7.5"

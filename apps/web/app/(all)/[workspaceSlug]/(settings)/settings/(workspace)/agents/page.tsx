@@ -13,7 +13,7 @@ import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // components
-import { AgentsList, CreateAgentModal } from "@/components/agents";
+import { AgentFormModal, AgentsList } from "@/components/agents";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
@@ -23,7 +23,7 @@ import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // services
-import { AgentService, type TAgent, type TAgentCreatePayload } from "@/services/agent.service";
+import { AgentService, type TAgent, type TAgentCreatePayload, type TAgentUpdatePayload } from "@/services/agent.service";
 // local
 import type { Route } from "./+types/page";
 import { AgentsWorkspaceSettingsHeader } from "./header";
@@ -33,6 +33,7 @@ const agentService = new AgentService();
 function AgentsSettingsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<TAgent | null>(null);
   const { t } = useTranslation();
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
   const { currentWorkspace } = useWorkspace();
@@ -52,6 +53,13 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
     const created = await agentService.create(workspaceSlug, payload);
     await mutate();
     return created;
+  };
+
+  const handleUpdate = async (id: string, payload: TAgentUpdatePayload) => {
+    if (!workspaceSlug) throw new Error("missing workspace");
+    const updated = await agentService.update(workspaceSlug, id, payload);
+    await mutate();
+    return updated;
   };
 
   // Toggle semantics:
@@ -100,6 +108,20 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
     }
   };
 
+  const handleUpdateTrigger = async (id: string, key: keyof TAgent["triggers"], next: boolean) => {
+    if (!workspaceSlug) return;
+    try {
+      // PATCH accepts a partial `triggers` map and merges it server-side,
+      // so we only send the one we're changing.
+      await agentService.update(workspaceSlug, id, { triggers: { [key]: next } });
+      await mutate();
+    } catch (err) {
+      const message =
+        (err as { error?: string } | undefined)?.error ?? t("workspace_settings.settings.agents.update_error");
+      setToast({ type: TOAST_TYPE.ERROR, title: message });
+    }
+  };
+
   if (workspaceUserInfo && !canAdmin) {
     return <NotAuthorizedView section="settings" className="h-auto" />;
   }
@@ -111,10 +133,24 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
     : undefined;
 
   return (
-    <SettingsContentWrapper header={<AgentsWorkspaceSettingsHeader />}>
+    <SettingsContentWrapper header={<AgentsWorkspaceSettingsHeader />} hugging>
       <PageHead title={pageTitle} />
       <div className="w-full">
-        <CreateAgentModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreate={handleCreate} />
+        <AgentFormModal
+          mode="create"
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={handleCreate}
+        />
+        {editingAgent && (
+          <AgentFormModal
+            mode="edit"
+            isOpen={!!editingAgent}
+            agent={editingAgent}
+            onClose={() => setEditingAgent(null)}
+            onSubmit={handleUpdate}
+          />
+        )}
         <SettingsHeading
           title={t("workspace_settings.settings.agents.heading")}
           description={t("workspace_settings.settings.agents.description")}
@@ -126,7 +162,13 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
         />
         {agents.length > 0 ? (
           <div className="mt-4">
-            <AgentsList agents={agents} onToggle={handleToggle} onDelete={handleDelete} />
+            <AgentsList
+              agents={agents}
+              onToggle={handleToggle}
+              onDelete={handleDelete}
+              onEdit={setEditingAgent}
+              onUpdateTrigger={handleUpdateTrigger}
+            />
           </div>
         ) : (
           <div className="flex h-full w-full flex-col">
