@@ -25,7 +25,13 @@ export const IssueIdentifier = observer(function IssueIdentifier(props: TIssueId
   const issue = isUsingStoreData ? getIssueById(props.issueId) : null;
   const projectIdentifier = isUsingStoreData ? getProjectIdentifierById(projectId) : props.projectIdentifier;
   const issueSequenceId = isUsingStoreData ? issue?.sequence_id : props.issueSequenceId;
-  const shouldRenderIssueID = displayProperties ? displayProperties.key : true;
+  // Strict gate: render only when the caller passes `displayProperties` AND
+  // `key` is explicitly true. Previously the absence of displayProperties (or
+  // an undefined `key` field on a partially-hydrated filter object) defaulted
+  // to rendering, which leaked the PROJECT-X chip into rows where the user
+  // had toggled it off. Now "no opinion" reads as hidden — matches the new
+  // server default (`get_default_display_properties.key = False`).
+  const shouldRenderIssueID = displayProperties?.key === true;
 
   if (!shouldRenderIssueID) return null;
 
