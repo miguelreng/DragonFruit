@@ -68,6 +68,11 @@ class AgentRunSerializer(serializers.ModelSerializer):
             "dispatched_at",
             "completed_at",
             "cancel_requested",
+            "iterations",
+            "prompt_tokens",
+            "completion_tokens",
+            "total_tokens",
+            "tool_calls",
             "created_at",
         ]
         read_only_fields = fields

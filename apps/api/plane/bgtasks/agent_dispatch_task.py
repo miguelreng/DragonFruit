@@ -412,7 +412,7 @@ def _mark_failed(run: AgentRun, message: str) -> None:
 
 
 def _finalise_run(run: AgentRun, result: LLMRunResult) -> None:
-    """Save the LLM run outcome onto the AgentRun row."""
+    """Save the LLM run outcome + telemetry onto the AgentRun row."""
     if result.cancelled:
         run.status = "cancelled"
     elif result.stopped_reason == "max_iterations":
@@ -426,5 +426,23 @@ def _finalise_run(run: AgentRun, result: LLMRunResult) -> None:
             run.error = "provider error"
     else:
         run.status = "completed"
+
     run.completed_at = datetime.now(timezone.utc)
-    run.save(update_fields=["status", "error", "completed_at", "updated_at"])
+    run.iterations = result.iterations
+    run.prompt_tokens = result.prompt_tokens
+    run.completion_tokens = result.completion_tokens
+    run.total_tokens = result.total_tokens
+    run.tool_calls = result.tool_calls
+    run.save(
+        update_fields=[
+            "status",
+            "error",
+            "completed_at",
+            "iterations",
+            "prompt_tokens",
+            "completion_tokens",
+            "total_tokens",
+            "tool_calls",
+            "updated_at",
+        ]
+    )

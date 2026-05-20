@@ -50,6 +50,12 @@ export type TAgentUpdatePayload = Partial<TAgentCreatePayload> & {
   triggers?: Partial<TAgent["triggers"]>;
 };
 
+export type TAgentToolCall = {
+  name: string;
+  arguments: Record<string, unknown>;
+  result: string;
+};
+
 export type TAgentRun = {
   id: string;
   agent: string;
@@ -60,6 +66,11 @@ export type TAgentRun = {
   dispatched_at: string | null;
   completed_at: string | null;
   cancel_requested: boolean;
+  iterations: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  tool_calls: TAgentToolCall[];
   created_at: string;
 };
 
@@ -127,6 +138,19 @@ export class AgentService extends APIService {
    */
   async stop(workspaceSlug: string, agentId: string): Promise<TAgent & { cancelled_runs?: number }> {
     return this.post(`/api/workspaces/${workspaceSlug}/agents/${agentId}/stop/`)
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  /**
+   * Cancel one specific in-flight run without disabling the agent.
+   * Sets `cancel_requested=true` on the row; the LLM loop polls it
+   * between turns. No-op if the run is already terminal.
+   */
+  async cancelRun(workspaceSlug: string, agentId: string, runId: string): Promise<TAgentRun> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agents/${agentId}/runs/${runId}/cancel/`)
       .then((res) => res?.data)
       .catch((err) => {
         throw err?.response?.data;
