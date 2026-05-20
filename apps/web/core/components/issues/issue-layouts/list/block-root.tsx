@@ -87,6 +87,14 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
 
   const isSubIssue = nestingLevel !== 0;
 
+  // Track the LAST subtask row's height so the tree-branch vertical can clip
+  // exactly at its midpoint (where the elbow's horizontal hook taps in)
+  // instead of a fixed 22px guess that fails for multi-line task names or
+  // when extra properties bump the row height. Re-measures via
+  // ResizeObserver, so resizing the window or expanding inline properties
+  // keeps the clip accurate.
+  const [lastChildMidpoint, setLastChildMidpoint] = useState(22);
+
   useEffect(() => {
     const blockElement = issueBlockRef.current;
 
@@ -133,9 +141,30 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
     issueBlockRef?.current?.classList?.remove(HIGHLIGHT_CLASS);
   });
 
-  if (!issueId || !issuesMap[issueId]?.created_at) return null;
-
   const subIssues = subIssuesStore.subIssuesByIssueId(issueId);
+
+  // Re-anchor the tree-branch clip every time the last subtask's height
+  // changes — works for variable row heights without us having to thread a
+  // ref through IssueBlockRoot. We look up the row by the `id` we set on
+  // it via getIssueBlockId, then ResizeObserver does the rest.
+  useEffect(() => {
+    if (!isExpanded || !subIssues || subIssues.length === 0) return;
+    const lastId = subIssues[subIssues.length - 1];
+    const lastEl = document.getElementById(getIssueBlockId(lastId, groupId));
+    if (!lastEl) return;
+    const update = () => {
+      const height = lastEl.getBoundingClientRect().height;
+      // Fall back to the 44px (min-h-11) approximation if the element
+      // hasn't laid out yet (height of 0 during initial render).
+      setLastChildMidpoint(height > 0 ? height / 2 : 22);
+    };
+    update();
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(lastEl);
+    return () => resizeObserver.disconnect();
+  }, [isExpanded, subIssues, groupId]);
+
+  if (!issueId || !issuesMap[issueId]?.created_at) return null;
   return (
     <div className="relative" ref={issueBlockRef} id={getIssueBlockId(issueId, groupId)}>
       <DropIndicator classNames={"absolute top-0 z-[2]"} isVisible={instruction === "DRAG_OVER"} />
@@ -195,7 +224,10 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
             style={{
               left: `calc(var(--padding-page-x) + ${spacingLeft}px)`,
               top: 0,
-              bottom: "22px",
+              // Measured last-child midpoint, kept in sync via ResizeObserver
+              // — see the useEffect above. Falls back to 22px on first paint
+              // (matches the row's `min-h-11` of 44px / 2).
+              bottom: `${lastChildMidpoint}px`,
             }}
           />
           {subIssues?.map((subIssueId, index) => (
