@@ -47,7 +47,15 @@ from plane.db.models import (
     PageBlockComment,
     State,
 )
-from plane.llm import LLMConfigError, LLMProvider, LLMRunResult, LLMTool, estimate_cost_usd
+from plane.llm import (
+    LLMConfigError,
+    LLMProvider,
+    LLMRunResult,
+    LLMTool,
+    MCPClientError,
+    estimate_cost_usd,
+    wrap_mcp_server_as_tools,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -146,6 +154,7 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         _make_change_state_tool(agent=agent, issue=issue, run=run),
         _make_add_label_tool(agent=agent, issue=issue, run=run),
     ]
+    tools.extend(_load_mcp_tools_for(agent))
 
     try:
         result = provider.run(
@@ -398,6 +407,45 @@ def _make_change_state_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLM
         },
         handler=handler,
     )
+
+
+def _load_mcp_tools_for(agent: Agent) -> list:
+    """Connect to each enabled MCP server on the agent and return wrapped LLMTools.
+
+    Failures degrade gracefully: a broken or unreachable MCP server
+    logs a warning and contributes zero tools, but the rest of the
+    run proceeds with whatever built-in + other-MCP tools are
+    available. We don't want one flaky server to kill every dispatch.
+    """
+    from plane.license.utils.encryption import decrypt_data
+
+    servers = agent.mcp_servers or []
+    if not servers:
+        return []
+
+    out: list = []
+    for cfg in servers:
+        if not isinstance(cfg, dict):
+            continue
+        if cfg.get("enabled") is False:
+            continue
+        try:
+            wrapped = wrap_mcp_server_as_tools(cfg, decrypt_auth=decrypt_data)
+            out.extend(wrapped)
+            logger.info(
+                "agent_dispatch: loaded %d tool(s) from MCP server %r",
+                len(wrapped),
+                cfg.get("name"),
+            )
+        except MCPClientError as exc:
+            logger.warning(
+                "agent_dispatch: skipping MCP server %r: %s",
+                cfg.get("name"),
+                exc,
+            )
+        except Exception:  # noqa: BLE001 — never let a flaky server kill the dispatch
+            logger.exception("agent_dispatch: unexpected error loading MCP server %r", cfg.get("name"))
+    return out
 
 
 def _make_add_label_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMTool:

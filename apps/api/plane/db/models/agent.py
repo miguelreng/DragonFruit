@@ -97,6 +97,20 @@ class Agent(BaseModel):
     # so the migration is one-shot.
     draft_mode = models.BooleanField(default=False)
 
+    # External MCP servers the agent should pull tools from. Each entry:
+    #   {
+    #     "name": "github",                 # required, used as tool prefix
+    #     "url":  "https://mcp.github.com/", # required, JSON-RPC endpoint
+    #     "auth_header_encrypted": "<fernet>",  # optional, full header value
+    #                                            # (e.g. "Bearer ghp_xyz...")
+    #     "enabled": true,                  # optional, default true
+    #   }
+    # Auth header values are Fernet-encrypted at the field level, matching
+    # the api_key_encrypted pattern — see feedback_ai_byok.md. The plain
+    # `auth_header` form is accepted only on write (the view encrypts
+    # before persisting); the serializer exposes only `has_auth_header`.
+    mcp_servers = models.JSONField(default=list, blank=True)
+
     class Meta:
         db_table = "agents"
         verbose_name = "Agent"
