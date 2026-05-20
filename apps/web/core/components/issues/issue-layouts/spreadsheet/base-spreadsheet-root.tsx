@@ -20,6 +20,7 @@ import { useIssuesActions } from "@/hooks/use-issues-actions";
 // local imports
 import { IssueLayoutHOC } from "../issue-layout-HOC";
 import type { IQuickActionProps, TRenderQuickActions } from "../list/list-view-types";
+import { SelectionFloatingBar } from "../selection-floating-bar";
 import { SpreadsheetView } from "./spreadsheet-view";
 
 export type SpreadsheetStoreType =
@@ -71,9 +72,11 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
   }, [fetchIssues, storeType, viewId]);
 
   const canEditProperties = useCallback(
-    (projectId: string | undefined) => {
+    (currentProjectId: string | undefined) => {
       const isEditingAllowedBasedOnProject =
-        canEditPropertiesBasedOnProject && projectId ? canEditPropertiesBasedOnProject(projectId) : isEditingAllowed;
+        canEditPropertiesBasedOnProject && currentProjectId
+          ? canEditPropertiesBasedOnProject(currentProjectId)
+          : isEditingAllowed;
 
       return enableInlineEditing && isEditingAllowedBasedOnProject;
     },
@@ -108,6 +111,10 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
         placements={placement}
       />
     ),
+    // QuickActions is imported and stable across renders (module-level
+    // component); intentionally omitted from deps to avoid recreating the
+    // callback on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isCompletedCycle, canEditProperties, removeIssue, updateIssue, removeIssueFromView, archiveIssue, restoreIssue]
   );
 
@@ -130,6 +137,9 @@ export const BaseSpreadsheetRoot = observer(function BaseSpreadsheetRoot(props: 
         loadMoreIssues={fetchNextIssues}
         isEpic={isEpic}
       />
+      {/* Same bulk-action bar the list view gets — appears at the bottom
+          of the viewport whenever any tasks are selected. */}
+      <SelectionFloatingBar />
     </IssueLayoutHOC>
   );
 });
