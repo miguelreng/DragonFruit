@@ -47,10 +47,6 @@ interface IssueBlockProps {
   canEditProperties: (projectId: string | undefined) => boolean;
   nestingLevel: number;
   spacingLeft?: number;
-  // True when this row is the last subtask in its parent's children list.
-  // Stops the tree-branch vertical at the row midpoint instead of
-  // extending it down to a non-existent next sibling.
-  isLastSibling?: boolean;
   isExpanded: boolean;
   setExpanded: Dispatch<SetStateAction<boolean>>;
   selectionHelpers: TSelectionHelper;
@@ -71,11 +67,6 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
     canEditProperties,
     nestingLevel,
     spacingLeft = 14,
-    // Threaded through from block-root for future use, but the continuous
-    // vertical now lives in the wrapper above us — we no longer branch on
-    // last-vs-not at the leaf level. Prefixed with underscore so the
-    // linter ignores it without us having to tear down the prop chain.
-    isLastSibling: _isLastSibling = false,
     isExpanded,
     setExpanded,
     selectionHelpers,
@@ -216,29 +207,6 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
           }
         }}
       >
-        {/* Tree-branch elbow for subtask rows. Positioned as a direct child
-            of the Row (whose `relative` class is already in place above) so
-            its `top: calc(50% - 8px)` is half the *row* height — matching
-            where the wrapper-level continuous vertical (in block-root.tsx)
-            clips at the last child's row midpoint. Previously the elbow
-            lived inside the inner content div, whose midpoint sits ABOVE
-            the row's midpoint when content is short, producing a visible
-            dangle below the elbow. Decorative — aria-hidden. */}
-        {isSubIssue && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute rounded-bl-md border-b border-l border-strong"
-            style={{
-              // Same x as the wrapper-line: page-x padding + parent's
-              // spacingLeft. For a subtask at spacingLeft=12 with parent
-              // at 0, that's `var(--padding-page-x) + 0`.
-              left: `calc(var(--padding-page-x) + ${spacingLeft - 12}px)`,
-              top: "calc(50% - 8px)",
-              height: "8px",
-              width: "12px",
-            }}
-          />
-        )}
         <div className="flex w-full gap-2 truncate">
           <div className="flex flex-grow items-center gap-0.5 truncate">
             <div className="flex items-center gap-1" style={isSubIssue ? { marginLeft } : {}}>
