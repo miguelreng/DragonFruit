@@ -71,6 +71,10 @@ export class ShortcutHandler {
   handleKeyDown = (e: KeyboardEvent): void => {
     if (!this.isEnabled) return;
 
+    // Some browser extensions dispatch plain Events as "keydown", which have no
+    // `key` property — guard so they don't crash the shortcut handler.
+    if (typeof e.key !== "string") return;
+
     const key = e.key.toLowerCase();
     const hasModifier = e.metaKey || e.ctrlKey || e.altKey || e.shiftKey;
 
