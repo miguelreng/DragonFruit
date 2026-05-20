@@ -5,6 +5,10 @@
  */
 
 import type { MutableRefObject } from "react";
+// useState/useEffect/useRef explicitly listed so Vite's HMR transform can't
+// strip an unused import that's actually still in use (we hit this once
+// after removing the tree-branch ResizeObserver and the stale module kept
+// being served).
 import React, { useEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
