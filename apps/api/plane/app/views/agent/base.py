@@ -191,6 +191,69 @@ class AgentDetailEndpoint(BaseAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class AgentCostSummaryEndpoint(BaseAPIView):
+    """Aggregated cost summary for the workspace's agent runs.
+
+    Powers the home-page cost widget. Returns running totals across
+    three time windows (all-time, this month, last 7 days) plus a
+    per-agent breakdown for the trailing 30 days.
+
+    Anyone in the workspace can read the summary — agents are a
+    workspace-wide feature and seeing what the team is spending isn't
+    sensitive. Admin-only is overkill here.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def get(self, request, slug):
+        from datetime import timedelta
+        from django.db.models import Count, Sum
+        from django.utils import timezone as dj_timezone
+
+        now = dj_timezone.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        week_start = now - timedelta(days=7)
+        thirty_days_start = now - timedelta(days=30)
+
+        base = AgentRun.objects.filter(
+            agent__workspace__slug=slug,
+            deleted_at__isnull=True,
+        )
+
+        def aggregate(qs):
+            agg = qs.aggregate(runs=Count("id"), cost=Sum("cost_usd"), tokens=Sum("total_tokens"))
+            return {
+                "runs": agg["runs"] or 0,
+                "cost_usd": float(agg["cost"] or 0),
+                "total_tokens": agg["tokens"] or 0,
+            }
+
+        by_agent = (
+            base.filter(created_at__gte=thirty_days_start)
+            .values("agent_id", "agent__name")
+            .annotate(runs=Count("id"), cost=Sum("cost_usd"), tokens=Sum("total_tokens"))
+            .order_by("-cost")[:10]
+        )
+
+        return Response(
+            {
+                "all_time": aggregate(base),
+                "this_month": aggregate(base.filter(created_at__gte=month_start)),
+                "last_7_days": aggregate(base.filter(created_at__gte=week_start)),
+                "by_agent_last_30_days": [
+                    {
+                        "agent_id": str(row["agent_id"]),
+                        "name": row["agent__name"],
+                        "runs": row["runs"],
+                        "cost_usd": float(row["cost"] or 0),
+                        "total_tokens": row["tokens"] or 0,
+                    }
+                    for row in by_agent
+                ],
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class AgentRunListEndpoint(BaseAPIView):
     """Read-only paginated list of an agent's recent runs.
 

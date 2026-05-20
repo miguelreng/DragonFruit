@@ -20,44 +20,46 @@ class WorkspaceHomePreferenceViewSet(BaseAPIView):
     def get_serializer_class(self):
         return WorkspaceHomePreferenceSerializer
 
+    # Keys that get auto-seeded on first GET. Order here is the default
+    # rendering order on the home page (higher sort_order = earlier).
+    # Legacy widget keys are deliberately absent — the section-based
+    # home view replaced them.
+    _SEEDED_KEYS = ["inbox", "on_my_plate", "favorites", "agent_cost"]
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
         workspace = Workspace.objects.get(slug=slug)
 
-        get_preference = WorkspaceHomePreference.objects.filter(user=request.user, workspace_id=workspace.id)
+        existing_keys = set(
+            WorkspaceHomePreference.objects.filter(
+                user=request.user, workspace_id=workspace.id
+            ).values_list("key", flat=True)
+        )
 
-        create_preference_keys = []
+        # Seed any missing section keys with a sensible default order.
+        # Higher sort_order = renders earlier (descending order on the
+        # client). `inbox` gets the highest, `agent_cost` the lowest of
+        # the seeded set — admins can still drag it up.
+        missing = [k for k in self._SEEDED_KEYS if k not in existing_keys]
+        if missing:
+            base = 1000
+            WorkspaceHomePreference.objects.bulk_create(
+                [
+                    WorkspaceHomePreference(
+                        key=k,
+                        user=request.user,
+                        workspace=workspace,
+                        sort_order=base - i,
+                    )
+                    for i, k in enumerate(missing)
+                ],
+                batch_size=10,
+                ignore_conflicts=True,
+            )
 
-        keys = [
-            key
-            for key, _ in WorkspaceHomePreference.HomeWidgetKeys.choices
-            if key not in ["quick_tutorial", "new_at_plane"]
-        ]
-
-        sort_order_counter = 1
-
-        for preference in keys:
-            if preference not in get_preference.values_list("key", flat=True):
-                create_preference_keys.append(preference)
-
-                sort_order = 1000 - sort_order_counter
-
-                preference = WorkspaceHomePreference.objects.bulk_create(
-                    [
-                        WorkspaceHomePreference(
-                            key=key,
-                            user=request.user,
-                            workspace=workspace,
-                            sort_order=sort_order,
-                        )
-                        for key in create_preference_keys
-                    ],
-                    batch_size=10,
-                    ignore_conflicts=True,
-                )
-                sort_order_counter += 1
-
-        preference = WorkspaceHomePreference.objects.filter(user=request.user, workspace_id=workspace.id)
+        preference = WorkspaceHomePreference.objects.filter(
+            user=request.user, workspace_id=workspace.id
+        )
 
         return Response(
             preference.values("key", "is_enabled", "config", "sort_order"),
