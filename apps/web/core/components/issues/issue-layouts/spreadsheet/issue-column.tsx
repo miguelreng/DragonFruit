@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { observer } from "mobx-react";
 // types
 import type { IIssueDisplayProperties, TIssue } from "@plane/types";
@@ -24,36 +24,38 @@ type Props = {
 
 export const IssueColumn = observer(function IssueColumn(props: Props) {
   const { displayProperties, issueDetail, disableUserActions, property, updateIssue } = props;
-  // router
   const tableCellRef = useRef<HTMLTableCellElement | null>(null);
 
   const shouldRenderProperty = shouldRenderColumn(property);
 
   const Column = SPREADSHEET_COLUMNS[property];
 
-  if (!Column) return null;
+  const handleUpdateIssue = useCallback(
+    async (issue: TIssue, data: Partial<TIssue>) => {
+      if (updateIssue) await updateIssue(issue.project_id, issue.id, data);
+    },
+    [updateIssue]
+  );
 
-  const handleUpdateIssue = async (issue: TIssue, data: Partial<TIssue>) => {
-    if (updateIssue) await updateIssue(issue.project_id, issue.id, data);
-  };
+  // The HOC's predicate prop expects a function — memoizing keeps its identity
+  // stable so we don't churn the HOC's own observer subscriptions per render.
+  const shouldRenderPredicate = useMemo(() => () => shouldRenderProperty, [shouldRenderProperty]);
+  const handleClose = useCallback(() => tableCellRef.current?.focus(), []);
+
+  if (!Column) return null;
 
   return (
     <WithDisplayPropertiesHOC
       displayProperties={displayProperties}
       displayPropertyKey={property}
-      shouldRenderProperty={() => shouldRenderProperty}
+      shouldRenderProperty={shouldRenderPredicate}
     >
       <td
         tabIndex={0}
         className="h-9 min-w-36 border-r-[1px] border-subtle text-13 after:absolute after:bottom-[-1px] after:w-full after:border after:border-subtle"
         ref={tableCellRef}
       >
-        <Column
-          issue={issueDetail}
-          onChange={handleUpdateIssue}
-          disabled={disableUserActions}
-          onClose={() => tableCellRef?.current?.focus()}
-        />
+        <Column issue={issueDetail} onChange={handleUpdateIssue} disabled={disableUserActions} onClose={handleClose} />
       </td>
     </WithDisplayPropertiesHOC>
   );
