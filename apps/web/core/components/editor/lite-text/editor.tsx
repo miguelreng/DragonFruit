@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 // plane constants
 import type { EIssueCommentAccessSpecifier } from "@plane/constants";
 // plane imports
@@ -117,6 +117,51 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   // derived values
   const isEmpty = isCommentEmpty(props.initialValue);
 
+  // Stable handler identity matters: TipTap rebuilds the editor schema when
+  // the fileHandler / mentionHandler reference changes. Without memoization,
+  // every parent render recreated these objects and re-initialized ProseMirror
+  // — visible cost on issue-detail pages with many read-only comments.
+  const uploadFile = editable ? (props as Extract<LiteTextEditorWrapperProps, { editable: true }>).uploadFile : undefined;
+  const duplicateFile = editable
+    ? (props as Extract<LiteTextEditorWrapperProps, { editable: true }>).duplicateFile
+    : undefined;
+
+  const fileHandler = useMemo(
+    () =>
+      getEditorFileHandlers({
+        projectId,
+        uploadFile: editable && uploadFile ? uploadFile : async () => "",
+        duplicateFile: editable && duplicateFile ? duplicateFile : async () => "",
+        workspaceId,
+        workspaceSlug,
+      }),
+    [getEditorFileHandlers, projectId, workspaceId, workspaceSlug, editable, uploadFile, duplicateFile]
+  );
+
+  // Refs let us bake a stable mentionHandler whose closures still see the
+  // latest fetchMentions / getUserDetails without forcing an editor rebuild.
+  const fetchMentionsRef = useRef(fetchMentions);
+  const getUserDetailsRef = useRef(getUserDetails);
+  useEffect(() => {
+    fetchMentionsRef.current = fetchMentions;
+    getUserDetailsRef.current = getUserDetails;
+  });
+
+  const mentionHandler = useMemo(
+    () => ({
+      searchCallback: async (query: string) => {
+        const res = await fetchMentionsRef.current(query);
+        if (!res) throw new Error("Failed in fetching mentions");
+        return res;
+      },
+      renderComponent: EditorMentionsRoot,
+      getMentionedEntityDetails: (id: string) => ({
+        display_name: getUserDetailsRef.current(id)?.display_name ?? "",
+      }),
+    }),
+    []
+  );
+
   return (
     <div
       className={cn(
@@ -138,30 +183,14 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
             disabledExtensions={[...liteTextEditorExtensions.disabled, ...additionalDisabledExtensions]}
             editable={editable}
             flaggedExtensions={liteTextEditorExtensions.flagged}
-            fileHandler={getEditorFileHandlers({
-              projectId,
-              uploadFile: editable ? props.uploadFile : async () => "",
-              duplicateFile: editable ? props.duplicateFile : async () => "",
-              workspaceId,
-              workspaceSlug,
-            })}
+            fileHandler={fileHandler}
             getEditorMetaData={getEditorMetaData}
             handleEditorReady={(ready) => {
               if (ready) {
                 setEditorRef(isMutableRefObject<EditorRefApi>(ref) ? ref.current : null);
               }
             }}
-            mentionHandler={{
-              searchCallback: async (query) => {
-                const res = await fetchMentions(query);
-                if (!res) throw new Error("Failed in fetching mentions");
-                return res;
-              },
-              renderComponent: EditorMentionsRoot,
-              getMentionedEntityDetails: (id) => ({
-                display_name: getUserDetails(id)?.display_name ?? "",
-              }),
-            }}
+            mentionHandler={mentionHandler}
             placeholder={placeholder}
             showPlaceholderOnEmpty={showPlaceholderOnEmpty}
             containerClassName={cn(containerClassName, "relative", {

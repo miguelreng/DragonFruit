@@ -181,7 +181,13 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
     issue.start_date && issue.target_date && displayProperties.start_date && displayProperties.due_date
   );
 
-  const defaultLabelOptions = issue?.label_ids?.map((id) => labelMap[id]) || [];
+  // Memoized per (label_ids, labelMap); without this every row rebuilt the
+  // array on every render, returning a fresh ref and re-rendering the labels
+  // dropdown for every row on any list update.
+  const defaultLabelOptions = useMemo(
+    () => issue?.label_ids?.map((id) => labelMap[id]) || [],
+    [issue?.label_ids, labelMap]
+  );
 
   const minDate = getDate(issue.start_date);
   const maxDate = getDate(issue.target_date);
