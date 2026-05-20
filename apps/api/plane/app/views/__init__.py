@@ -185,6 +185,7 @@ from .agent_webhook.base import (
 from .agent.base import (
     AgentEndpoint,
     AgentDetailEndpoint,
+    AgentRunCancelEndpoint,
     AgentRunListEndpoint,
     AgentStopEndpoint,
 )

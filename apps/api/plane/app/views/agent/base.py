@@ -213,6 +213,39 @@ class AgentRunListEndpoint(BaseAPIView):
         return Response(AgentRunSerializer(runs, many=True).data, status=status.HTTP_200_OK)
 
 
+class AgentRunCancelEndpoint(BaseAPIView):
+    """Cancel a single in-flight AgentRun by flipping cancel_requested.
+
+    Distinct from AgentStopEndpoint, which disables the whole agent AND
+    cancels every in-flight run. This is for the narrower case where an
+    admin wants to kill one specific runaway run without pausing the
+    agent itself.
+
+    Idempotent: cancelling an already-cancelled or terminal run is a
+    no-op that returns the current row.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug, agent_id, run_id):
+        run = (
+            AgentRun.objects.filter(
+                agent__workspace__slug=slug,
+                agent_id=agent_id,
+                pk=run_id,
+                deleted_at__isnull=True,
+            )
+            .first()
+        )
+        if run is None:
+            return Response({"error": "run not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if run.status in ("pending", "running") and not run.cancel_requested:
+            run.cancel_requested = True
+            run.save(update_fields=["cancel_requested", "updated_at"])
+
+        return Response(AgentRunSerializer(run).data, status=status.HTTP_200_OK)
+
+
 class AgentStopEndpoint(BaseAPIView):
     """Hard-stop an agent: disable it and cancel every in-flight run.
 

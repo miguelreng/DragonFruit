@@ -7,6 +7,7 @@ from django.urls import path
 from plane.app.views.agent import (
     AgentDetailEndpoint,
     AgentEndpoint,
+    AgentRunCancelEndpoint,
     AgentRunListEndpoint,
     AgentStopEndpoint,
 )
@@ -27,6 +28,11 @@ urlpatterns = [
         "workspaces/<str:slug>/agents/<uuid:agent_id>/runs/",
         AgentRunListEndpoint.as_view(),
         name="workspace-agent-runs",
+    ),
+    path(
+        "workspaces/<str:slug>/agents/<uuid:agent_id>/runs/<uuid:run_id>/cancel/",
+        AgentRunCancelEndpoint.as_view(),
+        name="workspace-agent-run-cancel",
     ),
     path(
         "workspaces/<str:slug>/agents/<uuid:agent_id>/stop/",

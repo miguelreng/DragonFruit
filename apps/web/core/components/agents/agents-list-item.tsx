@@ -4,13 +4,15 @@
  * See the LICENSE file for details.
  */
 
+import { useParams } from "next/navigation";
 import { useState } from "react";
 // plane imports
 import { ToggleSwitch } from "@plane/ui";
 // services
 import type { TAgent } from "@/services/agent.service";
 // local
-import { Trash2 } from "@/components/icons/lucide-shim";
+import { ChevronDown, ChevronRight, Trash2 } from "@/components/icons/lucide-shim";
+import { AgentRunsPanel } from "./agent-runs-panel";
 
 interface IAgentsListItemProps {
   agent: TAgent;
@@ -19,7 +21,9 @@ interface IAgentsListItemProps {
 }
 
 export function AgentsListItem({ agent, onToggle, onDelete }: IAgentsListItemProps) {
+  const { workspaceSlug } = useParams();
   const [busy, setBusy] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const handleToggle = async () => {
     if (busy) return;
@@ -43,22 +47,40 @@ export function AgentsListItem({ agent, onToggle, onDelete }: IAgentsListItemPro
     }
   };
 
+  const Chevron = expanded ? ChevronDown : ChevronRight;
+
   return (
-    <div className="flex items-center gap-4 rounded-lg border border-subtle bg-layer-2 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h5 className="truncate text-body-sm-medium">{agent.name}</h5>
-          {agent.has_api_key ? null : (
-            <span className="rounded bg-layer-3 px-1.5 py-0.5 text-caption-sm-medium text-tertiary">no key</span>
-          )}
-          {!agent.is_enabled && (
-            <span className="rounded bg-layer-3 px-1.5 py-0.5 text-caption-sm-medium text-tertiary">paused</span>
-          )}
-        </div>
-        {agent.description && <p className="text-body-xs mt-0.5 truncate text-tertiary">{agent.description}</p>}
-        <p className="text-caption-sm mt-0.5 truncate text-tertiary">{agent.bot_user_email}</p>
-      </div>
-      <div className="flex shrink-0 items-center gap-3">
+    <div className="overflow-hidden rounded-lg border border-subtle bg-layer-2">
+      {/*
+        Layout note: the disclosure trigger (the row) and the controls
+        (toggle + delete) are siblings, not nested — HTML doesn't allow
+        buttons inside buttons. The disclosure occupies the flexible
+        middle; controls sit to the right as their own interactive
+        elements.
+      */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse runs" : "Expand runs"}
+        >
+          <Chevron className="size-4 shrink-0 text-tertiary" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h5 className="truncate text-body-sm-medium">{agent.name}</h5>
+              {agent.has_api_key ? null : (
+                <span className="rounded bg-layer-3 px-1.5 py-0.5 text-caption-sm-medium text-tertiary">no key</span>
+              )}
+              {!agent.is_enabled && (
+                <span className="rounded bg-layer-3 px-1.5 py-0.5 text-caption-sm-medium text-tertiary">paused</span>
+              )}
+            </div>
+            {agent.description && <p className="text-body-xs mt-0.5 truncate text-tertiary">{agent.description}</p>}
+            <p className="text-caption-sm mt-0.5 truncate text-tertiary">{agent.bot_user_email}</p>
+          </div>
+        </button>
         <ToggleSwitch value={agent.is_enabled} onChange={handleToggle} disabled={busy} />
         <button
           type="button"
@@ -70,6 +92,11 @@ export function AgentsListItem({ agent, onToggle, onDelete }: IAgentsListItemPro
           <Trash2 className="size-4" />
         </button>
       </div>
+      {expanded && (
+        <div className="border-t border-subtle bg-layer-1">
+          <AgentRunsPanel workspaceSlug={workspaceSlug?.toString() ?? ""} agentId={agent.id} />
+        </div>
+      )}
     </div>
   );
 }

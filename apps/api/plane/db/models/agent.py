@@ -153,6 +153,17 @@ class AgentRun(BaseModel):
     completed_at = models.DateTimeField(null=True, blank=True)
     # Cancellation flag the loop runner checks between tool calls. Slice 2+.
     cancel_requested = models.BooleanField(default=False)
+    # Run telemetry — populated by the dispatcher when the LLM loop
+    # finishes. Surfaced in the runs panel so admins can see what each
+    # invocation cost and which tools the agent used.
+    prompt_tokens = models.PositiveIntegerField(default=0)
+    completion_tokens = models.PositiveIntegerField(default=0)
+    total_tokens = models.PositiveIntegerField(default=0)
+    iterations = models.PositiveIntegerField(default=0)
+    # tool_calls is a list of {name, arguments, result} dicts in invocation
+    # order. JSONField rather than a related table because we never query
+    # it across rows — only read it back per-run for the panel.
+    tool_calls = models.JSONField(default=list, blank=True)
 
     class Meta:
         db_table = "agent_runs"
