@@ -15,6 +15,7 @@ import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // local imports
 import { CreateUpdateIssueModal } from "../../issue-modal/modal";
 import { useSubIssueOperations } from "./helper";
+import { InlineCreateSubIssue } from "./inline-create";
 import { SubIssuesListRoot } from "./issues-list/root";
 
 type Props = {
@@ -126,6 +127,18 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
           handleIssueCrudState={handleIssueCrudState}
           subIssueOperations={subIssueOperations}
           issueServiceType={issueServiceType}
+        />
+      )}
+
+      {/* Inline "+ Add subtask" — the modal route is still available via
+          the dropdown on the section title for users who want to set
+          assignee/labels/dates at creation time. This is the fast path. */}
+      {!disabled && (
+        <InlineCreateSubIssue
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          parentIssueId={parentIssueId}
+          subIssueOperations={subIssueOperations}
         />
       )}
 
