@@ -22,7 +22,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   const { shouldRenderAppRail } = useAppRailVisibility();
 
   return (
-    <div className="relative flex size-full flex-col overflow-hidden bg-canvas transition-all duration-300 ease-in-out">
+    <div className="relative flex size-full flex-col overflow-hidden bg-[#1c1c1e] transition-all duration-300 ease-in-out dark:bg-[#f0f0f2]">
       <TopNavigationRoot />
       <div className="relative flex size-full overflow-hidden">
         {/* Conditionally render AppRailRoot based on context */}

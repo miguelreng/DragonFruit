@@ -22,6 +22,12 @@ export type TPage = {
   created_by: string | undefined;
   description_json: object | undefined;
   description_html: string | undefined;
+  /**
+   * Short plain-text snippet (~280 chars) derived from `description_html`.
+   * Only populated by the workspace pages list endpoint so the docs gallery
+   * can render content previews without per-page fetches.
+   */
+  description_snippet?: string | undefined;
   id: string | undefined;
   is_favorite: boolean;
   is_locked: boolean;
@@ -76,10 +82,17 @@ export type TPageVersion = {
   workspace: string;
 };
 
+/**
+ * Body for `PATCH /pages/{id}/description/`. All three fields are independently
+ * optional on the API (`PageBinaryUpdateSerializer`). Sending only the keys you
+ * want to change avoids overwriting the others — important for whiteboard /
+ * diagram pages, which only persist `description_json` and would otherwise
+ * blow away the Yjs binary by sending `description_binary: ""`.
+ */
 export type TDocumentPayload = {
-  description_binary: string;
-  description_html: string;
-  description_json: object;
+  description_binary?: string;
+  description_html?: string;
+  description_json?: object;
 };
 
 export type TWebhookConnectionQueryParams = {

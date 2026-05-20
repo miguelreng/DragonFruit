@@ -229,6 +229,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       page_type: this.page_type,
       description_json: this.description_json,
       description_html: this.description_html,
+      description_snippet: undefined as string | undefined,
       color: this.color,
       label_ids: this.label_ids,
       owned_by: this.owned_by,

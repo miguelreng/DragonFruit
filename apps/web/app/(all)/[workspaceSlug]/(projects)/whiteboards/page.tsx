@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { PaintBoard } from "@/components/icons/lucide-shim";
 import { PageHead } from "@/components/core/page-title";
 import { WorkspaceDocsRoot } from "@/components/docs/workspace-docs-root";
 import type { Route } from "./+types/page";
@@ -16,9 +17,11 @@ export default function WorkspaceWhiteboardsPage({ params }: Route.ComponentProp
       <WorkspaceDocsRoot
         workspaceSlug={workspaceSlug}
         pageType="whiteboard"
+        headerLabel="Whiteboards"
+        headerIcon={<PaintBoard className="h-4 w-4 text-tertiary" />}
         labels={{
           emptyTitle: "No whiteboards yet",
-          emptyDescription: "Create a whiteboard from any project's Pages list to see it here.",
+          emptyDescription: "Click New whiteboard to create your first one.",
           filteredEmptyTitle: "No whiteboards match your filters",
         }}
       />

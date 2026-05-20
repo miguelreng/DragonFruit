@@ -17,11 +17,11 @@ function WorkspaceDraftPage({ params }: Route.ComponentProps) {
   return (
     <>
       <PageHead title={pageTitle} />
-      <div className="relative h-full w-full overflow-hidden overflow-y-auto">
-        <div className="mx-auto w-full max-w-5xl px-6 pt-6">
+      <div className="relative h-full w-full overflow-y-auto">
+        <div className="mx-auto w-full max-w-5xl px-6 pt-6 pb-12">
           <UnsavedDocsSection workspaceSlug={workspaceSlug} />
+          <WorkspaceDraftIssuesRoot workspaceSlug={workspaceSlug} />
         </div>
-        <WorkspaceDraftIssuesRoot workspaceSlug={workspaceSlug} />
       </div>
     </>
   );

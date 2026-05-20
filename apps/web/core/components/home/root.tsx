@@ -9,8 +9,6 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
 import { ContentWrapper, Sortable } from "@plane/ui";
-// icons
-import { GripVertical } from "@/components/icons/lucide-shim";
 // hooks
 import { useHomePreferences } from "@/hooks/use-home-preferences";
 import { useUserProfile } from "@/hooks/store/user";
@@ -93,8 +91,8 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView() {
               onChange={handleReorder}
               render={(row) => (
                 <div className="group relative">
-                  <div className="pointer-events-none absolute top-3 right-3 z-10 text-tertiary opacity-0 transition-opacity group-hover:opacity-100">
-                    <GripVertical className="size-4" />
+                  <div className="pointer-events-none absolute top-3 -left-6 z-10 text-tertiary opacity-0 transition-opacity group-hover:opacity-100">
+                    <DragDotsIcon className="size-4" />
                   </div>
                   {SECTION_RENDERERS[row.key]?.()}
                 </div>
@@ -106,6 +104,17 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView() {
     </>
   );
 });
+
+function DragDotsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className={className}>
+      <circle cx="6" cy="5" r="1.25" />
+      <circle cx="10" cy="5" r="1.25" />
+      <circle cx="6" cy="11" r="1.25" />
+      <circle cx="10" cy="11" r="1.25" />
+    </svg>
+  );
+}
 
 function DefaultSections() {
   return (

@@ -105,11 +105,11 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   const isButtonDisabled = useMemo(
     () =>
-      !isSubmitting &&
-      !!passwordFormData.password &&
-      (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
-        ? false
-        : true,
+      !(
+        !isSubmitting &&
+        !!passwordFormData.password &&
+        (mode === EAuthModes.SIGN_UP ? passwordFormData.password === passwordFormData.confirm_password : true)
+      ),
     [isSubmitting, mode, passwordFormData.confirm_password, passwordFormData.password]
   );
 
@@ -158,6 +158,8 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               : true;
           if (isPasswordValid) {
             setIsSubmitting(true);
+            // Tags the upcoming page reload so AppLoadingScreen can pick the "logging in" painting.
+            window.sessionStorage.setItem("df-loading-intent", "login");
             if (formRef.current) formRef.current.submit(); // Manually submit the form if the condition is met
           } else {
             setBannerMessage(true);
@@ -214,6 +216,8 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               onFocus={() => setIsPasswordInputFocused(true)}
               onBlur={() => setIsPasswordInputFocused(false)}
               autoComplete="off"
+              // reason: first input of password form
+              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
             />
             <button

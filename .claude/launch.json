@@ -1,0 +1,35 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web (main React Router app)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter=web", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "admin (instance admin UI)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter=admin", "dev"],
+      "port": 3001
+    },
+    {
+      "name": "space (public publishing app)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter=space", "dev"],
+      "port": 3002
+    },
+    {
+      "name": "live (HocusPocus realtime collab — needs Redis)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd apps/live && PORT=3100 pnpm dev"],
+      "port": 3100
+    },
+    {
+      "name": "api (Django backend — needs Postgres + Redis)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd apps/api && python manage.py runserver 0.0.0.0:8000 --settings=plane.settings.local"],
+      "port": 8000
+    }
+  ]
+}

@@ -7,51 +7,46 @@
 // components
 import { observer } from "mobx-react";
 import { Link } from "react-router";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 import { cn } from "@plane/utils";
 import { TopNavPowerK } from "@/components/navigation";
 import { HelpMenuRoot } from "@/components/workspace/sidebar/help-section/root";
 import { UserMenuRoot } from "@/components/workspace/sidebar/user-menu-root";
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
-import { Tooltip } from "@plane/propel/tooltip";
-import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
-import { InboxIcon } from "@plane/propel/icons";
-import useSWR from "swr";
-import { useWorkspaceNotifications } from "@/hooks/store/notifications";
-import dragonfruitLogo from "@/app/assets/plane-logos/logo.svg?url";
+import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
+import { NotificationsBell } from "./notifications-bell";
+import dragonfruitLogoLight from "@/app/assets/plane-logos/logo.svg?url";
+import dragonfruitLogoWhite from "@/app/assets/plane-logos/logo-white.svg?url";
 export const TopNavigationRoot = observer(function TopNavigationRoot() {
   // router
   const { workspaceSlug } = useParams();
-  const pathname = usePathname();
+  // theme — frame inverts the page theme; logo follows
+  const topBarTheme = useTopBarTheme();
+  const isFrameDark = topBarTheme === "dark";
+  const logoSrc = isFrameDark ? dragonfruitLogoWhite : dragonfruitLogoLight;
 
   // store hooks
-  const { unreadNotificationsCount, getUnreadNotificationsCount } = useWorkspaceNotifications();
   const { preferences } = useAppRailPreferences();
 
   const showLabel = preferences.displayMode === "icon_with_label";
 
-  // Fetch notification count
-  useSWR(
-    workspaceSlug ? "WORKSPACE_UNREAD_NOTIFICATION_COUNT" : null,
-    workspaceSlug ? () => getUnreadNotificationsCount(workspaceSlug.toString()) : null
-  );
-
-  // Calculate notification count
-  const isMentionsEnabled = unreadNotificationsCount.mention_unread_notifications_count > 0;
-  const totalNotifications = isMentionsEnabled
-    ? unreadNotificationsCount.mention_unread_notifications_count
-    : unreadNotificationsCount.total_unread_notifications_count;
-
   return (
     <div
-      className={cn("z-[27] flex min-h-10 w-full items-center bg-canvas px-3.5 transition-all duration-300", {
-        "px-2": !showLabel,
-      })}
+      className={cn(
+        "z-[27] flex min-h-10 w-full items-center bg-[#1c1c1e] px-3.5 text-white/80 transition-all duration-300 dark:bg-[#f0f0f2] dark:text-black/70",
+        {
+          "px-2": !showLabel,
+        }
+      )}
     >
       {/* DragonFruit logo */}
       <div className="flex flex-1 shrink-0 items-center">
-        <Link to={`/${workspaceSlug?.toString() ?? ""}/`} className="inline-flex items-center" aria-label="DragonFruit home">
-          <img src={dragonfruitLogo} alt="DragonFruit" className="h-6 w-auto" />
+        <Link
+          to={`/${workspaceSlug?.toString() ?? ""}/`}
+          className="inline-flex items-center"
+          aria-label="DragonFruit home"
+        >
+          <img src={logoSrc} alt="DragonFruit" className="h-6 w-auto" />
         </Link>
       </div>
       {/* Power K Search */}
@@ -60,25 +55,9 @@ export const TopNavigationRoot = observer(function TopNavigationRoot() {
       </div>
       {/* Additional Actions */}
       <div className="flex flex-1 shrink-0 items-center justify-end gap-1">
-        <Tooltip tooltipContent="Inbox" position="bottom">
-          <AppSidebarItem
-            variant="link"
-            item={{
-              href: `/${workspaceSlug?.toString()}/notifications/`,
-              icon: (
-                <div className="relative">
-                  <InboxIcon className="size-5" />
-                  {totalNotifications > 0 && (
-                    <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />
-                  )}
-                </div>
-              ),
-              isActive: pathname?.includes("/notifications/"),
-            }}
-          />
-        </Tooltip>
+        <NotificationsBell />
         <HelpMenuRoot />
-        <div className="flex size-8 items-center justify-center rounded-md hover:bg-layer-1-hover">
+        <div className="flex size-8 items-center justify-center rounded-md hover:bg-white/10 dark:hover:bg-black/10">
           <UserMenuRoot />
         </div>
       </div>

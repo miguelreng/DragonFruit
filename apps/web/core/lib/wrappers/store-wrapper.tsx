@@ -42,7 +42,7 @@ function StoreWrapper(props: TStoreWrapper) {
    */
   useEffect(() => {
     const localValue = localStorage && localStorage.getItem("app_sidebar_collapsed");
-    const localBoolValue = localValue ? (localValue === "true" ? true : false) : false;
+    const localBoolValue = localValue ? localValue === "true" : false;
     if (localValue && sidebarCollapsed === undefined) toggleSidebar(localBoolValue);
   }, [sidebarCollapsed, setTheme, toggleSidebar]);
 
@@ -69,12 +69,16 @@ function StoreWrapper(props: TStoreWrapper) {
       return; // Skip if already initialized or no profile data
     }
 
-    // Apply theme from server profile (one-time only)
-    setTheme(userProfile?.theme?.theme || "system");
+    // Apply theme from server profile (one-time only). Fall back to "light"
+    // for any legacy values (system, custom, *-contrast) that aren't part of
+    // the active two-option set.
+    const stored = userProfile?.theme?.theme;
+    const next = stored === "dark" ? "dark" : "light";
+    setTheme(next);
 
     // Mark as initialized - prevents future syncs from server
     hasInitializedThemeRef.current = true;
-  }, [userProfile?.theme?.theme, setTheme]);
+  }, [userProfile?.theme?.theme, userProfile?.id, setTheme]);
 
   /**
    * Effect 2: Custom theme CSS application (runs on every change)

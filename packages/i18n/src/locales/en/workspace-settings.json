@@ -112,6 +112,28 @@
         "saved": "Saved",
         "save_error": "Couldn't save. Check the key and provider/model combination."
       },
+      "agents": {
+        "title": "Agents",
+        "heading": "Agents",
+        "description": "Bot members of this workspace that can be assigned to tasks. Each agent uses your own LLM key (BYOK).",
+        "add_agent": "Add agent",
+        "empty": {
+          "title": "No agents yet",
+          "description": "Create an agent and it'll appear in the assignee picker. Assign it to a task to see it work."
+        },
+        "badge": {
+          "no_key": "No key",
+          "paused": "Paused"
+        },
+        "delete_confirm": "Delete agent \"{name}\"? This cannot be undone.",
+        "delete_success": "Agent deleted",
+        "delete_error": "Could not delete agent",
+        "update_error": "Could not update agent",
+        "stopped": {
+          "title": "Agent stopped",
+          "cancelled": "{count, plural, one {Cancelled # in-flight run.} other {Cancelled # in-flight runs.}}"
+        }
+      },
       "webhooks": {
         "heading": "Webhooks",
         "description": "Automate notifications to external services when project events occur.",

@@ -35,6 +35,7 @@ from plane.app.serializers import (
     PageSerializer,
     PageDetailSerializer,
     PageBinaryUpdateSerializer,
+    WorkspacePageListSerializer,
 )
 from plane.db.models import (
     Page,
@@ -679,4 +680,7 @@ class WorkspacePagesListEndpoint(BaseAPIView):
             .distinct()
             .order_by("-updated_at")
         )
-        return Response(PageSerializer(pages, many=True).data, status=status.HTTP_200_OK)
+        return Response(
+            WorkspacePageListSerializer(pages, many=True).data,
+            status=status.HTTP_200_OK,
+        )

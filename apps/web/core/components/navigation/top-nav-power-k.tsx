@@ -20,6 +20,7 @@ import { usePowerK } from "@/hooks/store/use-power-k";
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { useExpandableSearch } from "@/hooks/use-expandable-search";
+import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 
 export const TopNavPowerK = observer(() => {
   // router
@@ -36,6 +37,8 @@ export const TopNavPowerK = observer(() => {
   // store hooks
   const { activeContext, setActivePage, activePage, setTopNavInputRef } = usePowerK();
   const { data: currentUser } = useUser();
+  // top bar theme — dropdown matches the frame, not the page
+  const topBarTheme = useTopBarTheme();
 
   const handleOnClose = useCallback(() => {
     setSearchTerm("");
@@ -101,7 +104,7 @@ export const TopNavPowerK = observer(() => {
     return () => {
       setTopNavInputRef(null);
     };
-  }, [setTopNavInputRef]);
+  }, [setTopNavInputRef, inputRef]);
 
   const handleClear = () => {
     setSearchTerm("");
@@ -203,7 +206,9 @@ export const TopNavPowerK = observer(() => {
         return;
       }
     },
-    [searchTerm, activePage, context, shouldShowContextBasedActions, setActivePage, closePanel]
+    // reason: containerRef accessed only inside the callback; safe to omit from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [searchTerm, activePage, context, shouldShowContextBasedActions, setActivePage, closePanel, isOpen]
   );
 
   return (
@@ -215,15 +220,24 @@ export const TopNavPowerK = observer(() => {
       >
         <div
           className={cn(
-            "flex h-7 w-full items-center rounded-lg border border-subtle-1 bg-layer-2 p-2 transition-colors duration-200",
+            "flex h-7 w-full items-center rounded-lg border border-white/10 bg-white/5 p-2 transition-colors duration-200 dark:border-black/10 dark:bg-black/5",
             {
-              "bg-layer-1": isOpen,
+              "bg-white/10 dark:bg-black/10": isOpen,
             }
           )}
           onClick={() => inputRef.current?.focus()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              inputRef.current?.focus();
+            }
+          }}
+          // reason: wrapper contains an input + clear button, can't be a real <button>; focus delegated to inner input
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="button"
+          tabIndex={-1}
         >
-          <SearchIcon className="mr-2 size-3.5 shrink-0 text-placeholder" />
+          <SearchIcon className="mr-2 size-3.5 shrink-0 text-white/50 dark:text-black/50" />
           <input
             ref={inputRef}
             type="text"
@@ -236,15 +250,15 @@ export const TopNavPowerK = observer(() => {
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder="Search"
-            className="placeholder-text-placeholder min-w-0 flex-1 bg-transparent text-13 text-primary outline-none"
+            className="min-w-0 flex-1 bg-transparent text-13 text-white outline-none placeholder:text-white/50 dark:text-black dark:placeholder:text-black/50"
           />
           {searchTerm ? (
             <button type="button" onClick={handleClear} className="ml-2 shrink-0">
-              <CloseIcon className="size-3.5 text-placeholder hover:text-primary" />
+              <CloseIcon className="size-3.5 text-white/60 hover:text-white dark:text-black/60 dark:hover:text-black" />
             </button>
           ) : (
             !isOpen && (
-              <kbd className="ml-2 shrink-0 rounded border border-subtle-1 bg-canvas px-1.5 py-0.5 font-sans text-11 text-tertiary">
+              <kbd className="font-sans ml-2 shrink-0 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-11 text-white/60 dark:border-black/10 dark:bg-black/5 dark:text-black/60">
                 ⌘ K
               </kbd>
             )
@@ -252,8 +266,9 @@ export const TopNavPowerK = observer(() => {
         </div>
       </div>
       <div
+        data-theme={topBarTheme}
         className={cn(
-          "shadow-lg absolute -top-[6px] left-1/2 z-20 flex -translate-x-1/2 flex-col overflow-hidden rounded-md border border-subtle bg-surface-1 px-0 pt-10 transition-all duration-300 ease-in-out",
+          "shadow-lg absolute -top-[6px] left-1/2 z-20 flex -translate-x-1/2 flex-col overflow-hidden rounded-md border border-subtle bg-surface-1 px-0 pt-10 text-primary transition-all duration-300 ease-in-out",
           {
             "max-h-[80vh] w-[574px] opacity-100": isOpen,
             "h-0 w-0 opacity-0": !isOpen,

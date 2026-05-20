@@ -9,13 +9,14 @@ import { observer } from "mobx-react";
 import { useSearchParams, usePathname } from "next/navigation";
 import useSWR from "swr";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 // helpers
 import { EPageTypes } from "@/helpers/authentication.helper";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser, useUserProfile, useUserSettings } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
+import { useMinimumLoaderDuration } from "@/hooks/use-minimum-loader-duration";
 
 type TPageType = EPageTypes;
 
@@ -78,12 +79,11 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     return redirectionRoute;
   };
 
-  if ((isUserSWRLoading || isUserLoading || workspacesLoader) && !currentUser?.id)
-    return (
-      <div className="relative flex h-screen w-full items-center justify-center">
-        <LogoSpinner />
-      </div>
-    );
+  const showLoader = useMinimumLoaderDuration(
+    (isUserSWRLoading || isUserLoading || workspacesLoader) && !currentUser?.id,
+    2400
+  );
+  if (showLoader) return <AppLoadingScreen />;
 
   if (pageType === EPageTypes.PUBLIC) return <>{children}</>;
 

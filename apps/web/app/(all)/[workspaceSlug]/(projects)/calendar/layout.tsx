@@ -5,17 +5,11 @@
  */
 
 import { Outlet } from "react-router";
-import { AppHeader } from "@/components/core/app-header";
-import { ContentWrapper } from "@/components/core/content-wrapper";
-import { WorkspaceCalendarHeader } from "./header";
 
 export default function WorkspaceCalendarLayout() {
   return (
-    <>
-      <AppHeader header={<WorkspaceCalendarHeader />} />
-      <ContentWrapper>
-        <Outlet />
-      </ContentWrapper>
-    </>
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      <Outlet />
+    </div>
   );
 }

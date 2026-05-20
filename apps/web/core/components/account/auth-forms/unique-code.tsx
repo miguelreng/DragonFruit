@@ -57,10 +57,10 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
   const handleFormChange = (key: keyof TUniqueCodeFormValues, value: string) =>
     setUniqueCodeFormData((prev) => ({ ...prev, [key]: value }));
 
-  const generateNewCode = async (email: string) => {
+  const generateNewCode = async (emailValue: string) => {
     try {
       setIsRequestingNewCode(true);
-      const uniqueCode = await generateEmailUniqueCode(email);
+      const uniqueCode = await generateEmailUniqueCode(emailValue);
       setResendCodeTimer(defaultResetTimerValue);
       handleFormChange("code", uniqueCode?.code || "");
       setIsRequestingNewCode(false);
@@ -86,6 +86,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
       action={`${API_BASE_URL}/auth/${mode === EAuthModes.SIGN_IN ? "magic-sign-in" : "magic-sign-up"}/`}
       onSubmit={() => {
         setIsSubmitting(true);
+        window.sessionStorage.setItem("df-loading-intent", "login");
       }}
       onError={() => {
         setIsSubmitting(false);
@@ -135,6 +136,8 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
           placeholder={t("auth.common.unique_code.placeholder")}
           className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
           autoComplete="off"
+          // reason: first input of OTP form
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
         />
         <div className="flex w-full items-center justify-between px-1 pt-1 text-11">

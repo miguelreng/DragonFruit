@@ -4,35 +4,43 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
+import { Link } from "react-router";
 import useSWR from "swr";
+import { ListBullets, SquaresFour } from "@phosphor-icons/react";
 import { ListFilter } from "@/components/icons/lucide-shim";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@plane/propel/icons";
-import { Header, EHeaderVariant } from "@plane/ui";
-import { getPageName, renderFormattedDate } from "@plane/utils";
+import { Breadcrumbs, Header } from "@plane/ui";
+import { cn, getPageName, renderFormattedDate } from "@plane/utils";
 import type { TPage } from "@plane/types";
+import { AppHeader } from "@/components/core/app-header";
+import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ListLayout, ListItem } from "@/components/core/list";
-import {
-  FilterHeader,
-  FilterOption,
-  FiltersDropdown,
-} from "@/components/issues/issue-layouts/filters";
+import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { PageSearchInput } from "@/components/pages/list/search-input";
 import { useProject } from "@/hooks/store/use-project";
 import { usePlatformOS } from "@/hooks/use-platform-os";
+import useLocalStorage from "@/hooks/use-local-storage";
 import { ProjectPageService } from "@/services/page/project-page.service";
+import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
 
 const pageService = new ProjectPageService();
+
+type ViewMode = "list" | "grid";
 
 type Props = {
   workspaceSlug: string;
   /** Filter the workspace pages list by type. Omit to show docs only. */
   pageType?: TPage["page_type"];
+  /** Breadcrumb label shown in the page header. */
+  headerLabel: string;
+  /** Breadcrumb icon shown in the page header. */
+  headerIcon: ReactNode;
   /** Override the empty-state copy for non-doc surfaces (Diagrams, Whiteboard). */
   labels?: {
     emptyTitle?: string;
@@ -41,10 +49,21 @@ type Props = {
   };
 };
 
-export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({ workspaceSlug, pageType = "doc", labels }: Props) {
+export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
+  workspaceSlug,
+  pageType = "doc",
+  headerLabel,
+  headerIcon,
+  labels,
+}: Props) {
   const { getProjectById } = useProject();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const { storedValue: storedViewMode, setValue: setViewMode } = useLocalStorage<ViewMode>(
+    `workspace_docs_view_mode_${pageType}`,
+    "grid"
+  );
+  const viewMode: ViewMode = storedViewMode ?? "grid";
 
   const { data: pages, isLoading } = useSWR(
     workspaceSlug ? `WORKSPACE_PAGES_${workspaceSlug}_${pageType}` : null,
@@ -73,59 +92,112 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({ workspace
 
   const hasFilters = searchQuery.length > 0 || selectedProjectIds.length > 0;
 
-  if (isLoading) return <PageLoader />;
+  const headerNode = (
+    <Header>
+      <Header.LeftItem>
+        <Breadcrumbs>
+          <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} icon={headerIcon} />} />
+        </Breadcrumbs>
+      </Header.LeftItem>
+      <Header.RightItem className="items-center">
+        <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+        <PageSearchInput searchQuery={searchQuery} updateSearchQuery={setSearchQuery} />
+        <FiltersDropdown
+          icon={<ListFilter className="h-3 w-3" />}
+          title="Filters"
+          placement="bottom-end"
+          isFiltersApplied={selectedProjectIds.length > 0}
+        >
+          <ProjectFilterSection
+            appliedFilters={selectedProjectIds}
+            onToggle={toggleProject}
+            onClear={() => setSelectedProjectIds([])}
+          />
+        </FiltersDropdown>
+        <WorkspaceCreateDocButton workspaceSlug={workspaceSlug} defaultType={pageType} />
+      </Header.RightItem>
+    </Header>
+  );
+
+  if (isLoading)
+    return (
+      <>
+        <AppHeader header={headerNode} />
+        <PageLoader />
+      </>
+    );
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden">
-      <Header variant={EHeaderVariant.SECONDARY}>
-        <Header.LeftItem>
-          <></>
-        </Header.LeftItem>
-        <Header.RightItem className="items-center">
-          <PageSearchInput searchQuery={searchQuery} updateSearchQuery={setSearchQuery} />
-          <FiltersDropdown
-            icon={<ListFilter className="h-3 w-3" />}
-            title="Filters"
-            placement="bottom-end"
-            isFiltersApplied={selectedProjectIds.length > 0}
-          >
-            <ProjectFilterSection
-              appliedFilters={selectedProjectIds}
-              onToggle={toggleProject}
-              onClear={() => setSelectedProjectIds([])}
-            />
-          </FiltersDropdown>
-        </Header.RightItem>
-      </Header>
-      {filteredPages.length === 0 ? (
-        <EmptyStateDetailed
-          assetKey={hasFilters ? "search" : "page"}
-          title={
-            hasFilters
-              ? labels?.filteredEmptyTitle ?? "No docs match your filters"
-              : labels?.emptyTitle ?? "No docs yet"
-          }
-          description={
-            hasFilters
-              ? "Try clearing the search or project filter."
-              : labels?.emptyDescription ?? "Create your first page from inside a project to see it here."
-          }
-        />
-      ) : (
-        <ListLayout>
-          {filteredPages.map((page) => (
-            <DocListItem
-              key={page.id}
-              page={page}
-              workspaceSlug={workspaceSlug}
-              getProjectById={getProjectById}
-            />
-          ))}
-        </ListLayout>
-      )}
-    </div>
+    <>
+      <AppHeader header={headerNode} />
+      <div className="relative flex h-full w-full flex-col overflow-hidden">
+        {filteredPages.length === 0 ? (
+          <EmptyStateDetailed
+            assetKey={hasFilters ? "search" : "page"}
+            title={
+              hasFilters
+                ? (labels?.filteredEmptyTitle ?? "No docs match your filters")
+                : (labels?.emptyTitle ?? "No docs yet")
+            }
+            description={
+              hasFilters
+                ? "Try clearing the search or project filter."
+                : (labels?.emptyDescription ?? "Use the New button to create your first page.")
+            }
+          />
+        ) : viewMode === "grid" ? (
+          <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredPages.map((page) => (
+                <DocCard key={page.id} page={page} workspaceSlug={workspaceSlug} getProjectById={getProjectById} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <ListLayout>
+            {filteredPages.map((page) => (
+              <DocListItem key={page.id} page={page} workspaceSlug={workspaceSlug} getProjectById={getProjectById} />
+            ))}
+          </ListLayout>
+        )}
+      </div>
+    </>
   );
 });
+
+type ViewModeToggleProps = {
+  mode: ViewMode;
+  onChange: (mode: ViewMode) => void;
+};
+
+function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
+  const options: Array<{ value: ViewMode; Icon: typeof ListBullets; label: string }> = [
+    { value: "list", Icon: ListBullets, label: "List view" },
+    { value: "grid", Icon: SquaresFour, label: "Grid view" },
+  ];
+  return (
+    <div className="flex items-center gap-0.5 rounded-md border border-subtle p-0.5">
+      {options.map(({ value, Icon, label }) => {
+        const isActive = mode === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            aria-label={label}
+            aria-pressed={isActive}
+            onClick={() => onChange(value)}
+            className={cn(
+              "grid size-6 place-items-center rounded-sm text-tertiary transition-colors hover:text-primary",
+              { "bg-layer-1 text-primary": isActive }
+            )}
+          >
+            <Icon className="size-3.5" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 type DocListItemProps = {
   page: TPage;
@@ -172,6 +244,82 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
         </div>
       }
     />
+  );
+}
+
+type DocCardProps = {
+  page: TPage;
+  workspaceSlug: string;
+  getProjectById: ReturnType<typeof useProject>["getProjectById"];
+};
+
+function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
+  const projectIds = page.project_ids ?? [];
+  const primaryProjectId = projectIds[0];
+  const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
+  const itemLink =
+    primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : null;
+
+  const card = (
+    <div
+      className={cn(
+        "group flex h-[260px] flex-col gap-3 rounded-md border border-subtle bg-surface-1 p-4 transition-colors",
+        { "hover:border-strong": itemLink, "opacity-60": !itemLink }
+      )}
+    >
+      <div className="flex items-start gap-2.5">
+        <span className="grid size-5 shrink-0 place-items-center">
+          {page.logo_props?.in_use ? (
+            <Logo logo={page.logo_props} size={18} type="lucide" />
+          ) : (
+            <PageIcon className="size-4 text-tertiary" />
+          )}
+        </span>
+        <h3 className="line-clamp-2 flex-1 text-13 leading-tight font-semibold text-primary">
+          {getPageName(page.name)}
+        </h3>
+      </div>
+      <div className="relative flex-1 overflow-hidden rounded-sm border border-subtle/60">
+        {page.description_snippet ? (
+          <p
+            className="px-3 pt-3 pb-6 text-12 leading-relaxed text-secondary"
+            style={{
+              WebkitMaskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
+              maskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
+            }}
+          >
+            {page.description_snippet}
+          </p>
+        ) : (
+          <div className="absolute inset-0 grid place-items-center text-tertiary/60">
+            {page.logo_props?.in_use ? (
+              <Logo logo={page.logo_props} size={40} type="lucide" />
+            ) : (
+              <PageIcon className="size-8" />
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 text-11 text-tertiary">
+        {primaryProject ? (
+          <span className="truncate rounded-sm bg-layer-1 px-1.5 py-0.5 text-secondary">{primaryProject.name}</span>
+        ) : (
+          <span className="text-placeholder">No project</span>
+        )}
+        {projectIds.length > 1 && <span>+{projectIds.length - 1}</span>}
+        {page.updated_at && <span className="ml-auto shrink-0">{renderFormattedDate(page.updated_at)}</span>}
+      </div>
+    </div>
+  );
+
+  if (!itemLink) return card;
+  return (
+    <Link
+      to={itemLink}
+      className="focus-visible:ring-accent-primary/40 block rounded-md focus:outline-none focus-visible:ring-2"
+    >
+      {card}
+    </Link>
   );
 }
 
@@ -232,7 +380,7 @@ const ProjectFilterSection = observer(function ProjectFilterSection({
               />
             ))
           ) : (
-            <p className="px-1.5 text-11 italic text-placeholder">No matches found</p>
+            <p className="px-1.5 text-11 text-placeholder italic">No matches found</p>
           ))}
         {appliedFilters.length > 0 && (
           <button

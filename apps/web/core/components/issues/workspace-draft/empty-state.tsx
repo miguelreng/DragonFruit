@@ -5,13 +5,13 @@
  */
 
 import { Fragment, useState } from "react";
-// components
 import { observer } from "mobx-react";
 import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import { Button } from "@plane/propel/button";
 import { EIssuesStoreType, EUserWorkspaceRoles } from "@plane/types";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
+import { RenaissanceDraftIllustration } from "@/components/drafts/renaissance-draft-illustration";
 // constants
 import { useUserPermissions } from "@/hooks/store/user";
 
@@ -35,22 +35,20 @@ export const WorkspaceDraftEmptyState = observer(function WorkspaceDraftEmptySta
         onClose={() => setIsDraftIssueModalOpen(false)}
         isDraft
       />
-      <div className="relative h-full w-full overflow-y-auto">
-        <EmptyStateDetailed
-          title={t("workspace_empty_state.drafts.title")}
-          description={t("workspace_empty_state.drafts.description")}
-          assetKey="draft"
-          actions={[
-            {
-              label: t("workspace_empty_state.drafts.cta_primary"),
-              onClick: () => {
-                setIsDraftIssueModalOpen(true);
-              },
-              disabled: !canPerformEmptyStateActions,
-              variant: "primary",
-            },
-          ]}
-        />
+      <div className="flex w-full flex-col items-center justify-center gap-6 py-12 text-center">
+        <RenaissanceDraftIllustration className="w-44" />
+        <div className="flex max-w-md flex-col items-center gap-2">
+          <h3 className="text-16 leading-7 font-semibold text-primary">{t("workspace_empty_state.drafts.title")}</h3>
+          <p className="text-13 leading-5 text-tertiary">{t("workspace_empty_state.drafts.description")}</p>
+        </div>
+        <Button
+          variant="primary"
+          size="xl"
+          onClick={() => setIsDraftIssueModalOpen(true)}
+          disabled={!canPerformEmptyStateActions}
+        >
+          {t("workspace_empty_state.drafts.cta_primary")}
+        </Button>
       </div>
     </Fragment>
   );

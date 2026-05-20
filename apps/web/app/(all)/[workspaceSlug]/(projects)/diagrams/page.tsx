@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { Flowchart } from "@/components/icons/lucide-shim";
 import { PageHead } from "@/components/core/page-title";
 import { WorkspaceDocsRoot } from "@/components/docs/workspace-docs-root";
 import type { Route } from "./+types/page";
@@ -16,9 +17,11 @@ export default function WorkspaceDiagramsPage({ params }: Route.ComponentProps) 
       <WorkspaceDocsRoot
         workspaceSlug={workspaceSlug}
         pageType="diagram"
+        headerLabel="Diagrams"
+        headerIcon={<Flowchart className="h-4 w-4 text-tertiary" />}
         labels={{
           emptyTitle: "No diagrams yet",
-          emptyDescription: "Create a diagram from any project's Pages list to see it here.",
+          emptyDescription: "Click New diagram to create your first one.",
           filteredEmptyTitle: "No diagrams match your filters",
         }}
       />

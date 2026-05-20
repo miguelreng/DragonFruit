@@ -13,7 +13,6 @@ import { THEME_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { setPromiseToast } from "@plane/propel/toast";
 // components
-import { CustomThemeSelector } from "@/components/core/theme/custom-theme-selector";
 import { ThemeSwitch } from "@/components/core/theme/theme-switch";
 import { SettingsControlItem } from "@/components/settings/control-item";
 // hooks
@@ -34,7 +33,7 @@ export const ThemeSwitcher = observer(function ThemeSwitcher(props: {
   const { t } = useTranslation();
   // derived values
   const currentTheme = useMemo(() => {
-    const userThemeOption = THEME_OPTIONS.find((t) => t.value === userProfile?.theme?.theme);
+    const userThemeOption = THEME_OPTIONS.find((option) => option.value === userProfile?.theme?.theme);
     return userThemeOption || null;
   }, [userProfile?.theme?.theme]);
 
@@ -58,19 +57,16 @@ export const ThemeSwitcher = observer(function ThemeSwitcher(props: {
         console.error("Error updating theme:", error);
       }
     },
-    [updateUserTheme]
+    [updateUserTheme, setTheme]
   );
 
   if (!userProfile) return null;
 
   return (
-    <>
-      <SettingsControlItem
-        title={t(props.option.title)}
-        description={t(props.option.description)}
-        control={<ThemeSwitch value={currentTheme} onChange={handleThemeChange} />}
-      />
-      {userProfile.theme?.theme === "custom" && <CustomThemeSelector />}
-    </>
+    <SettingsControlItem
+      title={t(props.option.title)}
+      description={t(props.option.description)}
+      control={<ThemeSwitch value={currentTheme} onChange={handleThemeChange} />}
+    />
   );
 });
