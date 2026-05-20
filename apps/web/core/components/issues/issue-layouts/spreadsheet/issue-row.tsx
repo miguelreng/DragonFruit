@@ -193,7 +193,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
   const [isMenuActive, setIsMenuActive] = useState(false);
   // refs
   const cellRef = useRef(null);
-  const menuActionRef = useRef<HTMLDivElement | null>(null);
+  const menuActionRef = useRef<HTMLButtonElement | null>(null);
   // router
   const { workspaceSlug, projectId } = useParams();
   // hooks
@@ -215,7 +215,8 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
   useOutsideClickDetector(menuActionRef, () => setIsMenuActive(false));
 
   const customActionButton = (
-    <div
+    <button
+      type="button"
       ref={menuActionRef}
       className={`flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
         isMenuActive ? "bg-layer-1 text-primary" : "text-secondary"
@@ -223,7 +224,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
       onClick={() => setIsMenuActive(!isMenuActive)}
     >
       <MoreHorizontal className="h-3.5 w-3.5" />
-    </div>
+    </button>
   );
   if (!issueDetail) return null;
 
@@ -274,7 +275,10 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
         >
           <Row
             className={cn(
-              "group clickable z-10 flex h-11 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
+              // Tightened the row from h-11 (44px) → h-9 (36px) for a denser
+              // spreadsheet — scanning a long task list, the extra 8px per row
+              // was wasted breathing room. Cells in IssueColumn match.
+              "group clickable z-10 flex h-9 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
               {
                 "border-b-[0.5px]": !getIsIssuePeeked(issueDetail.id),
                 "border border-accent-strong hover:border-accent-strong":
@@ -283,6 +287,38 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               }
             )}
           >
+            {/* Leading select column. Visible on row hover, sticks at full
+                opacity when this row is selected. Sits BEFORE the identifier
+                and the workitem name so the user can hover-and-click a column
+                of checkboxes top-to-bottom — Notion / Linear style. */}
+            {projectId && canSelectIssues && (
+              <Tooltip
+                tooltipContent={
+                  <>
+                    Only tasks within the current
+                    <br />
+                    project can be selected.
+                  </>
+                }
+                disabled={issueDetail.project_id === projectId}
+              >
+                <div className="flex h-full w-8 flex-shrink-0 items-center justify-center">
+                  <MultipleSelectEntityAction
+                    className={cn(
+                      "pointer-events-none opacity-0 transition-opacity group-hover/list-block:pointer-events-auto group-hover/list-block:opacity-100",
+                      {
+                        "pointer-events-auto opacity-100": isIssueSelected,
+                      }
+                    )}
+                    groupId={SPREADSHEET_SELECT_GROUP}
+                    id={issueDetail.id}
+                    selectionHelpers={selectionHelpers}
+                    disabled={issueDetail.project_id !== projectId}
+                  />
+                </div>
+              </Tooltip>
+            )}
+
             {/* Identifier section - conditionally rendered */}
             {displayProperties?.key && (
               <div className="flex h-full min-w-24 flex-shrink-0 items-center">
@@ -302,40 +338,11 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
 
             {/* Workitem section */}
             <div
-              className={cn("flex flex-grow items-center gap-0.5 py-2", {
+              className={cn("flex flex-grow items-center gap-0.5 py-1.5", {
                 "min-w-[360px]": !displayProperties?.key,
                 "min-w-60": displayProperties?.key,
               })}
             >
-              {/* select checkbox */}
-              {projectId && canSelectIssues && (
-                <Tooltip
-                  tooltipContent={
-                    <>
-                      Only tasks within the current
-                      <br />
-                      project can be selected.
-                    </>
-                  }
-                  disabled={issueDetail.project_id === projectId}
-                >
-                  <div className="absolute left-1 mr-1 grid w-3.5 flex-shrink-0 place-items-center">
-                    <MultipleSelectEntityAction
-                      className={cn(
-                        "pointer-events-none opacity-0 transition-opacity group-hover/list-block:pointer-events-auto group-hover/list-block:opacity-100",
-                        {
-                          "pointer-events-auto opacity-100": isIssueSelected,
-                        }
-                      )}
-                      groupId={SPREADSHEET_SELECT_GROUP}
-                      id={issueDetail.id}
-                      selectionHelpers={selectionHelpers}
-                      disabled={issueDetail.project_id !== projectId}
-                    />
-                  </div>
-                </Tooltip>
-              )}
-
               {/* sub issues indentation */}
               {nestingLevel !== 0 && <div style={{ width: subIssueIndentation }} />}
 
@@ -371,8 +378,14 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                   </div>
                 </div>
                 <div
+                  role="presentation"
                   className={`opacity-0 transition-opacity group-hover:opacity-100 ${isMenuActive ? "!opacity-100" : ""}`}
+                  // Click absorber — the inner quickActions buttons carry the
+                  // real semantics; this wrapper exists only to stop the row
+                  // click from bubbling up to the <ControlLink> and triggering
+                  // peek navigation.
                   onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
                 >
                   {quickActions({
                     issue: issueDetail,
