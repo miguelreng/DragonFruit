@@ -24,6 +24,7 @@ from .timezone import urlpatterns as timezone_urls
 from .exporter import urlpatterns as exporter_urls
 from .agent_webhook import urlpatterns as agent_webhook_urls
 from .agent import urlpatterns as agent_urls
+from .mcp import urlpatterns as mcp_urls
 from .calendar import urlpatterns as calendar_urls
 
 urlpatterns = [
@@ -49,5 +50,6 @@ urlpatterns = [
     *exporter_urls,
     *agent_webhook_urls,
     *agent_urls,
+    *mcp_urls,
     *calendar_urls,
 ]
