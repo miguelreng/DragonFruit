@@ -19,6 +19,7 @@ class AgentSerializer(serializers.ModelSerializer):
     bot_user_id = serializers.UUIDField(source="bot_user.id", read_only=True)
     bot_user_email = serializers.EmailField(source="bot_user.email", read_only=True)
     has_api_key = serializers.SerializerMethodField()
+    mcp_servers = serializers.SerializerMethodField()
 
     class Meta:
         model = Agent
@@ -38,6 +39,7 @@ class AgentSerializer(serializers.ModelSerializer):
             "is_enabled",
             "max_concurrent_runs",
             "draft_mode",
+            "mcp_servers",
             "created_at",
             "updated_at",
         ]
@@ -47,12 +49,33 @@ class AgentSerializer(serializers.ModelSerializer):
             "bot_user_id",
             "bot_user_email",
             "has_api_key",
+            "mcp_servers",
             "created_at",
             "updated_at",
         ]
 
     def get_has_api_key(self, obj: Agent) -> bool:
         return bool(obj.api_key_encrypted)
+
+    def get_mcp_servers(self, obj: Agent) -> list:
+        """Public view of mcp_servers. Strips the ciphertext, exposes
+        only `has_auth_header: bool` per entry. Never returns the raw
+        encrypted blob — even ciphertext shouldn't leak through API
+        responses (see BYOK rule).
+        """
+        out = []
+        for entry in (obj.mcp_servers or []):
+            if not isinstance(entry, dict):
+                continue
+            out.append(
+                {
+                    "name": entry.get("name") or "",
+                    "url": entry.get("url") or "",
+                    "enabled": bool(entry.get("enabled", True)),
+                    "has_auth_header": bool(entry.get("auth_header_encrypted")),
+                }
+            )
+        return out
 
 
 class AgentRunSerializer(serializers.ModelSerializer):

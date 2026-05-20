@@ -38,6 +38,64 @@ User = get_user_model()
 _BOT_WORKSPACE_ROLE = 5  # Guest
 
 
+def _normalise_mcp_servers(submitted: list, *, previous: list) -> list:
+    """Encrypt plaintext auth headers, validate shape, dedupe by name.
+
+    `submitted` is the raw payload from the client. Each entry must
+    have a `name` (used as the tool prefix and the dedup key) and a
+    `url` (the JSON-RPC endpoint). Optional fields:
+      - `auth_header`:           plaintext token/header; encrypted here
+      - `auth_header_encrypted`: pass-through ciphertext (used when the
+                                 client is editing a non-auth field
+                                 and doesn't want to re-send the token)
+      - `enabled`:               default True
+
+    The previous list is consulted to preserve the `auth_header_encrypted`
+    of an existing entry whose new payload omits both auth fields —
+    this lets the UI patch `enabled` or `url` without forcing the user
+    to re-enter the token.
+    """
+    previous_by_name = {
+        (entry.get("name") or "").strip(): entry
+        for entry in (previous or [])
+        if isinstance(entry, dict)
+    }
+    seen: set = set()
+    normalised: list = []
+    for raw in submitted:
+        if not isinstance(raw, dict):
+            continue
+        name = (raw.get("name") or "").strip()
+        url = (raw.get("url") or "").strip()
+        if not name or not url:
+            continue
+        if name in seen:
+            continue
+        seen.add(name)
+
+        previous_entry = previous_by_name.get(name) or {}
+
+        if "auth_header" in raw and raw.get("auth_header"):
+            auth_encrypted = encrypt_data(str(raw["auth_header"]))
+        elif raw.get("auth_header_encrypted"):
+            auth_encrypted = str(raw["auth_header_encrypted"])
+        elif "auth_header" in raw and not raw.get("auth_header"):
+            # Explicit empty → wipe.
+            auth_encrypted = ""
+        else:
+            auth_encrypted = previous_entry.get("auth_header_encrypted") or ""
+
+        normalised.append(
+            {
+                "name": name[:64],
+                "url": url[:2048],
+                "auth_header_encrypted": auth_encrypted,
+                "enabled": bool(raw.get("enabled", True)),
+            }
+        )
+    return normalised
+
+
 def _build_bot_user(workspace_slug: str, agent_name: str) -> "User":
     """Create the `User(is_bot=True)` row that backs an Agent.
 
@@ -169,6 +227,17 @@ class AgentDetailEndpoint(BaseAPIView):
         if "api_key" in request.data:
             new_key = request.data.get("api_key") or ""
             agent.api_key_encrypted = encrypt_data(new_key) if new_key else ""
+
+        # Bulk-replace the MCP servers list. The client sends the full
+        # desired set on each PATCH (it's small — usually 0–3 entries).
+        # Plaintext `auth_header` values in the payload are encrypted
+        # here and never echoed back; existing rows keep their
+        # auth_header_encrypted blob if the new entry omits the field.
+        if "mcp_servers_set" in request.data:
+            agent.mcp_servers = _normalise_mcp_servers(
+                request.data.get("mcp_servers_set") or [],
+                previous=agent.mcp_servers or [],
+            )
 
         agent.save()
         return Response(AgentSerializer(agent).data, status=status.HTTP_200_OK)
