@@ -77,6 +77,27 @@ export type TAgentRun = {
 
 export type TAgentDraftKind = "issue" | "page";
 
+export type TAgentCostSummaryWindow = {
+  runs: number;
+  cost_usd: number;
+  total_tokens: number;
+};
+
+export type TAgentCostSummaryByAgent = {
+  agent_id: string;
+  name: string;
+  runs: number;
+  cost_usd: number;
+  total_tokens: number;
+};
+
+export type TAgentCostSummary = {
+  all_time: TAgentCostSummaryWindow;
+  this_month: TAgentCostSummaryWindow;
+  last_7_days: TAgentCostSummaryWindow;
+  by_agent_last_30_days: TAgentCostSummaryByAgent[];
+};
+
 export class AgentService extends APIService {
   constructor() {
     super(API_BASE_URL);
@@ -185,6 +206,18 @@ export class AgentService extends APIService {
   async discardDraft(workspaceSlug: string, kind: TAgentDraftKind, commentId: string): Promise<void> {
     return this.post(`/api/workspaces/${workspaceSlug}/agent-drafts/${kind}/${commentId}/discard/`)
       .then(() => undefined)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  /**
+   * Aggregated cost summary for the workspace's agent runs. Powers the
+   * home-page cost widget.
+   */
+  async costSummary(workspaceSlug: string): Promise<TAgentCostSummary> {
+    return this.get(`/api/workspaces/${workspaceSlug}/agents/cost-summary/`)
+      .then((res) => res?.data)
       .catch((err) => {
         throw err?.response?.data;
       });

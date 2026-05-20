@@ -385,9 +385,28 @@ class WorkspaceUserLink(WorkspaceBaseModel):
 
 
 class WorkspaceHomePreference(BaseModel):
-    """Preference for the home page of a workspace for a user"""
+    """Preference for the home page of a workspace for a user.
+
+    Stores the user's per-section settings on the home page: whether the
+    section is enabled, where it sits in the sort order (drag-and-drop),
+    and any section-specific config (JSON).
+
+    The enum below seeds defaults on first load. Legacy widget keys
+    (quick_links, recents, my_stickies, new_at_plane, quick_tutorial)
+    are kept for the in-flight legacy widget manager but are no longer
+    seeded — only the new section keys are auto-created. Patching a
+    legacy key is still allowed for back-compat.
+    """
 
     class HomeWidgetKeys(models.TextChoices):
+        # New section-based home page (drag-and-drop reorderable).
+        INBOX = "inbox", "Inbox"
+        ON_MY_PLATE = "on_my_plate", "On my plate"
+        FAVORITES = "favorites", "Favorites"
+        AGENT_COST = "agent_cost", "Agent cost"
+        # Legacy widget keys — left in place so existing rows still
+        # resolve to a valid choice, but no longer seeded by the GET
+        # handler.
         QUICK_LINKS = "quick_links", "Quick Links"
         RECENTS = "recents", "Recents"
         MY_STICKIES = "my_stickies", "My Stickies"

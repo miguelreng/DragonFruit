@@ -5,6 +5,7 @@
 from django.urls import path
 
 from plane.app.views.agent import (
+    AgentCostSummaryEndpoint,
     AgentDetailEndpoint,
     AgentDraftCommentApproveEndpoint,
     AgentDraftCommentDiscardEndpoint,
@@ -20,6 +21,11 @@ urlpatterns = [
         "workspaces/<str:slug>/agents/",
         AgentEndpoint.as_view(),
         name="workspace-agents",
+    ),
+    path(
+        "workspaces/<str:slug>/agents/cost-summary/",
+        AgentCostSummaryEndpoint.as_view(),
+        name="workspace-agent-cost-summary",
     ),
     path(
         "workspaces/<str:slug>/agents/<uuid:agent_id>/",
