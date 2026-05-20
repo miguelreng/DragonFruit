@@ -10,7 +10,7 @@ import useSWR from "swr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { cn } from "@plane/utils";
 // services
-import { AgentService, type TAgentRun } from "@/services/agent.service";
+import { AgentService, type TAgentDraftKind, type TAgentRun, type TAgentToolCall } from "@/services/agent.service";
 
 interface IAgentRunsPanelProps {
   workspaceSlug: string;
@@ -43,10 +43,38 @@ function formatTokens(n: number): string {
   return `${(n / 1000).toFixed(1)}k`;
 }
 
+function formatCost(usd: number): string {
+  if (!usd) return "";
+  if (usd < 0.01) return "<$0.01";
+  if (usd < 1) return `$${usd.toFixed(3)}`;
+  return `$${usd.toFixed(2)}`;
+}
+
+/**
+ * Parse the structured "(id=<uuid>)" suffix out of a tool-result string.
+ * The post_comment and post_page_comment handlers always include the
+ * created comment's id this way; we use it to surface approve/discard
+ * buttons for draft posts without adding a separate API.
+ *
+ * Returns null when the tool call wasn't a draft-comment post.
+ */
+function extractDraftPointer(tc: TAgentToolCall): { id: string; kind: TAgentDraftKind } | null {
+  const result = String(tc.result ?? "");
+  if (!result.includes("draft")) return null;
+  const match = result.match(/id=([0-9a-f-]{36})/i);
+  if (!match) return null;
+  const kind: TAgentDraftKind = tc.name === "post_page_comment" ? "page" : "issue";
+  return { id: match[1], kind };
+}
+
 export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  // Track which drafts the user has already approved/discarded in this
+  // session — the UI hides them optimistically before the next poll
+  // refresh actually drops them from the tool_calls log. (They never
+  // will drop, but once approved/discarded they're no longer actionable.)
+  const [resolvedDrafts, setResolvedDrafts] = useState<Set<string>>(new Set());
 
-  // Poll every 3s while expanded so in-flight runs update without a refresh.
   const {
     data: runs,
     isLoading,
@@ -72,6 +100,29 @@ export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps)
     }
   };
 
+  const handleApprove = async (kind: TAgentDraftKind, commentId: string) => {
+    try {
+      await agentService.approveDraft(workspaceSlug, kind, commentId);
+      setResolvedDrafts((s) => new Set(s).add(commentId));
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Comment approved" });
+    } catch (err) {
+      const message = (err as { error?: string } | undefined)?.error ?? "Could not approve";
+      setToast({ type: TOAST_TYPE.ERROR, title: message });
+    }
+  };
+
+  const handleDiscard = async (kind: TAgentDraftKind, commentId: string) => {
+    if (!window.confirm("Discard this draft? The comment will be deleted.")) return;
+    try {
+      await agentService.discardDraft(workspaceSlug, kind, commentId);
+      setResolvedDrafts((s) => new Set(s).add(commentId));
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Draft discarded" });
+    } catch (err) {
+      const message = (err as { error?: string } | undefined)?.error ?? "Could not discard";
+      setToast({ type: TOAST_TYPE.ERROR, title: message });
+    }
+  };
+
   if (isLoading && !runs) {
     return <div className="text-caption-md px-4 py-3 text-tertiary">Loading runs…</div>;
   }
@@ -88,50 +139,90 @@ export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps)
     <ul className="flex flex-col divide-y divide-subtle">
       {runs.map((run) => {
         const isInFlight = run.status === "pending" || run.status === "running";
-        const toolNames = (run.tool_calls ?? []).map((tc) => tc.name);
+        const toolCalls = run.tool_calls ?? [];
+        const toolNames = toolCalls.map((tc) => tc.name);
         const toolSummary = toolNames.length === 0 ? null : Array.from(new Set(toolNames)).join(", ");
+        const drafts = toolCalls
+          .map(extractDraftPointer)
+          .filter((d): d is { id: string; kind: TAgentDraftKind } => !!d);
+        const pendingDrafts = drafts.filter((d) => !resolvedDrafts.has(d.id));
 
         return (
-          <li key={run.id} className="flex items-start gap-3 px-4 py-2.5">
-            <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-caption-sm-medium", STATUS_STYLES[run.status])}>
-              {run.status}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-body-xs flex items-center gap-2 text-secondary">
-                <span className="font-medium">{run.trigger_event}</span>
-                <span className="text-tertiary">·</span>
-                <span className="text-tertiary">{formatRelative(run.created_at)}</span>
-                {run.total_tokens > 0 && (
-                  <>
-                    <span className="text-tertiary">·</span>
-                    <span className="text-tertiary">{formatTokens(run.total_tokens)} tokens</span>
-                  </>
+          <li key={run.id} className="flex flex-col gap-2 px-4 py-2.5">
+            <div className="flex items-start gap-3">
+              <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-caption-sm-medium", STATUS_STYLES[run.status])}>
+                {run.status}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-body-xs flex flex-wrap items-center gap-x-2 gap-y-0.5 text-secondary">
+                  <span className="font-medium">{run.trigger_event}</span>
+                  <span className="text-tertiary">·</span>
+                  <span className="text-tertiary">{formatRelative(run.created_at)}</span>
+                  {run.total_tokens > 0 && (
+                    <>
+                      <span className="text-tertiary">·</span>
+                      <span className="text-tertiary">{formatTokens(run.total_tokens)} tokens</span>
+                    </>
+                  )}
+                  {run.iterations > 0 && (
+                    <>
+                      <span className="text-tertiary">·</span>
+                      <span className="text-tertiary">
+                        {run.iterations} turn{run.iterations === 1 ? "" : "s"}
+                      </span>
+                    </>
+                  )}
+                  {run.cost_usd > 0 && (
+                    <>
+                      <span className="text-tertiary">·</span>
+                      <span className="text-tertiary">{formatCost(run.cost_usd)}</span>
+                    </>
+                  )}
+                </div>
+                {toolSummary && (
+                  <div className="text-caption-sm mt-0.5 truncate text-tertiary">called: {toolSummary}</div>
                 )}
-                {run.iterations > 0 && (
-                  <>
-                    <span className="text-tertiary">·</span>
-                    <span className="text-tertiary">
-                      {run.iterations} turn{run.iterations === 1 ? "" : "s"}
-                    </span>
-                  </>
+                {run.error && (
+                  <div className="text-caption-sm text-red-600 dark:text-red-400 mt-0.5 truncate">{run.error}</div>
                 )}
               </div>
-              {toolSummary && (
-                <div className="text-caption-sm mt-0.5 truncate text-tertiary">called: {toolSummary}</div>
-              )}
-              {run.error && (
-                <div className="text-caption-sm text-red-600 dark:text-red-400 mt-0.5 truncate">{run.error}</div>
+              {isInFlight && (
+                <button
+                  type="button"
+                  onClick={() => handleCancel(run.id)}
+                  disabled={cancellingId === run.id || run.cancel_requested}
+                  className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 shrink-0 rounded px-2 py-1 text-caption-sm-medium transition-colors disabled:opacity-50"
+                >
+                  {run.cancel_requested ? "stopping…" : "cancel"}
+                </button>
               )}
             </div>
-            {isInFlight && (
-              <button
-                type="button"
-                onClick={() => handleCancel(run.id)}
-                disabled={cancellingId === run.id || run.cancel_requested}
-                className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 shrink-0 rounded px-2 py-1 text-caption-sm-medium transition-colors disabled:opacity-50"
-              >
-                {run.cancel_requested ? "stopping…" : "cancel"}
-              </button>
+            {pendingDrafts.length > 0 && (
+              <div className="border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/20 ml-12 flex flex-wrap items-center gap-2 rounded border px-2 py-1.5">
+                <span className="text-yellow-900 dark:text-yellow-200 text-caption-sm-medium">
+                  {pendingDrafts.length === 1
+                    ? "Draft comment awaiting approval"
+                    : `${pendingDrafts.length} draft comments awaiting approval`}
+                </span>
+                {pendingDrafts.map((d) => (
+                  <span key={d.id} className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(d.kind, d.id)}
+                      className="text-green-700 hover:bg-green-100 dark:text-green-300 dark:hover:bg-green-900/30 rounded px-2 py-0.5 text-caption-sm-medium"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDiscard(d.kind, d.id)}
+                      className="text-red-700 hover:bg-red-100 dark:text-red-300 dark:hover:bg-red-900/30 rounded px-2 py-0.5 text-caption-sm-medium"
+                    >
+                      Discard
+                    </button>
+                  </span>
+                ))}
+              </div>
             )}
           </li>
         );

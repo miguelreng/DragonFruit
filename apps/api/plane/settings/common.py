@@ -337,7 +337,7 @@ CELERY_IMPORTS = (
     # issue version tasks
     "plane.bgtasks.issue_version_sync",
     "plane.bgtasks.issue_description_version_sync",
-    # agent dispatch
+    # agent dispatch (issue + page comment variants registered from the same module)
     "plane.bgtasks.agent_dispatch_task",
 )
 

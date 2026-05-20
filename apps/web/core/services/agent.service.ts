@@ -70,9 +70,12 @@ export type TAgentRun = {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
+  cost_usd: number;
   tool_calls: TAgentToolCall[];
   created_at: string;
 };
+
+export type TAgentDraftKind = "issue" | "page";
 
 export class AgentService extends APIService {
   constructor() {
@@ -152,6 +155,36 @@ export class AgentService extends APIService {
   async cancelRun(workspaceSlug: string, agentId: string, runId: string): Promise<TAgentRun> {
     return this.post(`/api/workspaces/${workspaceSlug}/agents/${agentId}/runs/${runId}/cancel/`)
       .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  /**
+   * Approve a draft comment posted by an agent (issue or page comment).
+   * Flips is_draft=false; the comment becomes visible in the normal
+   * activity feed.
+   */
+  async approveDraft(
+    workspaceSlug: string,
+    kind: TAgentDraftKind,
+    commentId: string
+  ): Promise<{ id: string; is_draft: boolean }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agent-drafts/${kind}/${commentId}/approve/`)
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  /**
+   * Discard a draft comment posted by an agent. Soft-deletes the row.
+   * Refuses if the comment has already been approved (use the normal
+   * comment-delete endpoint for that case).
+   */
+  async discardDraft(workspaceSlug: string, kind: TAgentDraftKind, commentId: string): Promise<void> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agent-drafts/${kind}/${commentId}/discard/`)
+      .then(() => undefined)
       .catch((err) => {
         throw err?.response?.data;
       });

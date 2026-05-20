@@ -56,6 +56,11 @@ class AgentSerializer(serializers.ModelSerializer):
 
 
 class AgentRunSerializer(serializers.ModelSerializer):
+    # cost_usd is a DecimalField on the model; DRF serializes Decimal as
+    # string by default. Override to a float so the UI can do arithmetic
+    # without parseFloat ceremony. Sub-cent precision is preserved.
+    cost_usd = serializers.FloatField(read_only=True)
+
     class Meta:
         model = AgentRun
         fields = [
@@ -72,6 +77,7 @@ class AgentRunSerializer(serializers.ModelSerializer):
             "prompt_tokens",
             "completion_tokens",
             "total_tokens",
+            "cost_usd",
             "tool_calls",
             "created_at",
         ]

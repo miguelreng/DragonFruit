@@ -6,6 +6,8 @@ from django.urls import path
 
 from plane.app.views.agent import (
     AgentDetailEndpoint,
+    AgentDraftCommentApproveEndpoint,
+    AgentDraftCommentDiscardEndpoint,
     AgentEndpoint,
     AgentRunCancelEndpoint,
     AgentRunListEndpoint,
@@ -38,5 +40,15 @@ urlpatterns = [
         "workspaces/<str:slug>/agents/<uuid:agent_id>/stop/",
         AgentStopEndpoint.as_view(),
         name="workspace-agent-stop",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-drafts/<str:kind>/<uuid:comment_id>/approve/",
+        AgentDraftCommentApproveEndpoint.as_view(),
+        name="workspace-agent-draft-approve",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-drafts/<str:kind>/<uuid:comment_id>/discard/",
+        AgentDraftCommentDiscardEndpoint.as_view(),
+        name="workspace-agent-draft-discard",
     ),
 ]

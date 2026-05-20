@@ -213,6 +213,79 @@ class AgentRunListEndpoint(BaseAPIView):
         return Response(AgentRunSerializer(runs, many=True).data, status=status.HTTP_200_OK)
 
 
+class AgentDraftCommentApproveEndpoint(BaseAPIView):
+    """Approve a draft comment posted by an agent — flip is_draft to False.
+
+    Distinct paths for issue comments vs page block comments because
+    they live in different models. The request shape is identical:
+    POST with the comment_id in the URL.
+
+    Idempotent: approving a comment that's already non-draft is a no-op
+    that still returns 200.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug, kind, comment_id):
+        if kind == "issue":
+            from plane.db.models import IssueComment
+
+            comment = IssueComment.objects.filter(
+                pk=comment_id, workspace__slug=slug, deleted_at__isnull=True
+            ).first()
+        elif kind == "page":
+            from plane.db.models import PageBlockComment
+
+            comment = PageBlockComment.objects.filter(
+                pk=comment_id, workspace__slug=slug, deleted_at__isnull=True
+            ).first()
+        else:
+            return Response({"error": "kind must be 'issue' or 'page'"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if comment is None:
+            return Response({"error": "comment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if comment.is_draft:
+            comment.is_draft = False
+            comment.save(update_fields=["is_draft", "updated_at"])
+
+        return Response({"id": str(comment.id), "is_draft": comment.is_draft}, status=status.HTTP_200_OK)
+
+
+class AgentDraftCommentDiscardEndpoint(BaseAPIView):
+    """Discard a draft comment posted by an agent — soft-delete the row.
+
+    Only operates on rows where is_draft is still True. Refuses to
+    delete an already-approved comment (use the normal comment delete
+    endpoint for that).
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug, kind, comment_id):
+        if kind == "issue":
+            from plane.db.models import IssueComment
+
+            comment = IssueComment.objects.filter(
+                pk=comment_id, workspace__slug=slug, deleted_at__isnull=True, is_draft=True
+            ).first()
+        elif kind == "page":
+            from plane.db.models import PageBlockComment
+
+            comment = PageBlockComment.objects.filter(
+                pk=comment_id, workspace__slug=slug, deleted_at__isnull=True, is_draft=True
+            ).first()
+        else:
+            return Response({"error": "kind must be 'issue' or 'page'"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if comment is None:
+            return Response(
+                {"error": "draft comment not found (already approved or already discarded)"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        comment.delete()  # soft delete via BaseModel
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class AgentRunCancelEndpoint(BaseAPIView):
     """Cancel a single in-flight AgentRun by flipping cancel_requested.
 

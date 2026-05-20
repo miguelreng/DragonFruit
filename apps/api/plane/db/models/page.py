@@ -223,6 +223,10 @@ class PageBlockComment(BaseModel):
         blank=True,
         related_name="resolved_page_block_comments",
     )
+    # Draft flag set by agents with draft_mode enabled. Mirrors the same
+    # field on IssueComment; surfaces in the agent's runs panel for
+    # approve/discard before going live.
+    is_draft = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         verbose_name = "Page Block Comment"

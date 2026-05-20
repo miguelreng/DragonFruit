@@ -464,6 +464,11 @@ class IssueComment(ChangeTrackerMixin, ProjectBaseModel):
         related_name="comments",
         null=True,
     )
+    # Draft flag set by agents that have draft_mode enabled. Drafts are
+    # filtered out of the normal activity feed and surface only in the
+    # agent's runs panel until an admin approves them. See
+    # AgentDraftCommentApproveEndpoint.
+    is_draft = models.BooleanField(default=False, db_index=True)
     access = models.CharField(
         choices=(("INTERNAL", "INTERNAL"), ("EXTERNAL", "EXTERNAL")),
         default="INTERNAL",

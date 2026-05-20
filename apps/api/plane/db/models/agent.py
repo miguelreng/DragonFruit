@@ -164,6 +164,10 @@ class AgentRun(BaseModel):
     # order. JSONField rather than a related table because we never query
     # it across rows — only read it back per-run for the panel.
     tool_calls = models.JSONField(default=list, blank=True)
+    # Dollar cost computed at finalise time using the per-model pricing
+    # table in plane.llm.pricing. 6-decimal precision because Gemini Flash
+    # and similar low-cost models routinely produce sub-cent run costs.
+    cost_usd = models.DecimalField(max_digits=10, decimal_places=6, default=0)
 
     class Meta:
         db_table = "agent_runs"
@@ -345,4 +349,56 @@ def _dispatch_agent_on_comment_mention(sender, instance, created, **kwargs):
                 "agent dispatch enqueue failed for agent=%s issue=%s (comment mention)",
                 agent.id,
                 instance.issue_id,
+            )
+
+
+@receiver(post_save, sender="db.PageBlockComment")
+def _dispatch_agent_on_page_comment_mention(sender, instance, created, **kwargs):
+    """Trigger agents @-mentioned in a page block comment.
+
+    Mirror of the IssueComment signal: parse the comment's HTML for
+    user_mention components, match them to bot users with Agents, and
+    enqueue the page-comment dispatch task. The loop guard skips when
+    the comment's `created_by` is itself a bot user.
+    """
+    if not created:
+        return
+
+    created_by = getattr(instance, "created_by", None)
+    if created_by is not None and getattr(created_by, "is_bot", False):
+        return
+
+    try:
+        from plane.bgtasks.notification_task import extract_comment_mentions
+    except Exception:  # noqa: BLE001
+        logger.exception("could not import extract_comment_mentions; skipping page-comment dispatch")
+        return
+
+    mention_ids = extract_comment_mentions(instance.content or "")
+    if not mention_ids:
+        return
+
+    matching_agents = list(
+        Agent.objects.select_related("bot_user").filter(
+            bot_user_id__in=mention_ids,
+            workspace_id=instance.workspace_id,
+            is_enabled=True,
+            deleted_at__isnull=True,
+        )
+    )
+    if not matching_agents:
+        return
+
+    from plane.bgtasks.agent_dispatch_task import dispatch_agent_for_page_comment
+
+    for agent in matching_agents:
+        if not (agent.triggers or {}).get("mentioned", True):
+            continue
+        try:
+            dispatch_agent_for_page_comment.delay(str(agent.id), str(instance.id), "mentioned")
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "agent dispatch enqueue failed for agent=%s page_comment=%s",
+                agent.id,
+                instance.id,
             )
