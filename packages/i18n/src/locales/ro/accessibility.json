@@ -20,8 +20,7 @@
       "open_project_menu": "Deschide meniul proiectului",
       "close_project_menu": "Închide meniul proiectului",
       "collapse_sidebar": "Restrânge bara laterală",
-      "expand_sidebar": "Extinde bara laterală",
-      "edition_badge": "Deschide modalul planurilor plătite"
+      "expand_sidebar": "Extinde bara laterală"
     },
     "auth_forms": {
       "clear_email": "Șterge e-mailul",

@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
 import { ContentWrapper, Sortable } from "@plane/ui";
+import { cn } from "@plane/utils";
 // hooks
 import { useHomePreferences } from "@/hooks/use-home-preferences";
 import { useUserProfile } from "@/hooks/store/user";
@@ -18,7 +19,13 @@ import { TourRoot } from "@/plane-web/components/onboarding/tour/root";
 // services
 import type { THomePreference } from "@/services/home-preferences.service";
 // local imports
-import { AgentCostSection, FavoritesSection, InboxSection, OnMyPlateSection } from "./sections";
+import {
+  ActivityHeatmapSection,
+  AgentCostSection,
+  FavoritesSection,
+  InboxSection,
+  OnMyPlateSection,
+} from "./sections";
 
 /**
  * Registry of section components keyed by the same string used in
@@ -32,10 +39,16 @@ const SECTION_RENDERERS: Record<string, () => ReactNode> = {
   inbox: () => <InboxSection />,
   on_my_plate: () => <OnMyPlateSection />,
   favorites: () => <FavoritesSection />,
+  activity: () => <ActivityHeatmapSection />,
   agent_cost: () => <AgentCostSection />,
 };
 
-export const WorkspaceHomeView = observer(function WorkspaceHomeView() {
+type WorkspaceHomeViewProps = {
+  /** Optional hero/header that scrolls with the rest of the home content. */
+  header?: ReactNode;
+};
+
+export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }: WorkspaceHomeViewProps = {}) {
   const { data: currentUserProfile, updateTourCompleted } = useUserProfile();
   const { workspaceSlug } = useParams();
   const { preferences, reorder } = useHomePreferences(workspaceSlug?.toString());
@@ -68,8 +81,9 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView() {
         </div>
       )}
       <HomePeekOverviewsRoot />
-      <ContentWrapper className="mx-auto scrollbar-hide gap-6 bg-surface-1 px-page-x">
-        <div className="mx-auto flex w-full max-w-[800px] flex-col gap-6 pt-2 pb-12">
+      <ContentWrapper className={cn("scrollbar-hide gap-6 bg-surface-1", header ? "!py-0 !px-0" : "px-page-x")}>
+        {header}
+        <div className={cn("mx-auto flex w-full max-w-[800px] flex-col gap-6 pb-12", header ? "pt-6" : "pt-2", header && "px-page-x")}>
           {/*
             Sortable wraps each child in a Draggable. Hover a section
             and the grip icon fades in at the top-right; users can grab
@@ -90,8 +104,29 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView() {
               keyExtractor={(row) => row.key}
               onChange={handleReorder}
               render={(row) => (
-                <div className="group relative">
-                  <div className="pointer-events-none absolute top-3 -left-6 z-10 text-tertiary opacity-0 transition-opacity group-hover:opacity-100">
+                /*
+                  Drag handle visibility:
+                  • Appears only when the cursor is over the section TITLE row
+                    (every section's first child is its `<div>` header strip)
+                    or over the handle itself / the bridge zone next to it.
+                  • The bridge is an invisible 24×40 div that fills the empty
+                    space between the icon (at `-left-6`) and the section's
+                    left edge, so cursor travel from title → icon never loses
+                    hover. Bridge has no `bg`, no `pointer-events-none` (it
+                    must accept hover), and sits below the icon's z-index.
+                  • Title hover detection uses `:has(> section > div:first-child:hover)`
+                    so we don't have to thread a class through every section.
+                */
+                <div className="group/handle relative">
+                  <div aria-hidden className="absolute -left-5 top-0 z-0 h-10 w-5" />
+                  <div
+                    className={cn(
+                      "absolute -left-5 top-3 z-10 text-tertiary opacity-0 transition-opacity",
+                      "hover:opacity-100",
+                      "group-has-[>div:hover]/handle:opacity-100",
+                      "group-has-[>section>div:first-child:hover]/handle:opacity-100"
+                    )}
+                  >
                     <DragDotsIcon className="size-4" />
                   </div>
                   {SECTION_RENDERERS[row.key]?.()}
@@ -122,6 +157,7 @@ function DefaultSections() {
       <InboxSection />
       <OnMyPlateSection />
       <FavoritesSection />
+      <ActivityHeatmapSection />
       <AgentCostSection />
     </>
   );

@@ -177,7 +177,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <BaseToast.Title className="text-h6-medium text-primary">
+          <BaseToast.Title className="text-body-sm-medium text-primary">
             {toastData.type === TOAST_TYPE.LOADING ? (toastData.title ?? "Loading...") : toastData.title}
           </BaseToast.Title>
           {toastData.type !== TOAST_TYPE.LOADING && toastData.message && (
@@ -234,7 +234,7 @@ export function ToastStatic({ type, title, message, actionItems, theme = "light"
             )}
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <div className="text-h6-medium text-primary">
+            <div className="text-body-sm-medium text-primary">
               {type === TOAST_TYPE.LOADING ? (title ?? "Loading...") : title}
             </div>
             {type !== TOAST_TYPE.LOADING && message && (

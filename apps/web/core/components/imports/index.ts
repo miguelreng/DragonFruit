@@ -4,7 +4,5 @@
  * See the LICENSE file for details.
  */
 
-export * from "./base-paid-plan-card";
-export * from "./free-plan";
-export * from "./talk-to-sales";
-export * from "./plan-upgrade";
+export { ConnectInfoModal } from "./connect-info-modal";
+export { CsvImportModal } from "./csv-import-modal";

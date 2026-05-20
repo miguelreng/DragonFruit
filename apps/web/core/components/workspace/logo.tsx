@@ -7,9 +7,9 @@
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { cn, getFileURL } from "@plane/utils";
+import { cn } from "@plane/utils";
 // components
-import { useDefaultWorkspaceLogo } from "./default-logos";
+import { resolveWorkspaceLogoSrc } from "./default-logos";
 
 type Props = {
   logo: string | null | undefined;
@@ -19,14 +19,9 @@ type Props = {
 };
 
 export const WorkspaceLogo = observer(function WorkspaceLogo(props: Props) {
-  // translation
   const { t } = useTranslation();
-  // default logo (used when no custom logo has been uploaded)
   const seed = props.workspaceId ?? props.name ?? "";
-  const defaultLogo = useDefaultWorkspaceLogo(seed);
-
-  const hasCustomLogo = !!props.logo && props.logo !== "";
-  const src = hasCustomLogo ? getFileURL(props.logo as string) : defaultLogo;
+  const src = resolveWorkspaceLogoSrc(props.logo, seed);
 
   return (
     <div className={cn("relative grid h-6 w-6 flex-shrink-0 place-items-center", props.classNames)}>

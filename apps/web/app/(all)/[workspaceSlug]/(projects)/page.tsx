@@ -7,31 +7,25 @@
 import { observer } from "mobx-react";
 // components
 import { useTranslation } from "@plane/i18n";
-import { AppHeader } from "@/components/core/app-header";
-import { ContentWrapper } from "@/components/core/content-wrapper";
 import { PageHead } from "@/components/core/page-title";
 import { WorkspaceHomeView } from "@/components/home";
 // hooks
+import { useUser } from "@/hooks/store/user";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // local components
-import { WorkspaceDashboardHeader } from "./header";
+import { HomeHeroHeader } from "./home-hero-header";
 
 function WorkspaceDashboardPage() {
   const { currentWorkspace } = useWorkspace();
+  const { data: currentUser } = useUser();
   const { t } = useTranslation();
   // derived values
   const pageTitle = currentWorkspace?.name ? `${currentWorkspace?.name} - ${t("home.title")}` : undefined;
 
   return (
     <>
-      <AppHeader
-        header={<WorkspaceDashboardHeader />}
-        rowClassName="!h-auto !items-stretch !gap-0 !border-b-0 !bg-transparent !px-0"
-      />
-      <ContentWrapper>
-        <PageHead title={pageTitle} />
-        <WorkspaceHomeView />
-      </ContentWrapper>
+      <PageHead title={pageTitle} />
+      <WorkspaceHomeView header={currentUser ? <HomeHeroHeader user={currentUser} /> : null} />
     </>
   );
 }

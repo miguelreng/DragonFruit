@@ -8,6 +8,13 @@ export type MemberDropdownProps = TDropdownProps & {
   tooltipContent?: string;
   onClose?: () => void;
   showUserDetails?: boolean;
+  /**
+   * When true, enabled workspace agents are listed alongside human members
+   * — both in the trigger avatar group and in the options dropdown. Only
+   * enable for issue-assignee pickers; module/project leads, draft issue
+   * properties, and other human-only fields should leave this off.
+   */
+  includeAgents?: boolean;
 } & (
     | {
         multiple: false;

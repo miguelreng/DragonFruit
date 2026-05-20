@@ -20,8 +20,7 @@
       "open_project_menu": "Mở menu dự án",
       "close_project_menu": "Đóng menu dự án",
       "collapse_sidebar": "Thu gọn thanh bên",
-      "expand_sidebar": "Mở rộng thanh bên",
-      "edition_badge": "Mở modal gói trả phí"
+      "expand_sidebar": "Mở rộng thanh bên"
     },
     "auth_forms": {
       "clear_email": "Xóa email",

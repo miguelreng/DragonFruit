@@ -125,6 +125,7 @@ const RealEmbedCard = observer(function RealEmbedCard(props: {
         />
         <MemberDropdown
           multiple
+          includeAgents
           value={issue.assignee_ids ?? []}
           projectId={projectId}
           onChange={(ids) => patch({ assignee_ids: ids })}

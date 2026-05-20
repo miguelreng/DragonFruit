@@ -648,7 +648,7 @@ class WorkspacePagesListEndpoint(BaseAPIView):
     is either public or owned by the user. Annotates `project_ids` so the
     frontend can filter by project without an extra round trip.
 
-    Accepts `?page_type=<doc|diagram|whiteboard>` to scope to a single type.
+    Accepts `?page_type=<doc|whiteboard>` to scope to a single type.
     """
 
     ALLOWED_PAGE_TYPES = {choice[0] for choice in Page.PAGE_TYPE_CHOICES}

@@ -41,7 +41,7 @@ type Props = {
   headerLabel: string;
   /** Breadcrumb icon shown in the page header. */
   headerIcon: ReactNode;
-  /** Override the empty-state copy for non-doc surfaces (Diagrams, Whiteboard). */
+  /** Override the empty-state copy for non-doc surfaces (Whiteboards). */
   labels?: {
     emptyTitle?: string;
     emptyDescription?: string;

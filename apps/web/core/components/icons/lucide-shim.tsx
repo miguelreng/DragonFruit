@@ -65,7 +65,6 @@ import {
   ViewOffIcon,
   File02Icon,
   FilterIcon,
-  Flowchart01Icon,
   Folder02Icon,
   FolderAddIcon,
   FolderTreeIcon as FolderTreeIconSvg,
@@ -554,5 +553,3 @@ export const UploadCloud = huge(CloudUploadIcon);
 // ── domain icons matched to sidebar entries ───────────────────────────
 export const PaintBoard = huge(PaintBoardIcon);
 export const Whiteboard = PaintBoard;
-export const Flowchart = huge(Flowchart01Icon);
-export const Diagram = Flowchart;
