@@ -219,3 +219,119 @@ def _dispatch_agent_on_assignee_added(sender, instance, created, **kwargs):
             agent.id,
             instance.issue_id,
         )
+
+
+# ---------------------------------------------------------------------------
+# Signal: dispatch an agent when its bot user is @-mentioned.
+# ---------------------------------------------------------------------------
+#
+# Two surfaces produce mentions today:
+#   1. **Issue description** — Plane persists each mention as an
+#      `IssueMention` row via `update_mentions_for_issue()` in
+#      notification_task. A `post_save` signal on that row catches every
+#      description mention regardless of which view wrote it.
+#   2. **Issue comments** — Plane does NOT persist comment mentions as
+#      rows; they're extracted inline via `extract_comment_mentions()`
+#      for subscriber notifications. To trigger an agent on a comment
+#      mention we parse the comment HTML in a `post_save` on
+#      `IssueComment`.
+#
+# Pages / docs aren't covered yet — they use a different prosemirror
+# document model with its own mention nodes. Slice 3.
+#
+# Loop guard: when an agent posts a comment that itself @-mentions
+# another agent, we'd cascade. The bot-user filter cuts most of it
+# (agents don't typically @-mention other bots), but the explicit guard
+# below also skips dispatches when the comment's actor is itself a bot.
+
+
+@receiver(post_save, sender="db.IssueMention")
+def _dispatch_agent_on_issue_mention(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    mentioned_user = getattr(instance, "mention", None)
+    if not getattr(mentioned_user, "is_bot", False):
+        return
+
+    agent = (
+        Agent.objects.select_related("bot_user")
+        .filter(
+            bot_user_id=instance.mention_id,
+            workspace_id=instance.workspace_id,
+            is_enabled=True,
+            deleted_at__isnull=True,
+        )
+        .first()
+    )
+    if not agent:
+        return
+
+    if not (agent.triggers or {}).get("mentioned", True):
+        return
+
+    from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+
+    try:
+        dispatch_agent_event.delay(str(agent.id), str(instance.issue_id), "mentioned")
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "agent dispatch enqueue failed for agent=%s issue=%s (description mention)",
+            agent.id,
+            instance.issue_id,
+        )
+
+
+@receiver(post_save, sender="db.IssueComment")
+def _dispatch_agent_on_comment_mention(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    # Loop guard: skip when an agent's own bot user authored the comment.
+    # Avoids an agent triggering another agent (or itself) via comment text.
+    actor = getattr(instance, "actor", None)
+    if actor is not None and getattr(actor, "is_bot", False):
+        return
+
+    # Reuse the existing comment-mention parser to avoid duplicating the
+    # HTML/mention-component conventions. Import lazily — this module
+    # loads at app startup and notification_task pulls in BS4 + the full
+    # Issue model graph.
+    try:
+        from plane.bgtasks.notification_task import extract_comment_mentions
+    except Exception:  # noqa: BLE001
+        logger.exception("could not import extract_comment_mentions; skipping agent mention dispatch")
+        return
+
+    mention_ids = extract_comment_mentions(instance.comment_html or "")
+    if not mention_ids:
+        return
+
+    # Find any agents in this workspace whose bot user matches one of the
+    # mentioned IDs. A single comment can @ multiple agents; we dispatch
+    # each. Inner-join via bot_user_id, scoped to the comment's workspace
+    # so a mention can't reach an agent in a different workspace.
+    matching_agents = list(
+        Agent.objects.select_related("bot_user").filter(
+            bot_user_id__in=mention_ids,
+            workspace_id=instance.workspace_id,
+            is_enabled=True,
+            deleted_at__isnull=True,
+        )
+    )
+    if not matching_agents:
+        return
+
+    from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+
+    for agent in matching_agents:
+        if not (agent.triggers or {}).get("mentioned", True):
+            continue
+        try:
+            dispatch_agent_event.delay(str(agent.id), str(instance.issue_id), "mentioned")
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "agent dispatch enqueue failed for agent=%s issue=%s (comment mention)",
+                agent.id,
+                instance.issue_id,
+            )
