@@ -182,6 +182,12 @@ from .agent_webhook.base import (
     WorkspaceAgentWebhookDispatchEndpoint,
 )
 
+from .agent.base import (
+    AgentEndpoint,
+    AgentDetailEndpoint,
+    AgentRunListEndpoint,
+)
+
 from .calendar.base import (
     CalendarAccountsListEndpoint,
     CalendarAccountDetailEndpoint,

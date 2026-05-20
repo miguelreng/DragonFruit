@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 from .base import BaseSerializer
+from .agent import AgentSerializer, AgentRunSerializer
 from .user import (
     UserSerializer,
     UserLiteSerializer,
@@ -102,6 +103,7 @@ from .page import (
     PageBinaryUpdateSerializer,
     PageVersionDetailSerializer,
     PageBlockCommentSerializer,
+    WorkspacePageListSerializer,
 )
 
 from .estimate import (
