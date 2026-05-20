@@ -186,6 +186,7 @@ from .agent.base import (
     AgentEndpoint,
     AgentDetailEndpoint,
     AgentRunListEndpoint,
+    AgentStopEndpoint,
 )
 
 from .calendar.base import (
