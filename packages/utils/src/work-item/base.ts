@@ -304,7 +304,12 @@ export const getComputedDisplayProperties = (
   attachment_count: displayProperties?.attachment_count ?? true,
   link: displayProperties?.link ?? true,
   estimate: displayProperties?.estimate ?? true,
-  key: displayProperties?.key ?? true,
+  // The project-prefixed identifier (e.g. PERSONAL-8) reads as line noise
+  // in the row when the task already has a name — the identifier mostly
+  // matters for commit references, deep links, and @-mentions, not for
+  // scanning a task list. Default off; users can toggle on per-layout via
+  // Display filters.
+  key: displayProperties?.key ?? false,
   created_on: displayProperties?.created_on ?? true,
   updated_on: displayProperties?.updated_on ?? true,
   modules: displayProperties?.modules ?? true,
