@@ -37,8 +37,14 @@ uvicorn==0.29.0
 # sockets
 channels==4.1.0
 # ai
+# LiteLLM is the BYOK seam — every LLM call routes through it so providers
+# are interchangeable per-agent (see feedback_ai_byok.md). openai and
+# anthropic ship as transitive deps via litellm, but pinning them
+# explicitly here keeps the existing /agent webhook + slash command paths
+# stable until they're migrated onto the abstraction.
 openai==1.63.2
 anthropic==0.39.0
+litellm==1.55.7
 # slack
 slack-sdk==3.27.1
 # apm
