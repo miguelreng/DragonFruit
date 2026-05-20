@@ -209,7 +209,24 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
       >
         <div className="flex w-full gap-2 truncate">
           <div className="flex flex-grow items-center gap-0.5 truncate">
-            <div className="flex items-center gap-1" style={isSubIssue ? { marginLeft } : {}}>
+            <div
+              className={cn("flex items-center gap-1", { relative: isSubIssue })}
+              style={isSubIssue ? { marginLeft } : {}}
+            >
+              {/* Tree-branch connector for subtask rows: an L-shape that drops
+                  from the row's top-left corner down to the row's vertical
+                  midpoint, then turns right into the content. Drawn with two
+                  borders on a single absolute element (left = stem, bottom =
+                  hook), rounded at the corner. The 12px width matches the
+                  per-level indent step in block-root.tsx so deeper nesting
+                  stacks cleanly. Decorative only — aria-hidden. */}
+              {isSubIssue && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute rounded-bl-sm border-b border-l border-strong"
+                  style={{ left: "-12px", top: 0, bottom: "50%", width: "12px" }}
+                />
+              )}
               {/* select checkbox */}
               {projectId && canSelectIssues && !isEpic && (
                 <Tooltip
@@ -320,13 +337,25 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                 activeLayout="List"
                 isEpic={isEpic}
               />
+              {/* Wrapper exists only to absorb click events that would
+                  otherwise bubble to the row-level <ControlLink> and trigger
+                  navigation. Marked role="presentation" because the wrapper
+                  itself is non-interactive — its children (quickActions
+                  buttons) carry the real semantics. */}
               <div
+                role="presentation"
                 className={cn("hidden", {
                   "md:flex": isSidebarCollapsed,
                   "lg:flex": !isSidebarCollapsed,
                 })}
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onKeyDown={(e) => {
+                  // Mirror the click absorber for keyboard activation. If the
+                  // event reached this wrapper it's already past the inner
+                  // buttons that consumed it semantically.
                   e.stopPropagation();
                 }}
               >
