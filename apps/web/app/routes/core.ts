@@ -131,15 +131,6 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/stickies", "./(all)/[workspaceSlug]/(projects)/stickies/page.tsx"),
         ]),
 
-        // Workspace Views
-        layout("./(all)/[workspaceSlug]/(projects)/workspace-views/layout.tsx", [
-          route(":workspaceSlug/workspace-views", "./(all)/[workspaceSlug]/(projects)/workspace-views/page.tsx"),
-          route(
-            ":workspaceSlug/workspace-views/:globalViewId",
-            "./(all)/[workspaceSlug]/(projects)/workspace-views/[globalViewId]/page.tsx"
-          ),
-        ]),
-
         // Archived Projects
         layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/archives/layout.tsx", [
           route(
@@ -307,6 +298,10 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(
             ":workspaceSlug/settings/webhooks/:webhookId",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/webhooks/[webhookId]/page.tsx"
+          ),
+          route(
+            ":workspaceSlug/settings/agents",
+            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/agents/page.tsx"
           ),
         ]),
 

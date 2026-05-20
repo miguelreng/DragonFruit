@@ -15,7 +15,7 @@ import { EIssuesStoreType } from "@plane/types";
 import { ProfileIssuesKanBanLayout } from "@/components/issues/issue-layouts/kanban/roots/profile-issues-root";
 import { ProfileIssuesListLayout } from "@/components/issues/issue-layouts/list/roots/profile-issues-root";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
-import { WorkspaceLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/workspace-level";
+import { WorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/base";
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
@@ -52,13 +52,19 @@ export const ProfileIssuesPage = observer(function ProfileIssuesPage(props: Prop
 
   return (
     <IssuesStoreContext.Provider value={EIssuesStoreType.PROFILE}>
-      <WorkspaceLevelWorkItemFiltersHOC
-        entityId={userId}
+      {/*
+        NOTE: switched from WorkspaceLevelWorkItemFiltersHOC to the base
+        WorkItemFiltersHOC when workspace-views was removed. The save-view
+        controls that the workspace-level wrapper added don't apply to
+        profile (Your Work) — only the filter UI itself.
+      */}
+      <WorkItemFiltersHOC
+        entityId={userId?.toString() ?? ""}
         entityType={EIssuesStoreType.PROFILE}
         filtersToShowByLayout={ISSUE_DISPLAY_FILTERS_BY_PAGE.profile_issues.filters}
         initialWorkItemFilters={issueFilters}
         updateFilters={updateFilterExpression.bind(updateFilterExpression, workspaceSlug, userId)}
-        workspaceSlug={workspaceSlug}
+        workspaceSlug={workspaceSlug?.toString() ?? ""}
       >
         {({ filter: profileWorkItemsFilter }) => (
           <>
@@ -76,7 +82,7 @@ export const ProfileIssuesPage = observer(function ProfileIssuesPage(props: Prop
             <IssuePeekOverview />
           </>
         )}
-      </WorkspaceLevelWorkItemFiltersHOC>
+      </WorkItemFiltersHOC>
     </IssuesStoreContext.Provider>
   );
 });

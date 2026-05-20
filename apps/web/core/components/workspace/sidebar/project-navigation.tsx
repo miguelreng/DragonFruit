@@ -43,7 +43,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
   const { workItem: workItemIdentifierFromRoute } = useParams();
   // store hooks
   const { t } = useTranslation();
-  const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar, toggleSidebar } = useAppTheme();
+  const { toggleSidebar } = useAppTheme();
   const { getPartialProjectById } = useProject();
   const { allowPermissions } = useUserPermissions();
   const {
@@ -61,10 +61,6 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
   const handleProjectClick = () => {
     if (window.innerWidth < 768) {
       toggleSidebar();
-    }
-    // close the extended sidebar if it is open
-    if (isExtendedProjectSidebarOpened) {
-      toggleExtendedProjectSidebar(false);
     }
   };
 

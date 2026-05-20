@@ -6,7 +6,6 @@
 
 import React, { useMemo } from "react";
 import { observer } from "mobx-react";
-import { Ellipsis } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import {
@@ -18,17 +17,26 @@ import {
 import { useTranslation } from "@plane/i18n";
 import { ChevronRightIcon } from "@plane/propel/icons";
 import { cn } from "@plane/utils";
-// components
-import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // store hooks
-import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useLocalStorage from "@/hooks/use-local-storage";
-import {
-  usePersonalNavigationPreferences,
-  useWorkspaceNavigationPreferences,
-} from "@/hooks/use-navigation-preferences";
 // plane-web imports
 import { SidebarItem } from "@/plane-web/components/workspace/sidebar/sidebar-item";
+
+// The "Customize navigation" modal was removed, so per-user personal/workspace
+// item filtering is gone. The sidebar now always shows the opinionated set:
+// static items at the top + the docs/diagrams/whiteboards/calendar/agents
+// strip + drafts/your_work/stickies as personal items + the workspace
+// disclosure with projects/analytics/archives.
+const ALWAYS_ON_TOP_KEYS: Array<keyof typeof WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS> = [
+  "your-work",
+  "drafts",
+  "stickies",
+  "docs",
+  "diagrams",
+  "whiteboards",
+  "calendar",
+  "agents",
+];
 
 export const SidebarMenuItems = observer(function SidebarMenuItems() {
   // routers
@@ -36,12 +44,6 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
     "is_workspace_menu_open",
     true
   );
-
-  // store hooks
-  const { isExtendedSidebarOpened, toggleExtendedSidebar } = useAppTheme();
-  // hooks
-  const { preferences: personalPreferences } = usePersonalNavigationPreferences();
-  const { preferences: workspacePreferences } = useWorkspaceNavigationPreferences();
   // translation
   const { t } = useTranslation();
 
@@ -49,71 +51,19 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
     toggleWorkspaceMenu(isOpen);
   };
 
-  // Filter static navigation items based on personal preferences
-  const filteredStaticNavigationItems = useMemo(() => {
+  const topLevelItems = useMemo(() => {
     const items = [...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS_LINKS];
-    const personalItems: Array<(typeof items)[0] & { sort_order: number }> = [];
-
-    // Add personal items based on preferences with their sort_order
-    const stickiesItem = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["stickies"];
-    if (personalPreferences.items.stickies?.enabled && stickiesItem) {
-      personalItems.push({
-        ...stickiesItem,
-        sort_order: personalPreferences.items.stickies.sort_order,
-      });
-    }
-    if (personalPreferences.items.your_work?.enabled && WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["your-work"]) {
-      personalItems.push({
-        ...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["your-work"],
-        sort_order: personalPreferences.items.your_work.sort_order,
-      });
-    }
-    if (personalPreferences.items.drafts?.enabled && WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["drafts"]) {
-      personalItems.push({
-        ...WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["drafts"],
-        sort_order: personalPreferences.items.drafts.sort_order,
-      });
-    }
-    // Docs / Diagrams / Whiteboards / Calendar: always shown at top level, after drafts.
-    const alwaysOn: Array<keyof typeof WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS> = [
-      "docs",
-      "diagrams",
-      "whiteboards",
-      "calendar",
-    ];
-    alwaysOn.forEach((key, index) => {
+    ALWAYS_ON_TOP_KEYS.forEach((key) => {
       const item = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS[key];
-      if (item) {
-        personalItems.push({
-          ...item,
-          sort_order: Number.MAX_SAFE_INTEGER - (alwaysOn.length - index),
-        });
-      }
+      if (item) items.push(item);
     });
-
-    // Sort personal items by sort_order
-    personalItems.sort((a, b) => a.sort_order - b.sort_order);
-
-    // Merge static items with sorted personal items
-    return [...items, ...personalItems];
-  }, [personalPreferences]);
-
-  const sortedNavigationItems = useMemo(
-    () =>
-      WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.map((item) => {
-        const preference = workspacePreferences.items[item.key];
-        return {
-          ...item,
-          sort_order: preference ? preference.sort_order : 0,
-        };
-      }).sort((a, b) => a.sort_order - b.sort_order),
-    [workspacePreferences]
-  );
+    return items;
+  }, []);
 
   return (
     <>
       <div className="flex flex-col gap-0.5">
-        {filteredStaticNavigationItems.map((item, _index) => (
+        {topLevelItems.map((item, _index) => (
           <SidebarItem key={`static_${_index}`} item={item} />
         ))}
       </div>
@@ -167,25 +117,9 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
                 {WORKSPACE_SIDEBAR_STATIC_PINNED_NAVIGATION_ITEMS_LINKS.map((item, _index) => (
                   <SidebarItem key={`static_${_index}`} item={item} />
                 ))}
-                {sortedNavigationItems.map((item, _index) => (
+                {WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.map((item, _index) => (
                   <SidebarItem key={`dynamic_${_index}`} item={item} />
                 ))}
-                <SidebarNavItem>
-                  <button
-                    type="button"
-                    onClick={() => toggleExtendedSidebar()}
-                    className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
-                    id="extended-sidebar-toggle"
-                    aria-label={t(
-                      isExtendedSidebarOpened
-                        ? "aria_labels.app_sidebar.close_extended_sidebar"
-                        : "aria_labels.app_sidebar.open_extended_sidebar"
-                    )}
-                  >
-                    <Ellipsis className="size-4 flex-shrink-0" />
-                    <span>{isExtendedSidebarOpened ? "Hide" : "More"}</span>
-                  </button>
-                </SidebarNavItem>
               </>
             </Disclosure.Panel>
           )}

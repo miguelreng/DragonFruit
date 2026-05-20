@@ -10,7 +10,6 @@ import { AgentDispatchListener } from "@/components/agent/agent-dispatch-listene
 import { ProjectsAppPowerKProvider } from "@/components/power-k/projects-app-provider";
 // plane web components
 import { ProjectAppSidebar } from "./_sidebar";
-import { ExtendedProjectSidebar } from "./extended-project-sidebar";
 
 function WorkspaceLayout() {
   return (
@@ -21,7 +20,6 @@ function WorkspaceLayout() {
         <div id="full-screen-portal" className="absolute inset-0 w-full" />
         <div className="relative flex size-full overflow-hidden">
           <ProjectAppSidebar />
-          <ExtendedProjectSidebar />
           <main className="relative flex h-full w-full flex-col overflow-hidden bg-surface-1">
             <Outlet />
           </main>

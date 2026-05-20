@@ -5,7 +5,7 @@
  */
 
 // types
-import type { ICycle, IModule, IProjectView, IWorkspaceView } from "@plane/types";
+import type { ICycle, IModule, IProjectView } from "@plane/types";
 import type { TContextMenuItem } from "@plane/ui";
 // hooks
 import { useQuickActionsFactory } from "@/plane-web/components/common/quick-actions-factory";
@@ -44,7 +44,7 @@ interface UseViewMenuItemsProps {
   isAdmin: boolean;
   workspaceSlug: string;
   projectId?: string;
-  view: IProjectView | IWorkspaceView;
+  view: IProjectView;
   handleEdit: () => void;
   handleDelete: () => void;
   handleCopyLink: () => void;

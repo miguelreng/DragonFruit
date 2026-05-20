@@ -59,7 +59,6 @@ export interface IIssueRootStore {
   cycleId: string | undefined;
   moduleId: string | undefined;
   viewId: string | undefined;
-  globalViewId: string | undefined; // all issues view id
   userId: string | undefined; // user profile detail Id
   stateMap: Record<string, IState> | undefined;
   stateDetails: IState[] | undefined;
@@ -127,7 +126,6 @@ export class IssueRootStore implements IIssueRootStore {
   cycleId: string | undefined = undefined;
   moduleId: string | undefined = undefined;
   viewId: string | undefined = undefined;
-  globalViewId: string | undefined = undefined;
   userId: string | undefined = undefined;
   stateMap: Record<string, IState> | undefined = undefined;
   stateDetails: IState[] | undefined = undefined;
@@ -195,7 +193,6 @@ export class IssueRootStore implements IIssueRootStore {
       moduleId: observable.ref,
       viewId: observable.ref,
       userId: observable.ref,
-      globalViewId: observable.ref,
       stateMap: observable,
       stateDetails: observable,
       workspaceStateDetails: observable,
@@ -218,7 +215,6 @@ export class IssueRootStore implements IIssueRootStore {
       if (this.cycleId !== rootStore.router.cycleId) this.cycleId = rootStore.router.cycleId;
       if (this.moduleId !== rootStore.router.moduleId) this.moduleId = rootStore.router.moduleId;
       if (this.viewId !== rootStore.router.viewId) this.viewId = rootStore.router.viewId;
-      if (this.globalViewId !== rootStore.router.globalViewId) this.globalViewId = rootStore.router.globalViewId;
       if (this.userId !== rootStore.router.userId) this.userId = rootStore.router.userId;
       if (!isEmpty(rootStore?.state?.stateMap)) this.stateMap = rootStore?.state?.stateMap;
       if (!isEmpty(rootStore?.state?.projectStates)) this.stateDetails = rootStore?.state?.projectStates;

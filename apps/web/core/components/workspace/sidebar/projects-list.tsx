@@ -9,7 +9,6 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
-import { Ellipsis } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
@@ -22,13 +21,10 @@ import { Loader } from "@plane/ui";
 import { copyUrlToClipboard, cn, orderJoinedProjects } from "@plane/utils";
 // components
 import { CreateProjectModal } from "@/components/project/create-project-modal";
-import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 // hooks
-import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
-import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
 // plane web imports
 import type { TProject } from "@/plane-web/types";
 // local imports
@@ -45,8 +41,6 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
   const { t } = useTranslation();
   const { toggleCreateProjectModal } = useCommandPalette();
   const { allowPermissions } = useUserPermissions();
-  const { preferences: projectPreferences } = useProjectNavigationPreferences();
-  const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar } = useAppTheme();
 
   const { loader, getPartialProjectById, joinedProjectIds: joinedProjects, updateProjectView } = useProject();
   // router params
@@ -59,14 +53,10 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
     EUserPermissionsLevel.WORKSPACE
   );
 
-  // Compute limited projects for main sidebar
-  const displayedProjects = projectPreferences.showLimitedProjects
-    ? joinedProjects.slice(0, projectPreferences.limitedProjectsCount)
-    : joinedProjects;
-
-  // Check if there are more projects to show
-  const hasMoreProjects =
-    projectPreferences.showLimitedProjects && joinedProjects.length > projectPreferences.limitedProjectsCount;
+  // The customize-navigation feature used to support truncating the project
+  // list to a user-configurable count; with that gone, the sidebar always
+  // shows the full set of joined projects.
+  const displayedProjects = joinedProjects;
 
   const handleCopyText = (projectId: string) => {
     copyUrlToClipboard(`${workspaceSlug}/projects/${projectId}/issues`).then(() => {
@@ -249,24 +239,12 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                         handleOnProjectDrop={handleOnProjectDrop}
                       />
                     ))}
-                    {hasMoreProjects && (
-                      <SidebarNavItem>
-                        <button
-                          type="button"
-                          onClick={() => toggleExtendedProjectSidebar()}
-                          className="flex flex-grow items-center gap-1.5 text-13 font-medium text-tertiary"
-                          id="extended-project-sidebar-toggle"
-                          aria-label={t(
-                            isExtendedProjectSidebarOpened
-                              ? "aria_labels.app_sidebar.close_extended_sidebar"
-                              : "aria_labels.app_sidebar.open_extended_sidebar"
-                          )}
-                        >
-                          <Ellipsis className="size-4 flex-shrink-0" />
-                          <span>{isExtendedProjectSidebarOpened ? "Hide" : "More"}</span>
-                        </button>
-                      </SidebarNavItem>
-                    )}
+                    {/*
+                      The "Show more projects" extended-sidebar button was
+                      removed alongside the customize-navigation feature. With
+                      the per-user project-limit setting gone, the list simply
+                      shows every joined project.
+                    */}
                   </>
                 </Disclosure.Panel>
               )}

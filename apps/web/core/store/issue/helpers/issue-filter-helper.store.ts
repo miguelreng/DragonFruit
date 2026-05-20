@@ -22,7 +22,6 @@ import type {
   IssuePaginationOptions,
   TIssueKanbanFilters,
   TIssueParams,
-  TStaticViewTypes,
   TWorkItemFilterExpression,
 } from "@plane/types";
 import { EIssueLayoutTypes } from "@plane/types";
@@ -56,9 +55,13 @@ export interface IIssueFilterHelperStore {
     acceptableParamsByLayout: TIssueParams[]
   ): Partial<Record<TIssueParams, string | boolean>>;
   computedFilters(filters: IIssueFilterOptions): IIssueFilterOptions;
+  // Was typed as TStaticViewTypes ("all-issues" | "assigned" | "created" |
+  // "subscribed") for the workspace-views feature. After that feature was
+  // removed the only remaining callers pass profile-view URL segments, which
+  // are open-ended strings. Loosened to string to drop the dead enum import.
   getFilterConditionBasedOnViews: (
     currentUserId: string | undefined,
-    type: TStaticViewTypes
+    type: string
   ) => Partial<Record<TIssueParams, string>> | undefined;
   computedDisplayFilters(
     displayFilters: IIssueDisplayFilterOptions,

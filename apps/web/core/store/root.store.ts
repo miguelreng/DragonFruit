@@ -33,8 +33,6 @@ import type { IProjectEstimateStore } from "./estimates/project-estimate.store";
 import { ProjectEstimateStore } from "./estimates/project-estimate.store";
 import type { IFavoriteStore } from "./favorite.store";
 import { FavoriteStore } from "./favorite.store";
-import type { IGlobalViewStore } from "./global-view.store";
-import { GlobalViewStore } from "./global-view.store";
 import type { IProjectInboxStore } from "./inbox/project-inbox.store";
 import { ProjectInboxStore } from "./inbox/project-inbox.store";
 import type { IInstanceStore } from "./instance.store";
@@ -80,7 +78,6 @@ export class CoreRootStore {
   module: IModuleStore;
   moduleFilter: IModuleFilterStore;
   projectView: IProjectViewStore;
-  globalView: IGlobalViewStore;
   issue: IIssueRootStore;
   state: IStateStore;
   label: ILabelStore;
@@ -116,7 +113,6 @@ export class CoreRootStore {
     this.module = new ModulesStore(this);
     this.moduleFilter = new ModuleFilterStore(this);
     this.projectView = new ProjectViewStore(this);
-    this.globalView = new GlobalViewStore(this);
     this.issue = new IssueRootStore(this as unknown as RootStore);
     this.state = new StateStore(this as unknown as RootStore);
     this.label = new LabelStore(this);
@@ -150,7 +146,6 @@ export class CoreRootStore {
     this.module = new ModulesStore(this);
     this.moduleFilter = new ModuleFilterStore(this);
     this.projectView = new ProjectViewStore(this);
-    this.globalView = new GlobalViewStore(this);
     this.issue = new IssueRootStore(this as unknown as RootStore);
     this.state = new StateStore(this as unknown as RootStore);
     this.label = new LabelStore(this);

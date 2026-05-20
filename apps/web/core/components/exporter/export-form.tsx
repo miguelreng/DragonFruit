@@ -19,11 +19,8 @@ import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // import { Tooltip } from "@plane/propel/tooltip";
-// import { EIssuesStoreType } from "@plane/types";
 import type { TWorkItemFilterExpression } from "@plane/types";
 import { CustomSearchSelect, CustomSelect } from "@plane/ui";
-// import { WorkspaceLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/workspace-level";
-// import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 import { useProject } from "@/hooks/store/use-project";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { ProjectExportService } from "@/services/project/project-export.service";
@@ -213,49 +210,6 @@ export const ExportForm = observer(function ExportForm(props: Props) {
           </Button>
         </div>
       </div>
-      {/* Rich Filters */}
-      {/* <div className="w-full">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="text-13 font-medium text-secondary leading-tight">{t("common.filters")}</div>
-          <Tooltip
-            tooltipContent={
-              <div className="max-w-[238px] flex gap-2">
-                <div className=" rounded-sm bg-layer-1 flex items-center justify-center p-1 h-5 aspect-square">
-                  <Info className="h-3 w-3" />
-                </div>
-                {t("workspace_settings.settings.exports.filters_info")}
-              </div>
-            }
-            position="top"
-          >
-            <button type="button" className="flex items-center justify-center">
-              <Info className="h-3 w-3 text-tertiary" />
-            </button>
-          </Tooltip>
-        </div>
-        <Controller
-          control={control}
-          name="filters"
-          render={({ field: { onChange } }) => (
-            <WorkspaceLevelWorkItemFiltersHOC
-              entityId={workspaceSlug}
-              entityType={EIssuesStoreType.GLOBAL}
-              filtersToShowByLayout={ISSUE_DISPLAY_FILTERS_BY_PAGE.my_issues.filters}
-              initialWorkItemFilters={initialWorkItemFilters}
-              isTemporary
-              updateFilters={(updatedFilters) => onChange(updatedFilters)}
-              showOnMount
-              workspaceSlug={workspaceSlug}
-            >
-              {({ filter: workspaceExportWorkItemsFilter }) =>
-                workspaceExportWorkItemsFilter && (
-                  <WorkItemFiltersRow filter={workspaceExportWorkItemsFilter} variant="modal" />
-                )
-              }
-            </WorkspaceLevelWorkItemFiltersHOC>
-          )}
-        />
-      </div> */}
     </form>
   );
 });

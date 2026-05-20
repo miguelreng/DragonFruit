@@ -14,9 +14,7 @@ import type {
   IWorkspaceSearchResults,
   IProductUpdateResponse,
   IWorkspaceBulkInviteFormData,
-  IWorkspaceViewProps,
   IUserProjectsRole,
-  IWorkspaceView,
   TIssuesResponse,
   TLink,
   TSearchResponse,
@@ -125,14 +123,6 @@ export class WorkspaceService extends APIService {
       });
   }
 
-  async updateWorkspaceView(workspaceSlug: string, data: { view_props: IWorkspaceViewProps }): Promise<any> {
-    return this.post(`/api/workspaces/${workspaceSlug}/workspace-views/`, data)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-
   async fetchWorkspaceMembers(workspaceSlug: string): Promise<IWorkspaceMember[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/members/`)
       .then((response) => response?.data)
@@ -223,63 +213,6 @@ export class WorkspaceService extends APIService {
   }
   async getProductUpdates(): Promise<IProductUpdateResponse[]> {
     return this.get("/api/release-notes/")
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-
-  async createView(workspaceSlug: string, data: Partial<IWorkspaceView>): Promise<IWorkspaceView> {
-    return this.post(`/api/workspaces/${workspaceSlug}/views/`, data)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-
-  async updateView(workspaceSlug: string, viewId: string, data: Partial<IWorkspaceView>): Promise<IWorkspaceView> {
-    return this.patch(`/api/workspaces/${workspaceSlug}/views/${viewId}/`, data)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-
-  async deleteView(workspaceSlug: string, viewId: string): Promise<any> {
-    return this.delete(`/api/workspaces/${workspaceSlug}/views/${viewId}/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-
-  async getAllViews(workspaceSlug: string): Promise<IWorkspaceView[]> {
-    return this.get(`/api/workspaces/${workspaceSlug}/views/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-
-  async getViewDetails(workspaceSlug: string, viewId: string): Promise<IWorkspaceView> {
-    return this.get(`/api/workspaces/${workspaceSlug}/views/${viewId}/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-
-  async getViewIssues(workspaceSlug: string, params: any, config = {}): Promise<TIssuesResponse> {
-    const path = params.expand?.includes("issue_relation")
-      ? `/api/workspaces/${workspaceSlug}/issues-detail/`
-      : `/api/workspaces/${workspaceSlug}/issues/`;
-    return this.get(
-      path,
-      {
-        params,
-      },
-      config
-    )
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

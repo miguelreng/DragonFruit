@@ -823,7 +823,6 @@
     "plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start": "Plane 未能啟動。這可能是因為一個或多個 Plane 服務啟動失敗。",
     "choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure": "從 setup.sh 和 Docker 日誌中選擇 View Logs 來確認。"
   },
-  "customize_navigation": "自訂導覽",
   "personal": "個人",
   "accordion_navigation_control": "手風琴側邊欄導覽",
   "horizontal_navigation_bar": "分頁式導覽",

@@ -56,20 +56,11 @@ type Props = {
   disableDrag?: boolean;
   disableDrop?: boolean;
   isLastChild: boolean;
-  renderInExtendedSidebar?: boolean;
 };
 
 export const SidebarProjectsListItem = observer(function SidebarProjectsListItem(props: Props) {
-  const {
-    projectId,
-    handleCopyText,
-    disableDrag,
-    disableDrop,
-    isLastChild,
-    handleOnProjectDrop,
-    projectListType,
-    renderInExtendedSidebar = false,
-  } = props;
+  const { projectId, handleCopyText, disableDrag, disableDrop, isLastChild, handleOnProjectDrop, projectListType } =
+    props;
   // store hooks
   const { t } = useTranslation();
   const { getPartialProjectById } = useProject();
@@ -77,7 +68,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const { allowPermissions } = useUserPermissions();
   const { getIsProjectListOpen, toggleProjectListOpen } = useCommandPalette();
   const { preferences: projectPreferences } = useProjectNavigationPreferences();
-  const { isExtendedProjectSidebarOpened, toggleExtendedProjectSidebar, toggleAnySidebarDropdown } = useAppTheme();
+  const { toggleAnySidebarDropdown } = useAppTheme();
 
   // states
   const [leaveProjectModalOpen, setLeaveProjectModal] = useState(false);
@@ -268,10 +259,6 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     } else {
       router.push(defaultTabUrl);
     }
-    // close the extended sidebar if it is open
-    if (isExtendedProjectSidebarOpened && !isAccordionMode) {
-      toggleExtendedProjectSidebar(false);
-    }
   };
 
   const shouldHighlightProject = URLProjectId === project?.id && projectPreferences.navigationMode !== "ACCORDION";
@@ -315,7 +302,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                     {
                       "cursor-not-allowed opacity-60": project.sort_order === null,
                       "cursor-grabbing": isDragging,
-                      flex: isMenuActive || renderInExtendedSidebar,
+                      flex: isMenuActive,
                     }
                   )}
                   ref={dragHandleRef}

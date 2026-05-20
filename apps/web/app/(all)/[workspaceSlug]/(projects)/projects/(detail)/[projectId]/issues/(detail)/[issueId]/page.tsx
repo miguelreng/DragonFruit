@@ -57,7 +57,7 @@ export default function IssueDetailsPage({ loaderData }: Route.ComponentProps) {
           description={t("issue.empty_state.issue_detail.description")}
           primaryButton={{
             text: t("issue.empty_state.issue_detail.primary_button.text"),
-            onClick: () => router.push(`/${loaderData.workspaceSlug}/workspace-views/all-issues/`),
+            onClick: () => router.push(`/${loaderData.workspaceSlug}/`),
           }}
         />
       </div>

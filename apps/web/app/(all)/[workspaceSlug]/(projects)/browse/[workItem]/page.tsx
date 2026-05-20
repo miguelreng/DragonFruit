@@ -99,7 +99,7 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
         description={t("issue.empty_state.issue_detail.description")}
         primaryButton={{
           text: t("issue.empty_state.issue_detail.primary_button.text"),
-          onClick: () => router.push(`/${workspaceSlug}/workspace-views/all-issues/`),
+          onClick: () => router.push(`/${workspaceSlug}/`),
         }}
       />
     );

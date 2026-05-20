@@ -20,7 +20,6 @@ export interface IRouterStore {
   cycleId: string | undefined;
   moduleId: string | undefined;
   viewId: string | undefined;
-  globalViewId: string | undefined;
   profileViewId: TProfileViews | undefined;
   userId: string | undefined;
   peekId: string | undefined;
@@ -47,7 +46,6 @@ export class RouterStore implements IRouterStore {
       cycleId: computed,
       moduleId: computed,
       viewId: computed,
-      globalViewId: computed,
       profileViewId: computed,
       userId: computed,
       peekId: computed,
@@ -114,14 +112,6 @@ export class RouterStore implements IRouterStore {
    */
   get viewId() {
     return this.query?.viewId?.toString();
-  }
-
-  /**
-   * Returns the global view id from the query
-   * @returns string|undefined
-   */
-  get globalViewId() {
-    return this.query?.globalViewId?.toString();
   }
 
   /**
