@@ -129,7 +129,12 @@ export const DisplayFiltersSelection = observer(function DisplayFiltersSelection
           <FilterExtraOptions
             selectedExtraOptions={{
               show_empty_groups: displayFilters?.show_empty_groups ?? true,
-              sub_issue: displayFilters?.sub_issue ?? true,
+              // Subtasks should live nested under their parent in the tree view,
+              // not as duplicate flat rows in the same group — render them only
+              // when the user explicitly opts in. Matches the runtime add-path
+              // default in `base-issues.store.ts#updateIssueList`, which had
+              // long defaulted to false; the two were previously inconsistent.
+              sub_issue: displayFilters?.sub_issue ?? false,
             }}
             handleUpdate={(key, val) =>
               handleDisplayFiltersUpdate({
