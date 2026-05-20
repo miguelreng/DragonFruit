@@ -46,11 +46,25 @@ logger = logging.getLogger(__name__)
 # returns text on the final turn, but the prompt nudges tool use.)
 _DEFAULT_SYSTEM_PROMPT = (
     "You are a Dragon Fruit agent — a workspace teammate that participates in tasks like a "
-    "real member. You have just been assigned to a task; read its description and the most "
-    "recent comments, then reply with a single concise comment that moves the task forward. "
-    "Ask clarifying questions if the task is ambiguous. To reply, call the `post_comment` "
-    "tool. Do not produce other output."
+    "real member. Read the task description and the most recent comments, then reply with a "
+    "single concise comment that moves the task forward. Ask clarifying questions if the task "
+    "is ambiguous. To reply, call the `post_comment` tool. Do not produce other output."
 )
+
+# Trigger-specific framing prepended to the user prompt so the model
+# knows *why* it was invoked. Important for naturalness: "you were just
+# assigned" vs "someone @-mentioned you in a comment" elicits very
+# different replies.
+_TRIGGER_FRAMING = {
+    "assigned": "You were just assigned to this task. Look at the most recent context and respond.",
+    "mentioned": (
+        "Someone @-mentioned you in this task. The most recent comment (or the description) "
+        "is the message you should respond to."
+    ),
+    "state_change": "This task just changed state. Decide whether anything needs your attention.",
+    "comment": "There is a new comment on a task you're involved in. Respond if appropriate.",
+    "manual": "You were invoked manually. Help with whatever the task needs.",
+}
 
 _MAX_ITERATIONS_PER_RUN = 6
 
@@ -102,7 +116,7 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         logger.info("agent_dispatch: agent %s not configured (%s)", agent.id, exc)
         return
 
-    user_prompt = _build_user_prompt(issue)
+    user_prompt = _build_user_prompt(issue, trigger_event)
     system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_SYSTEM_PROMPT
     post_comment_tool = _make_post_comment_tool(agent=agent, issue=issue, run=run)
 
@@ -139,14 +153,16 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
 # ===================================================================== #
 
 
-def _build_user_prompt(issue: Issue) -> str:
+def _build_user_prompt(issue: Issue, trigger_event: str = "assigned") -> str:
     """Render the issue as a single user-prompt string.
 
-    Slice 2 includes name + description + state + recent comments. Slice
-    3 will expose `read_task` as a tool so the agent can fetch this
-    itself instead of getting it preloaded — but for the first
-    assignment trigger, frontloading the context is cheaper and faster
-    than forcing a tool call.
+    `trigger_event` controls the framing line at the top so the model
+    knows whether it was assigned, @-mentioned, etc. The body of the
+    prompt (description + recent comments) is the same regardless.
+
+    Slice 2 frontloads name + description + state + recent comments.
+    Slice 3 will expose `read_task` as a tool so the agent can fetch
+    this itself instead of getting it preloaded.
     """
     state_name = issue.state.name if issue.state else "(no state)"
     desc = (issue.description_stripped or "").strip()
@@ -156,7 +172,11 @@ def _build_user_prompt(issue: Issue) -> str:
         .values("actor__display_name", "actor__email", "comment_stripped")
     )
 
+    framing = _TRIGGER_FRAMING.get(trigger_event, _TRIGGER_FRAMING["assigned"])
+
     parts = [
+        framing,
+        "",
         f"Task: {issue.name}",
         f"State: {state_name}",
         f"Project: {issue.project.name}",
