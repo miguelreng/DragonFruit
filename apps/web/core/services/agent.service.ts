@@ -115,4 +115,21 @@ export class AgentService extends APIService {
         throw err?.response?.data;
       });
   }
+
+  /**
+   * Hard-stop an agent: disables it AND sets `cancel_requested` on every
+   * pending/running run. The Celery loop polls that flag between turns
+   * and bails. Returns the updated agent with a `cancelled_runs` count
+   * so the UI can surface "stopped N in-flight runs" if it wants to.
+   *
+   * Distinct from `update(..., { is_enabled: false })`, which just
+   * pauses new dispatches and lets any in-flight run finish naturally.
+   */
+  async stop(workspaceSlug: string, agentId: string): Promise<TAgent & { cancelled_runs?: number }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agents/${agentId}/stop/`)
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
 }

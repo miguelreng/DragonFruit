@@ -8,6 +8,7 @@ from plane.app.views.agent import (
     AgentDetailEndpoint,
     AgentEndpoint,
     AgentRunListEndpoint,
+    AgentStopEndpoint,
 )
 
 
@@ -26,5 +27,10 @@ urlpatterns = [
         "workspaces/<str:slug>/agents/<uuid:agent_id>/runs/",
         AgentRunListEndpoint.as_view(),
         name="workspace-agent-runs",
+    ),
+    path(
+        "workspaces/<str:slug>/agents/<uuid:agent_id>/stop/",
+        AgentStopEndpoint.as_view(),
+        name="workspace-agent-stop",
     ),
 ]

@@ -1,1 +1,6 @@
-from .base import AgentEndpoint, AgentDetailEndpoint, AgentRunListEndpoint
+from .base import (
+    AgentDetailEndpoint,
+    AgentEndpoint,
+    AgentRunListEndpoint,
+    AgentStopEndpoint,
+)

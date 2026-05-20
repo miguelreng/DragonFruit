@@ -211,3 +211,42 @@ class AgentRunListEndpoint(BaseAPIView):
             .order_by("-created_at")[: self.PAGE_SIZE]
         )
         return Response(AgentRunSerializer(runs, many=True).data, status=status.HTTP_200_OK)
+
+
+class AgentStopEndpoint(BaseAPIView):
+    """Hard-stop an agent: disable it and cancel every in-flight run.
+
+    The Celery loop (`LLMProvider.run`) polls `AgentRun.cancel_requested`
+    between turns and bails when it flips True. Setting `is_enabled=False`
+    on the agent itself ensures no new dispatches start in the meantime
+    — the `IssueAssignee` post_save signal short-circuits on disabled
+    agents.
+
+    Idempotent: running it on an already-stopped agent is a no-op and
+    returns the same shape.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug, agent_id):
+        agent = (
+            Agent.objects.filter(workspace__slug=slug, pk=agent_id, deleted_at__isnull=True)
+            .select_related("bot_user")
+            .first()
+        )
+        if not agent:
+            return Response({"error": "agent not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        with transaction.atomic():
+            agent.is_enabled = False
+            agent.save(update_fields=["is_enabled", "updated_at"])
+
+            cancelled = AgentRun.objects.filter(
+                agent=agent,
+                deleted_at__isnull=True,
+                status__in=("pending", "running"),
+                cancel_requested=False,
+            ).update(cancel_requested=True)
+
+        payload = AgentSerializer(agent).data
+        payload["cancelled_runs"] = cancelled
+        return Response(payload, status=status.HTTP_200_OK)

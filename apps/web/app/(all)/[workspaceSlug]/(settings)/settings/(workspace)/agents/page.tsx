@@ -52,11 +52,32 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
     return created;
   };
 
+  // Toggle semantics:
+  //  - ON  → simple PATCH is_enabled=true; just resumes future dispatches.
+  //  - OFF → call the dedicated `stop` endpoint, which both flips
+  //    is_enabled to false AND sets cancel_requested on every pending/
+  //    running AgentRun. The Celery loop polls that flag between turns
+  //    and bails. We surface the cancelled-runs count in the toast so
+  //    the admin knows in-flight work was actually killed (vs allowed
+  //    to finish naturally).
   const handleToggle = async (id: string, next: boolean) => {
     if (!workspaceSlug) return;
     try {
-      await agentService.update(workspaceSlug, id, { is_enabled: next });
+      if (next) {
+        await agentService.update(workspaceSlug, id, { is_enabled: true });
+        await mutate();
+        return;
+      }
+      const stopped = await agentService.stop(workspaceSlug, id);
       await mutate();
+      const cancelled = stopped.cancelled_runs ?? 0;
+      if (cancelled > 0) {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Agent stopped",
+          message: `Cancelled ${cancelled} in-flight run${cancelled === 1 ? "" : "s"}.`,
+        });
+      }
     } catch (err) {
       const message = (err as { error?: string } | undefined)?.error ?? "Could not update agent";
       setToast({ type: TOAST_TYPE.ERROR, title: message });
