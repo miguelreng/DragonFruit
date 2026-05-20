@@ -5,7 +5,7 @@
  */
 
 import type { MutableRefObject } from "react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { attachInstruction, extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
@@ -143,24 +143,42 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
 
   const subIssues = subIssuesStore.subIssuesByIssueId(issueId);
 
-  // Re-anchor the tree-branch clip every time the last subtask's height
-  // changes — works for variable row heights without us having to thread a
-  // ref through IssueBlockRoot. We look up the row by the `id` we set on
-  // it via getIssueBlockId, then ResizeObserver does the rest.
-  useEffect(() => {
+  // Re-anchor the tree-branch clip whenever the last subtask's row moves
+  // or resizes. We need to land at the ROW's midpoint, not the IssueBlockRoot
+  // wrapper's midpoint — the wrapper also contains the row's border-b and
+  // (when the last child itself is expanded) its own children area, so
+  // `wrapper.height / 2` lands in the wrong place.
+  //
+  // Strategy: find the `.group/list-block` element (the actual <Row>) inside
+  // the last subtask, get its midpoint in viewport coords, subtract from the
+  // children-wrapper's bottom. The result is the exact CSS `bottom` value
+  // the line needs to hit the row's midpoint.
+  //
+  // useLayoutEffect (not useEffect) so the measurement happens before paint
+  // — otherwise the user sees a one-frame flash of the 22px fallback before
+  // we correct it.
+  useLayoutEffect(() => {
     if (!isExpanded || !subIssues || subIssues.length === 0) return;
     const lastId = subIssues[subIssues.length - 1];
     const lastEl = document.getElementById(getIssueBlockId(lastId, groupId));
     if (!lastEl) return;
+    // The <Row> inside the last subtask carries this Tailwind group class —
+    // see block.tsx where the Row is rendered. Selector escapes the slash.
+    const rowEl = lastEl.querySelector(".group\\/list-block") as HTMLElement | null;
+    const wrapperEl = lastEl.parentElement;
+    if (!rowEl || !wrapperEl) return;
     const update = () => {
-      const height = lastEl.getBoundingClientRect().height;
-      // Fall back to the 44px (min-h-11) approximation if the element
-      // hasn't laid out yet (height of 0 during initial render).
-      setLastChildMidpoint(height > 0 ? height / 2 : 22);
+      const wrapperRect = wrapperEl.getBoundingClientRect();
+      const rowRect = rowEl.getBoundingClientRect();
+      if (rowRect.height <= 0) return;
+      // bottom-from-wrapper-bottom = (wrapper.bottom_y) - (row.midpoint_y)
+      const bottomValue = wrapperRect.bottom - (rowRect.top + rowRect.height / 2);
+      setLastChildMidpoint(bottomValue);
     };
     update();
     const resizeObserver = new ResizeObserver(update);
-    resizeObserver.observe(lastEl);
+    resizeObserver.observe(rowEl);
+    resizeObserver.observe(wrapperEl);
     return () => resizeObserver.disconnect();
   }, [isExpanded, subIssues, groupId]);
 
