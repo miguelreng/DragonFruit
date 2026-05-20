@@ -216,43 +216,32 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
           }
         }}
       >
+        {/* Tree-branch elbow for subtask rows. Positioned as a direct child
+            of the Row (whose `relative` class is already in place above) so
+            its `top: calc(50% - 8px)` is half the *row* height — matching
+            where the wrapper-level continuous vertical (in block-root.tsx)
+            clips at the last child's row midpoint. Previously the elbow
+            lived inside the inner content div, whose midpoint sits ABOVE
+            the row's midpoint when content is short, producing a visible
+            dangle below the elbow. Decorative — aria-hidden. */}
+        {isSubIssue && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute rounded-bl-md border-b border-l border-strong"
+            style={{
+              // Same x as the wrapper-line: page-x padding + parent's
+              // spacingLeft. For a subtask at spacingLeft=12 with parent
+              // at 0, that's `var(--padding-page-x) + 0`.
+              left: `calc(var(--padding-page-x) + ${spacingLeft - 12}px)`,
+              top: "calc(50% - 8px)",
+              height: "8px",
+              width: "12px",
+            }}
+          />
+        )}
         <div className="flex w-full gap-2 truncate">
           <div className="flex flex-grow items-center gap-0.5 truncate">
-            <div
-              className={cn("flex items-center gap-1", { relative: isSubIssue })}
-              style={isSubIssue ? { marginLeft } : {}}
-            >
-              {/* Tree-branch connectors for subtask rows. Two pieces so the
-                  vertical line reads as continuous through all siblings:
-
-                    1. Upper L (always): vertical stem from row top down to
-                       row midpoint, then a horizontal hook into the row's
-                       content. Rounded inner corner.
-                    2. Lower extension (non-last siblings only): a vertical
-                       continuation from the midpoint down to the row's
-                       bottom — meets the NEXT sibling's upper-L stem,
-                       creating one unbroken line through the whole group.
-
-                  The last sibling skips the lower extension so the tree
-                  terminates cleanly at its midpoint hook instead of
-                  dangling below into empty space.
-
-                  The 12px width matches the per-level indent step in
-                  block-root.tsx so deeper nesting stacks cleanly.
-                  Decorative — aria-hidden. */}
-              {isSubIssue && (
-                // Curved elbow that taps this row into the continuous vertical
-                // drawn by the parent block-root (see the wrapper-level
-                // <div className="relative"> in block-root.tsx). The elbow's
-                // own vertical stub is short — just enough to render the
-                // rounded inner corner — because the long vertical stroke
-                // between siblings is no longer this row's problem.
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute rounded-bl-md border-b border-l border-strong"
-                  style={{ left: "-12px", top: "calc(50% - 8px)", height: "8px", width: "12px" }}
-                />
-              )}
+            <div className="flex items-center gap-1" style={isSubIssue ? { marginLeft } : {}}>
               {/* select checkbox */}
               {projectId && canSelectIssues && !isEpic && (
                 <Tooltip

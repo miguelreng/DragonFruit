@@ -23,6 +23,7 @@ import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
 // components
 import { IssueLayoutHOC } from "../issue-layout-HOC";
+import { SelectionFloatingBar } from "../selection-floating-bar";
 import { List } from "./default";
 // types
 import type { IQuickActionProps, TRenderQuickActions } from "./list-view-types";
@@ -99,9 +100,11 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   const { enableInlineEditing, enableQuickAdd, enableIssueCreation } = issues?.viewFlags || {};
 
   const canEditProperties = useCallback(
-    (projectId: string | undefined) => {
+    (currentProjectId: string | undefined) => {
       const isEditingAllowedBasedOnProject =
-        canEditPropertiesBasedOnProject && projectId ? canEditPropertiesBasedOnProject(projectId) : isEditingAllowed;
+        canEditPropertiesBasedOnProject && currentProjectId
+          ? canEditPropertiesBasedOnProject(currentProjectId)
+          : isEditingAllowed;
 
       return !!enableInlineEditing && isEditingAllowedBasedOnProject;
     },
@@ -138,14 +141,14 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
   const handleCollapsedGroups = useCallback(
     (value: string) => {
       if (workspaceSlug) {
-        let collapsedGroups = issuesFilter?.issueFilters?.kanbanFilters?.group_by || [];
-        if (collapsedGroups.includes(value)) {
-          collapsedGroups = collapsedGroups.filter((_value) => _value != value);
+        let nextCollapsedGroups = issuesFilter?.issueFilters?.kanbanFilters?.group_by || [];
+        if (nextCollapsedGroups.includes(value)) {
+          nextCollapsedGroups = nextCollapsedGroups.filter((_value) => _value != value);
         } else {
-          collapsedGroups.push(value);
+          nextCollapsedGroups.push(value);
         }
         updateFilters(projectId?.toString() ?? "", EIssueFilterType.KANBAN_FILTERS, {
-          group_by: collapsedGroups,
+          group_by: nextCollapsedGroups,
         } as TIssueKanbanFilters);
       }
     },
@@ -176,6 +179,10 @@ export const BaseListRoot = observer(function BaseListRoot(props: IBaseListRoot)
           collapsedGroups={collapsedGroups}
           isEpic={isEpic}
         />
+        {/* Floating bulk-action bar; renders only when one or more tasks
+            are selected. Lives at the list-root level so it stays anchored
+            to the bottom of the viewport regardless of list scroll position. */}
+        <SelectionFloatingBar />
       </div>
     </IssueLayoutHOC>
   );
