@@ -14,8 +14,6 @@ import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useSize from "@/hooks/use-window-size";
-// plane web components
-import { WorkspaceEditionBadge } from "@/plane-web/components/workspace/edition-badge";
 import { AppSidebarToggleButton } from "./sidebar-toggle-button";
 
 type TSidebarWrapperProps = {
@@ -48,7 +46,7 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
       <div ref={ref} className="flex h-full w-full animate-fade-in flex-col">
         {/* Workspace switcher row — matches the page AppHeader (h-11, border-b) so the
             two header strips sit on the same baseline across the sidebar/content seam. */}
-        <div className="flex h-11 w-full flex-shrink-0 items-center gap-1 border-b border-subtle px-3">
+        <div className="flex h-11 w-full flex-shrink-0 items-center gap-1 border-b border-subtle pl-0 pr-3">
           <WorkspaceMenuRoot variant="top-navigation" />
           <div className="flex flex-shrink-0 items-center gap-2">
             <AppSidebarToggleButton />
@@ -66,15 +64,6 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
         >
           {children}
         </ScrollArea>
-        {/* Help Section */}
-        <div className="flex h-12 items-center justify-between border-t border-subtle bg-surface-1 p-3">
-          <WorkspaceEditionBadge />
-          {/* TODO: To be checked if we need this */}
-          {/* <div className="flex items-center gap-2">
-          {!shouldRenderAppRail && <HelpMenu />}
-          {!isAppRailEnabled && <AppSidebarToggleButton />}
-        </div> */}
-        </div>
       </div>
     </>
   );

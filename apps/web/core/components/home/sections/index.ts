@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+export * from "./activity-heatmap-section";
 export * from "./agent-cost-section";
 export * from "./inbox-section";
 export * from "./on-my-plate-section";

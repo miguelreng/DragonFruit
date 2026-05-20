@@ -15,7 +15,6 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Avatar, CustomMenu } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 // components
-import { CoverImage } from "@/components/common/cover-image";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -79,39 +78,26 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
       onMenuClose={() => setIsUserMenuOpen(false)}
       placement="bottom-end"
       maxHeight="2xl"
-      optionsClassName="w-72 p-3 flex flex-col gap-y-3"
+      optionsClassName="w-72 p-2 flex flex-col gap-y-1"
       panelDataTheme={topBarTheme}
       closeOnSelect
     >
-      <div className="relative h-29 w-full rounded-lg">
-        <CoverImage
-          src={currentUser?.cover_image_url ?? undefined}
-          alt={currentUser?.display_name}
-          className="h-29 w-full rounded-lg"
-          showDefaultWhenEmpty
+      <div className="flex items-center gap-3 border-b border-subtle px-2 pt-1 pb-3">
+        <Avatar
+          name={currentUser?.display_name}
+          src={getFileURL(currentUser?.avatar_url ?? "")}
+          size={36}
+          shape="circle"
+          className="text-14 font-medium"
         />
-        <div className="absolute inset-0 bg-layer-1/50" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="flex flex-col items-center gap-y-2">
-            <div>
-              <Avatar
-                name={currentUser?.display_name}
-                src={getFileURL(currentUser?.avatar_url ?? "")}
-                size={40}
-                shape="circle"
-                className="text-18 font-medium"
-              />
-            </div>
-            <div className="text-center">
-              <p className="text-body-sm-medium">
-                {currentUser?.first_name} {currentUser?.last_name}
-              </p>
-              <p className="text-caption-md-regular">{currentUser?.email}</p>
-            </div>
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-body-sm-medium text-primary">
+            {currentUser?.first_name} {currentUser?.last_name}
+          </p>
+          <p className="truncate text-caption-md-regular text-tertiary">{currentUser?.email}</p>
         </div>
       </div>
-      <div>
+      <div className="pt-1">
         <CustomMenu.MenuItem
           onClick={() =>
             toggleProfileSettingsModal({

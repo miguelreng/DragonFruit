@@ -384,7 +384,7 @@ export const IssueFormRoot = observer(function IssueFormRoot(props: IssueFormPro
             className="flex w-full flex-col"
           >
             <div className="rounded-t-lg bg-surface-1 p-5">
-              <h3 className="pb-2 text-h4-medium text-secondary">{modalTitle}</h3>
+              <h3 className="pb-2 text-h5-medium text-secondary">{modalTitle}</h3>
               <div className="flex items-center justify-between pt-2 pb-4">
                 <div className="flex items-center gap-x-1">
                   <IssueProjectSelect

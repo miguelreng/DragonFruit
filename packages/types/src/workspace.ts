@@ -25,7 +25,11 @@ export interface IWorkspace {
   readonly updated_at: Date;
   name: string;
   url: string;
+  // `logo_url` is a server-computed read-only property: `logo_asset.asset_url || logo`.
+  // To change it, PATCH the writable `logo` (string) and clear `logo_asset` (FK to FileAsset).
   logo_url: string | null;
+  logo?: string | null;
+  logo_asset?: string | null;
   readonly total_members: number;
   readonly slug: string;
   readonly created_by: string;

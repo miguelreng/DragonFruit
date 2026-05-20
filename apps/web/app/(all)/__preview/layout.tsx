@@ -5,12 +5,8 @@
  */
 
 import { Outlet } from "react-router";
-import { ContentWrapper } from "@/components/core/content-wrapper";
 
-export default function WorkspaceDiagramsLayout() {
-  return (
-    <ContentWrapper>
-      <Outlet />
-    </ContentWrapper>
-  );
+/** Dev-only preview wrapper — no auth, no workspace context. */
+export default function PreviewLayout() {
+  return <Outlet />;
 }

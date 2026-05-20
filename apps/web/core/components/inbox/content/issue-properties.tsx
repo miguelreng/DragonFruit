@@ -102,6 +102,7 @@ export const InboxIssueContentProperties = observer(function InboxIssueContentPr
                 projectId={projectId?.toString() ?? ""}
                 placeholder="Add assignees"
                 multiple
+                includeAgents
                 buttonVariant={
                   (issue?.assignee_ids || [])?.length > 0 ? "transparent-without-text" : "transparent-with-text"
                 }

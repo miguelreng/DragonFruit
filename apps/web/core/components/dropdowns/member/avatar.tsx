@@ -5,13 +5,12 @@
  */
 
 import { observer } from "mobx-react";
-import type { LucideIcon } from "@/components/icons/lucide-shim";
 import { MembersPropertyIcon } from "@plane/propel/icons";
 // plane ui
+import type { IUserLite } from "@plane/types";
 import { Avatar, AvatarGroup } from "@plane/ui";
 import { cn, getFileURL } from "@plane/utils";
-// plane utils
-// helpers
+import type { LucideIcon } from "@/components/icons/lucide-shim";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 
@@ -20,12 +19,18 @@ type AvatarProps = {
   userIds: string | string[] | null;
   icon?: LucideIcon;
   size?: "sm" | "md" | "base" | "lg" | number;
+  /**
+   * Optional override so the dropdown wrapper can resolve identifiers the
+   * workspace member store doesn't know about (e.g. agents).
+   */
+  getUserDetails?: (userId: string) => IUserLite | undefined;
 };
 
 export const ButtonAvatars = observer(function ButtonAvatars(props: AvatarProps) {
-  const { showTooltip, userIds, icon: Icon, size = "md" } = props;
+  const { showTooltip, userIds, icon: Icon, size = "md", getUserDetails: getUserDetailsProp } = props;
   // store hooks
-  const { getUserDetails } = useMember();
+  const { getUserDetails: getMemberDetails } = useMember();
+  const getUserDetails = getUserDetailsProp ?? getMemberDetails;
 
   if (Array.isArray(userIds)) {
     if (userIds.length > 0)

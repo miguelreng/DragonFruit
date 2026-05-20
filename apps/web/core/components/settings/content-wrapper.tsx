@@ -7,8 +7,6 @@
 // plane imports
 import { ScrollArea } from "@plane/propel/scrollarea";
 import { cn } from "@plane/utils";
-// components
-import { AppHeader } from "@/components/core/app-header";
 
 type Props = {
   children: React.ReactNode;
@@ -21,11 +19,7 @@ export function SettingsContentWrapper(props: Props) {
 
   return (
     <div className="@container flex size-full grow flex-col overflow-hidden">
-      {header && (
-        <div className="w-full shrink-0">
-          <AppHeader header={header} />
-        </div>
-      )}
+      {header && <div className="z-[18] w-full shrink-0">{header}</div>}
       <ScrollArea scrollType="hover" orientation="vertical" size="sm" className="size-full grow overflow-y-scroll">
         <div
           className={cn("py-9", {

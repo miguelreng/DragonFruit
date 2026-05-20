@@ -20,7 +20,6 @@ const ALWAYS_ON_TOP_KEYS: Array<keyof typeof WORKSPACE_SIDEBAR_STATIC_NAVIGATION
   "drafts",
   "stickies",
   "whiteboards",
-  "diagrams",
   "calendar",
   "agents",
   "analytics",
@@ -38,7 +37,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col">
       {topLevelItems.map((item) => (
         <SidebarItem key={item.key} item={item} />
       ))}

@@ -20,8 +20,7 @@
       "open_project_menu": "Apri menu progetto",
       "close_project_menu": "Chiudi menu progetto",
       "collapse_sidebar": "Comprimi barra laterale",
-      "expand_sidebar": "Espandi barra laterale",
-      "edition_badge": "Apri modal piani a pagamento"
+      "expand_sidebar": "Espandi barra laterale"
     },
     "auth_forms": {
       "clear_email": "Cancella email",

@@ -20,8 +20,7 @@
       "open_project_menu": "Відкрити меню проекту",
       "close_project_menu": "Закрити меню проекту",
       "collapse_sidebar": "Згорнути бічну панель",
-      "expand_sidebar": "Розгорнути бічну панель",
-      "edition_badge": "Відкрити модал платних планів"
+      "expand_sidebar": "Розгорнути бічну панель"
     },
     "auth_forms": {
       "clear_email": "Очистити email",

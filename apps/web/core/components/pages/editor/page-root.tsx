@@ -23,8 +23,7 @@ import type { TPageInstance } from "@/store/pages/base-page";
 import { PageNavigationPaneRoot } from "../navigation-pane";
 import { PageVersionsOverlay } from "../version";
 import { PagesVersionEditor } from "../version/editor";
-import { DiagramEditor } from "../diagram/diagram-editor";
-import { ExcalidrawEditor } from "../whiteboard/excalidraw-editor";
+import { TldrawEditor } from "../whiteboard/tldraw-editor";
 import { ContentLimitBanner } from "./content-limit-banner";
 import { PageEditorBody } from "./editor-body";
 import type { TEditorBodyConfig, TEditorBodyHandlers } from "./editor-body";
@@ -166,10 +165,10 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
   );
 
   // Doc pages get the rich-text toolbar (formatting) and the right-hand
-  // navigation pane (Outline / Info / Assets). Diagram and whiteboard pages
-  // have neither headings nor uploaded assets, so the pane's empty states
-  // ("Missing headings", etc.) are noise — skip both surfaces for them.
-  const isCanvasPage = page.page_type === "diagram" || page.page_type === "whiteboard";
+  // navigation pane (Outline / Info / Assets). Whiteboard pages have neither
+  // headings nor uploaded assets, so the pane's empty states ("Missing
+  // headings", etc.) are noise — skip both surfaces for them.
+  const isCanvasPage = page.page_type === "whiteboard";
 
   return (
     <div className="relative flex size-full overflow-hidden transition-all duration-300 ease-in-out">
@@ -190,10 +189,8 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           />
         )}
         {showContentTooLargeBanner && <ContentLimitBanner className="px-page-x" />}
-        {page.page_type === "diagram" ? (
-          <DiagramEditor page={page} handlers={handlers} isEditable={isContentEditable} />
-        ) : page.page_type === "whiteboard" ? (
-          <ExcalidrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+        {page.page_type === "whiteboard" ? (
+          <TldrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
         ) : (
           <PageEditorBody
             config={config}

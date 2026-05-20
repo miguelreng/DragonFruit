@@ -124,12 +124,12 @@ export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps)
   };
 
   if (isLoading && !runs) {
-    return <div className="text-caption-md px-4 py-3 text-tertiary">Loading runs…</div>;
+    return <div className="px-4 py-3 text-caption-md-regular text-tertiary">Loading runs…</div>;
   }
 
   if (!runs || runs.length === 0) {
     return (
-      <div className="text-caption-md px-4 py-3 text-tertiary">
+      <div className="px-4 py-3 text-caption-md-regular text-tertiary">
         No runs yet. Assign this agent to a task or @mention it to trigger one.
       </div>
     );
@@ -154,7 +154,7 @@ export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps)
                 {run.status}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="text-body-xs flex flex-wrap items-center gap-x-2 gap-y-0.5 text-secondary">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body-xs-regular text-secondary">
                   <span className="font-medium">{run.trigger_event}</span>
                   <span className="text-tertiary">·</span>
                   <span className="text-tertiary">{formatRelative(run.created_at)}</span>
@@ -180,10 +180,10 @@ export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps)
                   )}
                 </div>
                 {toolSummary && (
-                  <div className="text-caption-sm mt-0.5 truncate text-tertiary">called: {toolSummary}</div>
+                  <div className="mt-0.5 truncate text-caption-sm-regular text-tertiary">called: {toolSummary}</div>
                 )}
                 {run.error && (
-                  <div className="text-caption-sm text-red-600 dark:text-red-400 mt-0.5 truncate">{run.error}</div>
+                  <div className="mt-0.5 truncate text-caption-sm-regular text-danger-strong">{run.error}</div>
                 )}
               </div>
               {isInFlight && (
