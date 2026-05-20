@@ -6,14 +6,11 @@
 
 import { Selection } from "@tiptap/pm/state";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import ts from "highlight.js/lib/languages/typescript";
-import { common, createLowlight } from "lowlight";
 // components
 import { CodeBlockLowlight } from "./code-block-lowlight";
 import { CodeBlockComponent } from "./code-block-node-view";
-
-const lowlight = createLowlight(common);
-lowlight.register("ts", ts);
+// curated highlight.js language set (see lowlight-languages.ts)
+import { lowlight } from "./lowlight-languages";
 
 export const CustomCodeBlockExtension = CodeBlockLowlight.extend({
   addNodeView() {

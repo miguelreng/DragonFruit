@@ -193,6 +193,8 @@ from .agent.base import (
     AgentStopEndpoint,
 )
 
+from .mcp.base import MCPEndpoint
+
 from .calendar.base import (
     CalendarAccountsListEndpoint,
     CalendarAccountDetailEndpoint,

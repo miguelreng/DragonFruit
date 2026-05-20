@@ -5,13 +5,10 @@
  */
 
 import { Selection } from "@tiptap/pm/state";
-import ts from "highlight.js/lib/languages/typescript";
-import { common, createLowlight } from "lowlight";
 // components
 import { CodeBlockLowlight } from "./code-block-lowlight";
-
-const lowlight = createLowlight(common);
-lowlight.register("ts", ts);
+// curated highlight.js language set (see lowlight-languages.ts)
+import { lowlight } from "./lowlight-languages";
 
 export const CustomCodeBlockExtensionWithoutProps = CodeBlockLowlight.extend({
   addKeyboardShortcuts() {
