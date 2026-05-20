@@ -26,14 +26,17 @@ specific:
     feedback_ai_byok.md).
 """
 
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict
 
 from celery import shared_task
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
+from django.utils import timezone as dj_timezone
 
-from plane.db.models import Agent, AgentRun, Issue, IssueComment, State
+from plane.db.models import Agent, AgentRun, Issue, IssueComment, IssueLabel, Label, State
 from plane.llm import LLMConfigError, LLMProvider, LLMRunResult, LLMTool
 
 
@@ -121,11 +124,17 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         .order_by("sequence")
         .values_list("name", "group")
     )
-    user_prompt = _build_user_prompt(issue, trigger_event, available_states)
+    available_labels = list(
+        Label.objects.filter(project=issue.project, deleted_at__isnull=True)
+        .order_by("name")
+        .values_list("name", flat=True)
+    )
+    user_prompt = _build_user_prompt(issue, trigger_event, available_states, available_labels)
     system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_SYSTEM_PROMPT
     tools = [
         _make_post_comment_tool(agent=agent, issue=issue, run=run),
         _make_change_state_tool(agent=agent, issue=issue, run=run),
+        _make_add_label_tool(agent=agent, issue=issue, run=run),
     ]
 
     try:
@@ -165,6 +174,7 @@ def _build_user_prompt(
     issue: Issue,
     trigger_event: str = "assigned",
     available_states=None,
+    available_labels=None,
 ) -> str:
     """Render the issue as a single user-prompt string.
 
@@ -204,6 +214,13 @@ def _build_user_prompt(
         )
         for name, group in available_states:
             parts.append(f"- {name} ({group})")
+    if available_labels:
+        parts.append("")
+        parts.append(
+            "Available labels in this project (use the exact name with `add_label`):"
+        )
+        for name in available_labels:
+            parts.append(f"- {name}")
     if recent_comments:
         parts.append("")
         parts.append("Recent comments (newest first):")
@@ -321,6 +338,7 @@ def _make_change_state_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLM
                 )
 
         previous = issue.state.name if issue.state else "(no state)"
+        previous_state_id = str(issue.state_id) if issue.state_id else None
         if issue.state_id == matched.id:
             return f"ok: state already '{matched.name}', nothing to change"
 
@@ -330,6 +348,18 @@ def _make_change_state_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLM
         # completed group.
         issue.state = matched
         issue.save(created_by_id=agent.bot_user_id, update_fields=["state", "completed_at", "updated_at"])
+
+        # Fire the standard activity entry so the agent's state change
+        # shows up in the issue timeline alongside human edits ("Robot-
+        # cowork moved this to Done"). Without this, the only visible
+        # trace is the agent's reply comment — the state transition
+        # itself is silent in the activity feed.
+        _emit_state_activity(
+            issue=issue,
+            agent=agent,
+            previous_state_id=previous_state_id,
+            new_state_id=str(matched.id),
+        )
 
         return f"ok: changed state from '{previous}' to '{matched.name}'"
 
@@ -356,6 +386,113 @@ def _make_change_state_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLM
         },
         handler=handler,
     )
+
+
+def _make_add_label_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMTool:
+    """Attach a label to the current task.
+
+    Labels are workspace-wide objects scoped to a project for application.
+    Only labels already defined in the project are valid — the prompt
+    lists them. No label creation from the tool (we don't want a chatty
+    agent inventing a "Maybe" label).
+
+    Idempotent: re-attaching a label that's already on the issue
+    returns an "ok: already labelled" string rather than erroring.
+    """
+
+    def handler(args: Dict[str, Any]) -> str:
+        wanted = (args.get("label_name") or args.get("name") or "").strip()
+        if not wanted:
+            return "tool_error: pass `label_name` with the exact label name"
+
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        label = (
+            Label.objects.filter(
+                project=issue.project,
+                deleted_at__isnull=True,
+                name__iexact=wanted,
+            ).first()
+        )
+        if label is None:
+            available = ", ".join(
+                Label.objects.filter(project=issue.project, deleted_at__isnull=True)
+                .order_by("name")
+                .values_list("name", flat=True)[:50]
+            )
+            available_msg = available if available else "no labels defined in this project"
+            return f"tool_error: no label named '{wanted}'. Available: {available_msg}"
+
+        existing = IssueLabel.objects.filter(
+            issue=issue, label=label, deleted_at__isnull=True
+        ).exists()
+        if existing:
+            return f"ok: task already has label '{label.name}'"
+
+        IssueLabel.objects.create(
+            workspace=issue.workspace,
+            project=issue.project,
+            issue=issue,
+            label=label,
+        )
+        return f"ok: added label '{label.name}'"
+
+    return LLMTool(
+        name="add_label",
+        description=(
+            "Attach a label from the project's label palette to this task. Use this for "
+            "triage — e.g. labelling a task as 'bug', 'duplicate', 'needs-info'. Only "
+            "labels listed in the prompt are valid; you cannot create new labels."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "label_name": {
+                    "type": "string",
+                    "description": (
+                        "Exact name of the label, matching one of the entries in "
+                        "'Available labels' (case-insensitive)."
+                    ),
+                },
+            },
+            "required": ["label_name"],
+        },
+        handler=handler,
+    )
+
+
+def _emit_state_activity(*, issue: Issue, agent: Agent, previous_state_id, new_state_id: str) -> None:
+    """Fire the standard issue_activity Celery task for an agent state change.
+
+    Mirrors the call signature used by the issue partial_update view so
+    the entry renders identically to a human-initiated state change —
+    the only difference is `actor_id` is the bot user's ID, which the
+    UI already knows how to render with the bot indicator.
+    """
+    try:
+        from plane.bgtasks.issue_activities_task import issue_activity
+
+        requested_data = json.dumps({"state_id": new_state_id}, cls=DjangoJSONEncoder)
+        current_instance = json.dumps(
+            {"state_id": previous_state_id},
+            cls=DjangoJSONEncoder,
+        )
+        issue_activity.delay(
+            type="issue.activity.updated",
+            requested_data=requested_data,
+            current_instance=current_instance,
+            issue_id=str(issue.id),
+            actor_id=str(agent.bot_user_id),
+            project_id=str(issue.project_id),
+            epoch=int(dj_timezone.now().timestamp()),
+            notification=False,  # agent-initiated; don't ping subscribers twice
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "agent state-change activity enqueue failed for issue=%s",
+            issue.id,
+        )
 
 
 def _post_comment_as_bot(*, agent: Agent, issue: Issue, html: str) -> None:
