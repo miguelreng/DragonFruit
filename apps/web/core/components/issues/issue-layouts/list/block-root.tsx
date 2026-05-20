@@ -44,6 +44,11 @@ type Props = {
   canDropOverIssue: boolean;
   isParentIssueBeingDragged?: boolean;
   isLastChild?: boolean;
+  // True when this row is the last subtask in its parent's children list.
+  // Drives the tree-branch visual in IssueBlock — last sibling stops the
+  // vertical line at the row's midpoint instead of extending it down to a
+  // (non-existent) next sibling.
+  isLastSibling?: boolean;
   shouldRenderByDefault?: boolean;
   isEpic?: boolean;
 };
@@ -64,6 +69,7 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
     canDropOverIssue,
     isParentIssueBeingDragged = false,
     isLastChild = false,
+    isLastSibling = false,
     selectionHelpers,
     shouldRenderByDefault,
     isEpic = false,
@@ -154,6 +160,7 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
           setExpanded={setExpanded}
           nestingLevel={nestingLevel}
           spacingLeft={spacingLeft}
+          isLastSibling={isLastSibling}
           selectionHelpers={selectionHelpers}
           canDrag={!isSubIssue && isDragAllowed}
           isCurrentBlockDragging={isParentIssueBeingDragged || isCurrentBlockDragging}
@@ -164,7 +171,7 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
 
       {isExpanded &&
         !isEpic &&
-        subIssues?.map((subIssueId) => (
+        subIssues?.map((subIssueId, index) => (
           <IssueBlockRoot
             key={`${subIssueId}`}
             issueId={subIssueId}
@@ -181,6 +188,11 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
             isDragAllowed={isDragAllowed}
             canDropOverIssue={canDropOverIssue}
             isParentIssueBeingDragged={isParentIssueBeingDragged || isCurrentBlockDragging}
+            // Tells the leaf IssueBlock whether to terminate the tree-branch
+            // vertical at the row midpoint (last) or extend it down to the
+            // next sibling. Continuous lines through siblings, clean stop at
+            // the last — see image-2 reference style.
+            isLastSibling={index === (subIssues?.length ?? 0) - 1}
             shouldRenderByDefault={isExpanded}
           />
         ))}
