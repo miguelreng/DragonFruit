@@ -24,6 +24,7 @@ This module is the single seam — search for `from plane.llm import` and
 you've found every place in the codebase that talks to a model.
 """
 
+from .mcp_client import MCPClient, MCPClientError, wrap_mcp_server_as_tools
 from .pricing import estimate_cost_usd
 from .provider import (
     LLMConfigError,
@@ -38,5 +39,8 @@ __all__ = [
     "LLMProvider",
     "LLMRunResult",
     "LLMTool",
+    "MCPClient",
+    "MCPClientError",
     "estimate_cost_usd",
+    "wrap_mcp_server_as_tools",
 ]

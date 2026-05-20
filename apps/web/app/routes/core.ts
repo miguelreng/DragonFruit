@@ -51,9 +51,7 @@ export const coreRoutes: RouteConfigEntry[] = [
 
   // Dev-only preview of the home Activity widget. No auth — mounts the
   // section with mock data so the grid is viewable directly.
-  layout("./(all)/__preview/layout.tsx", [
-    route("__preview/activity", "./(all)/__preview/activity/page.tsx"),
-  ]),
+  layout("./(all)/__preview/layout.tsx", [route("__preview/activity", "./(all)/__preview/activity/page.tsx")]),
 
   // ========================================================================
   // ALL APP ROUTES
@@ -295,10 +293,8 @@ export const coreRoutes: RouteConfigEntry[] = [
             ":workspaceSlug/settings/agents",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/agents/page.tsx"
           ),
-          route(
-            ":workspaceSlug/settings/ai",
-            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/ai/page.tsx"
-          ),
+          route(":workspaceSlug/settings/mcp", "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/mcp/page.tsx"),
+          route(":workspaceSlug/settings/ai", "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/ai/page.tsx"),
           route(
             ":workspaceSlug/settings/about",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/about/page.tsx"

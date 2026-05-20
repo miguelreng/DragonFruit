@@ -18,6 +18,7 @@ export type TWorkspaceSettingsTabs =
   | "webhooks"
   | "ai"
   | "agents"
+  | "mcp"
   | "about";
 export type TWorkspaceSettingsItem = {
   key: TWorkspaceSettingsTabs;
