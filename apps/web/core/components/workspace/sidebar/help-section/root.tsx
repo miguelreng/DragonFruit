@@ -16,6 +16,7 @@ import { ProductUpdatesModal } from "@/components/global";
 import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
+import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 // plane web components
 import { PlaneVersionNumber } from "@/plane-web/components/global";
 
@@ -23,6 +24,8 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
   // store hooks
   const { t } = useTranslation();
   const { toggleShortcutsListModal } = usePowerK();
+  // top bar theme — menu matches the frame
+  const topBarTheme = useTopBarTheme();
   // states
   const [isNeedHelpOpen, setIsNeedHelpOpen] = useState(false);
   const [isProductUpdatesModalOpen, setProductUpdatesModalOpen] = useState(false);
@@ -46,6 +49,7 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
         onMenuClose={() => setIsNeedHelpOpen(false)}
         placement="bottom-end"
         maxHeight="lg"
+        panelDataTheme={topBarTheme}
         closeOnSelect
       >
         <CustomMenu.MenuItem onClick={() => window.open("https://go.plane.so/p-docs", "_blank")}>

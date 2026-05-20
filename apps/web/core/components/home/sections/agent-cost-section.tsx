@@ -8,6 +8,7 @@ import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+import { Sparkles } from "@/components/icons/lucide-shim";
 // services
 import { AgentService, type TAgentCostSummary } from "@/services/agent.service";
 
@@ -62,80 +63,84 @@ export const AgentCostSection = observer(function AgentCostSection() {
   const hasAnyRuns = allTimeRuns > 0;
 
   return (
-    <section ref={sectionRef} id={SECTION_ID} className="rounded-lg border border-subtle bg-layer-1 p-4">
-      <header className="mb-3 flex items-center justify-between">
-        <h3 className="text-body-md-medium text-primary">Agent cost</h3>
-        {summary && (
-          <span className="text-caption-md text-tertiary">
-            {summary.all_time.runs} run{summary.all_time.runs === 1 ? "" : "s"} all time
-          </span>
-        )}
-      </header>
-
-      {!summary ? (
-        <div className="text-caption-md py-6 text-tertiary">Loading…</div>
-      ) : !hasAnyRuns ? (
-        <div className="text-caption-md py-6 text-tertiary">
-          No agent runs yet. Configure an agent and assign it to a task — costs will accumulate here.
-        </div>
-      ) : (
-        <>
-          {/* Headline: this-month spend with secondary context. */}
-          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-            <div>
-              <div className="text-display-sm-medium text-primary tabular-nums">
-                {formatUsd(summary.this_month.cost_usd)}
-              </div>
-              <div className="text-caption-md text-tertiary">this month</div>
-            </div>
-            <div>
-              <div className="text-body-md-medium text-secondary tabular-nums">
-                {formatUsd(summary.last_7_days.cost_usd)}
-              </div>
-              <div className="text-caption-md text-tertiary">last 7 days</div>
-            </div>
-            <div>
-              <div className="text-body-md-medium text-secondary tabular-nums">
-                {formatUsd(summary.all_time.cost_usd)}
-              </div>
-              <div className="text-caption-md text-tertiary">all time</div>
-            </div>
-            <div>
-              <div className="text-body-md-medium text-secondary tabular-nums">
-                {formatTokens(summary.all_time.total_tokens)}
-              </div>
-              <div className="text-caption-md text-tertiary">tokens all time</div>
-            </div>
-          </div>
-
-          {summary.by_agent_last_30_days.length > 0 && (
-            <div className="mt-4 border-t border-subtle pt-3">
-              <div className="mb-2 text-caption-md-medium text-secondary">By agent (last 30 days)</div>
-              <ul className="flex flex-col gap-1">
-                {summary.by_agent_last_30_days.map((row) => {
-                  // Bar width relative to the top spender.
-                  const top = summary.by_agent_last_30_days[0]?.cost_usd ?? 0;
-                  const width = top > 0 ? Math.max(4, Math.round((row.cost_usd / top) * 100)) : 4;
-                  return (
-                    <li key={row.agent_id} className="flex items-center gap-3">
-                      <span className="text-body-sm w-32 shrink-0 truncate text-secondary">{row.name}</span>
-                      <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-layer-3">
-                        <div className="bg-primary-100 h-full" style={{ width: `${width}%` }} />
-                      </div>
-                      <span className="text-caption-md w-20 shrink-0 text-right text-tertiary tabular-nums">
-                        {formatUsd(row.cost_usd)}
-                      </span>
-                      <span className="text-caption-md w-10 shrink-0 text-right text-tertiary tabular-nums">
-                        {row.runs}×
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+    <section ref={sectionRef} id={SECTION_ID} className="flex scroll-mt-4 flex-col gap-2">
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-tertiary" />
+          <h3 className="text-14 font-semibold text-secondary">Agent cost</h3>
+          {summary && summary.all_time.runs > 0 && (
+            <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
+              {summary.all_time.runs} run{summary.all_time.runs === 1 ? "" : "s"}
+            </span>
           )}
-        </>
-      )}
+        </div>
+      </div>
+      <div className="rounded-md border border-subtle bg-surface-1">
+        {!summary ? (
+          <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
+        ) : !hasAnyRuns ? (
+          <div className="px-3 py-6 text-center text-12 text-placeholder">
+            No agent runs yet. Configure an agent and assign it to a task — costs will accumulate here.
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 px-3 py-3 sm:grid-cols-4">
+              <div>
+                <div className="text-13 font-semibold text-secondary tabular-nums">
+                  {formatUsd(summary.this_month.cost_usd)}
+                </div>
+                <div className="text-11 text-placeholder">this month</div>
+              </div>
+              <div>
+                <div className="text-13 font-semibold text-secondary tabular-nums">
+                  {formatUsd(summary.last_7_days.cost_usd)}
+                </div>
+                <div className="text-11 text-placeholder">last 7 days</div>
+              </div>
+              <div>
+                <div className="text-13 font-semibold text-secondary tabular-nums">
+                  {formatUsd(summary.all_time.cost_usd)}
+                </div>
+                <div className="text-11 text-placeholder">all time</div>
+              </div>
+              <div>
+                <div className="text-13 font-semibold text-secondary tabular-nums">
+                  {formatTokens(summary.all_time.total_tokens)}
+                </div>
+                <div className="text-11 text-placeholder">tokens all time</div>
+              </div>
+            </div>
+
+            {summary.by_agent_last_30_days.length > 0 && (
+              <div className="border-t border-subtle px-3 py-3">
+                <div className="mb-2 text-11 font-medium tracking-wide text-placeholder uppercase">
+                  By agent · last 30 days
+                </div>
+                <ul className="flex flex-col gap-1.5">
+                  {summary.by_agent_last_30_days.map((row) => {
+                    const top = summary.by_agent_last_30_days[0]?.cost_usd ?? 0;
+                    const width = top > 0 ? Math.max(4, Math.round((row.cost_usd / top) * 100)) : 4;
+                    return (
+                      <li key={row.agent_id} className="flex items-center gap-3">
+                        <span className="w-32 shrink-0 truncate text-13 text-secondary">{row.name}</span>
+                        <div className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-layer-2">
+                          <div className="bg-primary-100 h-full" style={{ width: `${width}%` }} />
+                        </div>
+                        <span className="w-16 shrink-0 text-right text-11 font-medium text-placeholder tabular-nums">
+                          {formatUsd(row.cost_usd)}
+                        </span>
+                        <span className="w-8 shrink-0 text-right text-11 font-medium text-placeholder tabular-nums">
+                          {row.runs}×
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 });

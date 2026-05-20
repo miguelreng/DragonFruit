@@ -84,6 +84,7 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
     closeOnSelect,
     openOnHover = false,
     useCaptureForOutsideClick = false,
+    panelDataTheme,
   } = props;
 
   const [referenceElement, setReferenceElement] = React.useState<HTMLButtonElement | null>(null);
@@ -129,6 +130,11 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
   };
 
   const handleKeyDown = useDropdownKeyDown(openDropdown, closeDropdown, isOpen, selectActiveItem);
+
+  const menuContextValue = React.useMemo(
+    () => ({ closeAllSubmenus, registerSubmenu }),
+    [closeAllSubmenus, registerSubmenu]
+  );
 
   const handleOnClick = () => {
     if (closeOnSelect) closeDropdown();
@@ -199,6 +205,7 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
       static
     >
       <div
+        data-theme={panelDataTheme}
         className={cn(
           "my-1 min-w-[12rem] overflow-y-scroll rounded-md border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-2.5 text-11 whitespace-nowrap focus:outline-none",
           {
@@ -213,7 +220,7 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
         style={styles.popper}
         {...attributes.popper}
       >
-        <MenuContext.Provider value={{ closeAllSubmenus, registerSubmenu }}>{children}</MenuContext.Provider>
+        <MenuContext.Provider value={menuContextValue}>{children}</MenuContext.Provider>
       </div>
     </Menu.Items>
   );
@@ -223,6 +230,8 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
   }
 
   return (
+    // reason: HeadlessUI Menu handles keyboard navigation internally; onKeyDownCapture also wires up custom keys
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <Menu
       as="div"
       ref={dropdownRef}
@@ -354,6 +363,8 @@ function SubMenu(props: ICustomSubMenuProps) {
     setIsOpen(false);
   }, []);
 
+  const subMenuContextValue = React.useMemo(() => ({ closeSubmenu }), [closeSubmenu]);
+
   // Register this submenu with the main menu context
   React.useEffect(() => {
     if (menuContext) {
@@ -398,6 +409,8 @@ function SubMenu(props: ICustomSubMenuProps) {
       <span ref={setReferenceElement} className="w-full">
         <Menu.Item as="div" disabled={disabled}>
           {({ active }) => (
+            // reason: wrapped by HeadlessUI Menu.Item which handles keyboard navigation
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             <div
               className={cn(
                 "flex w-full cursor-pointer items-center justify-between rounded-sm px-1 py-1.5 text-left text-secondary select-none",
@@ -444,7 +457,7 @@ function SubMenu(props: ICustomSubMenuProps) {
               }
             }}
           >
-            <SubMenuContext.Provider value={{ closeSubmenu }}>{children}</SubMenuContext.Provider>
+            <SubMenuContext.Provider value={subMenuContextValue}>{children}</SubMenuContext.Provider>
           </div>
         </Portal>
       )}

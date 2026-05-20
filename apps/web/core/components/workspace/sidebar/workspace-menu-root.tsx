@@ -103,6 +103,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       <WorkspaceLogo
                         logo={activeWorkspace?.logo_url}
                         name={activeWorkspace?.name}
+                        workspaceId={activeWorkspace?.id}
                         classNames="size-8 rounded-md border border-subtle"
                       />
                     ),
@@ -124,6 +125,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                   <WorkspaceLogo
                     logo={activeWorkspace?.logo_url}
                     name={activeWorkspace?.name}
+                    workspaceId={activeWorkspace?.id}
                     classNames="border border-subtle rounded-md size-7"
                   />
                   <h4 className="truncate text-14 font-medium text-primary">{activeWorkspace?.name ?? t("loading")}</h4>

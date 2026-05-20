@@ -49,7 +49,7 @@ export function ArchiveRestoreProjectModal(props: Props) {
           message: `${projectDetails.name} has been archived successfully`,
         });
         onClose();
-        router.push(`/${workspaceSlug}/projects/`);
+        router.push(`/${workspaceSlug}/`);
         return;
       })
       .catch(() =>
@@ -72,7 +72,7 @@ export function ArchiveRestoreProjectModal(props: Props) {
           message: `You can find ${projectDetails.name} in your projects.`,
         });
         onClose();
-        router.push(`/${workspaceSlug}/projects/`);
+        router.push(`/${workspaceSlug}/`);
         return;
       })
       .catch(() =>
@@ -103,7 +103,7 @@ export function ArchiveRestoreProjectModal(props: Props) {
           <Button
             variant="primary"
             size="lg"
-            tabIndex={1}
+            tabIndex={0}
             onClick={archive ? handleArchiveProject : handleRestoreProject}
             loading={isLoading}
           >

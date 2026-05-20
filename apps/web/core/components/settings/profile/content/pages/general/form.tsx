@@ -230,9 +230,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
                         <img
                           src={getFileURL(userAvatar)}
                           className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
-                          onClick={() => setIsImageUploadModalOpen(true)}
                           alt={currentUser?.display_name}
-                          role="button"
                         />
                       </div>
                     )}
@@ -256,12 +254,12 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
               />
             </div>
           </div>
-          <div className="item-center mt-6 flex justify-between">
+          <div className="mt-6 flex items-center justify-between">
             <div className="flex flex-col">
-              <div className="item-center flex text-16 font-medium text-secondary">
+              <div className="flex items-center text-body-md-medium text-secondary">
                 <span>{`${watch("first_name")} ${watch("last_name")}`}</span>
               </div>
-              <span className="text-13 tracking-tight text-tertiary">{watch("email")}</span>
+              <span className="text-body-xs-regular text-tertiary">{watch("email")}</span>
             </div>
           </div>
           <div className="flex flex-col gap-2">

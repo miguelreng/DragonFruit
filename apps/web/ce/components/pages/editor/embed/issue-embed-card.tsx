@@ -103,7 +103,7 @@ const RealEmbedCard = observer(function RealEmbedCard(props: {
   return (
     <div
       className={cn(
-        "not-prose flex w-full items-center gap-3 rounded-md border-[0.5px] border-subtle bg-layer-1 px-4 py-2 shadow-raised-100 transition-colors hover:border-strong hover:bg-layer-2"
+        "not-prose flex w-full items-center gap-3 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4 py-2 shadow-raised-100 transition-colors hover:border-strong hover:bg-surface-2"
       )}
     >
       <Link to={href} className="flex min-w-0 flex-1 items-center gap-3 no-underline">
@@ -223,8 +223,8 @@ function EmbedShell({ children, variant }: { children: React.ReactNode; variant:
     <div
       className={cn(
         "flex w-full items-center rounded-md border-[0.5px] px-4 py-2.5 text-14 shadow-raised-100",
-        variant === "loading" && "border-subtle bg-layer-1 text-tertiary",
-        variant === "error" && "border-subtle bg-layer-1 text-secondary"
+        variant === "loading" && "border-subtle bg-surface-1 text-tertiary",
+        variant === "error" && "border-subtle bg-surface-1 text-secondary"
       )}
     >
       {children}

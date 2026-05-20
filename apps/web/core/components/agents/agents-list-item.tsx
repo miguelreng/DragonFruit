@@ -7,11 +7,13 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 // plane imports
+import { useTranslation } from "@plane/i18n";
+import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import { ToggleSwitch } from "@plane/ui";
 // services
 import type { TAgent } from "@/services/agent.service";
 // local
-import { ChevronDown, ChevronRight, Trash2 } from "@/components/icons/lucide-shim";
+import { ChevronDown, ChevronRight, Trash2, Wand2 } from "@/components/icons/lucide-shim";
 import { AgentRunsPanel } from "./agent-runs-panel";
 
 interface IAgentsListItemProps {
@@ -22,6 +24,7 @@ interface IAgentsListItemProps {
 
 export function AgentsListItem({ agent, onToggle, onDelete }: IAgentsListItemProps) {
   const { workspaceSlug } = useParams();
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -37,7 +40,7 @@ export function AgentsListItem({ agent, onToggle, onDelete }: IAgentsListItemPro
 
   const handleDelete = async () => {
     if (busy) return;
-    const confirmed = window.confirm(`Delete agent "${agent.name}"? This cannot be undone.`);
+    const confirmed = window.confirm(t("workspace_settings.settings.agents.delete_confirm", { name: agent.name }));
     if (!confirmed) return;
     setBusy(true);
     try {
@@ -67,14 +70,21 @@ export function AgentsListItem({ agent, onToggle, onDelete }: IAgentsListItemPro
           aria-label={expanded ? "Collapse runs" : "Expand runs"}
         >
           <Chevron className="size-4 shrink-0 text-tertiary" />
+          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-layer-3 text-tertiary">
+            <Wand2 className="size-3.5" />
+          </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h5 className="truncate text-body-sm-medium">{agent.name}</h5>
               {agent.has_api_key ? null : (
-                <span className="rounded bg-layer-3 px-1.5 py-0.5 text-caption-sm-medium text-tertiary">no key</span>
+                <Pill variant={EPillVariant.DEFAULT} size={EPillSize.XS}>
+                  {t("workspace_settings.settings.agents.badge.no_key")}
+                </Pill>
               )}
               {!agent.is_enabled && (
-                <span className="rounded bg-layer-3 px-1.5 py-0.5 text-caption-sm-medium text-tertiary">paused</span>
+                <Pill variant={EPillVariant.WARNING} size={EPillSize.XS}>
+                  {t("workspace_settings.settings.agents.badge.paused")}
+                </Pill>
               )}
             </div>
             {agent.description && <p className="text-body-xs mt-0.5 truncate text-tertiary">{agent.description}</p>}

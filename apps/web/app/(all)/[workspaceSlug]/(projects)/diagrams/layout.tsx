@@ -5,17 +5,12 @@
  */
 
 import { Outlet } from "react-router";
-import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
-import { WorkspaceDiagramsHeader } from "./header";
 
 export default function WorkspaceDiagramsLayout() {
   return (
-    <>
-      <AppHeader header={<WorkspaceDiagramsHeader />} />
-      <ContentWrapper>
-        <Outlet />
-      </ContentWrapper>
-    </>
+    <ContentWrapper>
+      <Outlet />
+    </ContentWrapper>
   );
 }

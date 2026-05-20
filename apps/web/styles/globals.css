@@ -250,12 +250,22 @@
   --sx-color-on-surface: var(--text-color-primary);
   --sx-color-on-surface-variant: var(--text-color-tertiary);
   --sx-color-background: var(--background-color-canvas);
-  --sx-color-outline: var(--border-color-subtle-1);
-  --sx-color-outline-variant: var(--border-color-subtle);
+  /* All Schedule-X borders/lines resolve through these tokens — pin them to
+   * a very light gray (neutral-200, one step lighter than --border-subtle)
+   * so the calendar's internal grid reads as a quiet divider rather than a
+   * heavy line. Adapts to dark mode automatically via the neutral palette. */
+  --sx-color-outline: var(--neutral-200);
+  --sx-color-outline-variant: var(--neutral-200);
+  --sx-border: 1px solid var(--neutral-200);
   --sx-internal-color-text: var(--text-color-primary);
-  --sx-internal-color-line: var(--border-color-subtle);
+  --sx-internal-color-line: var(--neutral-200);
   --sx-color-shadow: rgba(0, 0, 0, 0.08);
-  font-family: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family:
+    "Figtree Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 /* Strip the default Schedule-X outer frame so the calendar sits flush with
@@ -265,6 +275,34 @@
   border: none !important;
   box-shadow: none !important;
   border-radius: 0 !important;
+}
+
+/* Stretch every layer of Schedule-X to fill its parent. The React adapter
+ * renders into a `.sx-react-calendar-wrapper` that's auto-sized by default,
+ * which leaves dead space below the month grid. Forcing 100% through every
+ * intermediate node lets the page's flex-1 wrapper drive the height. */
+.dragonfruit-calendar > .sx-react-calendar-wrapper,
+.dragonfruit-calendar .sx__calendar,
+.dragonfruit-calendar .sx__calendar-wrapper,
+.dragonfruit-calendar .sx__view-container,
+.dragonfruit-calendar .sx__month-view,
+.dragonfruit-calendar .sx__month-grid,
+.dragonfruit-calendar .sx__week-view,
+.dragonfruit-calendar .sx__week-grid,
+.dragonfruit-calendar .sx__day-view {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* Drop the duplicate border where the calendar grid meets the page header.
+ * Schedule-X puts `border-top: var(--sx-border)` on every week / hour row;
+ * for the first row that border sits flush against the AppHeader's
+ * `border-b`, which doubles the line and makes it look heavier and darker
+ * than the rest of the chrome. */
+.dragonfruit-calendar .sx__month-grid-week:first-child,
+.dragonfruit-calendar .sx__week-grid__hour:first-child + .sx__week-grid__hour,
+.dragonfruit-calendar .sx__month-agenda-week:first-child {
+  border-top: none !important;
 }
 
 /* Square corners + white cells everywhere — no soft greys, no rounded edges

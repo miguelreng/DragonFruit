@@ -24,7 +24,10 @@ function WorkspaceDashboardPage() {
 
   return (
     <>
-      <AppHeader header={<WorkspaceDashboardHeader />} />
+      <AppHeader
+        header={<WorkspaceDashboardHeader />}
+        rowClassName="!h-auto !items-stretch !gap-0 !border-b-0 !bg-transparent !px-0"
+      />
       <ContentWrapper>
         <PageHead title={pageTitle} />
         <WorkspaceHomeView />

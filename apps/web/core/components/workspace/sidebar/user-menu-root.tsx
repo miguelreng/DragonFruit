@@ -20,6 +20,7 @@ import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
+import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 import { useUser } from "@/hooks/store/user";
 
 export const UserMenuRoot = observer(function UserMenuRoot() {
@@ -32,6 +33,8 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
   const { data: currentUser } = useUser();
   const { signOut } = useUser();
   const { toggleProfileSettingsModal } = useCommandPalette();
+  // top bar theme — menu matches the frame
+  const topBarTheme = useTopBarTheme();
   // derived values
   const isUserInstanceAdmin = false;
   // translation
@@ -77,6 +80,7 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
       placement="bottom-end"
       maxHeight="2xl"
       optionsClassName="w-72 p-3 flex flex-col gap-y-3"
+      panelDataTheme={topBarTheme}
       closeOnSelect
     >
       <div className="relative h-29 w-full rounded-lg">

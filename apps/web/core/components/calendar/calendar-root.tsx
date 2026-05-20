@@ -18,24 +18,30 @@ if (typeof globalThis !== "undefined" && !(globalThis as { Temporal?: unknown })
 }
 
 import { ScheduleXCalendar } from "@schedule-x/react";
-import {
-  createCalendar,
-  createViewMonthGrid,
-  createViewWeek,
-  createViewDay,
-} from "@schedule-x/calendar";
+import { createCalendar, createViewMonthGrid, createViewWeek, createViewDay } from "@schedule-x/calendar";
 import { createEventsServicePlugin } from "@schedule-x/events-service";
 import { createCalendarControlsPlugin } from "@schedule-x/calendar-controls";
+// reason: side-effect CSS import
+// eslint-disable-next-line import/no-unassigned-import
 import "@schedule-x/theme-default/dist/index.css";
 
-// Schedule-X v4 expects Temporal types. The runtime Temporal API isn't shipped
-// in browsers yet (Stage 3 proposal); the polyfill makes it available globally.
-// Lib-types prefer the built-in, but the polyfill is API-compatible at runtime.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const T = Temporal as any;
 import { Menu } from "@headlessui/react";
-import { Calendar as CalendarIcon, Check, ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2 } from "@/components/icons/lucide-shim";
+import {
+  Calendar as CalendarIcon,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+} from "@/components/icons/lucide-shim";
+import { Button } from "@plane/propel/button";
+import { Breadcrumbs, Header } from "@plane/ui";
+import { AppHeader } from "@/components/core/app-header";
+import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
+import { IssuePeekOverview } from "@/components/issues/peek-overview";
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import {
   CalendarService,
   type TCalendarAccount,
@@ -112,6 +118,7 @@ const CALENDARS_CONFIG = {
 
 export function CalendarRoot() {
   const { workspaceSlug } = useParams() as { workspaceSlug: string };
+  const { setPeekIssue } = useIssueDetail();
 
   // Tasks: always loaded.
   const taskRange = useMemo(() => {
@@ -130,15 +137,13 @@ export function CalendarRoot() {
   const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
 
   // Google: optional overlay.
-  const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>(
-    "CALENDAR_ACCOUNTS",
-    () => calendarService.list()
+  const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>("CALENDAR_ACCOUNTS", () =>
+    calendarService.list()
   );
   const googleAccount = accounts?.[0];
 
-  const { data: gEventsRes } = useSWR(
-    googleAccount ? `CALENDAR_EVENTS_${googleAccount.id}` : null,
-    () => calendarService.events(googleAccount!.id, taskRange)
+  const { data: gEventsRes } = useSWR(googleAccount ? `CALENDAR_EVENTS_${googleAccount.id}` : null, () =>
+    calendarService.events(googleAccount!.id, taskRange)
   );
 
   const sxEvents = useMemo(() => {
@@ -166,6 +171,10 @@ export function CalendarRoot() {
   // callbacks closure — we don't want to recreate the calendar on every render.
   const openQuickAddRef = useRef<(date: string) => void>(() => {});
   openQuickAddRef.current = (date) => setQuickAddDate(date);
+  // Same trick for the task peek handler — the closure inside createCalendar
+  // captures the *first* render's setPeekIssue, so we route through a ref.
+  const openTaskPeekRef = useRef<(payload: { projectId: string; taskId: string }) => void>(() => {});
+  openTaskPeekRef.current = ({ projectId, taskId }) => setPeekIssue({ workspaceSlug, projectId, issueId: taskId });
 
   if (!calendarAppRef.current) {
     calendarAppRef.current = createCalendar({
@@ -178,6 +187,15 @@ export function CalendarRoot() {
         onClickDate: (date) => openQuickAddRef.current(typeof date === "string" ? date.slice(0, 10) : ""),
         onClickDateTime: (dateTime) =>
           openQuickAddRef.current(typeof dateTime === "string" ? dateTime.slice(0, 10) : ""),
+        onEventClick: (event) => {
+          // Only task events carry the _dragonfruit payload; Google events
+          // intentionally do nothing here (no peek view for them).
+          const meta = (event as unknown as { _dragonfruit?: { kind: string; projectId?: string; taskId?: string } })
+            ._dragonfruit;
+          if (meta?.kind === "task" && meta.projectId && meta.taskId) {
+            openTaskPeekRef.current({ projectId: meta.projectId, taskId: meta.taskId });
+          }
+        },
         onRangeUpdate: () => {
           // Fires when navigation moves to a different month/week/day. Use it
           // to re-derive the visible-month label for our custom toolbar.
@@ -222,23 +240,25 @@ export function CalendarRoot() {
   }, [sxEvents]);
 
   return (
-    <div className="flex h-full w-full flex-col">
-      <CalendarHeader
-        workspaceSlug={workspaceSlug}
-        taskCount={tasksRes?.tasks?.length ?? 0}
-        googleAccount={googleAccount}
-        refetchAccounts={refetchAccounts}
-        onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
+    <>
+      <AppHeader
+        header={
+          <CalendarPageHeader
+            workspaceSlug={workspaceSlug}
+            taskCount={tasksRes?.tasks?.length ?? 0}
+            googleAccount={googleAccount}
+            refetchAccounts={refetchAccounts}
+            onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
+            view={view}
+            visibleMonth={visibleMonth}
+            onToday={handleToday}
+            onPrev={() => handleStep(-1)}
+            onNext={() => handleStep(1)}
+            onViewChange={handleViewChange}
+          />
+        }
       />
-      <CalendarToolbar
-        view={view}
-        visibleMonth={visibleMonth}
-        onToday={handleToday}
-        onPrev={() => handleStep(-1)}
-        onNext={() => handleStep(1)}
-        onViewChange={handleViewChange}
-      />
-      <div className="dragonfruit-calendar relative h-full w-full flex-1 overflow-hidden">
+      <div className="dragonfruit-calendar relative w-full flex-1 overflow-hidden">
         {calendarAppRef.current && <ScheduleXCalendar calendarApp={calendarAppRef.current} />}
       </div>
 
@@ -260,19 +280,40 @@ export function CalendarRoot() {
             : undefined
         }
       />
-    </div>
+      {/* Click-a-task → open the standard peek-overview drawer. The store
+          is global, so a single mount is enough for the whole calendar. */}
+      <IssuePeekOverview />
+    </>
   );
 }
 
-type CalendarHeaderProps = {
+type CalendarPageHeaderProps = {
   workspaceSlug: string;
   taskCount: number;
   googleAccount: TCalendarAccount | undefined;
   refetchAccounts: () => void;
   onQuickAdd: () => void;
+  view: string;
+  visibleMonth: string;
+  onToday: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onViewChange: (next: string) => void;
 };
 
-function CalendarHeader({ taskCount, googleAccount, refetchAccounts, workspaceSlug, onQuickAdd }: CalendarHeaderProps) {
+function CalendarPageHeader({
+  taskCount,
+  googleAccount,
+  refetchAccounts,
+  workspaceSlug,
+  onQuickAdd,
+  view,
+  visibleMonth,
+  onToday,
+  onPrev,
+  onNext,
+  onViewChange,
+}: CalendarPageHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
@@ -299,96 +340,37 @@ function CalendarHeader({ taskCount, googleAccount, refetchAccounts, workspaceSl
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
-      <div className="flex items-center gap-3 text-sm">
-        <LegendDot color="#ec4899" />
-        <span>
-          Your tasks <span className="ml-1 text-xs text-tertiary">· {taskCount}</span>
-        </span>
-        {googleAccount && (
-          <>
-            <span className="text-tertiary">·</span>
-            <LegendDot color="#2563eb" />
-            <span className="truncate">{googleAccount.account_email || "Google Calendar"}</span>
-          </>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onQuickAdd}
-          className="inline-flex items-center gap-1.5 rounded-md bg-accent-primary px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
-        >
-          <Plus className="size-3.5" />
-          New task
-        </button>
-        {googleAccount ? (
-          <button
-            type="button"
-            onClick={handleDisconnect}
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-tertiary hover:bg-layer-1-hover hover:text-primary"
-          >
-            <Trash2 className="size-3.5" />
-            Disconnect Google
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleConnect}
-            disabled={isConnecting}
-            className="inline-flex items-center gap-1.5 rounded-md border border-subtle-1 bg-canvas px-2.5 py-1 text-xs font-medium text-primary hover:bg-layer-1-hover disabled:opacity-50"
-          >
-            <CalendarIcon className="size-3.5" />
-            {isConnecting ? "Redirecting…" : "Connect Google Calendar"}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function LegendDot({ color }: { color: string }) {
-  return <span className="inline-block size-2 rounded-full" style={{ backgroundColor: color }} />;
-}
-
-// ── Custom toolbar ────────────────────────────────────────────────────────
-// Schedule-X's stock toolbar uses Material Design widgets. We hide it via
-// CSS and render this in its place so View / Date / chevrons all match
-// DragonFruit's design system.
-
-type ToolbarProps = {
-  view: string;
-  visibleMonth: string;
-  onToday: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-  onViewChange: (next: string) => void;
-};
-
-const VIEW_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "month-grid", label: "Month" },
-  { value: "week", label: "Week" },
-  { value: "day", label: "Day" },
-];
-
-function CalendarToolbar({ view, visibleMonth, onToday, onPrev, onNext, onViewChange }: ToolbarProps) {
-  const currentViewLabel = VIEW_OPTIONS.find((o) => o.value === view)?.label ?? "Month";
-  return (
-    <div className="flex items-center justify-between gap-3 px-6 py-2">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onToday}
-          className="rounded-md border border-subtle-1 bg-canvas px-3 py-1 text-13 font-medium text-primary hover:bg-layer-1-hover"
-        >
+    <Header>
+      <Header.LeftItem>
+        <Breadcrumbs>
+          <Breadcrumbs.Item
+            component={<BreadcrumbLink label="Calendar" icon={<CalendarIcon className="h-4 w-4 text-tertiary" />} />}
+          />
+        </Breadcrumbs>
+        <div className="ml-2 flex items-center gap-2 text-13 text-secondary">
+          <LegendDot color="#ec4899" />
+          <span>
+            Your tasks <span className="ml-0.5 text-tertiary">· {taskCount}</span>
+          </span>
+          {googleAccount && (
+            <>
+              <span className="text-tertiary">·</span>
+              <LegendDot color="#2563eb" />
+              <span className="truncate">{googleAccount.account_email || "Google Calendar"}</span>
+            </>
+          )}
+        </div>
+      </Header.LeftItem>
+      <Header.RightItem className="items-center">
+        <Button variant="secondary" size="lg" onClick={onToday}>
           Today
-        </button>
+        </Button>
         <div className="flex items-center">
           <button
             type="button"
             onClick={onPrev}
             aria-label="Previous"
-            className="grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-1-hover hover:text-primary"
+            className="grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-2-hover hover:text-primary"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -396,33 +378,80 @@ function CalendarToolbar({ view, visibleMonth, onToday, onPrev, onNext, onViewCh
             type="button"
             onClick={onNext}
             aria-label="Next"
-            className="grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-1-hover hover:text-primary"
+            className="grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-2-hover hover:text-primary"
           >
             <ChevronRight className="size-4" />
           </button>
         </div>
-        <div className="ml-1 text-15 font-medium text-primary">{visibleMonth}</div>
-      </div>
-      <Menu as="div" className="relative">
-        <Menu.Button className="inline-flex items-center gap-1.5 rounded-md border border-subtle-1 bg-canvas px-2.5 py-1 text-13 font-medium text-primary hover:bg-layer-1-hover">
-          {currentViewLabel}
-          <ChevronDown className="size-3.5 text-tertiary" />
-        </Menu.Button>
-        <Menu.Items className="absolute right-0 z-30 mt-1 w-32 rounded-md border border-subtle-1 bg-canvas py-1 shadow-lg outline-none">
-          {VIEW_OPTIONS.map((opt) => (
-            <Menu.Item key={opt.value}>
-              <button
-                type="button"
-                onClick={() => onViewChange(opt.value)}
-                className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
-              >
-                {opt.label}
-                {view === opt.value && <Check className="size-3.5 text-tertiary" />}
-              </button>
-            </Menu.Item>
-          ))}
-        </Menu.Items>
-      </Menu>
-    </div>
+        <span className="px-1 text-13 font-medium text-primary">{visibleMonth}</span>
+        <ViewMenu view={view} onViewChange={onViewChange} />
+        <span className="bg-subtle mx-1 h-5 w-px" aria-hidden />
+        <Button variant="primary" size="lg" prependIcon={<Plus />} onClick={onQuickAdd}>
+          New task
+        </Button>
+        {googleAccount ? (
+          <Button variant="ghost" size="lg" prependIcon={<Trash2 />} onClick={handleDisconnect}>
+            Disconnect Google
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            size="lg"
+            prependIcon={<CalendarIcon />}
+            onClick={handleConnect}
+            disabled={isConnecting}
+          >
+            {isConnecting ? "Redirecting…" : "Connect Google Calendar"}
+          </Button>
+        )}
+      </Header.RightItem>
+    </Header>
+  );
+}
+
+function LegendDot({ color }: { color: string }) {
+  return <span className="inline-block size-2 rounded-full" style={{ backgroundColor: color }} />;
+}
+
+// ── View dropdown ─────────────────────────────────────────────────────────
+// The Today / chevron / month-label / view-selector controls used to live in
+// a separate sub-toolbar; they're now inline in the page header. Only the
+// view dropdown lives here as its own component since the menu needs its own
+// open/close state.
+
+const VIEW_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "month-grid", label: "Month" },
+  { value: "week", label: "Week" },
+  { value: "day", label: "Day" },
+];
+
+type ViewMenuProps = {
+  view: string;
+  onViewChange: (next: string) => void;
+};
+
+function ViewMenu({ view, onViewChange }: ViewMenuProps) {
+  const currentViewLabel = VIEW_OPTIONS.find((o) => o.value === view)?.label ?? "Month";
+  return (
+    <Menu as="div" className="relative">
+      <Menu.Button className="inline-flex h-7 items-center gap-1.5 rounded-md border border-strong bg-layer-2 px-2 text-body-xs-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover">
+        {currentViewLabel}
+        <ChevronDown className="size-3.5 text-tertiary" />
+      </Menu.Button>
+      <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-32 rounded-md border border-strong bg-layer-2 py-1 outline-none">
+        {VIEW_OPTIONS.map((opt) => (
+          <Menu.Item key={opt.value}>
+            <button
+              type="button"
+              onClick={() => onViewChange(opt.value)}
+              className="flex w-full items-center justify-between px-3 py-1.5 text-left text-13 text-secondary hover:bg-layer-2-hover"
+            >
+              {opt.label}
+              {view === opt.value && <Check className="size-3.5 text-tertiary" />}
+            </button>
+          </Menu.Item>
+        ))}
+      </Menu.Items>
+    </Menu>
   );
 }

@@ -23,7 +23,7 @@ import ogImage from "@/app/assets/og-image.png?url";
 import globalStyles from "@/styles/globals.css?url";
 import type { Route } from "./+types/root";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 // local
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
@@ -84,7 +84,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <body suppressHydrationWarning>
         <div id="context-menu-portal" />
         <div id="editor-portal" />
-        <ThemeProvider themes={["light", "dark", "light-contrast", "dark-contrast", "custom"]} defaultTheme="system">
+        <ThemeProvider themes={["light", "dark"]} defaultTheme="light">
           {children}
         </ThemeProvider>
         <Scripts />
@@ -146,11 +146,7 @@ export function HydrateFallback() {
   // if we are on the server or the theme is not resolved, return an empty div
   if (typeof window === "undefined" || resolvedTheme === undefined) return <div />;
 
-  return (
-    <div className="relative flex h-screen w-full items-center justify-center bg-canvas">
-      <LogoSpinner />
-    </div>
-  );
+  return <AppLoadingScreen />;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

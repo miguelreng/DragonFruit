@@ -78,7 +78,10 @@ export class AuthService extends APIService {
 
       document.body.appendChild(form);
 
+      // Tags the upcoming page reload so AppLoadingScreen can pick the "logging out" painting.
+      window.sessionStorage.setItem("df-loading-intent", "logout");
       form.submit();
+      return data;
     });
   }
 }

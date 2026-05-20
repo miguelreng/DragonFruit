@@ -23,7 +23,7 @@ import type { TPageInstance } from "@/store/pages/base-page";
 import { PageNavigationPaneRoot } from "../navigation-pane";
 import { PageVersionsOverlay } from "../version";
 import { PagesVersionEditor } from "../version/editor";
-import { MermaidEditor } from "../diagram/mermaid-editor";
+import { DiagramEditor } from "../diagram/diagram-editor";
 import { ExcalidrawEditor } from "../whiteboard/excalidraw-editor";
 import { ContentLimitBanner } from "./content-limit-banner";
 import { PageEditorBody } from "./editor-body";
@@ -165,6 +165,12 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
     [setEditorRef]
   );
 
+  // Doc pages get the rich-text toolbar (formatting) and the right-hand
+  // navigation pane (Outline / Info / Assets). Diagram and whiteboard pages
+  // have neither headings nor uploaded assets, so the pane's empty states
+  // ("Missing headings", etc.) are noise — skip both surfaces for them.
+  const isCanvasPage = page.page_type === "diagram" || page.page_type === "whiteboard";
+
   return (
     <div className="relative flex size-full overflow-hidden transition-all duration-300 ease-in-out">
       <div className="flex size-full flex-col overflow-hidden">
@@ -176,14 +182,16 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           restoreEnabled={isContentEditable}
           storeType={storeType}
         />
-        <PageEditorToolbarRoot
-          handleOpenNavigationPane={handleOpenNavigationPane}
-          isNavigationPaneOpen={isNavigationPaneOpen}
-          page={page}
-        />
+        {!isCanvasPage && (
+          <PageEditorToolbarRoot
+            handleOpenNavigationPane={handleOpenNavigationPane}
+            isNavigationPaneOpen={isNavigationPaneOpen}
+            page={page}
+          />
+        )}
         {showContentTooLargeBanner && <ContentLimitBanner className="px-page-x" />}
         {page.page_type === "diagram" ? (
-          <MermaidEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+          <DiagramEditor page={page} handlers={handlers} isEditable={isContentEditable} />
         ) : page.page_type === "whiteboard" ? (
           <ExcalidrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
         ) : (
@@ -207,17 +215,19 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           />
         )}
       </div>
-      <PageNavigationPaneRoot
-        storeType={storeType}
-        handleClose={handleCloseNavigationPane}
-        isNavigationPaneOpen={isNavigationPaneOpen}
-        page={page}
-        versionHistory={{
-          fetchAllVersions: handlers.fetchAllVersions,
-          fetchVersionDetails: handlers.fetchVersionDetails,
-        }}
-        extensions={navigationPaneExtensions}
-      />
+      {!isCanvasPage && (
+        <PageNavigationPaneRoot
+          storeType={storeType}
+          handleClose={handleCloseNavigationPane}
+          isNavigationPaneOpen={isNavigationPaneOpen}
+          page={page}
+          versionHistory={{
+            fetchAllVersions: handlers.fetchAllVersions,
+            fetchVersionDetails: handlers.fetchVersionDetails,
+          }}
+          extensions={navigationPaneExtensions}
+        />
+      )}
       <PageModals page={page} storeType={storeType} />
     </div>
   );

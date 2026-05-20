@@ -9,11 +9,7 @@ import { action, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
 // plane imports
 import type { TUserPermissions, TUserPermissionsLevel } from "@plane/constants";
-import {
-  EUserPermissions,
-  EUserPermissionsLevel,
-  WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
-} from "@plane/constants";
+import { EUserPermissions, EUserPermissionsLevel, WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS } from "@plane/constants";
 import type { EUserProjectRoles, IUserProjectsRole, IWorkspaceMemberMe, TProjectMembership } from "@plane/types";
 import { EUserWorkspaceRoles } from "@plane/types";
 // plane web imports
@@ -171,7 +167,7 @@ export abstract class BaseUserPermissionStore implements IBaseUserPermissionStor
    */
   hasPageAccess = computedFn((workspaceSlug: string, key: string): boolean => {
     if (!workspaceSlug || !key) return false;
-    const settings = WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.find((item) => item.key === key);
+    const settings = Object.values(WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS).find((item) => item.key === key);
     if (settings) {
       return this.allowPermissions(settings.access, EUserPermissionsLevel.WORKSPACE, workspaceSlug);
     }

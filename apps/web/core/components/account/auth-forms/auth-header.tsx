@@ -15,6 +15,7 @@ import { WorkspaceLogo } from "@/components/workspace/logo";
 import { EAuthModes, EAuthSteps } from "@/helpers/authentication.helper";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
+import dragonMark from "@/app/assets/branding/dragon.svg?url";
 
 type TAuthHeader = {
   workspaceSlug: string | undefined;
@@ -27,29 +28,29 @@ type TAuthHeader = {
 const Titles = {
   [EAuthModes.SIGN_IN]: {
     [EAuthSteps.EMAIL]: {
-      header: "Plan, write, and ship beautifully.",
+      header: "Where ideas become work.",
       subHeader: "Welcome back to DragonFruit.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Plan, write, and ship beautifully.",
+      header: "Where ideas become work.",
       subHeader: "Welcome back to DragonFruit.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Plan, write, and ship beautifully.",
+      header: "Where ideas become work.",
       subHeader: "Welcome back to DragonFruit.",
     },
   },
   [EAuthModes.SIGN_UP]: {
     [EAuthSteps.EMAIL]: {
-      header: "Plan, write, and ship beautifully.",
+      header: "Where ideas become work.",
       subHeader: "Create your DragonFruit account.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Plan, write, and ship beautifully.",
+      header: "Where ideas become work.",
       subHeader: "Create your DragonFruit account.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Plan, write, and ship beautifully.",
+      header: "Where ideas become work.",
       subHeader: "Create your DragonFruit account.",
     },
   },
@@ -116,9 +117,12 @@ type TAuthHeaderBase = {
 
 export function AuthHeaderBase(props: TAuthHeaderBase) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-h4-semibold text-primary">{props.header}</span>
-      <span className="text-h4-semibold text-placeholder">{props.subHeader}</span>
+    <div className="flex flex-col items-start gap-4">
+      <img src={dragonMark} alt="" aria-hidden className="h-12 w-auto self-start" />
+      <div className="flex flex-col gap-1">
+        <span className="text-h4-semibold text-primary">{props.header}</span>
+        <span className="text-h4-semibold text-placeholder">{props.subHeader}</span>
+      </div>
     </div>
   );
 }

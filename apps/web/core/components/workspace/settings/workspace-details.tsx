@@ -12,6 +12,7 @@ import { ORGANIZATION_SIZE, EUserPermissions, EUserPermissionsLevel } from "@pla
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EditIcon } from "@plane/propel/icons";
+import { RefreshCw } from "@/components/icons/lucide-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspace } from "@plane/types";
 import { CustomSelect, Input } from "@plane/ui";
@@ -19,6 +20,7 @@ import { cn, copyUrlToClipboard, getFileURL, validateWorkspaceName } from "@plan
 // components
 import { WorkspaceImageUploadModal } from "@/components/core/modals/workspace-image-upload-modal";
 import { TimezoneSelect } from "@/components/global/timezone-select";
+import { randomizeDefaultWorkspaceLogo, useDefaultWorkspaceLogo } from "@/components/workspace/default-logos";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -54,6 +56,8 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
   });
   // derived values
   const workspaceLogo = watch("logo_url");
+  const defaultLogo = useDefaultWorkspaceLogo(currentWorkspace?.id);
+  const hasCustomLogo = !!workspaceLogo && workspaceLogo !== "";
 
   const onSubmit = async (formData: IWorkspace) => {
     if (!currentWorkspace) return;
@@ -149,19 +153,13 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
         <div className="flex items-center gap-5">
           <div className="flex shrink-0 flex-col gap-1">
             <button type="button" onClick={() => setIsImageUploadModalOpen(true)} disabled={!isAdmin}>
-              {workspaceLogo && workspaceLogo !== "" ? (
-                <div className="relative flex size-14">
-                  <img
-                    src={getFileURL(workspaceLogo)}
-                    className="absolute top-0 left-0 size-full rounded-md object-cover"
-                    alt="Workspace Logo"
-                  />
-                </div>
-              ) : (
-                <div className="relative grid size-14 place-items-center rounded-md bg-accent-primary text-24 text-on-color uppercase">
-                  {currentWorkspace?.name?.charAt(0) ?? "N"}
-                </div>
-              )}
+              <div className="relative flex size-14">
+                <img
+                  src={hasCustomLogo ? getFileURL(workspaceLogo as string) : defaultLogo}
+                  className="absolute top-0 left-0 size-full rounded-md object-cover"
+                  alt="Workspace Logo"
+                />
+              </div>
             </button>
           </div>
           <div className="flex flex-col gap-1">
@@ -170,20 +168,32 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
               typeof window !== "undefined" && window.location.origin.replace("http://", "").replace("https://", "")
             }/${currentWorkspace.slug}`}</button>
             {isAdmin && (
-              <button
-                type="button"
-                className="flex items-center gap-1.5 text-left text-caption-sm-medium text-accent-primary"
-                onClick={() => setIsImageUploadModalOpen(true)}
-              >
-                {workspaceLogo && workspaceLogo !== "" ? (
-                  <>
-                    <EditIcon className="h-3 w-3" />
-                    {t("workspace_settings.settings.general.edit_logo")}
-                  </>
-                ) : (
-                  t("workspace_settings.settings.general.upload_logo")
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-left text-caption-sm-medium text-accent-primary"
+                  onClick={() => setIsImageUploadModalOpen(true)}
+                >
+                  {hasCustomLogo ? (
+                    <>
+                      <EditIcon className="h-3 w-3" />
+                      {t("workspace_settings.settings.general.edit_logo")}
+                    </>
+                  ) : (
+                    t("workspace_settings.settings.general.upload_logo")
+                  )}
+                </button>
+                {!hasCustomLogo && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-left text-caption-sm-medium text-secondary hover:text-primary"
+                    onClick={() => currentWorkspace?.id && randomizeDefaultWorkspaceLogo(currentWorkspace.id)}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Randomize
+                  </button>
                 )}
-              </button>
+              </div>
             )}
           </div>
         </div>

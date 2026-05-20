@@ -8,6 +8,7 @@ import { useState } from "react";
 import useSWR from "swr";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -32,6 +33,7 @@ const agentService = new AgentService();
 function AgentsSettingsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const { t } = useTranslation();
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
   const { currentWorkspace } = useWorkspace();
   const canAdmin = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
@@ -74,12 +76,13 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
       if (cancelled > 0) {
         setToast({
           type: TOAST_TYPE.SUCCESS,
-          title: "Agent stopped",
-          message: `Cancelled ${cancelled} in-flight run${cancelled === 1 ? "" : "s"}.`,
+          title: t("workspace_settings.settings.agents.stopped.title"),
+          message: t("workspace_settings.settings.agents.stopped.cancelled", { count: cancelled }),
         });
       }
     } catch (err) {
-      const message = (err as { error?: string } | undefined)?.error ?? "Could not update agent";
+      const message =
+        (err as { error?: string } | undefined)?.error ?? t("workspace_settings.settings.agents.update_error");
       setToast({ type: TOAST_TYPE.ERROR, title: message });
     }
   };
@@ -89,9 +92,10 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
     try {
       await agentService.destroy(workspaceSlug, id);
       await mutate();
-      setToast({ type: TOAST_TYPE.SUCCESS, title: "Agent deleted" });
+      setToast({ type: TOAST_TYPE.SUCCESS, title: t("workspace_settings.settings.agents.delete_success") });
     } catch (err) {
-      const message = (err as { error?: string } | undefined)?.error ?? "Could not delete agent";
+      const message =
+        (err as { error?: string } | undefined)?.error ?? t("workspace_settings.settings.agents.delete_error");
       setToast({ type: TOAST_TYPE.ERROR, title: message });
     }
   };
@@ -102,7 +106,9 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
 
   if (isLoading || !agents) return <PageLoader />;
 
-  const pageTitle = currentWorkspace?.name ? `${currentWorkspace.name} - Agents` : undefined;
+  const pageTitle = currentWorkspace?.name
+    ? `${currentWorkspace.name} - ${t("workspace_settings.settings.agents.title")}`
+    : undefined;
 
   return (
     <SettingsContentWrapper header={<AgentsWorkspaceSettingsHeader />}>
@@ -110,11 +116,11 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
       <div className="w-full">
         <CreateAgentModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreate={handleCreate} />
         <SettingsHeading
-          title="Agents"
-          description="Bot members of this workspace that can be assigned to tasks. Each agent uses your own LLM key (BYOK)."
+          title={t("workspace_settings.settings.agents.heading")}
+          description={t("workspace_settings.settings.agents.description")}
           control={
             <Button variant="primary" size="lg" onClick={() => setShowCreateModal(true)}>
-              Add agent
+              {t("workspace_settings.settings.agents.add_agent")}
             </Button>
           }
         />
@@ -127,11 +133,11 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
             <div className="flex h-full w-full items-center justify-center">
               <EmptyStateCompact
                 assetKey="webhook"
-                title="No agents yet"
-                description="Create an agent and it’ll appear in the assignee picker. Assign it to a task to see it work."
+                title={t("workspace_settings.settings.agents.empty.title")}
+                description={t("workspace_settings.settings.agents.empty.description")}
                 actions={[
                   {
-                    label: "Add agent",
+                    label: t("workspace_settings.settings.agents.add_agent"),
                     onClick: () => setShowCreateModal(true),
                   },
                 ]}
