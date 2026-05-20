@@ -17,7 +17,7 @@ import {
   Users2Icon,
   ArchiveIcon,
   PaperclipIcon,
-  TriangleIcon,
+  Triangle as TriangleIcon,
   LayoutGridIcon,
   SignalMediumIcon,
   MessageSquareIcon,
