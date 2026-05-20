@@ -5,7 +5,7 @@
  */
 
 import type { MutableRefObject } from "react";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { attachInstruction, extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
@@ -44,11 +44,6 @@ type Props = {
   canDropOverIssue: boolean;
   isParentIssueBeingDragged?: boolean;
   isLastChild?: boolean;
-  // True when this row is the last subtask in its parent's children list.
-  // Drives the tree-branch visual in IssueBlock — last sibling stops the
-  // vertical line at the row's midpoint instead of extending it down to a
-  // (non-existent) next sibling.
-  isLastSibling?: boolean;
   shouldRenderByDefault?: boolean;
   isEpic?: boolean;
 };
@@ -69,7 +64,6 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
     canDropOverIssue,
     isParentIssueBeingDragged = false,
     isLastChild = false,
-    isLastSibling = false,
     selectionHelpers,
     shouldRenderByDefault,
     isEpic = false,
@@ -86,14 +80,6 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
   const { subIssues: subIssuesStore } = useIssueDetail(isEpic ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES);
 
   const isSubIssue = nestingLevel !== 0;
-
-  // Track the LAST subtask row's height so the tree-branch vertical can clip
-  // exactly at its midpoint (where the elbow's horizontal hook taps in)
-  // instead of a fixed 22px guess that fails for multi-line task names or
-  // when extra properties bump the row height. Re-measures via
-  // ResizeObserver, so resizing the window or expanding inline properties
-  // keeps the clip accurate.
-  const [lastChildMidpoint, setLastChildMidpoint] = useState(22);
 
   useEffect(() => {
     const blockElement = issueBlockRef.current;
@@ -143,45 +129,6 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
 
   const subIssues = subIssuesStore.subIssuesByIssueId(issueId);
 
-  // Re-anchor the tree-branch clip whenever the last subtask's row moves
-  // or resizes. We need to land at the ROW's midpoint, not the IssueBlockRoot
-  // wrapper's midpoint — the wrapper also contains the row's border-b and
-  // (when the last child itself is expanded) its own children area, so
-  // `wrapper.height / 2` lands in the wrong place.
-  //
-  // Strategy: find the `.group/list-block` element (the actual <Row>) inside
-  // the last subtask, get its midpoint in viewport coords, subtract from the
-  // children-wrapper's bottom. The result is the exact CSS `bottom` value
-  // the line needs to hit the row's midpoint.
-  //
-  // useLayoutEffect (not useEffect) so the measurement happens before paint
-  // — otherwise the user sees a one-frame flash of the 22px fallback before
-  // we correct it.
-  useLayoutEffect(() => {
-    if (!isExpanded || !subIssues || subIssues.length === 0) return;
-    const lastId = subIssues[subIssues.length - 1];
-    const lastEl = document.getElementById(getIssueBlockId(lastId, groupId));
-    if (!lastEl) return;
-    // The <Row> inside the last subtask carries this Tailwind group class —
-    // see block.tsx where the Row is rendered. Selector escapes the slash.
-    const rowEl = lastEl.querySelector(".group\\/list-block") as HTMLElement | null;
-    const wrapperEl = lastEl.parentElement;
-    if (!rowEl || !wrapperEl) return;
-    const update = () => {
-      const wrapperRect = wrapperEl.getBoundingClientRect();
-      const rowRect = rowEl.getBoundingClientRect();
-      if (rowRect.height <= 0) return;
-      // bottom-from-wrapper-bottom = (wrapper.bottom_y) - (row.midpoint_y)
-      const bottomValue = wrapperRect.bottom - (rowRect.top + rowRect.height / 2);
-      setLastChildMidpoint(bottomValue);
-    };
-    update();
-    const resizeObserver = new ResizeObserver(update);
-    resizeObserver.observe(rowEl);
-    resizeObserver.observe(wrapperEl);
-    return () => resizeObserver.disconnect();
-  }, [isExpanded, subIssues, groupId]);
-
   if (!issueId || !issuesMap[issueId]?.created_at) return null;
   return (
     <div className="relative" ref={issueBlockRef} id={getIssueBlockId(issueId, groupId)}>
@@ -207,7 +154,6 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
           setExpanded={setExpanded}
           nestingLevel={nestingLevel}
           spacingLeft={spacingLeft}
-          isLastSibling={isLastSibling}
           selectionHelpers={selectionHelpers}
           canDrag={!isSubIssue && isDragAllowed}
           isCurrentBlockDragging={isParentIssueBeingDragged || isCurrentBlockDragging}
@@ -216,64 +162,28 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
         />
       </RenderIfVisible>
 
-      {isExpanded && !isEpic && (subIssues?.length ?? 0) > 0 && (
-        // Wrap all child rows in a relatively-positioned container so we can
-        // paint the tree-branch vertical as ONE continuous DOM element across
-        // every sibling. The previous per-row approach (upper-L + lower
-        // extension on each row) tried to stitch together a continuous line
-        // out of pieces, but the row's variable inner-content height made
-        // every offset calculation brittle — visible breaks would re-appear
-        // at zoom levels other than 100% or when a subtask name wrapped to
-        // two lines. One line, one element, no stitching.
-        <div className="relative">
-          {/*
-            The single vertical. Stops 22px short of the bottom (≈ half of
-            `min-h-11`, the row's minimum height) so it terminates at the
-            LAST subtask's midpoint where that row's curved elbow taps in,
-            instead of dangling below the last child. The `left` calc lines
-            it up with the elbow's x-position: the elbow is at `-12px` of
-            the inner div, which itself sits at `var(--padding-page-x) +
-            ${spacingLeft + 12}px` from this wrapper's edge — net is
-            `var(--padding-page-x) + ${spacingLeft}px`.
-          */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute border-l border-strong"
-            style={{
-              left: `calc(var(--padding-page-x) + ${spacingLeft}px)`,
-              top: 0,
-              // Measured last-child midpoint, kept in sync via ResizeObserver
-              // — see the useEffect above. Falls back to 22px on first paint
-              // (matches the row's `min-h-11` of 44px / 2).
-              bottom: `${lastChildMidpoint}px`,
-            }}
+      {isExpanded &&
+        !isEpic &&
+        subIssues?.map((subIssueId) => (
+          <IssueBlockRoot
+            key={`${subIssueId}`}
+            issueId={subIssueId}
+            issuesMap={issuesMap}
+            updateIssue={updateIssue}
+            quickActions={quickActions}
+            canEditProperties={canEditProperties}
+            displayProperties={displayProperties}
+            nestingLevel={nestingLevel + 1}
+            spacingLeft={spacingLeft + 12}
+            containerRef={containerRef}
+            selectionHelpers={selectionHelpers}
+            groupId={groupId}
+            isDragAllowed={isDragAllowed}
+            canDropOverIssue={canDropOverIssue}
+            isParentIssueBeingDragged={isParentIssueBeingDragged || isCurrentBlockDragging}
+            shouldRenderByDefault={isExpanded}
           />
-          {subIssues?.map((subIssueId, index) => (
-            <IssueBlockRoot
-              key={`${subIssueId}`}
-              issueId={subIssueId}
-              issuesMap={issuesMap}
-              updateIssue={updateIssue}
-              quickActions={quickActions}
-              canEditProperties={canEditProperties}
-              displayProperties={displayProperties}
-              nestingLevel={nestingLevel + 1}
-              spacingLeft={spacingLeft + 12}
-              containerRef={containerRef}
-              selectionHelpers={selectionHelpers}
-              groupId={groupId}
-              isDragAllowed={isDragAllowed}
-              canDropOverIssue={canDropOverIssue}
-              isParentIssueBeingDragged={isParentIssueBeingDragged || isCurrentBlockDragging}
-              // Still threaded so each leaf row knows whether to draw the
-              // curved elbow vs. plain. (The continuous vertical itself lives
-              // on the wrapper above — the leaf only draws the corner.)
-              isLastSibling={index === (subIssues?.length ?? 0) - 1}
-              shouldRenderByDefault={isExpanded}
-            />
-          ))}
-        </div>
-      )}
+        ))}
       {isLastChild && <DropIndicator classNames={"absolute z-[2]"} isVisible={instruction === "DRAG_BELOW"} />}
     </div>
   );
