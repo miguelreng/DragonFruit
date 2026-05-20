@@ -5,12 +5,13 @@
  */
 
 // plane imports
-import type { IFavorite } from "@plane/types";
+import type { EIssueLayoutTypes, IFavorite } from "@plane/types";
 // components
 import { getPageName } from "@plane/utils";
 import {
   generateFavoriteItemLink,
   getFavoriteItemIcon,
+  getFavoriteViewIcon,
 } from "@/components/workspace/sidebar/favorites/favorite-items/common";
 // helpers
 // hooks
@@ -61,7 +62,11 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
       break;
     case "view":
       itemTitle = viewDetails?.name ?? favoriteItemName;
-      itemIcon = getFavoriteItemIcon("view", viewDetails?.logo_props || favoriteItemLogoProps);
+      // For saved Views the layout (kanban / list / gantt / etc.) reads more
+      // usefully than the emoji — see getFavoriteViewIcon's docstring. The
+      // `display_filters.layout` field is typed `any` upstream, so we cast at
+      // the boundary into the strict enum the icon component expects.
+      itemIcon = getFavoriteViewIcon(viewDetails?.display_filters?.layout as EIssueLayoutTypes | undefined);
       break;
     case "cycle":
       itemTitle = cycleDetail?.name ?? favoriteItemName;
