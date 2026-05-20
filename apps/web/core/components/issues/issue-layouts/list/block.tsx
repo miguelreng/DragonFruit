@@ -71,7 +71,11 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
     canEditProperties,
     nestingLevel,
     spacingLeft = 14,
-    isLastSibling = false,
+    // Threaded through from block-root for future use, but the continuous
+    // vertical now lives in the wrapper above us — we no longer branch on
+    // last-vs-not at the leaf level. Prefixed with underscore so the
+    // linter ignores it without us having to tear down the prop chain.
+    isLastSibling: _isLastSibling = false,
     isExpanded,
     setExpanded,
     selectionHelpers,
@@ -237,27 +241,17 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   block-root.tsx so deeper nesting stacks cleanly.
                   Decorative — aria-hidden. */}
               {isSubIssue && (
-                <>
-                  {/* Upper L extends UP past the row's py-3 padding so the
-                      vertical line reaches the very top edge of the row,
-                      flush with the previous sibling's lower extension. */}
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute rounded-bl-md border-b border-l border-strong"
-                    style={{ left: "-12px", top: "-12px", bottom: "50%", width: "12px" }}
-                  />
-                  {!isLastSibling && (
-                    // Lower extension reaches DOWN past the row's py-3
-                    // padding AND the 1px border-b between rows, so it
-                    // meets the next sibling's upper-L stem with no
-                    // visible gap. -13px = 12px padding + 1px row border.
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute border-l border-strong"
-                      style={{ left: "-12px", top: "50%", bottom: "-13px", width: "1px" }}
-                    />
-                  )}
-                </>
+                // Curved elbow that taps this row into the continuous vertical
+                // drawn by the parent block-root (see the wrapper-level
+                // <div className="relative"> in block-root.tsx). The elbow's
+                // own vertical stub is short — just enough to render the
+                // rounded inner corner — because the long vertical stroke
+                // between siblings is no longer this row's problem.
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute rounded-bl-md border-b border-l border-strong"
+                  style={{ left: "-12px", top: "calc(50% - 8px)", height: "8px", width: "12px" }}
+                />
               )}
               {/* select checkbox */}
               {projectId && canSelectIssues && !isEpic && (

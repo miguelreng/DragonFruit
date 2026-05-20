@@ -169,33 +169,61 @@ export const IssueBlockRoot = observer(function IssueBlockRoot(props: Props) {
         />
       </RenderIfVisible>
 
-      {isExpanded &&
-        !isEpic &&
-        subIssues?.map((subIssueId, index) => (
-          <IssueBlockRoot
-            key={`${subIssueId}`}
-            issueId={subIssueId}
-            issuesMap={issuesMap}
-            updateIssue={updateIssue}
-            quickActions={quickActions}
-            canEditProperties={canEditProperties}
-            displayProperties={displayProperties}
-            nestingLevel={nestingLevel + 1}
-            spacingLeft={spacingLeft + 12}
-            containerRef={containerRef}
-            selectionHelpers={selectionHelpers}
-            groupId={groupId}
-            isDragAllowed={isDragAllowed}
-            canDropOverIssue={canDropOverIssue}
-            isParentIssueBeingDragged={isParentIssueBeingDragged || isCurrentBlockDragging}
-            // Tells the leaf IssueBlock whether to terminate the tree-branch
-            // vertical at the row midpoint (last) or extend it down to the
-            // next sibling. Continuous lines through siblings, clean stop at
-            // the last — see image-2 reference style.
-            isLastSibling={index === (subIssues?.length ?? 0) - 1}
-            shouldRenderByDefault={isExpanded}
+      {isExpanded && !isEpic && (subIssues?.length ?? 0) > 0 && (
+        // Wrap all child rows in a relatively-positioned container so we can
+        // paint the tree-branch vertical as ONE continuous DOM element across
+        // every sibling. The previous per-row approach (upper-L + lower
+        // extension on each row) tried to stitch together a continuous line
+        // out of pieces, but the row's variable inner-content height made
+        // every offset calculation brittle — visible breaks would re-appear
+        // at zoom levels other than 100% or when a subtask name wrapped to
+        // two lines. One line, one element, no stitching.
+        <div className="relative">
+          {/*
+            The single vertical. Stops 22px short of the bottom (≈ half of
+            `min-h-11`, the row's minimum height) so it terminates at the
+            LAST subtask's midpoint where that row's curved elbow taps in,
+            instead of dangling below the last child. The `left` calc lines
+            it up with the elbow's x-position: the elbow is at `-12px` of
+            the inner div, which itself sits at `var(--padding-page-x) +
+            ${spacingLeft + 12}px` from this wrapper's edge — net is
+            `var(--padding-page-x) + ${spacingLeft}px`.
+          */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute border-l border-strong"
+            style={{
+              left: `calc(var(--padding-page-x) + ${spacingLeft}px)`,
+              top: 0,
+              bottom: "22px",
+            }}
           />
-        ))}
+          {subIssues?.map((subIssueId, index) => (
+            <IssueBlockRoot
+              key={`${subIssueId}`}
+              issueId={subIssueId}
+              issuesMap={issuesMap}
+              updateIssue={updateIssue}
+              quickActions={quickActions}
+              canEditProperties={canEditProperties}
+              displayProperties={displayProperties}
+              nestingLevel={nestingLevel + 1}
+              spacingLeft={spacingLeft + 12}
+              containerRef={containerRef}
+              selectionHelpers={selectionHelpers}
+              groupId={groupId}
+              isDragAllowed={isDragAllowed}
+              canDropOverIssue={canDropOverIssue}
+              isParentIssueBeingDragged={isParentIssueBeingDragged || isCurrentBlockDragging}
+              // Still threaded so each leaf row knows whether to draw the
+              // curved elbow vs. plain. (The continuous vertical itself lives
+              // on the wrapper above — the leaf only draws the corner.)
+              isLastSibling={index === (subIssues?.length ?? 0) - 1}
+              shouldRenderByDefault={isExpanded}
+            />
+          ))}
+        </div>
+      )}
       {isLastChild && <DropIndicator classNames={"absolute z-[2]"} isVisible={instruction === "DRAG_BELOW"} />}
     </div>
   );
