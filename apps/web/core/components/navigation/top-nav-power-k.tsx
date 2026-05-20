@@ -225,11 +225,20 @@ export const TopNavPowerK = observer(() => {
               "bg-white/10 dark:bg-black/10": isOpen,
             }
           )}
-          onClick={() => inputRef.current?.focus()}
+          onClick={(e) => {
+            // Only open on real user clicks — extensions probing the input
+            // dispatch synthetic clicks/focuses, which used to pop the panel
+            // when the AI settings page (with its password field) mounted.
+            if (!e.nativeEvent.isTrusted) return;
+            inputRef.current?.focus();
+            if (!isOpen) openPanel();
+          }}
           onKeyDown={(e) => {
+            if (!e.nativeEvent.isTrusted) return;
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               inputRef.current?.focus();
+              if (!isOpen) openPanel();
             }
           }}
           // reason: wrapper contains an input + clear button, can't be a real <button>; focus delegated to inner input
@@ -243,6 +252,10 @@ export const TopNavPowerK = observer(() => {
             type="text"
             value={searchTerm}
             onChange={(e) => {
+              // Ignore synthetic events from browser extensions (password managers
+              // probe nearby inputs when a password field mounts — e.g. on the AI
+              // settings page — which was popping the panel on navigation).
+              if (!e.nativeEvent.isTrusted) return;
               setSearchTerm(e.target.value);
               if (!isOpen) openPanel();
             }}
