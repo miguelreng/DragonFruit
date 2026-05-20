@@ -29,15 +29,25 @@ specific:
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from celery import shared_task
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.utils import timezone as dj_timezone
 
-from plane.db.models import Agent, AgentRun, Issue, IssueComment, IssueLabel, Label, State
-from plane.llm import LLMConfigError, LLMProvider, LLMRunResult, LLMTool
+from plane.db.models import (
+    Agent,
+    AgentRun,
+    Issue,
+    IssueComment,
+    IssueLabel,
+    Label,
+    Page,
+    PageBlockComment,
+    State,
+)
+from plane.llm import LLMConfigError, LLMProvider, LLMRunResult, LLMTool, estimate_cost_usd
 
 
 logger = logging.getLogger(__name__)
@@ -254,8 +264,10 @@ def _make_post_comment_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLM
         # Cheap heuristic — anything starting with `<` is presumed HTML.
         html = body if body.lstrip().startswith("<") else _wrap_in_paragraph(body)
 
-        _post_comment_as_bot(agent=agent, issue=issue, html=html)
-        return "ok: comment posted"
+        comment = _post_comment_as_bot(agent=agent, issue=issue, html=html)
+        if comment.is_draft:
+            return f"ok: comment posted as draft (id={comment.id}); awaiting admin approval"
+        return f"ok: comment posted (id={comment.id})"
 
     return LLMTool(
         name="post_comment",
@@ -495,8 +507,13 @@ def _emit_state_activity(*, issue: Issue, agent: Agent, previous_state_id, new_s
         )
 
 
-def _post_comment_as_bot(*, agent: Agent, issue: Issue, html: str) -> None:
+def _post_comment_as_bot(*, agent: Agent, issue: Issue, html: str) -> IssueComment:
     """Persist an IssueComment authored by the agent's bot user.
+
+    When `agent.draft_mode` is True the comment is created with
+    `is_draft=True`. Drafts are filtered out of the issue's normal
+    activity feed and surface only in the agent's runs panel until an
+    admin approves them.
 
     Bypasses crum's auto-attribution by passing `created_by_id` to
     BaseModel.save() — Celery has no current-user context.
@@ -509,8 +526,10 @@ def _post_comment_as_bot(*, agent: Agent, issue: Issue, html: str) -> None:
             actor=agent.bot_user,
             comment_html=html,
             comment_json={},
+            is_draft=bool(agent.draft_mode),
         )
         comment.save(created_by_id=agent.bot_user_id)
+    return comment
 
 
 def _wrap_in_paragraph(text: str) -> str:
@@ -548,6 +567,214 @@ def _mark_failed(run: AgentRun, message: str) -> None:
     run.save(update_fields=["status", "error", "completed_at", "updated_at"])
 
 
+# =====================================================================
+# Page block comment path — analog of the issue dispatcher
+# =====================================================================
+#
+# When an agent is @-mentioned in a PageBlockComment, this task runs.
+# The "target" is the comment, not an issue, so the prompt is built
+# from the page + the thread the comment lives in, and the reply tool
+# posts a child PageBlockComment via the standard parent FK.
+#
+# AgentRun.issue stays null for these runs; AgentRun.tool_calls still
+# captures what happened. The runs panel renders both kinds the same
+# way (target-agnostic), with the trigger_event ("mentioned") and
+# tool_calls log being enough context for now. A future "target" field
+# on AgentRun would let the panel link directly to the page comment.
+
+
+@shared_task(name="plane.bgtasks.agent_dispatch_task.dispatch_agent_for_page_comment")
+def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger_event: str) -> None:
+    """Run a single agent dispatch for a page block comment mention."""
+    try:
+        agent = Agent.objects.select_related("workspace", "bot_user").get(
+            pk=agent_id, deleted_at__isnull=True
+        )
+    except Agent.DoesNotExist:
+        logger.warning("agent_dispatch (page): agent %s not found", agent_id)
+        return
+
+    if not agent.is_enabled:
+        return
+
+    page_comment = (
+        PageBlockComment.objects.select_related("page", "page__workspace", "parent")
+        .filter(pk=page_comment_id, deleted_at__isnull=True)
+        .first()
+    )
+    if page_comment is None:
+        logger.warning("agent_dispatch (page): comment %s not found", page_comment_id)
+        return
+
+    run = AgentRun.objects.create(
+        agent=agent,
+        issue=None,
+        trigger_event=trigger_event,
+        status="running",
+        dispatched_at=datetime.now(timezone.utc),
+    )
+
+    try:
+        provider = LLMProvider.from_agent(agent)
+    except LLMConfigError as exc:
+        _mark_failed(run, f"not configured: {exc}")
+        return
+
+    page = page_comment.page
+    user_prompt = _build_page_comment_user_prompt(page_comment=page_comment, trigger_event=trigger_event)
+    system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT
+    tools = [_make_post_page_comment_tool(agent=agent, page_comment=page_comment, run=run)]
+
+    try:
+        result = provider.run(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            tools=tools,
+            max_iterations=_MAX_ITERATIONS_PER_RUN,
+            is_cancelled=lambda: _is_cancelled(run.id),
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("agent_dispatch (page): provider.run failed for agent=%s comment=%s", agent_id, page_comment_id)
+        _mark_failed(run, f"{exc.__class__.__name__}: {exc}")
+        return
+
+    _finalise_run(run, result)
+
+    if result.final_text and not _run_posted_comment(result):
+        _post_page_comment_as_bot(
+            agent=agent,
+            parent=page_comment,
+            page=page,
+            html=_wrap_in_paragraph(result.final_text),
+        )
+
+
+_DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT = (
+    "You are a Dragon Fruit agent — a workspace teammate that participates in docs like a "
+    "real member. Someone @-mentioned you in a comment on a page. Read the thread and the "
+    "page excerpt, then reply with a single concise comment in the same thread. Ask "
+    "clarifying questions if the request is ambiguous. To reply, call the "
+    "`post_page_comment` tool. Do not produce other output."
+)
+
+
+def _build_page_comment_user_prompt(*, page_comment: PageBlockComment, trigger_event: str) -> str:
+    page = page_comment.page
+    framing = (
+        "Someone @-mentioned you in a page comment thread. The most recent comment in the "
+        "thread is the message you should respond to."
+    )
+
+    # Thread context: pull all comments in the same block_id, oldest
+    # first. Cap to 10 to keep the prompt cheap.
+    thread = list(
+        PageBlockComment.objects.filter(
+            page=page, block_id=page_comment.block_id, deleted_at__isnull=True
+        )
+        .order_by("created_at")
+        .select_related("created_by")[:10]
+    )
+
+    parts = [
+        framing,
+        "",
+        f"Page: {page.name}",
+        f"Workspace: {page.workspace.name if page.workspace else '(no workspace)'}",
+        "",
+        "Page excerpt (first 800 chars):",
+        (page.description_stripped or "(empty)")[:800],
+        "",
+        f"Thread ({len(thread)} comment{'s' if len(thread) != 1 else ''}, newest last):",
+    ]
+    for c in thread:
+        who = (
+            (c.created_by.display_name or c.created_by.email)
+            if c.created_by
+            else "someone"
+        )
+        body = (c.content or "").strip()
+        # Crude HTML strip for the prompt — keeps it readable without a parser.
+        import re as _re
+        body_plain = _re.sub(r"<[^>]+>", " ", body).strip()
+        parts.append(f"- {who}: {body_plain[:500]}")
+
+    return "\n".join(parts)
+
+
+def _make_post_page_comment_tool(
+    *, agent: Agent, page_comment: PageBlockComment, run: AgentRun
+) -> LLMTool:
+    """Reply tool for page-comment-triggered runs.
+
+    Posts a new PageBlockComment as a child of the mentioning comment.
+    Inherits the parent's block_id so the reply lands in the same
+    thread. Respects agent.draft_mode (sets is_draft on the row).
+    """
+
+    def handler(args: Dict[str, Any]) -> str:
+        body = (args.get("comment_html") or args.get("body") or "").strip()
+        if not body:
+            return "tool_error: comment body was empty; pass `comment_html`"
+
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        html = body if body.lstrip().startswith("<") else _wrap_in_paragraph(body)
+
+        new_comment = _post_page_comment_as_bot(
+            agent=agent,
+            parent=page_comment,
+            page=page_comment.page,
+            html=html,
+        )
+        if new_comment.is_draft:
+            return f"ok: page comment posted as draft (id={new_comment.id}); awaiting admin approval"
+        return f"ok: page comment posted (id={new_comment.id})"
+
+    return LLMTool(
+        name="post_page_comment",
+        description=(
+            "Reply to the page comment thread you were mentioned in. The reply will appear "
+            "as a child of the mentioning comment. Use this once per turn and then stop."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "comment_html": {
+                    "type": "string",
+                    "description": (
+                        "The reply body. May be HTML or plain text. Plain text is wrapped "
+                        "in a paragraph automatically. Keep it under 2000 characters."
+                    ),
+                },
+            },
+            "required": ["comment_html"],
+        },
+        handler=handler,
+    )
+
+
+def _post_page_comment_as_bot(
+    *,
+    agent: Agent,
+    parent: PageBlockComment,
+    page: Page,
+    html: str,
+) -> PageBlockComment:
+    """Create a child PageBlockComment under `parent` authored by the bot."""
+    with transaction.atomic():
+        comment = PageBlockComment(
+            workspace=page.workspace,
+            page=page,
+            block_id=parent.block_id,  # inherit thread anchor
+            parent=parent,
+            content=html,
+            is_draft=bool(agent.draft_mode),
+        )
+        comment.save(created_by_id=agent.bot_user_id)
+    return comment
+
+
 def _finalise_run(run: AgentRun, result: LLMRunResult) -> None:
     """Save the LLM run outcome + telemetry onto the AgentRun row."""
     if result.cancelled:
@@ -570,6 +797,13 @@ def _finalise_run(run: AgentRun, result: LLMRunResult) -> None:
     run.completion_tokens = result.completion_tokens
     run.total_tokens = result.total_tokens
     run.tool_calls = result.tool_calls
+    # Compute dollar cost from the per-model pricing table. Unknown
+    # models fall back to 0 — better than showing a guessed number.
+    run.cost_usd = estimate_cost_usd(
+        run.agent.provider_model,
+        result.prompt_tokens,
+        result.completion_tokens,
+    )
     run.save(
         update_fields=[
             "status",
@@ -580,6 +814,7 @@ def _finalise_run(run: AgentRun, result: LLMRunResult) -> None:
             "completion_tokens",
             "total_tokens",
             "tool_calls",
+            "cost_usd",
             "updated_at",
         ]
     )

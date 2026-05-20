@@ -183,8 +183,10 @@ from .agent_webhook.base import (
 )
 
 from .agent.base import (
-    AgentEndpoint,
     AgentDetailEndpoint,
+    AgentDraftCommentApproveEndpoint,
+    AgentDraftCommentDiscardEndpoint,
+    AgentEndpoint,
     AgentRunCancelEndpoint,
     AgentRunListEndpoint,
     AgentStopEndpoint,

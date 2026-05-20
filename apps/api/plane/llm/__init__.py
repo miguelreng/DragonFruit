@@ -24,6 +24,7 @@ This module is the single seam — search for `from plane.llm import` and
 you've found every place in the codebase that talks to a model.
 """
 
+from .pricing import estimate_cost_usd
 from .provider import (
     LLMConfigError,
     LLMProvider,
@@ -37,4 +38,5 @@ __all__ = [
     "LLMProvider",
     "LLMRunResult",
     "LLMTool",
+    "estimate_cost_usd",
 ]
