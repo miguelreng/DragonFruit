@@ -38,16 +38,51 @@ Plane already has the hard parts done:
 
 We didn't want to rebuild any of that. We wanted to **change how it looks and feels** — particularly the docs experience.
 
-## What's different (so far)
+## What's different from Plane
 
-| Area              | Change                                                                                                                                                                                                                         |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Editor typography | New `packages/editor/src/styles/dragonfruit.css` layer — serif display headings, humanist sans body, relaxed 1.7 line-height, ~680px measure, soft peach selection color, refined task lists, optional focus mode and drop cap |
-| Editor surface    | Every `<EditorContainer>` now carries a `.dragonfruit` class so the new look applies everywhere automatically                                                                                                                  |
-| Site metadata     | `SITE_NAME`, `SITE_DESCRIPTION`, OG tags, PWA app name                                                                                                                                                                         |
-| Auth screens      | "Plan, write, and ship beautifully." / "Welcome back to DragonFruit."                                                                                                                                                          |
-| Onboarding        | New welcome copy framing docs + projects as one workspace                                                                                                                                                                      |
-| Constants         | `packages/constants/src/metadata.ts`                                                                                                                                                                                           |
+### 🤖 AI agents as workspace members
+
+DragonFruit ships **first-class AI agents** that live alongside human members.
+
+- **BYOK, vendor-agnostic** — routed through a LiteLLM-style provider abstraction. Bring your own OpenAI / Anthropic / Gemini / local key. No platform-owned keys.
+- **Encrypted at rest** — `llm_api_key` is stored encrypted; ciphertext never leaves the API boundary.
+- **@-mention to trigger** — mention an agent in an issue description or comment and it dispatches.
+- **`/agent` slash command** — invoke an agent inline from the editor; workspace-level webhook fan-out.
+- **Tool-use loop** — agents can `change_state`, `add_label`, post comments, edit page blocks, and operate in draft mode.
+- **Runs panel** — telemetry, per-run cancel, stop button to kill in-flight work, expandable run history with token cost capture.
+
+### 📅 Native task calendar + Google overlay
+
+- DragonFruit's own calendar view (not Plane's) — white cells, square corners, click-day to create a task, custom toolbar (no Material UI residuals).
+- Optional **Google Calendar** read-only overlay so personal events sit next to project deadlines.
+
+### 📝 New page types
+
+- **Docs** at the workspace level (not just per-project), surfaced in the sidebar.
+- **Diagrams** — Mermaid pages with a unified diagram-editor.
+- **Whiteboards** — Excalidraw pages.
+- **Drafts** — locally-unsynced edits surfaced as their own section with a Renaissance-style empty state.
+
+### 🏠 Reimagined home
+
+- Drag-and-drop home sections: **On my plate**, **Inbox**, **Favorites**, plus an **Agent cost** widget.
+- A `home-hero-header` layout that frames the workspace instead of dumping you into a project list.
+
+### 🎨 Editor & visual design
+
+- **Typography overlay** (`packages/editor/src/styles/dragonfruit.css`) — serif display headings (Newsreader), humanist sans body (Figtree), 1.7 line-height, ~680px measure, soft peach selection, refined task lists, optional focus mode and drop cap. Self-hosted fonts, no external font CDN.
+- **Phosphor icons** replacing Lucide across the app, regular weight by default.
+- **Renaissance empty states** — vector illustrations instead of generic painted JPGs.
+- **DragonFruit wordmark + topbar redesign** — workspace switcher lives in the sidebar; ⌘K hint on the topbar search.
+- **Rebrand pass** — "Work item" → "Task" throughout the UI; new favicons, logos, OG assets, PWA manifest.
+
+### 🧭 Sidebar IA cleanup
+
+- Removed workspace-views, customize-navigation, and the legacy workspace-menu split.
+- Agents pinned alongside Docs / Diagrams / Whiteboards.
+- Consolidated through a single `workspace-menu-root` + `sidebar-navigation`.
+
+### 🔌 Underneath
 
 The underlying Plane code remains intact, so upstream fixes can be merged in cleanly. See [Staying in sync with Plane](#staying-in-sync-with-plane).
 
@@ -92,17 +127,18 @@ You'll need the API + Redis + Postgres running separately (Compose them up witho
 
 ```
 apps/
-  web/        — main React Router app (the editor lives here, served via @plane/editor)
-  api/        — Django backend
-  live/       — real-time collaboration server
+  web/        — main React Router app (editor, agents, calendar, home)
+  api/        — Django backend (workspaces, projects, agents, LLM provider)
+  live/       — real-time collaboration server (HocusPocus)
   space/      — public publishing app
   admin/      — instance admin UI
   proxy/      — nginx reverse proxy
 
 packages/
   editor/     — TipTap editor + DragonFruit visual layer (styles/dragonfruit.css)
-  ui/         — shared UI components
-  constants/  — branding strings, feature flags
+  propel/     — icon system (Phosphor, hugeicons shim, DragonFruit brand marks)
+  ui/         — shared UI components and primitives
+  constants/  — branding strings, feature flags, metadata
   types/      — shared TypeScript types
   i18n/       — translations
   ...
@@ -110,18 +146,16 @@ packages/
 
 ## Where the DragonFruit changes live
 
-If you want to see exactly what we changed (vs. Plane), look at:
+If you want to see exactly what's different (vs. Plane), the main areas are:
 
-- `packages/editor/src/styles/dragonfruit.css` — the typography & rhythm overlay
-- `packages/editor/src/styles/index.css` — imports the overlay
-- `packages/editor/src/core/components/editors/editor-container.tsx` — adds the `dragonfruit` class
-- `packages/constants/src/metadata.ts` — site name, descriptions
-- `apps/web/app/root.tsx`, `apps/web/app/layout.tsx` — page titles, meta tags
-- `apps/web/core/components/account/auth-forms/auth-header.tsx` — login copy
-- `apps/web/core/components/instance/not-ready-view.tsx` — first-run welcome
-- `apps/web/ce/components/onboarding/tour/root.tsx` — onboarding tour copy
-
-Logos, favicons, and OG images still inherit Plane's assets — swapping those is the next visible win.
+- **Agents** — `apps/web/core/components/agents/`, `apps/api/plane/app/views/agents/`, workspace-level `LLMProvider` abstraction
+- **Calendar** — `apps/web/core/components/calendar/` (replaces Plane's Schedule-X calendar)
+- **Diagrams & Whiteboards** — `apps/web/core/components/pages/diagram/` and `apps/web/core/components/pages/whiteboard/`
+- **Home** — `apps/web/core/components/home/sections/` (favorites, inbox, on-my-plate, agent-cost)
+- **Drafts** — `apps/web/core/components/drafts/` + `renaissance-draft-illustration.tsx`
+- **Editor typography** — `packages/editor/src/styles/dragonfruit.css`
+- **Branding** — `branding/`, `apps/*/public/favicon/`, `packages/propel/src/icons/brand/`, `packages/constants/src/metadata.ts`
+- **Sidebar IA** — `apps/web/core/components/workspace/sidebar/workspace-menu-root.tsx`, `sidebar-menu-items.tsx`
 
 ## Staying in sync with Plane
 
@@ -132,23 +166,28 @@ git fetch upstream-plane
 git merge upstream-plane/preview   # or main, depending on the branch you want
 ```
 
-Conflicts will surface in the files listed in [Where the DragonFruit changes live](#where-the-dragonfruit-changes-live). The Craft.do CSS layer is purely additive, so it should never conflict.
+Conflicts will surface in the files listed in [Where the DragonFruit changes live](#where-the-dragonfruit-changes-live). The CSS overlays are purely additive, so they should never conflict.
 
 ## Roadmap
 
-Near-term (visual polish):
+Shipped:
 
-- [ ] Replace logos, favicons, and OG image
-- [ ] Bundle Newsreader / Inter Display web fonts so the serif headings work without system fallbacks
+- [x] Full rebrand — logos, favicons, OG, PWA, "Work item" → "Task"
+- [x] Self-hosted Newsreader (serif) and Figtree (sans)
+- [x] AI agents (BYOK, tool-use, @-mention, runs panel)
+- [x] Native task calendar + optional Google Calendar overlay
+- [x] Diagrams (Mermaid) and Whiteboards (Excalidraw)
+- [x] Workspace-level Docs and Drafts surfaces
+- [x] Redesigned Home with drag-and-drop sections
+
+Up next:
+
 - [ ] Page-level toggle for focus mode and drop cap (currently CSS-only)
-- [ ] Sidebar refresh — quieter dividers, softer accent
-
-Mid-term (functionality):
-
 - [ ] Slash-menu polish to match Craft's quick-block UX
 - [ ] Quote-block variants (callout, note, warning) with Craft-like cards
 - [ ] Page covers and emoji headers with refined defaults
-- [ ] First-class "docs home" view, distinct from projects
+- [ ] More agent tools: file attachments, project search, multi-step planning
+- [ ] Two-way Google Calendar sync (today it's read-only)
 
 ## License
 
