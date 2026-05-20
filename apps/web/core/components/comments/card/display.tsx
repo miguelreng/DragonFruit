@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 // plane imports
@@ -19,6 +19,7 @@ import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedT
 import { LiteTextEditor } from "@/components/editor/lite-text";
 // local imports
 import { CommentReactions } from "../comment-reaction";
+import { CommentReplies } from "../comment-replies";
 import { CommentCardEditForm } from "./edit-form";
 import { EmojiReactionButton, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
 import { Avatar, Tooltip } from "@plane/ui";
@@ -38,6 +39,12 @@ export type TCommentCardDisplayProps = {
   setIsEditing?: (isEditing: boolean) => void;
   renderFooter?: (ReactionsComponent: ReactNode | null) => ReactNode;
   renderQuickActions?: () => ReactNode;
+  // When true, renders a nested reply thread under the comment body
+  // (composer + reply rows). Off by default so embedded usages that
+  // shouldn't allow threading — e.g. inside a reply itself — stay
+  // single-level. The parent activity-feed view turns this on for
+  // every top-level comment.
+  enableReplies?: boolean;
 };
 
 export const CommentCardDisplay = observer(function CommentCardDisplay(props: TCommentCardDisplayProps) {
@@ -45,6 +52,7 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
     activityOperations,
     comment,
     disabled,
+    entityId,
     projectId,
     readOnlyEditorRef,
     showAccessSpecifier,
@@ -54,6 +62,7 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
     setIsEditing,
     renderFooter,
     renderQuickActions,
+    enableReplies = false,
   } = props;
   // states
   const [highlightClassName, setHighlightClassName] = useState("");
@@ -76,7 +85,10 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
   const commentBlockId = `comment-${comment?.id}`;
   // Check if there are any reactions to determine if we should render the footer
   const reactionIds = activityOperations.reactionIds(comment.id);
-  const hasReactions = reactionIds && Object.keys(reactionIds).some((key) => reactionIds[key]?.length > 0);
+  const hasReactions = useMemo(
+    () => !!reactionIds && Object.keys(reactionIds).some((key) => reactionIds[key]?.length > 0),
+    [reactionIds]
+  );
 
   // scroll to comment
   const { isHashMatch } = useHashScroll({
@@ -182,6 +194,17 @@ export const CommentCardDisplay = observer(function CommentCardDisplay(props: TC
             ) : (
               <CommentReactions comment={comment} disabled={disabled} activityOperations={activityOperations} />
             ))}
+          {enableReplies && (
+            <CommentReplies
+              parentId={comment.id}
+              workspaceSlug={workspaceSlug}
+              workspaceId={workspaceId}
+              entityId={entityId}
+              projectId={projectId}
+              activityOperations={activityOperations}
+              disabled={disabled}
+            />
+          )}
         </>
       )}
     </div>
