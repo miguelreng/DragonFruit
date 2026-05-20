@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { ArrowUpToLine, Clipboard, History } from "@/components/icons/lucide-shim";
 // plane imports
@@ -21,8 +21,15 @@ import type { EPageStoreType } from "@/plane-web/hooks/store";
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
 import { PageActions } from "../../dropdowns";
-import { ExportPageModal } from "../../modals/export-page-modal";
 import { PAGE_NAVIGATION_PANE_TABS_QUERY_PARAM } from "../../navigation-pane";
+
+// Lazy-load the Export PDF modal — pulls in @react-pdf/renderer +
+// react-pdf-html (with css-tree's MDN data) which is ~540 KB. Most users
+// never trigger an export; defer until they actually open the dropdown
+// and click it.
+const ExportPageModal = lazy(() =>
+  import("../../modals/export-page-modal").then((m) => ({ default: m.ExportPageModal }))
+);
 
 type Props = {
   page: TPageInstance;
@@ -126,12 +133,17 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
 
   return (
     <>
-      <ExportPageModal
-        editorRef={editorRef}
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        pageTitle={name ?? ""}
-      />
+      {/* Only mount + import the heavy PDF modal once the user has opened it. */}
+      {isExportModalOpen && (
+        <Suspense fallback={null}>
+          <ExportPageModal
+            editorRef={editorRef}
+            isOpen={isExportModalOpen}
+            onClose={() => setIsExportModalOpen(false)}
+            pageTitle={name ?? ""}
+          />
+        </Suspense>
+      )}
       <PageActions
         extraOptions={EXTRA_MENU_OPTIONS}
         optionsOrder={[
