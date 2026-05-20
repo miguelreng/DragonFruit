@@ -51,28 +51,30 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
       <tr>
         {/* Single header column containing both identifier and workitem */}
         <th
-          className="group/list-header left-0 z-[15] h-11 min-w-60 border-r-[0.5px] border-subtle bg-layer-1 text-13 font-medium md:sticky"
+          // h-9 matches the new row height (was h-11). Compact spreadsheet.
+          className="group/list-header left-0 z-[15] h-9 min-w-60 border-r-[0.5px] border-subtle bg-layer-1 text-13 font-medium md:sticky"
           tabIndex={-1}
         >
-          <div className="flex h-full w-full items-center gap-2 px-page-x">
-            {/* Workitem header section */}
-            <div className="flex h-full min-w-80 flex-grow items-center gap-1 py-2.5">
-              {canSelectIssues && (
-                <div className="mr-1 flex w-3.5 flex-shrink-0 items-center">
-                  <MultipleSelectGroupAction
-                    className={cn(
-                      "pointer-events-none size-3.5 opacity-0 !outline-none group-hover/list-header:pointer-events-auto group-hover/list-header:opacity-100",
-                      {
-                        "pointer-events-auto opacity-100": !isGroupSelectionEmpty,
-                      }
-                    )}
-                    groupID={SPREADSHEET_SELECT_GROUP}
-                    selectionHelpers={selectionHelpers}
-                  />
-                </div>
-              )}
-              <span className="text-13 font-medium">{`${isEpic ? "Epics" : "Tasks"}`}</span>
-            </div>
+          {/* Header layout mirrors the row: leading select-all column (w-8)
+              before the title text, same vertical center, same visibility
+              treatment (hover-reveal, full opacity when any selection is
+              active). */}
+          <div className="flex h-full w-full items-center">
+            {canSelectIssues && (
+              <div className="flex h-full w-8 flex-shrink-0 items-center justify-center">
+                <MultipleSelectGroupAction
+                  className={cn(
+                    "pointer-events-none size-3.5 opacity-0 !outline-none group-hover/list-header:pointer-events-auto group-hover/list-header:opacity-100",
+                    {
+                      "pointer-events-auto opacity-100": !isGroupSelectionEmpty,
+                    }
+                  )}
+                  groupID={SPREADSHEET_SELECT_GROUP}
+                  selectionHelpers={selectionHelpers}
+                />
+              </div>
+            )}
+            <span className="px-2 text-13 font-medium">{`${isEpic ? "Epics" : "Tasks"}`}</span>
           </div>
         </th>
 
