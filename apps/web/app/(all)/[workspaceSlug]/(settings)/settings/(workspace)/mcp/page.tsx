@@ -61,6 +61,10 @@ const EXAMPLE_MCP_SERVERS: Array<{ name: string; description: string; url: strin
   },
 ];
 
+// Terminal-styled code block: black bg + green monospace, compact font.
+// Stays the same in light and dark mode — code samples on the guide
+// page are commands and configs, which read most clearly with this
+// classic terminal palette regardless of theme.
 function CodeBlock({ code, label }: { code: string; label?: string }) {
   const handleCopy = async () => {
     try {
@@ -72,16 +76,16 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
   };
   return (
     <div className="group relative">
-      <pre className="text-caption-md font-mono overflow-x-auto rounded border border-subtle bg-layer-2 px-3 py-2 text-secondary">
+      <pre className="font-mono text-green-400 overflow-x-auto rounded border border-black/40 bg-black px-3 py-2 text-[11px] leading-[1.45]">
         <code>{code}</code>
       </pre>
       <button
         type="button"
         onClick={handleCopy}
-        className="absolute top-1.5 right-1.5 grid size-7 place-items-center rounded text-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-layer-3 hover:text-primary"
+        className="text-green-400/70 hover:text-green-300 absolute top-1.5 right-1.5 grid size-6 place-items-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
         aria-label="Copy"
       >
-        <Copy className="size-3.5" />
+        <Copy className="size-3" />
       </button>
     </div>
   );
