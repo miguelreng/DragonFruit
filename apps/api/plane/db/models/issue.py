@@ -71,13 +71,18 @@ def get_default_display_filters():
 
 
 def get_default_display_properties():
+    # `key` (the project-prefixed identifier like PROJECT-7) defaults to False:
+    # in the compact row layouts (list / kanban / calendar / gantt) the
+    # identifier reads as line noise next to the task name. The spreadsheet
+    # layout still surfaces it as its own column. Users who want it back in
+    # the rows can toggle "Key" on per layout in Display filters.
     return {
         "assignee": True,
         "attachment_count": True,
         "created_on": True,
         "due_date": True,
         "estimate": True,
-        "key": True,
+        "key": False,
         "labels": True,
         "link": True,
         "priority": True,
