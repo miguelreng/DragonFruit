@@ -92,15 +92,15 @@ def get_llm_config(workspace=None) -> Tuple[str | None, str | None, str | None]:
 
     Resolution order:
     1. Workspace-level BYO key (`workspace.llm_*` fields), if a workspace is provided
-       and `llm_api_key` is set. The API key is Fernet-encrypted at rest.
+       and `llm_api_key_encrypted` is set. The API key is Fernet-encrypted at rest.
     2. Instance-level settings / `LLM_*` env vars.
     """
     api_key: str | None = None
     provider_key: str | None = None
     model: str | None = None
 
-    if workspace is not None and workspace.llm_api_key:
-        decrypted = decrypt_data(workspace.llm_api_key)
+    if workspace is not None and workspace.llm_api_key_encrypted:
+        decrypted = decrypt_data(workspace.llm_api_key_encrypted)
         if decrypted:
             api_key = decrypted
             provider_key = (workspace.llm_provider or "openai").strip()
@@ -431,7 +431,9 @@ def _mask_api_key(key: str | None) -> str:
 class WorkspaceLLMConfigEndpoint(BaseAPIView):
     """
     GET  → current workspace LLM config (provider, model, masked key, available models per provider).
-    PATCH → update workspace LLM config. `llm_api_key` is encrypted at rest.
+    PATCH → update workspace LLM config. `llm_api_key` is encrypted at rest
+            (stored in the `llm_api_key_encrypted` column; the API contract
+            still uses the unsuffixed name on write).
             Send `llm_api_key: null` (or omit + set `clear: true`) to remove the workspace override.
     """
 
@@ -440,13 +442,15 @@ class WorkspaceLLMConfigEndpoint(BaseAPIView):
         workspace = Workspace.objects.filter(slug=slug).first()
         if workspace is None:
             return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
-        decrypted = decrypt_data(workspace.llm_api_key) if workspace.llm_api_key else ""
+        decrypted = (
+            decrypt_data(workspace.llm_api_key_encrypted) if workspace.llm_api_key_encrypted else ""
+        )
         return Response(
             {
                 "llm_provider": workspace.llm_provider or "",
                 "llm_model": workspace.llm_model or "",
                 "llm_api_key_masked": _mask_api_key(decrypted),
-                "has_workspace_override": bool(workspace.llm_api_key),
+                "has_workspace_override": bool(workspace.llm_api_key_encrypted),
                 "providers": {
                     key: {
                         "name": cls.name,
@@ -469,8 +473,10 @@ class WorkspaceLLMConfigEndpoint(BaseAPIView):
         if clear:
             workspace.llm_provider = None
             workspace.llm_model = None
-            workspace.llm_api_key = None
-            workspace.save(update_fields=["llm_provider", "llm_model", "llm_api_key"])
+            workspace.llm_api_key_encrypted = None
+            workspace.save(
+                update_fields=["llm_provider", "llm_model", "llm_api_key_encrypted"]
+            )
             return Response({"status": "cleared"}, status=status.HTTP_200_OK)
 
         provider = (request.data.get("llm_provider") or "").strip().lower()
@@ -502,19 +508,21 @@ class WorkspaceLLMConfigEndpoint(BaseAPIView):
             update_fields.append("llm_model")
         if api_key is not None:
             # Empty string clears; otherwise encrypt and store.
-            workspace.llm_api_key = encrypt_data(api_key) if api_key else None
-            update_fields.append("llm_api_key")
+            workspace.llm_api_key_encrypted = encrypt_data(api_key) if api_key else None
+            update_fields.append("llm_api_key_encrypted")
 
         if update_fields:
             workspace.save(update_fields=update_fields)
 
-        decrypted = decrypt_data(workspace.llm_api_key) if workspace.llm_api_key else ""
+        decrypted = (
+            decrypt_data(workspace.llm_api_key_encrypted) if workspace.llm_api_key_encrypted else ""
+        )
         return Response(
             {
                 "llm_provider": workspace.llm_provider or "",
                 "llm_model": workspace.llm_model or "",
                 "llm_api_key_masked": _mask_api_key(decrypted),
-                "has_workspace_override": bool(workspace.llm_api_key),
+                "has_workspace_override": bool(workspace.llm_api_key_encrypted),
             },
             status=status.HTTP_200_OK,
         )

@@ -63,7 +63,12 @@ class WorkSpaceSerializer(DynamicBaseSerializer):
 
     class Meta:
         model = Workspace
-        fields = "__all__"
+        # `llm_api_key_encrypted` holds Fernet ciphertext for the workspace's
+        # BYO LLM credential. Per the BYOK rule (feedback_ai_byok.md) it must
+        # never appear in any API response — the dedicated WorkspaceLLMConfig
+        # endpoint returns a masked preview instead. Excluded here rather than
+        # listed in read_only_fields so it's also hidden from output.
+        exclude = ["llm_api_key_encrypted"]
         read_only_fields = [
             "id",
             "created_by",

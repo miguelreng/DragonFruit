@@ -29,7 +29,9 @@ class WorkspaceSerializer(BaseSerializer):
 
     class Meta:
         model = Workspace
-        fields = "__all__"
+        # See app.serializers.workspace.WorkSpaceSerializer — the Fernet
+        # ciphertext for BYO LLM credentials must never appear in API output.
+        exclude = ["llm_api_key_encrypted"]
         read_only_fields = [
             "id",
             "created_by",

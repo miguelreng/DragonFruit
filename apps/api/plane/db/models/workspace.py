@@ -138,11 +138,18 @@ class Workspace(BaseModel):
     timezone = models.CharField(max_length=255, default="UTC", choices=TIMEZONE_CHOICES)
     background_color = models.CharField(max_length=255, default=get_random_color)
     # BYO LLM configuration — when set, overrides the instance-level LLM_* env vars
-    # for AI features in this workspace. `llm_api_key` is stored Fernet-encrypted; use
-    # plane.license.utils.encryption.decrypt_data() to read.
+    # for AI features in this workspace. Per the project BYOK rule (see
+    # feedback_ai_byok.md), this credential MUST be Fernet-encrypted at rest and
+    # MUST never appear in public API responses. The `_encrypted` suffix on the
+    # column name makes the contract loud at every read/write site; the column
+    # is also explicitly excluded from `WorkSpaceSerializer` (and the license
+    # variant) so it can't accidentally leak through `fields = "__all__"`.
     llm_provider = models.CharField(max_length=32, blank=True, null=True)
     llm_model = models.CharField(max_length=64, blank=True, null=True)
-    llm_api_key = models.TextField(blank=True, null=True)
+    # Fernet ciphertext. Use plane.license.utils.encryption.{encrypt_data,
+    # decrypt_data} for all access — never read or write this field directly
+    # in serializers or API responses.
+    llm_api_key_encrypted = models.TextField(blank=True, null=True)
 
     def __str__(self):
         """Return name of the Workspace"""
