@@ -59,11 +59,17 @@ def get_default_filters():
 
 
 def get_default_display_filters():
+    # `sub_issue` defaults to False so subtasks live nested under their
+    # parent in the expanded tree view, not as duplicate flat rows in the
+    # same state group. Users who want the flat view can toggle "Show
+    # sub-tasks" on per layout in Display filters. Pairs with the client-side
+    # default in issue-filter-helper.store.ts and the in-memory check in
+    # base-issues.store.ts#updateIssueList.
     return {
         "group_by": None,
         "order_by": "-created_at",
         "type": None,
-        "sub_issue": True,
+        "sub_issue": False,
         "show_empty_groups": True,
         "layout": "list",
         "calendar_date_range": "",
