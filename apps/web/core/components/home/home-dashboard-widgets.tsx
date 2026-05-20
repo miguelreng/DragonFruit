@@ -30,9 +30,14 @@ import { ManageWidgetsModal } from "./widgets/manage";
 // `useEditorFlagging` import graph. The home page can mount and paint the
 // rest of its widgets without it; defer behind a Suspense boundary so the
 // editor chunk lands after first paint.
-const LazyStickiesWidget = lazy(() =>
-  import("../stickies/widget").then((m) => ({ default: m.StickiesWidget }))
-);
+const LazyStickiesWidget = lazy(() => import("../stickies/widget").then((m) => ({ default: m.StickiesWidget })));
+// HMR re-evaluates lazy chunks on every save; the resulting transient pending
+// state in this Suspense would otherwise trip React 18's "suspended during
+// sync input" warning during React Refresh. Warm the chunk eagerly in dev so
+// it's always resolved by the time HMR re-renders; prod still gets the split.
+if (import.meta.env.DEV) {
+  void import("../stickies/widget");
+}
 const StickiesWidget = (props: THomeWidgetProps) => (
   <Suspense fallback={null}>
     <LazyStickiesWidget {...props} />
