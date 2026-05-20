@@ -36,12 +36,23 @@ import { PageEditorToolbarRoot } from "./toolbar";
 // (issues list, projects, settings, calendar) shouldn't pay for them
 // on first paint.
 const PageEditorBody = lazy(() => import("./editor-body").then((m) => ({ default: m.PageEditorBody })));
-const TldrawEditor = lazy(() =>
-  import("../whiteboard/tldraw-editor").then((m) => ({ default: m.TldrawEditor }))
-);
+const TldrawEditor = lazy(() => import("../whiteboard/tldraw-editor").then((m) => ({ default: m.TldrawEditor })));
+
+// HMR (React Refresh + Vite) invalidates and re-evaluates chunks on every
+// save. When a chunk that backs a `React.lazy` is invalidated, the lazy
+// promise transitions through `pending` during the next refresh — and React
+// 18 throws "A component suspended while responding to synchronous input"
+// because the refresh path itself is synchronous. Production builds never
+// hit this (no HMR), so we just warm both chunks at module-load in dev:
+// React Refresh always finds them resolved, Suspense never re-fires, the
+// warning never appears.
+if (import.meta.env.DEV) {
+  void import("./editor-body");
+  void import("../whiteboard/tldraw-editor");
+}
 
 const EditorFallback = () => (
-  <div className="flex h-full w-full items-center justify-center text-sm text-tertiary">Loading editor…</div>
+  <div className="text-sm flex h-full w-full items-center justify-center text-tertiary">Loading editor…</div>
 );
 
 export type TPageRootHandlers = {

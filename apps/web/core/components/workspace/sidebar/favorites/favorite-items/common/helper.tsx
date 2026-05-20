@@ -7,8 +7,10 @@
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { PageIcon } from "@plane/propel/icons";
 // plane imports
+import { EIssueLayoutTypes } from "@plane/types";
 import type { IFavorite, TLogoProps } from "@plane/types";
 // components
+import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";
 // plane web constants
 import { FAVORITE_ITEM_ICONS, FAVORITE_ITEM_LINKS } from "@/constants/sidebar-favorites";
 
@@ -28,6 +30,39 @@ export const getFavoriteItemIcon = (type: string, logo?: TLogoProps) => {
         )}
       </div>
     </>
+  );
+};
+
+/**
+ * Saved Views are "shaped lists of tasks" — kanban, list, calendar, gantt,
+ * spreadsheet. Their identity in the sidebar reads better as the layout icon
+ * than as the user-picked emoji: scanning the favorites strip, the user can
+ * tell at a glance which favorite is the timeline vs. the board vs. the list,
+ * without having to remember which emoji they assigned to each. The emoji is
+ * still visible on the view itself; the favorites strip is where layout-at-a-
+ * glance is more useful than personalization.
+ *
+ * Falls back to the generic ViewsIcon when the view hasn't loaded yet (e.g.
+ * sidebar renders before the project's views are fetched) or when the layout
+ * isn't one of the known enum values.
+ */
+export const getFavoriteViewIcon = (layout?: EIssueLayoutTypes) => {
+  const FallbackIcon = FAVORITE_ITEM_ICONS.view;
+  const isKnownLayout =
+    layout === EIssueLayoutTypes.LIST ||
+    layout === EIssueLayoutTypes.KANBAN ||
+    layout === EIssueLayoutTypes.CALENDAR ||
+    layout === EIssueLayoutTypes.SPREADSHEET ||
+    layout === EIssueLayoutTypes.GANTT;
+
+  return (
+    <div className="flex size-5 items-center justify-center">
+      {isKnownLayout && layout ? (
+        <IssueLayoutIcon layout={layout} className="m-auto size-4 flex-shrink-0 text-tertiary" />
+      ) : (
+        <FallbackIcon className="m-auto size-4 flex-shrink-0 stroke-[1.5]" />
+      )}
+    </div>
   );
 };
 

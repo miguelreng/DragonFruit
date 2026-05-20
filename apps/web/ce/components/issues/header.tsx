@@ -12,16 +12,18 @@ import { Circle } from "@/components/icons/lucide-shim";
 import {
   EUserPermissions,
   EUserPermissionsLevel,
+  IS_FAVORITE_MENU_OPEN,
   SPACE_BASE_PATH,
   SPACE_BASE_URL,
   WORK_ITEM_TRACKER_ELEMENTS,
 } from "@plane/constants";
+import { useLocalStorage } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { NewTabIcon, WorkItemsIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import { EIssuesStoreType } from "@plane/types";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs, FavoriteStar, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { CountChip } from "@/components/common/count-chip";
@@ -49,11 +51,28 @@ export const IssuesHeader = observer(function IssuesHeader() {
   // i18n
   const { t } = useTranslation();
 
-  const { currentProjectDetails, loader } = useProject();
+  const { currentProjectDetails, loader, addProjectToFavorites, removeProjectFromFavorites } = useProject();
 
   const { toggleCreateIssueModal } = useCommandPalette();
   const { allowPermissions } = useUserPermissions();
   const { isMobile } = usePlatformOS();
+
+  // Track whether the sidebar Favorites menu is open so we can auto-open it
+  // the first time the user stars something — same pattern as the views list.
+  const { setValue: toggleFavoriteMenu, storedValue: isFavoriteMenuOpen } = useLocalStorage<boolean>(
+    IS_FAVORITE_MENU_OPEN,
+    false
+  );
+
+  const handleToggleFavorite = async () => {
+    if (!workspaceSlug || !projectId || !currentProjectDetails) return;
+    if (currentProjectDetails.is_favorite) {
+      await removeProjectFromFavorites(workspaceSlug.toString(), projectId.toString());
+    } else {
+      await addProjectToFavorites(workspaceSlug.toString(), projectId.toString());
+      if (!isFavoriteMenuOpen) toggleFavoriteMenu(true);
+    }
+  };
 
   const SPACE_APP_URL = (SPACE_BASE_URL.trim() === "" ? window.location.origin : SPACE_BASE_URL) + SPACE_BASE_PATH;
   const publishedURL = `${SPACE_APP_URL}/issues/${currentProjectDetails?.anchor}`;
@@ -91,6 +110,23 @@ export const IssuesHeader = observer(function IssuesHeader() {
               <CountChip count={issuesCount} />
             </Tooltip>
           ) : null}
+          {currentProjectDetails && (
+            <Tooltip
+              isMobile={isMobile}
+              tooltipContent={currentProjectDetails.is_favorite ? "Remove from favorites" : "Add to favorites"}
+              position="bottom"
+            >
+              <FavoriteStar
+                buttonClassName="size-5"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleToggleFavorite();
+                }}
+                selected={!!currentProjectDetails.is_favorite}
+              />
+            </Tooltip>
+          )}
         </div>
         {currentProjectDetails?.anchor ? (
           <a
