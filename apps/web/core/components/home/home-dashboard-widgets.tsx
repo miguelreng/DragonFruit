@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { lazy, Suspense } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -21,10 +22,22 @@ import { useProject } from "@/hooks/store/use-project";
 // plane web components
 import { HomePageHeader } from "@/plane-web/components/home/header";
 // local imports
-import { StickiesWidget } from "../stickies/widget";
 import { HomeLoader, NoProjectsEmptyState, RecentActivityWidget } from "./widgets";
 import { DashboardQuickLinks } from "./widgets/links";
 import { ManageWidgetsModal } from "./widgets/manage";
+
+// StickiesWidget pulls in the lite-text Tiptap editor + lowlight via the
+// `useEditorFlagging` import graph. The home page can mount and paint the
+// rest of its widgets without it; defer behind a Suspense boundary so the
+// editor chunk lands after first paint.
+const LazyStickiesWidget = lazy(() =>
+  import("../stickies/widget").then((m) => ({ default: m.StickiesWidget }))
+);
+const StickiesWidget = (props: THomeWidgetProps) => (
+  <Suspense fallback={null}>
+    <LazyStickiesWidget {...props} />
+  </Suspense>
+);
 
 export const HOME_WIDGETS_LIST: {
   [key in THomeWidgetKeys]: {
