@@ -5,7 +5,7 @@
  */
 
 import type { LucideIcon } from "@/components/icons/lucide-shim";
-import { ArrowUpToLine, Building, CreditCard, Sparkles, Users, Webhook } from "@/components/icons/lucide-shim";
+import { ArrowUpToLine, Building, CreditCard, Sparkles, Users, Wand2, Webhook } from "@/components/icons/lucide-shim";
 // plane imports
 import type { ISvgIcons } from "@plane/propel/icons";
 import type { TWorkspaceSettingsTabs } from "@plane/types";
@@ -17,4 +17,5 @@ export const WORKSPACE_SETTINGS_ICONS: Record<TWorkspaceSettingsTabs, LucideIcon
   "billing-and-plans": CreditCard,
   webhooks: Webhook,
   ai: Sparkles,
+  agents: Wand2,
 };
