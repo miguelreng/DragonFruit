@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FocusEvent, type MouseEvent } from "react";
 import { useOutsideClickDetector } from "@plane/hooks";
 
 type UseExpandableSearchOptions = {
@@ -32,6 +32,11 @@ export const useExpandableSearch = (options?: UseExpandableSearchOptions) => {
   const handleClose = useCallback(() => {
     setIsOpen(false);
     inputRef.current?.blur();
+    // Reset trigger flags so a stale "yes, open me" doesn't survive across
+    // open/close cycles and fire on the next unrelated focus event (e.g. a
+    // browser extension probing the input).
+    wasClickedRef.current = false;
+    wasKeyboardTriggeredRef.current = false;
     onClose?.();
   }, [onClose]);
 
@@ -48,6 +53,9 @@ export const useExpandableSearch = (options?: UseExpandableSearchOptions) => {
   // Track keyboard shortcuts that trigger focus (Cmd+F / Ctrl+F)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore synthetic events from browser extensions (password managers
+      // dispatch malformed keydowns on nearby inputs when probing).
+      if (!e.isTrusted) return;
       if ((e.metaKey || e.ctrlKey) && e.key === "f") {
         // Mark as keyboard triggered so handleFocus knows to open
         wasKeyboardTriggeredRef.current = true;
@@ -60,13 +68,17 @@ export const useExpandableSearch = (options?: UseExpandableSearchOptions) => {
     };
   }, []);
 
-  // Track explicit clicks
-  const handleMouseDown = useCallback(() => {
+  // Track explicit clicks — guard against synthetic events from extensions.
+  const handleMouseDown = useCallback((e: MouseEvent) => {
+    if (!e.nativeEvent.isTrusted) return;
     wasClickedRef.current = true;
   }, []);
 
   // Open on explicit clicks or keyboard shortcut, not programmatic focus restoration
-  const handleFocus = useCallback(() => {
+  const handleFocus = useCallback((e: FocusEvent) => {
+    // Synthetic focus events (e.g. from password manager probes) should never
+    // open the panel, regardless of what the trigger flags currently say.
+    if (!e.nativeEvent.isTrusted) return;
     if (wasClickedRef.current || wasKeyboardTriggeredRef.current) {
       setIsOpen(true);
       wasClickedRef.current = false;
