@@ -71,7 +71,7 @@ export interface IIssueFilterHelperStore {
 }
 
 export class IssueFilterHelperStore implements IIssueFilterHelperStore {
-  constructor() {}
+  
 
   /**
    * @description This method is used to apply the display filters on the issues
@@ -103,7 +103,13 @@ export class IssueFilterHelperStore implements IIssueFilterHelperStore {
         ? EIssueGroupByToServerOptions[displayFilters.sub_group_by]
         : undefined,
       order_by: displayFilters?.order_by || undefined,
-      sub_issue: displayFilters?.sub_issue ?? true,
+      // Default to NOT including sub-tasks in the flat list. They render
+      // nested under their parent via the tree expander; including them
+      // flat duplicates each subtask in two places (root row + expanded
+      // child). Users who want the flat view can toggle "Show sub-tasks"
+      // in Display filters. Pairs with the same default in the display
+      // filters selection UI and the in-memory updateIssueList runtime check.
+      sub_issue: displayFilters?.sub_issue ?? false,
     };
 
     const issueFiltersParams: Partial<Record<TIssueParams, boolean | string>> = {};
