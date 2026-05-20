@@ -8,39 +8,29 @@ import type { PageProps } from "@react-pdf/renderer";
 import { Document, Font, Page } from "@react-pdf/renderer";
 import { Html } from "react-pdf-html";
 // assets
+// EDITOR_PDF_DOCUMENT_STYLESHEET only references three weights — normal,
+// semibold (headings), bold (strong). Italics come from inline <em> in the
+// HTML content. Ship the upright + italic pair for each of those three
+// weights (6 .ttf files, ~2 MB) instead of all 9 weights × 2 styles (18
+// files, ~6 MB) — even on the lazy PDF chunk that's a meaningful cut.
 import interBold from "@/app/assets/fonts/inter/bold.ttf?url";
-import interHeavy from "@/app/assets/fonts/inter/heavy.ttf?url";
-import interLight from "@/app/assets/fonts/inter/light.ttf?url";
-import interMedium from "@/app/assets/fonts/inter/medium.ttf?url";
+import interBoldItalic from "@/app/assets/fonts/inter/bold-italic.ttf?url";
 import interRegular from "@/app/assets/fonts/inter/regular.ttf?url";
+import interRegularItalic from "@/app/assets/fonts/inter/regular-italic.ttf?url";
 import interSemibold from "@/app/assets/fonts/inter/semibold.ttf?url";
-import interThin from "@/app/assets/fonts/inter/thin.ttf?url";
-import interUltraBold from "@/app/assets/fonts/inter/ultrabold.ttf?url";
-import interUltraLight from "@/app/assets/fonts/inter/ultralight.ttf?url";
+import interSemiboldItalic from "@/app/assets/fonts/inter/semibold-italic.ttf?url";
 // constants
 import { EDITOR_PDF_DOCUMENT_STYLESHEET } from "@/constants/editor";
 
 Font.register({
   family: "Inter",
   fonts: [
-    { src: interThin, fontWeight: "thin" },
-    { src: interThin, fontWeight: "thin", fontStyle: "italic" },
-    { src: interUltraLight, fontWeight: "ultralight" },
-    { src: interUltraLight, fontWeight: "ultralight", fontStyle: "italic" },
-    { src: interLight, fontWeight: "light" },
-    { src: interLight, fontWeight: "light", fontStyle: "italic" },
     { src: interRegular, fontWeight: "normal" },
-    { src: interRegular, fontWeight: "normal", fontStyle: "italic" },
-    { src: interMedium, fontWeight: "medium" },
-    { src: interMedium, fontWeight: "medium", fontStyle: "italic" },
+    { src: interRegularItalic, fontWeight: "normal", fontStyle: "italic" },
     { src: interSemibold, fontWeight: "semibold" },
-    { src: interSemibold, fontWeight: "semibold", fontStyle: "italic" },
+    { src: interSemiboldItalic, fontWeight: "semibold", fontStyle: "italic" },
     { src: interBold, fontWeight: "bold" },
-    { src: interBold, fontWeight: "bold", fontStyle: "italic" },
-    { src: interUltraBold, fontWeight: "ultrabold" },
-    { src: interUltraBold, fontWeight: "ultrabold", fontStyle: "italic" },
-    { src: interHeavy, fontWeight: "heavy" },
-    { src: interHeavy, fontWeight: "heavy", fontStyle: "italic" },
+    { src: interBoldItalic, fontWeight: "bold", fontStyle: "italic" },
   ],
 });
 

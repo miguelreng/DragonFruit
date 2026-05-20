@@ -61,6 +61,10 @@ const EXAMPLE_MCP_SERVERS: Array<{ name: string; description: string; url: strin
   },
 ];
 
+// Terminal-styled code block: black bg + green monospace, compact font.
+// Stays the same in light and dark mode — code samples on the guide
+// page are commands and configs, which read most clearly with this
+// classic terminal palette regardless of theme.
 function CodeBlock({ code, label }: { code: string; label?: string }) {
   const handleCopy = async () => {
     try {
@@ -70,18 +74,28 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
       setToast({ type: TOAST_TYPE.ERROR, title: "Copy failed" });
     }
   };
+  // NOTE on color: the named Tailwind palette (`text-green-400`) was
+  // getting overridden somewhere — likely by an editor or global CSS
+  // rule targeting `<pre>`/`<code>`. Using inline `style={{ color }}`
+  // sidesteps every cascade race so the terminal green is guaranteed
+  // to land. The hex matches Tailwind's `green-400` (`#4ade80`).
+  const TERMINAL_GREEN = "#4ade80";
   return (
     <div className="group relative">
-      <pre className="text-caption-md font-mono overflow-x-auto rounded border border-subtle bg-layer-2 px-3 py-2 text-secondary">
-        <code>{code}</code>
+      <pre
+        className="font-mono overflow-x-auto rounded border border-black/40 bg-black px-3 py-2 text-[11px] leading-[1.45]"
+        style={{ color: TERMINAL_GREEN }}
+      >
+        <code style={{ color: TERMINAL_GREEN, background: "transparent" }}>{code}</code>
       </pre>
       <button
         type="button"
         onClick={handleCopy}
-        className="absolute top-1.5 right-1.5 grid size-7 place-items-center rounded text-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-layer-3 hover:text-primary"
+        className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
+        style={{ color: TERMINAL_GREEN }}
         aria-label="Copy"
       >
-        <Copy className="size-3.5" />
+        <Copy className="size-3" />
       </button>
     </div>
   );
