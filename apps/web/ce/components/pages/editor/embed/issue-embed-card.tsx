@@ -186,7 +186,7 @@ function DraftEmbedCard(props: {
       <Sparkles className="mt-0.5 size-4 shrink-0 text-accent-primary" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-11 font-semibold tracking-wide text-accent-primary uppercase">Draft</span>
+          <span className="text-11 font-semibold text-accent-primary uppercase">Draft</span>
           <span className="text-11 text-tertiary">Click create to make it real</span>
         </div>
         <p className="mt-0.5 truncate text-14 text-primary">{title || "Untitled action item"}</p>

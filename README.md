@@ -102,26 +102,44 @@ Node ≥ 22.18, pnpm 10.32, Python 3.12+.
 
 ## Running locally
 
-The fastest path is Docker Compose (Plane's existing setup works unchanged):
+DragonFruit runs in two halves: the Docker stack (api, worker, postgres, redis, minio, rabbitmq) and the four frontend dev servers (`web`, `admin`, `space`, `live`).
 
 ```bash
 # 1. One-time env setup
 ./setup.sh
 
-# 2. Bring everything up
-docker compose -f docker-compose-local.yml up
+# 2. Bring the backend stack up (detached)
+docker compose -f docker-compose-local.yml up -d
+
+# 3. Install deps and start the four frontends in one terminal
+pnpm install
+./dev.sh
 ```
 
-Then visit `http://localhost`.
+Then open:
 
-For frontend-only iteration (e.g. tweaking the Craft.do styles):
+| App   | URL                       | What it is                          |
+| ----- | ------------------------- | ----------------------------------- |
+| web   | http://127.0.0.1:3000     | the product (workspaces, projects)  |
+| admin | http://127.0.0.1:3001     | instance settings (SMTP, OAuth, LLM)|
+| space | http://127.0.0.1:3002     | public published pages              |
+| live  | http://127.0.0.1:3100     | HocusPocus realtime collab          |
+
+`dev.sh` also supports a few modes:
 
 ```bash
-pnpm install
-pnpm dev --filter=web
+./dev.sh web              # just one
+./dev.sh web live         # a subset
+./dev.sh --tmux           # one tmux session, one window per app
+./dev.sh --tabs           # 4 macOS Terminal tabs
 ```
 
-You'll need the API + Redis + Postgres running separately (Compose them up without `web`).
+Stop everything:
+
+```bash
+# frontends: Ctrl-C in the dev.sh terminal (or `tmux kill-session -t dragonfruit`)
+docker compose -f docker-compose-local.yml down
+```
 
 ## Repo layout
 

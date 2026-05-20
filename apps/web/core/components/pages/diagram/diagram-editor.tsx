@@ -234,7 +234,7 @@ export const DiagramEditor = observer(function DiagramEditor({ page, handlers, i
 function PalettePanel() {
   return (
     <aside className="z-10 flex h-full w-44 flex-col gap-2 border-r border-subtle bg-surface-1 p-3">
-      <div className="text-11 font-medium tracking-wide text-tertiary uppercase">Drag to canvas</div>
+      <div className="text-11 font-medium text-tertiary uppercase">Drag to canvas</div>
       <ul className="flex flex-col gap-1.5">
         {PALETTE.map((item) => (
           <li

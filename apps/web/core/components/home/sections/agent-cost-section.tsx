@@ -113,7 +113,7 @@ export const AgentCostSection = observer(function AgentCostSection() {
 
             {summary.by_agent_last_30_days.length > 0 && (
               <div className="border-t border-subtle px-3 py-3">
-                <div className="mb-2 text-11 font-medium tracking-wide text-placeholder uppercase">
+                <div className="mb-2 text-11 font-medium text-placeholder uppercase">
                   By agent · last 30 days
                 </div>
                 <ul className="flex flex-col gap-1.5">

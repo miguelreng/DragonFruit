@@ -123,7 +123,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
         {...attributes.popper}
         className="fixed z-[60] w-64 rounded-md border-[0.5px] border-strong bg-surface-1 py-1 shadow-raised-200 outline-none"
       >
-        <div className="px-2 pt-1 pb-1.5 text-11 font-medium tracking-wide text-tertiary uppercase">Type</div>
+        <div className="px-2 pt-1 pb-1.5 text-11 font-medium text-tertiary uppercase">Type</div>
         <div className="flex gap-1 px-2 pb-2">
           {(Object.keys(TYPE_META) as TPageType[]).map((t) => {
             const isActive = t === currentType;
@@ -149,7 +149,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
           })}
         </div>
         <div className="border-t border-subtle" />
-        <div className="px-2 pt-2 pb-1.5 text-11 font-medium tracking-wide text-tertiary uppercase">Project</div>
+        <div className="px-2 pt-2 pb-1.5 text-11 font-medium text-tertiary uppercase">Project</div>
         <div className="px-2 pb-2">
           <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-canvas px-2 py-1">
             <Search className="size-3 text-tertiary" />
