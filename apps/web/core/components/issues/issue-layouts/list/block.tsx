@@ -47,6 +47,10 @@ interface IssueBlockProps {
   canEditProperties: (projectId: string | undefined) => boolean;
   nestingLevel: number;
   spacingLeft?: number;
+  // True when this row is the last subtask in its parent's children list.
+  // Stops the tree-branch vertical at the row midpoint instead of
+  // extending it down to a non-existent next sibling.
+  isLastSibling?: boolean;
   isExpanded: boolean;
   setExpanded: Dispatch<SetStateAction<boolean>>;
   selectionHelpers: TSelectionHelper;
@@ -67,6 +71,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
     canEditProperties,
     nestingLevel,
     spacingLeft = 14,
+    isLastSibling = false,
     isExpanded,
     setExpanded,
     selectionHelpers,
@@ -213,19 +218,39 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
               className={cn("flex items-center gap-1", { relative: isSubIssue })}
               style={isSubIssue ? { marginLeft } : {}}
             >
-              {/* Tree-branch connector for subtask rows: an L-shape that drops
-                  from the row's top-left corner down to the row's vertical
-                  midpoint, then turns right into the content. Drawn with two
-                  borders on a single absolute element (left = stem, bottom =
-                  hook), rounded at the corner. The 12px width matches the
-                  per-level indent step in block-root.tsx so deeper nesting
-                  stacks cleanly. Decorative only — aria-hidden. */}
+              {/* Tree-branch connectors for subtask rows. Two pieces so the
+                  vertical line reads as continuous through all siblings:
+
+                    1. Upper L (always): vertical stem from row top down to
+                       row midpoint, then a horizontal hook into the row's
+                       content. Rounded inner corner.
+                    2. Lower extension (non-last siblings only): a vertical
+                       continuation from the midpoint down to the row's
+                       bottom — meets the NEXT sibling's upper-L stem,
+                       creating one unbroken line through the whole group.
+
+                  The last sibling skips the lower extension so the tree
+                  terminates cleanly at its midpoint hook instead of
+                  dangling below into empty space.
+
+                  The 12px width matches the per-level indent step in
+                  block-root.tsx so deeper nesting stacks cleanly.
+                  Decorative — aria-hidden. */}
               {isSubIssue && (
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute rounded-bl-sm border-b border-l border-strong"
-                  style={{ left: "-12px", top: 0, bottom: "50%", width: "12px" }}
-                />
+                <>
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute rounded-bl-md border-b border-l border-strong"
+                    style={{ left: "-12px", top: 0, bottom: "50%", width: "12px" }}
+                  />
+                  {!isLastSibling && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute border-l border-strong"
+                      style={{ left: "-12px", top: "50%", bottom: 0, width: "1px" }}
+                    />
+                  )}
+                </>
               )}
               {/* select checkbox */}
               {projectId && canSelectIssues && !isEpic && (
