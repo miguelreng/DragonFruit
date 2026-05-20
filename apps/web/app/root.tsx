@@ -29,8 +29,12 @@ import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
 // fonts – side-effect imports
 // Figtree is self-hosted from /public/fonts via @font-face in globals.css.
+// Material Symbols: only the Latin subset at weight 400 ships — the icon
+// picker uses `font-weight: normal` and no non-Latin glyphs, so the other
+// 3 weights (100/200/300) + their .woff fallbacks were ~600 KB of dead
+// font data.
 // oxlint-disable-next-line no-unassigned-import
-import "@fontsource/material-symbols-rounded";
+import "@fontsource/material-symbols-rounded/latin-400.css";
 // oxlint-disable-next-line no-unassigned-import
 import "@fontsource/ibm-plex-mono";
 
