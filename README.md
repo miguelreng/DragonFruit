@@ -1,10 +1,28 @@
-# DragonFruit
+<p align="center">
+  <a href="https://app.dragonfruit.sh">
+    <img src="branding/logo.svg" alt="DragonFruit" height="80" />
+  </a>
+</p>
 
-> Beautiful, customizable project management & docs — built on Plane, with a Craft.do-inspired writing experience.
+<p align="center">
+  <strong>Beautiful, customizable project management &amp; docs — built on Plane, with a Craft.do-inspired writing experience.</strong>
+</p>
 
-DragonFruit is an opinionated fork of [Plane](https://github.com/makeplane/plane) (AGPL-3.0). It keeps Plane's solid project-management foundation (workspaces, projects, work items, cycles, modules, views, pages) and rebuilds the parts that matter most to us: **the editor and the visual design**.
+<p align="center">
+  <a href="https://app.dragonfruit.sh">app.dragonfruit.sh</a>
+  &nbsp;·&nbsp;
+  <a href="https://twitter.com/miguelreng">@miguelreng</a>
+  &nbsp;·&nbsp;
+  <a href="./LICENSE.txt">AGPL-3.0</a>
+</p>
+
+---
+
+DragonFruit is an open-source project built by [Rengi (@miguelreng)](https://twitter.com/miguelreng) — an opinionated fork of [Plane](https://github.com/makeplane/plane) (AGPL-3.0). It keeps Plane's solid project-management foundation (workspaces, projects, work items, cycles, modules, views, pages) and rebuilds the parts that matter most to us: **the editor and the visual design**.
 
 The goal is a single workspace where the docs feel as good as the project tracker — something we'd actually want to write in.
+
+Try the hosted version at **[app.dragonfruit.sh](https://app.dragonfruit.sh)**, or self-host with the instructions below.
 
 ---
 
@@ -141,3 +159,7 @@ AGPL-3.0, inherited from Plane. See [`LICENSE.txt`](./LICENSE.txt). All original
 - [Plane](https://plane.so) — the foundation this is built on
 - [Craft.do](https://craft.do) — the docs experience we're chasing
 - TipTap, ProseMirror, Newsreader, Inter — the tools that make beautiful text on the web possible
+
+---
+
+Built by [Rengi](https://twitter.com/miguelreng) · [app.dragonfruit.sh](https://app.dragonfruit.sh)
