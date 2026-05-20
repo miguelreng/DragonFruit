@@ -215,6 +215,7 @@ export const DraftIssueProperties = observer(function DraftIssueProperties(props
           value={issue?.assignee_ids}
           onChange={handleAssignee}
           multiple
+          includeAgents
           buttonVariant={issue.assignee_ids?.length > 0 ? "transparent-without-text" : "border-without-text"}
           buttonClassName={issue.assignee_ids?.length > 0 ? "hover:bg-transparent px-0" : ""}
           showTooltip={issue?.assignee_ids?.length === 0}

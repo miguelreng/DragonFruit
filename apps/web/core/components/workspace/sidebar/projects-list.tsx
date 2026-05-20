@@ -225,7 +225,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
                 </Loader>
               )}
               {isAllProjectsListOpen && (
-                <Disclosure.Panel as="div" className="flex flex-col gap-0.5" static>
+                <Disclosure.Panel as="div" className="flex flex-col" static>
                   <>
                     {displayedProjects.map((projectId, index) => (
                       <SidebarProjectsListItem

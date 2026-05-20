@@ -9,6 +9,7 @@ import { useParams } from "next/navigation";
 
 // plane imports
 import { useTranslation } from "@plane/i18n";
+import { Button } from "@plane/propel/button";
 import { PlusIcon } from "@plane/propel/icons";
 // hooks
 import { useSticky } from "@/hooks/use-stickies";
@@ -35,24 +36,18 @@ export const StickiesWidget = observer(function StickiesWidget() {
         {/* actions */}
         <div className="flex gap-2">
           <StickySearch />
-          <button
+          <Button
+            variant="link-accent"
+            size="sm"
+            prependIcon={<PlusIcon />}
             onClick={() => {
               toggleShowNewSticky(true);
               stickyOperations.create();
             }}
-            className="my-auto flex gap-1 text-13 font-medium text-accent-primary"
-            disabled={creatingSticky}
+            loading={creatingSticky}
           >
-            <PlusIcon className="my-auto size-4" />
-            <span>{t("stickies.add")}</span>
-            {creatingSticky && (
-              <div
-                className="size-4 animate-spin rounded-full border-2 border-accent-strong border-t-transparent"
-                role="status"
-                aria-label="loading"
-              />
-            )}
-          </button>
+            {t("stickies.add")}
+          </Button>
         </div>
       </div>
       <div className="-mx-2">

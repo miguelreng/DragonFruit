@@ -16,7 +16,6 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/eleme
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { attachInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
 import { observer } from "mobx-react";
-import { usePathname } from "next/navigation";
 import { createRoot } from "react-dom/client";
 // plane types
 import type { InstructionType } from "@plane/types";
@@ -43,88 +42,92 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
   const [_instruction, setInstruction] = useState<InstructionType | undefined>(undefined);
   // refs
   const elementRef = useRef<HTMLDivElement>(null);
-  // navigation
-  const pathname = usePathname();
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  // Capture latest values without re-running the dnd setup mid-drag.
+  // Re-registering the draggable while a drag is in flight cancels it.
+  const handleDropRef = useRef(handleDrop);
+  const isLastChildRef = useRef(isLastChild);
+  handleDropRef.current = handleDrop;
+  isLastChildRef.current = isLastChild;
 
   useEffect(() => {
     const element = elementRef.current;
-    if (!element) return;
+    const dragHandle = dragHandleRef.current;
+    if (!element || !dragHandle) return;
 
     const initialData = { id: stickyId, type: "sticky" };
 
-    if (pathname.includes("stickies"))
-      return combine(
-        draggable({
-          element,
-          dragHandle: element,
-          getInitialData: () => initialData,
-          onDragStart: () => {
-            setIsDragging(true);
-          },
-          onDrop: () => {
-            setIsDragging(false);
-          },
-          onGenerateDragPreview: ({ nativeSetDragImage }) => {
-            setCustomNativeDragPreview({
-              getOffset: pointerOutsideOfPreview({ x: "-200px", y: "0px" }),
-              render: ({ container }) => {
-                const root = createRoot(container);
-                root.render(
-                  <div className="scale-50">
-                    <div className="-m-2 max-h-[150px]">
-                      <StickyNote
-                        className={"w-[290px]"}
-                        workspaceSlug={workspaceSlug.toString()}
-                        stickyId={stickyId}
-                        showToolbar={false}
-                      />
-                    </div>
+    return combine(
+      draggable({
+        element,
+        dragHandle,
+        getInitialData: () => initialData,
+        onDragStart: () => {
+          setIsDragging(true);
+        },
+        onDrop: () => {
+          setIsDragging(false);
+        },
+        onGenerateDragPreview: ({ nativeSetDragImage }) => {
+          setCustomNativeDragPreview({
+            getOffset: pointerOutsideOfPreview({ x: "-200px", y: "0px" }),
+            render: ({ container }) => {
+              const root = createRoot(container);
+              root.render(
+                <div className="scale-50">
+                  <div className="-m-2 max-h-[150px]">
+                    <StickyNote
+                      className={"w-[290px]"}
+                      workspaceSlug={workspaceSlug.toString()}
+                      stickyId={stickyId}
+                      showToolbar={false}
+                    />
                   </div>
-                );
-                return () => root.unmount();
-              },
-              nativeSetDragImage,
-            });
-          },
-        }),
-        dropTargetForElements({
-          element,
-          canDrop: ({ source }) => source.data?.type === "sticky",
-          getData: ({ input, element }) => {
-            const blockedStates: InstructionType[] = ["make-child"];
-            if (!isLastChild) {
-              blockedStates.push("reorder-below");
-            }
+                </div>
+              );
+              return () => root.unmount();
+            },
+            nativeSetDragImage,
+          });
+        },
+      }),
+      dropTargetForElements({
+        element,
+        canDrop: ({ source }) => source.data?.type === "sticky" && source.data?.id !== stickyId,
+        getData: ({ input, element }) => {
+          const lastChild = isLastChildRef.current;
 
-            return attachInstruction(initialData, {
-              input,
-              element,
-              currentLevel: 1,
-              indentPerLevel: 0,
-              mode: isLastChild ? "last-in-group" : "standard",
-              block: blockedStates,
-            });
-          },
-          onDrag: ({ self, source, location }) => {
-            const instruction = getInstructionFromPayload(self, source, location);
-            setInstruction(instruction);
-          },
-          onDragLeave: () => {
-            setInstruction(undefined);
-          },
-          onDrop: ({ self, source, location }) => {
-            setInstruction(undefined);
-            handleDrop(self, source, location);
-          },
-        })
-      );
-  }, [handleDrop, isDragging, isLastChild, pathname, stickyId, workspaceSlug]);
+          return attachInstruction(initialData, {
+            input,
+            element,
+            currentLevel: 1,
+            indentPerLevel: 0,
+            mode: lastChild ? "last-in-group" : "standard",
+            block: ["make-child"],
+          });
+        },
+        onDrag: ({ self, source, location }) => {
+          const instruction = getInstructionFromPayload(self, source, location);
+          setInstruction(instruction);
+        },
+        onDragLeave: () => {
+          setInstruction(undefined);
+        },
+        onDrop: ({ self, source, location }) => {
+          setInstruction(undefined);
+          handleDropRef.current(self, source, location);
+        },
+      })
+    );
+  }, [stickyId, workspaceSlug]);
 
   return (
     <div
+      ref={elementRef}
       className="box-border flex flex-col p-[8px]"
       style={{
         width: itemWidth,
+        opacity: isDragging ? 0.4 : 1,
       }}
     >
       {/* {!isInFirstRow && <DropIndicator isVisible={instruction === "reorder-above"} />} */}
@@ -133,6 +136,7 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
         workspaceSlug={workspaceSlug}
         stickyId={stickyId}
         handleLayout={handleLayout}
+        dragHandleRef={dragHandleRef}
       />
       {/* {!isInLastRow && <DropIndicator isVisible={instruction === "reorder-below"} />} */}
     </div>

@@ -18,6 +18,7 @@ import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import type { IUserLite } from "@plane/types";
 import { Avatar } from "@plane/ui";
 import { cn, getFileURL, sortByCurrentUserThenSelected } from "@plane/utils";
+import { Wand2 } from "@/components/icons/lucide-shim";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useUser } from "@/hooks/store/user";
@@ -93,28 +94,31 @@ export const MemberOptions = observer(function MemberOptions(props: Props) {
   const options = memberIds
     ?.map((userId) => {
       const userDetails = getUserDetails(userId);
+      const isBot = !!userDetails?.is_bot;
+      // Suspension only applies to humans — bots aren't workspace-managed.
+      const suspended = !isBot && isUserSuspended(userId, workspaceSlug?.toString());
       return {
         value: userId,
         query: `${userDetails?.display_name} ${userDetails?.first_name} ${userDetails?.last_name}`,
         content: (
           <div className="flex items-center gap-2">
             <div className="w-4">
-              {isUserSuspended(userId, workspaceSlug?.toString()) ? (
+              {suspended ? (
                 <SuspendedUserIcon className="h-3.5 w-3.5 text-placeholder" />
               ) : (
                 <Avatar name={userDetails?.display_name} src={getFileURL(userDetails?.avatar_url ?? "")} />
               )}
             </div>
-            <span
-              className={cn(
-                "flex-grow truncate",
-                isUserSuspended(userId, workspaceSlug?.toString()) ? "text-placeholder" : ""
-              )}
-            >
-              {currentUser?.id === userId ? t("you") : userDetails?.display_name}
+            <span className={cn("flex-grow truncate flex items-center gap-1", suspended ? "text-placeholder" : "")}>
+              <span className="truncate">
+                {currentUser?.id === userId ? t("you") : userDetails?.display_name}
+              </span>
+              {isBot && <Wand2 className="size-2.5 shrink-0 text-tertiary" aria-label="Agent" />}
             </span>
           </div>
         ),
+        isBot,
+        suspended,
       };
     })
     .filter((o) => !!o);
@@ -165,18 +169,16 @@ export const MemberOptions = observer(function MemberOptions(props: Props) {
                           "flex w-full items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none",
                           active && "bg-layer-transparent-hover",
                           selected ? "text-primary" : "text-secondary",
-                          isUserSuspended(option.value, workspaceSlug?.toString())
-                            ? "cursor-not-allowed"
-                            : "cursor-pointer"
+                          option.suspended ? "cursor-not-allowed" : "cursor-pointer"
                         )
                       }
-                      disabled={isUserSuspended(option.value, workspaceSlug?.toString())}
+                      disabled={option.suspended}
                     >
                       {({ selected }) => (
                         <>
                           <span className="flex-grow truncate">{option.content}</span>
                           {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
-                          {isUserSuspended(option.value, workspaceSlug?.toString()) && (
+                          {option.suspended && (
                             <Pill variant={EPillVariant.DEFAULT} size={EPillSize.XS} className="border-none">
                               Suspended
                             </Pill>

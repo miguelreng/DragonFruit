@@ -5,6 +5,7 @@
  */
 
 import { useCallback } from "react";
+import { useParams } from "next/navigation";
 // plane editor
 import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
 // plane types
@@ -13,6 +14,8 @@ import type { TSearchEntities, TSearchEntityRequestPayload, TSearchResponse, TUs
 import { Avatar } from "@plane/ui";
 // helpers
 import { getFileURL } from "@plane/utils";
+// hooks
+import { useAgent } from "@/hooks/store/use-agent";
 // plane web hooks
 import { useAdditionalEditorMention } from "@/plane-web/hooks/use-additional-editor-mention";
 
@@ -23,14 +26,40 @@ type TArgs = {
 
 export const useEditorMention = (args: TArgs) => {
   const { enableAdvancedMentions = false, searchEntity } = args;
+  // router
+  const { workspaceSlug } = useParams();
   // additional mentions
   const { editorMentionTypes, updateAdditionalSections } = useAdditionalEditorMention({
     enableAdvancedMentions,
   });
+  // agent store — used to surface workspace agents alongside human mentions.
+  // We can't ask the search backend for these (yet); merging client-side
+  // keeps the @-picker working without a round-trip schema change.
+  const agentStore = useAgent();
   // fetch mentions handler
   const fetchMentions = useCallback(
     async (query: string): Promise<TMentionSection[]> => {
       try {
+        const slug = workspaceSlug?.toString();
+        // Kick off an agent fetch the first time we open the picker in a
+        // workspace; later calls reuse the cached list synchronously.
+        if (slug && !agentStore.fetchedWorkspaces[slug]) {
+          await agentStore.fetchAgents(slug).catch(() => {
+            // Soft-fail: human mentions still work.
+          });
+        }
+        const agentMatches = slug ? agentStore.getEnabledAgentsForWorkspace(slug) : [];
+        const normalizedQuery = query.trim().toLowerCase();
+        const agentItems: TMentionSuggestion[] = agentMatches
+          .filter((a) => (normalizedQuery === "" ? true : a.name.toLowerCase().includes(normalizedQuery)))
+          .map((a) => ({
+            icon: <Avatar className="flex-shrink-0" src={getFileURL(a.avatar_url ?? "")} name={a.name} />,
+            id: a.bot_user_id,
+            entity_identifier: a.bot_user_id,
+            entity_name: "user_mention",
+            title: a.name,
+          }));
+
         const res = await searchEntity({
           count: 5,
           query_type: editorMentionTypes,
@@ -60,10 +89,20 @@ export const useEditorMention = (args: TArgs) => {
             suggestionSections.push({
               key: "users",
               title: "Users",
-              items,
+              items: [...items, ...agentItems],
             });
           }
         });
+        // If the backend returned no human matches, still surface agents
+        // so an agent-only workspace (or a query that only matches agents)
+        // isn't an empty dropdown.
+        if (!suggestionSections.find((s) => s.key === "users") && agentItems.length > 0) {
+          suggestionSections.push({
+            key: "users",
+            title: "Users",
+            items: agentItems,
+          });
+        }
         const { sections } = updateAdditionalSections({
           response: res,
         });
@@ -73,7 +112,7 @@ export const useEditorMention = (args: TArgs) => {
         throw error;
       }
     },
-    [editorMentionTypes, searchEntity, updateAdditionalSections]
+    [editorMentionTypes, searchEntity, updateAdditionalSections, workspaceSlug, agentStore]
   );
 
   return {

@@ -5,6 +5,14 @@
 @import "./emoji.css";
 @plugin "@tailwindcss/typography";
 
+/* React Router file-system routes live under app/(group)/[param]/ — the
+ * parentheses and brackets in those folder names break Tailwind v4's
+ * default glob source detection, which silently drops arbitrary
+ * utilities (e.g. `h-[250px]`) used only in those files. Pointing
+ * `@source` at the directory by name (no glob) makes Tailwind walk it
+ * recursively without trying to interpret the literal `(` / `[`. */
+@source "../app";
+
 /* Figtree — self-hosted variable font served from /public/fonts.
  * Bypasses @fontsource so the URL is a simple, stable /fonts/ path
  * (no node_modules + literal-space path quirks). */

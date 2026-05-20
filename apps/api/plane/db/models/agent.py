@@ -35,13 +35,16 @@ logger = logging.getLogger(__name__)
 def _default_triggers() -> dict:
     """Default event triggers for a new agent.
 
-    Conservative defaults: react to direct assignment only. @mention and
-    state-change require opt-in from the owner so chatty workspaces don't
-    accidentally rack up calls.
+    On by default are the two *explicit* signals — being added as an
+    assignee and being @-mentioned by name. Both require the human to
+    intentionally invoke the agent, so auto-responding doesn't surprise
+    anyone. State changes and "every comment on a task I'm assigned to"
+    are passive/noisy and stay opt-in to avoid runaway calls in chatty
+    workspaces.
     """
     return {
         "assigned": True,
-        "mentioned": False,
+        "mentioned": True,
         "state_change": False,
         "comment": False,
     }

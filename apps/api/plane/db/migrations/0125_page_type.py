@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='page',
             name='page_type',
-            field=models.CharField(choices=[('doc', 'Doc'), ('diagram', 'Diagram'), ('whiteboard', 'Whiteboard')], default='doc', max_length=16),
+            field=models.CharField(choices=[('doc', 'Doc'), ('whiteboard', 'Whiteboard')], default='doc', max_length=16),
         ),
     ]

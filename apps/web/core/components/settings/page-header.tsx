@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Header } from "@plane/ui";
+import { EHeaderVariant, Header } from "@plane/ui";
 
 type Props = {
   leftItem?: React.ReactNode;
@@ -15,7 +15,7 @@ export function SettingsPageHeader(props: Props) {
   const { leftItem, rightItem } = props;
 
   return (
-    <Header>
+    <Header variant={EHeaderVariant.SECONDARY}>
       {leftItem && <Header.LeftItem>{leftItem}</Header.LeftItem>}
       {rightItem && <Header.RightItem>{rightItem}</Header.RightItem>}
     </Header>

@@ -4,23 +4,24 @@
  * See the LICENSE file for details.
  */
 
-import { observer } from "mobx-react";
+import { forwardRef } from "react";
 // ui
 import { DragHandle } from "@plane/ui";
 // helper
 import { cn } from "@plane/utils";
 
 type Props = {
-  isDragging: boolean;
+  isDragging?: boolean;
 };
 
-export const StickyItemDragHandle = observer(function StickyItemDragHandle(props: Props) {
+export const StickyItemDragHandle = forwardRef<HTMLDivElement, Props>(function StickyItemDragHandle(props, ref) {
   const { isDragging } = props;
 
   return (
     <div
+      ref={ref}
       className={cn(
-        "absolute top-3 left-1/2 mr-2 hidden -translate-x-1/2 rotate-90 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/sticky:flex",
+        "absolute top-1 left-1/2 z-10 flex -translate-x-1/2 rotate-90 cursor-grab items-center justify-center rounded-sm text-placeholder opacity-0 transition-opacity group-hover/sticky:opacity-100",
         {
           "cursor-grabbing": isDragging,
         }

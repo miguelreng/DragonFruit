@@ -12,7 +12,6 @@ import {
   Calendar01Icon,
   ChartBarLineIcon,
   File02Icon,
-  Flowchart01Icon,
   Home01Icon,
   InboxIcon,
   PaintBoardIcon,
@@ -50,8 +49,6 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
       return <SidebarNavIcon icon={StickyNote02Icon} className={cls} />;
     case "docs":
       return <SidebarNavIcon icon={File02Icon} className={cls} />;
-    case "diagrams":
-      return <SidebarNavIcon icon={Flowchart01Icon} className={cls} />;
     case "whiteboards":
       return <SidebarNavIcon icon={PaintBoardIcon} className={cls} />;
     case "calendar":

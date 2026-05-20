@@ -141,7 +141,7 @@ export const ExportForm = observer(function ExportForm(props: Props) {
       }}
       className="flex flex-col gap-5"
     >
-      <div className="rounded-lg border border-subtle bg-layer-2">
+      <div className="overflow-hidden rounded-lg border border-subtle bg-layer-2">
         {/* Project Selector */}
         <SettingsBoxedControlItem
           className="rounded-none border-0 border-b"

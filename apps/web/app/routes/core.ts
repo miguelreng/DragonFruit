@@ -49,6 +49,12 @@ export const coreRoutes: RouteConfigEntry[] = [
     route("calendar/oauth/callback", "./(all)/calendar-oauth-callback/page.tsx"),
   ]),
 
+  // Dev-only preview of the home Activity widget. No auth — mounts the
+  // section with mock data so the grid is viewable directly.
+  layout("./(all)/__preview/layout.tsx", [
+    route("__preview/activity", "./(all)/__preview/activity/page.tsx"),
+  ]),
+
   // ========================================================================
   // ALL APP ROUTES
   // ========================================================================
@@ -93,12 +99,7 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/docs", "./(all)/[workspaceSlug]/(projects)/docs/page.tsx"),
         ]),
 
-        // Diagrams (workspace-wide list of mermaid-typed pages)
-        layout("./(all)/[workspaceSlug]/(projects)/diagrams/layout.tsx", [
-          route(":workspaceSlug/diagrams", "./(all)/[workspaceSlug]/(projects)/diagrams/page.tsx"),
-        ]),
-
-        // Whiteboards (workspace-wide list of excalidraw-typed pages)
+        // Whiteboards (workspace-wide list of whiteboard-typed pages)
         layout("./(all)/[workspaceSlug]/(projects)/whiteboards/layout.tsx", [
           route(":workspaceSlug/whiteboards", "./(all)/[workspaceSlug]/(projects)/whiteboards/page.tsx"),
         ]),
@@ -279,10 +280,6 @@ export const coreRoutes: RouteConfigEntry[] = [
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/members/page.tsx"
           ),
           route(
-            ":workspaceSlug/settings/billing",
-            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/billing/page.tsx"
-          ),
-          route(
             ":workspaceSlug/settings/exports",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/exports/page.tsx"
           ),
@@ -297,6 +294,18 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(
             ":workspaceSlug/settings/agents",
             "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/agents/page.tsx"
+          ),
+          route(
+            ":workspaceSlug/settings/ai",
+            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/ai/page.tsx"
+          ),
+          route(
+            ":workspaceSlug/settings/about",
+            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/about/page.tsx"
+          ),
+          route(
+            ":workspaceSlug/settings/imports",
+            "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/imports/page.tsx"
           ),
         ]),
 

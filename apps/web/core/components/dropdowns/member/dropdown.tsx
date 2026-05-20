@@ -6,8 +6,11 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { useCallback } from "react";
+import type { IUserLite } from "@plane/types";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 // hooks
+import { useAgent } from "@/hooks/store/use-agent";
 import { useMember } from "@/hooks/store/use-member";
 // local imports
 import { MemberDropdownBase } from "./base";
@@ -23,7 +26,7 @@ type TMemberDropdownProps = {
 } & MemberDropdownProps;
 
 export const MemberDropdown = observer(function MemberDropdown(props: TMemberDropdownProps) {
-  const { memberIds: propsMemberIds, projectId } = props;
+  const { memberIds: propsMemberIds, projectId, includeAgents } = props;
   // router params
   const { workspaceSlug } = useParams();
   // store hooks
@@ -32,22 +35,43 @@ export const MemberDropdown = observer(function MemberDropdown(props: TMemberDro
     project: { getProjectMemberIds, fetchProjectMembers },
     workspace: { workspaceMemberIds },
   } = useMember();
+  const agentStore = useAgent();
 
-  const memberIds = propsMemberIds
+  const slug = workspaceSlug?.toString();
+  const agentBotUserIds = includeAgents && slug ? agentStore.getEnabledAgentBotUserIds(slug) : [];
+
+  const baseMemberIds = propsMemberIds
     ? propsMemberIds
     : projectId
       ? getProjectMemberIds(projectId, false)
       : workspaceMemberIds;
 
+  // Append agents after humans so the trigger avatar group stays stable
+  // when an agent is added or removed from the workspace.
+  const memberIds = includeAgents
+    ? [...(baseMemberIds ?? []), ...agentBotUserIds.filter((id) => !(baseMemberIds ?? []).includes(id))]
+    : (baseMemberIds ?? []);
+
   const onDropdownOpen = () => {
-    if (!memberIds && projectId && workspaceSlug) fetchProjectMembers(workspaceSlug.toString(), projectId);
+    if (!baseMemberIds && projectId && slug) fetchProjectMembers(slug, projectId);
+    if (includeAgents && slug && !agentStore.fetchedWorkspaces[slug]) {
+      void agentStore.fetchAgents(slug).catch(() => {
+        // Soft-fail: the dropdown still works for human members.
+      });
+    }
   };
+
+  const resolveUserDetails = useCallback(
+    (userId: string): IUserLite | undefined =>
+      getUserDetails(userId) ?? (includeAgents ? agentStore.getAgentAsUserLite(userId) : undefined),
+    [getUserDetails, agentStore, includeAgents]
+  );
 
   return (
     <MemberDropdownBase
       {...props}
-      getUserDetails={getUserDetails}
-      memberIds={memberIds ?? []}
+      getUserDetails={resolveUserDetails}
+      memberIds={memberIds}
       onDropdownOpen={onDropdownOpen}
     />
   );

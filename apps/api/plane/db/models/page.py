@@ -27,16 +27,14 @@ class Page(BaseModel):
 
     ACCESS_CHOICES = ((PRIVATE_ACCESS, "Private"), (PUBLIC_ACCESS, "Public"))
 
-    # DragonFruit page types. "doc" is the existing collaborative editor;
-    # "diagram" renders Mermaid; "whiteboard" renders Excalidraw. The renderer
-    # picks based on this field; description_html / description_json carry
-    # the body in a type-specific shape.
+    # "whiteboard" pages render a tldraw canvas; "doc" pages use the
+    # collaborative rich-text editor. The renderer picks based on this field;
+    # description_html / description_json carry the body in a type-specific
+    # shape (Yjs binary for docs, tldraw snapshot JSON for whiteboards).
     PAGE_TYPE_DOC = "doc"
-    PAGE_TYPE_DIAGRAM = "diagram"
     PAGE_TYPE_WHITEBOARD = "whiteboard"
     PAGE_TYPE_CHOICES = (
         (PAGE_TYPE_DOC, "Doc"),
-        (PAGE_TYPE_DIAGRAM, "Diagram"),
         (PAGE_TYPE_WHITEBOARD, "Whiteboard"),
     )
 

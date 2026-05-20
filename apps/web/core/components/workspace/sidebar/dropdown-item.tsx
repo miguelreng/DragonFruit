@@ -12,7 +12,6 @@ import { Menu } from "@headlessui/react";
 // plane imports
 import { EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { CheckIcon } from "@plane/propel/icons";
 import type { IWorkspace } from "@plane/types";
 import { cn, getUserRole } from "@plane/utils";
 // plane web imports
@@ -47,20 +46,20 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
     >
       <Menu.Item
         as="div"
-        className={cn("px-4 py-2", {
+        className={cn("px-2 py-2", {
           "bg-layer-transparent-active": workspace.id === activeWorkspace?.id,
           "hover:bg-layer-transparent-hover": workspace.id !== activeWorkspace?.id,
         })}
       >
         <div className="flex items-center justify-between gap-1 rounded-sm p-1 text-13 text-primary">
-          <div className="relative flex w-[80%] items-center justify-start gap-2.5">
+          <div className="relative flex min-w-0 flex-1 items-center justify-start gap-2.5">
             <WorkspaceLogo
               logo={workspace?.logo_url}
               name={workspace?.name}
               workspaceId={workspace?.id}
               classNames="size-8 rounded-md border border-subtle"
             />
-            <div className="w-[inherit]">
+            <div className="min-w-0 flex-1">
               <div
                 className={`truncate text-left text-13 font-medium text-ellipsis ${workspaceSlug === workspace.slug ? "" : "text-secondary"}`}
               >
@@ -74,16 +73,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
             </div>
           </div>
           {workspace.id === activeWorkspace?.id ? (
-            <span className="flex-shrink-0 p-1">
-              <CheckIcon className="h-5 w-5 text-primary" />
-            </span>
-          ) : (
-            <SubscriptionPill workspace={workspace} />
-          )}
-        </div>
-        {workspace.id === activeWorkspace?.id && (
-          <>
-            <div className="mt-2 mb-1 flex gap-2">
+            <div className="flex flex-shrink-0 items-center gap-0.5">
               {[EUserPermissions.ADMIN, EUserPermissions.MEMBER].includes(workspace?.role) && (
                 <Link
                   href={`/${workspace.slug}/settings`}
@@ -91,10 +81,10 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
                     e.stopPropagation();
                     handleClose();
                   }}
-                  className="flex gap-1.5 rounded-md border border-strong bg-layer-2 px-2.5 py-1.5 text-secondary transition-colors hover:border-strong hover:text-secondary hover:shadow-raised-100"
+                  aria-label={t("settings")}
+                  className="flex size-7 items-center justify-center rounded-sm text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
                 >
-                  <Settings className="my-auto h-4 w-4 flex-shrink-0" />
-                  <span className="my-auto text-13 font-medium whitespace-nowrap">{t("settings")}</span>
+                  <Settings className="size-3.5" />
                 </Link>
               )}
               {[EUserPermissions.ADMIN].includes(workspace?.role) && (
@@ -104,17 +94,17 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
                     e.stopPropagation();
                     handleClose();
                   }}
-                  className="flex gap-1.5 rounded-md border border-strong bg-layer-2 px-2.5 py-1.5 text-secondary transition-colors hover:border-strong hover:text-secondary hover:shadow-raised-100"
+                  aria-label={t("project_settings.members.invite_members.title")}
+                  className="flex size-7 items-center justify-center rounded-sm text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
                 >
-                  <UserPlus className="my-auto h-4 w-4 flex-shrink-0" />
-                  <span className="my-auto text-13 font-medium whitespace-nowrap">
-                    {t("project_settings.members.invite_members.title")}
-                  </span>
+                  <UserPlus className="size-3.5" />
                 </Link>
               )}
             </div>
-          </>
-        )}
+          ) : (
+            <SubscriptionPill workspace={workspace} />
+          )}
+        </div>
       </Menu.Item>
     </Link>
   );
