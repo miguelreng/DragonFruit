@@ -4,14 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
 // plane helpers
 import { useOutsideClickDetector } from "@plane/hooks";
-import { PreferencesIcon } from "@plane/propel/icons";
 import { ScrollArea } from "@plane/propel/scrollarea";
 // components
-import { CustomizeNavigationDialog } from "@/components/navigation/customize-navigation-dialog";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -19,7 +17,6 @@ import useSize from "@/hooks/use-window-size";
 // plane web components
 import { WorkspaceEditionBadge } from "@/plane-web/components/workspace/edition-badge";
 import { AppSidebarToggleButton } from "./sidebar-toggle-button";
-import { IconButton } from "@plane/propel/icon-button";
 
 type TSidebarWrapperProps = {
   title: string;
@@ -28,9 +25,7 @@ type TSidebarWrapperProps = {
 };
 
 export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWrapperProps) {
-  const { title, children, quickActions } = props;
-  // state
-  const [isCustomizeNavDialogOpen, setIsCustomizeNavDialogOpen] = useState(false);
+  const { children, quickActions } = props;
   // store hooks
   const { toggleSidebar, sidebarCollapsed } = useAppTheme();
   const windowSize = useSize();
@@ -50,31 +45,17 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
 
   return (
     <>
-      <CustomizeNavigationDialog isOpen={isCustomizeNavDialogOpen} onClose={() => setIsCustomizeNavDialogOpen(false)} />
       <div ref={ref} className="flex h-full w-full animate-fade-in flex-col">
-        <div className="flex flex-col gap-3 px-3">
-          {/* Workspace switcher */}
-          <div className="px-2 pt-2">
-            <WorkspaceMenuRoot variant="top-navigation" />
+        {/* Workspace switcher row — matches the page AppHeader (h-11, border-b) so the
+            two header strips sit on the same baseline across the sidebar/content seam. */}
+        <div className="flex h-11 w-full flex-shrink-0 items-center gap-1 border-b border-subtle px-3">
+          <WorkspaceMenuRoot variant="top-navigation" />
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <AppSidebarToggleButton />
           </div>
-
-          <div className="flex items-center justify-between gap-2 px-2">
-            <span className="pt-1 text-16 font-medium text-primary">{title}</span>
-            <div className="flex items-center gap-2">
-              {title === "Projects" && (
-                <IconButton
-                  size="base"
-                  variant="ghost"
-                  icon={PreferencesIcon}
-                  onClick={() => setIsCustomizeNavDialogOpen(true)}
-                />
-              )}
-              <AppSidebarToggleButton />
-            </div>
-          </div>
-          {/* Quick actions */}
-          {quickActions}
         </div>
+        {/* Quick actions */}
+        {quickActions && <div className="flex flex-col gap-3 px-3 pt-3">{quickActions}</div>}
 
         <ScrollArea
           orientation="vertical"

@@ -4,54 +4,59 @@
  * See the LICENSE file for details.
  */
 
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
-  Archive,
-  CalendarBlank,
-  ChartBar,
-  CircleHalfTilt,
-  FileText,
-  FlowArrow,
-  House,
-  Notebook,
-  PaintBrush,
-  Pencil,
-  StackSimple,
-  Tray,
-  UserCirclePlus,
-} from "@phosphor-icons/react";
-import { Briefcase } from "@/components/icons/lucide-shim";
+  AiBrain01Icon,
+  Archive02Icon,
+  BriefcaseIcon,
+  Calendar01Icon,
+  ChartBarLineIcon,
+  File02Icon,
+  Flowchart01Icon,
+  Home01Icon,
+  InboxIcon,
+  PaintBoardIcon,
+  PencilEdit01Icon,
+  RepeatIcon,
+  StickyNote02Icon,
+  UserAdd01Icon,
+} from "@hugeicons/core-free-icons";
 import { cn } from "@plane/utils";
+
+const SidebarNavIcon = ({ icon, className }: { icon: IconSvgElement; className: string }) => (
+  <HugeiconsIcon icon={icon} className={className} color="currentColor" strokeWidth={1.5} size="1em" />
+);
 
 export const getSidebarNavigationItemIcon = (key: string, className: string = "") => {
   const cls = cn("size-4 flex-shrink-0", className);
   switch (key) {
     case "home":
-      return <House className={cls} />;
+      return <SidebarNavIcon icon={Home01Icon} className={cls} />;
     case "inbox":
-      return <Tray className={cls} />;
+      return <SidebarNavIcon icon={InboxIcon} className={cls} />;
     case "projects":
-      return <Briefcase className={cls} />;
-    case "views":
-      return <StackSimple className={cls} />;
+      return <SidebarNavIcon icon={BriefcaseIcon} className={cls} />;
     case "active_cycles":
-      return <CircleHalfTilt className={cls} />;
+      return <SidebarNavIcon icon={RepeatIcon} className={cls} />;
     case "analytics":
-      return <ChartBar className={cls} />;
+      return <SidebarNavIcon icon={ChartBarLineIcon} className={cls} />;
     case "your_work":
-      return <UserCirclePlus className={cls} />;
+      return <SidebarNavIcon icon={UserAdd01Icon} className={cls} />;
     case "drafts":
-      return <Pencil className={cls} />;
+      return <SidebarNavIcon icon={PencilEdit01Icon} className={cls} />;
     case "archives":
-      return <Archive className={cls} />;
+      return <SidebarNavIcon icon={Archive02Icon} className={cls} />;
     case "stickies":
-      return <Notebook className={cls} />;
+      return <SidebarNavIcon icon={StickyNote02Icon} className={cls} />;
     case "docs":
-      return <FileText className={cls} />;
+      return <SidebarNavIcon icon={File02Icon} className={cls} />;
     case "diagrams":
-      return <FlowArrow className={cls} />;
+      return <SidebarNavIcon icon={Flowchart01Icon} className={cls} />;
     case "whiteboards":
-      return <PaintBrush className={cls} />;
+      return <SidebarNavIcon icon={PaintBoardIcon} className={cls} />;
     case "calendar":
-      return <CalendarBlank className={cls} />;
+      return <SidebarNavIcon icon={Calendar01Icon} className={cls} />;
+    case "agents":
+      return <SidebarNavIcon icon={AiBrain01Icon} className={cls} />;
   }
 };

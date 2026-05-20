@@ -16,21 +16,24 @@ import type {
   TIssueKanbanFilters,
   IIssueFilters,
   TIssueParams,
-  TStaticViewTypes,
   IssuePaginationOptions,
   TWorkItemFilterExpression,
   TSupportedFilterForUpdate,
 } from "@plane/types";
-import { EIssuesStoreType, EIssueLayoutTypes, STATIC_VIEW_TYPES } from "@plane/types";
+import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
 import { handleIssueQueryParamsByLayout } from "@plane/utils";
-// services
-import { WorkspaceService } from "@/services/workspace.service";
 // local imports
 import type { IBaseIssueFilterStore, IIssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
 import { IssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
 import type { IIssueRootStore } from "../root.store";
 
-type TWorkspaceFilters = TStaticViewTypes;
+// The workspace-views feature was removed (commit: "Remove workspace-views
+// feature"). This store is now kept only because the create-issue modal +
+// drafts consume it via `useIssues(EIssuesStoreType.WORKSPACE)` and read the
+// (now-always-undefined) `issueFilters` / `appliedFilters` getters. Its
+// fetch/update methods are no-ops — a follow-up should retire the store and
+// migrate those consumers off `EIssuesStoreType.WORKSPACE`.
+type TWorkspaceFilters = string;
 
 export type TBaseFilterStore = IBaseIssueFilterStore & IIssueFilterHelperStore;
 
@@ -62,8 +65,6 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
   filters: { [viewId: string]: IIssueFilters } = {};
   // root store
   rootIssueStore;
-  // services
-  issueFilterService;
 
   constructor(_rootStore: IIssueRootStore) {
     super();
@@ -79,8 +80,6 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
     });
     // root store
     this.rootIssueStore = _rootStore;
-    // services
-    this.issueFilterService = new WorkspaceService();
   }
 
   getIssueFilters = (viewId: string | undefined) => {
@@ -112,14 +111,17 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
     return filteredRouteParams;
   };
 
+  // workspace-views was removed, so there's no current workspace-level view ID
+  // to anchor filters against. Callers still ask for the getters from shared
+  // issue-layout code paths (calendar/spreadsheet/quick-action dropdowns), so
+  // the getters remain — they just have nothing to look up and return
+  // undefined gracefully via getIssueFilters/getAppliedFilters.
   get issueFilters() {
-    const viewId = this.rootIssueStore.globalViewId;
-    return this.getIssueFilters(viewId);
+    return this.getIssueFilters(undefined);
   }
 
   get appliedFilters() {
-    const viewId = this.rootIssueStore.globalViewId;
-    return this.getAppliedFilters(viewId);
+    return this.getAppliedFilters(undefined);
   }
 
   getFilterParams = computedFn(
@@ -130,67 +132,18 @@ export class WorkspaceIssuesFilter extends IssueFilterHelperStore implements IWo
       groupId: string | undefined,
       subGroupId: string | undefined
     ) => {
-      let filterParams = this.getAppliedFilters(viewId);
-
-      if (!filterParams) {
-        filterParams = {};
-      }
-
-      if (STATIC_VIEW_TYPES.includes(viewId)) {
-        const currentUserId = this.rootIssueStore.currentUserId;
-        const paramForStaticView = this.getFilterConditionBasedOnViews(currentUserId, viewId);
-        if (paramForStaticView) {
-          filterParams = { ...filterParams, ...paramForStaticView };
-        }
-      }
-
-      const paginationParams = this.getPaginationParams(filterParams, options, cursor, groupId, subGroupId);
-      return paginationParams;
+      const filterParams = this.getAppliedFilters(viewId) ?? {};
+      return this.getPaginationParams(filterParams, options, cursor, groupId, subGroupId);
     }
   );
 
-  fetchFilters = async (workspaceSlug: string, viewId: TWorkspaceFilters) => {
-    let richFilters: TWorkItemFilterExpression;
-    let displayFilters: IIssueDisplayFilterOptions;
-    let displayProperties: IIssueDisplayProperties;
-    let kanbanFilters: TIssueKanbanFilters = {
-      group_by: [],
-      sub_group_by: [],
-    };
-
-    const _filters = this.handleIssuesLocalFilters.get(EIssuesStoreType.GLOBAL, workspaceSlug, undefined, viewId);
-    displayFilters = this.computedDisplayFilters(_filters?.display_filters, {
-      layout: EIssueLayoutTypes.SPREADSHEET,
-      order_by: "-created_at",
-    });
-    displayProperties = this.computedDisplayProperties(_filters?.display_properties);
-    kanbanFilters = {
-      group_by: _filters?.kanban_filters?.group_by || [],
-      sub_group_by: _filters?.kanban_filters?.sub_group_by || [],
-    };
-
-    // Get the view details if the view is not a static view
-    if (STATIC_VIEW_TYPES.includes(viewId) === false) {
-      const _filters = await this.issueFilterService.getViewDetails(workspaceSlug, viewId);
-      richFilters = _filters?.rich_filters;
-      displayFilters = this.computedDisplayFilters(_filters?.display_filters, {
-        layout: EIssueLayoutTypes.SPREADSHEET,
-        order_by: "-created_at",
-      });
-      displayProperties = this.computedDisplayProperties(_filters?.display_properties);
-    }
-
-    // override existing order by if ordered by manual sort_order
-    if (displayFilters.order_by === "sort_order") {
-      displayFilters.order_by = "-created_at";
-    }
-
-    runInAction(() => {
-      set(this.filters, [viewId, "richFilters"], richFilters);
-      set(this.filters, [viewId, "displayFilters"], displayFilters);
-      set(this.filters, [viewId, "displayProperties"], displayProperties);
-      set(this.filters, [viewId, "kanbanFilters"], kanbanFilters);
-    });
+  // No-op after the workspace-views removal: there is no workspace-level view
+  // whose filters need fetching. Kept on the interface because shared issue
+  // store consumers (drafts, create-issue modal) reach this object via
+  // `useIssues(EIssuesStoreType.WORKSPACE)`; they never actually call
+  // fetchFilters, but the method signature must remain.
+  fetchFilters = async (_workspaceSlug: string, _viewId: TWorkspaceFilters) => {
+    return;
   };
 
   /**

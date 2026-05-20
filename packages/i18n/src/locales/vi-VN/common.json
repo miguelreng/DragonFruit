@@ -823,7 +823,6 @@
     "plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start": "Plane không khởi động được. Điều này có thể do một hoặc nhiều dịch vụ Plane không khởi động được.",
     "choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure": "Chọn View Logs từ setup.sh và log Docker để chắc chắn."
   },
-  "customize_navigation": "Tùy chỉnh điều hướng",
   "personal": "Cá nhân",
   "accordion_navigation_control": "Điều hướng thanh bên kiểu accordion",
   "horizontal_navigation_bar": "Điều hướng dạng tab",

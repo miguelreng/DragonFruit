@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TStaticViewTypes, IWorkspaceSearchResults } from "@plane/types";
+import type { IWorkspaceSearchResults } from "@plane/types";
 import { EUserWorkspaceRoles } from "@plane/types";
 
 export const ORGANIZATION_SIZE: string[] = ["Just myself", "2-10", "11-50", "51-200", "201-500", "500+"];
@@ -168,27 +168,9 @@ export const EXPORTERS_LIST = [
   },
 ];
 
-export const DEFAULT_GLOBAL_VIEWS_LIST: {
-  key: TStaticViewTypes;
-  i18n_label: string;
-}[] = [
-  {
-    key: "all-issues",
-    i18n_label: "default_global_view.all_issues",
-  },
-  {
-    key: "assigned",
-    i18n_label: "default_global_view.assigned",
-  },
-  {
-    key: "created",
-    i18n_label: "default_global_view.created",
-  },
-  {
-    key: "subscribed",
-    i18n_label: "default_global_view.subscribed",
-  },
-];
+// DEFAULT_GLOBAL_VIEWS_LIST was here. Deleted with the workspace-views
+// feature — none of its keys ("all-issues", "assigned", "created",
+// "subscribed") had any live consumers.
 
 export interface IWorkspaceSidebarNavigationItem {
   key: string;
@@ -199,13 +181,6 @@ export interface IWorkspaceSidebarNavigationItem {
 }
 
 export const WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS: Record<string, IWorkspaceSidebarNavigationItem> = {
-  views: {
-    key: "views",
-    labelTranslationKey: "views",
-    href: `/workspace-views/all-issues/`,
-    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
-    highlight: (pathname: string, url: string) => pathname.includes(url),
-  },
   analytics: {
     key: "analytics",
     labelTranslationKey: "analytics",
@@ -223,7 +198,6 @@ export const WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS: Record<string, IWorkspa
 };
 
 export const WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS: IWorkspaceSidebarNavigationItem[] = [
-  WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS["views"],
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS["analytics"],
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS["archives"],
 ];
@@ -298,6 +272,17 @@ export const WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS: Record<string, IWorkspac
     href: `/projects/`,
     access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
     highlight: (pathname: string, url: string) => pathname === url,
+  },
+  agents: {
+    key: "agents",
+    labelTranslationKey: "sidebar.agents",
+    // For now this jumps straight into Settings → Agents. When the workspace-
+    // level Agents page (runs feed, multi-agent overview) lands, swap the href
+    // to `/agents/` and keep the same `agents` key so personal preferences
+    // (pinning, sort order) survive.
+    href: `/settings/agents/`,
+    access: [EUserWorkspaceRoles.ADMIN],
+    highlight: (pathname: string, url: string) => pathname.includes(url),
   },
 };
 

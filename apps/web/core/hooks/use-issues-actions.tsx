@@ -50,7 +50,6 @@ export const useIssuesActions = (storeType: EIssuesStoreType): IssueActions => {
   const cycleIssueActions = useCycleIssueActions();
   const moduleIssueActions = useModuleIssueActions();
   const projectViewIssueActions = useProjectViewIssueActions();
-  const globalIssueActions = useGlobalIssueActions();
   const profileIssueActions = useProfileIssueActions();
   const archivedIssueActions = useArchivedIssueActions();
   const workspaceDraftIssueActions = useWorkspaceDraftIssueActions();
@@ -66,8 +65,6 @@ export const useIssuesActions = (storeType: EIssuesStoreType): IssueActions => {
       return cycleIssueActions;
     case EIssuesStoreType.MODULE:
       return moduleIssueActions;
-    case EIssuesStoreType.GLOBAL:
-      return globalIssueActions;
     case EIssuesStoreType.WORKSPACE_DRAFT:
       //@ts-expect-error type mismatch
       return workspaceDraftIssueActions;
@@ -668,77 +665,10 @@ const useArchivedIssueActions = () => {
   );
 };
 
-const useGlobalIssueActions = () => {
-  // router
-  const { workspaceSlug: routerWorkspaceSlug, globalViewId: routerGlobalViewId } = useParams();
-  const workspaceSlug = routerWorkspaceSlug?.toString();
-  const globalViewId = routerGlobalViewId?.toString();
-  // store hooks
-  const { issues, issuesFilter } = useIssues(EIssuesStoreType.GLOBAL);
-
-  const fetchIssues = useCallback(
-    async (loadType: TLoader, options: IssuePaginationOptions) => {
-      if (!workspaceSlug || !globalViewId) return;
-      return issues.fetchIssues(workspaceSlug.toString(), globalViewId.toString(), loadType, options);
-    },
-    [issues.fetchIssues, workspaceSlug, globalViewId]
-  );
-  const fetchNextIssues = useCallback(
-    async (groupId?: string, subGroupId?: string) => {
-      if (!workspaceSlug || !globalViewId) return;
-      return issues.fetchNextIssues(workspaceSlug.toString(), globalViewId.toString(), groupId, subGroupId);
-    },
-    [issues.fetchIssues, workspaceSlug, globalViewId]
-  );
-
-  const createIssue = useCallback(
-    async (projectId: string | undefined | null, data: Partial<TIssue>) => {
-      if (!workspaceSlug || !projectId) return;
-      return await issues.createIssue(workspaceSlug, projectId, data);
-    },
-    [issues.createIssue, workspaceSlug]
-  );
-  const updateIssue = useCallback(
-    async (projectId: string | undefined | null, issueId: string, data: Partial<TIssue>) => {
-      if (!workspaceSlug || !projectId) return;
-      return await issues.updateIssue(workspaceSlug, projectId, issueId, data);
-    },
-    [issues.updateIssue, workspaceSlug]
-  );
-  const removeIssue = useCallback(
-    async (projectId: string | undefined | null, issueId: string) => {
-      if (!workspaceSlug || !projectId) return;
-      return await issues.removeIssue(workspaceSlug, projectId, issueId);
-    },
-    [issues.removeIssue, workspaceSlug]
-  );
-
-  const updateFilters = useCallback(
-    async (projectId: string, filterType: TSupportedFilterTypeForUpdate, filters: TSupportedFilterForUpdate) => {
-      if (!globalViewId || !workspaceSlug) return;
-      return await issuesFilter.updateFilters(workspaceSlug, projectId, filterType, filters, globalViewId);
-    },
-    [issuesFilter.updateFilters, globalViewId, workspaceSlug]
-  );
-
-  return useMemo(
-    () => ({
-      fetchIssues,
-      fetchNextIssues,
-      createIssue,
-      updateIssue,
-      removeIssue,
-      updateFilters,
-    }),
-    [createIssue, updateIssue, removeIssue, updateFilters]
-  );
-};
-
 const useWorkspaceDraftIssueActions = () => {
   // router
-  const { workspaceSlug: routerWorkspaceSlug, globalViewId: routerGlobalViewId } = useParams();
+  const { workspaceSlug: routerWorkspaceSlug } = useParams();
   const workspaceSlug = routerWorkspaceSlug?.toString();
-  const globalViewId = routerGlobalViewId?.toString();
   // store hooks
   const { issues, issuesFilter } = useIssues(EIssuesStoreType.WORKSPACE_DRAFT);
   const fetchIssues = useCallback(
@@ -787,10 +717,10 @@ const useWorkspaceDraftIssueActions = () => {
   const updateFilters = useCallback(
     async (projectId: string, filterType: TSupportedFilterTypeForUpdate, filters: TSupportedFilterForUpdate) => {
       filters = filters as IIssueDisplayFilterOptions | IIssueDisplayProperties;
-      if (!globalViewId || !workspaceSlug) return;
+      if (!workspaceSlug) return;
       return await issuesFilter.updateFilters(workspaceSlug, filterType, filters);
     },
-    [globalViewId, workspaceSlug, issuesFilter]
+    [workspaceSlug, issuesFilter]
   );
 
   return useMemo(

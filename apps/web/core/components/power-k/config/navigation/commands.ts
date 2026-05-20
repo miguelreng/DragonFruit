@@ -25,10 +25,6 @@ export type TPowerKNavigationCommandKeys =
   | "nav_account_settings"
   | "open_project"
   | "nav_projects_list"
-  | "nav_all_workspace_work_items"
-  | "nav_assigned_workspace_work_items"
-  | "nav_created_workspace_work_items"
-  | "nav_subscribed_workspace_work_items"
   | "nav_workspace_analytics"
   | "nav_workspace_drafts"
   | "nav_workspace_archives"
@@ -164,52 +160,6 @@ export const usePowerKNavigationCommandsRecord = (): Record<TPowerKNavigationCom
       icon: Briefcase,
       keySequence: "gp",
       action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "projects"]),
-      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
-      isVisible: (ctx) => baseWorkspaceConditions(ctx),
-      closeOnSelect: true,
-    },
-    nav_all_workspace_work_items: {
-      id: "nav_all_workspace_work_items",
-      type: "action",
-      group: "navigation",
-      i18n_title: "power_k.navigation_actions.nav_all_workspace_work_items",
-      icon: Layers,
-      action: (ctx) =>
-        handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "workspace-views", "all-issues"]),
-      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
-      isVisible: (ctx) => baseWorkspaceConditions(ctx),
-      closeOnSelect: true,
-    },
-    nav_assigned_workspace_work_items: {
-      id: "nav_assigned_workspace_work_items",
-      type: "action",
-      group: "navigation",
-      i18n_title: "power_k.navigation_actions.nav_assigned_workspace_work_items",
-      icon: Layers,
-      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "workspace-views", "assigned"]),
-      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
-      isVisible: (ctx) => baseWorkspaceConditions(ctx),
-      closeOnSelect: true,
-    },
-    nav_created_workspace_work_items: {
-      id: "nav_created_workspace_work_items",
-      type: "action",
-      group: "navigation",
-      i18n_title: "power_k.navigation_actions.nav_created_workspace_work_items",
-      icon: Layers,
-      action: (ctx) => handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "workspace-views", "created"]),
-      isEnabled: (ctx) => baseWorkspaceConditions(ctx),
-      isVisible: (ctx) => baseWorkspaceConditions(ctx),
-      closeOnSelect: true,
-    },
-    nav_subscribed_workspace_work_items: {
-      id: "nav_subscribed_workspace_work_items",
-      type: "action",
-      group: "navigation",
-      i18n_title: "power_k.navigation_actions.nav_subscribed_workspace_work_items",
-      icon: Layers,
-      action: (ctx) =>
-        handlePowerKNavigate(ctx, [ctx.params.workspaceSlug?.toString(), "workspace-views", "subscribed"]),
       isEnabled: (ctx) => baseWorkspaceConditions(ctx),
       isVisible: (ctx) => baseWorkspaceConditions(ctx),
       closeOnSelect: true,

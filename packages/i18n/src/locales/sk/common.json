@@ -823,7 +823,6 @@
     "plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start": "Plane sa nespustil. Toto môže byť spôsobené tým, že sa jedna alebo viac služieb Plane nepodarilo spustiť.",
     "choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure": "Vyberte View Logs z setup.sh a Docker logov, aby ste si boli istí."
   },
-  "customize_navigation": "Prispôsobiť navigáciu",
   "personal": "Osobné",
   "accordion_navigation_control": "Harmonická navigácia bočného panela",
   "horizontal_navigation_bar": "Navigácia s kartami",
