@@ -238,16 +238,23 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   Decorative — aria-hidden. */}
               {isSubIssue && (
                 <>
+                  {/* Upper L extends UP past the row's py-3 padding so the
+                      vertical line reaches the very top edge of the row,
+                      flush with the previous sibling's lower extension. */}
                   <span
                     aria-hidden
                     className="pointer-events-none absolute rounded-bl-md border-b border-l border-strong"
-                    style={{ left: "-12px", top: 0, bottom: "50%", width: "12px" }}
+                    style={{ left: "-12px", top: "-12px", bottom: "50%", width: "12px" }}
                   />
                   {!isLastSibling && (
+                    // Lower extension reaches DOWN past the row's py-3
+                    // padding AND the 1px border-b between rows, so it
+                    // meets the next sibling's upper-L stem with no
+                    // visible gap. -13px = 12px padding + 1px row border.
                     <span
                       aria-hidden
                       className="pointer-events-none absolute border-l border-strong"
-                      style={{ left: "-12px", top: "50%", bottom: 0, width: "1px" }}
+                      style={{ left: "-12px", top: "50%", bottom: "-13px", width: "1px" }}
                     />
                   )}
                 </>
