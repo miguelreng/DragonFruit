@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { CollaborationState, EditorRefApi } from "@plane/editor";
@@ -23,11 +23,26 @@ import type { TPageInstance } from "@/store/pages/base-page";
 import { PageNavigationPaneRoot } from "../navigation-pane";
 import { PageVersionsOverlay } from "../version";
 import { PagesVersionEditor } from "../version/editor";
-import { TldrawEditor } from "../whiteboard/tldraw-editor";
 import { ContentLimitBanner } from "./content-limit-banner";
-import { PageEditorBody } from "./editor-body";
 import type { TEditorBodyConfig, TEditorBodyHandlers } from "./editor-body";
 import { PageEditorToolbarRoot } from "./toolbar";
+
+// Lazy-load the two heaviest editor surfaces.
+//   - PageEditorBody pulls in Tiptap + lowlight + every registered
+//     highlight.js language (~1.3 MB chunk).
+//   - TldrawEditor pulls in the tldraw canvas runtime + its CSS
+//     (~1.5 MB across two chunks).
+// Doc/whiteboard pages are reached from the sidebar; everything else
+// (issues list, projects, settings, calendar) shouldn't pay for them
+// on first paint.
+const PageEditorBody = lazy(() => import("./editor-body").then((m) => ({ default: m.PageEditorBody })));
+const TldrawEditor = lazy(() =>
+  import("../whiteboard/tldraw-editor").then((m) => ({ default: m.TldrawEditor }))
+);
+
+const EditorFallback = () => (
+  <div className="flex h-full w-full items-center justify-center text-sm text-tertiary">Loading editor…</div>
+);
 
 export type TPageRootHandlers = {
   create: (payload: Partial<TPage>) => Promise<Partial<TPage> | undefined>;
@@ -189,28 +204,30 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           />
         )}
         {showContentTooLargeBanner && <ContentLimitBanner className="px-page-x" />}
-        {page.page_type === "whiteboard" ? (
-          <TldrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
-        ) : (
-          <PageEditorBody
-            config={config}
-            customRealtimeEventHandlers={mergedCustomEventHandlers}
-            editorReady={editorReady}
-            editorForwardRef={editorRef}
-            handleEditorReady={handleEditorReady}
-            handleOpenNavigationPane={handleOpenNavigationPane}
-            handlers={handlers}
-            isNavigationPaneOpen={isNavigationPaneOpen}
-            page={page}
-            projectId={projectId}
-            storeType={storeType}
-            webhookConnectionParams={webhookConnectionParams}
-            workspaceSlug={workspaceSlug}
-            extendedEditorProps={extendedEditorProps}
-            isFetchingFallbackBinary={isFetchingFallbackBinary}
-            onCollaborationStateChange={setCollaborationState}
-          />
-        )}
+        <Suspense fallback={<EditorFallback />}>
+          {page.page_type === "whiteboard" ? (
+            <TldrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+          ) : (
+            <PageEditorBody
+              config={config}
+              customRealtimeEventHandlers={mergedCustomEventHandlers}
+              editorReady={editorReady}
+              editorForwardRef={editorRef}
+              handleEditorReady={handleEditorReady}
+              handleOpenNavigationPane={handleOpenNavigationPane}
+              handlers={handlers}
+              isNavigationPaneOpen={isNavigationPaneOpen}
+              page={page}
+              projectId={projectId}
+              storeType={storeType}
+              webhookConnectionParams={webhookConnectionParams}
+              workspaceSlug={workspaceSlug}
+              extendedEditorProps={extendedEditorProps}
+              isFetchingFallbackBinary={isFetchingFallbackBinary}
+              onCollaborationStateChange={setCollaborationState}
+            />
+          )}
+        </Suspense>
       </div>
       {!isCanvasPage && (
         <PageNavigationPaneRoot
