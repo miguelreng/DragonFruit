@@ -33,7 +33,7 @@ from typing import Any, Dict
 from celery import shared_task
 from django.db import transaction
 
-from plane.db.models import Agent, AgentRun, Issue, IssueComment
+from plane.db.models import Agent, AgentRun, Issue, IssueComment, State
 from plane.llm import LLMConfigError, LLMProvider, LLMRunResult, LLMTool
 
 
@@ -116,15 +116,23 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         logger.info("agent_dispatch: agent %s not configured (%s)", agent.id, exc)
         return
 
-    user_prompt = _build_user_prompt(issue, trigger_event)
+    available_states = list(
+        State.objects.filter(project=issue.project, deleted_at__isnull=True)
+        .order_by("sequence")
+        .values_list("name", "group")
+    )
+    user_prompt = _build_user_prompt(issue, trigger_event, available_states)
     system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_SYSTEM_PROMPT
-    post_comment_tool = _make_post_comment_tool(agent=agent, issue=issue, run=run)
+    tools = [
+        _make_post_comment_tool(agent=agent, issue=issue, run=run),
+        _make_change_state_tool(agent=agent, issue=issue, run=run),
+    ]
 
     try:
         result = provider.run(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            tools=[post_comment_tool],
+            tools=tools,
             max_iterations=_MAX_ITERATIONS_PER_RUN,
             is_cancelled=lambda: _is_cancelled(run.id),
         )
@@ -153,16 +161,21 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
 # ===================================================================== #
 
 
-def _build_user_prompt(issue: Issue, trigger_event: str = "assigned") -> str:
+def _build_user_prompt(
+    issue: Issue,
+    trigger_event: str = "assigned",
+    available_states=None,
+) -> str:
     """Render the issue as a single user-prompt string.
 
     `trigger_event` controls the framing line at the top so the model
-    knows whether it was assigned, @-mentioned, etc. The body of the
-    prompt (description + recent comments) is the same regardless.
+    knows whether it was assigned, @-mentioned, etc. `available_states`
+    is the project's state palette (name, group pairs) — listing them
+    in the prompt is much cheaper than exposing a `list_states` tool.
 
-    Slice 2 frontloads name + description + state + recent comments.
-    Slice 3 will expose `read_task` as a tool so the agent can fetch
-    this itself instead of getting it preloaded.
+    Slice 2 frontloads name + description + state + recent comments +
+    state palette. Slice 3 will expose `read_task` as a tool so the
+    agent can fetch this itself.
     """
     state_name = issue.state.name if issue.state else "(no state)"
     desc = (issue.description_stripped or "").strip()
@@ -184,6 +197,13 @@ def _build_user_prompt(issue: Issue, trigger_event: str = "assigned") -> str:
         "Description:",
         desc if desc else "(no description)",
     ]
+    if available_states:
+        parts.append("")
+        parts.append(
+            "Available states in this project (use the exact name with `change_state`):"
+        )
+        for name, group in available_states:
+            parts.append(f"- {name} ({group})")
     if recent_comments:
         parts.append("")
         parts.append("Recent comments (newest first):")
@@ -240,6 +260,99 @@ def _make_post_comment_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLM
                 },
             },
             "required": ["comment_html"],
+        },
+        handler=handler,
+    )
+
+
+def _make_change_state_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMTool:
+    """Tool that lets the agent move the task between workflow states.
+
+    Slice 2 ships this alongside `post_comment` so the agent can
+    actually act on the task, not just chat about it. A well-prompted
+    PM bot might triage incoming tasks by moving "needs more info"
+    ones to a clarification state and pinging the reporter.
+
+    Safety: only states already defined in the issue's project are
+    valid. The handler does a case-insensitive name match (most LLMs
+    case-mangle one way or the other) but enforces an exact lookup
+    after that. No state creation from the tool.
+    """
+
+    def handler(args: Dict[str, Any]) -> str:
+        wanted = (args.get("state_name") or args.get("name") or "").strip()
+        if not wanted:
+            return "tool_error: pass `state_name` with the exact state name (e.g. 'In Progress')"
+
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        # Case-insensitive exact match within the issue's project.
+        matched = (
+            State.objects.filter(
+                project=issue.project,
+                deleted_at__isnull=True,
+                name__iexact=wanted,
+            )
+            .first()
+        )
+        if matched is None:
+            # Fall back to substring on a single match so "In Prog" still
+            # works if the model truncated. If there's more than one
+            # candidate, the model has to pick.
+            candidates = list(
+                State.objects.filter(
+                    project=issue.project,
+                    deleted_at__isnull=True,
+                    name__icontains=wanted,
+                )
+            )
+            if len(candidates) == 1:
+                matched = candidates[0]
+            else:
+                names = ", ".join(
+                    s.name
+                    for s in State.objects.filter(
+                        project=issue.project, deleted_at__isnull=True
+                    ).order_by("sequence")
+                )
+                return (
+                    f"tool_error: no state named '{wanted}'. Pick one of: {names}"
+                )
+
+        previous = issue.state.name if issue.state else "(no state)"
+        if issue.state_id == matched.id:
+            return f"ok: state already '{matched.name}', nothing to change"
+
+        # Save the state change as the bot user; Issue.save() picks up
+        # the state-id change via ChangeTrackerMixin and syncs
+        # completed_at automatically when transitioning to/from the
+        # completed group.
+        issue.state = matched
+        issue.save(created_by_id=agent.bot_user_id, update_fields=["state", "completed_at", "updated_at"])
+
+        return f"ok: changed state from '{previous}' to '{matched.name}'"
+
+    return LLMTool(
+        name="change_state",
+        description=(
+            "Move the current task to a different workflow state (e.g. 'In Progress', "
+            "'Done', 'Backlog'). Use this when you've decided the task should advance "
+            "or move back. Only states already defined in the project are valid — the "
+            "list is provided in the prompt. Call this at most once per turn."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "state_name": {
+                    "type": "string",
+                    "description": (
+                        "Exact name of the target state, matching one of the entries "
+                        "in 'Available states' in the prompt (case-insensitive)."
+                    ),
+                },
+            },
+            "required": ["state_name"],
         },
         handler=handler,
     )
