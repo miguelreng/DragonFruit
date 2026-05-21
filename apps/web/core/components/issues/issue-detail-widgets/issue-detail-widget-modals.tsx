@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React from "react";
+import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISearchIssueResponse, TIssue, TIssueServiceType, TWorkItemWidgets } from "@plane/types";
@@ -108,6 +108,11 @@ export const IssueDetailWidgetModals = observer(function IssueDetailWidgetModals
     setLastWidgetAction("relations");
   };
 
+  // Optional user-defined name for the relation being created — read by the
+  // create handler below, reset whenever the modal closes so it doesn't leak
+  // between sessions. Empty means "use the default relation_type label".
+  const [relationCustomLabel, setRelationCustomLabel] = useState("");
+
   const handleExistingIssueModalOnSubmit = async (data: ISearchIssueResponse[]) => {
     if (!relationKey) return;
     if (data.length === 0) {
@@ -124,9 +129,11 @@ export const IssueDetailWidgetModals = observer(function IssueDetailWidgetModals
       projectId,
       issueId,
       relationKey,
-      data.map((i) => i.id)
+      data.map((i) => i.id),
+      relationCustomLabel.trim() || undefined
     );
 
+    setRelationCustomLabel("");
     toggleRelationModal(null, null);
   };
 
@@ -191,10 +198,30 @@ export const IssueDetailWidgetModals = observer(function IssueDetailWidgetModals
           workspaceSlug={workspaceSlug}
           projectId={projectId}
           isOpen={isRelationModalOpen?.issueId === issueId && isRelationModalOpen?.relationType === relationKey}
-          handleClose={handleRelationOnClose}
+          handleClose={() => {
+            setRelationCustomLabel("");
+            handleRelationOnClose();
+          }}
           searchParams={{ issue_relation: true, issue_id: issueId }}
           handleOnSubmit={handleExistingIssueModalOnSubmit}
           workspaceLevelToggle
+          footerSlot={
+            // Custom label is optional — when set, overrides the
+            // relation_type display ("Blocked by", "Relates to", etc.) with
+            // whatever the user types. Kept short with a 120-char ceiling
+            // matching the model column.
+            <label className="text-sm flex items-center gap-2 pb-3">
+              <span className="flex-shrink-0 text-tertiary">Label</span>
+              <input
+                type="text"
+                value={relationCustomLabel}
+                onChange={(e) => setRelationCustomLabel(e.target.value)}
+                placeholder='Optional — e.g. "Stakeholder", "Approved by"'
+                maxLength={120}
+                className="focus:border-primary flex-1 rounded-md border border-strong bg-transparent px-2 py-1 text-13 text-primary placeholder:text-placeholder focus:outline-none"
+              />
+            </label>
+          }
         />
       )}
 

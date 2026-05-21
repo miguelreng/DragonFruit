@@ -26,7 +26,11 @@ export interface IIssueRelationStoreActions {
     projectId: string,
     issueId: string,
     relationType: TIssueRelationTypes,
-    issues: string[]
+    issues: string[],
+    // Optional custom label that overrides the relation_type display name
+    // ("Stakeholder", "Approved by", etc.). Passed straight to the server;
+    // stored on the underlying IssueRelation row.
+    customLabel?: string
   ) => Promise<TIssue[]>;
   removeRelation: (
     workspaceSlug: string,
@@ -137,11 +141,16 @@ export class IssueRelationStore implements IIssueRelationStore {
     projectId: string,
     issueId: string,
     relationType: TIssueRelationTypes,
-    issues: string[]
+    issues: string[],
+    customLabel?: string
   ) => {
+    const trimmedLabel = customLabel?.trim();
     const response = await this.issueRelationService.createIssueRelations(workspaceSlug, projectId, issueId, {
       relation_type: relationType,
       issues,
+      // Only include custom_label when there's actually a value — server
+      // normalizes empty strings to null but we save the wire roundtrip.
+      ...(trimmedLabel ? { custom_label: trimmedLabel } : {}),
     });
 
     const reverseRelatedType = REVERSE_RELATIONS[relationType];
