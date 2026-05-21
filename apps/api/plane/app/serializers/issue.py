@@ -42,6 +42,7 @@ from plane.db.models import (
     IssueDescriptionVersion,
     ProjectMember,
     EstimatePoint,
+    WorkItemTemplate,
 )
 from plane.utils.content_validator import (
     validate_html_content,
@@ -1031,3 +1032,33 @@ class IssueDescriptionVersionDetailSerializer(BaseSerializer):
             "updated_by",
         ]
         read_only_fields = ["workspace", "project", "issue"]
+
+
+class WorkItemTemplateListSerializer(BaseSerializer):
+    """Compact shape for the template picker dropdown + settings list."""
+
+    class Meta:
+        model = WorkItemTemplate
+        fields = [
+            "id",
+            "name",
+            "description",
+            "owned_by",
+            "workspace",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["workspace", "owned_by"]
+
+
+class WorkItemTemplateDetailSerializer(WorkItemTemplateListSerializer):
+    """Full template payload — includes the defaults applied at instantiate."""
+
+    class Meta(WorkItemTemplateListSerializer.Meta):
+        fields = WorkItemTemplateListSerializer.Meta.fields + [
+            "default_name",
+            "default_description_html",
+            "default_priority",
+            "default_assignee_ids",
+            "default_label_ids",
+        ]
