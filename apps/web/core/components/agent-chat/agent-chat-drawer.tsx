@@ -5,9 +5,53 @@
  */
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import hljs from "highlight.js/lib/core";
+// Hand-picked language set for chat — see the editor's lowlight-languages
+// for the editor's larger curated set. Chat replies usually skew JS/TS/
+// Python/SQL/Shell/JSON; we register exactly those plus a few extras.
+import bash from "highlight.js/lib/languages/bash";
+import css from "highlight.js/lib/languages/css";
+import diff from "highlight.js/lib/languages/diff";
+import javascript from "highlight.js/lib/languages/javascript";
+import json from "highlight.js/lib/languages/json";
+import markdown from "highlight.js/lib/languages/markdown";
+import python from "highlight.js/lib/languages/python";
+import sql from "highlight.js/lib/languages/sql";
+import typescript from "highlight.js/lib/languages/typescript";
+import xml from "highlight.js/lib/languages/xml";
+import yaml from "highlight.js/lib/languages/yaml";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+
+// Register once. Aliases (`js`, `ts`, `py`) ride along via the language
+// definitions themselves. The `github-dark.css` theme is already loaded
+// globally through `@plane/editor/styles` (apps/web/styles/globals.css)
+// so the `.hljs-*` spans we emit pick up the right colours.
+let _hljsRegistered = false;
+function ensureHljsRegistered() {
+  if (_hljsRegistered) return;
+  hljs.registerLanguage("bash", bash);
+  hljs.registerLanguage("css", css);
+  hljs.registerLanguage("diff", diff);
+  hljs.registerLanguage("html", xml);
+  hljs.registerLanguage("javascript", javascript);
+  hljs.registerLanguage("js", javascript);
+  hljs.registerLanguage("json", json);
+  hljs.registerLanguage("markdown", markdown);
+  hljs.registerLanguage("md", markdown);
+  hljs.registerLanguage("python", python);
+  hljs.registerLanguage("py", python);
+  hljs.registerLanguage("shell", bash);
+  hljs.registerLanguage("sh", bash);
+  hljs.registerLanguage("sql", sql);
+  hljs.registerLanguage("typescript", typescript);
+  hljs.registerLanguage("ts", typescript);
+  hljs.registerLanguage("xml", xml);
+  hljs.registerLanguage("yaml", yaml);
+  hljs.registerLanguage("yml", yaml);
+  _hljsRegistered = true;
+}
 // plane imports
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -877,13 +921,39 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
  * dangerouslySetInnerHTML, so there's no HTML-injection surface.
  */
 function AssistantMarkdown({ source }: { source: string }) {
-  const blocks = useMemo(() => parseMarkdownBlocks(source), [source]);
+  // Register hljs languages on first render — no-op after that.
+  useEffect(() => {
+    ensureHljsRegistered();
+  }, []);
+
+  // Footnote pre-pass: pull `[^id]: text` defs out of the source up
+  // front so the block parser doesn't see them as paragraphs. The map
+  // threads through the inline renderer where `[^id]` references
+  // resolve into a numbered superscript link.
+  const { stripped, footnotes } = useMemo(() => extractFootnotes(source), [source]);
+  const blocks = useMemo(() => parseMarkdownBlocks(stripped), [stripped]);
+
   return (
     <div className="text-13 text-primary">
-      {blocks.map((block, i) => renderBlock(block, i))}
+      {blocks.map((block, i) => renderBlock(block, i, footnotes))}
+      {footnotes.length > 0 && (
+        <section className="border-subtle mt-3 border-t pt-2">
+          <ol className="text-11 ml-4 list-decimal space-y-0.5 text-tertiary">
+            {footnotes.map((fn) => (
+              <li key={fn.id} id={`fn-${fn.id}`} className="leading-snug">
+                {renderInline(fn.text, footnotes)}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </div>
   );
 }
+
+type Footnote = { id: string; index: number; text: string };
+
+type TableAlign = "left" | "center" | "right" | undefined;
 
 type Block =
   | { kind: "p"; text: string }
@@ -892,7 +962,25 @@ type Block =
   | { kind: "ol"; items: string[] }
   | { kind: "quote"; text: string }
   | { kind: "code"; content: string; lang: string }
+  | { kind: "table"; headers: string[]; rows: string[][]; aligns: TableAlign[] }
   | { kind: "hr" };
+
+// Strip `[^id]: text` definition lines from the source. Returns the
+// cleaned source plus an ordered list of footnotes (numbering follows
+// the order of definition, not first reference — matches CommonMark).
+function extractFootnotes(src: string): { stripped: string; footnotes: Footnote[] } {
+  const footnotes: Footnote[] = [];
+  const stripped = src
+    .split(/\r?\n/)
+    .filter((line) => {
+      const m = /^\[\^([A-Za-z0-9_-]+)\]:\s*(.*)$/.exec(line);
+      if (!m) return true;
+      footnotes.push({ id: m[1]!, index: footnotes.length + 1, text: m[2]!.trim() });
+      return false;
+    })
+    .join("\n");
+  return { stripped, footnotes };
+}
 
 function parseMarkdownBlocks(src: string): Block[] {
   const blocks: Block[] = [];
@@ -949,6 +1037,37 @@ function parseMarkdownBlocks(src: string): Block[] {
       continue;
     }
 
+    // GFM table: a `| ... |` line followed by a `|---|---|` separator
+    // line. The separator cells may contain `:` for alignment markers
+    // (e.g. `|:---|---:|:---:|` = left, right, centre). Anything that
+    // looks like a pipe row but doesn't have a separator on the very
+    // next line falls through to the paragraph branch — defensive,
+    // since LLMs sometimes emit single-row "tables" as decoration.
+    const tableHeaderCells = line.match(/^\|(.*)\|$/);
+    if (tableHeaderCells && i + 1 < lines.length) {
+      const sep = (lines[i + 1] ?? "").trim();
+      if (/^\|(\s*:?-{3,}:?\s*\|)+$/.test(sep)) {
+        const headers = splitTableRow(line);
+        const aligns: TableAlign[] = splitTableRow(sep).map((cell) => {
+          const t = cell.trim();
+          const left = t.startsWith(":");
+          const right = t.endsWith(":");
+          if (left && right) return "center";
+          if (right) return "right";
+          if (left) return "left";
+          return undefined;
+        });
+        i += 2; // skip header + separator
+        const rows: string[][] = [];
+        while (i < lines.length && /^\|(.*)\|$/.test(lines[i] ?? "")) {
+          rows.push(splitTableRow(lines[i] ?? ""));
+          i++;
+        }
+        blocks.push({ kind: "table", headers, rows, aligns });
+        continue;
+      }
+    }
+
     // Unordered list: consecutive `- ` or `* ` lines.
     if (/^(-|\*)\s+/.test(line)) {
       const items: string[] = [];
@@ -972,11 +1091,14 @@ function parseMarkdownBlocks(src: string): Block[] {
     }
 
     // Paragraph: consume until a blank line or a block-start regex hit.
+    // `|` is a table-start sentinel here so a paragraph never absorbs
+    // the header row of a real table; the table branch above already
+    // bails to paragraph if the separator line is missing.
     const para: string[] = [];
     while (
       i < lines.length &&
       (lines[i] ?? "").trim() !== "" &&
-      !/^(#{1,3}\s|>\s?|-\s|\*\s|\d+\.\s|```|(-{3,}|_{3,}|\*{3,})\s*$)/.test(lines[i] ?? "")
+      !/^(#{1,3}\s|>\s?|-\s|\*\s|\d+\.\s|```|\||(-{3,}|_{3,}|\*{3,})\s*$)/.test(lines[i] ?? "")
     ) {
       para.push(lines[i]!);
       i++;
@@ -987,12 +1109,23 @@ function parseMarkdownBlocks(src: string): Block[] {
   return blocks;
 }
 
-function renderBlock(block: Block, key: number): React.ReactNode {
+// Split one table row by `|`, dropping the leading/trailing delimiters
+// and trimming each cell. Escaped `\|` inside cells stays as a literal
+// pipe — matches GFM.
+function splitTableRow(line: string): string[] {
+  return line
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split(/(?<!\\)\|/)
+    .map((cell) => cell.replace(/\\\|/g, "|").trim());
+}
+
+function renderBlock(block: Block, key: number, footnotes: Footnote[]): React.ReactNode {
   switch (block.kind) {
     case "p":
       return (
         <p key={key} className="my-1.5 leading-snug first:mt-0 last:mb-0">
-          {renderInline(block.text)}
+          {renderInline(block.text, footnotes)}
         </p>
       );
     case "h":
@@ -1000,13 +1133,13 @@ function renderBlock(block: Block, key: number): React.ReactNode {
       if (block.level === 3) {
         return (
           <h4 key={key} className="text-13 mt-2 mb-1 font-semibold first:mt-0">
-            {renderInline(block.text)}
+            {renderInline(block.text, footnotes)}
           </h4>
         );
       }
       return (
         <h3 key={key} className="text-14 mt-2 mb-1 font-semibold first:mt-0">
-          {renderInline(block.text)}
+          {renderInline(block.text, footnotes)}
         </h3>
       );
     case "ul":
@@ -1018,7 +1151,7 @@ function renderBlock(block: Block, key: number): React.ReactNode {
             // the whole tree re-mounts when `source` changes anyway
             // (useMemo rebuilds the blocks array), so this is safe.
             <li key={`${key}-${item}`} className="leading-snug">
-              {renderInline(item)}
+              {renderInline(item, footnotes)}
             </li>
           ))}
         </ul>
@@ -1028,7 +1161,7 @@ function renderBlock(block: Block, key: number): React.ReactNode {
         <ol key={key} className="my-1.5 ml-4 list-decimal space-y-0.5 first:mt-0 last:mb-0">
           {block.items.map((item) => (
             <li key={`${key}-${item}`} className="leading-snug">
-              {renderInline(item)}
+              {renderInline(item, footnotes)}
             </li>
           ))}
         </ol>
@@ -1036,19 +1169,70 @@ function renderBlock(block: Block, key: number): React.ReactNode {
     case "quote":
       return (
         <blockquote key={key} className="border-subtle my-1.5 border-l-2 pl-2 text-secondary italic">
-          {renderInline(block.text)}
+          {renderInline(block.text, footnotes)}
         </blockquote>
       );
     case "code":
+      return <CodeBlock key={key} content={block.content} lang={block.lang} />;
+    case "table": {
+      // Precompute per-cell metadata so the JSX below uses content-
+      // stable keys with no array index in the key expression (keeps
+      // `no-array-index-key` happy). Tables in chat output don't
+      // typically have duplicate rows; if they did, React would warn
+      // — fine since the whole tree re-mounts when the message body
+      // changes.
+      const headerCells = block.headers.map((cell, idx) => ({
+        cell,
+        align: block.aligns[idx],
+        cellKey: `${key}-th-${cell || `col-${idx}`}`,
+        colName: cell || `col-${idx}`,
+      }));
+      const bodyRows = block.rows.map((row) => {
+        const rowJoin = row.join("");
+        return {
+          rowKey: `${key}-tr-${rowJoin}`,
+          cells: row.map((cell, cIdx) => ({
+            cell,
+            align: block.aligns[cIdx],
+            cellKey: `${key}-td-${rowJoin}-${headerCells[cIdx]?.colName ?? `c${cIdx}`}`,
+          })),
+        };
+      });
       return (
-        <pre
-          key={key}
-          className="bg-layer-2 text-12 my-1.5 overflow-x-auto rounded p-2"
-          data-language={block.lang || undefined}
-        >
-          <code>{block.content}</code>
-        </pre>
+        <div key={key} className="my-2 overflow-x-auto">
+          <table className="border-subtle w-full border-collapse text-left text-[12px]">
+            <thead className="bg-layer-2">
+              <tr>
+                {headerCells.map((h) => (
+                  <th
+                    key={h.cellKey}
+                    style={{ textAlign: h.align }}
+                    className="border-subtle border px-2 py-1 font-semibold text-primary"
+                  >
+                    {renderInline(h.cell, footnotes)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bodyRows.map((r) => (
+                <tr key={r.rowKey} className="hover:bg-layer-1/50">
+                  {r.cells.map((c) => (
+                    <td
+                      key={c.cellKey}
+                      style={{ textAlign: c.align }}
+                      className="border-subtle border px-2 py-1 text-primary"
+                    >
+                      {renderInline(c.cell, footnotes)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       );
+    }
     case "hr":
       return <hr key={key} className="border-subtle my-2" />;
     default:
@@ -1056,10 +1240,56 @@ function renderBlock(block: Block, key: number): React.ReactNode {
   }
 }
 
+/**
+ * Syntax-highlighted code block. We trust hljs's HTML output because
+ * it escapes the input before wrapping in fixed-shape spans — there's
+ * no path for arbitrary user content to ride through as live HTML.
+ * Falls back to plaintext when the language is unknown or unregistered.
+ */
+function CodeBlock({ content, lang }: { content: string; lang: string }) {
+  const langKey = (lang || "").toLowerCase();
+  const isRegistered = langKey && hljs.getLanguage(langKey);
+  const html = useMemo(() => {
+    if (!isRegistered) return null;
+    try {
+      return hljs.highlight(content, { language: langKey, ignoreIllegals: true }).value;
+    } catch {
+      return null;
+    }
+  }, [content, langKey, isRegistered]);
+
+  if (html) {
+    return (
+      <pre className="bg-layer-2 text-12 my-1.5 overflow-x-auto rounded p-2" data-language={langKey}>
+        <code
+          className={`hljs language-${langKey}`}
+          // hljs returns HTML with span class names; the input was
+          // escaped by hljs before insertion, so this is safe.
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </pre>
+    );
+  }
+
+  // Plain code fence with no recognised language — render as text.
+  return (
+    <pre className="bg-layer-2 text-12 my-1.5 overflow-x-auto rounded p-2" data-language={langKey || undefined}>
+      <code>{content}</code>
+    </pre>
+  );
+}
+
+// Whitelisted inline HTML tags. Anything outside this set renders as
+// escaped text — the whole point of the in-house renderer is that no
+// arbitrary HTML rides through. These are pure formatting tags with
+// no scripting, no resource fetches, no event handlers.
+const INLINE_HTML_TAGS = new Set(["br", "sub", "sup", "kbd", "mark"]);
+
 // Inline renderer. Order matters: scan for the highest-precedence
 // token starting at each position. Code spans hide their contents from
 // further parsing (so `**not bold**` inside backticks stays literal).
-function renderInline(text: string): React.ReactNode {
+function renderInline(text: string, footnotes: Footnote[]): React.ReactNode {
   const out: React.ReactNode[] = [];
   let i = 0;
   let keyCounter = 0;
@@ -1085,7 +1315,7 @@ function renderInline(text: string): React.ReactNode {
     if (bold) {
       out.push(
         <strong key={nextKey()} className="font-semibold text-primary">
-          {renderInline(bold[1]!)}
+          {renderInline(bold[1]!, footnotes)}
         </strong>
       );
       i += bold[0].length;
@@ -1098,7 +1328,7 @@ function renderInline(text: string): React.ReactNode {
     if (italicStar) {
       out.push(
         <em key={nextKey()} className="italic">
-          {renderInline(italicStar[1]!)}
+          {renderInline(italicStar[1]!, footnotes)}
         </em>
       );
       i += italicStar[0].length;
@@ -1108,11 +1338,34 @@ function renderInline(text: string): React.ReactNode {
     if (italicUnder) {
       out.push(
         <em key={nextKey()} className="italic">
-          {renderInline(italicUnder[1]!)}
+          {renderInline(italicUnder[1]!, footnotes)}
         </em>
       );
       i += italicUnder[0].length;
       continue;
+    }
+
+    // Footnote reference: [^id]. Resolves to the matching def from
+    // the pre-pass. References to unknown ids render as plain text so
+    // `[^foo]` mid-sentence isn't silently swallowed.
+    const fnRef = /^\[\^([A-Za-z0-9_-]+)\]/.exec(rest);
+    if (fnRef) {
+      const target = footnotes.find((f) => f.id === fnRef[1]);
+      if (target) {
+        out.push(
+          <sup key={nextKey()} className="text-[10px]">
+            <a
+              href={`#fn-${target.id}`}
+              className="text-accent-primary hover:underline"
+              aria-label={`Footnote ${target.index}`}
+            >
+              [{target.index}]
+            </a>
+          </sup>
+        );
+        i += fnRef[0].length;
+        continue;
+      }
     }
 
     // Link: [label](url) — only http(s) or relative urls render
@@ -1137,6 +1390,45 @@ function renderInline(text: string): React.ReactNode {
         out.push(<Fragment key={nextKey()}>{link[1]}</Fragment>);
       }
       i += link[0].length;
+      continue;
+    }
+
+    // Whitelisted inline HTML. Self-closing tags (`<br>`, `<br/>`)
+    // and wrapping pairs (`<sub>...</sub>`). Anything matching `<` but
+    // not in the whitelist falls through to the literal-text branch.
+    // We deliberately don't parse attributes — even `class` is denied
+    // so there's no path to inject styling that masks malicious intent.
+    const selfClose = /^<(br)\s*\/?\s*>/i.exec(rest);
+    if (selfClose && INLINE_HTML_TAGS.has(selfClose[1]!.toLowerCase())) {
+      out.push(<br key={nextKey()} />);
+      i += selfClose[0].length;
+      continue;
+    }
+    const pair = /^<(sub|sup|kbd|mark)>([^<]*)<\/\1>/i.exec(rest);
+    if (pair && INLINE_HTML_TAGS.has(pair[1]!.toLowerCase())) {
+      const tag = pair[1]!.toLowerCase();
+      const inner = renderInline(pair[2]!, footnotes);
+      if (tag === "sub") out.push(<sub key={nextKey()}>{inner}</sub>);
+      else if (tag === "sup") out.push(<sup key={nextKey()}>{inner}</sup>);
+      else if (tag === "kbd") {
+        out.push(
+          <kbd
+            key={nextKey()}
+            className="border-subtle bg-layer-2 font-mono rounded border-[0.5px] px-1 py-px text-[10px]"
+          >
+            {inner}
+          </kbd>
+        );
+      } else if (tag === "mark") {
+        // No native `mark` colour token in this design system — use a
+        // soft accent tint that reads as a highlight on both themes.
+        out.push(
+          <mark key={nextKey()} className="bg-accent-primary/15 rounded px-0.5 text-primary">
+            {inner}
+          </mark>
+        );
+      }
+      i += pair[0].length;
       continue;
     }
 
