@@ -29,7 +29,10 @@ export class IssueRelationService extends APIService {
     workspaceSlug: string,
     projectId: string,
     issueId: string,
-    data: { relation_type: TIssueRelationTypes; issues: string[] }
+    // `custom_label` is optional — when set, the server stores it on the
+    // IssueRelation row and the client uses it as the display name in place
+    // of the hard-coded relation_type label.
+    data: { relation_type: TIssueRelationTypes; issues: string[]; custom_label?: string }
   ): Promise<TIssue[]> {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/issue-relation/`, data)
       .then((response) => response?.data)
