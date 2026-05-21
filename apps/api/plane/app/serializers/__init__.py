@@ -82,6 +82,8 @@ from .issue import (
     IssueVersionDetailSerializer,
     IssueDescriptionVersionDetailSerializer,
     IssueListDetailSerializer,
+    WorkItemTemplateListSerializer,
+    WorkItemTemplateDetailSerializer,
 )
 
 from .module import (

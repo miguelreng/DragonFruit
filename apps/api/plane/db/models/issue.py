@@ -20,6 +20,7 @@ from plane.utils.html_processor import strip_tags
 from plane.utils.path_validator import sanitize_filename
 from plane.db.mixins import SoftDeletionManager, ChangeTrackerMixin
 from plane.utils.exception_logger import log_exception
+from .base import BaseModel
 from .project import ProjectBaseModel
 from plane.utils.uuid import convert_uuid_to_integer
 from .description import Description
@@ -842,3 +843,55 @@ class IssueDescriptionVersion(ProjectBaseModel):
         except Exception as e:
             log_exception(e)
             return False
+
+
+class WorkItemTemplate(BaseModel):
+    """A reusable Task (Work Item) skeleton.
+
+    Mirrors the role `PageTemplate` plays for docs and `ProjectTemplate`
+    plays for projects: workspace-scoped, admin-only authoring, member+
+    can browse and instantiate. When a user creates a new task from a
+    template, the template's default fields get copied into the new
+    Issue's create payload — anything the user overrides in the form
+    takes precedence.
+
+    Fields are all nullable / default-empty so the user can leave any
+    slot blank and the create form just uses its own defaults for that
+    slot. v1 covers the common ones (name suggestion, description,
+    priority, default labels, default assignees). Modules / cycles /
+    custom-fields / subtask scaffold can come later without a migration
+    if they go into a JSON `extra_defaults` slot.
+    """
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="work_item_templates",
+    )
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=512, blank=True, default="")
+    # Defaults that get applied to a newly-instantiated task. All nullable
+    # so a template can be as broad ("just a name suggestion") or as
+    # specific ("priority high, assignees A+B, label urgent") as the
+    # author wants.
+    default_name = models.CharField(max_length=255, blank=True, default="")
+    default_description_html = models.TextField(blank=True, default="<p></p>")
+    default_priority = models.CharField(max_length=30, blank=True, default="")
+    default_assignee_ids = ArrayField(models.UUIDField(), blank=True, default=list)
+    default_label_ids = ArrayField(models.UUIDField(), blank=True, default=list)
+    owned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="work_item_templates",
+    )
+
+    class Meta:
+        verbose_name = "Work Item Template"
+        verbose_name_plural = "Work Item Templates"
+        db_table = "work_item_templates"
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["workspace", "-created_at"])]
+
+    def __str__(self):
+        return self.name or str(self.id)

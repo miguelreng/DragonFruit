@@ -31,6 +31,9 @@ from plane.app.views import (
     WorkItemDescriptionVersionEndpoint,
     IssueMetaEndpoint,
     IssueDetailIdentifierEndpoint,
+    WorkItemTemplateDetailEndpoint,
+    WorkItemTemplateInstantiateEndpoint,
+    WorkItemTemplateListEndpoint,
 )
 
 urlpatterns = [
@@ -291,4 +294,21 @@ urlpatterns = [
         IssueDetailIdentifierEndpoint.as_view(),
         name="issue-detail-identifier",
     ),
+    ## Work Item Templates — workspace-scoped, mirrors page templates
+    path(
+        "workspaces/<str:slug>/work-item-templates/",
+        WorkItemTemplateListEndpoint.as_view(),
+        name="work-item-templates",
+    ),
+    path(
+        "workspaces/<str:slug>/work-item-templates/<uuid:template_id>/",
+        WorkItemTemplateDetailEndpoint.as_view(),
+        name="work-item-template-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-item-templates/<uuid:template_id>/instantiate/",
+        WorkItemTemplateInstantiateEndpoint.as_view(),
+        name="work-item-template-instantiate",
+    ),
+    ## End Work Item Templates
 ]

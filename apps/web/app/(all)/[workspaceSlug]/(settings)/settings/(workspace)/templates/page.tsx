@@ -29,6 +29,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { PageTemplateService } from "@/services/page/page-template.service";
 // section components
 import { ProjectTemplatesSection } from "@/components/settings/workspace/templates/project-templates-section";
+import { WorkItemTemplatesSection } from "@/components/settings/workspace/templates/work-item-templates-section";
 // local
 import { TemplatesWorkspaceSettingsHeader } from "./header";
 
@@ -169,92 +170,96 @@ function TemplatesSettingsPage() {
               </p>
             </div>
           ) : (
-          <div className="overflow-hidden rounded-lg border border-subtle bg-layer-2">
-            <div className="grid grid-cols-[1fr_1.4fr_120px_84px] gap-3 border-b border-subtle bg-layer-1 px-4 py-2 text-11 font-medium uppercase tracking-normal text-tertiary">
-              <span>{t("workspace_settings.settings.templates.table_name")}</span>
-              <span>{t("workspace_settings.settings.templates.table_description")}</span>
-              <span>{t("workspace_settings.settings.templates.table_updated")}</span>
-              <span className="text-right">{t("workspace_settings.settings.templates.table_actions")}</span>
-            </div>
-            {templates.map((template) => {
-              const isEditing = editingId === template.id;
-              const isBusy = busyId === template.id;
-              return (
-                <div
-                  key={template.id}
-                  className="grid grid-cols-[1fr_1.4fr_120px_84px] items-center gap-3 border-b border-subtle px-4 py-3 last:border-b-0"
-                >
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={draft.name}
-                      onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-                      placeholder={t("workspace_settings.settings.templates.name_placeholder")}
-                      className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
-                      autoFocus
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 truncate text-13 text-primary">
-                      <FileText className="size-3.5 shrink-0 text-tertiary" />
-                      <span className="truncate">{template.name}</span>
-                    </div>
-                  )}
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={draft.description}
-                      onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
-                      placeholder={t("workspace_settings.settings.templates.description_placeholder")}
-                      className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
-                    />
-                  ) : (
-                    <span className="truncate text-12 text-secondary">{template.description || "—"}</span>
-                  )}
-                  <span className="text-11 text-tertiary">{formatRelative(template.updated_at)}</span>
-                  <div className="flex items-center justify-end gap-1">
+            <div className="overflow-hidden rounded-lg border border-subtle bg-layer-2">
+              <div className="tracking-normal grid grid-cols-[1fr_1.4fr_120px_84px] gap-3 border-b border-subtle bg-layer-1 px-4 py-2 text-11 font-medium text-tertiary uppercase">
+                <span>{t("workspace_settings.settings.templates.table_name")}</span>
+                <span>{t("workspace_settings.settings.templates.table_description")}</span>
+                <span>{t("workspace_settings.settings.templates.table_updated")}</span>
+                <span className="text-right">{t("workspace_settings.settings.templates.table_actions")}</span>
+              </div>
+              {templates.map((template) => {
+                const isEditing = editingId === template.id;
+                const isBusy = busyId === template.id;
+                return (
+                  <div
+                    key={template.id}
+                    className="grid grid-cols-[1fr_1.4fr_120px_84px] items-center gap-3 border-b border-subtle px-4 py-3 last:border-b-0"
+                  >
                     {isEditing ? (
-                      <>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => void handleSave(template.id)}
-                          disabled={isBusy || !draft.name.trim()}
-                        >
-                          {isBusy ? "…" : "Save"}
-                        </Button>
-                        <Button variant="neutral-primary" size="sm" onClick={cancelEdit} disabled={isBusy}>
-                          Cancel
-                        </Button>
-                      </>
+                      <input
+                        type="text"
+                        value={draft.name}
+                        onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+                        placeholder={t("workspace_settings.settings.templates.name_placeholder")}
+                        className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
+                        // eslint-disable-next-line jsx-a11y/no-autofocus
+                        autoFocus
+                      />
                     ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => beginEdit(template)}
-                          disabled={!canEdit || isBusy}
-                          className="rounded-md p-1.5 text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-50"
-                          title={t("workspace_settings.settings.templates.rename")}
-                        >
-                          <Pencil className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(template.id)}
-                          disabled={!canEdit || isBusy}
-                          className="rounded-md p-1.5 text-tertiary hover:bg-layer-1 hover:text-danger-primary disabled:opacity-50"
-                          title={t("workspace_settings.settings.templates.delete")}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </>
+                      <div className="flex items-center gap-2 truncate text-13 text-primary">
+                        <FileText className="size-3.5 shrink-0 text-tertiary" />
+                        <span className="truncate">{template.name}</span>
+                      </div>
                     )}
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={draft.description}
+                        onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
+                        placeholder={t("workspace_settings.settings.templates.description_placeholder")}
+                        className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
+                      />
+                    ) : (
+                      <span className="truncate text-12 text-secondary">{template.description || "—"}</span>
+                    )}
+                    <span className="text-11 text-tertiary">{formatRelative(template.updated_at)}</span>
+                    <div className="flex items-center justify-end gap-1">
+                      {isEditing ? (
+                        <>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => void handleSave(template.id)}
+                            disabled={isBusy || !draft.name.trim()}
+                          >
+                            {isBusy ? "…" : "Save"}
+                          </Button>
+                          <Button variant="neutral-primary" size="sm" onClick={cancelEdit} disabled={isBusy}>
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => beginEdit(template)}
+                            disabled={!canEdit || isBusy}
+                            className="rounded-md p-1.5 text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-50"
+                            title={t("workspace_settings.settings.templates.rename")}
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDelete(template.id)}
+                            disabled={!canEdit || isBusy}
+                            className="rounded-md p-1.5 text-tertiary hover:bg-layer-1 hover:text-danger-primary disabled:opacity-50"
+                            title={t("workspace_settings.settings.templates.delete")}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
           )}
         </section>
+
+        {/* ── Task templates ── */}
+        <WorkItemTemplatesSection workspaceSlug={workspaceSlug} canEdit={canEdit} />
 
         {/* ── Project templates ── */}
         <ProjectTemplatesSection workspaceSlug={workspaceSlug} canEdit={canEdit} />
