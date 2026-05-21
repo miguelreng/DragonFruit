@@ -674,6 +674,9 @@ importers:
       export-to-csv:
         specifier: ^1.4.0
         version: 1.4.0
+      highlight.js:
+        specifier: ^11.8.0
+        version: 11.11.1
       html-docx-js-typescript:
         specifier: ^0.1.5
         version: 0.1.5
