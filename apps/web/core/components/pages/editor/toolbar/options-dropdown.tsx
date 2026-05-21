@@ -6,7 +6,8 @@
 
 import { lazy, Suspense, useMemo, useState } from "react";
 import { observer } from "mobx-react";
-import { ArrowUpToLine, Clipboard, History } from "@/components/icons/lucide-shim";
+import { useParams } from "react-router";
+import { ArrowUpToLine, CheckSquare, Clipboard, History } from "@/components/icons/lucide-shim";
 // plane imports
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { ToggleSwitch } from "@plane/ui";
@@ -14,6 +15,10 @@ import { ToggleSwitch } from "@plane/ui";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { usePageFilters } from "@/hooks/use-page-filters";
 import { useQueryParams } from "@/hooks/use-query-params";
+// services
+import { IssueService } from "@/services/issue";
+
+const issueService = new IssueService();
 // plane web imports
 import type { TPageNavigationPaneTab } from "@/plane-web/components/pages/navigation-pane";
 import type { EPageStoreType } from "@/plane-web/hooks/store";
@@ -40,14 +45,18 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
   const { page, storeType } = props;
   // states
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
   // navigation
   const router = useAppRouter();
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   // store values
   const {
     name,
     isContentEditable,
+    project_ids,
     editor: { editorRef },
   } = page;
+  const docProjectId = project_ids?.[0];
   // page filters
   const { isFullWidth, handleFullWidth, isStickyToolbarEnabled, handleStickyToolbar } = usePageFilters();
   // query params
@@ -110,6 +119,37 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
           shouldRender: true,
         },
         {
+          key: "turn-into-task",
+          action: async () => {
+            if (!workspaceSlug || !docProjectId || !name || isCreatingTask) return;
+            setIsCreatingTask(true);
+            try {
+              const description_html = editorRef?.getDocument?.()?.html;
+              const issue = await issueService.createIssue(workspaceSlug, docProjectId, {
+                name,
+                description_html,
+              });
+              setToast({
+                type: TOAST_TYPE.SUCCESS,
+                title: "Task created",
+                message: `“${name}” is now a task.`,
+              });
+              router.push(`/${workspaceSlug}/projects/${docProjectId}/issues/${issue.id}/`);
+            } catch {
+              setToast({
+                type: TOAST_TYPE.ERROR,
+                title: "Couldn't create the task",
+                message: "Try again in a moment.",
+              });
+            } finally {
+              setIsCreatingTask(false);
+            }
+          },
+          title: isCreatingTask ? "Creating task…" : "Turn this doc into a task",
+          icon: CheckSquare,
+          shouldRender: Boolean(workspaceSlug && docProjectId && isContentEditable),
+        },
+        {
           key: "export",
           action: () => setIsExportModalOpen(true),
           title: "Export",
@@ -128,6 +168,10 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
       updateQueryParams,
       router,
       setIsExportModalOpen,
+      workspaceSlug,
+      docProjectId,
+      name,
+      isCreatingTask,
     ]
   );
 
@@ -151,7 +195,9 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
           "sticky-toolbar",
           "copy-markdown",
           "version-history",
+          "turn-into-task",
           "make-a-copy",
+          "save-as-template",
           "archive-restore",
           "delete",
           "toggle-access",

@@ -14,6 +14,7 @@ import { ToggleSwitch } from "@plane/ui";
 import type { TAgent } from "@/services/agent.service";
 // local
 import { ChevronDown, ChevronRight, Settings2, Trash2 } from "@/components/icons/lucide-shim";
+import { AgentAvatar } from "./agent-avatar";
 import { AgentRunsPanel } from "./agent-runs-panel";
 
 export type TAgentTriggerKey = keyof TAgent["triggers"];
@@ -114,29 +115,32 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex min-w-0 flex-1 flex-col gap-1.5 text-left"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
           aria-expanded={expanded}
           aria-label={expanded ? "Collapse agent" : "Expand agent"}
         >
-          <div className="flex items-center gap-2">
-            <h4 className="truncate text-body-sm-medium text-primary">{agent.name}</h4>
-            {agent.has_api_key ? null : (
-              <Pill variant={EPillVariant.DEFAULT} size={EPillSize.XS}>
-                {t("workspace_settings.settings.agents.badge.no_key")}
-              </Pill>
+          <AgentAvatar seed={agent.id} name={agent.name} src={agent.avatar_url} size="lg" />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <h4 className="truncate text-body-sm-medium text-primary">{agent.name}</h4>
+              {agent.has_api_key ? null : (
+                <Pill variant={EPillVariant.DEFAULT} size={EPillSize.XS}>
+                  {t("workspace_settings.settings.agents.badge.no_key")}
+                </Pill>
+              )}
+              {!agent.is_enabled && (
+                <Pill variant={EPillVariant.WARNING} size={EPillSize.XS}>
+                  {t("workspace_settings.settings.agents.badge.paused")}
+                </Pill>
+              )}
+              <Chevron className="size-3.5 shrink-0 text-tertiary" />
+            </div>
+            {(agent.description || agent.bot_user_email) && (
+              <p className="truncate text-caption-md-regular text-tertiary">
+                {agent.description || agent.bot_user_email}
+              </p>
             )}
-            {!agent.is_enabled && (
-              <Pill variant={EPillVariant.WARNING} size={EPillSize.XS}>
-                {t("workspace_settings.settings.agents.badge.paused")}
-              </Pill>
-            )}
-            <Chevron className="size-3.5 shrink-0 text-tertiary" />
           </div>
-          {(agent.description || agent.bot_user_email) && (
-            <p className="truncate text-caption-md-regular text-tertiary">
-              {agent.description || agent.bot_user_email}
-            </p>
-          )}
         </button>
         <div className="flex shrink-0 items-center gap-2">
           <button

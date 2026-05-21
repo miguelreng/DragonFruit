@@ -9,7 +9,6 @@ import { useParams } from "next/navigation";
 // plane imports
 import { WORKSPACE_DEFAULT_SEARCH_RESULT } from "@plane/constants";
 import type { IWorkspaceSearchResults } from "@plane/types";
-import { cn } from "@plane/utils";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
 import useDebounce from "@/hooks/use-debounce";
@@ -17,6 +16,7 @@ import useDebounce from "@/hooks/use-debounce";
 import { PowerKModalNoSearchResultsCommand } from "@/plane-web/components/command-palette/power-k/search/no-results-command";
 import { WorkspaceService } from "@/services/workspace.service";
 // local imports
+import type { TPowerKScope } from "../../core/scope";
 import type { TPowerKContext, TPowerKPageType } from "../../core/types";
 import { PowerKModalSearchResults } from "./search-results";
 // services init
@@ -29,10 +29,21 @@ type Props = {
   searchTerm: string;
   updateSearchTerm: (value: string) => void;
   handleSearchMenuClose?: () => void;
+  scope?: TPowerKScope;
+  onResultClick?: (kind: string, label: string, id: string, path: string) => void;
 };
 
 export function PowerKModalSearchMenu(props: Props) {
-  const { activePage, context, isWorkspaceLevel, searchTerm, updateSearchTerm, handleSearchMenuClose } = props;
+  const {
+    activePage,
+    context,
+    isWorkspaceLevel,
+    searchTerm,
+    updateSearchTerm,
+    handleSearchMenuClose,
+    scope,
+    onResultClick,
+  } = props;
   // states
   const [resultsCount, setResultsCount] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
@@ -80,36 +91,35 @@ export function PowerKModalSearchMenu(props: Props) {
     togglePowerKModal(false);
   };
 
+  // When Ask AI is rendering above these results (scope "all" / "ai" in the
+  // top-nav variant), it owns the empty state. Suppress the "No results found"
+  // placeholder so we don't show a redundant "search found nothing" row beneath
+  // an AI answer.
+  const askAIOwnsEmptyState = scope === "all" || scope === "ai";
+
   return (
     <>
-      {searchTerm.trim() !== "" && (
-        <div className="mt-4 flex items-center justify-between gap-2 px-4">
-          <h5
-            className={cn("text-11 text-primary", {
-              "animate-pulse": isSearching,
-            })}
-          >
-            Search results for{" "}
-            <span className="font-medium">
-              {'"'}
-              {searchTerm}
-              {'"'}
-            </span>{" "}
-            in {isWorkspaceLevel ? "workspace" : "project"}:
-          </h5>
-        </div>
-      )}
+      {/* Show empty state only when not loading, no results, and Ask AI isn't already covering it */}
+      {!isSearching &&
+        resultsCount === 0 &&
+        searchTerm.trim() !== "" &&
+        debouncedSearchTerm.trim() !== "" &&
+        !askAIOwnsEmptyState && (
+          <PowerKModalNoSearchResultsCommand
+            context={context}
+            searchTerm={searchTerm}
+            updateSearchTerm={updateSearchTerm}
+          />
+        )}
 
-      {/* Show empty state only when not loading and no results */}
-      {!isSearching && resultsCount === 0 && searchTerm.trim() !== "" && debouncedSearchTerm.trim() !== "" && (
-        <PowerKModalNoSearchResultsCommand
-          context={context}
-          searchTerm={searchTerm}
-          updateSearchTerm={updateSearchTerm}
+      {searchTerm.trim() !== "" && (
+        <PowerKModalSearchResults
+          closePalette={handleClosePalette}
+          results={results}
+          scope={scope}
+          onResultClick={onResultClick}
         />
       )}
-
-      {searchTerm.trim() !== "" && <PowerKModalSearchResults closePalette={handleClosePalette} results={results} />}
     </>
   );
 }

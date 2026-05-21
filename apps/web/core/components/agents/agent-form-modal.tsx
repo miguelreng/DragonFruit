@@ -12,6 +12,15 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EModalPosition, EModalWidth, Input, ModalCore, TextArea } from "@plane/ui";
 // services
 import type { TAgent, TAgentCreatePayload, TAgentUpdatePayload } from "@/services/agent.service";
+// local
+import { AgentAvatar } from "./agent-avatar";
+
+// DiceBear's open-source HTTP service renders deterministic SVG avatars
+// from a seed. We use the `bottts-neutral` style — friendly bot heads
+// that feel right for AI agents and play well on both light and dark
+// backgrounds. URL is the source of truth; we just generate one here.
+const buildGeneratedAvatarUrl = (seed: string) =>
+  `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}`;
 
 type AgentFormState = {
   name: string;
@@ -196,16 +205,43 @@ export function AgentFormModal(props: IAgentFormModalProps) {
 
           <div>
             <label className={labelClass} htmlFor="agent-avatar">
-              Avatar URL
+              Avatar
             </label>
-            <Input
-              id="agent-avatar"
-              type="url"
-              className="w-full"
-              value={form.avatar_url}
-              onChange={(e) => setForm((f) => ({ ...f, avatar_url: e.target.value }))}
-              placeholder="https://…/agent-avatar.png"
-            />
+            <div className="flex items-start gap-3">
+              <div className="mt-1 shrink-0">
+                <AgentAvatar
+                  seed={isEdit ? props.agent.id : form.name || "new-agent"}
+                  name={form.name || "Agent"}
+                  src={form.avatar_url}
+                  size={40}
+                />
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <Input
+                  id="agent-avatar"
+                  type="url"
+                  className="w-full"
+                  value={form.avatar_url}
+                  onChange={(e) => setForm((f) => ({ ...f, avatar_url: e.target.value }))}
+                  placeholder="https://…/agent-avatar.png"
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-11 text-tertiary">
+                    Paste an image URL, or generate a unique bot avatar from this agent’s name.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const seed = form.name.trim() || (isEdit ? props.agent.id : `agent-${Date.now()}`);
+                      setForm((f) => ({ ...f, avatar_url: buildGeneratedAvatarUrl(seed) }));
+                    }}
+                    className="shrink-0 text-11 font-medium text-accent-primary hover:underline"
+                  >
+                    {form.avatar_url ? "Regenerate" : "Generate avatar"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div>

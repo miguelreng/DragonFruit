@@ -3,7 +3,7 @@
 # See the LICENSE file for details.
 
 from .base import BaseSerializer
-from .agent import AgentSerializer, AgentRunSerializer
+from .agent import AgentChatMessageSerializer, AgentChatSessionSerializer, AgentRunSerializer, AgentSerializer
 from .user import (
     UserSerializer,
     UserLiteSerializer,
@@ -41,6 +41,7 @@ from .project import (
     DeployBoardSerializer,
     ProjectMemberAdminSerializer,
     ProjectPublicMemberSerializer,
+    ProjectTemplateSerializer,
     ProjectMemberRoleSerializer,
     ProjectMemberPreferenceSerializer,
 )
@@ -103,6 +104,8 @@ from .page import (
     PageBinaryUpdateSerializer,
     PageVersionDetailSerializer,
     PageBlockCommentSerializer,
+    PageTemplateListSerializer,
+    PageTemplateDetailSerializer,
     WorkspacePageListSerializer,
 )
 

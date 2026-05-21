@@ -30,7 +30,6 @@ import {
 } from "@/plane-web/components/gantt-chart";
 import { GanttChartRowList } from "@/plane-web/components/gantt-chart/blocks/block-row-list";
 import { GanttChartBlocksList } from "@/plane-web/components/gantt-chart/blocks/blocks-list";
-import { IssueBulkOperationsRoot } from "@/plane-web/components/issues/bulk-operations";
 // plane web hooks
 import { useBulkOperationStatus } from "@/plane-web/hooks/use-bulk-operation-status";
 //
@@ -238,7 +237,6 @@ export const GanttChartMainContent = observer(function GanttChartMainContent(pro
               </div>
             </div>
             {quickAdd ? quickAdd : null}
-            <IssueBulkOperationsRoot selectionHelpers={helpers} />
           </>
         )}
       </MultipleSelectGroup>

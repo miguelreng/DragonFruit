@@ -4,25 +4,24 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { FormProvider, useForm } from "react-hook-form";
-// plane imports
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EFileAssetType } from "@plane/types";
-// components
 import ProjectCommonAttributes from "@/components/project/create/common-attributes";
 import ProjectCreateHeader from "@/components/project/create/header";
 import ProjectCreateButtons from "@/components/project/create/project-create-buttons";
-// hooks
-import { getCoverImageType, uploadCoverImage } from "@/helpers/cover-image.helper";
 import { useProject } from "@/hooks/store/use-project";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-// plane web types
 import type { TProject } from "@/plane-web/types/projects";
-import { ProjectAttributes } from "./attributes";
+import { ProjectTemplateService } from "@/services/project/project-template.service";
+import type { TProjectTemplate } from "@/services/project/project-template.service";
+// local
+import { ProjectTemplateSelect } from "./template-select";
 import { getProjectFormValues } from "./utils";
+
+const projectTemplateService = new ProjectTemplateService();
 
 export type TCreateProjectFormProps = {
   setToFavorite?: boolean;
@@ -31,26 +30,59 @@ export type TCreateProjectFormProps = {
   handleNextStep: (projectId: string) => void;
   data?: Partial<TProject>;
   templateId?: string;
-  updateCoverImageStatus: (projectId: string, coverImage: string) => Promise<void>;
 };
 
 export const CreateProjectForm = observer(function CreateProjectForm(props: TCreateProjectFormProps) {
-  const { setToFavorite, workspaceSlug, data, onClose, handleNextStep, updateCoverImageStatus } = props;
-  // store
+  const { setToFavorite, workspaceSlug, data, onClose, handleNextStep, templateId: initialTemplateId } = props;
   const { t } = useTranslation();
-  const { addProjectToFavorites, createProject, updateProject } = useProject();
-  // states
+  const { addProjectToFavorites, createProject } = useProject();
   const [shouldAutoSyncIdentifier, setShouldAutoSyncIdentifier] = useState(true);
-  // form info
+  const [templates, setTemplates] = useState<TProjectTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(initialTemplateId ?? "");
   const methods = useForm<TProject>({
     defaultValues: { ...getProjectFormValues(), ...data },
     reValidateMode: "onChange",
   });
   const { handleSubmit, reset, setValue } = methods;
   const { isMobile } = usePlatformOS();
+
+  // Load templates so the picker is populated. Errors are silent —
+  // a missing template list shouldn't block project creation.
+  useEffect(() => {
+    if (!workspaceSlug) return;
+    let cancelled = false;
+    projectTemplateService
+      .list(workspaceSlug)
+      .then((rows) => {
+        if (!cancelled) setTemplates(rows);
+        return rows;
+      })
+      .catch(() => {
+        if (!cancelled) setTemplates([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceSlug]);
+
+  // Apply template defaults to the form whenever the picker changes.
+  // Switching back to "blank" resets to the bare defaults — preserves
+  // the auto-identifier syncing UX (user can still tweak everything).
+  useEffect(() => {
+    if (!selectedTemplateId) return;
+    const tpl = templates.find((entry) => entry.id === selectedTemplateId);
+    if (!tpl) return;
+    // Don't overwrite the project name if the user already typed
+    // something — the template's name is just a fallback.
+    setValue("description", tpl.project_description || "");
+    setValue("network", tpl.network as 0 | 2);
+    if (tpl.logo_props && Object.keys(tpl.logo_props).length > 0) {
+      setValue("logo_props", tpl.logo_props as TProject["logo_props"]);
+    }
+  }, [selectedTemplateId, templates, setValue]);
+
   const handleAddToFavorites = (projectId: string) => {
     if (!workspaceSlug) return;
-
     addProjectToFavorites(workspaceSlug.toString(), projectId).catch(() => {
       setToast({
         type: TOAST_TYPE.ERROR,
@@ -61,91 +93,45 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
   };
 
   const onSubmit = async (formData: Partial<TProject>) => {
-    // Upper case identifier
     formData.identifier = formData.identifier?.toUpperCase();
-    const coverImage = formData.cover_image_url;
-    let uploadedAssetUrl: string | null = null;
 
-    if (coverImage) {
-      const imageType = getCoverImageType(coverImage);
+    // Template path: the server merges in defaults + materialises
+    // any `initial_tasks`. Returns a ProjectListSerializer payload
+    // shaped just like createProject, so the rest of the flow is
+    // identical.
+    const promise = selectedTemplateId
+      ? projectTemplateService.instantiate(workspaceSlug.toString(), selectedTemplateId, formData)
+      : createProject(workspaceSlug.toString(), formData);
 
-      if (imageType === "local_static") {
-        try {
-          uploadedAssetUrl = await uploadCoverImage(coverImage, {
-            workspaceSlug: workspaceSlug.toString(),
-            entityIdentifier: "",
-            entityType: EFileAssetType.PROJECT_COVER,
-            isUserAsset: false,
-          });
-        } catch (error) {
-          console.error("Error uploading cover image:", error);
-          setToast({
-            type: TOAST_TYPE.ERROR,
-            title: t("toast.error"),
-            message: error instanceof Error ? error.message : "Failed to upload cover image",
-          });
-          return Promise.reject(error);
-        }
-      } else {
-        formData.cover_image = coverImage;
-        formData.cover_image_asset = null;
-      }
-    }
-
-    return createProject(workspaceSlug.toString(), formData)
-      .then(async (res) => {
-        if (uploadedAssetUrl) {
-          await updateCoverImageStatus(res.id, uploadedAssetUrl);
-          await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: uploadedAssetUrl });
-        } else if (coverImage && coverImage.startsWith("http")) {
-          await updateCoverImageStatus(res.id, coverImage);
-          await updateProject(workspaceSlug.toString(), res.id, { cover_image_url: coverImage });
-        }
+    return promise
+      .then((res: { id: string }) => {
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: t("success"),
           message: t("project_created_successfully"),
         });
-
-        if (setToFavorite) {
-          handleAddToFavorites(res.id);
-        }
+        if (setToFavorite) handleAddToFavorites(res.id);
         handleNextStep(res.id);
+        return res;
       })
       .catch((err) => {
-        try {
-          // Handle the new error format where codes are nested in arrays under field names
-          const errorData = err?.data ?? {};
+        const errorData = err?.data ?? {};
+        const nameError = errorData.name?.includes("PROJECT_NAME_ALREADY_EXIST");
+        const identifierError = errorData?.identifier?.includes("PROJECT_IDENTIFIER_ALREADY_EXIST");
 
-          const nameError = errorData.name?.includes("PROJECT_NAME_ALREADY_EXIST");
-          const identifierError = errorData?.identifier?.includes("PROJECT_IDENTIFIER_ALREADY_EXIST");
-
-          if (nameError || identifierError) {
-            if (nameError) {
-              setToast({
-                type: TOAST_TYPE.ERROR,
-                title: t("toast.error"),
-                message: t("project_name_already_taken"),
-              });
-            }
-
-            if (identifierError) {
-              setToast({
-                type: TOAST_TYPE.ERROR,
-                title: t("toast.error"),
-                message: t("project_identifier_already_taken"),
-              });
-            }
-          } else {
-            setToast({
-              type: TOAST_TYPE.ERROR,
-              title: t("toast.error"),
-              message: t("something_went_wrong"),
-            });
-          }
-        } catch (error) {
-          // Fallback error handling if the error processing fails
-          console.error("Error processing API error:", error);
+        if (nameError) {
+          setToast({
+            type: TOAST_TYPE.ERROR,
+            title: t("toast.error"),
+            message: t("project_name_already_taken"),
+          });
+        } else if (identifierError) {
+          setToast({
+            type: TOAST_TYPE.ERROR,
+            title: t("toast.error"),
+            message: t("project_identifier_already_taken"),
+          });
+        } else {
           setToast({
             type: TOAST_TYPE.ERROR,
             title: t("toast.error"),
@@ -165,17 +151,24 @@ export const CreateProjectForm = observer(function CreateProjectForm(props: TCre
 
   return (
     <FormProvider {...methods}>
-      <ProjectCreateHeader handleClose={handleClose} isMobile={isMobile} />
-
-      <form onSubmit={handleSubmit(onSubmit)} className="px-3">
-        <div className="mt-9 space-y-6 pb-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col rounded-lg bg-surface-1">
+        <ProjectCreateHeader handleClose={handleClose} />
+        <div className="space-y-4 px-5 py-4">
+          {/* Template picker. Hides entirely if no templates exist
+              so blank projects feel as zero-friction as before. */}
+          {templates.length > 0 && (
+            <ProjectTemplateSelect
+              templates={templates}
+              selectedTemplateId={selectedTemplateId}
+              onTemplateChange={setSelectedTemplateId}
+            />
+          )}
           <ProjectCommonAttributes
             setValue={setValue}
             isMobile={isMobile}
             shouldAutoSyncIdentifier={shouldAutoSyncIdentifier}
             setShouldAutoSyncIdentifier={setShouldAutoSyncIdentifier}
           />
-          <ProjectAttributes isMobile={isMobile} />
         </div>
         <ProjectCreateButtons handleClose={handleClose} />
       </form>

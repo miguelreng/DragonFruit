@@ -38,6 +38,13 @@ export type TCustomEmojiPicker = {
   dropdownClassName?: string;
   label: React.ReactNode;
   onChange: (value: TChangeHandlerProps) => void;
+  /**
+   * Optional callback to clear the current emoji/icon. When provided AND
+   * `hasValue` is true, a "Remove" footer button is rendered in the picker.
+   */
+  onRemove?: () => void;
+  /** Whether a value is currently set; gates the visibility of the Remove button. */
+  hasValue?: boolean;
   placement?: TPlacement;
   searchDisabled?: boolean;
   searchPlaceholder?: string;

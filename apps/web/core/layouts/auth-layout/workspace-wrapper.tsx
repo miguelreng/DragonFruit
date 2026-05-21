@@ -23,6 +23,7 @@ import WorkSpaceNotAvailable from "@/app/assets/workspace/workspace-not-availabl
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // constants
 import {
+  WORKSPACE_AGENTS,
   WORKSPACE_MEMBERS,
   WORKSPACE_PARTIAL_PROJECTS,
   WORKSPACE_MEMBER_ME_INFORMATION,
@@ -33,6 +34,7 @@ import {
   WORKSPACE_PROJECT_NAVIGATION_PREFERENCES,
 } from "@/constants/fetch-keys";
 // hooks
+import { useAgent } from "@/hooks/store/use-agent";
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
@@ -57,6 +59,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
   const {
     workspace: { fetchWorkspaceMembers },
   } = useMember();
+  const agentStore = useAgent();
   const { workspaces, fetchSidebarNavigationPreferences, fetchProjectNavigationPreferences } = useWorkspace();
   const { isMobile } = usePlatformOS();
   const { loader, workspaceInfoBySlug, fetchUserWorkspaceInfo, fetchUserProjectPermissions, allowPermissions } =
@@ -94,6 +97,17 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
   useSWR(
     workspaceSlug && currentWorkspace ? WORKSPACE_MEMBERS(workspaceSlug.toString()) : null,
     workspaceSlug && currentWorkspace ? () => fetchWorkspaceMembers(workspaceSlug.toString()) : null,
+    { revalidateIfStale: false, revalidateOnFocus: false }
+  );
+  // fetch workspace agents — needed so every member-avatar render site
+  // (assignee chips, activity feed, mentions, dropdowns) can overlay the
+  // agent's current avatar on top of the underlying bot user. Soft-fails
+  // if the user can't access the endpoint.
+  useSWR(
+    workspaceSlug && currentWorkspace ? WORKSPACE_AGENTS(workspaceSlug.toString()) : null,
+    workspaceSlug && currentWorkspace
+      ? () => agentStore.fetchAgents(workspaceSlug.toString()).catch(() => [])
+      : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
   // fetch workspace favorite

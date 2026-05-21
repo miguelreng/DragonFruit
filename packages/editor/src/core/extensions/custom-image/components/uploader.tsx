@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { ImageIcon, RotateCcw } from "lucide-react";
+import { ImageIcon, RotateCcw } from "@plane/icons";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 // plane imports

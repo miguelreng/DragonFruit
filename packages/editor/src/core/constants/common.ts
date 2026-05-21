@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@plane/icons";
 import {
   AlignCenter,
   AlignLeft,
@@ -27,7 +27,7 @@ import {
   Table,
   TextQuote,
   Underline,
-} from "lucide-react";
+} from "@plane/icons";
 import type { TCommandExtraProps, TEditorCommands } from "@/types/editor";
 
 export type TEditorTypes = "lite" | "document";

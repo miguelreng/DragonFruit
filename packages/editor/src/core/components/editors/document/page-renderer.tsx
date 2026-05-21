@@ -11,6 +11,8 @@ import { cn } from "@plane/utils";
 // components
 import { DocumentContentLoader, EditorContainer, EditorContentWrapper } from "@/components/editors";
 import { BlockMenu, EditorBubbleMenu } from "@/components/menus";
+// plane editor types
+import type { TEmbedConfig } from "@/plane-editor/types/issue-embed";
 // types
 import type { TCollabValue } from "@/contexts";
 import type {
@@ -30,6 +32,7 @@ type Props = {
   editor: Editor;
   titleEditor?: Editor;
   editorContainerClassName: string;
+  embedConfig?: TEmbedConfig;
   extendedDocumentEditorProps?: ICollaborativeDocumentEditorPropsExtended;
   extendedEditorProps: IEditorPropsExtended;
   flaggedExtensions: IEditorProps["flaggedExtensions"];
@@ -49,6 +52,7 @@ export function PageRenderer(props: Props) {
     documentLoaderClassName,
     editor,
     editorContainerClassName,
+    embedConfig,
     extendedEditorProps,
     flaggedExtensions,
     id,
@@ -111,6 +115,7 @@ export function PageRenderer(props: Props) {
                   editor={editor}
                   flaggedExtensions={flaggedExtensions}
                   disabledExtensions={disabledExtensions}
+                  embedConfig={embedConfig}
                 />
               </div>
             )}

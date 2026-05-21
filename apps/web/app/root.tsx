@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import Script from "next/script";
 import { Links, Meta, Outlet, Scripts } from "react-router";
 import type { LinksFunction } from "react-router";
-import { ThemeProvider, useTheme } from "next-themes";
+import { ThemeProvider } from "next-themes";
 // plane imports
 import { SITE_DESCRIPTION, SITE_NAME } from "@plane/constants";
 import { cn } from "@plane/utils";
@@ -145,11 +145,12 @@ export default function Root() {
 }
 
 export function HydrateFallback() {
-  const { resolvedTheme } = useTheme();
-
-  // if we are on the server or the theme is not resolved, return an empty div
-  if (typeof window === "undefined" || resolvedTheme === undefined) return <div />;
-
+  // AppLoadingScreen is theme-independent (always renders against a black backdrop)
+  // and produces identical markup on server and client. Rendering it unconditionally
+  // here avoids the SSR/CSR divergence that previously caused React to tear down the
+  // root tree mid-session and flash the full-screen loader during routine
+  // client-side navigations — see also AppProgressBar for the in-page progress
+  // indicator used during normal route transitions.
   return <AppLoadingScreen />;
 }
 

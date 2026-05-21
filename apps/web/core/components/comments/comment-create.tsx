@@ -26,6 +26,17 @@ type TCommentCreate = {
   showToolbarInitially?: boolean;
   projectId?: string;
   onSubmitCallback?: (elementId: string) => void;
+  // When set, the submitted comment is created as a reply: `parent` is
+  // forwarded to the API so the row joins a thread. Top-level usage
+  // omits this. One-level threading only — callers passing a reply id
+  // should be using the top-level parent's id instead so threads stay
+  // flat. See comment-replies.tsx for the call site.
+  parentId?: string;
+  // Compact variant used inline inside a parent comment's reply
+  // thread. Drops the bottom-stick positioning so the composer sits
+  // naturally inside the parent card's reply list instead of pinning
+  // to the viewport bottom.
+  compact?: boolean;
 };
 
 // services
@@ -39,6 +50,8 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
     showToolbarInitially = false,
     projectId,
     onSubmitCallback,
+    parentId,
+    compact = false,
   } = props;
   // states
   const [uploadedAssetIds, setUploadedAssetIds] = useState<string[]>([]);
@@ -63,7 +76,11 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
 
   const onSubmit = async (formData: Partial<TIssueComment>) => {
     try {
-      const comment = await activityOperations.createComment(formData);
+      // Merge `parent` here rather than as a hidden form field. The
+      // editor controls the form, but `parentId` is a constant from
+      // the call site — wiring it via a Controller would be overkill.
+      const payload: Partial<TIssueComment> = parentId ? { ...formData, parent: parentId } : formData;
+      const comment = await activityOperations.createComment(payload);
       if (comment?.id) onSubmitCallback?.(comment.id);
       if (uploadedAssetIds.length > 0) {
         if (projectId) {
@@ -92,7 +109,11 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
 
   return (
     <div
-      className={cn("sticky bottom-0 z-[4] bg-surface-1 sm:static")}
+      // Replies are inline inside the parent card — no sticky footer
+      // behavior. Top-level usage keeps the sticky bottom strip so the
+      // composer is reachable while scrolling the activity feed on
+      // mobile.
+      className={cn(compact ? "bg-transparent" : "sticky bottom-0 z-[4] bg-surface-1 sm:static")}
       onKeyDown={(e) => {
         if (
           e.key === "Enter" &&

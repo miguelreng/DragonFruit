@@ -13,6 +13,10 @@ from plane.app.views import (
     PageDuplicateEndpoint,
     PageBlockCommentEndpoint,
     PageBlockCommentDetailEndpoint,
+    PageSaveAsTemplateEndpoint,
+    PageTemplateDetailEndpoint,
+    PageTemplateInstantiateEndpoint,
+    PageTemplateListEndpoint,
     WorkspacePagesListEndpoint,
 )
 
@@ -91,5 +95,26 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/block-comments/<uuid:comment_id>/",
         PageBlockCommentDetailEndpoint.as_view(),
         name="page-block-comment-detail",
+    ),
+    # Page templates (workspace-scoped; author = admin, browse = any member)
+    path(
+        "workspaces/<str:slug>/page-templates/",
+        PageTemplateListEndpoint.as_view(),
+        name="page-templates",
+    ),
+    path(
+        "workspaces/<str:slug>/page-templates/<uuid:template_id>/",
+        PageTemplateDetailEndpoint.as_view(),
+        name="page-template-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/page-templates/<uuid:template_id>/instantiate/",
+        PageTemplateInstantiateEndpoint.as_view(),
+        name="page-template-instantiate",
+    ),
+    path(
+        "workspaces/<str:slug>/pages/<uuid:page_id>/save-as-template/",
+        PageSaveAsTemplateEndpoint.as_view(),
+        name="page-save-as-template",
     ),
 ]

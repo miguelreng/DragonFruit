@@ -33,12 +33,15 @@ export class MemberRootStore implements IMemberRootStore {
   // sub-stores
   workspace: IWorkspaceMemberStore;
   project: IProjectMemberStore;
+  // root store reference (used to overlay agent data on bot users)
+  private rootStore: RootStore;
 
   constructor(_rootStore: RootStore) {
     makeObservable(this, {
       // observables
       memberMap: observable,
     });
+    this.rootStore = _rootStore;
     // sub-stores
     this.workspace = new WorkspaceMemberStore(this, _rootStore);
     this.project = new ProjectMemberStore(this, _rootStore);
@@ -53,5 +56,24 @@ export class MemberRootStore implements IMemberRootStore {
    * @description get user details from userId
    * @param userId
    */
-  getUserDetails = computedFn((userId: string): IUserLite | undefined => this.memberMap?.[userId] ?? undefined);
+  // Agents are stored both as bot users on the workspace (so they appear in
+  // `memberMap` via `fetchWorkspaceMembers`) and as Agent records with their
+  // own avatar/name. The Agent record is the source of truth for the agent's
+  // identity — updating an agent's avatar writes to TAgent, not to the
+  // underlying bot User. Overlay agent data here so every avatar render
+  // site (dropdowns, assignee chips, activity feed, mentions) picks up the
+  // current image without each call site having to know about agents.
+  getUserDetails = computedFn((userId: string): IUserLite | undefined => {
+    const base = this.memberMap?.[userId];
+    const agentOverlay = this.rootStore.agent?.getAgentAsUserLite(userId);
+    if (!agentOverlay) return base ?? undefined;
+    // Only override fields the agent actually populated — falling back to
+    // the underlying bot user's value when the agent's field is empty.
+    return {
+      ...(base ?? {}),
+      ...agentOverlay,
+      avatar_url: agentOverlay.avatar_url || base?.avatar_url || "",
+      display_name: agentOverlay.display_name || base?.display_name || "",
+    };
+  });
 }

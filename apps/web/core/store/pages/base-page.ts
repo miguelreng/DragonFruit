@@ -38,6 +38,8 @@ export type TBasePage = TPage & {
   archive: (params: { shouldSync?: boolean; archived_at?: string | null }) => Promise<void>;
   restore: (params: { shouldSync?: boolean }) => Promise<void>;
   updatePageLogo: (value: TChangeHandlerProps) => Promise<void>;
+  removePageLogo: () => Promise<void>;
+  updateViewProps: (next: Record<string, unknown>) => Promise<void>;
   addToFavorites: () => Promise<void>;
   removePageFromFavorites: () => Promise<void>;
   duplicate: () => Promise<TPage | undefined>;
@@ -98,6 +100,10 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
   archived_at: string | null | undefined;
   workspace: string | undefined;
   project_ids?: string[] | undefined;
+  // Page-level view preferences (full_width, cover, …) persisted as JSON on
+  // the Page model. Treated as an opaque record here so new keys can be
+  // added without touching the store.
+  view_props: Record<string, unknown> | undefined;
   created_by: string | undefined;
   updated_by: string | undefined;
   created_at: Date | undefined;
@@ -136,6 +142,8 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     this.archived_at = page?.archived_at || undefined;
     this.workspace = page?.workspace || undefined;
     this.project_ids = page?.project_ids || undefined;
+    this.view_props =
+      (page as TPage & { view_props?: Record<string, unknown> })?.view_props ?? undefined;
     this.created_by = page?.created_by || undefined;
     this.updated_by = page?.updated_by || undefined;
     this.created_at = page?.created_at || undefined;
@@ -162,6 +170,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       archived_at: observable.ref,
       workspace: observable.ref,
       project_ids: observable,
+      view_props: observable,
       created_by: observable.ref,
       updated_by: observable.ref,
       created_at: observable.ref,
@@ -186,6 +195,8 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       archive: action,
       restore: action,
       updatePageLogo: action,
+      removePageLogo: action,
+      updateViewProps: action,
       addToFavorites: action,
       removePageFromFavorites: action,
       duplicate: action,
@@ -240,6 +251,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       archived_at: this.archived_at,
       workspace: this.workspace,
       project_ids: this.project_ids,
+      view_props: this.view_props,
       created_by: this.created_by,
       updated_by: this.updated_by,
       created_at: this.created_at,
@@ -482,6 +494,54 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       console.error("Error in updating page logo", error);
       runInAction(() => {
         this.logo_props = originalLogoProps as TLogoProps;
+      });
+      throw error;
+    }
+  };
+
+  /**
+   * @description clear the current page logo (emoji or icon). Optimistically
+   * empties `logo_props` locally and rolls back if the PATCH fails.
+   */
+  removePageLogo = async () => {
+    const originalLogoProps = this.logo_props ? { ...this.logo_props } : undefined;
+    runInAction(() => {
+      this.logo_props = undefined;
+    });
+    try {
+      // Send an empty object so the server clears `in_use`. The Page model's
+      // logo_props is a JSONField that the serializer accepts as-is.
+      await this.services.update({ logo_props: {} as TLogoProps });
+    } catch (error) {
+      console.error("Error removing page logo", error);
+      runInAction(() => {
+        this.logo_props = originalLogoProps;
+      });
+      throw error;
+    }
+  };
+
+  /**
+   * @description merge a partial update into `view_props` (cover image,
+   * full_width, etc.) and persist it. Optimistically updates local state and
+   * rolls back on failure — mirrors the pattern used by `updatePageLogo`.
+   */
+  updateViewProps = async (next: Record<string, unknown>) => {
+    const previous = this.view_props ? { ...this.view_props } : undefined;
+    const merged: Record<string, unknown> = { ...(this.view_props ?? {}), ...next };
+    // Drop keys explicitly set to undefined so the JSON stays clean.
+    Object.keys(merged).forEach((k) => {
+      if (merged[k] === undefined) delete merged[k];
+    });
+    runInAction(() => {
+      this.view_props = merged;
+    });
+    try {
+      await this.services.update({ view_props: merged } as Partial<TPage>);
+    } catch (error) {
+      console.error("Error updating view_props", error);
+      runInAction(() => {
+        this.view_props = previous;
       });
       throw error;
     }

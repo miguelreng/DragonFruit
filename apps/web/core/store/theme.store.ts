@@ -17,6 +17,8 @@ export interface IThemeStore {
   epicDetailSidebarCollapsed: boolean | undefined;
   initiativesSidebarCollapsed: boolean | undefined;
   projectOverviewSidebarCollapsed: boolean | undefined;
+  /** "Talk to AI" right-side panel — sibling of the main content area. */
+  agentChatOpen: boolean;
   // actions
   toggleAnySidebarDropdown: (open?: boolean) => void;
   toggleSidebar: (collapsed?: boolean) => void;
@@ -27,6 +29,7 @@ export interface IThemeStore {
   toggleEpicDetailSidebar: (collapsed?: boolean) => void;
   toggleInitiativesSidebar: (collapsed?: boolean) => void;
   toggleProjectOverviewSidebar: (collapsed?: boolean) => void;
+  toggleAgentChat: (open?: boolean) => void;
 }
 
 export class ThemeStore implements IThemeStore {
@@ -40,6 +43,7 @@ export class ThemeStore implements IThemeStore {
   epicDetailSidebarCollapsed: boolean | undefined = undefined;
   initiativesSidebarCollapsed: boolean | undefined = undefined;
   projectOverviewSidebarCollapsed: boolean | undefined = undefined;
+  agentChatOpen: boolean = false;
 
   constructor() {
     makeObservable(this, {
@@ -53,6 +57,7 @@ export class ThemeStore implements IThemeStore {
       epicDetailSidebarCollapsed: observable.ref,
       initiativesSidebarCollapsed: observable.ref,
       projectOverviewSidebarCollapsed: observable.ref,
+      agentChatOpen: observable.ref,
       // action
       toggleAnySidebarDropdown: action,
       toggleSidebar: action,
@@ -63,6 +68,7 @@ export class ThemeStore implements IThemeStore {
       toggleEpicDetailSidebar: action,
       toggleInitiativesSidebar: action,
       toggleProjectOverviewSidebar: action,
+      toggleAgentChat: action,
     });
   }
 
@@ -159,5 +165,19 @@ export class ThemeStore implements IThemeStore {
       this.projectOverviewSidebarCollapsed = collapsed;
     }
     localStorage.setItem("project_overview_sidebar_collapsed", this.projectOverviewSidebarCollapsed.toString());
+  };
+
+  /**
+   * Toggle the "Talk to AI" right-side panel. Persists across reloads
+   * so a user who left the panel open last session sees it back. Stored
+   * as a plain "true"/"false" string in localStorage.
+   */
+  toggleAgentChat = (open?: boolean) => {
+    if (open === undefined) {
+      this.agentChatOpen = !this.agentChatOpen;
+    } else {
+      this.agentChatOpen = open;
+    }
+    localStorage.setItem("agent_chat_open", this.agentChatOpen.toString());
   };
 }

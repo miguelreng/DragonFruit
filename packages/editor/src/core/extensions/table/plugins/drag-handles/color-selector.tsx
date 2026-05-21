@@ -6,7 +6,7 @@
 
 import { Disclosure } from "@headlessui/react";
 import type { Editor } from "@tiptap/core";
-import { Ban, Palette } from "lucide-react";
+import { Ban, Palette } from "@plane/icons";
 // plane imports
 import { ChevronRightIcon } from "@plane/propel/icons";
 import { cn } from "@plane/utils";

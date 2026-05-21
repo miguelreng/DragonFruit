@@ -6,7 +6,7 @@
 
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { NodeViewWrapper, NodeViewContent } from "@tiptap/react";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon } from "@plane/icons";
 import { useState } from "react";
 import { CopyIcon } from "@plane/propel/icons";
 // ui

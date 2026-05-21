@@ -8,7 +8,7 @@ import type { Dispatch, MouseEvent, MutableRefObject, SetStateAction } from "rea
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { MoreHorizontal } from "@/components/icons/lucide-shim";
+import { GitBranch, MoreHorizontal } from "@/components/icons/lucide-shim";
 import { SPREADSHEET_SELECT_GROUP } from "@plane/constants";
 // plane helpers
 import { useOutsideClickDetector } from "@plane/hooks";
@@ -287,10 +287,12 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               }
             )}
           >
-            {/* Leading select column. Visible on row hover, sticks at full
-                opacity when this row is selected. Sits BEFORE the identifier
-                and the workitem name so the user can hover-and-click a column
-                of checkboxes top-to-bottom — Notion / Linear style. */}
+            {/* Leading select column. ClickUp-style: the checkbox is always
+                visible (not just on hover) so a column of empty checkboxes
+                anchors the row and bulk-select feels obvious at-a-glance.
+                Unchecked state is faded so it doesn't compete with content;
+                hover and selected states bring it to full opacity. Sits
+                BEFORE the identifier so it lines up top-to-bottom. */}
             {projectId && canSelectIssues && (
               <Tooltip
                 tooltipContent={
@@ -305,9 +307,9 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                 <div className="flex h-full w-8 flex-shrink-0 items-center justify-center">
                   <MultipleSelectEntityAction
                     className={cn(
-                      "pointer-events-none opacity-0 transition-opacity group-hover/list-block:pointer-events-auto group-hover/list-block:opacity-100",
+                      "opacity-50 transition-opacity group-hover/list-block:opacity-100",
                       {
-                        "pointer-events-auto opacity-100": isIssueSelected,
+                        "opacity-100": isIssueSelected,
                       }
                     )}
                     groupId={SPREADSHEET_SELECT_GROUP}
@@ -346,16 +348,20 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               {/* sub issues indentation */}
               {nestingLevel !== 0 && <div style={{ width: subIssueIndentation }} />}
 
-              {/* sub-issues chevron */}
-              <div className="grid size-4 place-items-center">
+              {/* sub-issues chevron. Bumped color from `text-placeholder`
+                  (very faded) to `text-secondary` with a subtle hover bg so
+                  it reads as a real disclosure control, not decoration. */}
+              <div className="grid size-5 place-items-center">
                 {subIssuesCount > 0 && !isEpic && (
                   <button
                     type="button"
-                    className="grid size-4 place-items-center rounded-xs text-placeholder hover:text-tertiary"
+                    className="grid size-5 place-items-center rounded-xs text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
                     onClick={handleToggleExpand}
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
                   >
                     <ChevronRightIcon
-                      className={cn("size-4", {
+                      className={cn("size-4 transition-transform", {
                         "rotate-90": isExpanded,
                       })}
                       strokeWidth={2.5}
@@ -365,17 +371,41 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               </div>
 
               <div className="my-auto flex h-full w-full items-center justify-between gap-2 truncate">
-                <div className="line-clamp-1 w-full text-14 text-primary">
-                  <div className="w-full overflow-hidden">
+                <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                  <div className="min-w-0 truncate">
                     <Tooltip tooltipContent={issueDetail.name} isMobile={isMobile}>
                       <div
-                        className="h-full w-full cursor-pointer truncate pr-4 text-left text-13 text-primary focus:outline-none"
+                        className="cursor-pointer truncate text-left text-13 text-primary focus:outline-none"
                         tabIndex={-1}
                       >
                         {issueDetail.name}
                       </div>
                     </Tooltip>
                   </div>
+                  {/* ClickUp-style inline subtask count chip after the title.
+                      Doubles as expand/collapse — the small chevron on the
+                      left is easy to miss, so the count chip itself toggles
+                      the same `isExpanded` state. */}
+                  {subIssuesCount > 0 && !isEpic && (
+                    <Tooltip
+                      tooltipContent={
+                        isExpanded
+                          ? "Hide subtasks"
+                          : `${subIssuesCount} subtask${subIssuesCount === 1 ? "" : "s"} — click to expand`
+                      }
+                      isMobile={isMobile}
+                    >
+                      <button
+                        type="button"
+                        onClick={handleToggleExpand}
+                        aria-expanded={isExpanded}
+                        className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-sm bg-layer-1 px-1 py-0.5 text-11 font-medium text-tertiary transition-colors hover:bg-layer-2 hover:text-primary"
+                      >
+                        <GitBranch className="size-3" strokeWidth={2} />
+                        {subIssuesCount}
+                      </button>
+                    </Tooltip>
+                  )}
                 </div>
                 <div
                   role="presentation"
