@@ -259,8 +259,8 @@ export abstract class IssueDetail implements IIssueDetail {
     this.openWidgets = state;
     if (this.lastWidgetAction) this.lastWidgetAction = null;
   };
-  setLastWidgetAction = (action: TWorkItemWidgets) => {
-    this.openWidgets = [action];
+  setLastWidgetAction = (widget: TWorkItemWidgets) => {
+    this.openWidgets = [widget];
   };
   toggleOpenWidget = (state: TWorkItemWidgets) => {
     if (this.openWidgets && this.openWidgets.includes(state))
@@ -373,8 +373,9 @@ export abstract class IssueDetail implements IIssueDetail {
     projectId: string,
     issueId: string,
     relationType: TIssueRelationTypes,
-    issues: string[]
-  ) => this.relation.createRelation(workspaceSlug, projectId, issueId, relationType, issues);
+    issues: string[],
+    customLabel?: string
+  ) => this.relation.createRelation(workspaceSlug, projectId, issueId, relationType, issues, customLabel);
   removeRelation = async (
     workspaceSlug: string,
     projectId: string,
@@ -383,6 +384,13 @@ export abstract class IssueDetail implements IIssueDetail {
     relatedIssue: string,
     updateLocally?: boolean
   ) => this.relation.removeRelation(workspaceSlug, projectId, issueId, relationType, relatedIssue, updateLocally);
+  updateRelationCustomLabel = async (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    relatedIssueId: string,
+    customLabel: string
+  ) => this.relation.updateRelationCustomLabel(workspaceSlug, projectId, issueId, relatedIssueId, customLabel);
 
   // activity
   fetchActivities = async (workspaceSlug: string, projectId: string, issueId: string, loaderType?: TActivityLoader) =>

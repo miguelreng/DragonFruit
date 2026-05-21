@@ -288,6 +288,49 @@ class IssueRelationViewSet(BaseViewSet):
                 status=status.HTTP_201_CREATED,
             )
 
+    def update_custom_label(self, request, slug, project_id, issue_id):
+        """Update the user-defined `custom_label` on an existing IssueRelation.
+
+        The relation between any two issues is unique (see the model's
+        unique_together constraint on issue + related_issue), so we look
+        it up by the `related_issue` id passed in the body, regardless
+        of which direction it was stored. Empty / missing label clears it
+        (stored as null) — same normalization as the create endpoint.
+        """
+        related_issue = request.data.get("related_issue", None)
+        if not related_issue:
+            return Response(
+                {"message": "related_issue is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        raw_label = request.data.get("custom_label")
+        custom_label = (raw_label or "").strip() if isinstance(raw_label, str) else None
+        if custom_label == "":
+            custom_label = None
+        if custom_label and len(custom_label) > 120:
+            custom_label = custom_label[:120]
+
+        issue_relation = (
+            IssueRelation.objects.filter(workspace__slug=slug)
+            .filter(
+                Q(issue_id=issue_id, related_issue_id=related_issue)
+                | Q(issue_id=related_issue, related_issue_id=issue_id)
+            )
+            .first()
+        )
+        if not issue_relation:
+            return Response(
+                {"message": "Relation not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        issue_relation.custom_label = custom_label
+        issue_relation.updated_by = request.user
+        issue_relation.save(update_fields=["custom_label", "updated_by", "updated_at"])
+
+        return Response(IssueRelationSerializer(issue_relation).data, status=status.HTTP_200_OK)
+
     def remove_relation(self, request, slug, project_id, issue_id):
         related_issue = request.data.get("related_issue", None)
 

@@ -242,6 +242,14 @@ urlpatterns = [
         IssueRelationViewSet.as_view({"post": "remove_relation"}),
         name="issue-relation",
     ),
+    path(
+        # Updates only the custom_label on an existing IssueRelation —
+        # lookup is by `related_issue` in the body (the row between the
+        # two issues is unique regardless of direction).
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/update-relation-label/",
+        IssueRelationViewSet.as_view({"patch": "update_custom_label"}),
+        name="issue-relation-custom-label",
+    ),
     ## End Issue Relation
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/deleted-issues/",

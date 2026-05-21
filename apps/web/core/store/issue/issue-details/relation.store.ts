@@ -40,6 +40,16 @@ export interface IIssueRelationStoreActions {
     related_issue: string,
     updateLocally?: boolean
   ) => Promise<void>;
+  // Update only the custom_label on an existing relation row. Empty string
+  // clears it (server stores null). Optimistically updates the related
+  // issue's local custom_label so the chip re-renders without a refetch.
+  updateRelationCustomLabel: (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    relatedIssueId: string,
+    customLabel: string
+  ) => Promise<void>;
 }
 
 export interface IIssueRelationStore extends IIssueRelationStoreActions {
@@ -77,6 +87,7 @@ export class IssueRelationStore implements IIssueRelationStore {
       createRelation: action,
       createCurrentRelation: action,
       removeRelation: action,
+      updateRelationCustomLabel: action,
       extractRelationsFromIssues: action,
     });
     // root store
@@ -271,6 +282,40 @@ export class IssueRelationStore implements IIssueRelationStore {
       this.rootIssueDetailStore.activity.fetchActivities(workspaceSlug, projectId, issueId);
     } catch (error) {
       this.fetchRelations(workspaceSlug, projectId, issueId);
+      throw error;
+    }
+  };
+
+  updateRelationCustomLabel = async (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    relatedIssueId: string,
+    customLabel: string
+  ) => {
+    const trimmed = customLabel.trim();
+    // Snapshot the previous label so we can roll back if the API call fails.
+    const previous = this.rootIssueDetailStore.rootIssueStore.issues.getIssueById(relatedIssueId)?.custom_label;
+
+    // Optimistic local update — the chip re-renders immediately.
+    runInAction(() => {
+      this.rootIssueDetailStore.rootIssueStore.issues.updateIssue(relatedIssueId, {
+        custom_label: trimmed || null,
+      });
+    });
+
+    try {
+      await this.issueRelationService.updateIssueRelationLabel(workspaceSlug, projectId, issueId, {
+        related_issue: relatedIssueId,
+        custom_label: trimmed,
+      });
+    } catch (error) {
+      // Roll back the optimistic update on failure.
+      runInAction(() => {
+        this.rootIssueDetailStore.rootIssueStore.issues.updateIssue(relatedIssueId, {
+          custom_label: previous ?? null,
+        });
+      });
       throw error;
     }
   };
