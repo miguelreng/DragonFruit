@@ -59,15 +59,10 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
     },
   });
   // store hooks
-  const {
-    toggleCreateIssueModal,
-    toggleDeleteIssueModal,
-    subIssues: { subIssueHelpersByIssueId, setSubIssueHelpers },
-  } = useIssueDetail(issueServiceType);
+  const { toggleCreateIssueModal, toggleDeleteIssueModal } = useIssueDetail(issueServiceType);
 
   // helpers
   const subIssueOperations = useSubIssueOperations(issueServiceType);
-  const subIssueHelpers = subIssueHelpersByIssueId(`${parentIssueId}_root`);
 
   // handler
   const handleIssueCrudState = useCallback(
@@ -85,19 +80,18 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
   );
 
   const handleFetchSubIssues = useCallback(async () => {
-    const currentSubIssueHelpers = subIssueHelpersByIssueId(`${parentIssueId}_root`);
-    if (!currentSubIssueHelpers.issue_visibility.includes(parentIssueId)) {
-      try {
-        setSubIssueHelpers(`${parentIssueId}_root`, "preview_loader", parentIssueId);
-        await subIssueOperations.fetchSubIssues(workspaceSlug, projectId, parentIssueId);
-        setSubIssueHelpers(`${parentIssueId}_root`, "issue_visibility", parentIssueId);
-      } catch (error) {
-        console.error("Error fetching sub-tasks:", error);
-      } finally {
-        setSubIssueHelpers(`${parentIssueId}_root`, "preview_loader", "");
-      }
+    // Always (re)fetch on parent change. The previous gate consulted
+    // `issue_visibility` to skip refetches, but `setSubIssueHelpers` is a
+    // toggle (add-or-remove on each call) so a second invocation would
+    // silently REMOVE the id again — which left the visibility gate stuck
+    // closed and the subtask list invisible even though the data had
+    // arrived. We now drive rendering from the data itself (see below).
+    try {
+      await subIssueOperations.fetchSubIssues(workspaceSlug, projectId, parentIssueId);
+    } catch (error) {
+      console.error("Error fetching sub-tasks:", error);
     }
-  }, [parentIssueId, projectId, setSubIssueHelpers, subIssueHelpersByIssueId, subIssueOperations, workspaceSlug]);
+  }, [parentIssueId, projectId, subIssueOperations, workspaceSlug]);
 
   useEffect(() => {
     handleFetchSubIssues();
@@ -115,20 +109,23 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
 
   return (
     <>
-      {subIssueHelpers.issue_visibility.includes(parentIssueId) && (
-        <SubIssuesListRoot
-          storeType={EIssuesStoreType.PROJECT}
-          workspaceSlug={workspaceSlug}
-          projectId={projectId}
-          parentIssueId={parentIssueId}
-          rootIssueId={parentIssueId}
-          spacingLeft={6}
-          canEdit={!disabled}
-          handleIssueCrudState={handleIssueCrudState}
-          subIssueOperations={subIssueOperations}
-          issueServiceType={issueServiceType}
-        />
-      )}
+      {/* Always render. SubIssuesListRoot internally renders nothing when
+       * the store hasn't loaded the sub-issue IDs yet, and shows its own
+       * empty state when filters exclude everything — so we don't need
+       * an outer visibility gate (which previously got stuck closed; see
+       * handleFetchSubIssues above). */}
+      <SubIssuesListRoot
+        storeType={EIssuesStoreType.PROJECT}
+        workspaceSlug={workspaceSlug}
+        projectId={projectId}
+        parentIssueId={parentIssueId}
+        rootIssueId={parentIssueId}
+        spacingLeft={6}
+        canEdit={!disabled}
+        handleIssueCrudState={handleIssueCrudState}
+        subIssueOperations={subIssueOperations}
+        issueServiceType={issueServiceType}
+      />
 
       {/* Inline "+ Add subtask" — the modal route is still available via
           the dropdown on the section title for users who want to set

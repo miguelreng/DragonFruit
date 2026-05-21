@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Download } from "lucide-react";
+import { Download } from "@plane/icons";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
 

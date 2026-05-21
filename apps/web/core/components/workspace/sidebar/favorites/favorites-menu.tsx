@@ -247,7 +247,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
           leaveTo="transform scale-95 opacity-0"
         >
           {isFavoriteMenuOpen && (
-            <Disclosure.Panel as="div" className="mt-0.5 flex flex-col gap-0.5" static>
+            <Disclosure.Panel as="div" className="mt-0.5 flex flex-col" static>
               {createNewFolder && <NewFavoriteFolder setCreateNewFolder={setCreateNewFolder} actionType="create" />}
               {Object.keys(groupedFavorites).length === 0 ? (
                 <>

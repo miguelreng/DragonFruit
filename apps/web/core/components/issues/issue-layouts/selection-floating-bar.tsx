@@ -13,10 +13,14 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EIssuesStoreType } from "@plane/types";
 // icons
-import { Trash2, X } from "@/components/icons/lucide-shim";
+import { ArchiveIcon, StateGroupIcon } from "@plane/propel/icons";
+import { ChevronDown, Trash2, X } from "@/components/icons/lucide-shim";
+// ui
+import { CustomMenu } from "@plane/ui";
 // hooks
 import { useMultipleSelectStore } from "@/hooks/store/use-multiple-select-store";
 import { useIssues } from "@/hooks/store/use-issues";
+import { useProjectState } from "@/hooks/store/use-project-state";
 
 /**
  * Floating action bar that appears at the bottom of the project task list
@@ -24,9 +28,9 @@ import { useIssues } from "@/hooks/store/use-issues";
  * familiar from Linear / Notion / Gmail: pick the rows you want to act on,
  * the bar slides in with what you can do to them.
  *
- * Scope (v1): selection count + Clear + Delete. Designed so we can stack
- * more actions onto the same row later (state change, priority, assignee,
- * move-to-cycle, etc.) without restructuring the bar.
+ * Actions: selection count + Clear + Status (dropdown) + Archive + Delete.
+ * Stackable — more bulk actions (priority, assignee, move-to-cycle) can
+ * slot in alongside Status without restructuring the bar.
  *
  * Visibility is driven by the multiple-select store — when the user clears
  * the selection (Esc, clicking the X here, or routing away), the store
@@ -40,13 +44,17 @@ export const SelectionFloatingBar = observer(function SelectionFloatingBar() {
   // store
   const { selectedEntityIds, isSelectionActive, clearSelection } = useMultipleSelectStore();
   const {
-    issues: { removeBulkIssues },
+    issues: { removeBulkIssues, archiveBulkIssues, bulkUpdateProperties },
   } = useIssues(EIssuesStoreType.PROJECT);
+  const { getProjectStates } = useProjectState();
   // state
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [isChangingState, setIsChangingState] = useState(false);
 
   if (!isSelectionActive) return null;
   const count = selectedEntityIds.length;
+  const projectStates = projectId ? getProjectStates(projectId.toString()) : undefined;
 
   const handleDelete = async () => {
     if (!workspaceSlug || !projectId || isDeleting) return;
@@ -79,6 +87,58 @@ export const SelectionFloatingBar = observer(function SelectionFloatingBar() {
     }
   };
 
+  const handleChangeState = async (stateId: string) => {
+    if (!workspaceSlug || !projectId || isChangingState) return;
+    setIsChangingState(true);
+    try {
+      await bulkUpdateProperties(workspaceSlug.toString(), projectId.toString(), {
+        issue_ids: selectedEntityIds,
+        properties: { state_id: stateId },
+      });
+      const stateName = projectStates?.find((s) => s.id === stateId)?.name;
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("toast.success"),
+        message: stateName
+          ? `Moved ${count} ${count === 1 ? "task" : "tasks"} to ${stateName}.`
+          : `Updated ${count} ${count === 1 ? "task" : "tasks"}.`,
+      });
+      clearSelection();
+    } catch (error) {
+      console.error("Bulk state change failed:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: "Couldn't change the status. Please try again.",
+      });
+    } finally {
+      setIsChangingState(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!workspaceSlug || !projectId || isArchiving) return;
+    setIsArchiving(true);
+    try {
+      await archiveBulkIssues(workspaceSlug.toString(), projectId.toString(), selectedEntityIds);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("toast.success"),
+        message: `${count} ${count === 1 ? "task" : "tasks"} archived.`,
+      });
+      clearSelection();
+    } catch (error) {
+      console.error("Bulk archive failed:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: "Couldn't archive the selected tasks. Please try again.",
+      });
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   return (
     <div
       role="toolbar"
@@ -88,11 +148,11 @@ export const SelectionFloatingBar = observer(function SelectionFloatingBar() {
       className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4"
     >
       <div className="shadow-lg pointer-events-auto flex items-center gap-2 rounded-xl border border-strong bg-surface-1 px-3 py-2">
-        <span className="text-sm px-2 font-medium">
+        <span className="text-11 px-1 font-medium">
           <span className="text-primary">{count}</span>{" "}
           <span className="text-tertiary">{count === 1 ? "task" : "tasks"} selected</span>
         </span>
-        <div className="bg-strong h-5 w-px" aria-hidden />
+        <div className="bg-strong h-4 w-px" aria-hidden />
         <Button
           variant="ghost"
           size="sm"
@@ -103,11 +163,59 @@ export const SelectionFloatingBar = observer(function SelectionFloatingBar() {
           <X className="size-3.5" />
           <span>{t("common.clear") || "Clear"}</span>
         </Button>
+        {/* Status change. CustomMenu is the same dropdown primitive used in
+            the row quick-actions, so the styling matches the rest of the
+            list. Disabled if states haven't loaded yet — usually they have
+            because the user is already looking at the grouped-by-status
+            view, but keeping the guard for the data-grid case. */}
+        <CustomMenu
+          customButton={
+            <button
+              type="button"
+              disabled={isChangingState || !projectStates?.length}
+              aria-label="Change status"
+              className="border border-strong bg-layer-2 text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active disabled:cursor-not-allowed disabled:opacity-60 inline-flex h-5 items-center gap-1 rounded-sm px-1.5 text-caption-md-medium"
+            >
+              <span>{isChangingState ? "Updating…" : "Status"}</span>
+              <ChevronDown className="size-3" />
+            </button>
+          }
+          placement="top-start"
+          maxHeight="md"
+          closeOnSelect
+        >
+          {projectStates?.length ? (
+            projectStates.map((state) => (
+              <CustomMenu.MenuItem
+                key={state.id}
+                onClick={() => handleChangeState(state.id)}
+                className="flex items-center gap-2"
+              >
+                <StateGroupIcon stateGroup={state.group} color={state.color} className="size-3.5" />
+                <span className="truncate">{state.name}</span>
+              </CustomMenu.MenuItem>
+            ))
+          ) : (
+            <CustomMenu.MenuItem disabled>
+              <span className="text-tertiary">No states available</span>
+            </CustomMenu.MenuItem>
+          )}
+        </CustomMenu>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleArchive}
+          disabled={isArchiving || isDeleting || isChangingState}
+          aria-label="Archive"
+        >
+          <ArchiveIcon className="size-3.5" />
+          <span>{isArchiving ? "Archiving…" : "Archive"}</span>
+        </Button>
         <Button
           variant="error-outline"
           size="sm"
           onClick={handleDelete}
-          disabled={isDeleting}
+          disabled={isDeleting || isArchiving || isChangingState}
           aria-label={t("common.delete") || "Delete"}
         >
           <Trash2 className="size-3.5" />

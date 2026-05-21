@@ -128,6 +128,99 @@ class Agent(BaseModel):
         return f"{self.name} <{self.workspace.slug}>"
 
 
+class AgentChatSession(BaseModel):
+    """A persistent chat thread between a single user and a single agent.
+
+    Distinct from `AgentRun`: a Run is the agent reacting to a workspace
+    event (assignment, mention) on an issue or page. A ChatSession is an
+    ad-hoc conversation a user opens from the topbar — closer to a
+    ChatGPT-style thread. Each session is scoped to one workspace and
+    one agent; switching agents starts a new session.
+    """
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="agent_chat_sessions",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="agent_chat_sessions",
+    )
+    agent = models.ForeignKey(
+        Agent,
+        on_delete=models.CASCADE,
+        related_name="chat_sessions",
+    )
+    # Auto-generated from the first user message; user can rename later.
+    title = models.CharField(max_length=200, blank=True, default="")
+    # Stamped each time a message is added so the "Recent chats" panel
+    # can sort by activity instead of creation.
+    last_activity_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Agent Chat Session"
+        verbose_name_plural = "Agent Chat Sessions"
+        db_table = "agent_chat_sessions"
+        ordering = ("-last_activity_at",)
+        indexes = [
+            models.Index(fields=["workspace", "user", "-last_activity_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.title or 'untitled'} ({self.agent.name})"
+
+
+class AgentChatMessage(BaseModel):
+    """One turn in a chat session — either a user message or an
+    assistant reply. Stored as plain text (no HTML/markdown rendering
+    on the backend); the frontend renders markdown when displaying."""
+
+    ROLE_CHOICES = (
+        ("user", "User"),
+        ("assistant", "Assistant"),
+    )
+
+    session = models.ForeignKey(
+        AgentChatSession,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    role = models.CharField(max_length=16, choices=ROLE_CHOICES)
+    content = models.TextField()
+    # File attachments the user dropped into the composer alongside this
+    # turn. JSON-encoded array of `{name, mime_type, size, kind}` plus a
+    # *small* preview field — images get a `data_url` (base64 inline) so
+    # the panel can re-render thumbnails without an extra fetch; CSVs get
+    # a `text_excerpt` (truncated to ~50KB). PDFs currently land as bare
+    # metadata since we don't extract their text yet.
+    #
+    # Only user rows populate this. Assistant rows have it as `[]`.
+    attachments = models.JSONField(default=list, blank=True)
+    # Token + cost telemetry — only assistant rows populate these. Mirrors
+    # the same fields on AgentRun so the same pricing module powers both.
+    prompt_tokens = models.PositiveIntegerField(default=0)
+    completion_tokens = models.PositiveIntegerField(default=0)
+    total_tokens = models.PositiveIntegerField(default=0)
+    cost_usd = models.DecimalField(max_digits=12, decimal_places=6, default=0)
+    # Errors land here when the LLM call fails — the row is still
+    # written so the user sees what happened instead of a silent stall.
+    error_message = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = "Agent Chat Message"
+        verbose_name_plural = "Agent Chat Messages"
+        db_table = "agent_chat_messages"
+        ordering = ("created_at",)
+        indexes = [
+            models.Index(fields=["session", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.role}: {self.content[:40]}"
+
+
 class AgentRun(BaseModel):
     """A single dispatch of an agent in response to an event.
 

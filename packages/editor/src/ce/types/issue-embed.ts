@@ -35,4 +35,9 @@ export type TIssueEmbedConfig = {
   }) => React.ReactNode;
   onPickerRequest?: (request: TWorkItemPickerRequest) => void;
   onTranscriptRequest?: () => void;
+  // Source context used by inline conversions (e.g. "Turn into task").
+  workspaceSlug?: string;
+  projectId?: string;
+  // Creates a work item from a title in the doc's project. Resolves null on failure.
+  onConvertToTask?: (params: { title: string; description?: string }) => Promise<TWorkItemEmbedInsertAttrs | null>;
 };

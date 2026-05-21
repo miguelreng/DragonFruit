@@ -4,6 +4,5 @@
  * See the LICENSE file for details.
  */
 
-export * from "./composer";
-export * from "./panel";
+export * from "./floating";
 export * from "./state";

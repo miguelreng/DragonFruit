@@ -14,6 +14,10 @@ from plane.app.views import (
     ProjectUserViewsEndpoint,
     ProjectIdentifierEndpoint,
     ProjectFavoritesViewSet,
+    ProjectSaveAsTemplateEndpoint,
+    ProjectTemplateDetailEndpoint,
+    ProjectTemplateInstantiateEndpoint,
+    ProjectTemplateListEndpoint,
     UserProjectInvitationsViewset,
     UserProjectRolesEndpoint,
     ProjectArchiveUnarchiveEndpoint,
@@ -128,5 +132,26 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/preferences/member/<uuid:member_id>/",
         ProjectMemberPreferenceEndpoint.as_view(),
         name="project-member-preference",
+    ),
+    # Project templates — workspace-scoped reusable project skeletons.
+    path(
+        "workspaces/<str:slug>/project-templates/",
+        ProjectTemplateListEndpoint.as_view(),
+        name="project-templates",
+    ),
+    path(
+        "workspaces/<str:slug>/project-templates/<uuid:template_id>/",
+        ProjectTemplateDetailEndpoint.as_view(),
+        name="project-template-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/project-templates/<uuid:template_id>/instantiate/",
+        ProjectTemplateInstantiateEndpoint.as_view(),
+        name="project-template-instantiate",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/save-as-template/",
+        ProjectSaveAsTemplateEndpoint.as_view(),
+        name="project-save-as-template",
     ),
 ]

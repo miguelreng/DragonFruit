@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Ban } from "lucide-react";
+import { Ban } from "@plane/icons";
 import { ChevronDownIcon } from "@plane/propel/icons";
 // plane utils
 import { cn } from "@plane/utils";

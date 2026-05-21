@@ -4,7 +4,7 @@
 
 from rest_framework import serializers
 
-from plane.db.models import Agent, AgentRun
+from plane.db.models import Agent, AgentChatMessage, AgentChatSession, AgentRun
 
 
 class AgentSerializer(serializers.ModelSerializer):
@@ -105,3 +105,66 @@ class AgentRunSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+
+class AgentChatMessageSerializer(serializers.ModelSerializer):
+    cost_usd = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = AgentChatMessage
+        fields = [
+            "id",
+            "session",
+            "role",
+            "content",
+            "attachments",
+            "prompt_tokens",
+            "completion_tokens",
+            "total_tokens",
+            "cost_usd",
+            "error_message",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "session",
+            "prompt_tokens",
+            "completion_tokens",
+            "total_tokens",
+            "cost_usd",
+            "error_message",
+            "created_at",
+        ]
+
+
+class AgentChatSessionSerializer(serializers.ModelSerializer):
+    # Lightweight read fields the list endpoint and detail endpoint
+    # both return. The detail endpoint adds `messages` on top via the
+    # view, not here, so the list query stays cheap.
+    agent_name = serializers.CharField(source="agent.name", read_only=True)
+    agent_avatar_url = serializers.URLField(source="agent.avatar_url", read_only=True)
+
+    class Meta:
+        model = AgentChatSession
+        fields = [
+            "id",
+            "workspace",
+            "user",
+            "agent",
+            "agent_name",
+            "agent_avatar_url",
+            "title",
+            "created_at",
+            "updated_at",
+            "last_activity_at",
+        ]
+        read_only_fields = [
+            "id",
+            "workspace",
+            "user",
+            "agent_name",
+            "agent_avatar_url",
+            "created_at",
+            "updated_at",
+            "last_activity_at",
+        ]

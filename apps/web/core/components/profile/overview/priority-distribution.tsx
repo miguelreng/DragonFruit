@@ -9,7 +9,7 @@ import { useTranslation } from "@plane/i18n";
 import { BarChart } from "@plane/propel/charts/bar-chart";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { IUserProfileData } from "@plane/types";
-import { Loader, Card } from "@plane/ui";
+import { Loader } from "@plane/ui";
 import { capitalizeFirstLetter } from "@plane/utils";
 
 type Props = {
@@ -26,15 +26,17 @@ const priorityColors = {
 
 export function ProfilePriorityDistribution({ userProfile }: Props) {
   const { t } = useTranslation();
+  const hasData = (userProfile?.priority_distribution?.length ?? 0) > 0;
+
   return (
-    <div className="flex flex-col space-y-2">
-      <h3 className="text-16 font-medium">{t("profile.stats.priority_distribution.title")}</h3>
-      {userProfile ? (
-        <Card>
-          {userProfile.priority_distribution.length > 0 ? (
+    <section className="flex flex-col space-y-3">
+      <h3 className="text-13 font-medium text-tertiary">{t("profile.stats.priority_distribution.title")}</h3>
+      <div className="flex h-full flex-col rounded-lg border-[0.5px] border-subtle bg-surface-1 p-5">
+        {userProfile ? (
+          hasData ? (
             <BarChart
-              className="h-[300px] w-full"
-              margin={{ top: 20, right: 30, bottom: 5, left: 0 }}
+              className="h-[280px] w-full"
+              margin={{ top: 16, right: 16, bottom: 4, left: 0 }}
               data={userProfile.priority_distribution.map((priority) => ({
                 key: priority.priority ?? "None",
                 name: capitalizeFirstLetter(priority.priority ?? "None"),
@@ -60,7 +62,7 @@ export function ProfilePriorityDistribution({ userProfile }: Props) {
                 key: "count",
                 label: "",
               }}
-              barSize={20}
+              barSize={24}
             />
           ) : (
             <EmptyStateCompact
@@ -68,19 +70,19 @@ export function ProfilePriorityDistribution({ userProfile }: Props) {
               assetClassName="size-20"
               title={t("workspace_empty_state.your_work_by_priority.title")}
             />
-          )}
-        </Card>
-      ) : (
-        <div className="grid place-items-center p-7">
-          <Loader className="flex items-end gap-12">
-            <Loader.Item width="30px" height="200px" />
-            <Loader.Item width="30px" height="150px" />
-            <Loader.Item width="30px" height="250px" />
-            <Loader.Item width="30px" height="150px" />
-            <Loader.Item width="30px" height="100px" />
-          </Loader>
-        </div>
-      )}
-    </div>
+          )
+        ) : (
+          <div className="grid h-[280px] place-items-center">
+            <Loader className="flex items-end gap-8">
+              <Loader.Item width="24px" height="180px" />
+              <Loader.Item width="24px" height="140px" />
+              <Loader.Item width="24px" height="220px" />
+              <Loader.Item width="24px" height="140px" />
+              <Loader.Item width="24px" height="90px" />
+            </Loader>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

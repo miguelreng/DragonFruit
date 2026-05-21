@@ -269,6 +269,9 @@
     }
   },
   "sub_work_item": {
+    "add": {
+      "inline": "Add subtask"
+    },
     "update": {
       "success": "Sub-task updated successfully",
       "error": "Error updating sub-task"

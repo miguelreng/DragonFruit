@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Maximize } from "lucide-react";
+import { Maximize } from "@plane/icons";
 import { useEffect, useState } from "react";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";

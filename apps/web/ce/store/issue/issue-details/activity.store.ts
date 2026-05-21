@@ -118,6 +118,12 @@ export class IssueActivityStore implements IIssueActivityStore {
     comments.forEach((commentId) => {
       const comment = currentStore.comment.getCommentById(commentId);
       if (!comment) return;
+      // One-level threading: a reply comment has `parent` set to its
+      // top-level parent's id. Replies render *inside* the parent's
+      // card (see CommentCard), so we keep them out of the flat feed
+      // here — otherwise every reply would show up twice (once as
+      // nested, once interleaved with activity).
+      if (comment.parent) return;
       activityComments.push({
         id: comment.id,
         activity_type: EActivityFilterType.COMMENT,

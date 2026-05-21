@@ -19,12 +19,14 @@ import type {
   TIssueOrderByOptions,
 } from "@plane/types";
 // constants
+import { STATE_GROUPS } from "@plane/constants";
 import { ContentWrapper } from "@plane/ui";
 // components
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 import { KanbanColumnLoader } from "@/components/ui/loader/layouts/kanban-layout-loader";
 // hooks
 import { useKanbanView } from "@/hooks/store/use-kanban-view";
+import { useProjectState } from "@/hooks/store/use-project-state";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 // types
 // parent components
@@ -101,6 +103,19 @@ export const KanBan = observer(function KanBan(props: IKanBan) {
   // store hooks
   const storeType = useIssueStoreType();
   const issueKanBanView = useKanbanView();
+  const projectState = useProjectState();
+  // When the kanban is grouped by state, each column exposes its state-group
+  // color via a `--state-color` CSS variable on the column wrapper. The
+  // column body, header pill, and issue cards all read that variable to
+  // build their own tint at different mix percentages (column 6 %, card
+  // 14 %, header pill 20 %) — ClickUp-style column theming. Returns
+  // undefined for any other grouping (priority, assignee, label, …).
+  const getStateColor = (columnId: string): string | undefined => {
+    if (group_by !== "state") return undefined;
+    const state = projectState.projectStates?.find((s) => s.id === columnId);
+    const groupKey = state?.group as keyof typeof STATE_GROUPS | undefined;
+    return groupKey ? STATE_GROUPS[groupKey]?.color : undefined;
+  };
   // derived values
   const isDragDisabled = !issueKanBanView?.getCanUserDragDrop(group_by, sub_group_by);
 
@@ -158,15 +173,28 @@ export const KanBan = observer(function KanBan(props: IKanBan) {
           const issueLength = issueIds?.length;
           const groupHeight = issueLength * approximateCardHeight;
 
+          const stateColor = getStateColor(subList.id);
           return (
             <div
               key={subList.id}
-              className={`group relative flex flex-shrink-0 flex-col ${
-                groupByVisibilityToggle.showIssues ? `w-[350px]` : ``
+              className={`group relative flex flex-shrink-0 flex-col rounded-md ${
+                groupByVisibilityToggle.showIssues ? `w-[350px] p-2` : ``
               } `}
+              style={
+                stateColor
+                  ? ({
+                      "--state-color": stateColor,
+                      backgroundColor: `color-mix(in srgb, ${stateColor} 6%, transparent)`,
+                    } as React.CSSProperties)
+                  : undefined
+              }
             >
               {sub_group_by === null && (
-                <div className="sticky top-0 z-[2] w-full flex-shrink-0 bg-surface-2 py-1">
+                <div
+                  className={`sticky top-0 z-[2] w-full flex-shrink-0 py-1 ${
+                    stateColor ? "" : "bg-surface-2"
+                  }`}
+                >
                   <HeaderGroupByCard
                     sub_group_by={sub_group_by}
                     group_by={group_by}

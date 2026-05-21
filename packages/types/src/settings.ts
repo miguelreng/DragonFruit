@@ -19,6 +19,7 @@ export type TWorkspaceSettingsTabs =
   | "ai"
   | "agents"
   | "mcp"
+  | "templates"
   | "about";
 export type TWorkspaceSettingsItem = {
   key: TWorkspaceSettingsTabs;

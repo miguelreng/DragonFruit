@@ -26,9 +26,7 @@ import { cn, generateRandomColor, hslToHex } from "@plane/utils";
 // components
 import {
   BLOCK_COMMENT_REQUEST_EVENT,
-  BLOCK_COMMENT_TOGGLE_PANEL_EVENT,
-  BlockCommentComposer,
-  BlockCommentsPanel,
+  BlockCommentFloating,
   type BlockCommentRequestDetail,
 } from "@/components/editor/comments";
 import { EditorMentionsRoot } from "@/components/editor/embeds/mentions";
@@ -136,40 +134,81 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     onInsertGeneratedContent: insertGeneratedSpec,
   });
   const embedConfig = useMemo(() => ({ issue: issueEmbedProps }), [issueEmbedProps]);
-  // block-level comments — composer + panel are mounted at the end of the editor tree
-  const [composerCommentId, setComposerCommentId] = useState<string | null>(null);
-  const composerCancelRef = useRef<(() => void) | null>(null);
-  const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
-  const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
+  // block-level comments — a single floating popover handles both
+  // "create a new thread" and "view + reply to an existing thread".
+  // We track the marked span (anchor) + its blockId; setting either
+  // to null unmounts the popover. When the user opens via bubble
+  // menu / slash command we hold the rollback in `cancelRef` so we
+  // can drop the orphan mark if they dismiss without posting.
+  const [floatingAnchor, setFloatingAnchor] = useState<HTMLElement | null>(null);
+  const [floatingBlockId, setFloatingBlockId] = useState<string | null>(null);
+  const floatingCancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // The slash commands dispatch CustomEvent({ bubbles: true }) on the editor DOM;
-    // they bubble up to window, so we listen there to stay agnostic of the editor ref shape.
+    // The bubble menu + slash commands dispatch CustomEvent({
+    // bubbles: true }) on the editor DOM. They bubble up to window
+    // so we listen here, agnostic of the editor ref shape.
     const onRequest = (e: Event) => {
       const detail = (e as CustomEvent<BlockCommentRequestDetail>).detail;
-      composerCancelRef.current = detail.cancel;
-      setComposerCommentId(detail.commentId);
+      // The mark lands in the DOM synchronously inside Tiptap's
+      // chain().run(), but ProseMirror does its own micro-task batching.
+      // Querying on the next animation frame guarantees the span exists.
+      const findAnchor = () =>
+        document.querySelector<HTMLElement>(`[data-block-comment-id="${detail.commentId}"]`);
+      requestAnimationFrame(() => {
+        const el = findAnchor();
+        if (!el) {
+          // Defensive: roll back if we couldn't find the anchor for
+          // some reason — don't leave a dangling popover state.
+          detail.cancel?.();
+          return;
+        }
+        floatingCancelRef.current = detail.cancel ?? null;
+        setFloatingAnchor(el);
+        setFloatingBlockId(detail.commentId);
+      });
     };
-    const onTogglePanel = () => setCommentsPanelOpen((v) => !v);
     window.addEventListener(BLOCK_COMMENT_REQUEST_EVENT, onRequest);
-    window.addEventListener(BLOCK_COMMENT_TOGGLE_PANEL_EVENT, onTogglePanel);
     return () => {
       window.removeEventListener(BLOCK_COMMENT_REQUEST_EVENT, onRequest);
-      window.removeEventListener(BLOCK_COMMENT_TOGGLE_PANEL_EVENT, onTogglePanel);
     };
   }, []);
 
-  const handleComposerSubmit = useCallback(() => {
-    composerCancelRef.current = null; // keep the mark
-    setComposerCommentId(null);
-    setCommentsRefreshKey((k) => k + 1);
-    setCommentsPanelOpen(true);
+  // Open the popover when a user clicks an existing marked span in
+  // the doc. The editor renders these as `<span data-block-comment-id="…">`
+  // wrappers — we use a delegated click listener so dynamically
+  // re-rendered ProseMirror nodes still hit it.
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const span = target.closest<HTMLElement>("[data-block-comment-id]");
+      if (!span) return;
+      const id = span.getAttribute("data-block-comment-id");
+      if (!id) return;
+      // Existing thread — don't roll back the mark on close.
+      floatingCancelRef.current = null;
+      setFloatingAnchor(span);
+      setFloatingBlockId(id);
+    }
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
   }, []);
 
-  const handleComposerCancel = useCallback(() => {
-    composerCancelRef.current?.();
-    composerCancelRef.current = null;
-    setComposerCommentId(null);
+  const handleFloatingClose = useCallback(() => {
+    floatingCancelRef.current = null;
+    setFloatingAnchor(null);
+    setFloatingBlockId(null);
+  }, []);
+
+  const handleFloatingCancelEmpty = useCallback(() => {
+    // Roll the BlockComment mark back — if the user opened the
+    // composer via "Comment" and never posted, the dotted underline
+    // shouldn't linger on the doc.
+    floatingCancelRef.current?.();
+    floatingCancelRef.current = null;
+    setFloatingAnchor(null);
+    setFloatingBlockId(null);
   }, []);
 
   // editor flaggings
@@ -362,22 +401,16 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
           />
           {renderWorkItemPicker()}
           {renderTranscriptModal()}
-          <BlockCommentComposer
-            isOpen={composerCommentId !== null}
-            commentId={composerCommentId}
+          {/* One floating widget for both "add comment" and "view
+              thread / reply". Anchored to the marked span via Popper. */}
+          <BlockCommentFloating
+            referenceEl={floatingAnchor}
+            blockId={floatingBlockId}
             workspaceSlug={workspaceSlug}
             projectId={projectId}
             pageId={pageId}
-            onSubmitted={handleComposerSubmit}
-            onCancel={handleComposerCancel}
-          />
-          <BlockCommentsPanel
-            isOpen={commentsPanelOpen}
-            workspaceSlug={workspaceSlug}
-            projectId={projectId}
-            pageId={pageId}
-            onClose={() => setCommentsPanelOpen(false)}
-            refreshKey={commentsRefreshKey}
+            onClose={handleFloatingClose}
+            onCancelEmpty={handleFloatingCancelEmpty}
           />
         </div>
       </div>

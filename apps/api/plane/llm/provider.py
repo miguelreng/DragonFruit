@@ -151,9 +151,22 @@ class LLMProvider:
     # Single-shot chat (no tool use)                                    #
     # ----------------------------------------------------------------- #
 
-    def chat(self, *, system_prompt: str, user_prompt: str) -> LLMRunResult:
+    def chat(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt,
+    ) -> LLMRunResult:
         """One-shot generate — no tool loop. Useful for tests and for
         simple "summarise / draft" features that don't need tool use.
+
+        `user_prompt` accepts either a plain string (the common case) or
+        an OpenAI-style multimodal content list — e.g. a mix of
+        `{"type": "text", "text": "..."}` and
+        `{"type": "image_url", "image_url": {"url": "data:..."}}` blocks
+        for vision-capable models. LiteLLM passes the list straight
+        through so any provider that supports the OpenAI multimodal
+        schema (Anthropic, Gemini, OpenAI, etc.) handles it natively.
         """
         return self.run(
             system_prompt=system_prompt,

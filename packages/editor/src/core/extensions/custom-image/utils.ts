@@ -5,8 +5,8 @@
  */
 
 import type { Editor } from "@tiptap/core";
-import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight } from "@plane/icons";
+import type { LucideIcon } from "@plane/icons";
 // local imports
 import { ECustomImageAttributeNames, ECustomImageStatus } from "./types";
 import type { TCustomImageAlignment, Pixel, TCustomImageAttributes } from "./types";

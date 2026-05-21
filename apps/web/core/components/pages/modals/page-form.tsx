@@ -15,11 +15,12 @@ import { Button } from "@plane/propel/button";
 import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
 import { GlobeIcon, LockIcon, PageIcon } from "@plane/propel/icons";
 import type { ISvgIcons } from "@plane/propel/icons";
-import type { TPage } from "@plane/types";
-import { Input } from "@plane/ui";
+import type { TPage, TPageTemplate } from "@plane/types";
+import { CustomMenu, Input } from "@plane/ui";
 import { getTabIndex } from "@plane/utils";
 // components
 import { AccessField } from "@/components/common/access-field";
+import { ChevronDown } from "@/components/icons/lucide-shim";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
 
@@ -28,6 +29,11 @@ type Props = {
   handleFormData: <T extends keyof TPage>(key: T, value: TPage[T]) => void;
   handleModalClose: () => void;
   handleFormSubmit: () => Promise<void>;
+  /** Workspace templates available to seed the new page. Empty list hides the picker. */
+  templates?: TPageTemplate[];
+  /** Currently picked template id, "" means start from blank. */
+  selectedTemplateId?: string;
+  onTemplateChange?: (templateId: string) => void;
 };
 
 const PAGE_ACCESS_SPECIFIERS: {
@@ -40,7 +46,15 @@ const PAGE_ACCESS_SPECIFIERS: {
 ];
 
 export function PageForm(props: Props) {
-  const { formData, handleFormData, handleModalClose, handleFormSubmit } = props;
+  const {
+    formData,
+    handleFormData,
+    handleModalClose,
+    handleFormSubmit,
+    templates,
+    selectedTemplateId,
+    onTemplateChange,
+  } = props;
   // hooks
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
@@ -69,6 +83,47 @@ export function PageForm(props: Props) {
     <form onSubmit={handlePageFormSubmit}>
       <div className="space-y-5 p-5">
         <h3 className="text-18 font-medium text-secondary">Create page</h3>
+        {templates && templates.length > 0 && onTemplateChange && (
+          <div className="flex items-center gap-3">
+            {/* span — visual label only, the CustomMenu trigger is a
+                non-input element so there's nothing to bind htmlFor to. */}
+            <span className="text-12 shrink-0 text-tertiary">Start from</span>
+            {/* CustomMenu picker (replaces a native <select> for parity
+                with the project create flow and the rest of the design
+                system). customButton is a <div> — CustomMenu wraps it
+                in its own <button> internally, so passing another
+                <button> would produce invalid nested-button markup. */}
+            <CustomMenu
+              customButton={
+                <div className="border-subtle bg-layer-1 text-13 hover:bg-layer-2 flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-md border-[0.5px] px-3 py-2 text-primary">
+                  <span className="truncate">
+                    {templates.find((t) => t.id === selectedTemplateId)?.name ?? "Blank page"}
+                  </span>
+                  <ChevronDown className="size-3.5 text-tertiary" />
+                </div>
+              }
+              placement="bottom-start"
+              menuItemsClassName="w-72 max-h-72 overflow-y-auto"
+            >
+              <CustomMenu.MenuItem onClick={() => onTemplateChange("")}>
+                <div className="flex flex-col">
+                  <span className="text-13 text-primary">Blank page</span>
+                  <span className="text-11 text-tertiary">Start from scratch</span>
+                </div>
+              </CustomMenu.MenuItem>
+              {templates.map((template) => (
+                <CustomMenu.MenuItem key={template.id} onClick={() => onTemplateChange(template.id)}>
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-13 truncate text-primary">{template.name}</span>
+                    {template.description && (
+                      <span className="text-11 truncate text-tertiary">{template.description}</span>
+                    )}
+                  </div>
+                </CustomMenu.MenuItem>
+              ))}
+            </CustomMenu>
+          </div>
+        )}
         <div className="flex h-9 w-full items-start gap-2">
           <EmojiPicker
             isOpen={isOpen}

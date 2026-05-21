@@ -116,24 +116,40 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           verticalAlignPosition ? `w-[44px] flex-col items-center` : `w-full flex-row items-center`
         }`}
       >
-        <div className="flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-xs">
-          {icon ? icon : <Circle width={14} strokeWidth={2} />}
-        </div>
-
+        {/*
+          Pill-style header (ClickUp-inspired): icon + UPPERCASE label + count
+          all wrapped in a single rounded chip on a tinted surface. Replaces
+          Plane's default of three inline elements with no enclosing shape.
+          Action buttons (minimize, plus) sit outside the pill on the right.
+          When the column carries a `--state-color` CSS variable (kanban
+          grouped by state) the pill tints itself with a 20 % mix of that
+          color over canvas, so each state gets its own visual identity. For
+          non-state groupings the var is undefined and the mix falls back to
+          neutral `bg-layer-1`.
+        */}
         <div
-          className={`relative flex gap-1 ${
-            verticalAlignPosition ? `flex-col items-center` : `w-full flex-row items-baseline overflow-hidden`
+          className={`inline-flex min-w-0 items-center gap-1.5 rounded-md bg-layer-1 ${
+            verticalAlignPosition ? `flex-col px-1 py-1.5` : `flex-row overflow-hidden px-2 py-0.5`
           }`}
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--state-color, transparent) 20%, var(--background-color-layer-1))",
+          }}
         >
+          <div className="flex size-4 flex-shrink-0 items-center justify-center overflow-hidden rounded-xs">
+            {icon ? icon : <Circle width={14} strokeWidth={2} />}
+          </div>
           <div
-            className={`line-clamp-1 inline-block truncate overflow-hidden font-medium text-primary ${
+            className={`line-clamp-1 inline-block truncate overflow-hidden text-11 font-semibold text-secondary uppercase ${
               verticalAlignPosition ? `max-h-[400px] vertical-lr` : ``
             }`}
           >
             {title}
           </div>
           <div
-            className={`flex-shrink-0 text-13 font-medium text-tertiary ${verticalAlignPosition ? `pr-0.5` : `pl-2`}`}
+            className={`flex-shrink-0 text-11 font-semibold text-tertiary ${
+              verticalAlignPosition ? `pt-0.5` : ``
+            }`}
           >
             {count || 0}
           </div>

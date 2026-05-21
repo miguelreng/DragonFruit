@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Sparkles } from "lucide-react";
+import { Sparkles } from "@plane/icons";
 // extensions
 import type { TSlashCommandAdditionalOption } from "@/extensions";
 // types

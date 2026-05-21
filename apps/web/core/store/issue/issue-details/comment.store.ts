@@ -46,6 +46,15 @@ export interface IIssueCommentStore extends IIssueCommentStoreActions {
   // helper methods
   getCommentsByIssueId: (issueId: string) => string[] | undefined;
   getCommentById: (activityId: string) => TIssueComment | undefined;
+  /**
+   * Returns ids of comments whose `parent` matches the given parentId,
+   * sorted by `created_at` ascending (oldest reply first — matches how
+   * every thread UI reads top-down). Returns an empty array if the
+   * parent has no replies. One-level threading only: callers should
+   * never invoke this with a reply's id; replies always set `parent`
+   * to the top-level comment so threads stay flat.
+   */
+  getRepliesByParentId: (parentId: string) => string[];
 }
 
 export class IssueCommentStore implements IIssueCommentStore {
@@ -87,6 +96,21 @@ export class IssueCommentStore implements IIssueCommentStore {
   getCommentById = (commentId: string) => {
     if (!commentId) return undefined;
     return this.commentMap[commentId] ?? undefined;
+  };
+
+  getRepliesByParentId = (parentId: string): string[] => {
+    if (!parentId) return [];
+    // Walk the flat map and pluck rows pointing at this parent. The map
+    // is keyed by id and we expect a few dozen comments per issue at the
+    // extreme; no need for an index. Sort oldest-first so the thread
+    // reads top-down the way users have written it.
+    const replies: TIssueComment[] = [];
+    for (const id of Object.keys(this.commentMap)) {
+      const c = this.commentMap[id];
+      if (c && c.parent === parentId) replies.push(c);
+    }
+    replies.sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0));
+    return replies.map((r) => r.id);
   };
 
   fetchComments = async (

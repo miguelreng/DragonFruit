@@ -42,7 +42,7 @@ export default function ProfileOverviewPage({ params }: Route.ComponentProps) {
   return (
     <>
       <PageHead title={t("profile.page_label")} />
-      <ContentWrapper className="space-y-7">
+      <ContentWrapper className="space-y-8">
         <ProfileStats userProfile={userProfile} />
         <ProfileWorkload stateDistribution={stateDistribution} />
         <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-2">
