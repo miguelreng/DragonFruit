@@ -44,6 +44,15 @@ type Props = {
   // Used by the relations create flow to inject a "Custom label" input so the
   // user can name the relation in the same modal — see issue-detail-widget-modals.
   footerSlot?: React.ReactNode;
+  // Optional contextual title rendered at the top of the modal so callers
+  // can label what the user is about to do (e.g. "Link as Blocked by"). When
+  // omitted the modal has no title (the original behavior).
+  title?: React.ReactNode;
+  // Optional override for the submit button label — defaults to
+  // t("issue.select.add_selected") ("Add selected"). The relations flow
+  // uses this to read "Link" or "Link as Blocked by" instead of generic
+  // "Add selected".
+  submitLabel?: React.ReactNode;
 };
 
 const projectService = new ProjectService();
@@ -63,6 +72,8 @@ export function ExistingIssuesListModal(props: Props) {
     selectedWorkItemIds,
     workItemSearchServiceCallback,
     footerSlot,
+    title,
+    submitLabel,
   } = props;
   // states
   const [isLoading, setIsLoading] = useState(false);
@@ -147,6 +158,11 @@ export function ExistingIssuesListModal(props: Props) {
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
+      {/* Optional contextual title — relations flow uses it to say
+          "Link as Blocked by" etc. so the user knows what kind of relation
+          they're about to create. Hidden when not provided so existing
+          uses (sub-issues, parent picker) don't get an empty bar. */}
+      {title && <div className="border-b border-subtle px-4 py-3 text-13 font-medium text-primary">{title}</div>}
       <Combobox
         as="div"
         onChange={(val: ISearchIssueResponse) => {
@@ -332,7 +348,7 @@ export function ExistingIssuesListModal(props: Props) {
             loading={isSubmitting}
             disabled={isSubmitting || selectedIssues.length === 0}
           >
-            {isSubmitting ? t("common.adding") : t("issue.select.add_selected")}
+            {isSubmitting ? t("common.adding") : (submitLabel ?? t("issue.select.add_selected"))}
           </Button>
         </div>
       </div>

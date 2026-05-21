@@ -43,7 +43,12 @@ export const IssueDetailWidgetCollapsibles = observer(function IssueDetailWidget
   const ISSUE_RELATION_OPTIONS = useTimeLineRelationOptions();
   const issueRelationsCount = getRelationCountByIssueId(issueId, ISSUE_RELATION_OPTIONS);
   // render conditions
-  const shouldRenderSubIssues = !!subIssues && subIssues.length > 0 && !hideWidgets?.includes("sub-work-items");
+  // Render the subtasks section whenever the user can edit, even when the
+  // task has zero subtasks — that way the inline-create row is reachable
+  // from the first click and the user doesn't have to discover a separate
+  // "Add subtask" button to set up their first one.
+  const shouldRenderSubIssues =
+    !hideWidgets?.includes("sub-work-items") && ((!!subIssues && subIssues.length > 0) || !disabled);
   const shouldRenderRelations = issueRelationsCount > 0 && !hideWidgets?.includes("relations");
   const shouldRenderLinks = !!issue?.link_count && issue?.link_count > 0 && !hideWidgets?.includes("links");
   const attachmentUploads = getAttachmentsUploadStatusByIssueId(issueId);
