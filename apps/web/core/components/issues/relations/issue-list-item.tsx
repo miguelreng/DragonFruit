@@ -83,13 +83,15 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
   });
 
   // handlers
-  const handleIssuePeekOverview = (issue: TIssue) => {
-    if (issue.is_epic) {
+  // Param is named `targetIssue` instead of `issue` to avoid shadowing the
+  // outer-scope `const issue` from getIssueById above. Functionally identical.
+  const handleIssuePeekOverview = (targetIssue: TIssue) => {
+    if (targetIssue.is_epic) {
       // open epics in new tab
       window.open(workItemLink, "_blank");
       return;
     }
-    handleRedirection(workspaceSlug, issue, isMobile);
+    handleRedirection(workspaceSlug, targetIssue, isMobile);
   };
 
   const handleEditIssue = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -147,11 +149,27 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
               <Tooltip tooltipContent={issue.name} isMobile={isMobile}>
                 <span className="w-0 flex-1 truncate text-13 text-primary">{issue.name}</span>
               </Tooltip>
+              {/* User-defined relation label from IssueRelation.custom_label.
+                  Only rendered when the relation has one set — otherwise the
+                  row reads as before. The chip styling intentionally stays
+                  subtle so the issue name remains the primary scan target. */}
+              {issue.custom_label && (
+                <span className="flex-shrink-0 rounded-sm border border-subtle bg-surface-2 px-1.5 py-0.5 text-11 text-secondary">
+                  {issue.custom_label}
+                </span>
+              )}
             </div>
             <div
+              role="presentation"
               className="flex-shrink-0 text-13"
+              // Click absorber so taps on the inline properties don't bubble
+              // up to the row's <ControlLink> and trigger navigation. Inner
+              // controls carry the real semantics; this wrapper is decorative.
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
+              }}
+              onKeyDown={(e) => {
                 e.stopPropagation();
               }}
             >

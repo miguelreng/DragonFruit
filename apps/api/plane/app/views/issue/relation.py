@@ -99,10 +99,24 @@ class IssueRelationViewSet(BaseViewSet):
             "related_issue_id", flat=True
         )
 
+        # Pull the underlying IssueRelation row's `custom_label` for each
+        # related issue. A relation can be stored in either direction
+        # (issue=current,related=other OR issue=other,related=current depending
+        # on the type), so we match both. The subquery only runs once per row.
+        custom_label_subquery = (
+            IssueRelation.objects.filter(deleted_at__isnull=True)
+            .filter(
+                Q(issue_id=issue_id, related_issue_id=OuterRef("id"))
+                | Q(issue_id=OuterRef("id"), related_issue_id=issue_id)
+            )
+            .values("custom_label")[:1]
+        )
+
         queryset = (
             Issue.issue_objects.filter(workspace__slug=slug)
             .select_related("workspace", "project", "state", "parent")
             .prefetch_related("assignees", "labels", "issue_module__module")
+            .annotate(custom_label=Subquery(custom_label_subquery))
             .annotate(
                 cycle_id=Subquery(
                     CycleIssue.objects.filter(issue=OuterRef("id"), deleted_at__isnull=True).values("cycle_id")[:1]
@@ -169,6 +183,10 @@ class IssueRelationViewSet(BaseViewSet):
             "created_by",
             "updated_by",
             "relation_type",
+            # User-defined override label from IssueRelation.custom_label.
+            # Client should prefer this when set; fall back to relation_type
+            # title-case as before when null.
+            "custom_label",
         ]
 
         response_data = {
