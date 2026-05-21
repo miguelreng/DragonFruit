@@ -64,10 +64,7 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
 
   return (
     <FormProvider {...methods}>
-      <form
-        onSubmit={handleSubmit(onValid)}
-        className="flex w-full flex-col rounded-lg bg-surface-1"
-      >
+      <form onSubmit={handleSubmit(onValid)} className="flex w-full flex-col rounded-lg bg-surface-1">
         <div className="flex items-center justify-between border-b border-subtle px-5 py-4">
           <div className="flex items-center gap-2">
             <h3 className="text-h6-medium text-primary">{t("create_new_issue")}</h3>
@@ -115,7 +112,12 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={t("task_name")}
                 autoFocus
-                className="w-full border-0 bg-transparent px-0 text-base font-medium text-primary placeholder:text-placeholder focus:outline-none"
+                // `font-serif` resolves to the --font-serif token
+                // (Newsreader + system serif fallbacks). Matches the
+                // full create modal, the detail-page title editor,
+                // and list-view rows so the task name reads the same
+                // way wherever you see it.
+                className="text-base w-full border-0 bg-transparent px-0 font-serif font-medium text-primary placeholder:text-placeholder focus:outline-none"
               />
             )}
           />
@@ -200,11 +202,7 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
               name="priority"
               render={({ field: { value, onChange } }) => (
                 <div className="h-7">
-                  <PriorityDropdown
-                    value={value}
-                    onChange={onChange}
-                    buttonVariant="border-with-text"
-                  />
+                  <PriorityDropdown value={value} onChange={onChange} buttonVariant="border-with-text" />
                 </div>
               )}
             />
@@ -213,11 +211,7 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
               name="label_ids"
               render={({ field: { value, onChange } }) => (
                 <div className="h-7">
-                  <IssueLabelSelect
-                    value={value}
-                    onChange={onChange}
-                    projectId={projectId ?? undefined}
-                  />
+                  <IssueLabelSelect value={value} onChange={onChange} projectId={projectId ?? undefined} />
                 </div>
               )}
             />
@@ -228,7 +222,13 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
           <Button variant="secondary" size="lg" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button variant="primary" size="lg" type="submit" loading={isSubmitting} disabled={isSubmitting || !workspaceSlug}>
+          <Button
+            variant="primary"
+            size="lg"
+            type="submit"
+            loading={isSubmitting}
+            disabled={isSubmitting || !workspaceSlug}
+          >
             {isSubmitting ? t("creating") : t("create_task")}
           </Button>
         </div>

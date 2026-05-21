@@ -72,7 +72,12 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: TIssueTi
             ref={issueTitleRef || ref}
             hasError={Boolean(errors.name)}
             placeholder={t("title")}
-            className="w-full text-body-sm-regular"
+            // `font-serif` resolves to the --font-serif token
+            // (Newsreader + system serif fallbacks). Matches the
+            // in-place title editor on the detail page and the task
+            // name in the list view — keeps task names typographically
+            // consistent end to end.
+            className="w-full text-body-sm-regular font-serif"
             autoFocus
             tabIndex={getIndex("name")}
           />
