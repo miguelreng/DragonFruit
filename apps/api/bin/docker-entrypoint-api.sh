@@ -1,8 +1,12 @@
 #!/bin/bash
 set -e
 python manage.py wait_for_db
-# Wait for migrations
-python manage.py wait_for_migrations
+# Wait for migrations — commented out because in single-container
+# deploys (Coolify on Hetzner) the migration runner is *this same*
+# container's entrypoint, and a fresh boot can race against itself.
+# Run `python manage.py migrate` once from the Terminal before first
+# boot (or via a one-off job) and the schema stays in sync from there.
+# python manage.py wait_for_migrations
 
 # Create the default bucket
 #!/bin/bash
@@ -35,4 +39,4 @@ python manage.py clear_cache
 # Collect static files
 python manage.py collectstatic --noinput
 
-exec gunicorn -w "$GUNICORN_WORKERS" -k uvicorn.workers.UvicornWorker plane.asgi:application --bind 0.0.0.0:"${PORT:-8000}" --max-requests 1200 --max-requests-jitter 1000 --access-logfile -
+exec gunicorn -w "${GUNICORN_WORKERS:-1}" -k uvicorn.workers.UvicornWorker plane.asgi:application --bind 0.0.0.0:"${PORT:-8000}" --max-requests 1200 --max-requests-jitter 1000 --access-logfile -
