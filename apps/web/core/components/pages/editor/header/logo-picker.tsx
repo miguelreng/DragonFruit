@@ -22,7 +22,7 @@ export const PageEditorHeaderLogoPicker = observer(function PageEditorHeaderLogo
   // states
   const [isLogoPickerOpen, setIsLogoPickerOpen] = useState(false);
   // derived values
-  const { logo_props, isContentEditable, updatePageLogo } = page;
+  const { logo_props, isContentEditable, updatePageLogo, removePageLogo } = page;
   const isLogoSelected = !!logo_props?.in_use;
 
   return (
@@ -46,6 +46,8 @@ export const PageEditorHeaderLogoPicker = observer(function PageEditorHeaderLogo
           </div>
         }
         onChange={updatePageLogo}
+        onRemove={removePageLogo}
+        hasValue={isLogoSelected}
         defaultIconColor={logo_props?.in_use && logo_props.in_use === "icon" ? logo_props?.icon?.color : undefined}
         defaultOpen={
           logo_props?.in_use && logo_props?.in_use === "emoji" ? EmojiIconPickerTypes.EMOJI : EmojiIconPickerTypes.ICON

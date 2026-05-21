@@ -15,13 +15,15 @@ import {
   FloatingPortal,
 } from "@floating-ui/react";
 import type { Editor } from "@tiptap/react";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@plane/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CopyIcon, TrashIcon } from "@plane/propel/icons";
 import type { ISvgIcons } from "@plane/propel/icons";
 import { cn } from "@plane/utils";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
+// plane editor types
+import type { TEmbedConfig } from "@/plane-editor/types/issue-embed";
 // types
 import type { IEditorProps } from "@/types";
 // components
@@ -30,6 +32,7 @@ import { getNodeOptions } from "./block-menu-options";
 type Props = {
   disabledExtensions?: IEditorProps["disabledExtensions"];
   editor: Editor;
+  embedConfig?: TEmbedConfig;
   flaggedExtensions?: IEditorProps["flaggedExtensions"];
   workItemIdentifier?: IEditorProps["workItemIdentifier"];
 };
@@ -42,7 +45,7 @@ export type BlockMenuOption = {
 };
 
 export function BlockMenu(props: Props) {
-  const { editor } = props;
+  const { editor, embedConfig } = props;
   const [isOpen, setIsOpen] = useState(false);
   const [isAnimatedIn, setIsAnimatedIn] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -201,7 +204,7 @@ export function BlockMenu(props: Props) {
         }
       },
     },
-    ...getNodeOptions(editor),
+    ...getNodeOptions(editor, embedConfig),
   ];
 
   if (!isOpen) {

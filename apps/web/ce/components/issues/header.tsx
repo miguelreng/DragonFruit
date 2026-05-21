@@ -47,6 +47,7 @@ export const IssuesHeader = observer(function IssuesHeader() {
   // store hooks
   const {
     issues: { getGroupIssueCount },
+    issuesFilter: { issueFilters },
   } = useIssues(EIssuesStoreType.PROJECT);
   // i18n
   const { t } = useTranslation();
@@ -69,7 +70,11 @@ export const IssuesHeader = observer(function IssuesHeader() {
     if (currentProjectDetails.is_favorite) {
       await removeProjectFromFavorites(workspaceSlug.toString(), projectId.toString());
     } else {
-      await addProjectToFavorites(workspaceSlug.toString(), projectId.toString());
+      // Snapshot the current task layout (timeline / list / board / etc.)
+      // into the favorite so the sidebar renders the matching layout icon
+      // instead of the project emoji — see addProjectToFavorites.
+      const currentLayout = issueFilters?.displayFilters?.layout;
+      await addProjectToFavorites(workspaceSlug.toString(), projectId.toString(), currentLayout);
       if (!isFavoriteMenuOpen) toggleFavoriteMenu(true);
     }
   };

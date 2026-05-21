@@ -19,6 +19,7 @@ from plane.db.models import (
     Label,
     ProjectPage,
     Project,
+    PageTemplate,
     PageVersion,
 )
 
@@ -254,6 +255,37 @@ class PageBinaryUpdateSerializer(serializers.Serializer):
 
         instance.save()
         return instance
+
+
+class PageTemplateListSerializer(BaseSerializer):
+    """Compact shape used by the template picker dropdown and settings list."""
+
+    class Meta:
+        model = PageTemplate
+        fields = [
+            "id",
+            "name",
+            "description",
+            "logo_props",
+            "owned_by",
+            "workspace",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "updated_by",
+        ]
+        read_only_fields = ["workspace", "owned_by", "created_by", "updated_by"]
+
+
+class PageTemplateDetailSerializer(PageTemplateListSerializer):
+    """Full template payload — includes the body. Used when editing a template
+    or when instantiating one into a new Page."""
+
+    class Meta(PageTemplateListSerializer.Meta):
+        fields = PageTemplateListSerializer.Meta.fields + [
+            "description_html",
+            "description_json",
+        ]
 
 
 class PageBlockCommentSerializer(BaseSerializer):

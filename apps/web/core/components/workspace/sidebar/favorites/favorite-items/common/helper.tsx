@@ -74,10 +74,19 @@ export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavor
     return `/${workspaceSlug}`;
   }
 
+  // Project favorites that snapshotted a task layout (created via the star
+  // on the Tasks page) restore that layout via a `?layout=` query param. The
+  // Tasks page reads it once on mount and applies it to display filters. See
+  // addProjectToFavorites for the write side.
+  const layoutQuery =
+    favorite.entity_type === "project" && favorite.entity_data?.view_layout
+      ? `?layout=${encodeURIComponent(favorite.entity_data.view_layout)}`
+      : "";
+
   if (entityLinkDetails.itemLevel === "workspace") {
-    return `/${workspaceSlug}/${entityLinkDetails.getLink(favorite)}`;
+    return `/${workspaceSlug}/${entityLinkDetails.getLink(favorite)}${layoutQuery}`;
   } else if (entityLinkDetails.itemLevel === "project") {
-    return `/${workspaceSlug}/projects/${favorite.project_id}/${entityLinkDetails.getLink(favorite)}`;
+    return `/${workspaceSlug}/projects/${favorite.project_id}/${entityLinkDetails.getLink(favorite)}${layoutQuery}`;
   } else {
     return `/${workspaceSlug}`;
   }

@@ -12,16 +12,20 @@ import type { IWorkspaceSearchResults } from "@plane/types";
 // hooks
 import { useAppRouter } from "@/hooks/use-app-router";
 // helpers
+import { SCOPE_TO_RESULT_KEYS, type TPowerKScope } from "../../core/scope";
 import { PowerKModalCommandItem } from "./command-item";
 import { POWER_K_SEARCH_RESULTS_GROUPS_MAP } from "./search-results-map";
 
 type Props = {
   closePalette: () => void;
   results: IWorkspaceSearchResults;
+  scope?: TPowerKScope;
+  onResultClick?: (kind: string, label: string, id: string, path: string) => void;
 };
 
 export const PowerKModalSearchResults = observer(function PowerKModalSearchResults(props: Props) {
-  const { closePalette, results } = props;
+  const { closePalette, results, scope, onResultClick } = props;
+  const allowedKeys = scope ? SCOPE_TO_RESULT_KEYS[scope] : null;
   // router
   const router = useAppRouter();
   const { projectId: routerProjectId } = useParams();
@@ -36,6 +40,7 @@ export const PowerKModalSearchResults = observer(function PowerKModalSearchResul
 
         if (!currentSection) return null;
         if (section.length <= 0) return null;
+        if (allowedKeys && !allowedKeys.includes(key as never)) return null;
 
         return (
           <Command.Group key={key} heading={currentSection.title}>
@@ -56,8 +61,14 @@ export const PowerKModalSearchResults = observer(function PowerKModalSearchResul
                   label={currentSection.itemName(item)}
                   icon={currentSection.icon}
                   onSelect={() => {
+                    const path = currentSection.path(item, projectId);
+                    const labelStr =
+                      ("name" in item && typeof item.name === "string" && item.name) ||
+                      ("project__identifier" in item && (item as any).project__identifier) ||
+                      "";
+                    onResultClick?.(key, labelStr, String((item as any).id ?? value), path);
                     closePalette();
-                    router.push(currentSection.path(item, projectId));
+                    router.push(path);
                     // const itemProjectId =
                     //   item?.project_id ||
                     //   (Array.isArray(item?.project_ids) && item?.project_ids?.length > 0

@@ -231,10 +231,20 @@ def call_llm_chat(
             return completion.choices[0].message.content, None
 
         if provider_lower == "gemini":
-            return (
-                None,
-                "Gemini provider isn't wired up server-side yet. Use OpenAI or Anthropic.",
+            import litellm  # local import — heavy module, only load when used
+
+            completion = litellm.completion(
+                model=f"gemini/{model}",
+                api_key=api_key,
+                messages=(
+                    ([{"role": "system", "content": system}] if system else [])
+                    + [{"role": "user", "content": user}]
+                ),
+                temperature=temperature,
+                max_tokens=max_tokens,
             )
+            text = completion.choices[0].message.content
+            return (text, None) if text else (None, "Gemini returned no text content.")
 
         return None, f"Unsupported provider: {provider}"
     except Exception as e:
@@ -247,18 +257,82 @@ def call_llm_chat(
         return None, f"Error occurred while generating response from {provider}"
 
 
-def get_llm_response(task, prompt, api_key: str, model: str, provider: str) -> Tuple[str | None, str | None]:
+def get_llm_response(
+    task,
+    prompt,
+    api_key: str,
+    model: str,
+    provider: str,
+    system: str | None = None,
+) -> Tuple[str | None, str | None]:
     """
     Backwards-compatible helper used by GPTIntegrationEndpoint and friends.
-    Single-message chat with no system prompt; now provider-aware.
+    Single-message chat; optionally takes a system prompt for context-aware
+    callers like the Power-K Ask AI section.
     """
     return call_llm_chat(
-        system=None,
+        system=system,
         user=f"{task}\n{prompt}",
         api_key=api_key,
         model=model,
         provider=provider,
     )
+
+
+ASK_AI_BASE_SYSTEM_PROMPT = (
+    "You are an assistant embedded inside a project & task management workspace. "
+    "Users ask casual questions like 'what's on my plate?', 'what should I do next?', "
+    "'any urgent stuff?'. Always interpret those as questions about their open tasks "
+    "in this workspace, not about real-world objects. "
+    "Answer in 1-3 short sentences. If task context is provided below, ground your "
+    "answer in it and reference task names verbatim. If no context is provided or "
+    "the question is unrelated to tasks, answer plainly and briefly."
+)
+
+
+def _build_workspace_context_block(*, workspace, user, limit: int = 25) -> str:
+    """
+    Return a compact, LLM-friendly summary of the requesting user's open tasks in
+    this workspace. Empty string if there's nothing to ground in.
+    """
+    from plane.db.models import Issue  # local import to avoid circulars at module load
+
+    open_groups = ("backlog", "unstarted", "started")
+    qs = (
+        Issue.issue_objects.filter(
+            workspace=workspace,
+            assignees=user,
+            state__group__in=open_groups,
+        )
+        .select_related("state", "project")
+        .order_by("-priority", "target_date", "-updated_at")[:limit]
+    )
+
+    rows = []
+    for issue in qs:
+        bits = [f"[{issue.project.identifier}-{issue.sequence_id}] {issue.name}"]
+        if issue.state:
+            bits.append(f"state={issue.state.name}")
+        if issue.priority and issue.priority != "none":
+            bits.append(f"priority={issue.priority}")
+        if issue.target_date:
+            bits.append(f"due={issue.target_date.isoformat()}")
+        rows.append(" | ".join(bits))
+
+    if not rows:
+        return "The user currently has no open tasks assigned to them in this workspace."
+    return "User's open tasks (most relevant first):\n- " + "\n- ".join(rows)
+
+
+def _llm_error_status(error: str | None) -> int:
+    if not error:
+        return status.HTTP_502_BAD_GATEWAY
+    lowered = error.lower()
+    if "invalid api key" in lowered or "authentication" in lowered:
+        return status.HTTP_401_UNAUTHORIZED
+    if "rate limit" in lowered:
+        return status.HTTP_429_TOO_MANY_REQUESTS
+    return status.HTTP_502_BAD_GATEWAY
 
 
 class GPTIntegrationEndpoint(BaseAPIView):
@@ -269,7 +343,7 @@ class GPTIntegrationEndpoint(BaseAPIView):
 
         if not api_key or not model or not provider:
             return Response(
-                {"error": "LLM provider API key and model are required"},
+                {"error": "No LLM is configured. Set a provider, model, and API key in Settings → AI."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -277,11 +351,15 @@ class GPTIntegrationEndpoint(BaseAPIView):
         if not task:
             return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        text, error = get_llm_response(task, request.data.get("prompt", False), api_key, model, provider)
-        if not text and error:
+        prompt = request.data.get("prompt", False)
+        if not prompt:
+            return Response({"error": "Prompt is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        text, error = get_llm_response(task, prompt, api_key, model, provider)
+        if not text:
             return Response(
-                {"error": "An internal error has occurred."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": error or "The LLM returned an empty response."},
+                status=_llm_error_status(error),
             )
 
         project = Project.objects.get(pk=project_id)
@@ -305,7 +383,7 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
 
         if not api_key or not model or not provider:
             return Response(
-                {"error": "LLM provider API key and model are required"},
+                {"error": "No LLM is configured. Set a provider, model, and API key in Settings → AI."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -313,11 +391,23 @@ class WorkspaceGPTIntegrationEndpoint(BaseAPIView):
         if not task:
             return Response({"error": "Task is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        text, error = get_llm_response(task, request.data.get("prompt", False), api_key, model, provider)
-        if not text and error:
+        prompt = request.data.get("prompt", False)
+        if not prompt:
+            return Response({"error": "Prompt is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # When the caller (e.g. Power-K Ask AI) flags this as a workspace-aware
+        # question, ground the model in the user's open tasks so it stops
+        # answering "I can't see your plate" for "what's on my plate?".
+        system_prompt: str | None = None
+        if request.data.get("include_workspace_context") and workspace is not None:
+            context_block = _build_workspace_context_block(workspace=workspace, user=request.user)
+            system_prompt = f"{ASK_AI_BASE_SYSTEM_PROMPT}\n\n{context_block}"
+
+        text, error = get_llm_response(task, prompt, api_key, model, provider, system=system_prompt)
+        if not text:
             return Response(
-                {"error": "An internal error has occurred."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": error or "The LLM returned an empty response."},
+                status=_llm_error_status(error),
             )
 
         return Response(

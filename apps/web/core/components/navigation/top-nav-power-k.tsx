@@ -12,9 +12,14 @@ import { useParams } from "next/navigation";
 import { CloseIcon, SearchIcon } from "@plane/propel/icons";
 import { cn } from "@plane/utils";
 // power-k
+import type { TPowerKScope } from "@/components/power-k/core/scope";
 import type { TPowerKCommandConfig, TPowerKContext } from "@/components/power-k/core/types";
+import { usePowerKRecents, type TPowerKRecentItem } from "@/components/power-k/hooks/use-power-k-recents";
+import { PowerKAskAISection } from "@/components/power-k/ui/modal/ask-ai-section";
 import { ProjectsAppPowerKCommandsList } from "@/components/power-k/ui/modal/commands-list";
 import { PowerKModalFooter } from "@/components/power-k/ui/modal/footer";
+import { PowerKRecentsSection } from "@/components/power-k/ui/modal/recents-section";
+import { PowerKScopeChips } from "@/components/power-k/ui/modal/scope-chips";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { usePowerK } from "@/hooks/store/use-power-k";
 import { useUser } from "@/hooks/store/user";
@@ -33,6 +38,9 @@ export const TopNavPowerK = observer(() => {
   const [activeCommand, setActiveCommand] = useState<TPowerKCommandConfig | null>(null);
   const [shouldShowContextBasedActions, setShouldShowContextBasedActions] = useState(true);
   const [isWorkspaceLevel, setIsWorkspaceLevel] = useState(false);
+  const [scope, setScope] = useState<TPowerKScope>("all");
+  // recents
+  const { recents, pins, recordVisit, togglePin, isPinned } = usePowerKRecents();
 
   // store hooks
   const { activeContext, setActivePage, activePage, setTopNavInputRef } = usePowerK();
@@ -44,7 +52,16 @@ export const TopNavPowerK = observer(() => {
     setSearchTerm("");
     setActivePage(null);
     setActiveCommand(null);
+    setScope("all");
   }, [setSearchTerm, setActivePage, setActiveCommand]);
+
+  const handleResultClick = useCallback(
+    (kind: string, label: string, id: string, path: string) => {
+      if (!label) return;
+      recordVisit({ id, label, path, kind });
+    },
+    [recordVisit]
+  );
 
   // expandable search hook
   const {
@@ -58,6 +75,14 @@ export const TopNavPowerK = observer(() => {
   } = useExpandableSearch({
     onClose: handleOnClose,
   });
+
+  const handleRecentSelect = useCallback(
+    (item: TPowerKRecentItem) => {
+      closePanel();
+      router.push(item.path);
+    },
+    [closePanel, router]
+  );
 
   // derived values
   const {
@@ -220,9 +245,9 @@ export const TopNavPowerK = observer(() => {
       >
         <div
           className={cn(
-            "flex h-7 w-full items-center rounded-lg border border-white/10 bg-white/5 p-2 transition-colors duration-200 dark:border-black/10 dark:bg-black/5",
+            "flex h-7 w-full items-center rounded-lg border border-white/10 bg-white/5 p-2 transition-colors duration-200",
             {
-              "bg-white/10 dark:bg-black/10": isOpen,
+              "bg-white/10": isOpen,
             }
           )}
           onClick={(e) => {
@@ -235,6 +260,10 @@ export const TopNavPowerK = observer(() => {
           }}
           onKeyDown={(e) => {
             if (!e.nativeEvent.isTrusted) return;
+            // Only treat Enter/Space as button activation when the wrapper itself
+            // is focused — otherwise we eat the space character the user is
+            // trying to type into the inner input.
+            if (e.target !== e.currentTarget) return;
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               inputRef.current?.focus();
@@ -246,7 +275,7 @@ export const TopNavPowerK = observer(() => {
           role="button"
           tabIndex={-1}
         >
-          <SearchIcon className="mr-2 size-3.5 shrink-0 text-white/50 dark:text-black/50" />
+          <SearchIcon className="mr-2 size-3.5 shrink-0 text-white/50" />
           <input
             ref={inputRef}
             type="text"
@@ -263,15 +292,15 @@ export const TopNavPowerK = observer(() => {
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder="Search"
-            className="min-w-0 flex-1 bg-transparent text-13 text-white outline-none placeholder:text-white/50 dark:text-black dark:placeholder:text-black/50"
+            className="min-w-0 flex-1 bg-transparent text-13 text-white outline-none placeholder:text-white/50"
           />
           {searchTerm ? (
             <button type="button" onClick={handleClear} className="ml-2 shrink-0">
-              <CloseIcon className="size-3.5 text-white/60 hover:text-white dark:text-black/60 dark:hover:text-black" />
+              <CloseIcon className="size-3.5 text-white/60 hover:text-white" />
             </button>
           ) : (
             !isOpen && (
-              <kbd className="font-sans ml-2 shrink-0 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-11 text-white/60 dark:border-black/10 dark:bg-black/5 dark:text-black/60">
+              <kbd className="font-sans ml-2 shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-11 text-white/60">
                 ⌘ K
               </kbd>
             )
@@ -281,9 +310,9 @@ export const TopNavPowerK = observer(() => {
       <div
         data-theme={topBarTheme}
         className={cn(
-          "shadow-lg absolute -top-[6px] left-1/2 z-20 flex -translate-x-1/2 flex-col overflow-hidden rounded-md border border-subtle bg-surface-1 px-0 pt-10 text-primary transition-all duration-300 ease-in-out",
+          "shadow-lg absolute -top-[6px] left-1/2 z-20 flex -translate-x-1/2 flex-col overflow-hidden rounded-md border border-subtle bg-surface-1 px-2 pt-10 pb-2 text-primary transition-all duration-300 ease-in-out",
           {
-            "max-h-[80vh] w-[574px] opacity-100": isOpen,
+            "max-h-[80vh] w-[570px] opacity-100": isOpen,
             "h-0 w-0 opacity-0": !isOpen,
           }
         )}
@@ -299,21 +328,35 @@ export const TopNavPowerK = observer(() => {
             className="flex h-full w-full flex-col"
           >
             <Command.Input value={searchTerm} hidden />
-            {/* We can skip the header input since we have the main input above,
-                     but we might need the context indicator if we want that feature.
-                     For now, let's just render the list. */}
-
+            <PowerKScopeChips scope={scope} onChange={setScope} />
             <Command.List className="vertical-scrollbar scrollbar-sm max-h-[60vh] overflow-y-auto px-2 pb-4 outline-none">
-              <ProjectsAppPowerKCommandsList
-                activePage={activePage}
-                context={context}
-                handleCommandSelect={handleCommandSelect}
-                handlePageDataSelection={handlePageDataSelection}
-                isWorkspaceLevel={isWorkspaceLevel}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                handleSearchMenuClose={() => closePanel()}
-              />
+              {searchTerm.trim() === "" && scope !== "ai" && (
+                <PowerKRecentsSection
+                  recents={recents}
+                  pins={pins}
+                  isPinned={isPinned}
+                  onSelect={handleRecentSelect}
+                  onTogglePin={togglePin}
+                />
+              )}
+              {(scope === "ai" || (searchTerm.trim() !== "" && scope === "all")) && (
+                <PowerKAskAISection workspaceSlug={params.workspaceSlug?.toString()} searchTerm={searchTerm} />
+              )}
+              {scope !== "ai" && (
+                <ProjectsAppPowerKCommandsList
+                  activePage={activePage}
+                  context={context}
+                  handleCommandSelect={handleCommandSelect}
+                  handlePageDataSelection={handlePageDataSelection}
+                  isWorkspaceLevel={isWorkspaceLevel}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  handleSearchMenuClose={() => closePanel()}
+                  scope={scope}
+                  onResultClick={handleResultClick}
+                  hideAskAI
+                />
+              )}
             </Command.List>
             <PowerKModalFooter
               isWorkspaceLevel={isWorkspaceLevel}

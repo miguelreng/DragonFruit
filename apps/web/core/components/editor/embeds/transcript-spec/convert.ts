@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { CORE_EXTENSIONS } from "@plane/editor";
 import type { TTranscriptToDocResponse } from "@/services/ai.service";
 
 type PMNode = { type: string; attrs?: Record<string, unknown>; content?: PMNode[]; text?: string };
@@ -70,7 +71,7 @@ export function transcriptResponseToProseMirror(
     });
     for (const item of response.action_items) {
       content.push({
-        type: "work-item-embed",
+        type: CORE_EXTENSIONS.WORK_ITEM_EMBED,
         attrs: {
           draft: true,
           draft_title: item.title,

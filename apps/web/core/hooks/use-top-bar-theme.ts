@@ -4,16 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { useTheme } from "next-themes";
-
 /**
- * The top bar inverts the page theme by design (dark frame in light mode,
- * light frame in dark mode). Dialogs spawned from the top bar — the power-k
- * search, notifications, help and user menus — should match the bar, not
- * the page. This hook returns the resolved theme of the top bar so those
- * dialogs can flip via `data-theme` on their panel.
+ * The top bar (and the outer frame around the rounded app card) is always
+ * dark — same chrome in both page themes. Dialogs spawned from the bar
+ * (power-k search, notifications, help, user menu) inherit the dark
+ * styling via this hook so they match the frame, not the page body.
+ *
+ * Kept as a hook so call-sites that already destructure it don't need to
+ * change shape if we bring back theme-based inversion later.
  */
-export const useTopBarTheme = (): "dark" | "light" => {
-  const { resolvedTheme } = useTheme();
-  return resolvedTheme === "dark" ? "light" : "dark";
-};
+export const useTopBarTheme = (): "dark" | "light" => "dark";

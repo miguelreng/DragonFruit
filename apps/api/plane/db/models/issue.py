@@ -312,6 +312,12 @@ class IssueRelation(ProjectBaseModel):
         verbose_name="Issue Relation Type",
         default=IssueRelationChoices.BLOCKED_BY,
     )
+    # User-defined label that overrides the hard-coded relation_type display.
+    # Lets a project name its own relations ("Stakeholder", "Approved by",
+    # "Blocks production deploy") without us shipping every conceivable
+    # relation type as an enum value. When null, the UI falls back to the
+    # title-case of `relation_type` as before.
+    custom_label = models.CharField(max_length=120, null=True, blank=True)
 
     class Meta:
         unique_together = ["issue", "related_issue", "deleted_at"]

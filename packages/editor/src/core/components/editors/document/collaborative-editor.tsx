@@ -121,6 +121,7 @@ function CollaborativeDocumentEditorInner(props: ICollaborativeDocumentEditorPro
           displayConfig={displayConfig}
           documentLoaderClassName={documentLoaderClassName}
           disabledExtensions={disabledExtensions}
+          embedConfig={embedConfig}
           extendedDocumentEditorProps={extendedDocumentEditorProps}
           editor={editor}
           flaggedExtensions={flaggedExtensions}

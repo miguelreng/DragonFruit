@@ -19,6 +19,10 @@ import { IssueEmbedCard } from "@/plane-web/components/pages";
 // components
 import { TranscriptSpecModal } from "@/components/editor/embeds/transcript-spec";
 import { WorkItemPicker } from "@/components/editor/embeds/work-item-picker";
+// services
+import { IssueService } from "@/services/issue";
+
+const issueService = new IssueService();
 
 export type TIssueEmbedHookProps = {
   fetchEmbedSuggestions?: (payload: TSearchEntityRequestPayload) => Promise<TSearchResponse>;
@@ -83,13 +87,38 @@ export const useIssueEmbed = (props: TIssueEmbedHookProps) => {
     [onInsertGeneratedContent]
   );
 
+  const onConvertToTask = useCallback(
+    async ({
+      title,
+      description,
+    }: {
+      title: string;
+      description?: string;
+    }): Promise<TWorkItemEmbedInsertAttrs | null> => {
+      if (!workspaceSlug || !projectId) return null;
+      try {
+        const issue = await issueService.createIssue(workspaceSlug, projectId, {
+          name: title,
+          description_html: description ? `<p>${description}</p>` : undefined,
+        });
+        return { workItemId: issue.id, projectId, workspaceSlug };
+      } catch {
+        return null;
+      }
+    },
+    [workspaceSlug, projectId]
+  );
+
   const issueEmbedProps: TEmbedConfig["issue"] = useMemo(
     () => ({
       widgetCallback,
       onPickerRequest,
       onTranscriptRequest,
+      workspaceSlug,
+      projectId,
+      onConvertToTask,
     }),
-    [onPickerRequest, onTranscriptRequest]
+    [onPickerRequest, onTranscriptRequest, workspaceSlug, projectId, onConvertToTask]
   );
 
   const renderPicker = useCallback(

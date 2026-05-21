@@ -38,6 +38,7 @@ export const CommentCard = observer(function CommentCard(props: TCommentCard) {
     showCopyLinkOption,
     disabled = false,
     projectId,
+    enableReplies,
   } = props;
   // states
   const [isEditing, setIsEditing] = useState(false);
@@ -62,6 +63,7 @@ export const CommentCard = observer(function CommentCard(props: TCommentCard) {
         workspaceSlug={workspaceSlug}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
+        enableReplies={enableReplies}
         renderQuickActions={() => (
           <CommentQuickActions
             activityOperations={activityOperations}

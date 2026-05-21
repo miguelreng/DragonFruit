@@ -24,6 +24,13 @@ from .project.member import (
     ProjectMemberPreferenceEndpoint,
 )
 
+from .project.template import (
+    ProjectSaveAsTemplateEndpoint,
+    ProjectTemplateDetailEndpoint,
+    ProjectTemplateInstantiateEndpoint,
+    ProjectTemplateListEndpoint,
+)
+
 from .user.base import (
     UserEndpoint,
     UpdateUserOnBoardedEndpoint,
@@ -176,6 +183,12 @@ from .page.base import (
 )
 from .page.version import PageVersionEndpoint
 from .page.comment import PageBlockCommentEndpoint, PageBlockCommentDetailEndpoint
+from .page.template import (
+    PageTemplateListEndpoint,
+    PageTemplateDetailEndpoint,
+    PageTemplateInstantiateEndpoint,
+    PageSaveAsTemplateEndpoint,
+)
 
 from .agent_webhook.base import (
     WorkspaceAgentWebhookEndpoint,

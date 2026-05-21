@@ -5,6 +5,9 @@
 from django.urls import path
 
 from plane.app.views.agent import (
+    AgentChatMessageEndpoint,
+    AgentChatSessionDetailEndpoint,
+    AgentChatSessionEndpoint,
     AgentCostSummaryEndpoint,
     AgentDetailEndpoint,
     AgentDraftCommentApproveEndpoint,
@@ -56,5 +59,21 @@ urlpatterns = [
         "workspaces/<str:slug>/agent-drafts/<str:kind>/<uuid:comment_id>/discard/",
         AgentDraftCommentDiscardEndpoint.as_view(),
         name="workspace-agent-draft-discard",
+    ),
+    # Topbar "Talk to AI" — per-user chat sessions with any agent.
+    path(
+        "workspaces/<str:slug>/agent-chats/sessions/",
+        AgentChatSessionEndpoint.as_view(),
+        name="workspace-agent-chat-sessions",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-chats/sessions/<uuid:session_id>/",
+        AgentChatSessionDetailEndpoint.as_view(),
+        name="workspace-agent-chat-session-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-chats/sessions/<uuid:session_id>/messages/",
+        AgentChatMessageEndpoint.as_view(),
+        name="workspace-agent-chat-messages",
     ),
 ]

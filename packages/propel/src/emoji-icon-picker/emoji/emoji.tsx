@@ -42,7 +42,7 @@ export function EmojiRoot(props: EmojiRootProps) {
           <EmojiPicker.Search
             placeholder={searchPlaceholder}
             disabled={searchDisabled}
-            className="block h-full w-full flex-grow-0 rounded-md border-[0.5px] border-subtle bg-transparent p-0 px-3 py-2 text-16 placeholder-(--text-color-placeholder) focus:border-accent-strong focus:outline-none"
+            className="block h-full w-full flex-grow-0 rounded-md border-[0.5px] border-subtle bg-transparent p-0 px-3 py-2 text-13 placeholder-(--text-color-placeholder) focus:border-accent-strong focus:outline-none"
           />
         </div>
         <EmojiPicker.SkinToneSelector
@@ -58,7 +58,7 @@ export function EmojiRoot(props: EmojiRootProps) {
             CategoryHeader: ({ category, ...props }) => (
               <div
                 data-slot="emoji-picker-list-category-header"
-                className="bg-surface-1 px-3 pb-1.5 text-11 font-medium text-tertiary"
+                className="bg-surface-1 px-3 pt-2 pb-1.5 text-13 font-semibold text-secondary"
                 {...props}
               >
                 {category.label}

@@ -22,6 +22,13 @@ class UserFavorite(WorkspaceBaseModel):
     name = models.CharField(max_length=255, blank=True, null=True)
     is_folder = models.BooleanField(default=False)
     sequence = models.FloatField(default=65535)
+    # Snapshotted when a Tasks/issues page is starred so the favorites sidebar
+    # can render the matching layout icon (list / kanban / calendar / gantt /
+    # spreadsheet) and the click target can restore that layout. Distinct
+    # from anything on the source entity — Projects don't carry a layout,
+    # it's a per-user display filter. Saved Views (entity_type="view") leave
+    # this null and read layout from the View itself.
+    view_layout = models.CharField(max_length=50, blank=True, null=True)
     parent = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,

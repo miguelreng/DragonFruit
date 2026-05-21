@@ -27,8 +27,8 @@ import {
   MinusSquare,
   Palette,
   AlignCenter,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+} from "@plane/icons";
+import type { LucideIcon } from "@plane/icons";
 import { LinkIcon } from "@plane/propel/icons";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";

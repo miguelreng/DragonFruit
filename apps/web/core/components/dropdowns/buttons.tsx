@@ -78,13 +78,25 @@ function BorderButton(props: ButtonProps) {
       isMobile={isMobile}
       renderByDefault={renderToolTipByDefault}
     >
+      {/* DragonFruit: flat redesign of Plane's bordered property pill.
+       *
+       * Previously: `border-[0.5px] border-strong` — a hairline rectangle
+       * around every chip (state, priority, date, assignee, label, etc.),
+       * which made each row read as 5–6 boxed buttons.
+       *
+       * Now: borderless. The icon + text carry the meaning; a soft hover
+       * background reveals the click affordance on demand. Linear/Notion
+       * vocabulary — the row feels quieter and the actual task data leads.
+       * The variant name (`border-with-text` / `border-without-text`) is
+       * preserved for backwards compatibility so call-sites don't churn,
+       * but the visual is no longer literally bordered. */}
       <Button
         variant="ghost"
         size="sm"
         className={cn(
-          "flex h-full w-full items-center justify-start gap-1.5 border-[0.5px] border-strong",
+          "flex h-full w-full items-center justify-start gap-1.5 rounded-md border-[0.5px] border-transparent transition-colors hover:bg-layer-1",
           {
-            "bg-layer-transparent-active": isActive,
+            "bg-layer-1": isActive,
           },
           className
         )}

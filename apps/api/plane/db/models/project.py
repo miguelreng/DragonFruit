@@ -371,3 +371,54 @@ class ProjectUserProperty(ProjectBaseModel):
     def __str__(self):
         """Return properties status of the project"""
         return str(self.user)
+
+
+class ProjectTemplate(BaseModel):
+    """A reusable Project skeleton.
+
+    Mirrors the role `PageTemplate` plays for docs: workspace-scoped, holds
+    the defaults that should be copied into a freshly-created project plus
+    a JSON list of initial tasks the instantiate endpoint creates inside
+    the new project. Admin-only authoring is enforced at the view layer.
+
+    What lives on the row:
+      - `name` / `description`  — the template itself (shown in pickers)
+      - `logo_props`            — emoji/icon copied to new projects
+      - `project_description`   — description text copied to new projects
+      - `network`               — Secret (0) / Public (2) — Project.NETWORK_CHOICES
+      - `initial_tasks`         — JSON list, each entry { name, description?, priority? }
+        Created with `state = first project state` after instantiation.
+
+    Modules, cycles, labels, member roles can come later — keeping v1 tight
+    so the surface stays mergeable.
+    """
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="project_templates",
+    )
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=512, blank=True, default="")
+    logo_props = models.JSONField(default=dict)
+    project_description = models.TextField(blank=True, default="")
+    network = models.PositiveSmallIntegerField(
+        choices=ProjectNetwork.choices(), default=ProjectNetwork.SECRET.value
+    )
+    initial_tasks = models.JSONField(default=list, blank=True)
+    owned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="project_templates",
+    )
+
+    class Meta:
+        verbose_name = "Project Template"
+        verbose_name_plural = "Project Templates"
+        db_table = "project_templates"
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["workspace", "-created_at"])]
+
+    def __str__(self):
+        return self.name or str(self.id)

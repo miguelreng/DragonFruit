@@ -7,6 +7,7 @@
 import {
   ALargeSmall,
   CaseSensitive,
+  CheckSquare,
   Code2,
   Heading1,
   Heading2,
@@ -28,10 +29,12 @@ import {
   Sparkles,
   Table,
   TextQuote,
-} from "lucide-react";
+} from "@plane/icons";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { v4 as generateUuid } from "uuid";
 // constants
 import { COLORS_LIST } from "@/constants/common";
+import { CORE_EXTENSIONS } from "@/constants/extension";
 // helpers
 import {
   insertTableCommand,
@@ -236,7 +239,7 @@ export const getSlashCommandFilteredSections =
                     .focus()
                     .deleteRange(range)
                     .insertContent({
-                      type: "work-item-embed",
+                      type: CORE_EXTENSIONS.WORK_ITEM_EMBED,
                       attrs: {
                         entity_identifier: workItemId,
                         project_identifier: projectId,
@@ -265,7 +268,7 @@ export const getSlashCommandFilteredSections =
                     .focus()
                     .deleteRange(range)
                     .insertContent({
-                      type: "work-item-embed",
+                      type: CORE_EXTENSIONS.WORK_ITEM_EMBED,
                       attrs: {
                         entity_identifier: workItemId,
                         project_identifier: projectId,
@@ -275,6 +278,94 @@ export const getSlashCommandFilteredSections =
                     })
                     .run();
                 },
+              });
+            },
+          });
+        }
+        if (embedConfig?.issue?.onConvertToTask) {
+          const issueConfig = embedConfig.issue;
+          const sourceProjectId = issueConfig.projectId;
+          const sourceWorkspaceSlug = issueConfig.workspaceSlug;
+          workItems.push({
+            commandKey: "issue-embed",
+            key: "turn-into-task",
+            title: "Turn into task",
+            description: "Convert this line into a task in the current project",
+            searchTerms: ["convert", "turn", "task", "issue", "create", "checkbox", "todo", "checklist"],
+            icon: <CheckSquare className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              // Prefer the enclosing taskItem; otherwise fall back to a top-level paragraph.
+              const { $from } = editor.state.selection;
+              let blockDepth = -1;
+              for (let d = $from.depth; d >= 0; d--) {
+                if ($from.node(d).type.name === CORE_EXTENSIONS.TASK_ITEM) {
+                  blockDepth = d;
+                  break;
+                }
+              }
+              if (blockDepth === -1) {
+                for (let d = $from.depth; d >= 0; d--) {
+                  const n = $from.node(d);
+                  if (n.type.name === CORE_EXTENSIONS.PARAGRAPH && d === 1) {
+                    // top-level paragraph (direct child of doc)
+                    blockDepth = d;
+                    break;
+                  }
+                }
+              }
+              const blockText = blockDepth === -1 ? "" : $from.node(blockDepth).textContent.trim();
+              if (blockDepth === -1 || !blockText) {
+                editor.chain().focus().deleteRange(range).run();
+                return;
+              }
+              const blockStart = $from.before(blockDepth);
+              const blockEnd = $from.after(blockDepth);
+              const nodeId = generateUuid();
+
+              editor
+                .chain()
+                .focus()
+                .insertContentAt(
+                  { from: blockStart, to: blockEnd },
+                  {
+                    type: CORE_EXTENSIONS.WORK_ITEM_EMBED,
+                    attrs: {
+                      id: nodeId,
+                      draft: true,
+                      draft_title: blockText,
+                      project_identifier: sourceProjectId,
+                      workspace_identifier: sourceWorkspaceSlug,
+                      entity_name: "work_item",
+                    },
+                  }
+                )
+                .run();
+
+              void issueConfig.onConvertToTask?.({ title: blockText }).then((attrs) => {
+                if (!attrs) return; // creation failed — leave the draft card so the user can retry
+                let foundPos = -1;
+                let foundAttrs: Record<string, unknown> = {};
+                editor.state.doc.descendants((node: ProseMirrorNode, pos: number) => {
+                  if (foundPos !== -1) return false;
+                  if (node.type.name === CORE_EXTENSIONS.WORK_ITEM_EMBED && node.attrs.id === nodeId) {
+                    foundPos = pos;
+                    foundAttrs = node.attrs;
+                    return false;
+                  }
+                  return true;
+                });
+                if (foundPos === -1) return;
+                const tr = editor.state.tr.setNodeMarkup(foundPos, undefined, {
+                  ...foundAttrs,
+                  draft: false,
+                  draft_title: undefined,
+                  draft_description: undefined,
+                  entity_identifier: attrs.workItemId,
+                  project_identifier: attrs.projectId,
+                  workspace_identifier: attrs.workspaceSlug,
+                  entity_name: "work_item",
+                });
+                editor.view.dispatch(tr);
               });
             },
           });

@@ -5,7 +5,7 @@
  */
 
 import type { Node } from "@tiptap/pm/model";
-import { Link2Off } from "lucide-react";
+import { Link2Off } from "@plane/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 // components
 import type { LinkViewProps, LinkViews } from "@/components/links";
