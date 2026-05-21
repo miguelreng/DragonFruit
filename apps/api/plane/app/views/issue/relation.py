@@ -331,6 +331,29 @@ class IssueRelationViewSet(BaseViewSet):
 
         return Response(IssueRelationSerializer(issue_relation).data, status=status.HTTP_200_OK)
 
+    def list_custom_labels(self, request, slug):
+        """Distinct custom_label values across all IssueRelations in this
+        workspace. Used by the rich-filters "Relation label" picker so the
+        user gets typeahead/multi-select instead of having to remember
+        what they labeled relations as.
+
+        Returns a flat list of strings, alphabetically. Nulls + empty
+        strings are filtered out — the picker only cares about labels
+        the user has actually assigned.
+        """
+        labels = (
+            IssueRelation.objects.filter(
+                workspace__slug=slug,
+                deleted_at__isnull=True,
+                custom_label__isnull=False,
+            )
+            .exclude(custom_label="")
+            .values_list("custom_label", flat=True)
+            .distinct()
+            .order_by("custom_label")
+        )
+        return Response(list(labels), status=status.HTTP_200_OK)
+
     def remove_relation(self, request, slug, project_id, issue_id):
         related_issue = request.data.get("related_issue", None)
 

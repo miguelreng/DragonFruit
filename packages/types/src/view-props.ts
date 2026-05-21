@@ -109,6 +109,9 @@ export const WORK_ITEM_FILTER_PROPERTY_KEYS = [
   "project_id",
   "created_at",
   "updated_at",
+  // Filter by the custom_label on an IssueRelation involving the task.
+  // Powers the "Relation label" rich-filter — see roadmap #2.
+  "relation_label",
 ] as const;
 export type TWorkItemFilterProperty = (typeof WORK_ITEM_FILTER_PROPERTY_KEYS)[number];
 

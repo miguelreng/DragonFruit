@@ -216,6 +216,10 @@ export const ISSUE_DISPLAY_FILTERS_BY_PAGE: TIssueFiltersToDisplayByPageType = {
       "label_id",
       "start_date",
       "target_date",
+      // Filter by the custom_label on an IssueRelation involving the task —
+      // hooks into the foundation shipped in roadmap #1. Hidden from the
+      // dropdown until the workspace has at least one labeled relation.
+      "relation_label",
     ],
     layoutOptions: {
       list: {
@@ -353,6 +357,8 @@ export const filterActivityOnSelectedFilters = (
   activity: TIssueActivityComment[],
   filters: TActivityFilters[]
 ): TIssueActivityComment[] =>
+  // Inner `activity` is the .filter() arrow's param; the outer one is the array.
+  // eslint-disable-next-line no-shadow
   activity.filter((activity) => {
     if (activity.activity_type === EActivityFilterType.DEFAULT) return true;
     return filters.includes(activity.activity_type as TActivityFilters);

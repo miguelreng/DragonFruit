@@ -10,5 +10,6 @@ export * from "./label";
 export * from "./module";
 export * from "./priority";
 export * from "./project";
+export * from "./relation-label";
 export * from "./state";
 export * from "./user";
