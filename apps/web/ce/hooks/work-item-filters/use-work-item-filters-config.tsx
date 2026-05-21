@@ -4,7 +4,15 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useMemo } from "react";
+/*
+ * no-shadow is disabled at file level: the existing destructure
+ * (`const { projectId, ... } = props`) and the `(project) => ...` arrow
+ * in getOptionIcon both intentionally shadow outer-scope names that
+ * predate this file's current shape. Renaming them would touch every
+ * filter config in this file for no readability gain.
+ */
+/* eslint-disable no-shadow */
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AtSign, Briefcase } from "@/components/icons/lucide-shim";
 // plane imports
 import { Logo } from "@plane/propel/emoji-icon-picker";
@@ -12,6 +20,7 @@ import {
   CalendarLayoutIcon,
   CycleGroupIcon,
   CycleIcon,
+  LinkIcon,
   ModuleIcon,
   StatePropertyIcon,
   PriorityIcon,
@@ -45,6 +54,7 @@ import {
   getModuleFilterConfig,
   getPriorityFilterConfig,
   getProjectFilterConfig,
+  getRelationLabelFilterConfig,
   getStartDateFilterConfig,
   getStateFilterConfig,
   getStateGroupFilterConfig,
@@ -62,6 +72,12 @@ import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 // plane web imports
 import { useFiltersOperatorConfigs } from "@/plane-web/hooks/rich-filters/use-filters-operator-configs";
+// services
+import { IssueRelationService } from "@/services/issue/issue_relation.service";
+
+// Module-level singleton — APIService instances are stateless; making a fresh
+// one per hook invocation would lose any connection reuse.
+const relationService = new IssueRelationService();
 
 export type TWorkItemFiltersEntityProps = {
   workspaceSlug: string;
@@ -362,6 +378,44 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
     [isFilterEnabled, projects, operatorConfigs]
   );
 
+  // Distinct relation custom_labels in this workspace — feeds the
+  // "Relation label" picker. Fetched once on mount + when the workspace
+  // changes; cached in component state so reopening the filter dropdown
+  // is instant.
+  const [relationLabels, setRelationLabels] = useState<string[]>([]);
+  useEffect(() => {
+    if (!workspaceSlug) return;
+    let cancelled = false;
+    relationService
+      .listWorkspaceRelationLabels(workspaceSlug)
+      .then((labels) => {
+        if (!cancelled) setRelationLabels(labels);
+        return labels;
+      })
+      .catch(() => {
+        // Failure leaves the list empty; the picker simply won't render
+        // any options. Not worth blocking the filter dropdown over.
+        if (!cancelled) setRelationLabels([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceSlug]);
+
+  // relation-label filter config
+  const relationLabelFilterConfig = useMemo(
+    () =>
+      getRelationLabelFilterConfig<TWorkItemFilterProperty>("relation_label")({
+        // Only surface the filter when the workspace actually has labels to
+        // pick from — otherwise the picker would be an empty dropdown.
+        isEnabled: isFilterEnabled("relation_label") && relationLabels.length > 0,
+        filterIcon: LinkIcon,
+        labels: relationLabels,
+        ...operatorConfigs,
+      }),
+    [isFilterEnabled, relationLabels, operatorConfigs]
+  );
+
   return {
     areAllConfigsInitialized,
     configs: [
@@ -380,6 +434,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
       updatedAtFilterConfig,
       createdByFilterConfig,
       subscriberFilterConfig,
+      relationLabelFilterConfig,
     ],
     configMap: {
       project_id: projectFilterConfig,
@@ -397,6 +452,7 @@ export const useWorkItemFiltersConfig = (props: TUseWorkItemFiltersConfigProps):
       target_date: targetDateFilterConfig,
       created_at: createdAtFilterConfig,
       updated_at: updatedAtFilterConfig,
+      relation_label: relationLabelFilterConfig,
     },
     isFilterEnabled,
     members: members ?? [],

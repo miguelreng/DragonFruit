@@ -253,6 +253,15 @@ urlpatterns = [
         IssueRelationViewSet.as_view({"patch": "update_custom_label"}),
         name="issue-relation-custom-label",
     ),
+    path(
+        # Distinct custom_label values across the workspace, feeds the
+        # rich-filters picker. Workspace-scoped (no project) so the user
+        # can filter across-project views by the labels they've used
+        # anywhere.
+        "workspaces/<str:slug>/relation-labels/",
+        IssueRelationViewSet.as_view({"get": "list_custom_labels"}),
+        name="issue-relation-labels",
+    ),
     ## End Issue Relation
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/deleted-issues/",
