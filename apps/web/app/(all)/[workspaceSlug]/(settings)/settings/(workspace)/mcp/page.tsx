@@ -190,17 +190,17 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
             <CodeBlock code={genericJson} label="MCP client config" />
 
             <p className="text-caption-md mt-3 text-tertiary">
-              Both <code className="font-mono text-caption-sm rounded bg-layer-3 px-1">Authorization: Bearer …</code>{" "}
-              and <code className="font-mono text-caption-sm rounded bg-layer-3 px-1">X-Api-Key: …</code> headers work —
+              Both <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">Authorization: Bearer …</code>{" "}
+              and <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">X-Api-Key: …</code> headers work —
               pick whichever your client supports natively.
             </p>
           </Step>
 
           <div className="mt-4 rounded-md border border-subtle bg-layer-1 p-3">
-            <h4 className="mb-1.5 text-body-sm-medium text-primary">Tools exposed ({SERVER_TOOLS.length})</h4>
+            <h4 className="mb-1.5 text-caption-md-medium text-primary">Tools exposed ({SERVER_TOOLS.length})</h4>
             <ul className="flex flex-col gap-1.5">
               {SERVER_TOOLS.map((t) => (
-                <li key={t.name} className="text-caption-md text-secondary">
+                <li key={t.name} className="text-caption-sm text-secondary">
                   <code className="font-mono text-caption-sm mr-2 rounded bg-layer-3 px-1.5 py-0.5 text-primary">
                     {t.name}
                   </code>
@@ -226,29 +226,29 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
               <ExternalLink className="size-3" />
             </Link>{" "}
             and pick an agent. On its detail panel you can add MCP servers with{" "}
-            <code className="font-mono text-caption-sm rounded bg-layer-3 px-1">name</code>,{" "}
-            <code className="font-mono text-caption-sm rounded bg-layer-3 px-1">url</code>, and an optional{" "}
-            <code className="font-mono text-caption-sm rounded bg-layer-3 px-1">auth_header</code> (Fernet-encrypted at
+            <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">name</code>,{" "}
+            <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">url</code>, and an optional{" "}
+            <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">auth_header</code> (Fernet-encrypted at
             rest).
           </p>
 
           <p className="text-caption-md mt-2 text-secondary">
             Tools from each server appear in the agent's toolbelt prefixed with the server's name (e.g.{" "}
-            <code className="font-mono text-caption-sm rounded bg-layer-3 px-1">github__list_issues</code>) so you can
+            <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">github__list_issues</code>) so you can
             run multiple servers side-by-side without collisions. If a server is unreachable at dispatch time, the agent
             silently falls back to its built-in tools — one broken integration doesn't kill the run.
           </p>
 
           <div className="mt-4 rounded-md border border-subtle bg-layer-1 p-3">
-            <h4 className="mb-1.5 text-body-sm-medium text-primary">Example MCP servers worth trying</h4>
+            <h4 className="mb-1.5 text-caption-md-medium text-primary">Example MCP servers worth trying</h4>
             <ul className="flex flex-col gap-2">
               {EXAMPLE_MCP_SERVERS.map((s) => (
-                <li key={s.name} className="text-caption-md">
+                <li key={s.name} className="text-caption-sm">
                   <a
                     href={s.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-body-sm-medium text-primary hover:underline"
+                    className="inline-flex items-center gap-1 text-caption-md-medium text-primary hover:underline"
                   >
                     {s.name}
                     <ExternalLink className="size-3" />
@@ -285,7 +285,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
             <li>
               Auth headers configured on agents for outgoing MCP calls are stored Fernet-encrypted — ciphertext is never
               returned by the API (you'll only see{" "}
-              <code className="font-mono text-caption-sm rounded bg-layer-3 px-1">has_auth_header: true</code>).
+              <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">has_auth_header: true</code>).
             </li>
             <li>
               When you rotate or revoke an API token (Settings → API Tokens), any MCP client using it loses access
@@ -312,8 +312,8 @@ function Section({
   return (
     <section className={cn("mt-6 flex flex-col gap-3", className)}>
       <div>
-        <h3 className="text-body-md-medium text-primary">{title}</h3>
-        {subtitle && <p className="text-caption-md mt-0.5 text-tertiary">{subtitle}</p>}
+        <h3 className="text-body-sm-medium text-primary">{title}</h3>
+        {subtitle && <p className="text-caption-sm mt-0.5 text-tertiary">{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -327,7 +327,7 @@ function Step({ n, label, children }: { n: number; label: string; children: Reac
         {n}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="mb-1.5 text-body-sm-medium text-primary">{label}</div>
+        <div className="mb-1.5 text-caption-md-medium text-primary">{label}</div>
         {children}
       </div>
     </div>

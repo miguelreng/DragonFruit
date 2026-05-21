@@ -280,6 +280,18 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
             { "border border-accent-strong hover:border-accent-strong": getIsIssuePeeked(issue.id) },
             { "z-[100] bg-layer-1": isCurrentBlockDragging }
           )}
+          /*
+            When the surrounding kanban column carries `--state-color`
+            (kanban grouped by state) each card picks up a 14 % wash of
+            that color blended over the regular `bg-layer-2`. For non-state
+            groupings the variable is undefined and the mix collapses to
+            plain `bg-layer-2`, so cards stay neutral on priority /
+            assignee / label boards.
+          */
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--state-color, transparent) 14%, var(--background-color-layer-2))",
+          }}
           onClick={() => handleIssuePeekOverview(issue)}
           disabled={!!issue?.tempId}
         >

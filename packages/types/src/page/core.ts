@@ -40,8 +40,36 @@ export type TPage = {
   updated_by: string | undefined;
   workspace: string | undefined;
   logo_props: TLogoProps | undefined;
+  /**
+   * Per-page view preferences (full_width, cover image id, etc.) persisted as
+   * a JSONField on the API. Keep this loose so new keys can be added without
+   * coordinating types across the FE/BE.
+   */
+  view_props?: Record<string, unknown> | undefined;
   deleted_at: Date | undefined;
 } & TPageExtended;
+
+/**
+ * Workspace-scoped reusable Page skeleton. Body fields mirror `TPage` so
+ * instantiating a template into a new page is a field-for-field copy.
+ */
+export type TPageTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  logo_props: TLogoProps | undefined;
+  owned_by: string | undefined;
+  workspace: string | undefined;
+  created_at: string | undefined;
+  updated_at: string | undefined;
+  created_by: string | undefined;
+  updated_by: string | undefined;
+};
+
+export type TPageTemplateDetail = TPageTemplate & {
+  description_html: string;
+  description_json: object | undefined;
+};
 
 // page filters
 export type TPageNavigationTabs = "public" | "private" | "archived";

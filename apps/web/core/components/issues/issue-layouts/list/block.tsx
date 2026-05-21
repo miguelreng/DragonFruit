@@ -10,6 +10,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { GitBranch } from "@/components/icons/lucide-shim";
 import { ChevronRightIcon } from "@plane/propel/icons";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -184,7 +185,11 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
       <Row
         ref={issueRef}
         className={cn(
-          "group/list-block relative flex min-h-11 flex-col gap-3 bg-layer-transparent py-3 text-13 transition-colors hover:bg-layer-transparent-hover",
+          // Tightened: min-h-11 (44px) → min-h-8 (32px), py-3 (24px) → py-1.5
+          // (12px), gap-3 → gap-2. Matches ClickUp/Linear density so longer
+          // lists fit on-screen without scrolling. Cell content still wraps
+          // gracefully on narrow viewports because the row keeps min-h.
+          "group/list-block relative flex min-h-8 flex-col gap-2 bg-layer-transparent py-1.5 text-13 transition-colors hover:bg-layer-transparent-hover",
           {
             "border-accent-strong": getIsIssuePeeked(issue.id) && peekIssue?.nestingLevel === nestingLevel,
             "border-strong-1": isIssueActive,
@@ -223,11 +228,14 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   disabled={issue.project_id === projectId}
                 >
                   <div className="absolute left-1 grid w-3.5 flex-shrink-0 place-items-center">
+                    {/* ClickUp-style: checkbox is always visible at half
+                        opacity so a column of empty boxes anchors the row;
+                        hover and selected states pop it to full opacity. */}
                     <MultipleSelectEntityAction
                       className={cn(
-                        "pointer-events-none opacity-0 transition-opacity group-hover/list-block:pointer-events-auto group-hover/list-block:opacity-100",
+                        "opacity-50 transition-opacity group-hover/list-block:opacity-100",
                         {
-                          "pointer-events-auto opacity-100": isIssueSelected,
+                          "opacity-100": isIssueSelected,
                         }
                       )}
                       groupId={groupId}
@@ -252,16 +260,20 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                 </div>
               )}
 
-              {/* sub-issues chevron */}
-              <div className="grid size-4 flex-shrink-0 place-items-center">
+              {/* sub-issues chevron. Bumped color from `text-placeholder`
+                  (very faded) to `text-secondary` with a subtle hover bg so
+                  it reads as a real disclosure control, not decoration. */}
+              <div className="grid size-5 flex-shrink-0 place-items-center">
                 {subIssuesCount > 0 && !isEpic && (
                   <button
                     type="button"
-                    className="grid size-4 place-items-center rounded-xs text-placeholder hover:text-tertiary"
+                    className="grid size-5 place-items-center rounded-xs text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
                     onClick={handleToggleExpand}
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
                   >
                     <ChevronRightIcon
-                      className={cn("size-4", {
+                      className={cn("size-4 transition-transform", {
                         "rotate-90": isExpanded,
                       })}
                       strokeWidth={2.5}
@@ -284,6 +296,31 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
             >
               <p className="cursor-pointer truncate text-body-xs-medium text-primary">{issue.name}</p>
             </Tooltip>
+            {/* ClickUp-style inline subtask count chip after the title.
+                Doubles as an expand/collapse affordance — the small chevron
+                on the far left is easy to miss, so we make the count chip
+                itself clickable. Clicking either control toggles the same
+                `isExpanded` state and fetches sub-issues on first open. */}
+            {subIssuesCount > 0 && !isEpic && (
+              <Tooltip
+                tooltipContent={
+                  isExpanded
+                    ? "Hide subtasks"
+                    : `${subIssuesCount} subtask${subIssuesCount === 1 ? "" : "s"} — click to expand`
+                }
+                isMobile={isMobile}
+              >
+                <button
+                  type="button"
+                  onClick={handleToggleExpand}
+                  aria-expanded={isExpanded}
+                  className="ml-2 inline-flex flex-shrink-0 items-center gap-0.5 rounded-sm bg-layer-1 px-1 py-0.5 text-11 font-medium text-tertiary transition-colors hover:bg-layer-2 hover:text-primary"
+                >
+                  <GitBranch className="size-3" strokeWidth={2} />
+                  {subIssuesCount}
+                </button>
+              </Tooltip>
+            )}
             {isEpic && displayProperties && (
               <WithDisplayPropertiesHOC
                 displayProperties={displayProperties}

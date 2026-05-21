@@ -4,10 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 // constants
 import type { EPageAccess } from "@plane/constants";
-import type { TPage } from "@plane/types";
+import type { TPage, TPageTemplate } from "@plane/types";
 // ui
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks
@@ -15,8 +15,12 @@ import { useAppRouter } from "@/hooks/use-app-router";
 // plane web hooks
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 import { usePageStore } from "@/plane-web/hooks/store";
+// services
+import { PageTemplateService } from "@/services/page/page-template.service";
 // local imports
 import { PageForm } from "./page-form";
+
+const templateService = new PageTemplateService();
 
 type Props = {
   workspaceSlug: string;
@@ -44,6 +48,8 @@ export function CreatePageModal(props: Props) {
     name: "",
     logo_props: undefined,
   });
+  const [templates, setTemplates] = useState<TPageTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   // router
   const router = useAppRouter();
   // store hooks
@@ -56,15 +62,50 @@ export function CreatePageModal(props: Props) {
     setPageFormData((prev) => ({ ...prev, access: pageAccess }));
   }, [pageAccess]);
 
-  const handleStateClear = () => {
-    setPageFormData({ id: undefined, name: "", access: pageAccess });
-    handleModalClose();
-  };
+  // Load templates when the modal opens so the picker is populated. Errors are
+  // intentionally silent — a missing template list shouldn't block page creation.
+  useEffect(() => {
+    if (!isModalOpen || !workspaceSlug) return;
+    let cancelled = false;
+    templateService
+      .list(workspaceSlug)
+      .then((rows) => {
+        if (!cancelled) setTemplates(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setTemplates([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isModalOpen, workspaceSlug]);
 
-  const handleFormSubmit = async () => {
+  const handleStateClear = useCallback(() => {
+    setPageFormData({ id: undefined, name: "", access: pageAccess });
+    setSelectedTemplateId("");
+    handleModalClose();
+  }, [pageAccess, handleModalClose]);
+
+  const handleFormSubmit = useCallback(async () => {
     if (!workspaceSlug || !projectId) return;
 
     try {
+      // Template path — backend clones the template into a new page in this
+      // project, then we route to it. Skips the regular createPage store call
+      // because instantiation produces a fully-formed page with body content.
+      if (selectedTemplateId) {
+        const created = await templateService.instantiate(workspaceSlug, projectId, selectedTemplateId, {
+          name: pageFormData.name || undefined,
+          logo_props: pageFormData.logo_props,
+          access: pageFormData.access,
+        });
+        if (created) {
+          handleStateClear();
+          if (redirectionEnabled) router.push(`/${workspaceSlug}/projects/${projectId}/pages/${created.id}`);
+        }
+        return;
+      }
+
       const pageData = await createPage(pageFormData);
       if (pageData) {
         handleStateClear();
@@ -73,7 +114,16 @@ export function CreatePageModal(props: Props) {
     } catch (error) {
       console.error(error);
     }
-  };
+  }, [
+    workspaceSlug,
+    projectId,
+    selectedTemplateId,
+    pageFormData,
+    createPage,
+    handleStateClear,
+    redirectionEnabled,
+    router,
+  ]);
 
   return (
     <ModalCore
@@ -87,6 +137,9 @@ export function CreatePageModal(props: Props) {
         handleFormData={handlePageFormData}
         handleModalClose={handleStateClear}
         handleFormSubmit={handleFormSubmit}
+        templates={templates}
+        selectedTemplateId={selectedTemplateId}
+        onTemplateChange={setSelectedTemplateId}
       />
     </ModalCore>
   );

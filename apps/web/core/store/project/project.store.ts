@@ -63,7 +63,7 @@ export interface IProjectStore {
     params?: TProjectAnalyticsCountParams
   ) => Promise<TProjectAnalyticsCount[]>;
   // favorites actions
-  addProjectToFavorites: (workspaceSlug: string, projectId: string) => Promise<any>;
+  addProjectToFavorites: (workspaceSlug: string, projectId: string, viewLayout?: string) => Promise<any>;
   removeProjectFromFavorites: (workspaceSlug: string, projectId: string) => Promise<any>;
   // project-view action
   updateProjectView: (workspaceSlug: string, projectId: string, viewProps: any) => Promise<any>;
@@ -454,7 +454,7 @@ export class ProjectStore implements IProjectStore {
    * @param projectId
    * @returns
    */
-  addProjectToFavorites = async (workspaceSlug: string, projectId: string) => {
+  addProjectToFavorites = async (workspaceSlug: string, projectId: string, viewLayout?: string) => {
     try {
       const currentProject = this.getProjectById(projectId);
       if (currentProject.is_favorite) return;
@@ -466,6 +466,12 @@ export class ProjectStore implements IProjectStore {
         entity_identifier: projectId,
         project_id: projectId,
         entity_data: { name: this.projectMap[projectId].name || "" },
+        // `view_layout` is a top-level write-only field on the serializer —
+        // it lives on the UserFavorite model itself, not inside entity_data
+        // (which is rebuilt from the source entity on read). The favorites
+        // sidebar reads it back via `entity_data.view_layout`, projected by
+        // UserFavoriteSerializer.get_entity_data.
+        ...(viewLayout ? { view_layout: viewLayout } : {}),
       });
       return response;
     } catch (error) {

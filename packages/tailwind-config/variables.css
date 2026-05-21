@@ -398,34 +398,34 @@
 
     /* ---------- Dark mode color tokens ---------- */
     @variant dark {
-      /* Neutral colors */
-      --neutral-black: oklch(0.1689 0.0021 230.81);
-      --neutral-100: oklch(0.1932 0.002 230.81);
-      --neutral-200: oklch(0.2158 0.0025 230.82);
-      --neutral-300: oklch(0.2378 0.0029 230.83);
-      --neutral-400: oklch(0.2593 0.0033 230.84);
-      --neutral-500: oklch(0.3011 0.0041 230.85);
-      --neutral-600: oklch(0.3415 0.0049 230.86);
-      --neutral-700: oklch(0.3999 0.0059 230.87);
-      --neutral-800: oklch(0.5989 0.0096 230.88);
-      --neutral-900: oklch(0.6835 0.0074 230.81);
-      --neutral-1000: oklch(0.7655 0.0054 230.76);
-      --neutral-1100: oklch(0.8455 0.0035 230.72);
-      --neutral-1200: oklch(0.9235 0.001733 230.6853);
-      --neutral-white: oklch(0.9702 0 0);
-      /* Brand colors */
+      /* Warm graphite neutrals — hue 30, low chroma, deeper canvas */
+      --neutral-black: oklch(0.145 0.004 30);
+      --neutral-100: oklch(0.175 0.0045 30);
+      --neutral-200: oklch(0.205 0.005 30);
+      --neutral-300: oklch(0.235 0.0055 30);
+      --neutral-400: oklch(0.265 0.006 30);
+      --neutral-500: oklch(0.31 0.0065 30);
+      --neutral-600: oklch(0.355 0.0065 30);
+      --neutral-700: oklch(0.415 0.0065 30);
+      --neutral-800: oklch(0.595 0.0075 30);
+      --neutral-900: oklch(0.68 0.007 30);
+      --neutral-1000: oklch(0.765 0.006 30);
+      --neutral-1100: oklch(0.845 0.005 30);
+      --neutral-1200: oklch(0.925 0.0035 30);
+      --neutral-white: oklch(0.975 0.002 30);
+      /* Brand colors — brighter pink, hover/active darken from resting */
       --brand-100: oklch(0.2029 0.0533 347.17);
       --brand-200: oklch(0.2513 0.0742 347.17);
       --brand-300: oklch(0.3208 0.1031 347.17);
-      --brand-400: oklch(0.4088 0.138 347.17);
-      --brand-500: oklch(0.4511 0.1545 347.17);
-      --brand-700: oklch(0.7408 0.1781 347.17);
-      --brand-800: oklch(0.8318 0.115 347.17);
-      --brand-900: oklch(0.8969 0.0661 347.17);
-      --brand-1000: oklch(0.9409 0.0364 347.17);
-      --brand-1100: oklch(0.9704 0.0179 347.17);
-      --brand-1200: oklch(0.9856 0.0087 347.17);
-      --brand-default: oklch(0.6311 0.2242 347.17);
+      --brand-400: oklch(0.55 0.198 347.17);
+      --brand-500: oklch(0.63 0.218 347.17);
+      --brand-700: oklch(0.82 0.155 347.17);
+      --brand-800: oklch(0.8818 0.105 347.17);
+      --brand-900: oklch(0.9269 0.061 347.17);
+      --brand-1000: oklch(0.9509 0.034 347.17);
+      --brand-1100: oklch(0.9744 0.017 347.17);
+      --brand-1200: oklch(0.9886 0.008 347.17);
+      --brand-default: oklch(0.74 0.205 347.17);
       /* Green colors */
       --green-100: oklch(0.2721 0.067322 152.52);
       --green-200: oklch(0.3935 0.0957 152.28);
@@ -537,8 +537,11 @@
       --txt-disabled: var(--neutral-800);
       --txt-accent-primary: var(--brand-default);
       --txt-accent-secondary: var(--brand-700);
-      --txt-on-color: var(--neutral-1200);
-      --txt-on-color-disabled: var(--alpha-white-400);
+      /* On-color text sits on solid accent fills (primary button, badges).
+       * In dark mode the pink bg lightens to brand-default's pastel step, so
+       * white labels read washed-out — keep the label dark for legibility. */
+      --txt-on-color: var(--neutral-black);
+      --txt-on-color-disabled: var(--alpha-black-400);
       --txt-inverse: var(--neutral-black);
       --txt-success-primary: var(--green-900);
       --txt-success-secondary: var(--green-700);

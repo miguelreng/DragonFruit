@@ -8,3 +8,8 @@ from .base import (
     AgentRunListEndpoint,
     AgentStopEndpoint,
 )
+from .chat import (
+    AgentChatMessageEndpoint,
+    AgentChatSessionDetailEndpoint,
+    AgentChatSessionEndpoint,
+)

@@ -4,9 +4,11 @@
  * See the LICENSE file for details.
  */
 
+import type { TPowerKScope } from "../../core/scope";
 import type { TPowerKCommandConfig, TPowerKContext, TPowerKPageType } from "../../core/types";
 import { PowerKModalPagesList } from "../pages";
 import { PowerKContextBasedPagesList } from "../pages/context-based";
+import { PowerKAskAISection } from "./ask-ai-section";
 import { PowerKModalSearchMenu } from "./search-menu";
 
 export type TPowerKCommandsListProps = {
@@ -18,6 +20,14 @@ export type TPowerKCommandsListProps = {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
   handleSearchMenuClose?: () => void;
+  scope?: TPowerKScope;
+  onResultClick?: (kind: string, label: string, id: string, path: string) => void;
+  /**
+   * Suppress the internal Ask AI section. The top-nav variant renders its own
+   * Ask AI above the search results so it can be controlled by the scope chips;
+   * the standalone modal wrapper still lets this component render Ask AI inline.
+   */
+  hideAskAI?: boolean;
 };
 
 export function ProjectsAppPowerKCommandsList(props: TPowerKCommandsListProps) {
@@ -30,6 +40,9 @@ export function ProjectsAppPowerKCommandsList(props: TPowerKCommandsListProps) {
     searchTerm,
     setSearchTerm,
     handleSearchMenuClose,
+    scope,
+    onResultClick,
+    hideAskAI,
   } = props;
 
   return (
@@ -41,7 +54,15 @@ export function ProjectsAppPowerKCommandsList(props: TPowerKCommandsListProps) {
         searchTerm={searchTerm}
         updateSearchTerm={setSearchTerm}
         handleSearchMenuClose={handleSearchMenuClose}
+        scope={scope}
+        onResultClick={onResultClick}
       />
+      {!activePage && !hideAskAI && (
+        <PowerKAskAISection
+          workspaceSlug={context.params.workspaceSlug?.toString()}
+          searchTerm={searchTerm}
+        />
+      )}
       <PowerKContextBasedPagesList
         activeContext={context.activeContext}
         activePage={activePage}

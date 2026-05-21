@@ -48,7 +48,7 @@ from .issue import (
 )
 from .module import Module, ModuleIssue, ModuleLink, ModuleMember, ModuleUserProperties
 from .notification import EmailNotificationLog, Notification, UserNotificationPreference
-from .page import Page, PageBlockComment, PageLabel, PageLog, ProjectPage, PageVersion
+from .page import Page, PageBlockComment, PageLabel, PageLog, PageTemplate, ProjectPage, PageVersion
 from .project import (
     Project,
     ProjectBaseModel,
@@ -57,6 +57,7 @@ from .project import (
     ProjectMemberInvite,
     ProjectNetwork,
     ProjectPublicMember,
+    ProjectTemplate,
     ProjectUserProperty,
 )
 from .session import Session
@@ -65,7 +66,7 @@ from .state import State, StateGroup, DEFAULT_STATES
 from .user import Account, Profile, User, BotTypeEnum
 from .view import IssueView
 from .webhook import Webhook, WebhookLog
-from .agent import Agent, AgentRun
+from .agent import Agent, AgentChatMessage, AgentChatSession, AgentRun
 from .agent_webhook import WorkspaceAgentWebhook
 from .calendar_account import UserCalendarAccount
 from .workspace import (

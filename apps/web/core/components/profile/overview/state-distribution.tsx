@@ -10,7 +10,6 @@ import { useTranslation } from "@plane/i18n";
 import { PieChart } from "@plane/propel/charts/pie-chart";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { IUserProfileData, IUserStateDistribution } from "@plane/types";
-import { Card } from "@plane/ui";
 import { capitalizeFirstLetter } from "@plane/utils";
 
 type Props = {
@@ -22,21 +21,19 @@ export function ProfileStateDistribution({ stateDistribution, userProfile }: Pro
   const { t } = useTranslation();
   if (!userProfile) return null;
 
+  const hasData = userProfile.state_distribution.length > 0;
+  const total = stateDistribution.reduce((acc, group) => acc + group.state_count, 0);
+
   return (
-    <div className="flex flex-col space-y-2">
-      <h3 className="text-16 font-medium">{t("profile.stats.state_distribution.title")}</h3>
-      <Card className="h-full">
-        {userProfile.state_distribution.length > 0 ? (
-          <div className="grid h-[300px] w-full grid-cols-1 gap-x-6 md:grid-cols-2">
+    <section className="flex flex-col space-y-3">
+      <h3 className="text-13 font-medium text-tertiary">{t("profile.stats.state_distribution.title")}</h3>
+      <div className="flex h-full flex-col rounded-lg border-[0.5px] border-subtle bg-surface-1 p-5">
+        {hasData ? (
+          <div className="grid h-[280px] w-full grid-cols-1 items-center gap-6 md:grid-cols-[1fr_1fr]">
             <PieChart
               className="size-full"
               dataKey="value"
-              margin={{
-                top: 0,
-                right: -10,
-                bottom: 12,
-                left: -10,
-              }}
+              margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
               data={
                 userProfile.state_distribution.map((group) => ({
                   id: group.state_group,
@@ -52,29 +49,34 @@ export function ProfileStateDistribution({ stateDistribution, userProfile }: Pro
               }))}
               showTooltip
               tooltipLabel="Count"
-              paddingAngle={5}
+              paddingAngle={4}
               cornerRadius={4}
-              innerRadius="50%"
+              innerRadius="60%"
               showLabel={false}
             />
-            <div className="flex items-center">
-              <div className="w-full space-y-4">
-                {stateDistribution.map((group) => (
-                  <div key={group.state_group} className="flex items-center justify-between gap-2 text-11">
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className="h-2.5 w-2.5 rounded-xs"
+            <div className="flex flex-col gap-3">
+              {stateDistribution.map((group) => {
+                const percentage = total > 0 ? Math.round((group.state_count / total) * 100) : 0;
+                return (
+                  <div key={group.state_group} className="flex items-center justify-between gap-3 text-13">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2 w-2 flex-shrink-0 rounded-full"
                         style={{
                           backgroundColor:
                             STATE_GROUPS[group.state_group]?.color ?? "var(--background-color-accent-primary)",
                         }}
+                        aria-hidden
                       />
-                      <div className="whitespace-nowrap">{STATE_GROUPS[group.state_group].label}</div>
+                      <span className="truncate text-secondary">{STATE_GROUPS[group.state_group].label}</span>
                     </div>
-                    <div>{group.state_count}</div>
+                    <div className="flex items-center gap-2 tabular-nums">
+                      <span className="text-11 text-tertiary">{percentage}%</span>
+                      <span className="min-w-[1.5ch] text-right font-medium">{group.state_count}</span>
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
         ) : (
@@ -84,7 +86,7 @@ export function ProfileStateDistribution({ stateDistribution, userProfile }: Pro
             title={t("workspace_empty_state.your_work_by_priority.title")}
           />
         )}
-      </Card>
-    </div>
+      </div>
+    </section>
   );
 }

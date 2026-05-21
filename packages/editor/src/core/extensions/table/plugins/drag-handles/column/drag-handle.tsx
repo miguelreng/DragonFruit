@@ -17,7 +17,7 @@ import {
   FloatingPortal,
 } from "@floating-ui/react";
 import type { Editor } from "@tiptap/core";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis } from "@plane/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 // plane imports
 import { cn } from "@plane/utils";

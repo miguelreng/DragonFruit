@@ -14,7 +14,7 @@ import { observer } from "mobx-react";
 import { useParams, useRouter } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
-import { Settings, Share2, LogOut, MoreHorizontal } from "@/components/icons/lucide-shim";
+import { Briefcase, Settings, Share2, LogOut, MoreHorizontal } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
@@ -23,6 +23,7 @@ import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { LinkIcon, ArchiveIcon, ChevronRightIcon } from "@plane/propel/icons";
 import { IconButton } from "@plane/propel/icon-button";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@plane/ui";
 import { cn } from "@plane/utils";
@@ -38,11 +39,16 @@ import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
 import { usePlatformOS } from "@/hooks/use-platform-os";
+import { ProjectTemplateService } from "@/services/project/project-template.service";
 // plane web imports
 import { useNavigationItems } from "@/plane-web/components/navigations";
 import { ProjectNavigationRoot } from "@/plane-web/components/sidebar";
 // local imports
 import { HIGHLIGHT_CLASS, highlightIssueOnDrop } from "../../issues/issue-layouts/utils";
+
+// Singleton — the kebab menu uses this lazily, and a single service
+// instance per app is the convention used elsewhere in the codebase.
+const projectTemplateService = new ProjectTemplateService();
 
 type Props = {
   projectId: string;
@@ -115,6 +121,26 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     workspaceSlug.toString(),
     project?.id
   );
+  const handleSaveAsTemplate = useCallback(async () => {
+    if (!workspaceSlug || !project?.id) return;
+    const defaultName = project.name || "Untitled template";
+    const name = window.prompt("Save this project as a template — pick a name:", defaultName);
+    if (!name) return;
+    try {
+      await projectTemplateService.saveAsTemplate(workspaceSlug.toString(), project.id, {
+        name: name.trim(),
+      });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Template saved",
+        message: "It's now available in the Create project modal.",
+      });
+    } catch (err) {
+      const message = (err as { error?: string } | undefined)?.error ?? "Try again in a moment.";
+      setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't save template", message });
+    }
+  }, [workspaceSlug, project?.id, project?.name]);
+
   const isAuthorized = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.PROJECT,
@@ -387,6 +413,20 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                           <Share2 className="h-3.5 w-3.5 stroke-[1.5]" />
                         </div>
                         <div>{t("publish_project")}</div>
+                      </div>
+                    </CustomMenu.MenuItem>
+                  )}
+                  {/* Save as project template — admin-only, matches the
+                      page-kebab "Save as template" pattern. window.prompt
+                      for the name keeps it one-click and avoids another
+                      modal. */}
+                  {isAdmin && (
+                    <CustomMenu.MenuItem onClick={() => void handleSaveAsTemplate()}>
+                      <div className="relative flex flex-shrink-0 items-center justify-start gap-2">
+                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-all duration-300 hover:bg-layer-1">
+                          <Briefcase className="h-3.5 w-3.5 stroke-[1.5]" />
+                        </div>
+                        <div>Save as template</div>
                       </div>
                     </CustomMenu.MenuItem>
                   )}

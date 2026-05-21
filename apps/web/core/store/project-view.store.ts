@@ -273,6 +273,9 @@ export class ProjectViewStore implements IProjectViewStore {
         entity_identifier: viewId,
         project_id: projectId,
         entity_data: { name: this.viewMap[viewId].name || "" },
+        // Saved Views don't need a layout snapshot on the favorite — the
+        // backend's ViewFavoriteSerializer surfaces the View's own
+        // `display_filters.layout` as `entity_data.view_layout` on read.
       });
     } catch (error) {
       console.error("Failed to add view to favorites in view store", error);

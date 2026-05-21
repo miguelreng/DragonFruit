@@ -27,7 +27,7 @@ type Props = {
   pageTitle: string;
 };
 
-type TExportFormats = "pdf" | "markdown";
+type TExportFormats = "pdf" | "markdown" | "docx";
 type TPageFormats = Exclude<PageProps["size"], undefined>;
 type TContentVariety = "everything" | "no-assets";
 
@@ -44,6 +44,10 @@ const EXPORT_FORMATS: {
   {
     key: "pdf",
     label: "PDF",
+  },
+  {
+    key: "docx",
+    label: "Word (.docx)",
   },
   {
     key: "markdown",
@@ -174,6 +178,36 @@ export function ExportPageModal(props: Props) {
       throw new Error(`Error in exporting as markdown: ${error}`);
     }
   };
+  // handle export as DOCX — uses html-docx-js-typescript. Dynamic-imported
+  // because it bundles JSZip; only users who pick "Word" pay that cost.
+  // The lib accepts an HTML string and returns a Blob in browsers.
+  const handleExportAsDOCX = async () => {
+    try {
+      const pageContent = `<h1>${pageTitle}</h1>${editorRef?.getDocument().html ?? "<p></p>"}`;
+      const parsedPageContent = await replaceCustomComponentsFromHTMLContent({
+        htmlContent: pageContent,
+        noAssets: selectedContentVariety === "no-assets",
+      });
+      // Word respects basic HTML when wrapped in a full document shell.
+      // The <meta charset> keeps non-ASCII characters intact in Word's
+      // import path, and a default font + size in <style> stops Word
+      // from falling back to Times New Roman 10pt.
+      const wrapped = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;}</style></head><body>${parsedPageContent}</body></html>`;
+      // Defensive interop: depending on Vite's CJS interop, named exports
+      // can land either at the top level or under `.default`. Try both.
+      const mod: any = await import("html-docx-js-typescript");
+      const asBlob: ((html: string) => Promise<Blob | ArrayBuffer>) | undefined =
+        mod?.asBlob ?? mod?.default?.asBlob;
+      if (typeof asBlob !== "function") {
+        throw new Error("html-docx-js-typescript: asBlob() not found on the imported module");
+      }
+      const result = await asBlob(wrapped);
+      const blob = result instanceof Blob ? result : new Blob([result as ArrayBuffer]);
+      initiateDownload(blob, `${fileName}.docx`);
+    } catch (error) {
+      throw new Error(`Error in exporting as DOCX: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
   // handle export
   const handleExport = async () => {
     setIsExporting(true);
@@ -184,6 +218,9 @@ export function ExportPageModal(props: Props) {
       if (selectedExportFormat === "markdown") {
         await handleExportAsMarkdown();
       }
+      if (selectedExportFormat === "docx") {
+        await handleExportAsDOCX();
+      }
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Success!",
@@ -192,10 +229,13 @@ export function ExportPageModal(props: Props) {
       handleClose();
     } catch (error) {
       console.error("Error in exporting page:", error);
+      // Surface the underlying message so the user (and we) can see *why* —
+      // generic "try again later" hides bugs in the export pipeline.
+      const detail = error instanceof Error ? error.message : String(error);
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
-        message: "Page could not be exported. Please try again later.",
+        title: "Couldn't export",
+        message: detail || "Try again in a moment.",
       });
     } finally {
       setIsExporting(false);

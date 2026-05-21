@@ -20,6 +20,7 @@ from plane.db.models import (
     ProjectIdentifier,
     DeployBoard,
     ProjectPublicMember,
+    ProjectTemplate,
     IssueSequence,
 )
 from plane.utils.content_validator import (
@@ -234,3 +235,32 @@ class ProjectPublicMemberSerializer(BaseSerializer):
         model = ProjectPublicMember
         fields = "__all__"
         read_only_fields = ["workspace", "project", "member"]
+
+
+class ProjectTemplateSerializer(BaseSerializer):
+    """Full payload for the create/edit + instantiate flows.
+
+    Returns everything needed to populate the create-project form's
+    defaults (logo_props, project_description, network) and the initial
+    tasks list materialised on instantiate. Workspace/owner are stamped
+    at the view layer so they stay server-controlled.
+    """
+
+    class Meta:
+        model = ProjectTemplate
+        fields = [
+            "id",
+            "name",
+            "description",
+            "logo_props",
+            "project_description",
+            "network",
+            "initial_tasks",
+            "owned_by",
+            "workspace",
+            "created_at",
+            "updated_at",
+            "created_by",
+            "updated_by",
+        ]
+        read_only_fields = ["workspace", "owned_by", "created_by", "updated_by"]

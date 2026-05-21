@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Download, Minus } from "lucide-react";
+import { Download, Minus } from "@plane/icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { NewTabIcon, PlusIcon, CloseIcon } from "@plane/propel/icons";

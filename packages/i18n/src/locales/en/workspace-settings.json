@@ -575,6 +575,23 @@
       },
       "mcp": {
         "title": "MCP"
+      },
+      "templates": {
+        "title": "Templates",
+        "heading": "Doc templates",
+        "description": "Reusable page skeletons. Build a page once, save it as a template, and reuse it across the workspace.",
+        "empty_title": "No templates yet",
+        "empty_description": "Open any page and choose 'Save as template' from the overflow menu to add one here.",
+        "table_name": "Name",
+        "table_description": "Description",
+        "table_updated": "Updated",
+        "table_actions": "",
+        "rename": "Rename",
+        "edit_description": "Edit description",
+        "delete": "Delete",
+        "delete_confirm": "Delete this template? Pages already created from it stay untouched.",
+        "name_placeholder": "Template name",
+        "description_placeholder": "What is this template for?"
       }
     },
     "empty_state": {

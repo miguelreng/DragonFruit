@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect } from "react";
 // plane imports
 import type { EIssueLayoutTypes, IFavorite } from "@plane/types";
 // components
@@ -31,10 +32,33 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
   } = favorite;
   const favoriteItemName = favorite?.entity_data?.name || favorite?.name;
   // store hooks
-  const { getViewById } = useProjectView();
+  const { getViewById, fetchViews } = useProjectView();
   const { getProjectById } = useProject();
   const { getCycleById } = useCycle();
   const { getModuleById } = useModule();
+
+  // Backfill for older view favorites that were created before we started
+  // snapshotting `view_layout` into `entity_data`. When the sidebar mounts and
+  // the view isn't in the store (parent project not opened this session),
+  // pull the project's views once so `getViewById` resolves and the layout
+  // icon renders. New favorites already include the snapshot, so this is
+  // a one-time hydration for historic data.
+  useEffect(() => {
+    if (
+      favoriteItemEntityType === "view" &&
+      favorite.project_id &&
+      favoriteItemId &&
+      !getViewById(favoriteItemId) &&
+      !favorite.entity_data?.view_layout
+    ) {
+      fetchViews(workspaceSlug, favorite.project_id).catch(() => {
+        // Silent — the FallbackIcon still renders if the fetch fails.
+      });
+    }
+    // We only want this to run when the favorite identity changes, not on
+    // every store re-read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favoriteItemEntityType, favoriteItemId, favorite.project_id]);
   // additional details
   const { getAdditionalFavoriteItemDetails } = useAdditionalFavoriteItemDetails();
   // derived values
@@ -52,10 +76,19 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
   const itemLink = generateFavoriteItemLink(workspaceSlug.toString(), favorite);
 
   switch (favoriteItemEntityType) {
-    case "project":
+    case "project": {
       itemTitle = currentProjectDetails?.name ?? favoriteItemName;
-      itemIcon = getFavoriteItemIcon("project", currentProjectDetails?.logo_props || favoriteItemLogoProps);
+      // If the favorite was created from the Tasks page, `view_layout` is
+      // stashed in entity_data — render the layout icon to make it clear
+      // this favorite points to "tasks in <layout>", not the project home.
+      // Project favorites added from the project list (no layout snapshot)
+      // keep the project emoji.
+      const projectLayout = favorite.entity_data?.view_layout as EIssueLayoutTypes | undefined;
+      itemIcon = projectLayout
+        ? getFavoriteViewIcon(projectLayout)
+        : getFavoriteItemIcon("project", currentProjectDetails?.logo_props || favoriteItemLogoProps);
       break;
+    }
     case "page":
       itemTitle = getPageName(pageDetail?.name ?? favoriteItemName);
       itemIcon = getFavoriteItemIcon("page", pageDetail?.logo_props ?? favoriteItemLogoProps);
@@ -66,7 +99,14 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
       // usefully than the emoji — see getFavoriteViewIcon's docstring. The
       // `display_filters.layout` field is typed `any` upstream, so we cast at
       // the boundary into the strict enum the icon component expects.
-      itemIcon = getFavoriteViewIcon(viewDetails?.display_filters?.layout as EIssueLayoutTypes | undefined);
+      // Fall back to the layout snapshot stored on the favorite itself when
+      // `viewDetails` isn't loaded (e.g. the user hasn't opened this view's
+      // parent project yet this session, so `fetchViews` hasn't run).
+      itemIcon = getFavoriteViewIcon(
+        (viewDetails?.display_filters?.layout ?? favorite.entity_data?.view_layout) as
+          | EIssueLayoutTypes
+          | undefined
+      );
       break;
     case "cycle":
       itemTitle = cycleDetail?.name ?? favoriteItemName;

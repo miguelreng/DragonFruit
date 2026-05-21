@@ -4,11 +4,16 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 // plane constants
-import { ISSUE_DISPLAY_FILTERS_BY_PAGE, PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
+import {
+  EIssueFilterType,
+  ISSUE_DISPLAY_FILTERS_BY_PAGE,
+  PROJECT_VIEW_TRACKER_ELEMENTS,
+} from "@plane/constants";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 import { Spinner } from "@plane/ui";
 // components
@@ -24,6 +29,14 @@ import { BaseGanttRoot } from "../gantt";
 import { KanBanLayout } from "../kanban/roots/project-root";
 import { ListLayout } from "../list/roots/project-root";
 import { ProjectSpreadsheetLayout } from "../spreadsheet/roots/project-root";
+
+const VALID_LAYOUTS = new Set<string>([
+  EIssueLayoutTypes.LIST,
+  EIssueLayoutTypes.KANBAN,
+  EIssueLayoutTypes.CALENDAR,
+  EIssueLayoutTypes.GANTT,
+  EIssueLayoutTypes.SPREADSHEET,
+]);
 
 function ProjectIssueLayout(props: { activeLayout: EIssueLayoutTypes | undefined }) {
   switch (props.activeLayout) {
@@ -47,6 +60,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
   const { workspaceSlug: routerWorkspaceSlug, projectId: routerProjectId } = useParams();
   const workspaceSlug = routerWorkspaceSlug ? routerWorkspaceSlug.toString() : undefined;
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
+  const searchParams = useSearchParams();
   // hooks
   const { issues, issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
   // derived values
@@ -62,6 +76,28 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
     },
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
+
+  // Honor `?layout=` in the URL once on mount. Used by favorites created from
+  // the Tasks page's star button — the favorite link encodes the saved
+  // layout so clicking it restores list / board / timeline / etc. We only
+  // apply it once per (project, layout) pair to avoid fighting the user if
+  // they switch layouts after landing.
+  const appliedLayoutRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!workspaceSlug || !projectId || !workItemFilters) return;
+    const requested = searchParams?.get("layout");
+    if (!requested || !VALID_LAYOUTS.has(requested)) return;
+    const key = `${projectId}:${requested}`;
+    if (appliedLayoutRef.current === key) return;
+    if (workItemFilters.displayFilters?.layout === requested) {
+      appliedLayoutRef.current = key;
+      return;
+    }
+    appliedLayoutRef.current = key;
+    issuesFilter?.updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, {
+      layout: requested as EIssueLayoutTypes,
+    });
+  }, [workspaceSlug, projectId, searchParams, workItemFilters, issuesFilter]);
 
   if (!workspaceSlug || !projectId || !workItemFilters) return <></>;
   return (

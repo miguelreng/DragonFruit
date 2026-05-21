@@ -6,18 +6,9 @@
 
 import { useEffect, useState } from "react";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import { getAssetIdFromUrl, checkURLValidity } from "@plane/utils";
-// plane ui
-// helpers
-// hooks
 import useKeypress from "@/hooks/use-keypress";
-// plane web components
 import { CreateProjectForm } from "@/plane-web/components/projects/create/root";
-// plane web types
 import type { TProject } from "@/plane-web/types/projects";
-// services
-import { FileService } from "@/services/file.service";
-const fileService = new FileService();
 import { ProjectFeatureUpdate } from "./project-feature-update";
 
 type Props = {
@@ -36,7 +27,6 @@ enum EProjectCreationSteps {
 
 export function CreateProjectModal(props: Props) {
   const { isOpen, onClose, setToFavorite = false, workspaceSlug, data, templateId } = props;
-  // states
   const [currentStep, setCurrentStep] = useState<EProjectCreationSteps>(EProjectCreationSteps.CREATE_PROJECT);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
 
@@ -53,26 +43,23 @@ export function CreateProjectModal(props: Props) {
     setCurrentStep(EProjectCreationSteps.FEATURE_SELECTION);
   };
 
-  const handleCoverImageStatusUpdate = async (projectId: string, coverImage: string) => {
-    if (!checkURLValidity(coverImage)) {
-      await fileService.updateBulkProjectAssetsUploadStatus(workspaceSlug, projectId, projectId, {
-        asset_ids: [getAssetIdFromUrl(coverImage)],
-      });
-    }
-  };
-
   useKeypress("Escape", () => {
     if (isOpen) onClose();
   });
 
+  const isFeatureStep = currentStep === EProjectCreationSteps.FEATURE_SELECTION;
+
   return (
-    <ModalCore isOpen={isOpen} position={EModalPosition.TOP} width={EModalWidth.XXXXL}>
+    <ModalCore
+      isOpen={isOpen}
+      position={EModalPosition.TOP}
+      width={isFeatureStep ? EModalWidth.XXXXL : EModalWidth.XL}
+    >
       {currentStep === EProjectCreationSteps.CREATE_PROJECT && (
         <CreateProjectForm
           setToFavorite={setToFavorite}
           workspaceSlug={workspaceSlug}
           onClose={onClose}
-          updateCoverImageStatus={handleCoverImageStatusUpdate}
           handleNextStep={handleNextStep}
           data={data}
           templateId={templateId}

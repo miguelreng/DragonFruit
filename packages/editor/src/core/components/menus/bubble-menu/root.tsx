@@ -8,7 +8,9 @@ import { isNodeSelection } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import { BubbleMenu, useEditorState } from "@tiptap/react";
 import type { BubbleMenuProps } from "@tiptap/react";
+import { MessageCircle } from "@plane/icons";
 import { useEffect, useState, useRef } from "react";
+import { v4 as generateUuid } from "uuid";
 // plane utils
 import { cn } from "@plane/utils";
 // components
@@ -227,6 +229,50 @@ export function EditorBubbleMenu(props: Props) {
             ))}
           </div>
           <TextAlignmentSelector editor={editor} editorState={editorState} />
+          {/* Comment-on-selection action. Mirrors the slash command
+              `/Comment on this block`, but anchors the BlockComment
+              mark to the *current text selection* rather than the
+              whole block — closer to the Notion / Google Docs pattern
+              the user expects when highlighting text. The host app
+              listens for `dragonfruit:request-block-comment` and pops
+              the composer. */}
+          <div className="flex gap-0.5 px-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const { from, to } = editor.state.selection;
+                if (from === to) return;
+                const commentId = generateUuid();
+                editor.chain().focus().setBlockComment(commentId).run();
+                editor.view.dom.dispatchEvent(
+                  new CustomEvent("dragonfruit:request-block-comment", {
+                    bubbles: true,
+                    detail: {
+                      commentId,
+                      cancel: () => {
+                        // Roll back the mark if the user dismisses the
+                        // composer without posting — otherwise an
+                        // orphan `data-block-comment-id` lingers on
+                        // the doc with no thread behind it.
+                        editor
+                          .chain()
+                          .setTextSelection({ from, to })
+                          .unsetBlockComment()
+                          .setTextSelection(to)
+                          .run();
+                      },
+                    },
+                  })
+                );
+              }}
+              aria-label="Comment on selection"
+              title="Comment"
+              className="grid size-7 place-items-center rounded-sm text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
+            >
+              <MessageCircle className="size-4" />
+            </button>
+          </div>
         </div>
       )}
     </BubbleMenu>

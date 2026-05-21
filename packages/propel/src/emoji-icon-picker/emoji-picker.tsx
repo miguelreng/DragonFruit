@@ -26,6 +26,8 @@ export function EmojiPicker(props: TCustomEmojiPicker) {
     dropdownClassName,
     label,
     onChange,
+    onRemove,
+    hasValue = false,
     placement = "bottom-start",
     searchDisabled = false,
     searchPlaceholder = "Search",
@@ -148,6 +150,20 @@ export function EmojiPicker(props: TCustomEmojiPicker) {
             </Tabs.Panel>
           ))}
         </Tabs.Root>
+        {onRemove && hasValue && (
+          <div className="flex items-center justify-end border-t border-subtle bg-surface-1 px-3 py-2">
+            <button
+              type="button"
+              onClick={() => {
+                onRemove();
+                if (closeOnSelect) handleToggle(false);
+              }}
+              className="rounded-sm px-2 py-1 text-13 font-medium text-danger-primary transition-colors hover:bg-danger-primary/10"
+            >
+              Remove
+            </button>
+          </div>
+        )}
       </Popover.Panel>
     </Popover>
   );

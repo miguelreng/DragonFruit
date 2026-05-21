@@ -9,6 +9,7 @@ import {
   ArrowUpToLine,
   Building,
   Download,
+  FileText,
   Info,
   Sparkles,
   Swap,
@@ -33,4 +34,5 @@ export const WORKSPACE_SETTINGS_ICONS: Record<TWorkspaceSettingsTabs, LucideIcon
   // (clients call us, our agents call others). Replace with a proper
   // plug icon when the shim grows one.
   mcp: Swap,
+  templates: FileText,
 };

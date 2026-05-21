@@ -194,6 +194,55 @@ class PageVersion(BaseModel):
         super(PageVersion, self).save(*args, **kwargs)
 
 
+class PageTemplate(BaseModel):
+    """
+    A reusable Page skeleton. When a user creates a new Page from a template, the
+    template's logo + description payloads are copied into the new Page. Templates
+    are workspace-scoped (visible across all projects in the workspace); admin-only
+    authoring is enforced at the view layer. Body shape mirrors `Page`
+    (description_html / _json / _binary) so the copy is a straight field-for-field
+    clone — no transformation needed at instantiation time.
+    """
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="page_templates",
+    )
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=512, blank=True, default="")
+    logo_props = models.JSONField(default=dict)
+    # Body — mirrors Page exactly so instantiation is a field-for-field copy.
+    description_html = models.TextField(blank=True, default="<p></p>")
+    description_json = models.JSONField(default=dict, blank=True)
+    description_binary = models.BinaryField(null=True)
+    description_stripped = models.TextField(blank=True, null=True)
+    owned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="page_templates",
+    )
+
+    class Meta:
+        verbose_name = "Page Template"
+        verbose_name_plural = "Page Templates"
+        db_table = "page_templates"
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["workspace", "-created_at"])]
+
+    def __str__(self):
+        return self.name or str(self.id)
+
+    def save(self, *args, **kwargs):
+        self.description_stripped = (
+            None
+            if (self.description_html == "" or self.description_html is None)
+            else strip_tags(self.description_html)
+        )
+        super().save(*args, **kwargs)
+
+
 class PageBlockComment(BaseModel):
     """
     A comment attached to a specific span of text inside a Page's description.

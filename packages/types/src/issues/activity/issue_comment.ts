@@ -45,6 +45,11 @@ export type TIssueComment = {
   external_id: string | undefined;
   external_source: string | undefined;
   access: EIssueCommentAccessSpecifier;
+  // One-level threading: replies set `parent` to a top-level comment's id.
+  // Top-level comments have parent === null. We intentionally do not nest
+  // beyond one level — a reply-to-a-reply also sets `parent` to the
+  // original top-level comment so the thread stays flat under one root.
+  parent: string | null;
 };
 
 export type TCommentsOperations = {

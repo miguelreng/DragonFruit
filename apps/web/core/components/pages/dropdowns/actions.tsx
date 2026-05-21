@@ -7,26 +7,32 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { ArchiveRestoreIcon, FileOutput, LockKeyhole, LockKeyholeOpen } from "@/components/icons/lucide-shim";
+import { ArchiveRestoreIcon, FileOutput, FileText, LockKeyhole, LockKeyholeOpen } from "@/components/icons/lucide-shim";
 // constants
-import { EPageAccess } from "@plane/constants";
+import { EPageAccess, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // plane editor
 import { LinkIcon, CopyIcon, LockIcon, NewTabIcon, ArchiveIcon, TrashIcon, GlobeIcon } from "@plane/propel/icons";
 // plane ui
 import type { TContextMenuItem } from "@plane/ui";
 import { ContextMenu, CustomMenu } from "@plane/ui";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // components
 import { cn } from "@plane/utils";
 import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
+import { useUserPermissions } from "@/hooks/store/user";
 // plane web components
 import { MovePageModal } from "@/plane-web/components/pages";
 // plane web hooks
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 import { usePageFlag } from "@/plane-web/hooks/use-page-flag";
+// services
+import { PageTemplateService } from "@/services/page/page-template.service";
 // store types
 import type { TPageInstance } from "@/store/pages/base-page";
+
+const templateService = new PageTemplateService();
 
 export type TPageActions =
   | "full-screen"
@@ -40,7 +46,9 @@ export type TPageActions =
   | "archive-restore"
   | "delete"
   | "version-history"
+  | "turn-into-task"
   | "export"
+  | "save-as-template"
   | "move";
 
 type Props = {
@@ -58,6 +66,10 @@ export const PageActions = observer(function PageActions(props: Props) {
   const [movePageModal, setMovePageModal] = useState(false);
   // params
   const { workspaceSlug } = useParams();
+  // permissions — "Save as template" is workspace-admin-only since templates are
+  // shared resources visible across every project.
+  const { allowPermissions } = useUserPermissions();
+  const canSaveAsTemplate = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.WORKSPACE);
   // page flag
   const { isMovePageEnabled } = usePageFlag({
     workspaceSlug: workspaceSlug?.toString() ?? "",
@@ -66,6 +78,27 @@ export const PageActions = observer(function PageActions(props: Props) {
   const { pageOperations } = usePageOperations({
     page,
   });
+
+  const handleSaveAsTemplate = async () => {
+    if (!workspaceSlug || !page.id) return;
+    const defaultName = page.name || "Untitled template";
+    const name = window.prompt("Save this page as a template — pick a name:", defaultName);
+    if (!name) return;
+    try {
+      await templateService.saveFromPage(workspaceSlug.toString(), page.id, { name: name.trim() });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Template saved",
+        message: "It's now available in the Create page modal.",
+      });
+    } catch (err: any) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't save template",
+        message: err?.error || "Try again in a moment.",
+      });
+    }
+  };
   // derived values
   const {
     access,
@@ -148,6 +181,15 @@ export const PageActions = observer(function PageActions(props: Props) {
           icon: FileOutput,
           shouldRender: canCurrentUserMovePage && isMovePageEnabled,
         },
+        {
+          key: "save-as-template",
+          action: () => {
+            void handleSaveAsTemplate();
+          },
+          title: "Save as template",
+          icon: FileText,
+          shouldRender: canSaveAsTemplate && !archived_at,
+        },
       ];
       if (extraOptions) {
         menuItems.push(...extraOptions);
@@ -165,8 +207,12 @@ export const PageActions = observer(function PageActions(props: Props) {
       canCurrentUserArchivePage,
       canCurrentUserDeletePage,
       canCurrentUserMovePage,
+      canSaveAsTemplate,
       isMovePageEnabled,
       pageOperations,
+      // handleSaveAsTemplate closes over `page` + `workspaceSlug` — both are
+      // already in the dep array indirectly via the page instance object identity.
+      handleSaveAsTemplate,
     ]
   );
   // arrange options

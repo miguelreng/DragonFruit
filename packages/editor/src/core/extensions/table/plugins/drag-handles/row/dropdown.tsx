@@ -6,8 +6,8 @@
 
 import type { Editor } from "@tiptap/core";
 import { TableMap } from "@tiptap/pm/tables";
-import { ArrowDown, ArrowUp, ToggleRight } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, ToggleRight } from "@plane/icons";
+import type { LucideIcon } from "@plane/icons";
 // extensions
 import type { ISvgIcons } from "@plane/propel/icons";
 import { CopyIcon, TrashIcon, CloseIcon } from "@plane/propel/icons";

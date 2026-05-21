@@ -8,7 +8,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { CircleDashed } from "@/components/icons/lucide-shim";
-import { PlusIcon } from "@plane/propel/icons";
+import { ChevronRightIcon, PlusIcon } from "@plane/propel/icons";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue, ISearchIssueResponse, TIssueGroupByOptions } from "@plane/types";
@@ -39,6 +39,7 @@ interface IHeaderGroupByCard {
   addIssuesToView?: (issueIds: string[]) => Promise<TIssue>;
   selectionHelpers: TSelectionHelper;
   handleCollapsedGroups: (value: string) => void;
+  isExpanded?: boolean;
   isEpic?: boolean;
 }
 
@@ -55,6 +56,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
     addIssuesToView,
     selectionHelpers,
     handleCollapsedGroups,
+    isExpanded = true,
     isEpic = false,
   } = props;
   // states
@@ -127,7 +129,19 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="button"
           tabIndex={0}
+          aria-expanded={isExpanded}
         >
+          {/* Disclosure chevron — points right when collapsed, rotates 90° to
+              point down when expanded. Same rotation pattern as the subtask
+              chevron on each row so the affordance reads consistently across
+              the list. Slightly stronger color than tertiary text so the
+              control reads as "this is clickable". */}
+          <ChevronRightIcon
+            className={cn("size-4 flex-shrink-0 text-secondary transition-transform", {
+              "rotate-90": isExpanded,
+            })}
+            strokeWidth={2.5}
+          />
           <div className="line-clamp-1 inline-block truncate text-13 font-medium text-primary">{title}</div>
           <div className="pl-2 text-13 font-medium text-tertiary">{count || 0}</div>
           <div className="px-2.5">

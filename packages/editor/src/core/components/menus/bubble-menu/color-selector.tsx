@@ -5,7 +5,7 @@
  */
 
 import type { Editor } from "@tiptap/react";
-import { ALargeSmall, Ban } from "lucide-react";
+import { ALargeSmall, Ban } from "@plane/icons";
 import { useMemo } from "react";
 // plane utils
 import { cn } from "@plane/utils";

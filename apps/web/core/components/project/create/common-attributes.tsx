@@ -5,19 +5,15 @@
  */
 
 import type { ChangeEvent } from "react";
+import { useState } from "react";
 import type { UseFormSetValue } from "react-hook-form";
 import { Controller, useFormContext } from "react-hook-form";
-import { InfoIcon } from "@plane/propel/icons";
-// plane imports
 import { ETabIndices } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-// ui
-import { Tooltip } from "@plane/propel/tooltip";
-import { Input, TextArea } from "@plane/ui";
-import { cn, projectIdentifierSanitizer, getTabIndex } from "@plane/utils";
-// plane utils
-// helpers
-// plane-web types
+import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
+import type { IProject } from "@plane/types";
+import { Input, TextArea, ToggleSwitch } from "@plane/ui";
+import { projectIdentifierSanitizer, getTabIndex } from "@plane/utils";
 import type { TProject } from "@/plane-web/types/projects";
 
 type Props = {
@@ -29,12 +25,12 @@ type Props = {
 };
 
 function ProjectCommonAttributes(props: Props) {
-  const { setValue, isMobile, shouldAutoSyncIdentifier, setShouldAutoSyncIdentifier, handleFormOnChange } = props;
+  const { setValue, isMobile, shouldAutoSyncIdentifier, handleFormOnChange } = props;
   const {
     formState: { errors },
     control,
   } = useFormContext<TProject>();
-
+  const [isLogoPickerOpen, setIsLogoPickerOpen] = useState(false);
   const { getIndex } = getTabIndex(ETabIndices.PROJECT_CREATE, isMobile);
   const { t } = useTranslation();
 
@@ -50,87 +46,84 @@ function ProjectCommonAttributes(props: Props) {
       handleFormOnChange?.();
     };
 
-  const handleIdentifierChange = (onChange: (value: string) => void) => (e: ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    const alphanumericValue = projectIdentifierSanitizer(value);
-    setShouldAutoSyncIdentifier(false);
-    onChange(alphanumericValue);
-    handleFormOnChange?.();
-  };
   return (
-    <div className="grid grid-cols-1 gap-x-2 gap-y-3 md:grid-cols-4">
-      <div className="md:col-span-3">
-        <Controller
-          control={control}
-          name="name"
-          rules={{
-            required: t("name_is_required"),
-            maxLength: {
-              value: 255,
-              message: t("title_should_be_less_than_255_characters"),
-            },
-          }}
-          render={({ field: { value, onChange } }) => (
-            <Input
-              id="name"
+    <div className="space-y-4">
+      <div>
+        <label className="mb-1.5 block text-body-sm-medium text-primary">{t("icon_and_name")}</label>
+        <div className="flex items-stretch gap-2">
+          <Controller
+            name="logo_props"
+            control={control}
+            render={({ field: { value, onChange } }) => (
+              <EmojiPicker
+                iconType="material"
+                isOpen={isLogoPickerOpen}
+                handleToggle={(val: boolean) => setIsLogoPickerOpen(val)}
+                className="flex items-center justify-center"
+                buttonClassName="flex items-center justify-center"
+                label={
+                  <span className="grid h-9 w-9 place-items-center rounded-md border border-subtle bg-layer-2">
+                    <Logo logo={value} size={16} />
+                  </span>
+                }
+                onChange={(val: any) => {
+                  let logoValue = {};
+                  if (val?.type === "emoji") logoValue = { value: val.value };
+                  else if (val?.type === "icon") logoValue = val.value;
+
+                  const newLogoProps = {
+                    in_use: val?.type,
+                    [val?.type]: logoValue,
+                  };
+                  setValue("logo_props", newLogoProps, { shouldDirty: true });
+                  onChange(newLogoProps);
+                  handleFormOnChange?.();
+                  setIsLogoPickerOpen(false);
+                }}
+                defaultIconColor={value?.in_use && value.in_use === "icon" ? value.icon?.color : undefined}
+                defaultOpen={
+                  value?.in_use && value.in_use === "emoji" ? EmojiIconPickerTypes.EMOJI : EmojiIconPickerTypes.ICON
+                }
+              />
+            )}
+          />
+          <div className="flex-1">
+            <Controller
+              control={control}
               name="name"
-              type="text"
-              value={value}
-              onChange={handleNameChange(onChange)}
-              hasError={Boolean(errors.name)}
-              placeholder={t("project_name")}
-              className="focus:border-blue-400 w-full"
-              tabIndex={getIndex("name")}
+              rules={{
+                required: t("name_is_required"),
+                maxLength: {
+                  value: 255,
+                  message: t("title_should_be_less_than_255_characters"),
+                },
+              }}
+              render={({ field: { value, onChange } }) => (
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={value}
+                  onChange={handleNameChange(onChange)}
+                  hasError={Boolean(errors.name)}
+                  placeholder={t("e_g_marketing_engineering_hr")}
+                  className="w-full"
+                  tabIndex={getIndex("name")}
+                  autoFocus
+                />
+              )}
             />
-          )}
-        />
-        <span className="text-11 text-danger-primary">{errors?.name?.message}</span>
+            {errors?.name?.message && (
+              <span className="mt-1 block text-11 text-danger-primary">{errors.name.message}</span>
+            )}
+          </div>
+        </div>
       </div>
-      <div className="relative">
-        <Controller
-          control={control}
-          name="identifier"
-          rules={{
-            required: t("project_id_is_required"),
-            // allow only alphanumeric & non-latin characters
-            validate: (value) =>
-              /^[ÇŞĞIİÖÜA-Z0-9]+$/.test(value.toUpperCase()) || t("only_alphanumeric_non_latin_characters_allowed"),
-            minLength: {
-              value: 1,
-              message: t("project_id_min_char"),
-            },
-            maxLength: {
-              value: 10,
-              message: t("project_id_max_char"),
-            },
-          }}
-          render={({ field: { value, onChange } }) => (
-            <Input
-              id="identifier"
-              name="identifier"
-              type="text"
-              value={value}
-              onChange={handleIdentifierChange(onChange)}
-              hasError={Boolean(errors.identifier)}
-              placeholder={t("project_id")}
-              className={cn("focus:border-blue-400 w-full pr-7 text-11", {
-                uppercase: value,
-              })}
-              tabIndex={getIndex("identifier")}
-            />
-          )}
-        />
-        <Tooltip
-          isMobile={isMobile}
-          tooltipContent={t("project_id_tooltip_content")}
-          className="text-13"
-          position="right-start"
-        >
-          <InfoIcon className="absolute top-2.5 right-2 h-3 w-3 text-placeholder" />
-        </Tooltip>
-        <span className="text-11 text-danger-primary">{errors?.identifier?.message}</span>
-      </div>
-      <div className="md:col-span-4">
+
+      <div>
+        <label className="mb-1.5 block text-body-sm-medium text-primary">
+          {t("description")} <span className="text-secondary">({t("optional")})</span>
+        </label>
         <Controller
           name="description"
           control={control}
@@ -139,18 +132,38 @@ function ProjectCommonAttributes(props: Props) {
               id="description"
               name="description"
               value={value}
-              placeholder={t("description")}
+              placeholder=""
               onChange={(e) => {
                 onChange(e);
                 handleFormOnChange?.();
               }}
-              className="focus:border-blue-400 !h-24 text-13"
+              className="!h-20 w-full text-13"
               hasError={Boolean(errors?.description)}
               tabIndex={getIndex("description")}
             />
           )}
         />
       </div>
+
+      <Controller
+        control={control}
+        name="network"
+        render={({ field: { value, onChange } }) => (
+          <div className="flex items-center justify-between pt-1">
+            <div>
+              <div className="text-body-sm-medium text-primary">{t("make_private")}</div>
+              <div className="text-caption-md-regular text-secondary">{t("make_private_description")}</div>
+            </div>
+            <ToggleSwitch
+              value={value === 0}
+              onChange={(checked) => {
+                onChange(checked ? 0 : 2);
+                handleFormOnChange?.();
+              }}
+            />
+          </div>
+        )}
+      />
     </div>
   );
 }

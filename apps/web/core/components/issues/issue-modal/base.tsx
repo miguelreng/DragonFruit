@@ -28,6 +28,7 @@ import { FileService } from "@/services/file.service";
 const fileService = new FileService();
 // local imports
 import { CreateIssueToastActionItems } from "../create-issue-toast-action-items";
+import { CompactIssueForm } from "./compact-form";
 import { DraftIssueLayout } from "./draft-issue-layout";
 import { IssueFormRoot } from "./form";
 import type { IssueFormProps } from "./form";
@@ -411,6 +412,27 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
     handleDuplicateIssueModal: handleDuplicateIssueModal,
     isProjectSelectionDisabled: isProjectSelectionDisabled,
   };
+
+  const isCreateMode = !data?.id && !data?.sourceIssueId;
+
+  if (isCreateMode) {
+    return (
+      <ModalCore
+        isOpen={isOpen}
+        position={EModalPosition.TOP}
+        width={EModalWidth.XL}
+        className="rounded-lg !bg-transparent shadow-none"
+      >
+        <CompactIssueForm
+          data={commonIssueModalProps.data}
+          projectId={activeProjectId}
+          isDraft={isDraft}
+          onClose={handleClose}
+          onSubmit={(payload) => handleFormSubmit(payload, isDraft)}
+        />
+      </ModalCore>
+    );
+  }
 
   return (
     <ModalCore
