@@ -40,6 +40,10 @@ type Props = {
   shouldHideIssue?: (issue: ISearchIssueResponse) => boolean;
   selectedWorkItemIds?: string[];
   workItemSearchServiceCallback?: (params: TProjectIssuesSearchParams) => Promise<ISearchIssueResponse[]>;
+  // Optional content rendered between the issue list and the action buttons.
+  // Used by the relations create flow to inject a "Custom label" input so the
+  // user can name the relation in the same modal — see issue-detail-widget-modals.
+  footerSlot?: React.ReactNode;
 };
 
 const projectService = new ProjectService();
@@ -58,6 +62,7 @@ export function ExistingIssuesListModal(props: Props) {
     shouldHideIssue,
     selectedWorkItemIds,
     workItemSearchServiceCallback,
+    footerSlot,
   } = props;
   // states
   const [isLoading, setIsLoading] = useState(false);
@@ -132,6 +137,10 @@ export function ExistingIssuesListModal(props: Props) {
 
   useEffect(() => {
     handleSearch();
+    // handleSearch is intentionally omitted — it's recreated on every render
+    // and including it would put us in an infinite re-fetch loop. The deps
+    // listed below are the actual inputs the search depends on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, isOpen, isWorkspaceLevel, projectId, workspaceSlug]);
 
   const filteredIssues = issues.filter((issue) => !shouldHideIssue?.(issue));
@@ -302,6 +311,7 @@ export function ExistingIssuesListModal(props: Props) {
           )}
         </Combobox.Options>
       </Combobox>
+      {footerSlot && <div className="border-t border-subtle px-3 pt-3">{footerSlot}</div>}
       <div className="flex items-center justify-between p-3">
         <Button
           variant="link"
