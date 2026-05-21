@@ -161,6 +161,12 @@ from .issue.subscriber import IssueSubscriberViewSet
 
 from .issue.version import IssueVersionEndpoint, WorkItemDescriptionVersionEndpoint
 
+from .issue.template import (
+    WorkItemTemplateDetailEndpoint,
+    WorkItemTemplateInstantiateEndpoint,
+    WorkItemTemplateListEndpoint,
+)
+
 from .module.base import (
     ModuleViewSet,
     ModuleLinkViewSet,
