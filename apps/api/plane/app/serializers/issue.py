@@ -419,6 +419,10 @@ class IssueRelationSerializer(BaseSerializer):
             "project_id",
             "sequence_id",
             "relation_type",
+            # User-defined override for the relation_type label — see model.
+            # The client should prefer this when set; otherwise fall back to
+            # the relation_type title-case as before.
+            "custom_label",
             "name",
             "state_id",
             "priority",

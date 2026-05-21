@@ -214,6 +214,16 @@ class IssueRelationViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Optional per-project custom label. Trimmed + bounded to the model's
+        # max_length so a long client-side string doesn't 500 the bulk_create.
+        # Empty string normalizes to None so we don't burn a row of empty text.
+        raw_label = request.data.get("custom_label")
+        custom_label = (raw_label or "").strip() if isinstance(raw_label, str) else None
+        if custom_label == "":
+            custom_label = None
+        if custom_label and len(custom_label) > 120:
+            custom_label = custom_label[:120]
+
         issues = request.data.get("issues", [])
         project = Project.objects.get(pk=project_id)
 
@@ -225,6 +235,7 @@ class IssueRelationViewSet(BaseViewSet):
                         issue_id if relation_type in ["blocking", "start_after", "finish_after"] else issue
                     ),
                     relation_type=(get_actual_relation(relation_type)),
+                    custom_label=custom_label,
                     project_id=project_id,
                     workspace_id=project.workspace_id,
                     created_by=request.user,
