@@ -13,31 +13,30 @@ export const ListQuickAddIssueForm = observer(function ListQuickAddIssueForm(pro
   const { t } = useTranslation();
   return (
     <div className="shadow-raised-200">
+      {/* Row sized to match list-block.tsx exactly — `min-h-11 + py-3`
+          gives 44px minimum height with 12px vertical padding, the same
+          rhythm as every other task row. Previously this form sat on top
+          of an extra "press Enter to add" hint div, which doubled the
+          visible height. Hint is now inline as the input's placeholder
+          suffix (`… (Enter)`) so the affordance stays without breaking
+          the row rhythm. */}
       <form
         ref={ref}
         onSubmit={onSubmit}
-        className="flex w-full items-center gap-x-3 border-[0.5px] border-t-0 border-subtle bg-surface-1 px-3"
+        className="flex min-h-11 w-full items-center gap-x-3 border-[0.5px] border-t-0 border-subtle bg-surface-1 px-3 py-3"
       >
-        {/* Project identifier chip removed — the user is already inside
-            the project's task list, so showing "PERSONAL" (or whatever)
-            in front of every quick-add row is line noise. The new task
-            still gets its sequence id assigned on save; the identifier
-            just doesn't show up in this inline form. */}
         <div className="flex w-full items-center gap-3">
           <input
             type="text"
             autoComplete="off"
-            placeholder={isEpic ? t("epic.title.label") : t("issue.title.label")}
+            placeholder={`${isEpic ? t("epic.title.label") : t("issue.title.label")}`}
             {...register("name", {
               required: isEpic ? t("epic.title.required") : t("issue.title.required"),
             })}
-            className="w-full rounded-md bg-transparent px-2 py-3 text-13 leading-5 font-medium text-secondary outline-none"
+            className="w-full rounded-md bg-transparent px-2 text-13 leading-5 font-medium text-secondary outline-none"
           />
         </div>
       </form>
-      <div className="px-3 py-2 text-11 text-secondary italic">
-        {isEpic ? t("epic.add.press_enter") : t("issue.add.press_enter")}
-      </div>
     </div>
   );
 });
