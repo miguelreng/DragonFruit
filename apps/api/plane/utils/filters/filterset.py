@@ -157,6 +157,12 @@ class IssueFilterSet(BaseFilterSet):
     subscriber_id = filters.UUIDFilter(method="filter_subscriber_id")
     subscriber_id__in = UUIDInFilter(method="filter_subscriber_id_in", lookup_expr="in")
 
+    # Filter by the user-defined custom_label on any IssueRelation involving
+    # this task (in either direction). See roadmap item #2 — built on the
+    # IssueRelation.custom_label foundation from #1.
+    relation_label = filters.CharFilter(method="filter_relation_label")
+    relation_label__in = CharInFilter(method="filter_relation_label_in", lookup_expr="in")
+
     class Meta:
         model = Issue
         fields = {
@@ -263,4 +269,27 @@ class IssueFilterSet(BaseFilterSet):
         return Q(
             issue_subscribers__subscriber_id__in=value,
             issue_subscribers__deleted_at__isnull=True,
+        )
+
+    def filter_relation_label(self, queryset, name, value):
+        """Filter to tasks that have at least one IssueRelation with
+        custom_label matching `value` (case-sensitive exact). Checks both
+        directions of the relation since the row can be stored either way."""
+        return Q(
+            issue_relation__custom_label=value,
+            issue_relation__deleted_at__isnull=True,
+        ) | Q(
+            issue_related__custom_label=value,
+            issue_related__deleted_at__isnull=True,
+        )
+
+    def filter_relation_label_in(self, queryset, name, value):
+        """Multi-value variant — task matches if any of its relations carries
+        a custom_label in the provided list (either direction)."""
+        return Q(
+            issue_relation__custom_label__in=value,
+            issue_relation__deleted_at__isnull=True,
+        ) | Q(
+            issue_related__custom_label__in=value,
+            issue_related__deleted_at__isnull=True,
         )

@@ -41,6 +41,17 @@ export class IssueRelationService extends APIService {
       });
   }
 
+  async listWorkspaceRelationLabels(workspaceSlug: string): Promise<string[]> {
+    // Feeds the rich-filters "Relation label" picker. Server returns the
+    // distinct custom_label strings used across all IssueRelations in the
+    // workspace, alphabetically.
+    return this.get(`/api/workspaces/${workspaceSlug}/relation-labels/`)
+      .then((response) => response?.data ?? [])
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async updateIssueRelationLabel(
     workspaceSlug: string,
     projectId: string,
