@@ -41,6 +41,24 @@ export class IssueRelationService extends APIService {
       });
   }
 
+  async updateIssueRelationLabel(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    // `related_issue` identifies the row to update — the relation between
+    // any two issues is unique. Empty string clears the label.
+    data: { related_issue: string; custom_label: string }
+  ): Promise<{ custom_label: string | null }> {
+    return this.patch(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/issues/${issueId}/update-relation-label/`,
+      data
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async deleteIssueRelation(
     workspaceSlug: string,
     projectId: string,
