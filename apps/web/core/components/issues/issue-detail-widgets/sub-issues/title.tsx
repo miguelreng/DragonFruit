@@ -34,12 +34,13 @@ export const SubIssuesCollapsibleTitle = observer(function SubIssuesCollapsibleT
   // derived values
   const subIssuesDistribution = stateDistributionByIssueId(parentIssueId);
   const subIssues = subIssuesByIssueId(parentIssueId);
-  // if there are no sub-issues, return null
-  if (!subIssues) return null;
 
-  // calculate percentage of completed sub-issues
+  // No early-return on empty subtasks — the section needs to render even
+  // for tasks with zero subtasks so the user can expand it and inline-add
+  // their first. The counts just read "0/0" and the progress ring stays
+  // empty in that state.
   const completedCount = subIssuesDistribution?.completed?.length ?? 0;
-  const totalCount = subIssues.length;
+  const totalCount = subIssues?.length ?? 0;
   const percentage = completedCount && totalCount ? (completedCount / totalCount) * 100 : 0;
 
   return (

@@ -6,6 +6,7 @@
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
+import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISearchIssueResponse, TIssue, TIssueServiceType, TWorkItemWidgets } from "@plane/types";
 // components
@@ -13,6 +14,7 @@ import { ExistingIssuesListModal } from "@/components/core/modals/existing-issue
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // plane web imports
+import { useTimeLineRelationOptions } from "@/plane-web/components/relations";
 import { WorkItemAdditionalWidgetModals } from "@/plane-web/components/issues/issue-detail-widgets/modals";
 // local imports
 import { IssueLinkCreateUpdateModal } from "../issue-detail/links/create-update-link-modal";
@@ -31,6 +33,8 @@ type Props = {
 
 export const IssueDetailWidgetModals = observer(function IssueDetailWidgetModals(props: Props) {
   const { workspaceSlug, projectId, issueId, issueServiceType, hideWidgets } = props;
+  const { t } = useTranslation();
+  const ISSUE_RELATION_OPTIONS = useTimeLineRelationOptions();
   // store hooks
   const {
     isIssueLinkModalOpen,
@@ -193,37 +197,51 @@ export const IssueDetailWidgetModals = observer(function IssueDetailWidgetModals
         />
       )}
 
-      {!hideWidgets?.includes("relations") && (
-        <ExistingIssuesListModal
-          workspaceSlug={workspaceSlug}
-          projectId={projectId}
-          isOpen={isRelationModalOpen?.issueId === issueId && isRelationModalOpen?.relationType === relationKey}
-          handleClose={() => {
-            setRelationCustomLabel("");
-            handleRelationOnClose();
-          }}
-          searchParams={{ issue_relation: true, issue_id: issueId }}
-          handleOnSubmit={handleExistingIssueModalOnSubmit}
-          workspaceLevelToggle
-          footerSlot={
-            // Custom label is optional — when set, overrides the
-            // relation_type display ("Blocked by", "Relates to", etc.) with
-            // whatever the user types. Kept short with a 120-char ceiling
-            // matching the model column.
-            <label className="text-sm flex items-center gap-2 pb-3">
-              <span className="flex-shrink-0 text-tertiary">Label</span>
-              <input
-                type="text"
-                value={relationCustomLabel}
-                onChange={(e) => setRelationCustomLabel(e.target.value)}
-                placeholder='Optional — e.g. "Stakeholder", "Approved by"'
-                maxLength={120}
-                className="focus:border-primary flex-1 rounded-md border border-strong bg-transparent px-2 py-1 text-13 text-primary placeholder:text-placeholder focus:outline-none"
-              />
-            </label>
-          }
-        />
-      )}
+      {!hideWidgets?.includes("relations") &&
+        (() => {
+          // Resolve the relation type's display name once so the title /
+          // submit label / label-input placeholder can all reference it
+          // consistently. Falls back to "relation" for the (rare) case
+          // where the relationKey isn't in the options map.
+          const relationOption = relationKey ? ISSUE_RELATION_OPTIONS[relationKey] : undefined;
+          const relationLabel = relationOption?.i18n_label ? t(relationOption.i18n_label) : "relation";
+          return (
+            <ExistingIssuesListModal
+              workspaceSlug={workspaceSlug}
+              projectId={projectId}
+              isOpen={isRelationModalOpen?.issueId === issueId && isRelationModalOpen?.relationType === relationKey}
+              handleClose={() => {
+                setRelationCustomLabel("");
+                handleRelationOnClose();
+              }}
+              searchParams={{ issue_relation: true, issue_id: issueId }}
+              handleOnSubmit={handleExistingIssueModalOnSubmit}
+              workspaceLevelToggle
+              // Header tells the user exactly what they're about to do —
+              // "Link as Blocked by" reads as a concrete action vs. the
+              // previous untitled "pick some issues" modal.
+              title={`Link as ${relationLabel}`}
+              submitLabel={`Link as ${relationLabel}`}
+              footerSlot={
+                // Custom label is optional — when set, overrides the
+                // relation_type display ("Blocked by", "Relates to", etc.)
+                // with whatever the user types. Placeholder mentions the
+                // current relation type so it's obvious what you're naming.
+                <label className="text-sm flex items-center gap-2 pb-3">
+                  <span className="flex-shrink-0 text-tertiary">Label</span>
+                  <input
+                    type="text"
+                    value={relationCustomLabel}
+                    onChange={(e) => setRelationCustomLabel(e.target.value)}
+                    placeholder={`Optional — name this ${relationLabel} (e.g. "Stakeholder")`}
+                    maxLength={120}
+                    className="focus:border-primary flex-1 rounded-md border border-strong bg-transparent px-2 py-1 text-13 text-primary placeholder:text-placeholder focus:outline-none"
+                  />
+                </label>
+              }
+            />
+          );
+        })()}
 
       <WorkItemAdditionalWidgetModals
         hideWidgets={hideWidgets ?? []}
