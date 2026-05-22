@@ -50,6 +50,7 @@ from plane.bgtasks.event_tracking_task import track_event
 from plane.utils.url import contains_url
 from plane.utils.analytics_events import WORKSPACE_CREATED, WORKSPACE_DELETED
 from plane.utils.csv_utils import sanitize_csv_row
+from plane.utils.exception_logger import log_exception
 
 
 class WorkSpaceViewSet(BaseViewSet):
@@ -136,21 +137,27 @@ class WorkSpaceViewSet(BaseViewSet):
                 data["total_members"] = total_members
                 data["role"] = 20
 
-                workspace_seed.delay(serializer.data["id"])
+                try:
+                    workspace_seed.delay(serializer.data["id"])
+                except Exception as e:
+                    log_exception(e)
 
-                track_event.delay(
-                    user_id=request.user.id,
-                    event_name=WORKSPACE_CREATED,
-                    slug=data["slug"],
-                    event_properties={
-                        "user_id": request.user.id,
-                        "workspace_id": data["id"],
-                        "workspace_slug": data["slug"],
-                        "role": "owner",
-                        "workspace_name": data["name"],
-                        "created_at": data["created_at"],
-                    },
-                )
+                try:
+                    track_event.delay(
+                        user_id=request.user.id,
+                        event_name=WORKSPACE_CREATED,
+                        slug=data["slug"],
+                        event_properties={
+                            "user_id": request.user.id,
+                            "workspace_id": data["id"],
+                            "workspace_slug": data["slug"],
+                            "role": "owner",
+                            "workspace_name": data["name"],
+                            "created_at": data["created_at"],
+                        },
+                    )
+                except Exception as e:
+                    log_exception(e)
 
                 return Response(data, status=status.HTTP_201_CREATED)
             return Response(
@@ -185,19 +192,22 @@ class WorkSpaceViewSet(BaseViewSet):
         # Get the workspace
         workspace = self.get_object()
         self.remove_last_workspace_ids_from_user_settings(workspace.id)
-        track_event.delay(
-            user_id=request.user.id,
-            event_name=WORKSPACE_DELETED,
-            slug=workspace.slug,
-            event_properties={
-                "user_id": request.user.id,
-                "workspace_id": workspace.id,
-                "workspace_slug": workspace.slug,
-                "role": "owner",
-                "workspace_name": workspace.name,
-                "deleted_at": str(timezone.now().isoformat()),
-            },
-        )
+        try:
+            track_event.delay(
+                user_id=request.user.id,
+                event_name=WORKSPACE_DELETED,
+                slug=workspace.slug,
+                event_properties={
+                    "user_id": request.user.id,
+                    "workspace_id": workspace.id,
+                    "workspace_slug": workspace.slug,
+                    "role": "owner",
+                    "workspace_name": workspace.name,
+                    "deleted_at": str(timezone.now().isoformat()),
+                },
+            )
+        except Exception as e:
+            log_exception(e)
         return super().destroy(request, *args, **kwargs)
 
 

@@ -85,3 +85,22 @@ class TestWorkspaceAPI:
 
         assert response.status_code == status.HTTP_200_OK
         assert isinstance(response.data, list)
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.workspace.base.track_event.delay", side_effect=Exception("broker unavailable"))
+    @patch("plane.app.views.workspace.base.workspace_seed.delay", side_effect=Exception("broker unavailable"))
+    def test_create_workspace_succeeds_when_background_tasks_fail(
+        self, _mock_workspace_seed, _mock_track_event, session_client
+    ):
+        """Workspace creation should not fail if async queue is temporarily unavailable."""
+        url = reverse("workspace")
+        workspace_data = {
+            "name": "Resilient Workspace",
+            "slug": "resilient-workspace",
+            "company_name": "Plane Inc.",
+        }
+
+        response = session_client.post(url, workspace_data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Workspace.objects.filter(slug=workspace_data["slug"]).exists()
