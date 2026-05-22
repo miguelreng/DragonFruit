@@ -4,6 +4,7 @@
 
 # Python imports
 import json
+import logging
 
 
 # Django imports
@@ -42,6 +43,8 @@ from plane.db.models import (
 from plane.db.models.intake import IntakeIssueStatus
 from plane.utils.exception_logger import log_exception
 from plane.utils.host import base_host
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectViewSet(BaseViewSet):
@@ -239,13 +242,16 @@ class ProjectViewSet(BaseViewSet):
                     status=status.HTTP_409_CONFLICT,
                 )
 
-        recent_visited_task.delay(
-            slug=slug,
-            project_id=pk,
-            entity_name="project",
-            entity_identifier=pk,
-            user_id=request.user.id,
-        )
+        try:
+            recent_visited_task.delay(
+                slug=slug,
+                project_id=pk,
+                entity_name="project",
+                entity_identifier=pk,
+                user_id=request.user.id,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("recent_visited_task enqueue failed for project=%s workspace=%s", pk, slug)
 
         serializer = ProjectListSerializer(project)
         return Response(serializer.data, status=status.HTTP_200_OK)

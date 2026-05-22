@@ -5,6 +5,7 @@
 # Python imports
 import copy
 import json
+import logging
 
 # Django imports
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -77,6 +78,8 @@ from plane.utils.timezone_converter import user_timezone_converter
 from plane.utils.exception_logger import log_exception
 
 from .. import BaseAPIView, BaseViewSet
+
+logger = logging.getLogger(__name__)
 
 
 class IssueListEndpoint(BaseAPIView):
@@ -151,13 +154,20 @@ class IssueListEndpoint(BaseAPIView):
         # issue queryset
         issue_queryset = issue_queryset_grouper(queryset=issue_queryset, group_by=group_by, sub_group_by=sub_group_by)
 
-        recent_visited_task.delay(
-            slug=slug,
-            project_id=project_id,
-            entity_name="project",
-            entity_identifier=project_id,
-            user_id=request.user.id,
-        )
+        try:
+            recent_visited_task.delay(
+                slug=slug,
+                project_id=project_id,
+                entity_name="project",
+                entity_identifier=project_id,
+                user_id=request.user.id,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "recent_visited_task enqueue failed for issue list project=%s workspace=%s",
+                project_id,
+                slug,
+            )
 
         if self.fields or self.expand:
             issues = IssueSerializer(issue_queryset, many=True, fields=self.fields, expand=self.expand).data
@@ -290,13 +300,20 @@ class IssueViewSet(BaseViewSet):
         # issue queryset
         issue_queryset = issue_queryset_grouper(queryset=issue_queryset, group_by=group_by, sub_group_by=sub_group_by)
 
-        recent_visited_task.delay(
-            slug=slug,
-            project_id=project_id,
-            entity_name="project",
-            entity_identifier=project_id,
-            user_id=request.user.id,
-        )
+        try:
+            recent_visited_task.delay(
+                slug=slug,
+                project_id=project_id,
+                entity_name="project",
+                entity_identifier=project_id,
+                user_id=request.user.id,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "recent_visited_task enqueue failed for grouped issue list project=%s workspace=%s",
+                project_id,
+                slug,
+            )
         if (
             ProjectMember.objects.filter(
                 workspace__slug=slug,
@@ -612,13 +629,20 @@ class IssueViewSet(BaseViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        recent_visited_task.delay(
-            slug=slug,
-            entity_name="issue",
-            entity_identifier=pk,
-            user_id=request.user.id,
-            project_id=project_id,
-        )
+        try:
+            recent_visited_task.delay(
+                slug=slug,
+                entity_name="issue",
+                entity_identifier=pk,
+                user_id=request.user.id,
+                project_id=project_id,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "recent_visited_task enqueue failed for issue detail issue=%s workspace=%s",
+                pk,
+                slug,
+            )
 
         serializer = IssueDetailSerializer(issue, expand=self.expand)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1353,13 +1377,20 @@ class IssueDetailIdentifierEndpoint(BaseAPIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        recent_visited_task.delay(
-            slug=slug,
-            entity_name="issue",
-            entity_identifier=str(issue.id),
-            user_id=str(request.user.id),
-            project_id=str(project.id),
-        )
+        try:
+            recent_visited_task.delay(
+                slug=slug,
+                entity_name="issue",
+                entity_identifier=str(issue.id),
+                user_id=str(request.user.id),
+                project_id=str(project.id),
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "recent_visited_task enqueue failed for issue archived detail issue=%s workspace=%s",
+                issue.id,
+                slug,
+            )
 
         # Serialize the issue
         serializer = IssueDetailSerializer(issue, expand=self.expand)
