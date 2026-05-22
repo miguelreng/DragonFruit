@@ -370,6 +370,19 @@ SESSION_COOKIE_NAME = os.environ.get("SESSION_COOKIE_NAME", "session-id")
 SESSION_COOKIE_DOMAIN = os.environ.get("COOKIE_DOMAIN", None)
 SESSION_SAVE_EVERY_REQUEST = os.environ.get("SESSION_SAVE_EVERY_REQUEST", "0") == "1"
 
+# SameSite policy for session + CSRF cookies.
+#
+# Single-domain deploys (Docker behind nginx) work fine on `Lax` because every
+# request is same-site. Split-domain deploys (Vercel frontend + a different API
+# host) need `None` so the browser will include the CSRF cookie on cross-site
+# POSTs — without it the admin sign-up form fails CSRF verification. Paired
+# with `Secure=True` (already enforced when all origins are https), `None` is
+# the combination modern browsers require for cross-site cookies.
+_cookie_samesite = os.environ.get("COOKIE_SAMESITE", "Lax").strip()
+if _cookie_samesite.lower() == "none":
+    _cookie_samesite = "None"  # Django expects the exact string "None"
+SESSION_COOKIE_SAMESITE = _cookie_samesite
+
 # Admin Cookie
 ADMIN_SESSION_COOKIE_NAME = "admin-session-id"
 ADMIN_SESSION_COOKIE_AGE = int(os.environ.get("ADMIN_SESSION_COOKIE_AGE", 3600))
@@ -377,6 +390,7 @@ ADMIN_SESSION_COOKIE_AGE = int(os.environ.get("ADMIN_SESSION_COOKIE_AGE", 3600))
 # CSRF cookies
 CSRF_COOKIE_SECURE = secure_origins
 CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = _cookie_samesite
 CSRF_TRUSTED_ORIGINS = cors_allowed_origins
 CSRF_COOKIE_DOMAIN = os.environ.get("COOKIE_DOMAIN", None)
 CSRF_FAILURE_VIEW = "plane.authentication.views.common.csrf_failure"
