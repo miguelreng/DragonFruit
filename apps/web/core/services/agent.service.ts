@@ -51,9 +51,12 @@ export type TAgentUpdatePayload = Partial<TAgentCreatePayload> & {
 };
 
 export type TAgentToolCall = {
-  name: string;
-  arguments: Record<string, unknown>;
-  result: string;
+  kind?: string;
+  phase?: string;
+  name?: string;
+  arguments?: Record<string, unknown>;
+  result?: string;
+  iteration?: number;
 };
 
 export type TAgentRun = {
