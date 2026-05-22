@@ -38,6 +38,7 @@ from .issue import (
     CommentReaction,
     Issue,
     IssueActivity,
+    IssueAttachment,
     IssueAssignee,
     IssueBlocker,
     IssueComment,

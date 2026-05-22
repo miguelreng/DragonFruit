@@ -22,7 +22,7 @@ import logging
 import uuid
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.utils import DatabaseError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -453,40 +453,47 @@ class AgentRun(BaseModel):
 
 @receiver(post_save, sender="db.IssueAssignee")
 def _dispatch_agent_on_assignee_added(sender, instance, created, **kwargs):
-    try:
-        if not created:
-            return
+    if not created:
+        return
 
-        # Most assignees are humans; cheap exit path keeps this near-free.
-        if not getattr(instance.assignee, "is_bot", False):
-            return
+    # Most assignees are humans; cheap exit path keeps this near-free.
+    if not getattr(instance.assignee, "is_bot", False):
+        return
 
-        agent = (
-            Agent.objects.select_related("bot_user")
-            .filter(
-                bot_user_id=instance.assignee_id,
-                workspace_id=instance.workspace_id,
-                is_enabled=True,
-                deleted_at__isnull=True,
+    issue_id = instance.issue_id
+    assignee_id = instance.assignee_id
+    workspace_id = instance.workspace_id
+
+    def _enqueue_dispatch():
+        try:
+            agent = (
+                Agent.objects.select_related("bot_user")
+                .filter(
+                    bot_user_id=assignee_id,
+                    workspace_id=workspace_id,
+                    is_enabled=True,
+                    deleted_at__isnull=True,
+                )
+                .first()
             )
-            .first()
-        )
-        if not agent:
-            return
+            if not agent:
+                return
 
-        if not (agent.triggers or {}).get("assigned", True):
-            return
+            if not (agent.triggers or {}).get("assigned", True):
+                return
 
-        # Local import so model import order stays clean (bgtasks imports models).
-        from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+            # Local import so model import order stays clean (bgtasks imports models).
+            from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
 
-        dispatch_agent_event.delay(str(agent.id), str(instance.issue_id), "assigned")
-    except Exception:  # noqa: BLE001 — never let agent wiring break assignment flow
-        logger.exception(
-            "agent-assigned signal failed for issue=%s assignee=%s",
-            instance.issue_id,
-            instance.assignee_id,
-        )
+            dispatch_agent_event.delay(str(agent.id), str(issue_id), "assigned")
+        except Exception:  # noqa: BLE001 — never let agent wiring break assignment flow
+            logger.exception(
+                "agent-assigned signal failed for issue=%s assignee=%s",
+                issue_id,
+                assignee_id,
+            )
+
+    transaction.on_commit(_enqueue_dispatch)
 
 
 @receiver(post_save, sender="db.Issue")
@@ -500,68 +507,88 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
         # Loop guard: do not recursively trigger agents on agent-authored tasks.
         return
 
-    try:
-        agents = list(
-            Agent.objects.filter(
-                workspace_id=instance.workspace_id,
-                is_enabled=True,
-                deleted_at__isnull=True,
-            )
-        )
-        automations = list(
-            AgentAutomation.objects.select_related("agent")
-            .filter(
-                workspace_id=instance.workspace_id,
-                trigger_event="issue_created",
-                is_enabled=True,
-                deleted_at__isnull=True,
-                agent__is_enabled=True,
-                agent__deleted_at__isnull=True,
-            )
-        )
-    except Exception:
-        # Never block issue creation if agent/automation persistence is out of
-        # sync (e.g. migrations not applied yet).
-        logger.exception(
-            "agent automation bootstrap query failed for issue=%s workspace=%s",
-            instance.id,
-            instance.workspace_id,
-        )
-        return
-    if not agents and not automations:
-        return
+    issue_id = instance.id
+    workspace_id = instance.workspace_id
 
-    from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+    def _enqueue_dispatches():
+        from .issue import Issue
 
-    dispatched_agent_ids = set()
-    for agent in agents:
-        if not (agent.triggers or {}).get("issue_created", False):
-            continue
         try:
-            dispatch_agent_event.delay(str(agent.id), str(instance.id), "issue_created")
-            dispatched_agent_ids.add(str(agent.id))
-        except Exception:  # noqa: BLE001
-            logger.exception(
-                "agent dispatch enqueue failed for agent=%s issue=%s (issue_created)",
-                agent.id,
-                instance.id,
-            )
+            issue = Issue.objects.get(pk=issue_id)
+        except Issue.DoesNotExist:
+            return
+        except Exception:
+            logger.exception("agent issue_created fetch failed for issue=%s", issue_id)
+            return
 
-    for automation in automations:
-        # If agent-level trigger already dispatched this same event, avoid duplicates.
-        if str(automation.agent_id) in dispatched_agent_ids:
-            continue
-        if not _automation_matches_issue(automation, instance):
-            continue
         try:
-            dispatch_agent_event.delay(str(automation.agent_id), str(instance.id), "issue_created")
-            dispatched_agent_ids.add(str(automation.agent_id))
-        except Exception:  # noqa: BLE001
-            logger.exception(
-                "agent automation dispatch enqueue failed for automation=%s issue=%s",
-                automation.id,
-                instance.id,
+            agents = list(
+                Agent.objects.filter(
+                    workspace_id=workspace_id,
+                    is_enabled=True,
+                    deleted_at__isnull=True,
+                )
             )
+            automations = list(
+                AgentAutomation.objects.select_related("agent")
+                .filter(
+                    workspace_id=workspace_id,
+                    trigger_event="issue_created",
+                    is_enabled=True,
+                    deleted_at__isnull=True,
+                    agent__is_enabled=True,
+                    agent__deleted_at__isnull=True,
+                )
+            )
+        except Exception:
+            # Never block issue creation if agent/automation persistence is out of
+            # sync (e.g. migrations not applied yet).
+            logger.exception(
+                "agent automation bootstrap query failed for issue=%s workspace=%s",
+                issue_id,
+                workspace_id,
+            )
+            return
+        if not agents and not automations:
+            return
+
+        try:
+            from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+        except Exception:
+            logger.exception("agent dispatch task import failed for issue=%s", issue_id)
+            return
+
+        dispatched_agent_ids = set()
+        for agent in agents:
+            if not (agent.triggers or {}).get("issue_created", False):
+                continue
+            try:
+                dispatch_agent_event.delay(str(agent.id), str(issue.id), "issue_created")
+                dispatched_agent_ids.add(str(agent.id))
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "agent dispatch enqueue failed for agent=%s issue=%s (issue_created)",
+                    agent.id,
+                    issue.id,
+                )
+
+        for automation in automations:
+            # If agent-level trigger already dispatched this same event, avoid duplicates.
+            if str(automation.agent_id) in dispatched_agent_ids:
+                continue
+            if not _automation_matches_issue(automation, issue):
+                continue
+            try:
+                dispatch_agent_event.delay(str(automation.agent_id), str(issue.id), "issue_created")
+                dispatched_agent_ids.add(str(automation.agent_id))
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "agent automation dispatch enqueue failed for automation=%s issue=%s",
+                    automation.id,
+                    issue.id,
+                )
+
+    transaction.on_commit(_enqueue_dispatches)
 
 
 # ---------------------------------------------------------------------------
