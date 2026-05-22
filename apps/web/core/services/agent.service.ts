@@ -124,10 +124,17 @@ export type TAgentAutomation = {
   agent_name: string;
   name: string;
   trigger_event: "issue_created";
-  conditions: Record<string, unknown>;
+  conditions: TAgentAutomationConditions;
   is_enabled: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type TAgentAutomationConditions = {
+  project_ids?: string[];
+  priorities?: Array<"urgent" | "high" | "medium" | "low" | "none">;
+  label_ids?: string[];
+  issue_type_ids?: string[];
 };
 
 export class AgentService extends APIService {
@@ -296,7 +303,7 @@ export class AgentService extends APIService {
       name: string;
       agent: string;
       trigger_event: "issue_created";
-      conditions?: Record<string, unknown>;
+      conditions?: TAgentAutomationConditions;
       is_enabled?: boolean;
     }
   ): Promise<TAgentAutomation> {
