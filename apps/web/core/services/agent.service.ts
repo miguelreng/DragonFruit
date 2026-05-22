@@ -21,6 +21,7 @@ export type TAgent = {
   api_base_url: string;
   has_api_key: boolean;
   triggers: {
+    issue_created: boolean;
     assigned: boolean;
     mentioned: boolean;
     state_change: boolean;
@@ -65,7 +66,7 @@ export type TAgentRun = {
   id: string;
   agent: string;
   issue: string | null;
-  trigger_event: "assigned" | "mentioned" | "state_change" | "comment" | "manual";
+  trigger_event: "issue_created" | "assigned" | "mentioned" | "state_change" | "comment" | "manual";
   status: "pending" | "running" | "completed" | "failed" | "cancelled";
   error: string;
   dispatched_at: string | null;

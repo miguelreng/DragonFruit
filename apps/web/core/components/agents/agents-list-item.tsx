@@ -28,9 +28,14 @@ interface IAgentsListItemProps {
 }
 
 // Owner-facing copy for each trigger. The keys match `TAgent["triggers"]`
-// (assigned / mentioned / state_change / comment). Order is the order the
+// (issue_created / assigned / mentioned / state_change / comment). Order is the order the
 // triggers render in.
 const TRIGGER_LABELS: Array<{ key: TAgentTriggerKey; title: string; description: string }> = [
+  {
+    key: "issue_created",
+    title: "When a task is created",
+    description: "Auto-triage new tasks with a first-pass plan and next actions.",
+  },
   {
     key: "assigned",
     title: "When assigned to a task",

@@ -43,6 +43,7 @@ def _default_triggers() -> dict:
     workspaces.
     """
     return {
+        "issue_created": False,
         "assigned": True,
         "mentioned": True,
         "state_change": False,
@@ -299,6 +300,7 @@ class AgentRun(BaseModel):
     )
 
     TRIGGER_CHOICES = (
+        ("issue_created", "Issue created"),
         ("assigned", "Assigned"),
         ("mentioned", "Mentioned"),
         ("state_change", "State change"),
@@ -404,6 +406,42 @@ def _dispatch_agent_on_assignee_added(sender, instance, created, **kwargs):
             agent.id,
             instance.issue_id,
         )
+
+
+@receiver(post_save, sender="db.Issue")
+def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
+    """Trigger opted-in agents when a new task is created."""
+    if not created:
+        return
+
+    created_by = getattr(instance, "created_by", None)
+    if created_by is not None and getattr(created_by, "is_bot", False):
+        # Loop guard: do not recursively trigger agents on agent-authored tasks.
+        return
+
+    agents = list(
+        Agent.objects.filter(
+            workspace_id=instance.workspace_id,
+            is_enabled=True,
+            deleted_at__isnull=True,
+        )
+    )
+    if not agents:
+        return
+
+    from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+
+    for agent in agents:
+        if not (agent.triggers or {}).get("issue_created", False):
+            continue
+        try:
+            dispatch_agent_event.delay(str(agent.id), str(instance.id), "issue_created")
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "agent dispatch enqueue failed for agent=%s issue=%s (issue_created)",
+                agent.id,
+                instance.id,
+            )
 
 
 # ---------------------------------------------------------------------------
