@@ -21,6 +21,8 @@ import { PageTemplateService } from "@/services/page/page-template.service";
 import { PageForm } from "./page-form";
 
 const templateService = new PageTemplateService();
+const PAGE_READY_RETRY_DELAYS_MS = [150, 300, 500, 800, 1200];
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type Props = {
   workspaceSlug: string;
@@ -53,7 +55,7 @@ export function CreatePageModal(props: Props) {
   // router
   const router = useAppRouter();
   // store hooks
-  const { createPage } = usePageStore(storeType);
+  const { createPage, fetchPageDetails } = usePageStore(storeType);
   const handlePageFormData = <T extends keyof TPage>(key: T, value: TPage[T]) =>
     setPageFormData((prev) => ({ ...prev, [key]: value }));
 
@@ -100,7 +102,15 @@ export function CreatePageModal(props: Props) {
           logo_props: pageFormData.logo_props,
           access: pageFormData.access,
         });
-        if (created) {
+        if (created?.id) {
+          for (const delay of PAGE_READY_RETRY_DELAYS_MS) {
+            try {
+              await fetchPageDetails(workspaceSlug, projectId, created.id);
+              break;
+            } catch {
+              await sleep(delay);
+            }
+          }
           handleStateClear();
           if (redirectionEnabled) router.push(`/${workspaceSlug}/projects/${projectId}/pages/${created.id}`);
         }
@@ -109,6 +119,14 @@ export function CreatePageModal(props: Props) {
 
       const pageData = await createPage(pageFormData);
       if (pageData?.id) {
+        for (const delay of PAGE_READY_RETRY_DELAYS_MS) {
+          try {
+            await fetchPageDetails(workspaceSlug, projectId, pageData.id);
+            break;
+          } catch {
+            await sleep(delay);
+          }
+        }
         handleStateClear();
         if (redirectionEnabled) router.push(`/${workspaceSlug}/projects/${projectId}/pages/${pageData.id}`);
       } else {
@@ -123,6 +141,7 @@ export function CreatePageModal(props: Props) {
     selectedTemplateId,
     pageFormData,
     createPage,
+    fetchPageDetails,
     handleStateClear,
     redirectionEnabled,
     router,

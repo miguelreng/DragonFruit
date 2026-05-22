@@ -164,7 +164,9 @@ export function AppLoadingScreen() {
         className="df-loading-legend font-normal pointer-events-none absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-center leading-snug"
         style={{ color: "rgba(246, 239, 221, 0.88)" }}
       >
-        <div className="font-normal text-[14px]">{painting.title}</div>
+        <div className="font-normal text-[14px]" style={{ fontFamily: "Newsreader, serif" }}>
+          {painting.title}
+        </div>
         <div className="mt-0.5 text-[14px]" style={{ opacity: 0.8 }}>
           {painting.meta}
         </div>

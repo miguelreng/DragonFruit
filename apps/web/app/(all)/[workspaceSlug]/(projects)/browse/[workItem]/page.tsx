@@ -47,7 +47,9 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
   const { getProjectById, getProjectByIdentifier } = useProject();
   const { toggleIssueDetailSidebar, issueDetailSidebarCollapsed } = useAppTheme();
 
-  const [projectIdentifier, sequence_id] = workItem.split("-");
+  const separatorIndex = workItem.lastIndexOf("-");
+  const projectIdentifier = separatorIndex > -1 ? workItem.slice(0, separatorIndex) : workItem;
+  const sequence_id = separatorIndex > -1 ? workItem.slice(separatorIndex + 1) : "";
 
   // fetching issue details
   const { data, isLoading, error } = useSWR<TIssue, Error>(

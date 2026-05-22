@@ -20,12 +20,18 @@ from .exporter import ExporterHistory
 from .importer import Importer
 from .intake import Intake, IntakeIssue
 from .integration import (
+    AIConnectorAuthMode,
+    AIConnectorEvent,
+    AIConnectorEventStatus,
+    AIConnectorProvider,
+    AIConnectorStatus,
     GithubCommentSync,
     GithubIssueSync,
     GithubRepository,
     GithubRepositorySync,
     Integration,
     SlackProjectSync,
+    WorkspaceAIConnector,
     WorkspaceIntegration,
 )
 from .issue import (
