@@ -306,12 +306,9 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               >
                 <div className="flex h-full w-8 flex-shrink-0 items-center justify-center">
                   <MultipleSelectEntityAction
-                    className={cn(
-                      "opacity-50 transition-opacity group-hover/list-block:opacity-100",
-                      {
-                        "opacity-100": isIssueSelected,
-                      }
-                    )}
+                    className={cn("opacity-50 transition-opacity group-hover/list-block:opacity-100", {
+                      "opacity-100": isIssueSelected,
+                    })}
                     groupId={SPREADSHEET_SELECT_GROUP}
                     id={issueDetail.id}
                     selectionHelpers={selectionHelpers}

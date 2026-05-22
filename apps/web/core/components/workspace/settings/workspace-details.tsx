@@ -206,7 +206,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
               </button>
             </Tooltip>
             {isAdmin && (
-              <div className="-ml-1 mt-0.5 flex items-center gap-1">
+              <div className="mt-0.5 -ml-1 flex items-center gap-1">
                 <Button
                   variant="link-accent"
                   size="sm"

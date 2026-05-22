@@ -148,7 +148,7 @@ export const SelectionFloatingBar = observer(function SelectionFloatingBar() {
       className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4"
     >
       <div className="shadow-lg pointer-events-auto flex items-center gap-2 rounded-xl border border-strong bg-surface-1 px-3 py-2">
-        <span className="text-11 px-1 font-medium">
+        <span className="px-1 text-11 font-medium">
           <span className="text-primary">{count}</span>{" "}
           <span className="text-tertiary">{count === 1 ? "task" : "tasks"} selected</span>
         </span>
@@ -174,7 +174,7 @@ export const SelectionFloatingBar = observer(function SelectionFloatingBar() {
               type="button"
               disabled={isChangingState || !projectStates?.length}
               aria-label="Change status"
-              className="border border-strong bg-layer-2 text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active disabled:cursor-not-allowed disabled:opacity-60 inline-flex h-5 items-center gap-1 rounded-sm px-1.5 text-caption-md-medium"
+              className="inline-flex h-5 items-center gap-1 rounded-sm border border-strong bg-layer-2 px-1.5 text-caption-md-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span>{isChangingState ? "Updating…" : "Status"}</span>
               <ChevronDown className="size-3" />

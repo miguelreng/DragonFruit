@@ -14,10 +14,7 @@ import { cn } from "@plane/utils";
 import { Plus, Trash2, X } from "@/components/icons/lucide-shim";
 // services
 import { ProjectTemplateService } from "@/services/project/project-template.service";
-import type {
-  TProjectTemplate,
-  TProjectTemplateInitialTask,
-} from "@/services/project/project-template.service";
+import type { TProjectTemplate, TProjectTemplateInitialTask } from "@/services/project/project-template.service";
 
 const projectTemplateService = new ProjectTemplateService();
 
@@ -43,13 +40,7 @@ function toDraft(rows: TProjectTemplateInitialTask[]): DraftTask[] {
   return rows.map((r) => ({ ...r, _key: makeKey() }));
 }
 
-const PRIORITY_OPTIONS: TProjectTemplateInitialTask["priority"][] = [
-  "none",
-  "urgent",
-  "high",
-  "medium",
-  "low",
-];
+const PRIORITY_OPTIONS: TProjectTemplateInitialTask["priority"][] = ["none", "urgent", "high", "medium", "low"];
 
 const NETWORK_LABELS: { value: number; label: string; description: string }[] = [
   { value: 0, label: "Private", description: "Only invited members can see this project" },
@@ -153,14 +144,14 @@ export function ProjectTemplateModal(props: Props) {
   return (
     <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
       <div className="flex max-h-[85vh] flex-col">
-        <header className="border-subtle flex items-center justify-between border-b px-5 py-3">
+        <header className="flex items-center justify-between border-b border-subtle px-5 py-3">
           <h2 className="text-14 font-medium text-primary">
             {isEdit ? "Edit project template" : "New project template"}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="hover:bg-layer-2 rounded p-1 text-tertiary hover:text-primary"
+            className="rounded p-1 text-tertiary hover:bg-layer-2 hover:text-primary"
             aria-label="Close"
           >
             <X className="size-3.5" />
@@ -175,7 +166,7 @@ export function ProjectTemplateModal(props: Props) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Engineering sprint"
-                className="border-subtle bg-layer-1 text-13 placeholder:text-placeholder rounded-md border-[0.5px] px-3 py-2 text-primary outline-none focus:border-strong"
+                className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
               />
             </Field>
 
@@ -185,7 +176,7 @@ export function ProjectTemplateModal(props: Props) {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="One-line summary"
-                className="border-subtle bg-layer-1 text-13 placeholder:text-placeholder rounded-md border-[0.5px] px-3 py-2 text-primary outline-none focus:border-strong"
+                className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
               />
             </Field>
 
@@ -195,7 +186,7 @@ export function ProjectTemplateModal(props: Props) {
                 onChange={(e) => setProjectDescription(e.target.value)}
                 rows={3}
                 placeholder="What new projects from this template should read like."
-                className="border-subtle bg-layer-1 text-13 placeholder:text-placeholder min-h-[72px] resize-y rounded-md border-[0.5px] px-3 py-2 text-primary outline-none focus:border-strong"
+                className="min-h-[72px] resize-y rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
               />
             </Field>
 
@@ -226,13 +217,16 @@ export function ProjectTemplateModal(props: Props) {
             >
               <ul className="flex flex-col gap-2">
                 {initialTasks.map((row) => (
-                  <li key={row._key} className="border-subtle bg-layer-1 flex items-center gap-2 rounded-md border-[0.5px] px-2 py-1.5">
+                  <li
+                    key={row._key}
+                    className="flex items-center gap-2 rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5"
+                  >
                     <input
                       type="text"
                       value={row.name}
                       onChange={(e) => handleTaskChange(row._key, { name: e.target.value })}
                       placeholder="Task name"
-                      className="text-13 placeholder:text-placeholder flex-1 bg-transparent text-primary outline-none"
+                      className="flex-1 bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
                     />
                     <select
                       value={row.priority ?? "none"}
@@ -241,7 +235,7 @@ export function ProjectTemplateModal(props: Props) {
                           priority: e.target.value as TProjectTemplateInitialTask["priority"],
                         })
                       }
-                      className="text-12 border-subtle bg-layer-2 rounded border-[0.5px] px-1.5 py-1 text-secondary outline-none"
+                      className="rounded border-[0.5px] border-subtle bg-layer-2 px-1.5 py-1 text-12 text-secondary outline-none"
                     >
                       {PRIORITY_OPTIONS.map((p) => (
                         <option key={p} value={p}>
@@ -252,7 +246,7 @@ export function ProjectTemplateModal(props: Props) {
                     <button
                       type="button"
                       onClick={() => handleRemoveTask(row._key)}
-                      className="hover:bg-layer-2 grid size-7 place-items-center rounded text-tertiary hover:text-danger-primary"
+                      className="grid size-7 place-items-center rounded text-tertiary hover:bg-layer-2 hover:text-danger-primary"
                       aria-label="Remove task"
                     >
                       <Trash2 className="size-3.5" />
@@ -263,7 +257,7 @@ export function ProjectTemplateModal(props: Props) {
                   <button
                     type="button"
                     onClick={handleAddTask}
-                    className="border-subtle text-12 hover:bg-layer-2 text-secondary inline-flex items-center gap-1.5 rounded-md border-[0.5px] border-dashed px-3 py-1.5 hover:text-primary"
+                    className="inline-flex items-center gap-1.5 rounded-md border-[0.5px] border-dashed border-subtle px-3 py-1.5 text-12 text-secondary hover:bg-layer-2 hover:text-primary"
                   >
                     <Plus className="size-3" />
                     Add task
@@ -276,7 +270,7 @@ export function ProjectTemplateModal(props: Props) {
           </div>
         </div>
 
-        <footer className="border-subtle flex items-center justify-end gap-2 border-t px-5 py-3">
+        <footer className="flex items-center justify-end gap-2 border-t border-subtle px-5 py-3">
           <Button variant="secondary" size="sm" onClick={onClose} disabled={saving}>
             Cancel
           </Button>

@@ -28,7 +28,7 @@ const TYPE_META: Record<TPageType, { label: string; Icon: typeof FileText }> = {
   whiteboard: { label: "Whiteboard", Icon: PenTool },
 };
 
-const ALLOWED_ROLES: Array<EUserPermissions | EUserProjectRoles> = new Set([
+const ALLOWED_ROLES = new Set<EUserPermissions | EUserProjectRoles>([
   EUserPermissions.ADMIN,
   EUserPermissions.MEMBER,
   EUserProjectRoles.ADMIN,

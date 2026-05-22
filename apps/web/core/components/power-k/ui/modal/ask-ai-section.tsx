@@ -40,12 +40,7 @@ export function PowerKAskAISection(props: Props) {
         include_workspace_context: true,
       });
       const text =
-        (typeof res === "string" && res) ||
-        res?.response ||
-        res?.answer ||
-        res?.message ||
-        res?.content ||
-        "";
+        (typeof res === "string" && res) || res?.response || res?.answer || res?.message || res?.content || "";
       if (text) {
         setAnswer(text);
       } else {
@@ -100,9 +95,7 @@ export function PowerKAskAISection(props: Props) {
           })}
         >
           {error ?? answer}
-          {submittedFor && answer && (
-            <div className="mt-2 text-11 text-tertiary">For: {submittedFor}</div>
-          )}
+          {submittedFor && answer && <div className="mt-2 text-11 text-tertiary">For: {submittedFor}</div>}
         </div>
       )}
     </Command.Group>

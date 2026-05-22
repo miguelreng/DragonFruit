@@ -18,9 +18,9 @@
     "dev": "tsdown --watch --no-clean",
     "check:lint": "oxlint .",
     "check:types": "tsc --noEmit",
-    "check:format": "oxfmt --check .",
+    "check:format": "oxfmt --check src package.json tsconfig.json tsdown.config.ts",
     "fix:lint": "oxlint --fix .",
-    "fix:format": "oxfmt .",
+    "fix:format": "oxfmt src package.json tsconfig.json tsdown.config.ts",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {

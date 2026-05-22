@@ -937,8 +937,8 @@ function AssistantMarkdown({ source }: { source: string }) {
     <div className="text-13 text-primary">
       {blocks.map((block, i) => renderBlock(block, i, footnotes))}
       {footnotes.length > 0 && (
-        <section className="border-subtle mt-3 border-t pt-2">
-          <ol className="text-11 ml-4 list-decimal space-y-0.5 text-tertiary">
+        <section className="mt-3 border-t border-subtle pt-2">
+          <ol className="ml-4 list-decimal space-y-0.5 text-11 text-tertiary">
             {footnotes.map((fn) => (
               <li key={fn.id} id={`fn-${fn.id}`} className="leading-snug">
                 {renderInline(fn.text, footnotes)}
@@ -1132,13 +1132,13 @@ function renderBlock(block: Block, key: number, footnotes: Footnote[]): React.Re
       // h1/h2 collapse to the same in-bubble size; h3 is one step smaller.
       if (block.level === 3) {
         return (
-          <h4 key={key} className="text-13 mt-2 mb-1 font-semibold first:mt-0">
+          <h4 key={key} className="mt-2 mb-1 text-13 font-semibold first:mt-0">
             {renderInline(block.text, footnotes)}
           </h4>
         );
       }
       return (
-        <h3 key={key} className="text-14 mt-2 mb-1 font-semibold first:mt-0">
+        <h3 key={key} className="mt-2 mb-1 text-14 font-semibold first:mt-0">
           {renderInline(block.text, footnotes)}
         </h3>
       );
@@ -1168,7 +1168,7 @@ function renderBlock(block: Block, key: number, footnotes: Footnote[]): React.Re
       );
     case "quote":
       return (
-        <blockquote key={key} className="border-subtle my-1.5 border-l-2 pl-2 text-secondary italic">
+        <blockquote key={key} className="my-1.5 border-l-2 border-subtle pl-2 text-secondary italic">
           {renderInline(block.text, footnotes)}
         </blockquote>
       );
@@ -1200,14 +1200,14 @@ function renderBlock(block: Block, key: number, footnotes: Footnote[]): React.Re
       });
       return (
         <div key={key} className="my-2 overflow-x-auto">
-          <table className="border-subtle w-full border-collapse text-left text-[12px]">
+          <table className="w-full border-collapse border-subtle text-left text-[12px]">
             <thead className="bg-layer-2">
               <tr>
                 {headerCells.map((h) => (
                   <th
                     key={h.cellKey}
                     style={{ textAlign: h.align }}
-                    className="border-subtle border px-2 py-1 font-semibold text-primary"
+                    className="border border-subtle px-2 py-1 font-semibold text-primary"
                   >
                     {renderInline(h.cell, footnotes)}
                   </th>
@@ -1221,7 +1221,7 @@ function renderBlock(block: Block, key: number, footnotes: Footnote[]): React.Re
                     <td
                       key={c.cellKey}
                       style={{ textAlign: c.align }}
-                      className="border-subtle border px-2 py-1 text-primary"
+                      className="border border-subtle px-2 py-1 text-primary"
                     >
                       {renderInline(c.cell, footnotes)}
                     </td>
@@ -1234,7 +1234,7 @@ function renderBlock(block: Block, key: number, footnotes: Footnote[]): React.Re
       );
     }
     case "hr":
-      return <hr key={key} className="border-subtle my-2" />;
+      return <hr key={key} className="my-2 border-subtle" />;
     default:
       return null;
   }
@@ -1260,7 +1260,7 @@ function CodeBlock({ content, lang }: { content: string; lang: string }) {
 
   if (html) {
     return (
-      <pre className="bg-layer-2 text-12 my-1.5 overflow-x-auto rounded p-2" data-language={langKey}>
+      <pre className="my-1.5 overflow-x-auto rounded bg-layer-2 p-2 text-12" data-language={langKey}>
         <code
           className={`hljs language-${langKey}`}
           // hljs returns HTML with span class names; the input was
@@ -1274,7 +1274,7 @@ function CodeBlock({ content, lang }: { content: string; lang: string }) {
 
   // Plain code fence with no recognised language — render as text.
   return (
-    <pre className="bg-layer-2 text-12 my-1.5 overflow-x-auto rounded p-2" data-language={langKey || undefined}>
+    <pre className="my-1.5 overflow-x-auto rounded bg-layer-2 p-2 text-12" data-language={langKey || undefined}>
       <code>{content}</code>
     </pre>
   );
@@ -1302,7 +1302,7 @@ function renderInline(text: string, footnotes: Footnote[]): React.ReactNode {
     const code = /^`([^`]+)`/.exec(rest);
     if (code) {
       out.push(
-        <code key={nextKey()} className="font-mono bg-layer-2 rounded px-1 py-px text-[11px]">
+        <code key={nextKey()} className="font-mono rounded bg-layer-2 px-1 py-px text-[11px]">
           {code[1]}
         </code>
       );
@@ -1414,7 +1414,7 @@ function renderInline(text: string, footnotes: Footnote[]): React.ReactNode {
         out.push(
           <kbd
             key={nextKey()}
-            className="border-subtle bg-layer-2 font-mono rounded border-[0.5px] px-1 py-px text-[10px]"
+            className="font-mono rounded border-[0.5px] border-subtle bg-layer-2 px-1 py-px text-[10px]"
           >
             {inner}
           </kbd>
@@ -1423,7 +1423,7 @@ function renderInline(text: string, footnotes: Footnote[]): React.ReactNode {
         // No native `mark` colour token in this design system — use a
         // soft accent tint that reads as a highlight on both themes.
         out.push(
-          <mark key={nextKey()} className="bg-accent-primary/15 rounded px-0.5 text-primary">
+          <mark key={nextKey()} className="rounded bg-accent-primary/15 px-0.5 text-primary">
             {inner}
           </mark>
         );

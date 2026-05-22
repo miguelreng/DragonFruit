@@ -6,7 +6,14 @@
 
 import { useCallback } from "react";
 import { useParams } from "next/navigation";
-import { ArchiveIcon, ArchiveRestoreIcon, LockKeyhole, LockKeyholeOpen, Star, StarOff } from "@/components/icons/lucide-shim";
+import {
+  ArchiveIcon,
+  ArchiveRestoreIcon,
+  LockKeyhole,
+  LockKeyholeOpen,
+  Star,
+  StarOff,
+} from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 // plane imports
 import { LinkIcon, GlobeIcon, LockIcon } from "@plane/propel/icons";

@@ -132,8 +132,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             verticalAlignPosition ? `flex-col px-1 py-1.5` : `flex-row overflow-hidden px-2 py-0.5`
           }`}
           style={{
-            backgroundColor:
-              "color-mix(in srgb, var(--state-color, transparent) 20%, var(--background-color-layer-1))",
+            backgroundColor: "color-mix(in srgb, var(--state-color, transparent) 20%, var(--background-color-layer-1))",
           }}
         >
           <div className="flex size-4 flex-shrink-0 items-center justify-center overflow-hidden rounded-xs">
@@ -146,11 +145,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           >
             {title}
           </div>
-          <div
-            className={`flex-shrink-0 text-11 font-semibold text-tertiary ${
-              verticalAlignPosition ? `pt-0.5` : ``
-            }`}
-          >
+          <div className={`flex-shrink-0 text-11 font-semibold text-tertiary ${verticalAlignPosition ? `pt-0.5` : ``}`}>
             {count || 0}
           </div>
         </div>

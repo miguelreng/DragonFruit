@@ -71,9 +71,7 @@ export function IssueLink({ activity }: { activity: IIssueActivity }) {
           <span className="font-regular break-all">{activity.issue_detail?.name}</span>
         </a>
       ) : (
-        <span className="inline-flex items-center gap-1 font-medium whitespace-nowrap text-primary">
-          {" a task"}{" "}
-        </span>
+        <span className="inline-flex items-center gap-1 font-medium whitespace-nowrap text-primary">{" a task"} </span>
       )}
     </Tooltip>
   );

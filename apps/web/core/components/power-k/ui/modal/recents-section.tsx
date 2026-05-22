@@ -48,10 +48,9 @@ function Row({
           e.stopPropagation();
           onTogglePin(item);
         }}
-        className={cn(
-          "rounded p-1 opacity-0 transition-opacity hover:bg-layer-2-hover group-hover:opacity-100",
-          { "opacity-100": pinned }
-        )}
+        className={cn("rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-layer-2-hover", {
+          "opacity-100": pinned,
+        })}
         aria-label={pinned ? "Unpin" : "Pin"}
       >
         {pinned ? <PinOff className="size-3 text-tertiary" /> : <Pin className="size-3 text-tertiary" />}

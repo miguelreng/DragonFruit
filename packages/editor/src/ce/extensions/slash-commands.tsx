@@ -38,11 +38,7 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
       const blockNode = $from.node($from.depth);
       const paragraphText = blockNode?.textContent ?? "";
       const blockId = blockNode?.attrs?.id ?? null;
-      const selectionText = editor.state.doc.textBetween(
-        editor.state.selection.from,
-        editor.state.selection.to,
-        " "
-      );
+      const selectionText = editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, " ");
 
       // Remove the `/agent` trigger so the slash doesn't linger in the doc.
       editor.chain().focus().deleteRange(range).run();

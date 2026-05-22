@@ -100,9 +100,7 @@ export default function ActivityPreviewPage() {
   return (
     <div className="min-h-screen bg-surface-1 p-6">
       <div className="mx-auto max-w-[800px]">
-        <h1 className="mb-4 text-13 font-medium text-placeholder">
-          Dev preview — Activity widget (mock data)
-        </h1>
+        <h1 className="mb-4 text-13 font-medium text-placeholder">Dev preview — Activity widget (mock data)</h1>
         <ActivityHeatmapSection previewBuilder={buildMock} />
       </div>
     </div>

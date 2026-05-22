@@ -94,17 +94,17 @@ export const PagesListHeader = observer(function PagesListHeader() {
               </Button>
               <Menu.Button
                 aria-label="Add page menu"
-                className="flex items-center rounded-r-md border-l border-white/20 bg-primary px-2 text-primary-foreground hover:opacity-90"
+                className="bg-primary text-primary-foreground flex items-center rounded-r-md border-l border-white/20 px-2 hover:opacity-90"
               >
                 <ChevronDown className="size-4" />
               </Menu.Button>
             </div>
-            <Menu.Items className="absolute right-0 z-30 mt-1 w-48 rounded-md border border-subtle-1 bg-canvas py-1 shadow-lg outline-none">
+            <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-48 rounded-md border border-subtle-1 bg-canvas py-1 outline-none">
               <Menu.Item>
                 <button
                   type="button"
                   onClick={() => handleCreatePage("doc")}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
+                  className="text-sm flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-layer-1-hover"
                 >
                   <FileText className="size-4" /> Doc
                 </button>
@@ -113,7 +113,7 @@ export const PagesListHeader = observer(function PagesListHeader() {
                 <button
                   type="button"
                   onClick={() => handleCreatePage("whiteboard")}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-layer-1-hover"
+                  className="text-sm flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-layer-1-hover"
                 >
                   <PenTool className="size-4" /> Whiteboard
                 </button>

@@ -50,12 +50,7 @@ export const DashboardQuickLinks = observer(function DashboardQuickLinks(props: 
       <div className="mb-2">
         <div className="mb-4 flex items-center justify-between">
           <div className="text-14 font-semibold text-tertiary">{t("home.quick_links.title_plural")}</div>
-          <Button
-            variant="link-accent"
-            size="sm"
-            prependIcon={<PlusIcon />}
-            onClick={handleCreateLinkModal}
-          >
+          <Button variant="link-accent" size="sm" prependIcon={<PlusIcon />} onClick={handleCreateLinkModal}>
             {t("home.quick_links.add")}
           </Button>
         </div>

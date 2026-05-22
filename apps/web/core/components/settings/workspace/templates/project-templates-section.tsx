@@ -114,15 +114,15 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
       {error && <p className="text-12 text-danger-primary">{error}</p>}
 
       {loading ? (
-        <div className="text-13 flex items-center gap-2 text-tertiary">
+        <div className="flex items-center gap-2 text-13 text-tertiary">
           <Loader2 className="size-4 animate-spin" />
           Loading…
         </div>
       ) : templates.length === 0 ? (
-        <div className="border-subtle bg-layer-1 flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-10 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-subtle bg-layer-1 px-6 py-10 text-center">
           <Briefcase className="size-7 text-tertiary" />
           <h4 className="text-13 font-medium text-secondary">No project templates yet</h4>
-          <p className="text-12 max-w-md text-tertiary">
+          <p className="max-w-md text-12 text-tertiary">
             Create a template to pre-fill new projects with a description, visibility, and an initial task list.
           </p>
           {canEdit && (
@@ -133,8 +133,8 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
           )}
         </div>
       ) : (
-        <div className="border-subtle bg-layer-2 overflow-hidden rounded-lg border">
-          <div className="border-subtle bg-layer-1 text-11 grid grid-cols-[1fr_1.4fr_80px_120px_84px] gap-3 border-b px-4 py-2 font-medium uppercase text-tertiary">
+        <div className="overflow-hidden rounded-lg border border-subtle bg-layer-2">
+          <div className="grid grid-cols-[1fr_1.4fr_80px_120px_84px] gap-3 border-b border-subtle bg-layer-1 px-4 py-2 text-11 font-medium text-tertiary uppercase">
             <span>Name</span>
             <span>Description</span>
             <span>Tasks</span>
@@ -147,13 +147,13 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
             return (
               <div
                 key={template.id}
-                className="border-subtle text-13 grid grid-cols-[1fr_1.4fr_80px_120px_84px] items-center gap-3 border-b px-4 py-3 last:border-b-0"
+                className="grid grid-cols-[1fr_1.4fr_80px_120px_84px] items-center gap-3 border-b border-subtle px-4 py-3 text-13 last:border-b-0"
               >
                 <div className="flex items-center gap-2 truncate text-primary">
                   <Briefcase className="size-3.5 shrink-0 text-tertiary" />
                   <span className="truncate">{template.name}</span>
                 </div>
-                <span className="text-12 truncate text-secondary">{template.description || "—"}</span>
+                <span className="truncate text-12 text-secondary">{template.description || "—"}</span>
                 <span className="text-12 text-tertiary">{taskCount}</span>
                 <span className="text-11 text-tertiary">{formatRelative(template.updated_at)}</span>
                 <div className="flex items-center justify-end gap-1">
@@ -161,7 +161,7 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
                     type="button"
                     onClick={() => handleOpenEdit(template)}
                     disabled={!canEdit || isBusy}
-                    className="hover:bg-layer-1 rounded-md p-1.5 text-tertiary hover:text-primary disabled:opacity-50"
+                    className="rounded-md p-1.5 text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-50"
                     title="Edit"
                   >
                     <Pencil className="size-3.5" />
@@ -170,7 +170,7 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
                     type="button"
                     onClick={() => void handleDelete(template)}
                     disabled={!canEdit || isBusy}
-                    className="hover:bg-layer-1 hover:text-danger-primary rounded-md p-1.5 text-tertiary disabled:opacity-50"
+                    className="rounded-md p-1.5 text-tertiary hover:bg-layer-1 hover:text-danger-primary disabled:opacity-50"
                     title="Delete"
                   >
                     <Trash2 className="size-3.5" />

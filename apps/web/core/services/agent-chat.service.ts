@@ -80,10 +80,7 @@ export class AgentChatService extends APIService {
       });
   }
 
-  async createSession(
-    workspaceSlug: string,
-    data: { agent_id: string; title?: string }
-  ): Promise<TAgentChatSession> {
+  async createSession(workspaceSlug: string, data: { agent_id: string; title?: string }): Promise<TAgentChatSession> {
     return this.post(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/`, data)
       .then((res) => res?.data)
       .catch((error) => {

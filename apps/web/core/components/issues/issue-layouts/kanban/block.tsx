@@ -289,8 +289,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
             assignee / label boards.
           */
           style={{
-            backgroundColor:
-              "color-mix(in srgb, var(--state-color, transparent) 14%, var(--background-color-layer-2))",
+            backgroundColor: "color-mix(in srgb, var(--state-color, transparent) 14%, var(--background-color-layer-2))",
           }}
           onClick={() => handleIssuePeekOverview(issue)}
           disabled={!!issue?.tempId}

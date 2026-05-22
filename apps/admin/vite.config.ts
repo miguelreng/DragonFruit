@@ -5,44 +5,49 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { joinUrlPath } from "@plane/utils";
 
-dotenv.config({ path: path.resolve(__dirname, ".env") });
+export default defineConfig(({ mode }) => {
+  if (mode !== "production") {
+    dotenv.config({ path: path.resolve(__dirname, ".env") });
+  }
 
-// Expose only vars starting with VITE_
-const viteEnv = Object.keys(process.env)
-  .filter((k) => k.startsWith("VITE_"))
-  .reduce<Record<string, string>>((a, k) => {
-    a[k] = process.env[k] ?? "";
-    return a;
-  }, {});
+  // Expose only vars starting with VITE_
+  const viteEnv = Object.keys(process.env)
+    .filter((k) => k.startsWith("VITE_"))
+    .reduce<Record<string, string>>((a, k) => {
+      a[k] = process.env[k] ?? "";
+      return a;
+    }, {});
 
-const basePath = joinUrlPath(process.env.VITE_ADMIN_BASE_PATH ?? "", "/") ?? "/";
+  const basePath = joinUrlPath(process.env.VITE_ADMIN_BASE_PATH ?? "", "/") ?? "/";
 
-export default defineConfig(() => ({
-  base: basePath,
-  define: {
-    "process.env": JSON.stringify(viteEnv),
-  },
-  build: {
-    assetsInlineLimit: 0,
-  },
-  plugins: [reactRouter(), tsconfigPaths({ projects: [path.resolve(__dirname, "tsconfig.json")] })],
-  resolve: {
-    alias: {
-      // Next.js compatibility shims used within admin
-      "next/link": path.resolve(__dirname, "app/compat/next/link.tsx"),
-      "next/navigation": path.resolve(__dirname, "app/compat/next/navigation.ts"),
+  return {
+    base: basePath,
+    envDir: mode === "production" ? false : undefined,
+    define: {
+      "process.env": JSON.stringify(viteEnv),
     },
-    dedupe: ["react", "react-dom"],
-  },
-  server: {
-    host: "127.0.0.1",
-    // Proxy backend routes to the Django API container so requests stay same-origin
-    // in dev (admin :3001 → API :8000). Mirrors the proxy in apps/web/vite.config.ts.
-    proxy: {
-      "/api": { target: "http://localhost:8000", changeOrigin: true },
-      "/auth": { target: "http://localhost:8000", changeOrigin: true },
-      "/spaces": { target: "http://localhost:8000", changeOrigin: true },
+    build: {
+      assetsInlineLimit: 0,
     },
-  },
-  // No SSR-specific overrides needed; alias resolves to ESM build
-}));
+    plugins: [reactRouter(), tsconfigPaths({ projects: [path.resolve(__dirname, "tsconfig.json")] })],
+    resolve: {
+      alias: {
+        // Next.js compatibility shims used within admin
+        "next/link": path.resolve(__dirname, "app/compat/next/link.tsx"),
+        "next/navigation": path.resolve(__dirname, "app/compat/next/navigation.ts"),
+      },
+      dedupe: ["react", "react-dom"],
+    },
+    server: {
+      host: "127.0.0.1",
+      // Proxy backend routes to the Django API container so requests stay same-origin
+      // in dev (admin :3001 -> API :8000). Mirrors the proxy in apps/web/vite.config.ts.
+      proxy: {
+        "/api": { target: "http://localhost:8000", changeOrigin: true },
+        "/auth": { target: "http://localhost:8000", changeOrigin: true },
+        "/spaces": { target: "http://localhost:8000", changeOrigin: true },
+      },
+    },
+    // No SSR-specific overrides needed; alias resolves to ESM build
+  };
+});

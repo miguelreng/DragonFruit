@@ -232,12 +232,9 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                         opacity so a column of empty boxes anchors the row;
                         hover and selected states pop it to full opacity. */}
                     <MultipleSelectEntityAction
-                      className={cn(
-                        "opacity-50 transition-opacity group-hover/list-block:opacity-100",
-                        {
-                          "opacity-100": isIssueSelected,
-                        }
-                      )}
+                      className={cn("opacity-50 transition-opacity group-hover/list-block:opacity-100", {
+                        "opacity-100": isIssueSelected,
+                      })}
                       groupId={groupId}
                       id={issue.id}
                       selectionHelpers={selectionHelpers}

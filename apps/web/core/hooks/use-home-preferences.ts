@@ -25,9 +25,9 @@ export function useHomePreferences(workspaceSlug: string | undefined) {
     workspaceSlug ? () => service.list(workspaceSlug) : null
   );
 
-  // Sort high→low so the highest sort_order renders first. Using
-  // toSorted (ES2023) returns a copy, so the SWR cache stays untouched.
-  const sorted = data ? data.toSorted((a, b) => b.sort_order - a.sort_order) : undefined;
+  // Sort high→low so the highest sort_order renders first without mutating
+  // the SWR cache.
+  const sorted = data ? [...data].sort((a, b) => b.sort_order - a.sort_order) : undefined;
 
   /**
    * Apply a new ordering to the section list. Takes the keys in their

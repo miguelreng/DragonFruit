@@ -40,7 +40,7 @@ if (import.meta.env.DEV) {
 }
 const StickiesWidget = (props: THomeWidgetProps) => (
   <Suspense fallback={null}>
-    <LazyStickiesWidget {...props} />
+    <LazyStickiesWidget />
   </Suspense>
 );
 

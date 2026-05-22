@@ -109,10 +109,8 @@ export const MemberOptions = observer(function MemberOptions(props: Props) {
                 <Avatar name={userDetails?.display_name} src={getFileURL(userDetails?.avatar_url ?? "")} />
               )}
             </div>
-            <span className={cn("flex-grow truncate flex items-center gap-1", suspended ? "text-placeholder" : "")}>
-              <span className="truncate">
-                {currentUser?.id === userId ? t("you") : userDetails?.display_name}
-              </span>
+            <span className={cn("flex flex-grow items-center gap-1 truncate", suspended ? "text-placeholder" : "")}>
+              <span className="truncate">{currentUser?.id === userId ? t("you") : userDetails?.display_name}</span>
               {isBot && <Wand2 className="size-2.5 shrink-0 text-tertiary" aria-label="Agent" />}
             </span>
           </div>

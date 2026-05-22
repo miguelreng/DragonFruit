@@ -95,7 +95,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-subtle bg-surface-1 px-3 py-2.5">
       <div className="text-11 font-medium text-placeholder">{label}</div>
-      <div className="mt-0.5 text-15 font-semibold text-primary tabular-nums">{value}</div>
+      <div className="text-15 mt-0.5 font-semibold text-primary tabular-nums">{value}</div>
     </div>
   );
 }
@@ -141,10 +141,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
       revalidateOnFocus: true,
     }
   );
-  const previewSummary = useMemo(
-    () => (previewBuilder ? previewBuilder("all") : undefined),
-    [previewBuilder]
-  );
+  const previewSummary = useMemo(() => (previewBuilder ? previewBuilder("all") : undefined), [previewBuilder]);
   const fullSummary = previewSummary ?? fetched;
 
   // Stats derived from the selected window. Grid always reads from
@@ -194,10 +191,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
     if (summary?.top_type) setTypeFocus(summary.top_type);
   }, [summary?.top_type]);
 
-  const visibleBuckets = useMemo(
-    () => (summary?.daily_buckets ?? []).slice(-VISIBLE_DAYS),
-    [summary?.daily_buckets]
-  );
+  const visibleBuckets = useMemo(() => (summary?.daily_buckets ?? []).slice(-VISIBLE_DAYS), [summary?.daily_buckets]);
   const grid = useMemo(() => buildGrid(visibleBuckets), [visibleBuckets]);
   const maxCount = useMemo(() => {
     if (visibleBuckets.length === 0) return 0;
@@ -210,8 +204,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
     const t = summary.totals.items;
     if (t === 0) return null;
     if (t === 1) return "First entry logged — the streak begins.";
-    if (summary.current_streak >= 3)
-      return `You're on a ${summary.current_streak}-day streak. Keep the momentum.`;
+    if (summary.current_streak >= 3) return `You're on a ${summary.current_streak}-day streak. Keep the momentum.`;
     if (summary.totals.docs > summary.totals.work_items * 2)
       return "You write more than you ticket — a doc-first workspace.";
     if (summary.totals.work_items > summary.totals.docs * 2)
@@ -308,10 +301,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
               <StatCard label="Peak hour" value={formatHour(summary.peak_hour)} />
               <StatCard label="Docs" value={formatNumber(summary.totals.docs)} />
               <StatCard label="Work items" value={formatNumber(summary.totals.work_items)} />
-              <StatCard
-                label="Top type"
-                value={summary.top_type === "docs" ? "Docs" : "Work items"}
-              />
+              <StatCard label="Top type" value={summary.top_type === "docs" ? "Docs" : "Work items"} />
             </div>
 
             {/* Heatmap renders a fixed recent window (VISIBLE_WEEKS) and
@@ -325,21 +315,14 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                   {grid.map((week, wi) => (
                     <div key={wi} className="flex flex-1 flex-col gap-[3px]">
                       {week.map((cell, di) => {
-                        if (!cell)
-                          return <div key={di} className="aspect-square w-full" />;
+                        if (!cell) return <div key={di} className="aspect-square w-full" />;
                         const value =
-                          tab === "overview"
-                            ? cell.count
-                            : typeFocus === "docs"
-                              ? cell.docs
-                              : cell.work_items;
+                          tab === "overview" ? cell.count : typeFocus === "docs" ? cell.docs : cell.work_items;
                         return (
                           <div
                             key={di}
                             title={`${cell.date} — ${value} ${value === 1 ? "entry" : "entries"}`}
-                            className={
-                              "aspect-square w-full rounded-[3px] " + intensityClass(value, maxCount)
-                            }
+                            className={"aspect-square w-full rounded-[3px] " + intensityClass(value, maxCount)}
                           />
                         );
                       })}
@@ -349,9 +332,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
               </div>
             )}
 
-            {funFact && (
-              <div className="border-t border-subtle pt-2 text-11 text-placeholder">{funFact}</div>
-            )}
+            {funFact && <div className="border-t border-subtle pt-2 text-11 text-placeholder">{funFact}</div>}
           </div>
         )}
       </div>

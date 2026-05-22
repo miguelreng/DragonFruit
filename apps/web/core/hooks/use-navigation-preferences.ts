@@ -5,7 +5,11 @@
  */
 
 import { useCallback } from "react";
-import type { TAppRailDisplayMode, TAppRailPreferences, TProjectNavigationPreferences } from "@/types/navigation-preferences";
+import type {
+  TAppRailDisplayMode,
+  TAppRailPreferences,
+  TProjectNavigationPreferences,
+} from "@/types/navigation-preferences";
 import { DEFAULT_APP_RAIL_PREFERENCES, DEFAULT_PROJECT_PREFERENCES } from "@/types/navigation-preferences";
 import useLocalStorage from "./use-local-storage";
 

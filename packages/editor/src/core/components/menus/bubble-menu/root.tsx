@@ -255,12 +255,7 @@ export function EditorBubbleMenu(props: Props) {
                         // composer without posting — otherwise an
                         // orphan `data-block-comment-id` lingers on
                         // the doc with no thread behind it.
-                        editor
-                          .chain()
-                          .setTextSelection({ from, to })
-                          .unsetBlockComment()
-                          .setTextSelection(to)
-                          .run();
+                        editor.chain().setTextSelection({ from, to }).unsetBlockComment().setTextSelection(to).run();
                       },
                     },
                   })

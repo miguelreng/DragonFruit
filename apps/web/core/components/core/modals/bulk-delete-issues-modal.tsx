@@ -132,9 +132,7 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
   const issueList =
     issues.length > 0 ? (
       <li className="p-2">
-        {query === "" && (
-          <h2 className="mt-4 mb-2 px-3 text-11 font-semibold text-primary">Select tasks to delete</h2>
-        )}
+        {query === "" && <h2 className="mt-4 mb-2 px-3 text-11 font-semibold text-primary">Select tasks to delete</h2>}
         <ul className="text-13 text-secondary">
           {issues.map((issue) => (
             <BulkDeleteIssuesModalItem

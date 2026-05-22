@@ -42,8 +42,7 @@ function CalendarOauthCallbackPage() {
         await calendarService.finishGoogle(code);
         // Best-effort: bounce back to the workspace calendar the user came from.
         // Falls back to the app root, which already redirects to the last workspace.
-        const slug =
-          typeof window !== "undefined" ? window.localStorage.getItem(LAST_WORKSPACE_LS_KEY) : null;
+        const slug = typeof window !== "undefined" ? window.localStorage.getItem(LAST_WORKSPACE_LS_KEY) : null;
         navigate(slug ? `/${slug}/calendar/` : "/");
       } catch (err) {
         console.error(err);
@@ -58,10 +57,10 @@ function CalendarOauthCallbackPage() {
         {error ? (
           <>
             <div className="text-base font-medium text-danger-primary">Connection failed</div>
-            <div className="mt-1 text-sm text-tertiary">{error}</div>
+            <div className="text-sm mt-1 text-tertiary">{error}</div>
             <button
               onClick={() => navigate("/")}
-              className="mt-4 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground"
+              className="bg-primary text-sm text-primary-foreground mt-4 rounded-md px-3 py-1.5"
             >
               Go home
             </button>

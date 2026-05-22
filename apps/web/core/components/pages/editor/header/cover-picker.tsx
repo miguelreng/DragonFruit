@@ -50,14 +50,8 @@ export const PageCoverPicker = observer(function PageCoverPicker({ page, variant
             disabled={!page.isContentEditable}
             className={cn(
               "flex items-center gap-1 rounded-sm text-13 font-medium transition-colors outline-none",
-              variant === "inline" && [
-                "p-1 text-tertiary hover:bg-layer-1",
-                { "bg-layer-1": open },
-              ],
-              variant === "overlay" && [
-                "px-2 py-1 text-white/90 hover:bg-white/10",
-                { "bg-white/10": open },
-              ]
+              variant === "inline" && ["p-1 text-tertiary hover:bg-layer-1", { "bg-layer-1": open }],
+              variant === "overlay" && ["px-2 py-1 text-white/90 hover:bg-white/10", { "bg-white/10": open }]
             )}
           >
             <Image className="size-4 flex-shrink-0" />
@@ -72,7 +66,7 @@ export const PageCoverPicker = observer(function PageCoverPicker({ page, variant
             leaveFrom="opacity-100 translate-y-0"
             leaveTo="opacity-0 translate-y-1"
           >
-            <Popover.Panel className="absolute left-0 z-20 mt-1 w-80 rounded-md border border-subtle bg-surface-1 p-2 shadow-md">
+            <Popover.Panel className="shadow-md absolute left-0 z-20 mt-1 w-80 rounded-md border border-subtle bg-surface-1 p-2">
               <div className="flex flex-col gap-1">
                 {PAGE_COVER_OPTIONS.map((opt) => {
                   const isActive = currentId === opt.id;

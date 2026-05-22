@@ -14,6 +14,7 @@ import faviconIco from "@/app/assets/favicon/favicon.ico?url";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import globalStyles from "@/styles/globals.css?url";
 import { AppProviders } from "@/providers";
+import { joinUrlPath } from "@plane/utils";
 import type { Route } from "./+types/root";
 // fonts — side-effect imports register font CSS at bundle time
 // Figtree is self-hosted from /public/fonts via @font-face in globals.css.
@@ -24,6 +25,11 @@ import "@fontsource/ibm-plex-mono";
 
 const APP_TITLE = "Dragon Fruit Admin | Instance administration console";
 const APP_DESCRIPTION = "Admin console for the Dragon Fruit instance — manage users, integrations, and configuration.";
+const adminBasePath = process.env.VITE_ADMIN_BASE_PATH ?? "";
+const publicAssetPath = (assetPath: string) => {
+  const normalizedAssetPath = assetPath.startsWith("/") ? assetPath : `/${assetPath}`;
+  return adminBasePath ? joinUrlPath(adminBasePath, normalizedAssetPath) : normalizedAssetPath;
+};
 
 export const links: LinksFunction = () => [
   { rel: "apple-touch-icon", sizes: "180x180", href: appleTouchIcon },
@@ -34,7 +40,7 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: globalStyles },
   {
     rel: "preload",
-    href: "/god-mode/fonts/Figtree-Variable.ttf",
+    href: publicAssetPath("/fonts/Figtree-Variable.ttf"),
     as: "font",
     type: "font/ttf",
     crossOrigin: "anonymous",
