@@ -37,24 +37,64 @@ GOOGLE_CAL_API = "https://www.googleapis.com/calendar/v3"
 SCOPES = ["https://www.googleapis.com/auth/calendar", "openid", "email"]
 
 
-def _client_credentials() -> tuple[str, str, str]:
+def _client_credentials(client: str | None) -> tuple[str, str]:
     """Read Google credentials from Django settings.
 
     We reuse the existing Plane Google OAuth client (already plumbed for
     `IS_GOOGLE_ENABLED`); admins just need to add the `calendar.readonly`
     scope in Google Cloud and add a redirect URI for this view.
     """
-    client_id = getattr(settings, "GOOGLE_CALENDAR_CLIENT_ID", None) or getattr(settings, "GOOGLE_CLIENT_ID", None) or ""
+    normalized = (client or "web").strip().lower()
+    if normalized == "native":
+        client_id = (
+            getattr(settings, "GOOGLE_CALENDAR_NATIVE_CLIENT_ID", None)
+            or getattr(settings, "GOOGLE_CALENDAR_CLIENT_ID", None)
+            or getattr(settings, "GOOGLE_CLIENT_ID", None)
+            or ""
+        )
+        client_secret = (
+            getattr(settings, "GOOGLE_CALENDAR_NATIVE_CLIENT_SECRET", None)
+            or getattr(settings, "GOOGLE_CALENDAR_CLIENT_SECRET", None)
+            or getattr(settings, "GOOGLE_CLIENT_SECRET", None)
+            or ""
+        )
+        return client_id, client_secret
+
+    client_id = (
+        getattr(settings, "GOOGLE_CALENDAR_CLIENT_ID", None)
+        or getattr(settings, "GOOGLE_CLIENT_ID", None)
+        or ""
+    )
     client_secret = (
         getattr(settings, "GOOGLE_CALENDAR_CLIENT_SECRET", None)
         or getattr(settings, "GOOGLE_CLIENT_SECRET", None)
         or ""
     )
-    redirect_uri = (
+    return client_id, client_secret
+
+
+def _redirect_uri_for_client(client: str | None) -> str:
+    """Resolve the Google redirect URI for web/native clients.
+
+    Priority:
+    - native: GOOGLE_CALENDAR_REDIRECT_URI_NATIVE
+    - web/default: GOOGLE_CALENDAR_REDIRECT_URI
+    - fallback web callback under WEB_URL
+    """
+    normalized = (client or "web").strip().lower()
+    if normalized == "native":
+        native = (
+            getattr(settings, "GOOGLE_CALENDAR_NATIVE_REDIRECT_URI", None)
+            or getattr(settings, "GOOGLE_CALENDAR_REDIRECT_URI_NATIVE", None)
+            or ""
+        )
+        if native:
+            return native
+
+    return (
         getattr(settings, "GOOGLE_CALENDAR_REDIRECT_URI", None)
         or f"{getattr(settings, 'WEB_URL', 'http://localhost:3000').rstrip('/')}/calendar/oauth/callback"
     )
-    return client_id, client_secret, redirect_uri
 
 
 def _serialize(acc: UserCalendarAccount) -> dict:
@@ -89,7 +129,9 @@ class GoogleCalendarStartEndpoint(BaseAPIView):
     """Return the Google OAuth authorize URL with the calendar scope."""
 
     def get(self, request):
-        client_id, _, redirect_uri = _client_credentials()
+        client = request.query_params.get("client", "web")
+        client_id, _ = _client_credentials(client)
+        redirect_uri = _redirect_uri_for_client(client)
         if not client_id:
             return Response(
                 {"error": "Google OAuth is not configured on this instance."},
@@ -107,7 +149,7 @@ class GoogleCalendarStartEndpoint(BaseAPIView):
             "access_type": "offline",
             "prompt": "consent",
             "include_granted_scopes": "true",
-            "state": str(request.user.id),
+            "state": f"{request.user.id}:{client}",
         }
         return Response(
             {"authorize_url": f"{GOOGLE_AUTHORIZE_URL}?{urlencode(params)}"},
@@ -120,10 +162,12 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
 
     def post(self, request):
         code = request.data.get("code")
+        client = request.data.get("client", "web")
         if not code:
             return Response({"error": "code is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        client_id, client_secret, redirect_uri = _client_credentials()
+        client_id, client_secret = _client_credentials(client)
+        redirect_uri = _redirect_uri_for_client(client)
         if not client_id or not client_secret:
             return Response(
                 {"error": "Google OAuth is not configured on this instance."},
@@ -194,7 +238,7 @@ def _refresh_if_needed(account: UserCalendarAccount) -> str:
     if not refresh_token:
         return access_token  # best-effort; caller will get 401 and surface it
 
-    client_id, client_secret, _ = _client_credentials()
+    client_id, client_secret = _client_credentials("web")
     resp = requests.post(
         GOOGLE_TOKEN_URL,
         data={

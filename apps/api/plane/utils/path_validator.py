@@ -8,7 +8,10 @@ from django.conf import settings
 
 # Python imports
 import os
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode
+
+
+ALLOWED_NATIVE_REDIRECT_SCHEMES = {"dragonfruitmini"}
 
 
 def sanitize_filename(filename):
@@ -120,6 +123,16 @@ def validate_next_path(next_path: str) -> str:
     next_path = next_path.replace("\\", "")
     parsed_url = urlparse(next_path)
 
+    # Allow a tightly-scoped native app callback URI (for desktop OAuth/login handoff).
+    if parsed_url.scheme:
+        if parsed_url.scheme in ALLOWED_NATIVE_REDIRECT_SCHEMES and parsed_url.path.startswith("/"):
+            if _contains_suspicious_patterns(next_path):
+                return ""
+            return next_path
+        # For all other absolute URLs, keep only the path component.
+        if parsed_url.netloc:
+            next_path = parsed_url.path
+
     # Block absolute URLs or anything with scheme/netloc
     if parsed_url.scheme or parsed_url.netloc:
         next_path = parsed_url.path  # Extract only the path component
@@ -150,10 +163,16 @@ def get_safe_redirect_url(base_url: str, next_path: str = "", params: dict = {})
     Returns:
         str: The safe redirect URL
     """
-    from urllib.parse import urlencode
-
     # Validate the next path
     validated_path = validate_next_path(next_path)
+
+    # Direct native callback redirect.
+    if validated_path and urlparse(validated_path).scheme in ALLOWED_NATIVE_REDIRECT_SCHEMES:
+        if params:
+            query = urlencode(params)
+            separator = "&" if "?" in validated_path else "?"
+            return f"{validated_path}{separator}{query}"
+        return validated_path
 
     # Add the next path to the parameters
     base_url = base_url.rstrip("/")
