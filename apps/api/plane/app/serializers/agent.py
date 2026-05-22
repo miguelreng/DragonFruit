@@ -4,7 +4,7 @@
 
 from rest_framework import serializers
 
-from plane.db.models import Agent, AgentChatMessage, AgentChatSession, AgentRun
+from plane.db.models import Agent, AgentChatMessage, AgentChatSession, AgentMemory, AgentRun
 
 
 class AgentSerializer(serializers.ModelSerializer):
@@ -36,6 +36,7 @@ class AgentSerializer(serializers.ModelSerializer):
             "api_base_url",
             "has_api_key",
             "triggers",
+            "tool_policies",
             "is_enabled",
             "max_concurrent_runs",
             "draft_mode",
@@ -167,4 +168,30 @@ class AgentChatSessionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "last_activity_at",
+        ]
+
+
+class AgentMemorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgentMemory
+        fields = [
+            "id",
+            "workspace",
+            "agent",
+            "key",
+            "value",
+            "tags",
+            "source",
+            "use_count",
+            "last_accessed_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "workspace",
+            "use_count",
+            "last_accessed_at",
+            "created_at",
+            "updated_at",
         ]

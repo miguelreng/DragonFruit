@@ -50,6 +50,26 @@ def _default_triggers() -> dict:
     }
 
 
+def _default_tool_policies() -> dict:
+    """Default per-tool autonomy policy.
+
+    Values:
+      - auto: execute immediately
+      - ask:  return approval_required and skip execution
+      - never: hide the tool from the model
+    """
+    return {
+        "post_comment": "auto",
+        "post_page_comment": "auto",
+        "change_state": "ask",
+        "add_label": "ask",
+        "search_issues": "auto",
+        "list_attachments": "auto",
+        "plan_next_steps": "auto",
+        "record_step": "auto",
+    }
+
+
 class Agent(BaseModel):
     """An AI agent that participates in tasks as a bot workspace member."""
 
@@ -86,6 +106,8 @@ class Agent(BaseModel):
 
     # Event triggers the agent reacts to.
     triggers = models.JSONField(default=_default_triggers)
+    # Per-tool autonomy controls. See _default_tool_policies().
+    tool_policies = models.JSONField(default=_default_tool_policies)
 
     # Safety rails.
     is_enabled = models.BooleanField(default=True)
@@ -170,6 +192,44 @@ class AgentChatSession(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.title or 'untitled'} ({self.agent.name})"
+
+
+class AgentMemory(BaseModel):
+    """Persistent memory facts retrievable by an agent at run time."""
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="agent_memories",
+    )
+    # Optional owner agent. Null = shared workspace memory.
+    agent = models.ForeignKey(
+        Agent,
+        on_delete=models.CASCADE,
+        related_name="memories",
+        null=True,
+        blank=True,
+    )
+    key = models.CharField(max_length=160)
+    value = models.TextField()
+    tags = models.JSONField(default=list, blank=True)
+    source = models.CharField(max_length=64, blank=True, default="")
+    use_count = models.PositiveIntegerField(default=0)
+    last_accessed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "agent_memories"
+        verbose_name = "Agent Memory"
+        verbose_name_plural = "Agent Memories"
+        ordering = ("-updated_at",)
+        indexes = [
+            models.Index(fields=["workspace", "agent", "key"]),
+            models.Index(fields=["workspace", "-updated_at"]),
+        ]
+
+    def __str__(self) -> str:
+        scope = self.agent.name if self.agent_id else "workspace"
+        return f"{scope}: {self.key}"
 
 
 class AgentChatMessage(BaseModel):

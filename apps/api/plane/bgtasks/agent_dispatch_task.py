@@ -39,6 +39,7 @@ from django.utils import timezone as dj_timezone
 
 from plane.db.models import (
     Agent,
+    AgentMemory,
     AgentRun,
     Issue,
     IssueAttachment,
@@ -95,6 +96,7 @@ _TRIGGER_FRAMING = {
 }
 
 _MAX_ITERATIONS_PER_RUN = 6
+_DEFAULT_TOOL_POLICY = "auto"
 
 
 @shared_task(name="plane.bgtasks.agent_dispatch_task.dispatch_agent_event")
@@ -155,9 +157,10 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         .order_by("name")
         .values_list("name", flat=True)
     )
-    user_prompt = _build_user_prompt(issue, trigger_event, available_states, available_labels)
+    memory_context = _build_memory_context(agent=agent, issue=issue)
+    user_prompt = _build_user_prompt(issue, trigger_event, available_states, available_labels, memory_context)
     system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_SYSTEM_PROMPT
-    tools = [
+    base_tools = [
         _make_post_comment_tool(agent=agent, issue=issue, run=run),
         _make_change_state_tool(agent=agent, issue=issue, run=run),
         _make_add_label_tool(agent=agent, issue=issue, run=run),
@@ -165,8 +168,11 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         _make_list_attachments_tool(agent=agent, issue=issue, run=run),
         _make_plan_next_steps_tool(agent=agent, issue=issue, run=run),
         _make_record_step_tool(run=run),
+        _make_remember_memory_tool(agent=agent, run=run),
+        _make_search_memory_tool(agent=agent, run=run),
     ]
-    tools.extend(_load_mcp_tools_for(agent))
+    tools = _apply_tool_policies(agent=agent, tools=base_tools)
+    tools.extend(_apply_tool_policies(agent=agent, tools=_load_mcp_tools_for(agent)))
 
     try:
         result = provider.run(
@@ -207,6 +213,7 @@ def _build_user_prompt(
     trigger_event: str = "assigned",
     available_states=None,
     available_labels=None,
+    memory_context: str = "",
 ) -> str:
     """Render the issue as a single user-prompt string.
 
@@ -253,6 +260,10 @@ def _build_user_prompt(
         )
         for name in available_labels:
             parts.append(f"- {name}")
+    if memory_context:
+        parts.append("")
+        parts.append("Workspace memory (use this as durable context when relevant):")
+        parts.append(memory_context)
     if recent_comments:
         parts.append("")
         parts.append("Recent comments (newest first):")
@@ -262,6 +273,102 @@ def _build_user_prompt(
             if body:
                 parts.append(f"- {who}: {body[:500]}")
     return "\n".join(parts)
+
+
+def _normalise_tool_policy(value: str) -> str:
+    policy = (value or "").strip().lower()
+    return policy if policy in {"auto", "ask", "never"} else _DEFAULT_TOOL_POLICY
+
+
+def _apply_tool_policies(*, agent: Agent, tools: list[LLMTool]) -> list[LLMTool]:
+    """Apply per-tool autonomy policy (auto | ask | never)."""
+    policies = agent.tool_policies or {}
+    filtered: list[LLMTool] = []
+    for tool in tools:
+        policy = _normalise_tool_policy(str(policies.get(tool.name, _DEFAULT_TOOL_POLICY)))
+        if policy == "never":
+            continue
+        if policy == "ask":
+            filtered.append(_wrap_tool_with_approval_gate(tool))
+            continue
+        filtered.append(tool)
+    return filtered
+
+
+def _wrap_tool_with_approval_gate(tool: LLMTool) -> LLMTool:
+    """Return a non-executing wrapper for tools that require approval."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        return json.dumps(
+            {
+                "approval_required": True,
+                "tool": tool.name,
+                "arguments": args,
+                "message": (
+                    "This tool is configured as ask-only. Stop and request user approval "
+                    "before retrying with the same arguments."
+                ),
+            },
+            cls=DjangoJSONEncoder,
+        )
+
+    return LLMTool(
+        name=tool.name,
+        description=f"{tool.description} (requires approval before execution)",
+        parameters_schema=tool.parameters_schema,
+        handler=handler,
+    )
+
+
+def _build_memory_context(*, agent: Agent, issue: Issue, limit: int = 8) -> str:
+    """Retrieve recent memory entries for this workspace + agent scope."""
+    rows = (
+        AgentMemory.objects.filter(
+            workspace=issue.workspace,
+            deleted_at__isnull=True,
+        )
+        .filter(Q(agent__isnull=True) | Q(agent=agent))
+        .order_by("-last_accessed_at", "-updated_at")[:limit]
+    )
+    if not rows:
+        return ""
+
+    lines: list[str] = []
+    now = datetime.now(timezone.utc)
+    for row in rows:
+        tags = ", ".join([str(t) for t in (row.tags or [])[:4]])
+        tag_part = f" tags=[{tags}]" if tags else ""
+        src_part = f" source={row.source}" if row.source else ""
+        lines.append(f"- {row.key}: {row.value[:400]}{tag_part}{src_part}")
+        row.use_count = int(row.use_count or 0) + 1
+        row.last_accessed_at = now
+        row.save(update_fields=["use_count", "last_accessed_at", "updated_at"])
+    return "\n".join(lines)
+
+
+def _build_memory_context_for_workspace(*, agent: Agent, workspace, limit: int = 8) -> str:
+    rows = (
+        AgentMemory.objects.filter(
+            workspace=workspace,
+            deleted_at__isnull=True,
+        )
+        .filter(Q(agent__isnull=True) | Q(agent=agent))
+        .order_by("-last_accessed_at", "-updated_at")[:limit]
+    )
+    if not rows:
+        return ""
+
+    lines: list[str] = []
+    now = datetime.now(timezone.utc)
+    for row in rows:
+        tags = ", ".join([str(t) for t in (row.tags or [])[:4]])
+        tag_part = f" tags=[{tags}]" if tags else ""
+        src_part = f" source={row.source}" if row.source else ""
+        lines.append(f"- {row.key}: {row.value[:400]}{tag_part}{src_part}")
+        row.use_count = int(row.use_count or 0) + 1
+        row.last_accessed_at = now
+        row.save(update_fields=["use_count", "last_accessed_at", "updated_at"])
+    return "\n".join(lines)
 
 
 def _make_post_comment_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMTool:
@@ -717,6 +824,114 @@ def _make_record_step_tool(*, run: AgentRun) -> LLMTool:
     )
 
 
+def _make_remember_memory_tool(*, agent: Agent, run: AgentRun) -> LLMTool:
+    """Persist durable memory for future runs."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        key = (args.get("key") or "").strip()
+        value = (args.get("value") or "").strip()
+        source = (args.get("source") or "agent").strip()
+        tags = args.get("tags") or []
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+        if not key:
+            return "tool_error: `key` is required"
+        if not value:
+            return "tool_error: `value` is required"
+        if not isinstance(tags, list):
+            return "tool_error: `tags` must be a list"
+
+        memory, created = AgentMemory.objects.update_or_create(
+            workspace=agent.workspace,
+            agent=agent,
+            key=key[:160],
+            defaults={
+                "value": value,
+                "source": source[:64],
+                "tags": [str(t).strip()[:60] for t in tags if str(t).strip()],
+            },
+        )
+        return json.dumps(
+            {
+                "ok": True,
+                "id": str(memory.id),
+                "created": created,
+                "key": memory.key,
+            },
+            cls=DjangoJSONEncoder,
+        )
+
+    return LLMTool(
+        name="remember_memory",
+        description="Store a durable memory fact for this agent in this workspace.",
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "key": {"type": "string"},
+                "value": {"type": "string"},
+                "source": {"type": "string"},
+                "tags": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["key", "value"],
+        },
+        handler=handler,
+    )
+
+
+def _make_search_memory_tool(*, agent: Agent, run: AgentRun) -> LLMTool:
+    """Retrieve memory entries from workspace + agent scope."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        query = (args.get("query") or "").strip()
+        limit_raw = args.get("limit", 6)
+        try:
+            limit = max(1, min(int(limit_raw), 20))
+        except Exception:  # noqa: BLE001
+            limit = 6
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+        if not query:
+            return "tool_error: `query` is required"
+
+        rows = (
+            AgentMemory.objects.filter(workspace=agent.workspace, deleted_at__isnull=True)
+            .filter(Q(agent__isnull=True) | Q(agent=agent))
+            .filter(Q(key__icontains=query) | Q(value__icontains=query))
+            .order_by("-last_accessed_at", "-updated_at")[:limit]
+        )
+        now = datetime.now(timezone.utc)
+        payload = []
+        for row in rows:
+            payload.append(
+                {
+                    "id": str(row.id),
+                    "key": row.key,
+                    "value": row.value,
+                    "tags": row.tags or [],
+                    "source": row.source or "",
+                }
+            )
+            row.use_count = int(row.use_count or 0) + 1
+            row.last_accessed_at = now
+            row.save(update_fields=["use_count", "last_accessed_at", "updated_at"])
+
+        return json.dumps(payload, cls=DjangoJSONEncoder)
+
+    return LLMTool(
+        name="search_memory",
+        description="Search stored workspace/agent memory by free-text query.",
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+            },
+            "required": ["query"],
+        },
+        handler=handler,
+    )
+
+
 def _emit_state_activity(*, issue: Issue, agent: Agent, previous_state_id, new_state_id: str) -> None:
     """Fire the standard issue_activity Celery task for an agent state change.
 
@@ -791,7 +1006,10 @@ def _wrap_in_paragraph(text: str) -> str:
 
 def _run_posted_comment(result: LLMRunResult) -> bool:
     """True if the model already used the `post_comment` tool at least once."""
-    return any(tc.get("name") == "post_comment" and "ok:" in (tc.get("result") or "") for tc in result.tool_calls)
+    return any(
+        tc.get("name") in {"post_comment", "post_page_comment"} and "ok:" in (tc.get("result") or "")
+        for tc in result.tool_calls
+    )
 
 
 def _is_cancelled(run_id) -> bool:
@@ -874,12 +1092,20 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
         return
 
     page = page_comment.page
-    user_prompt = _build_page_comment_user_prompt(page_comment=page_comment, trigger_event=trigger_event)
+    memory_context = _build_memory_context_for_workspace(agent=agent, workspace=page.workspace)
+    user_prompt = _build_page_comment_user_prompt(
+        page_comment=page_comment,
+        trigger_event=trigger_event,
+        memory_context=memory_context,
+    )
     system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT
-    tools = [
+    base_tools = [
         _make_post_page_comment_tool(agent=agent, page_comment=page_comment, run=run),
         _make_record_step_tool(run=run),
+        _make_remember_memory_tool(agent=agent, run=run),
+        _make_search_memory_tool(agent=agent, run=run),
     ]
+    tools = _apply_tool_policies(agent=agent, tools=base_tools)
 
     try:
         result = provider.run(
@@ -917,7 +1143,7 @@ _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT = (
 )
 
 
-def _build_page_comment_user_prompt(*, page_comment: PageBlockComment, trigger_event: str) -> str:
+def _build_page_comment_user_prompt(*, page_comment: PageBlockComment, trigger_event: str, memory_context: str = "") -> str:
     page = page_comment.page
     framing = (
         "Someone @-mentioned you in a page comment thread. The most recent comment in the "
@@ -956,6 +1182,10 @@ def _build_page_comment_user_prompt(*, page_comment: PageBlockComment, trigger_e
         import re as _re
         body_plain = _re.sub(r"<[^>]+>", " ", body).strip()
         parts.append(f"- {who}: {body_plain[:500]}")
+    if memory_context:
+        parts.append("")
+        parts.append("Workspace memory (use this as durable context when relevant):")
+        parts.append(memory_context)
 
     return "\n".join(parts)
 

@@ -26,6 +26,7 @@ export type TAgent = {
     state_change: boolean;
     comment: boolean;
   };
+  tool_policies: Record<string, "auto" | "ask" | "never">;
   is_enabled: boolean;
   max_concurrent_runs: number;
   draft_mode: boolean;
@@ -48,6 +49,7 @@ export type TAgentUpdatePayload = Partial<TAgentCreatePayload> & {
   draft_mode?: boolean;
   max_concurrent_runs?: number;
   triggers?: Partial<TAgent["triggers"]>;
+  tool_policies?: Record<string, "auto" | "ask" | "never">;
 };
 
 export type TAgentToolCall = {
@@ -79,6 +81,19 @@ export type TAgentRun = {
 };
 
 export type TAgentDraftKind = "issue" | "page";
+export type TAgentMemory = {
+  id: string;
+  workspace: string;
+  agent: string | null;
+  key: string;
+  value: string;
+  tags: string[];
+  source: string;
+  use_count: number;
+  last_accessed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export type TAgentCostSummaryWindow = {
   runs: number;
@@ -220,6 +235,33 @@ export class AgentService extends APIService {
    */
   async costSummary(workspaceSlug: string): Promise<TAgentCostSummary> {
     return this.get(`/api/workspaces/${workspaceSlug}/agents/cost-summary/`)
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  async listMemory(
+    workspaceSlug: string,
+    params?: { agent_id?: string; q?: string; limit?: number }
+  ): Promise<TAgentMemory[]> {
+    const qs = new URLSearchParams();
+    if (params?.agent_id) qs.set("agent_id", params.agent_id);
+    if (params?.q) qs.set("q", params.q);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.get(`/api/workspaces/${workspaceSlug}/agent-memory/${suffix}`)
+      .then((res) => res?.data ?? [])
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  async createMemory(
+    workspaceSlug: string,
+    payload: Pick<TAgentMemory, "agent" | "key" | "value" | "tags" | "source">
+  ): Promise<TAgentMemory> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agent-memory/`, payload)
       .then((res) => res?.data)
       .catch((err) => {
         throw err?.response?.data;
