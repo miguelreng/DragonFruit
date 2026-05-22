@@ -17,6 +17,7 @@ import uuid
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -248,14 +249,16 @@ class AgentDetailEndpoint(BaseAPIView):
         if not agent:
             return Response({"error": "agent not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Hard delete the bot User so we don't accumulate orphan bot rows.
-        # IssueAssignee + WorkspaceMember rows cascade from the User FK.
-        # AgentRun rows cascade from the Agent FK. Agent itself is the
-        # last to go.
+        # Soft-delete the agent and deactivate the backing bot user.
+        # Hard-deleting the User can fail in production due to historical
+        # references outside direct CASCADE paths.
         bot_user = agent.bot_user
         with transaction.atomic():
-            agent.delete()
-            bot_user.delete()
+            agent.deleted_at = timezone.now()
+            agent.save(update_fields=["deleted_at"])
+            bot_user.is_active = False
+            bot_user.save(update_fields=["is_active"])
+            WorkspaceMember.objects.filter(workspace=agent.workspace, member=bot_user).update(is_active=False)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

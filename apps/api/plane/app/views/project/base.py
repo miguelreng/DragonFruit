@@ -40,6 +40,7 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.db.models.intake import IntakeIssueStatus
+from plane.utils.exception_logger import log_exception
 from plane.utils.host import base_host
 
 
@@ -292,15 +293,18 @@ class ProjectViewSet(BaseViewSet):
             project = self.get_queryset().filter(pk=serializer.data["id"]).first()
 
             # Create the model activity
-            model_activity.delay(
-                model_name="project",
-                model_id=str(project.id),
-                requested_data=request.data,
-                current_instance=None,
-                actor_id=request.user.id,
-                slug=slug,
-                origin=base_host(request=request, is_app=True),
-            )
+            try:
+                model_activity.delay(
+                    model_name="project",
+                    model_id=str(project.id),
+                    requested_data=request.data,
+                    current_instance=None,
+                    actor_id=request.user.id,
+                    slug=slug,
+                    origin=base_host(request=request, is_app=True),
+                )
+            except Exception as e:
+                log_exception(e)
 
             serializer = ProjectListSerializer(project)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

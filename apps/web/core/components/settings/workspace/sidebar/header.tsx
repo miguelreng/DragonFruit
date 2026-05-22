@@ -50,6 +50,7 @@ export const WorkspaceSettingsSidebarHeader = observer(function WorkspaceSetting
           <WorkspaceLogo
             logo={currentWorkspace?.logo_url}
             name={currentWorkspace?.name}
+            workspaceId={currentWorkspace?.id}
             classNames="shrink-0 size-8 border border-subtle"
           />
           <div className="truncate">

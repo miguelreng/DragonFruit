@@ -46,19 +46,27 @@ export const PagesListHeader = observer(function PagesListHeader() {
       page_type: kind,
     };
 
-    await createPage(payload)
-      .then((res) => {
-        const pageId = `/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/${res?.id}`;
-        router.push(pageId);
-      })
-      .catch((err) => {
+    try {
+      const res = await createPage(payload);
+      if (!res?.id) {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: "Error!",
-          message: err?.data?.error || "Page could not be created. Please try again.",
+          message: "Page was created but could not be opened automatically. Please refresh and open it from the list.",
         });
-      })
-      .finally(() => setIsCreatingPage(false));
+        return;
+      }
+      const pageId = `/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/${res.id}`;
+      router.push(pageId);
+    } catch (err: any) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: err?.data?.error || "Page could not be created. Please try again.",
+      });
+    } finally {
+      setIsCreatingPage(false);
+    }
   };
 
   return (

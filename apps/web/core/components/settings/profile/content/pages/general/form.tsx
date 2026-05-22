@@ -12,19 +12,14 @@ import { CircleUserRound } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
-import { EFileAssetType } from "@plane/types";
 import type { IUser, TUserProfile } from "@plane/types";
 import { Input } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 // components
 import { DeactivateAccountModal } from "@/components/account/deactivate-account-modal";
-import { ImagePickerPopover } from "@/components/core/image-picker-popover";
 import { ChangeEmailModal } from "@/components/core/modals/change-email-modal";
 import { UserImageUploadModal } from "@/components/core/modals/user-image-upload-modal";
-import { CoverImage } from "@/components/common/cover-image";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
-// helpers
-import { handleCoverImageChange } from "@/helpers/cover-image.helper";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
 import { useUser, useUserProfile } from "@/hooks/store/user";
@@ -33,9 +28,6 @@ import { validatePersonName, validateDisplayName } from "@plane/utils";
 
 type TUserProfileForm = {
   avatar_url: string;
-  cover_image: string;
-  cover_image_asset: any;
-  cover_image_url: string;
   first_name: string;
   last_name: string;
   display_name: string;
@@ -69,8 +61,6 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
   } = useForm<TUserProfileForm>({
     defaultValues: {
       avatar_url: user.avatar_url || "",
-      cover_image_asset: null,
-      cover_image_url: user.cover_image_url || "",
       first_name: user.first_name || "",
       last_name: user.last_name || "",
       display_name: user.display_name || "",
@@ -82,7 +72,6 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
   });
   // derived values
   const userAvatar = watch("avatar_url");
-  const userCover = watch("cover_image_url");
   // store hooks
   const { data: currentUser, updateCurrentUser } = useUser();
   const { updateUserProfile } = useUserProfile();
@@ -124,27 +113,6 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
       avatar_url: formData.avatar_url,
       display_name: formData?.display_name,
     };
-
-    try {
-      const coverImagePayload = await handleCoverImageChange(user.cover_image_url, formData.cover_image_url, {
-        entityIdentifier: "",
-        entityType: EFileAssetType.USER_COVER,
-        isUserAsset: true,
-      });
-
-      if (coverImagePayload) {
-        Object.assign(userPayload, coverImagePayload);
-      }
-    } catch (error) {
-      console.error("Error handling cover image:", error);
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("toast.error"),
-        message: error instanceof Error ? error.message : "Failed to process cover image",
-      });
-      setIsLoading(false);
-      return;
-    }
 
     const profilePayload: Partial<TUserProfile> = {
       role: formData.role,
@@ -211,50 +179,26 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
       />
       <form onSubmit={handleSubmit(onSubmit)} className="w-full">
         <div className="flex w-full flex-col gap-7">
-          <div className="relative h-44 w-full">
-            <CoverImage
-              src={userCover}
-              className="h-44 w-full rounded-lg"
-              alt={currentUser?.first_name ?? "Cover image"}
-            />
-            <div className="absolute -bottom-6 left-6 flex items-end justify-between">
-              <div className="flex gap-3">
-                <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-surface-2">
-                  <button type="button" onClick={() => setIsImageUploadModalOpen(true)}>
-                    {!userAvatar || userAvatar === "" ? (
-                      <div className="h-16 w-16 rounded-md bg-layer-1 p-2">
-                        <CircleUserRound className="h-full w-full text-secondary" />
-                      </div>
-                    ) : (
-                      <div className="relative h-16 w-16 overflow-hidden">
-                        <img
-                          src={getFileURL(userAvatar)}
-                          className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
-                          alt={currentUser?.display_name}
-                        />
-                      </div>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="absolute right-3 bottom-3 flex">
-              <Controller
-                control={control}
-                name="cover_image_url"
-                render={({ field: { value, onChange } }) => (
-                  <ImagePickerPopover
-                    label={t("change_cover")}
-                    control={control}
-                    onChange={(imageUrl) => onChange(imageUrl)}
-                    value={value}
-                    isProfileCover
-                  />
+          <div className="flex h-24 items-end">
+            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-surface-2">
+              <button type="button" onClick={() => setIsImageUploadModalOpen(true)}>
+                {!userAvatar || userAvatar === "" ? (
+                  <div className="h-16 w-16 rounded-md bg-layer-1 p-2">
+                    <CircleUserRound className="h-full w-full text-secondary" />
+                  </div>
+                ) : (
+                  <div className="relative h-16 w-16 overflow-hidden">
+                    <img
+                      src={getFileURL(userAvatar)}
+                      className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
+                      alt={currentUser?.display_name}
+                    />
+                  </div>
                 )}
-              />
+              </button>
             </div>
           </div>
-          <div className="mt-6 flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <div className="flex items-center text-body-md-medium text-secondary">
                 <span>{`${watch("first_name")} ${watch("last_name")}`}</span>

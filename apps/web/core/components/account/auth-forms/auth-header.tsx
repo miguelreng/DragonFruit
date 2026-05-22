@@ -25,32 +25,46 @@ type TAuthHeader = {
   currentAuthStep: EAuthSteps;
 };
 
+const keywordStyle: React.CSSProperties = {
+  fontFamily: "Newsreader, serif",
+  fontStyle: "italic",
+  fontWeight: 400,
+};
+
+const AuthLegend = (
+  <span>
+    Where <span style={keywordStyle}>ideas</span> become <span style={keywordStyle}>work</span>.{" "}
+    <span style={keywordStyle}>Good morning</span>, <span style={keywordStyle}>good afternoon</span>,{" "}
+    <span style={keywordStyle}>good evening</span>, <span style={keywordStyle}>good night</span>.
+  </span>
+);
+
 const Titles = {
   [EAuthModes.SIGN_IN]: {
     [EAuthSteps.EMAIL]: {
-      header: "Where ideas become work.",
+      header: AuthLegend,
       subHeader: "Welcome back to DragonFruit.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Where ideas become work.",
+      header: AuthLegend,
       subHeader: "Welcome back to DragonFruit.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Where ideas become work.",
+      header: AuthLegend,
       subHeader: "Welcome back to DragonFruit.",
     },
   },
   [EAuthModes.SIGN_UP]: {
     [EAuthSteps.EMAIL]: {
-      header: "Where ideas become work.",
+      header: AuthLegend,
       subHeader: "Create your DragonFruit account.",
     },
     [EAuthSteps.PASSWORD]: {
-      header: "Where ideas become work.",
+      header: AuthLegend,
       subHeader: "Create your DragonFruit account.",
     },
     [EAuthSteps.UNIQUE_CODE]: {
-      header: "Where ideas become work.",
+      header: AuthLegend,
       subHeader: "Create your DragonFruit account.",
     },
   },
