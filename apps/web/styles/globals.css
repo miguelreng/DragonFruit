@@ -313,8 +313,7 @@
   border-top: none !important;
 }
 
-/* Square corners + white cells everywhere — no soft greys, no rounded edges
- * fighting the surrounding chrome. */
+/* Square corners + theme-aware cells everywhere (no hardcoded light fills). */
 .dragonfruit-calendar,
 .dragonfruit-calendar *,
 .dragonfruit-calendar *::before,
@@ -328,7 +327,7 @@
 .dragonfruit-calendar .sx__month-grid-day--trailing,
 .dragonfruit-calendar .sx__week-grid,
 .dragonfruit-calendar .sx__month-grid {
-  background-color: #ffffff !important;
+  background-color: var(--background-color-canvas) !important;
 }
 
 /* Hide Schedule-X's built-in toolbar (Today / chevrons / View / Date) —

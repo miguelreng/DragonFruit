@@ -67,14 +67,15 @@ export function CreatePageModal(props: Props) {
   useEffect(() => {
     if (!isModalOpen || !workspaceSlug) return;
     let cancelled = false;
-    templateService
-      .list(workspaceSlug)
-      .then((rows) => {
+    const loadTemplates = async () => {
+      try {
+        const rows = await templateService.list(workspaceSlug);
         if (!cancelled) setTemplates(rows);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setTemplates([]);
-      });
+      }
+    };
+    void loadTemplates();
     return () => {
       cancelled = true;
     };
@@ -107,9 +108,11 @@ export function CreatePageModal(props: Props) {
       }
 
       const pageData = await createPage(pageFormData);
-      if (pageData) {
+      if (pageData?.id) {
         handleStateClear();
         if (redirectionEnabled) router.push(`/${workspaceSlug}/projects/${projectId}/pages/${pageData.id}`);
+      } else {
+        console.error("Page create returned empty payload");
       }
     } catch (error) {
       console.error(error);

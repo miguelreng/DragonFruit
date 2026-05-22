@@ -17,7 +17,7 @@ import { Copy, RefreshCw } from "@/components/icons/lucide-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspace } from "@plane/types";
 import { CustomSelect, Input } from "@plane/ui";
-import { cn, copyUrlToClipboard, validateWorkspaceName } from "@plane/utils";
+import { cn, copyUrlToClipboard, validateSlug, validateWorkspaceName } from "@plane/utils";
 // components
 import { WorkspaceImageUploadModal } from "@/components/core/modals/workspace-image-upload-modal";
 import { TimezoneSelect } from "@/components/global/timezone-select";
@@ -29,12 +29,13 @@ import {
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserPermissions } from "@/hooks/store/user";
+import { useAppRouter } from "@/hooks/use-app-router";
 // plane web components
 import { DeleteWorkspaceSection } from "@/plane-web/components/workspace/delete-workspace-section";
 
 const defaultValues: Partial<IWorkspace> = {
   name: "",
-  url: "",
+  slug: "",
   organization_size: "2-10",
   logo_url: null,
   timezone: "UTC",
@@ -47,6 +48,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
   // store hooks
   const { currentWorkspace, updateWorkspace } = useWorkspace();
   const { allowPermissions } = useUserPermissions();
+  const router = useAppRouter();
   const { t } = useTranslation();
 
   // form info
@@ -65,7 +67,8 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
   const isUsingDefaultLogo = !workspaceLogo || workspaceLogo === "" || isDefaultWorkspaceLogo(workspaceLogo);
   const logoSrc = resolveWorkspaceLogoSrc(workspaceLogo, currentWorkspace?.id);
   const workspaceHost = typeof window !== "undefined" ? window.location.host : "";
-  const workspaceUrl = currentWorkspace ? `${workspaceHost}/${currentWorkspace.slug}` : "";
+  const workspaceSlug = watch("slug") || currentWorkspace?.slug || "";
+  const workspaceUrl = workspaceSlug ? `${workspaceHost}/${workspaceSlug}` : "";
 
   const onSubmit = async (formData: IWorkspace) => {
     if (!currentWorkspace) return;
@@ -74,12 +77,18 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
 
     const payload: Partial<IWorkspace> = {
       name: formData.name,
+      slug: formData.slug?.trim().toLowerCase(),
       organization_size: formData.organization_size,
       timezone: formData.timezone,
     };
 
     try {
+      const previousSlug = currentWorkspace.slug;
       await updateWorkspace(currentWorkspace.slug, payload);
+      if (payload.slug && payload.slug !== previousSlug && typeof window !== "undefined") {
+        const nextPath = window.location.pathname.replace(`/${previousSlug}/`, `/${payload.slug}/`);
+        router.replace(nextPath);
+      }
       setToast({
         title: "Success!",
         type: TOAST_TYPE.SUCCESS,
@@ -141,7 +150,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
   const handleCopyUrl = () => {
     if (!currentWorkspace) return;
 
-    void copyUrlToClipboard(`${currentWorkspace.slug}`)
+    void copyUrlToClipboard(`https://${workspaceUrl}`)
       .then(() => {
         setToast({
           type: TOAST_TYPE.SUCCESS,
@@ -288,23 +297,35 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
             </div>
             <div className="flex flex-col gap-2">
               <h4 className="text-body-sm-medium text-tertiary">{t("workspace_settings.settings.general.url")}</h4>
-              <Controller
-                control={control}
-                name="url"
-                render={({ field: { onChange, ref } }) => (
-                  <Input
-                    id="url"
-                    name="url"
-                    type="url"
-                    value={workspaceUrl}
-                    onChange={onChange}
-                    ref={ref}
-                    hasError={Boolean(errors.url)}
-                    className="w-full cursor-not-allowed rounded-md !bg-layer-1"
-                    disabled
-                  />
-                )}
-              />
+              <div className="flex w-full items-center rounded-md border border-subtle bg-layer-2 px-3">
+                <span className="text-12 whitespace-nowrap text-secondary">{workspaceHost}/</span>
+                <Controller
+                  control={control}
+                  name="slug"
+                  rules={{
+                    required: t("common.errors.required"),
+                    maxLength: {
+                      value: 48,
+                      message: "Workspace URL must be 48 characters or less.",
+                    },
+                    validate: (value) => validateSlug(value),
+                  }}
+                  render={({ field: { onChange, value, ref } }) => (
+                    <Input
+                      id="slug"
+                      name="slug"
+                      type="text"
+                      value={(value ?? "").toLowerCase().trim().replace(/ /g, "-")}
+                      onChange={(e) => onChange(e.target.value.toLowerCase())}
+                      ref={ref}
+                      hasError={Boolean(errors.slug)}
+                      className="block w-full rounded-md border-none bg-transparent !px-0 py-2 text-12"
+                      disabled={!isAdmin}
+                    />
+                  )}
+                />
+              </div>
+              {errors.slug && <p className="text-caption-sm-regular text-danger-primary">{errors.slug.message}</p>}
             </div>
             <div className="flex flex-col gap-2">
               <h4 className="text-body-sm-medium text-tertiary">

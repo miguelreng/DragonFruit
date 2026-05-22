@@ -55,6 +55,7 @@ from plane.bgtasks.page_version_task import track_page_version
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.copy_s3_object import copy_s3_objects_of_description_and_assets
 from plane.app.permissions import ProjectPagePermission
+from plane.utils.exception_logger import log_exception
 
 
 def unarchive_archive_page_and_descendants(page_id, archived_at):
@@ -142,11 +143,14 @@ class PageViewSet(BaseViewSet):
         if serializer.is_valid():
             serializer.save()
             # capture the page transaction
-            page_transaction.delay(
-                new_description_html=request.data.get("description_html", "<p></p>"),
-                old_description_html=None,
-                page_id=serializer.data["id"],
-            )
+            try:
+                page_transaction.delay(
+                    new_description_html=request.data.get("description_html", "<p></p>"),
+                    old_description_html=None,
+                    page_id=serializer.data["id"],
+                )
+            except Exception as e:
+                log_exception(e)
             page = self.get_queryset().get(pk=serializer.data["id"])
             serializer = PageDetailSerializer(page)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

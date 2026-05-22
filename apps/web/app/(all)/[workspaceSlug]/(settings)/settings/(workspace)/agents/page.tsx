@@ -143,6 +143,7 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
       <div className="w-full">
         <AgentFormModal
           mode="create"
+          workspaceSlug={workspaceSlug}
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreate}
@@ -150,6 +151,7 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
         {editingAgent && (
           <AgentFormModal
             mode="edit"
+            workspaceSlug={workspaceSlug}
             isOpen={!!editingAgent}
             agent={editingAgent}
             onClose={() => setEditingAgent(null)}

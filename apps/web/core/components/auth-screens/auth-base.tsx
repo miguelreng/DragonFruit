@@ -74,8 +74,8 @@ export function AuthBase({ authType }: AuthBaseProps) {
         }}
       >
         <div aria-hidden className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-transparent" />
-        <p className="absolute right-4 bottom-4 text-12 leading-tight text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-          <span className="italic">{hero.title}</span>, {hero.year} — {hero.artist}
+        <p className="font-normal absolute right-4 bottom-4 text-12 leading-tight text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+          <span className="font-normal italic">{hero.title}</span>, {hero.year} — {hero.artist}
         </p>
       </div>
     </div>

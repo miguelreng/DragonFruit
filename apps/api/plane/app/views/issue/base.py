@@ -26,6 +26,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.gzip import gzip_page
+from django.shortcuts import get_object_or_404
 
 # Third Party imports
 from rest_framework import status
@@ -73,6 +74,7 @@ from plane.utils.issue_filters import issue_filters
 from plane.utils.order_queryset import order_issue_queryset
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
 from plane.utils.timezone_converter import user_timezone_converter
+from plane.utils.exception_logger import log_exception
 
 from .. import BaseAPIView, BaseViewSet
 
@@ -391,7 +393,7 @@ class IssueViewSet(BaseViewSet):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def create(self, request, slug, project_id):
-        project = Project.objects.get(pk=project_id)
+        project = get_object_or_404(Project, pk=project_id, workspace__slug=slug)
 
         serializer = IssueCreateSerializer(
             data=request.data,
@@ -406,17 +408,20 @@ class IssueViewSet(BaseViewSet):
             serializer.save()
 
             # Track the issue
-            issue_activity.delay(
-                type="issue.activity.created",
-                requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(serializer.data.get("id", None)),
-                project_id=str(project_id),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-                notification=True,
-                origin=base_host(request=request, is_app=True),
-            )
+            try:
+                issue_activity.delay(
+                    type="issue.activity.created",
+                    requested_data=json.dumps(self.request.data, cls=DjangoJSONEncoder),
+                    actor_id=str(request.user.id),
+                    issue_id=str(serializer.data.get("id", None)),
+                    project_id=str(project_id),
+                    current_instance=None,
+                    epoch=int(timezone.now().timestamp()),
+                    notification=True,
+                    origin=base_host(request=request, is_app=True),
+                )
+            except Exception as e:
+                log_exception(e)
             queryset = self.get_queryset()
             queryset = self.apply_annotations(queryset)
             issue = (
@@ -458,22 +463,28 @@ class IssueViewSet(BaseViewSet):
             datetime_fields = ["created_at", "updated_at"]
             issue = user_timezone_converter(issue, datetime_fields, request.user.user_timezone)
             # Send the model activity
-            model_activity.delay(
-                model_name="issue",
-                model_id=str(serializer.data["id"]),
-                requested_data=request.data,
-                current_instance=None,
-                actor_id=request.user.id,
-                slug=slug,
-                origin=base_host(request=request, is_app=True),
-            )
+            try:
+                model_activity.delay(
+                    model_name="issue",
+                    model_id=str(serializer.data["id"]),
+                    requested_data=request.data,
+                    current_instance=None,
+                    actor_id=request.user.id,
+                    slug=slug,
+                    origin=base_host(request=request, is_app=True),
+                )
+            except Exception as e:
+                log_exception(e)
             # updated issue description version
-            issue_description_version_task.delay(
-                updated_issue=json.dumps(request.data, cls=DjangoJSONEncoder),
-                issue_id=str(serializer.data["id"]),
-                user_id=request.user.id,
-                is_creating=True,
-            )
+            try:
+                issue_description_version_task.delay(
+                    updated_issue=json.dumps(request.data, cls=DjangoJSONEncoder),
+                    issue_id=str(serializer.data["id"]),
+                    user_id=request.user.id,
+                    is_creating=True,
+                )
+            except Exception as e:
+                log_exception(e)
             return Response(issue, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

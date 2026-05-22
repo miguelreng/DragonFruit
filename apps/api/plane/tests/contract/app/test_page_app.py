@@ -1,0 +1,29 @@
+# Copyright (c) 2023-present Plane Software, Inc. and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+# See the LICENSE file for details.
+
+import pytest
+from unittest.mock import patch
+from rest_framework import status
+
+from plane.db.models import Project
+
+
+@pytest.mark.contract
+class TestPageAPIPost:
+    def get_pages_url(self, workspace_slug: str, project_id: str) -> str:
+        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/pages/"
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.page.base.page_transaction.delay", side_effect=Exception("broker unavailable"))
+    def test_create_page_succeeds_when_page_transaction_dispatch_fails(
+        self, _mock_page_tx, session_client, workspace
+    ):
+        project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
+        url = self.get_pages_url(workspace.slug, str(project.id))
+
+        response = session_client.post(url, {"name": "Whiteboard 1", "page_type": "whiteboard"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["name"] == "Whiteboard 1"
+        assert response.data["page_type"] == "whiteboard"

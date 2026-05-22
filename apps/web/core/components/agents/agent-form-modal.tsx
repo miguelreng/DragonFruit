@@ -9,9 +9,10 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EModalPosition, EModalWidth, Input, ModalCore, TextArea } from "@plane/ui";
+import { CustomSelect, EModalPosition, EModalWidth, Input, ModalCore, TextArea } from "@plane/ui";
 // services
 import type { TAgent, TAgentCreatePayload, TAgentUpdatePayload } from "@/services/agent.service";
+import { AIService, type TWorkspaceLLMProvider } from "@/services/ai.service";
 // local
 import { AgentAvatar } from "./agent-avatar";
 
@@ -21,6 +22,68 @@ import { AgentAvatar } from "./agent-avatar";
 // backgrounds. URL is the source of truth; we just generate one here.
 const buildGeneratedAvatarUrl = (seed: string) =>
   `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}`;
+
+const PROVIDER_OPTIONS = [
+  {
+    value: "anthropic",
+    label: "Anthropic",
+    models: ["claude-sonnet-4-5", "claude-3-7-sonnet", "claude-3-5-haiku"],
+    defaultBaseUrl: "",
+  },
+  {
+    value: "openai",
+    label: "OpenAI",
+    models: ["gpt-4.1", "gpt-4o", "gpt-4o-mini"],
+    defaultBaseUrl: "",
+  },
+  {
+    value: "google",
+    label: "Google",
+    models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
+    defaultBaseUrl: "",
+  },
+  {
+    value: "openrouter",
+    label: "OpenRouter",
+    models: ["anthropic/claude-3.7-sonnet", "openai/gpt-4o", "google/gemini-2.0-flash-001"],
+    defaultBaseUrl: "https://openrouter.ai/api/v1",
+  },
+] as const;
+
+const PROVIDER_DEFAULT_BASE_URL: Record<string, string> = {
+  openrouter: "https://openrouter.ai/api/v1",
+};
+
+const AGENT_TEMPLATES = [
+  {
+    key: "pm",
+    name: "PM Assistant",
+    description: "Triages incoming tasks and asks clarifying questions.",
+    prompt:
+      "You are a project-management assistant for this workspace. Triage incoming issues and ask clarifying questions when scope is unclear.",
+  },
+  {
+    key: "support",
+    name: "Support Agent",
+    description: "Drafts customer replies and escalates urgent bugs.",
+    prompt:
+      "You are a customer support assistant. Draft clear, friendly replies, summarize issue impact, and flag urgent incidents for escalation.",
+  },
+  {
+    key: "qa",
+    name: "QA Reviewer",
+    description: "Finds gaps, edge-cases, and verification steps.",
+    prompt: "You are a QA reviewer. Propose concise test plans, edge cases, and pass/fail criteria before release.",
+  },
+] as const;
+
+const splitProviderModel = (providerModel: string) => {
+  const [provider, ...rest] = providerModel.split("/");
+  return {
+    provider: provider ?? "",
+    model: rest.join("/"),
+  };
+};
 
 type AgentFormState = {
   name: string;
@@ -53,6 +116,7 @@ const formFromAgent = (agent: TAgent): AgentFormState => ({
 });
 
 type CommonProps = {
+  workspaceSlug: string;
   isOpen: boolean;
   onClose: () => void;
 };
@@ -70,13 +134,29 @@ type EditProps = CommonProps & {
 };
 
 type IAgentFormModalProps = CreateProps | EditProps;
+const aiService = new AIService();
+
+type TProviderOption = {
+  value: string;
+  label: string;
+  models: string[];
+  defaultBaseUrl: string;
+};
 
 export function AgentFormModal(props: IAgentFormModalProps) {
-  const { isOpen, onClose, mode } = props;
+  const { isOpen, onClose, mode, workspaceSlug } = props;
   const { t } = useTranslation();
-  const seed = mode === "edit" ? formFromAgent(props.agent) : EMPTY_FORM;
-  const [form, setForm] = useState<AgentFormState>(seed);
+  const initialForm = mode === "edit" ? formFromAgent(props.agent) : EMPTY_FORM;
+  const [form, setForm] = useState<AgentFormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
+  const [providerOptions, setProviderOptions] = useState<TProviderOption[]>(
+    PROVIDER_OPTIONS.map((provider) => ({
+      value: provider.value,
+      label: provider.label,
+      models: [...provider.models],
+      defaultBaseUrl: provider.defaultBaseUrl,
+    }))
+  );
 
   // Re-seed when the modal opens or the target agent changes (edit mode
   // reuses a single modal instance for every row).
@@ -85,6 +165,31 @@ export function AgentFormModal(props: IAgentFormModalProps) {
     setForm(mode === "edit" ? formFromAgent(props.agent) : EMPTY_FORM);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, mode, mode === "edit" ? props.agent.id : null]);
+
+  useEffect(() => {
+    if (!isOpen || !workspaceSlug) return;
+    let cancelled = false;
+    const loadProviders = async () => {
+      try {
+        const config = await aiService.getWorkspaceLLMConfig(workspaceSlug);
+        if (cancelled) return;
+        const providers = config.providers ?? {};
+        const options = Object.entries(providers).map(([value, provider]: [string, TWorkspaceLLMProvider]) => ({
+          value,
+          label: provider.name || value,
+          models: provider.models || [],
+          defaultBaseUrl: PROVIDER_DEFAULT_BASE_URL[value] ?? "",
+        }));
+        if (options.length > 0) setProviderOptions(options);
+      } catch {
+        // Keep local defaults on fetch failures.
+      }
+    };
+    void loadProviders();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, workspaceSlug]);
 
   const handleClose = () => {
     if (submitting) return;
@@ -158,6 +263,10 @@ export function AgentFormModal(props: IAgentFormModalProps) {
     isEdit && props.agent.has_api_key
       ? "A key is on file. Leave blank to keep it, or paste a new one to replace it."
       : "Stored encrypted, never echoed back.";
+  const parsedProviderModel = splitProviderModel(form.provider_model);
+  const selectedProvider = providerOptions.find((p) => p.value === parsedProviderModel.provider);
+  const selectedProviderLabel = selectedProvider?.label ?? "Custom";
+  const selectedModelLabel = parsedProviderModel.model || "Select model";
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
@@ -180,7 +289,6 @@ export function AgentFormModal(props: IAgentFormModalProps) {
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="PM bot"
               required
-              autoFocus
             />
           </div>
 
@@ -202,12 +310,12 @@ export function AgentFormModal(props: IAgentFormModalProps) {
               Avatar
             </label>
             <div className="flex items-start gap-3">
-              <div className="mt-1 shrink-0">
+              <div className="mt-1 shrink-0 rounded-md border border-subtle bg-layer-2 p-1">
                 <AgentAvatar
                   seed={isEdit ? props.agent.id : form.name || "new-agent"}
                   name={form.name || "Agent"}
                   src={form.avatar_url}
-                  size={40}
+                  size={44}
                 />
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -226,8 +334,8 @@ export function AgentFormModal(props: IAgentFormModalProps) {
                   <button
                     type="button"
                     onClick={() => {
-                      const seed = form.name.trim() || (isEdit ? props.agent.id : `agent-${Date.now()}`);
-                      setForm((f) => ({ ...f, avatar_url: buildGeneratedAvatarUrl(seed) }));
+                      const avatarSeed = form.name.trim() || (isEdit ? props.agent.id : `agent-${Date.now()}`);
+                      setForm((f) => ({ ...f, avatar_url: buildGeneratedAvatarUrl(avatarSeed) }));
                     }}
                     className="shrink-0 text-11 font-medium text-accent-primary hover:underline"
                   >
@@ -239,9 +347,37 @@ export function AgentFormModal(props: IAgentFormModalProps) {
           </div>
 
           <div>
-            <label className={labelClass} htmlFor="agent-system-prompt">
-              System prompt
-            </label>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="block text-13 font-medium text-secondary" htmlFor="agent-system-prompt">
+                System prompt
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-11 text-tertiary">Template</span>
+                <CustomSelect
+                  value=""
+                  onChange={(templateKey: string) => {
+                    const template = AGENT_TEMPLATES.find((item) => item.key === templateKey);
+                    if (!template) return;
+                    setForm((f) => ({
+                      ...f,
+                      description: f.description || template.description,
+                      system_prompt: template.prompt,
+                    }));
+                  }}
+                  label="Choose template"
+                  buttonClassName="min-w-[180px] border-subtle bg-layer-1 px-2 py-1.5 text-12 text-secondary"
+                >
+                  {AGENT_TEMPLATES.map((template) => (
+                    <CustomSelect.Option key={template.key} value={template.key}>
+                      <div className="min-w-0">
+                        <p className="truncate text-12 text-primary">{template.name}</p>
+                        <p className="truncate text-11 text-tertiary">{template.description}</p>
+                      </div>
+                    </CustomSelect.Option>
+                  ))}
+                </CustomSelect>
+              </div>
+            </div>
             <TextArea
               id="agent-system-prompt"
               className="min-h-24 w-full resize-y text-13"
@@ -260,15 +396,68 @@ export function AgentFormModal(props: IAgentFormModalProps) {
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
+                <label className={labelClass} htmlFor="agent-provider">
+                  Provider
+                </label>
+                <CustomSelect
+                  value={parsedProviderModel.provider}
+                  onChange={(provider: string) => {
+                    const option = providerOptions.find((item) => item.value === provider);
+                    if (!option) {
+                      setForm((f) => ({ ...f, provider_model: "" }));
+                      return;
+                    }
+                    const nextModel = option.models[0];
+                    setForm((f) => ({
+                      ...f,
+                      provider_model: `${provider}/${nextModel}`,
+                      api_base_url: f.api_base_url || option.defaultBaseUrl,
+                    }));
+                  }}
+                  label={selectedProviderLabel}
+                  input
+                  buttonClassName="w-full border-subtle bg-layer-1 px-3 py-2 text-13 text-secondary"
+                >
+                  {providerOptions.map((provider) => (
+                    <CustomSelect.Option key={provider.value} value={provider.value}>
+                      <span className="text-13 text-primary">{provider.label}</span>
+                    </CustomSelect.Option>
+                  ))}
+                </CustomSelect>
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="agent-model">
+                  Model
+                </label>
+                <CustomSelect
+                  value={parsedProviderModel.model}
+                  onChange={(model: string) => {
+                    const provider = parsedProviderModel.provider || providerOptions[0]?.value || "";
+                    setForm((f) => ({ ...f, provider_model: `${provider}/${model}` }));
+                  }}
+                  label={selectedModelLabel}
+                  input
+                  buttonClassName="w-full border-subtle bg-layer-1 px-3 py-2 text-13 text-secondary"
+                >
+                  {(selectedProvider?.models ?? []).map((model) => (
+                    <CustomSelect.Option key={model} value={model}>
+                      <span className="text-13 text-primary">{model}</span>
+                    </CustomSelect.Option>
+                  ))}
+                </CustomSelect>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
                 <label className={labelClass} htmlFor="agent-provider-model">
-                  Provider/model
+                  Provider/model slug
                 </label>
                 <Input
                   id="agent-provider-model"
                   className="w-full"
                   value={form.provider_model}
                   onChange={(e) => setForm((f) => ({ ...f, provider_model: e.target.value }))}
-                  placeholder="anthropic/claude-sonnet-4.6"
+                  placeholder="anthropic/claude-sonnet-4-5"
                 />
               </div>
               <div>

@@ -6,6 +6,7 @@ import pytest
 from rest_framework import status
 import uuid
 from django.utils import timezone
+from unittest.mock import patch
 
 from plane.db.models import (
     Project,
@@ -227,6 +228,23 @@ class TestProjectAPIPost(TestProjectBase):
         response_data = response.json()
         assert response_data["description"] == project_data["description"]
         assert response_data["network"] == project_data["network"]
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.project.base.model_activity.delay", side_effect=Exception("broker unavailable"))
+    def test_create_project_succeeds_when_model_activity_dispatch_fails(
+        self, _mock_model_activity, session_client, workspace, create_user
+    ):
+        """Project creation should not fail when async activity dispatch fails."""
+        url = self.get_project_url(workspace.slug)
+        project_data = {
+            "name": "Resilient Project",
+            "identifier": "RP",
+        }
+
+        response = session_client.post(url, project_data, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Project.objects.filter(name=project_data["name"], workspace=workspace).exists()
 
 
 @pytest.mark.contract
