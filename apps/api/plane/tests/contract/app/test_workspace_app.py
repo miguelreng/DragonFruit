@@ -75,3 +75,13 @@ class TestWorkspaceAPI:
 
         # Optionally check the error message to confirm it's related to the duplicate slug
         assert "slug" in response.data
+
+    @pytest.mark.django_db
+    def test_list_workspaces_without_slug_returns_200(self, session_client, workspace):
+        """Test listing workspaces from /api/workspaces/ does not require slug kwargs."""
+        url = reverse("workspace")
+
+        response = session_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert isinstance(response.data, list)

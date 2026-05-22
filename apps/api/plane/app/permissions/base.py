@@ -20,12 +20,19 @@ def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(instance, request, *args, **kwargs):
+            slug = kwargs.get("slug")
+
             # Check for creator if required
             if creator and model:
+                if not slug:
+                    return Response(
+                        {"error": "You don't have the required permissions."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
                 # check if the user is part of the workspace or not
                 if not WorkspaceMember.objects.filter(
                     member=request.user,
-                    workspace__slug=kwargs["slug"],
+                    workspace__slug=slug,
                     is_active=True,
                 ).exists():
                     return Response(
@@ -42,17 +49,26 @@ def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
 
             # Check role permissions
             if level == "WORKSPACE":
+                # Workspace list endpoints do not include a slug in URL kwargs.
+                if not slug:
+                    return view_func(instance, request, *args, **kwargs)
+
                 if WorkspaceMember.objects.filter(
                     member=request.user,
-                    workspace__slug=kwargs["slug"],
+                    workspace__slug=slug,
                     role__in=allowed_role_values,
                     is_active=True,
                 ).exists():
                     return view_func(instance, request, *args, **kwargs)
             else:
+                if not slug:
+                    return Response(
+                        {"error": "You don't have the required permissions."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
                 is_user_has_allowed_role = ProjectMember.objects.filter(
                     member=request.user,
-                    workspace__slug=kwargs["slug"],
+                    workspace__slug=slug,
                     project_id=kwargs["project_id"],
                     role__in=allowed_role_values,
                     is_active=True,
@@ -64,13 +80,13 @@ def allow_permission(allowed_roles, level="PROJECT", creator=False, model=None):
                 elif (
                     ProjectMember.objects.filter(
                         member=request.user,
-                        workspace__slug=kwargs["slug"],
+                        workspace__slug=slug,
                         project_id=kwargs["project_id"],
                         is_active=True,
                     ).exists()
                     and WorkspaceMember.objects.filter(
                         member=request.user,
-                        workspace__slug=kwargs["slug"],
+                        workspace__slug=slug,
                         role=ROLE.ADMIN.value,
                         is_active=True,
                     ).exists()
