@@ -48,11 +48,15 @@ type Props = {
  */
 export function AgentAvatar({ seed, name, src, size = "base", showBadge = true, className }: Props) {
   const accent = getAgentAccent(seed);
+  const hasImage = Boolean(src && src.trim().length > 0);
+  const initial = (name?.trim()?.[0] ?? "A").toUpperCase();
   // Avatar's outer wrapper doesn't size itself when `size` is a number,
   // so we size our own wrapper and pass the same number through. Named
   // sizes ("sm"/"md"/"base"/"lg") size themselves, so we leave the
   // wrapper unsized for those.
   const isNumericSize = typeof size === "number";
+  const fallbackNamedSizeClass =
+    size === "sm" ? "h-5 w-5 text-11" : size === "md" ? "h-6 w-6 text-12" : size === "lg" ? "h-10 w-10 text-16" : "h-8 w-8 text-14";
   const badgeSize = isNumericSize
     ? size >= 36
       ? "size-4"
@@ -70,13 +74,25 @@ export function AgentAvatar({ seed, name, src, size = "base", showBadge = true, 
     >
       <Avatar
         name={name}
-        src={src || undefined}
+        src={hasImage ? src : undefined}
         size={size}
         shape="square"
         fallbackBackgroundColor={accent.bg}
         fallbackTextColor={accent.fg}
-        className={cn(isNumericSize && "h-full w-full")}
+        className={cn(isNumericSize && "h-full w-full", !hasImage && "hidden")}
       />
+      {!hasImage && (
+        <div
+          className={cn(
+            "grid place-items-center rounded-sm font-semibold text-white select-none",
+            isNumericSize ? "h-full w-full text-[24px] leading-none" : fallbackNamedSizeClass
+          )}
+          style={{ backgroundColor: accent.bg }}
+          aria-hidden
+        >
+          {initial}
+        </div>
+      )}
       {showBadge && (
         <span
           className={cn(

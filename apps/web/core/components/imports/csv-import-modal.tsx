@@ -6,34 +6,58 @@
 
 import { observer } from "mobx-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getRandomLabelColor } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { CustomSearchSelect, CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
+import type { IIssueLabel, IState } from "@plane/types";
 import { FileText, UploadCloud, X } from "@/components/icons/lucide-shim";
 import { useProject } from "@/hooks/store/use-project";
+import { IssueLabelService } from "@/services/issue";
 import { IssueService } from "@/services/issue/issue.service";
+import { ProjectStateService } from "@/services/project/project-state.service";
 import {
   type CsvFieldKey,
   type CsvMapping,
   type ParsedCsv,
+  type TImportSource,
+  detectDelimiter,
   detectMapping,
+  detectSource,
+  extractCsvEntriesFromZip,
+  normalizeStatus,
+  pickBestCsvEntry,
+  parseDueDate,
+  parseLabels,
   normalizePriority,
   parseCsv,
 } from "./csv-parser";
 
 const issueService = new IssueService();
-const FIELD_KEYS: CsvFieldKey[] = ["name", "description", "priority"];
+const issueLabelService = new IssueLabelService();
+const stateService = new ProjectStateService();
+const FIELD_KEYS: CsvFieldKey[] = ["name", "description", "priority", "status", "due_date", "labels", "assignee"];
 const LABEL_CLASS = "block text-13 font-medium text-secondary mb-1";
+const FIELD_LABELS: Record<CsvFieldKey, string> = {
+  name: "Task name",
+  description: "Description",
+  priority: "Priority",
+  status: "Status",
+  due_date: "Due date",
+  labels: "Labels",
+  assignee: "Assignee",
+};
 
 type Props = {
   workspaceSlug: string;
+  source?: TImportSource;
   isOpen: boolean;
   onClose: () => void;
 };
 
-export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, isOpen, onClose }: Props) {
+export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, source = "csv", isOpen, onClose }: Props) {
   const { t } = useTranslation();
   const { workspaceProjectIds, getProjectById } = useProject();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +65,18 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
   const [projectId, setProjectId] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<ParsedCsv | null>(null);
-  const [mapping, setMapping] = useState<CsvMapping>({ name: null, description: null, priority: null });
+  const [mapping, setMapping] = useState<CsvMapping>({
+    name: null,
+    description: null,
+    priority: null,
+    status: null,
+    due_date: null,
+    labels: null,
+    assignee: null,
+  });
+  const [detectedSource, setDetectedSource] = useState<TImportSource>("csv");
+  const [delimiter, setDelimiter] = useState<"," | ";" | "\t">(",");
+  const [zipCsvCount, setZipCsvCount] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -49,7 +84,10 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
       setProjectId("");
       setFile(null);
       setParsed(null);
-      setMapping({ name: null, description: null, priority: null });
+      setMapping({ name: null, description: null, priority: null, status: null, due_date: null, labels: null, assignee: null });
+      setDetectedSource("csv");
+      setDelimiter(",");
+      setZipCsvCount(0);
       setSubmitting(false);
     }
   }, [isOpen]);
@@ -59,12 +97,30 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
     setParsed(null);
     if (!f) return;
     try {
-      const text = await f.text();
-      const result = parseCsv(text);
+      let text: string;
+      const isZip = f.name.toLowerCase().endsWith(".zip");
+      if (isZip) {
+        const entries = await extractCsvEntriesFromZip(f);
+        const best = pickBestCsvEntry(entries);
+        if (!best) {
+          setToast({ type: TOAST_TYPE.ERROR, title: "No CSV found in ZIP export." });
+          return;
+        }
+        text = best.text;
+        setZipCsvCount(entries.length);
+      } else {
+        text = await f.text();
+        setZipCsvCount(0);
+      }
+      const detectedDelimiter = detectDelimiter(text);
+      const result = parseCsv(text, detectedDelimiter);
       if (result.headers.length === 0 || result.rows.length === 0) {
         setToast({ type: TOAST_TYPE.ERROR, title: t("workspace_settings.settings.imports.csv_modal.error_empty") });
         return;
       }
+      const discoveredSource = source === "csv" ? detectSource(result.headers) : source;
+      setDetectedSource(discoveredSource);
+      setDelimiter(detectedDelimiter);
       setParsed(result);
       setMapping(detectMapping(result.headers));
     } catch {
@@ -75,8 +131,57 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
   const handleClearFile = () => {
     setFile(null);
     setParsed(null);
-    setMapping({ name: null, description: null, priority: null });
+    setMapping({ name: null, description: null, priority: null, status: null, due_date: null, labels: null, assignee: null });
+    setDetectedSource("csv");
+    setDelimiter(",");
+    setZipCsvCount(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const ensureStateAndLabels = async (currentProjectId: string, row: string[]) => {
+    let stateId: string | undefined;
+    let labelIds: string[] | undefined;
+
+    if (mapping.status !== null) {
+      const rawStatus = normalizeStatus(row[mapping.status]);
+      if (rawStatus) {
+        const states = await stateService.getStates(workspaceSlug, currentProjectId);
+        const existingState = states.find((s) => s.name.trim().toLowerCase() === rawStatus.toLowerCase());
+        if (existingState) stateId = existingState.id;
+        else {
+          const created = await stateService.createState(workspaceSlug, currentProjectId, {
+            name: rawStatus,
+            group: "backlog",
+            color: "#3B82F6",
+          } as Partial<IState>);
+          stateId = created?.id;
+        }
+      }
+    }
+
+    if (mapping.labels !== null) {
+      const incoming = parseLabels(row[mapping.labels]);
+      if (incoming.length > 0) {
+        const existingLabels = await issueLabelService.getProjectLabels(workspaceSlug, currentProjectId);
+        const ids: string[] = [];
+        for (const labelName of incoming) {
+          const existing = existingLabels.find((l) => l.name.trim().toLowerCase() === labelName.toLowerCase());
+          if (existing) {
+            ids.push(existing.id);
+            continue;
+          }
+          const created = await issueLabelService.createIssueLabel(workspaceSlug, currentProjectId, {
+            name: labelName,
+            color: getRandomLabelColor(),
+          } as Partial<IIssueLabel>);
+          if (created?.id) ids.push(created.id);
+          existingLabels.push(created);
+        }
+        labelIds = ids.length > 0 ? ids : undefined;
+      }
+    }
+
+    return { stateId, labelIds };
   };
 
   const handleSubmit = async () => {
@@ -110,11 +215,18 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
       const description =
         mapping.description !== null ? (row[mapping.description] ?? "").trim() || undefined : undefined;
       const priority = mapping.priority !== null ? normalizePriority(row[mapping.priority]) : "none";
+      const targetDate = mapping.due_date !== null ? parseDueDate(row[mapping.due_date]) : undefined;
+      const { stateId, labelIds } = await ensureStateAndLabels(projectId, row);
+      const assigneeRaw =
+        mapping.assignee !== null && row[mapping.assignee]?.trim() ? `\n\nImported assignee: ${row[mapping.assignee].trim()}` : "";
       try {
         await issueService.createIssue(workspaceSlug, projectId, {
           name,
-          description_html: description ? `<p>${escapeHtml(description)}</p>` : undefined,
+          description_html: description ? `<p>${escapeHtml(description + assigneeRaw)}</p>` : assigneeRaw ? `<p>${escapeHtml(assigneeRaw.trim())}</p>` : undefined,
           priority,
+          state_id: stateId,
+          label_ids: labelIds,
+          target_date: targetDate,
         });
         ok++;
       } catch {
@@ -178,6 +290,20 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
             {t("workspace_settings.settings.imports.csv_modal.title")}
           </h3>
           <p className="mt-1 text-13 text-tertiary">{t("workspace_settings.settings.imports.csv_modal.file_hint")}</p>
+          <p className="mt-1 text-11 text-tertiary">
+            Source: <span className="text-secondary">{source === "csv" ? "Auto detect" : source === "notion" ? "Notion" : "ClickUp"}</span>
+            {parsed && (
+              <>
+                {" · "}Detected: <span className="text-secondary capitalize">{detectedSource}</span>{" · "}Delimiter:{" "}
+                <span className="text-secondary">{delimiter === "\t" ? "tab" : delimiter}</span>
+                {zipCsvCount > 0 && (
+                  <>
+                    {" · "}ZIP CSV files: <span className="text-secondary">{zipCsvCount}</span>
+                  </>
+                )}
+              </>
+            )}
+          </p>
         </div>
 
         <div className="flex flex-col gap-5 px-5 py-4">
@@ -247,7 +373,7 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,text/csv"
+              accept={source === "notion" ? ".zip,.csv,text/csv,application/zip" : ".csv,text/csv"}
               className="hidden"
               onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
             />
@@ -270,7 +396,7 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
                   return (
                     <div key={key} className="flex flex-col">
                       <span className="mb-1 text-11 font-medium text-secondary">
-                        {t(`workspace_settings.settings.imports.csv_modal.field_${key}`)}
+                        {FIELD_LABELS[key]}
                         {required && <span className="text-danger-strong ml-0.5">*</span>}
                       </span>
                       <CustomSelect

@@ -17,8 +17,15 @@ import type { TContextMenuItem } from "@plane/ui";
 import { ContextMenu, CustomMenu } from "@plane/ui";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // components
-import { cn } from "@plane/utils";
+import { cn, copyUrlToClipboard } from "@plane/utils";
 import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
+import {
+  buildPublicPagePath,
+  buildPublicPageUrl,
+  getPublicPageSlug,
+  normalizePublicPageSlug,
+  validatePublicPageSlug,
+} from "@/helpers/page-public";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -42,6 +49,8 @@ export type TPageActions =
   | "toggle-access"
   | "open-in-new-tab"
   | "copy-link"
+  | "copy-public-link"
+  | "edit-public-url"
   | "make-a-copy"
   | "archive-restore"
   | "delete"
@@ -146,6 +155,50 @@ export const PageActions = observer(function PageActions(props: Props) {
           title: "Copy link",
           icon: LinkIcon,
           shouldRender: true,
+        },
+        {
+          key: "copy-public-link",
+          action: async () => {
+            if (!workspaceSlug || !page.id) return;
+            const slug = getPublicPageSlug(page);
+            await copyUrlToClipboard(buildPublicPageUrl(workspaceSlug.toString(), slug));
+            setToast({
+              type: TOAST_TYPE.SUCCESS,
+              title: "Public link copied",
+              message: "Anyone with this link can view this page.",
+            });
+          },
+          title: "Copy public link",
+          icon: GlobeIcon,
+          shouldRender: access === EPageAccess.PUBLIC && !archived_at,
+        },
+        {
+          key: "edit-public-url",
+          action: async () => {
+            if (!workspaceSlug || !page.id) return;
+            const currentSlug = getPublicPageSlug(page);
+            const input = window.prompt("Public URL slug", currentSlug);
+            if (input === null) return;
+            const nextSlug = normalizePublicPageSlug(input);
+            const validationError = validatePublicPageSlug(nextSlug);
+            if (validationError) {
+              setToast({
+                type: TOAST_TYPE.ERROR,
+                title: "Invalid slug",
+                message: validationError,
+              });
+              return;
+            }
+            await page.updateViewProps({ public_slug: nextSlug });
+            setToast({
+              type: TOAST_TYPE.SUCCESS,
+              title: "Public URL updated",
+              message: buildPublicPagePath(workspaceSlug.toString(), nextSlug),
+            });
+          },
+          title: "Edit public URL",
+          icon: LinkIcon,
+          shouldRender: access === EPageAccess.PUBLIC && canCurrentUserChangeAccess && !archived_at,
         },
         {
           key: "make-a-copy",

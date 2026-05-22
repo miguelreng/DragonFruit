@@ -11,7 +11,7 @@ import { Button } from "@plane/propel/button";
 import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import { cn } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
-import { ConnectInfoModal, CsvImportModal } from "@/components/imports";
+import { CsvImportModal } from "@/components/imports";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
@@ -19,7 +19,7 @@ import { useWorkspace } from "@/hooks/store/use-workspace";
 import type { Route } from "./+types/page";
 import { ImportsWorkspaceSettingsHeader } from "./header";
 
-type ActiveModal = null | { kind: "csv" } | { kind: "connect"; service: "notion" | "clickup" };
+type ActiveModal = null | { kind: "csv"; source: SourceKey };
 
 type SourceKey = "csv" | "notion" | "clickup";
 
@@ -49,14 +49,14 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
     },
     {
       key: "notion",
-      ready: false,
+      ready: true,
       title: t("workspace_settings.settings.imports.sources.notion.title"),
       description: t("workspace_settings.settings.imports.sources.notion.description"),
       cta: t("workspace_settings.settings.imports.sources.notion.cta"),
     },
     {
       key: "clickup",
-      ready: false,
+      ready: true,
       title: t("workspace_settings.settings.imports.sources.clickup.title"),
       description: t("workspace_settings.settings.imports.sources.clickup.description"),
       cta: t("workspace_settings.settings.imports.sources.clickup.cta"),
@@ -94,9 +94,7 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
                 <Button
                   variant={s.ready ? "primary" : "secondary"}
                   size="sm"
-                  onClick={() =>
-                    s.key === "csv" ? setActive({ kind: "csv" }) : setActive({ kind: "connect", service: s.key })
-                  }
+                  onClick={() => setActive({ kind: "csv", source: s.key })}
                 >
                   {s.cta}
                 </Button>
@@ -106,10 +104,10 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
         </div>
       </div>
 
-      <CsvImportModal workspaceSlug={workspaceSlug} isOpen={active?.kind === "csv"} onClose={() => setActive(null)} />
-      <ConnectInfoModal
-        service={active?.kind === "connect" ? active.service : "notion"}
-        isOpen={active?.kind === "connect"}
+      <CsvImportModal
+        workspaceSlug={workspaceSlug}
+        source={active?.kind === "csv" ? active.source : "csv"}
+        isOpen={active?.kind === "csv"}
         onClose={() => setActive(null)}
       />
     </SettingsContentWrapper>

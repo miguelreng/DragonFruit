@@ -288,3 +288,10 @@ from .notification.base import MarkAllReadNotificationViewSet
 from .user.base import AccountEndpoint, ProfileEndpoint, UserSessionEndpoint
 
 from .timezone.base import TimezoneEndpoint
+from .ai_connector import (
+    AIConnectorInboundEndpoint,
+    WorkspaceAIConnectorEndpoint,
+    WorkspaceAIConnectorEventsEndpoint,
+    WorkspaceAIConnectorIngestEndpoint,
+    WorkspaceAIConnectorTestEndpoint,
+)

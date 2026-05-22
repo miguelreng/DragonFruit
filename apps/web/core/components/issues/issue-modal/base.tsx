@@ -81,7 +81,10 @@ export const CreateUpdateIssueModalBase = observer(function CreateUpdateIssueMod
   // current store details
   const { createIssue, updateIssue } = useIssuesActions(storeType);
   // derived values
-  const routerProjectIdentifier = workItem?.toString().split("-")[0];
+  const routeWorkItem = workItem?.toString() ?? "";
+  const routeSeparatorIndex = routeWorkItem.lastIndexOf("-");
+  const routerProjectIdentifier =
+    routeSeparatorIndex > -1 ? routeWorkItem.slice(0, routeSeparatorIndex) : routeWorkItem;
   const projectIdFromRouter = getProjectByIdentifier(routerProjectIdentifier)?.id;
   const projectId = data?.project_id ?? routerProjectId?.toString() ?? projectIdFromRouter;
 

@@ -26,6 +26,7 @@ from .agent_webhook import urlpatterns as agent_webhook_urls
 from .agent import urlpatterns as agent_urls
 from .mcp import urlpatterns as mcp_urls
 from .calendar import urlpatterns as calendar_urls
+from .ai_connector import urlpatterns as ai_connector_urls
 
 urlpatterns = [
     *analytic_urls,
@@ -52,4 +53,5 @@ urlpatterns = [
     *agent_urls,
     *mcp_urls,
     *calendar_urls,
+    *ai_connector_urls,
 ]
