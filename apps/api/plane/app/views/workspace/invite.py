@@ -31,6 +31,7 @@ from plane.db.models import User, Workspace, WorkspaceMember, WorkspaceMemberInv
 from plane.utils.cache import invalidate_cache, invalidate_cache_directly
 from plane.utils.host import base_host
 from plane.utils.analytics_events import USER_JOINED_WORKSPACE, USER_INVITED_TO_WORKSPACE
+from plane.utils.exception_logger import log_exception
 from .. import BaseViewSet
 
 
@@ -118,26 +119,32 @@ class WorkspaceInvitationsViewset(BaseViewSet):
 
         # Send invitations
         for invitation in workspace_invitations:
-            workspace_invitation.delay(
-                invitation.email,
-                workspace.id,
-                invitation.token,
-                current_site,
-                request.user.email,
-            )
-            track_event.delay(
-                user_id=request.user.id,
-                event_name=USER_INVITED_TO_WORKSPACE,
-                slug=slug,
-                event_properties={
-                    "user_id": request.user.id,
-                    "workspace_id": workspace.id,
-                    "workspace_slug": workspace.slug,
-                    "invitee_role": invitation.role,
-                    "invited_at": str(timezone.now()),
-                    "invitee_email": invitation.email,
-                },
-            )
+            try:
+                workspace_invitation.delay(
+                    invitation.email,
+                    workspace.id,
+                    invitation.token,
+                    current_site,
+                    request.user.email,
+                )
+            except Exception as e:
+                log_exception(e)
+            try:
+                track_event.delay(
+                    user_id=request.user.id,
+                    event_name=USER_INVITED_TO_WORKSPACE,
+                    slug=slug,
+                    event_properties={
+                        "user_id": request.user.id,
+                        "workspace_id": workspace.id,
+                        "workspace_slug": workspace.slug,
+                        "invitee_role": invitation.role,
+                        "invited_at": str(timezone.now()),
+                        "invitee_email": invitation.email,
+                    },
+                )
+            except Exception as e:
+                log_exception(e)
 
         return Response({"message": "Emails sent successfully"}, status=status.HTTP_200_OK)
 
@@ -203,18 +210,21 @@ class WorkspaceJoinEndpoint(BaseAPIView):
                     # Set the user last_workspace_id to the accepted workspace
                     user.last_workspace_id = workspace_invite.workspace.id
                     user.save()
-                    track_event.delay(
-                        user_id=user.id,
-                        event_name=USER_JOINED_WORKSPACE,
-                        slug=slug,
-                        event_properties={
-                            "user_id": user.id,
-                            "workspace_id": workspace_invite.workspace.id,
-                            "workspace_slug": workspace_invite.workspace.slug,
-                            "role": workspace_invite.role,
-                            "joined_at": str(timezone.now()),
-                        },
-                    )
+                    try:
+                        track_event.delay(
+                            user_id=user.id,
+                            event_name=USER_JOINED_WORKSPACE,
+                            slug=slug,
+                            event_properties={
+                                "user_id": user.id,
+                                "workspace_id": workspace_invite.workspace.id,
+                                "workspace_slug": workspace_invite.workspace.slug,
+                                "role": workspace_invite.role,
+                                "joined_at": str(timezone.now()),
+                            },
+                        )
+                    except Exception as e:
+                        log_exception(e)
 
                     # Delete the invitation
                     workspace_invite.delete()
@@ -272,18 +282,21 @@ class UserWorkspaceInvitationsViewSet(BaseViewSet):
             )
 
             # Track event
-            track_event.delay(
-                user_id=request.user.id,
-                event_name=USER_JOINED_WORKSPACE,
-                slug=invitation.workspace.slug,
-                event_properties={
-                    "user_id": request.user.id,
-                    "workspace_id": invitation.workspace.id,
-                    "workspace_slug": invitation.workspace.slug,
-                    "role": invitation.role,
-                    "joined_at": str(timezone.now()),
-                },
-            )
+            try:
+                track_event.delay(
+                    user_id=request.user.id,
+                    event_name=USER_JOINED_WORKSPACE,
+                    slug=invitation.workspace.slug,
+                    event_properties={
+                        "user_id": request.user.id,
+                        "workspace_id": invitation.workspace.id,
+                        "workspace_slug": invitation.workspace.slug,
+                        "role": invitation.role,
+                        "joined_at": str(timezone.now()),
+                    },
+                )
+            except Exception as e:
+                log_exception(e)
 
         # Bulk create the user for all the workspaces
         WorkspaceMember.objects.bulk_create(
