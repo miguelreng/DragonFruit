@@ -23,6 +23,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.utils import DatabaseError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -95,11 +96,19 @@ def _automation_matches_issue(automation: "AgentAutomation", issue: "Issue") -> 
     if label_ids:
         from .issue import IssueLabel
 
-        has_match = IssueLabel.objects.filter(
-            issue_id=issue.id,
-            label_id__in=label_ids,
-            deleted_at__isnull=True,
-        ).exists()
+        try:
+            has_match = IssueLabel.objects.filter(
+                issue_id=issue.id,
+                label_id__in=label_ids,
+                deleted_at__isnull=True,
+            ).exists()
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "agent automation label match failed for automation=%s issue=%s",
+                getattr(automation, "id", None),
+                issue.id,
+            )
+            return False
         if not has_match:
             return False
 
@@ -491,24 +500,34 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
         # Loop guard: do not recursively trigger agents on agent-authored tasks.
         return
 
-    agents = list(
-        Agent.objects.filter(
-            workspace_id=instance.workspace_id,
-            is_enabled=True,
-            deleted_at__isnull=True,
+    try:
+        agents = list(
+            Agent.objects.filter(
+                workspace_id=instance.workspace_id,
+                is_enabled=True,
+                deleted_at__isnull=True,
+            )
         )
-    )
-    automations = list(
-        AgentAutomation.objects.select_related("agent")
-        .filter(
-            workspace_id=instance.workspace_id,
-            trigger_event="issue_created",
-            is_enabled=True,
-            deleted_at__isnull=True,
-            agent__is_enabled=True,
-            agent__deleted_at__isnull=True,
+        automations = list(
+            AgentAutomation.objects.select_related("agent")
+            .filter(
+                workspace_id=instance.workspace_id,
+                trigger_event="issue_created",
+                is_enabled=True,
+                deleted_at__isnull=True,
+                agent__is_enabled=True,
+                agent__deleted_at__isnull=True,
+            )
         )
-    )
+    except DatabaseError:
+        # Never block issue creation if agent/automation persistence is out of
+        # sync (e.g. migrations not applied yet).
+        logger.exception(
+            "agent automation bootstrap query failed for issue=%s workspace=%s",
+            instance.id,
+            instance.workspace_id,
+        )
+        return
     if not agents and not automations:
         return
 
