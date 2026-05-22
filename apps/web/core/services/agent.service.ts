@@ -333,4 +333,24 @@ export class AgentService extends APIService {
         throw err?.response?.data;
       });
   }
+
+  async cloneAutomation(workspaceSlug: string, automationId: string): Promise<TAgentAutomation> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agent-automations/${automationId}/clone/`)
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  async testAutomation(
+    workspaceSlug: string,
+    automationId: string,
+    payload: { issue_id: string }
+  ): Promise<{ queued: boolean; automation_id: string; agent_id: string; issue_id: string; trigger_event: string }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agent-automations/${automationId}/test/`, payload)
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
 }

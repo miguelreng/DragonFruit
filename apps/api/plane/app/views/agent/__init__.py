@@ -3,6 +3,8 @@ from .base import (
     AgentDetailEndpoint,
     AgentAutomationDetailEndpoint,
     AgentAutomationEndpoint,
+    AgentAutomationCloneEndpoint,
+    AgentAutomationTestRunEndpoint,
     AgentDraftCommentApproveEndpoint,
     AgentDraftCommentDiscardEndpoint,
     AgentEndpoint,

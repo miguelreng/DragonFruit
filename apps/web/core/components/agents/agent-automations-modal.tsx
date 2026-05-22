@@ -50,7 +50,9 @@ const getConditionsSummary = (conditions: TAgentAutomationConditions): string =>
 
 export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }: Props) {
   const [tab, setTab] = useState<TTab>("browse");
-  const [isCreating, setIsCreating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingAutomationId, setEditingAutomationId] = useState<string | null>(null);
+  const [automationName, setAutomationName] = useState("");
   const [selectedAgentId, setSelectedAgentId] = useState<string>(agents[0]?.id ?? "");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
@@ -80,13 +82,13 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
     [agents]
   );
   const selectedAgent = sortedAgents.find((a) => a.id === selectedAgentId);
+  // eslint-disable-next-line unicorn/no-array-sort
   const sortedProjects = useMemo(
-    // eslint-disable-next-line unicorn/no-array-sort
     () => [...(projects ?? [])].sort((a: TPartialProject, b: TPartialProject) => a.name.localeCompare(b.name)),
     [projects]
   );
+  // eslint-disable-next-line unicorn/no-array-sort
   const sortedLabels = useMemo(
-    // eslint-disable-next-line unicorn/no-array-sort
     () => [...(labels ?? [])].sort((a: IIssueLabel, b: IIssueLabel) => a.name.localeCompare(b.name)),
     [labels]
   );
@@ -111,26 +113,56 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
     return conditions;
   };
 
-  const handleCreateIssueTriageAutomation = async () => {
+  const resetBuilder = () => {
+    setEditingAutomationId(null);
+    setAutomationName("");
+    setSelectedProjectIds([]);
+    setSelectedPriorities([]);
+    setSelectedLabelIds([]);
+    setIssueTypeIdsInput("");
+  };
+
+  const loadAutomationIntoBuilder = (automation: TAgentAutomation) => {
+    const conditions = (automation.conditions ?? {}) as TAgentAutomationConditions;
+    setEditingAutomationId(automation.id);
+    setAutomationName(automation.name);
+    setSelectedAgentId(automation.agent);
+    setSelectedProjectIds(conditions.project_ids ?? []);
+    setSelectedPriorities(conditions.priorities ?? []);
+    setSelectedLabelIds(conditions.label_ids ?? []);
+    setIssueTypeIdsInput((conditions.issue_type_ids ?? []).join(", "));
+    setTab("browse");
+  };
+
+  const handleUpsertAutomation = async () => {
     if (!workspaceSlug || !selectedAgentId) return;
-    setIsCreating(true);
+    setIsSubmitting(true);
     try {
-      const name = `Triage new task with ${selectedAgent?.name ?? "agent"}`;
-      await agentService.createAutomation(workspaceSlug, {
-        name,
-        agent: selectedAgentId,
-        trigger_event: "issue_created",
-        is_enabled: true,
-        conditions: buildConditions(),
-      });
+      const name = automationName.trim() || `Triage new task with ${selectedAgent?.name ?? "agent"}`;
+      if (editingAutomationId) {
+        await agentService.updateAutomation(workspaceSlug, editingAutomationId, {
+          name,
+          agent: selectedAgentId,
+          conditions: buildConditions(),
+        });
+      } else {
+        await agentService.createAutomation(workspaceSlug, {
+          name,
+          agent: selectedAgentId,
+          trigger_event: "issue_created",
+          is_enabled: true,
+          conditions: buildConditions(),
+        });
+      }
       await mutate();
       setTab("manage");
-      setToast({ type: TOAST_TYPE.SUCCESS, title: "Automation created" });
+      setToast({ type: TOAST_TYPE.SUCCESS, title: editingAutomationId ? "Automation updated" : "Automation created" });
+      resetBuilder();
     } catch (err) {
-      const message = (err as { error?: string } | undefined)?.error ?? "Could not create automation";
+      const message = (err as { error?: string } | undefined)?.error ?? "Could not save automation";
       setToast({ type: TOAST_TYPE.ERROR, title: message });
     } finally {
-      setIsCreating(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -152,6 +184,29 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
       setToast({ type: TOAST_TYPE.SUCCESS, title: "Automation deleted" });
     } catch (err) {
       const message = (err as { error?: string } | undefined)?.error ?? "Could not delete automation";
+      setToast({ type: TOAST_TYPE.ERROR, title: message });
+    }
+  };
+
+  const handleCloneAutomation = async (automation: TAgentAutomation) => {
+    try {
+      await agentService.cloneAutomation(workspaceSlug, automation.id);
+      await mutate();
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Automation duplicated" });
+    } catch (err) {
+      const message = (err as { error?: string } | undefined)?.error ?? "Could not duplicate automation";
+      setToast({ type: TOAST_TYPE.ERROR, title: message });
+    }
+  };
+
+  const handleTestRunAutomation = async (automation: TAgentAutomation) => {
+    const issueId = window.prompt("Issue ID to test this automation on:");
+    if (!issueId) return;
+    try {
+      await agentService.testAutomation(workspaceSlug, automation.id, { issue_id: issueId.trim() });
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Test run queued" });
+    } catch (err) {
+      const message = (err as { error?: string } | undefined)?.error ?? "Could not queue test run";
       setToast({ type: TOAST_TYPE.ERROR, title: message });
     }
   };
@@ -199,6 +254,18 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
               <p className="text-sm text-custom-text-300 mt-1">
                 Triage every newly created task with an agent and post first next steps automatically.
               </p>
+              <div className="mt-3 grid gap-1">
+                <label htmlFor="agent-automation-name" className="text-xs text-custom-text-300 font-medium uppercase">
+                  Automation name
+                </label>
+                <input
+                  id="agent-automation-name"
+                  value={automationName}
+                  onChange={(e) => setAutomationName(e.target.value)}
+                  placeholder="Triage new task with agent"
+                  className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2"
+                />
+              </div>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <select
                   value={selectedAgentId}
@@ -214,11 +281,16 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                 <Button
                   variant="primary"
                   size="base"
-                  disabled={!selectedAgentId || isCreating}
-                  onClick={handleCreateIssueTriageAutomation}
+                  disabled={!selectedAgentId || isSubmitting}
+                  onClick={handleUpsertAutomation}
                 >
-                  {isCreating ? "Creating..." : "Create Automation"}
+                  {isSubmitting ? "Saving..." : editingAutomationId ? "Save Changes" : "Create Automation"}
                 </Button>
+                {editingAutomationId && (
+                  <Button variant="secondary" size="base" onClick={resetBuilder}>
+                    Cancel Edit
+                  </Button>
+                )}
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <label className="flex flex-col gap-1">
@@ -328,6 +400,27 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                           />
                         </td>
                         <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => loadAutomationIntoBuilder(automation)}
+                            className="text-custom-text-300 hover:bg-custom-background-90 rounded px-2 py-1"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCloneAutomation(automation)}
+                            className="text-custom-text-300 hover:bg-custom-background-90 rounded px-2 py-1"
+                          >
+                            Duplicate
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleTestRunAutomation(automation)}
+                            className="text-custom-text-300 hover:bg-custom-background-90 rounded px-2 py-1"
+                          >
+                            Test run
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteAutomation(automation)}
