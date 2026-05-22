@@ -53,6 +53,9 @@ export const coreRoutes: RouteConfigEntry[] = [
   // section with mock data so the grid is viewable directly.
   layout("./(all)/__preview/layout.tsx", [route("__preview/activity", "./(all)/__preview/activity/page.tsx")]),
 
+  // Public published docs
+  route("published/:workspaceSlug/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx"),
+
   // ========================================================================
   // ALL APP ROUTES
   // ========================================================================

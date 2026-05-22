@@ -10,3 +10,11 @@ from .github import (
     GithubCommentSync,
 )
 from .slack import SlackProjectSync
+from .ai_connector import (
+    AIConnectorAuthMode,
+    AIConnectorEvent,
+    AIConnectorEventStatus,
+    AIConnectorProvider,
+    AIConnectorStatus,
+    WorkspaceAIConnector,
+)

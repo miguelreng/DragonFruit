@@ -13,7 +13,7 @@ import { CloseIcon, DragonfruitLockup } from "@plane/propel/icons";
 import AgentsTour from "@/app/assets/empty-state/onboarding/search-dark.png?url";
 import CyclesTour from "@/app/assets/onboarding/cycles.webp?url";
 import AnalyticsTour from "@/app/assets/empty-state/onboarding/analytics-dark.webp?url";
-import GardenOfEarthlyDelights from "@/app/assets/loading/garden-of-earthly-delights.jpg?url";
+import ReturnOfTheProdigalSon from "@/app/assets/loading/return-of-the-prodigal-son.jpg?url";
 import IssuesTour from "@/app/assets/onboarding/issues.webp?url";
 import ModulesTour from "@/app/assets/onboarding/modules.webp?url";
 import NotificationTour from "@/app/assets/empty-state/onboarding/notification-dark.png?url";
@@ -145,9 +145,9 @@ export const TourRoot = observer(function TourRoot(props: TOnboardingTourProps) 
       {step === "welcome" ? (
         <div className="w-4/5 overflow-hidden rounded-[10px] bg-surface-1 md:w-1/2 lg:w-2/5">
           <div className="h-full overflow-hidden">
-            <div
+              <div
               className="relative grid h-64 place-items-center bg-cover bg-center bg-no-repeat"
-              style={{ backgroundImage: `url(${GardenOfEarthlyDelights})` }}
+              style={{ backgroundImage: `url(${ReturnOfTheProdigalSon})` }}
             >
               <div className="absolute inset-0 bg-black/40" />
               <DragonfruitLockup className="relative h-10 w-auto text-white" />

@@ -96,13 +96,13 @@ export const PagesListHeader = observer(function PagesListHeader() {
                 size="lg"
                 onClick={() => handleCreatePage("doc")}
                 loading={isCreatingPage}
-                className="rounded-r-none"
+                className="rounded-r-none bg-accent-primary hover:bg-accent-primary-hover active:bg-accent-primary-active"
               >
                 {isCreatingPage ? "Adding" : "Add page"}
               </Button>
               <Menu.Button
                 aria-label="Add page menu"
-                className="bg-primary text-primary-foreground flex items-center rounded-r-md border-l border-white/20 px-2 hover:opacity-90"
+                className="flex items-center rounded-r-md bg-accent-primary px-1.5 text-on-color hover:bg-accent-primary-hover active:bg-accent-primary-active"
               >
                 <ChevronDown className="size-4" />
               </Menu.Button>
@@ -112,7 +112,7 @@ export const PagesListHeader = observer(function PagesListHeader() {
                 <button
                   type="button"
                   onClick={() => handleCreatePage("doc")}
-                  className="text-sm flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-layer-1-hover"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-12 hover:bg-layer-1-hover"
                 >
                   <FileText className="size-4" /> Doc
                 </button>
@@ -121,7 +121,7 @@ export const PagesListHeader = observer(function PagesListHeader() {
                 <button
                   type="button"
                   onClick={() => handleCreatePage("whiteboard")}
-                  className="text-sm flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-layer-1-hover"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-12 hover:bg-layer-1-hover"
                 >
                   <PenTool className="size-4" /> Whiteboard
                 </button>

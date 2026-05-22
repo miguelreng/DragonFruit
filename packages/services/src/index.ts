@@ -5,6 +5,7 @@
  */
 
 export * from "./ai";
+export * from "./integrations";
 export * from "./developer";
 export * from "./auth";
 export * from "./cycle";

@@ -73,6 +73,7 @@ export const IssueTitleInput = observer(function IssueTitleInput(props: TIssueTi
             hasError={Boolean(errors.name)}
             placeholder={t("title")}
             className="w-full text-body-sm-regular"
+            style={{ fontFamily: "Newsreader, serif" }}
             autoFocus
             tabIndex={getIndex("name")}
           />

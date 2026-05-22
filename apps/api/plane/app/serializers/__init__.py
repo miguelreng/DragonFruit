@@ -135,6 +135,7 @@ from .exporter import ExporterHistorySerializer
 from .webhook import WebhookSerializer, WebhookLogSerializer
 
 from .favorite import UserFavoriteSerializer
+from .ai_connector import WorkspaceAIConnectorSerializer, AIConnectorEventSerializer
 
 from .draft import (
     DraftIssueCreateSerializer,
