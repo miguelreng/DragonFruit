@@ -187,6 +187,7 @@ class LLMProvider:
         tools: Iterable[LLMTool] = (),
         max_iterations: Optional[int] = None,
         is_cancelled: Optional[Callable[[], bool]] = None,
+        on_tool_call: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> LLMRunResult:
         """Drive a multi-turn tool-use loop.
 
@@ -199,6 +200,9 @@ class LLMProvider:
           stop and mark the result as cancelled. The cancel check is
           per-turn rather than per-token because LiteLLM's
           non-streaming path doesn't expose a mid-call cancel.
+        - `on_tool_call` (optional) is invoked after each tool call is
+          executed and appended to `result.tool_calls`. Callers can use
+          it for incremental persistence so a long run remains resumable.
         """
         import litellm  # local import — heavy module, only load when used
 
@@ -298,7 +302,13 @@ class LLMProvider:
                     "name": tool_name,
                     "arguments": args,
                     "result": tool_output[:4000],  # cap to avoid runaway logs
+                    "iteration": iteration + 1,
                 })
+                if on_tool_call is not None:
+                    try:
+                        on_tool_call(result.tool_calls[-1])
+                    except Exception:  # noqa: BLE001
+                        logger.exception("on_tool_call callback failed")
 
                 messages.append({
                     "role": "tool",
