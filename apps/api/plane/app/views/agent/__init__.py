@@ -4,6 +4,8 @@ from .base import (
     AgentDraftCommentApproveEndpoint,
     AgentDraftCommentDiscardEndpoint,
     AgentEndpoint,
+    AgentMemoryDetailEndpoint,
+    AgentMemoryEndpoint,
     AgentRunCancelEndpoint,
     AgentRunListEndpoint,
     AgentStopEndpoint,

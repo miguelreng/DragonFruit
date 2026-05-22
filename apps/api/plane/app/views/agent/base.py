@@ -17,13 +17,14 @@ import uuid
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
-from plane.app.serializers.agent import AgentRunSerializer, AgentSerializer
-from plane.db.models import Agent, AgentRun, Workspace, WorkspaceMember
+from plane.app.serializers.agent import AgentMemorySerializer, AgentRunSerializer, AgentSerializer
+from plane.db.models import Agent, AgentMemory, AgentRun, Workspace, WorkspaceMember
 from plane.license.utils.encryption import encrypt_data
 
 from ..base import BaseAPIView
@@ -37,6 +38,7 @@ User = get_user_model()
 # state changes or settings access, the human owner has to opt in
 # explicitly per-agent (not in Slice 1).
 _BOT_WORKSPACE_ROLE = 5  # Guest
+_TOOL_POLICY_VALUES = {"auto", "ask", "never"}
 
 
 def _normalise_mcp_servers(submitted: list, *, previous: list) -> list:
@@ -218,6 +220,24 @@ class AgentDetailEndpoint(BaseAPIView):
             # Shallow-merge so callers can patch just one flag.
             agent.triggers = {**(agent.triggers or {}), **request.data["triggers"]}
 
+        if "tool_policies" in request.data:
+            submitted = request.data.get("tool_policies")
+            if not isinstance(submitted, dict):
+                return Response({"error": "tool_policies must be an object"}, status=status.HTTP_400_BAD_REQUEST)
+            merged = dict(agent.tool_policies or {})
+            for key, value in submitted.items():
+                tool_name = str(key or "").strip()
+                policy = str(value or "").strip().lower()
+                if not tool_name:
+                    continue
+                if policy not in _TOOL_POLICY_VALUES:
+                    return Response(
+                        {"error": f"invalid policy for {tool_name}: must be auto, ask, or never"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                merged[tool_name] = policy
+            agent.tool_policies = merged
+
         if "max_concurrent_runs" in request.data:
             try:
                 agent.max_concurrent_runs = max(1, min(50, int(request.data["max_concurrent_runs"])))
@@ -324,6 +344,101 @@ class AgentCostSummaryEndpoint(BaseAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class AgentMemoryEndpoint(BaseAPIView):
+    """Workspace/agent memory CRUD for retrieval-augmented runs."""
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def get(self, request, slug):
+        agent_id = request.GET.get("agent_id")
+        query = (request.GET.get("q") or "").strip()
+        limit_raw = request.GET.get("limit", 100)
+        try:
+            limit = max(1, min(int(limit_raw), 200))
+        except (TypeError, ValueError):
+            limit = 100
+
+        memories = AgentMemory.objects.filter(
+            workspace__slug=slug,
+            deleted_at__isnull=True,
+        )
+        if agent_id:
+            memories = memories.filter(agent_id=agent_id)
+        if query:
+            memories = memories.filter(Q(key__icontains=query) | Q(value__icontains=query))
+        memories = memories.order_by("-updated_at")[:limit]
+        return Response(AgentMemorySerializer(memories, many=True).data, status=status.HTTP_200_OK)
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug):
+        key = (request.data.get("key") or "").strip()
+        value = (request.data.get("value") or "").strip()
+        if not key:
+            return Response({"error": "key is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not value:
+            return Response({"error": "value is required"}, status=status.HTTP_400_BAD_REQUEST)
+        tags = request.data.get("tags") or []
+        if not isinstance(tags, list):
+            return Response({"error": "tags must be a list"}, status=status.HTTP_400_BAD_REQUEST)
+        source = (request.data.get("source") or "").strip()
+        agent_id = request.data.get("agent")
+
+        workspace = Workspace.objects.filter(slug=slug).first()
+        if not workspace:
+            return Response({"error": "workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        memory = AgentMemory.objects.create(
+            workspace=workspace,
+            agent_id=agent_id if agent_id else None,
+            key=key[:160],
+            value=value,
+            tags=[str(t).strip()[:60] for t in tags if str(t).strip()],
+            source=source[:64],
+        )
+        return Response(AgentMemorySerializer(memory).data, status=status.HTTP_201_CREATED)
+
+
+class AgentMemoryDetailEndpoint(BaseAPIView):
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def patch(self, request, slug, memory_id):
+        memory = AgentMemory.objects.filter(
+            workspace__slug=slug, pk=memory_id, deleted_at__isnull=True
+        ).first()
+        if not memory:
+            return Response({"error": "memory not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if "key" in request.data:
+            key = (request.data.get("key") or "").strip()
+            if not key:
+                return Response({"error": "key cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+            memory.key = key[:160]
+        if "value" in request.data:
+            value = (request.data.get("value") or "").strip()
+            if not value:
+                return Response({"error": "value cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+            memory.value = value
+        if "source" in request.data:
+            memory.source = (request.data.get("source") or "").strip()[:64]
+        if "tags" in request.data:
+            tags = request.data.get("tags") or []
+            if not isinstance(tags, list):
+                return Response({"error": "tags must be a list"}, status=status.HTTP_400_BAD_REQUEST)
+            memory.tags = [str(t).strip()[:60] for t in tags if str(t).strip()]
+        if "agent" in request.data:
+            memory.agent_id = request.data.get("agent") or None
+        memory.save()
+        return Response(AgentMemorySerializer(memory).data, status=status.HTTP_200_OK)
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def delete(self, request, slug, memory_id):
+        memory = AgentMemory.objects.filter(
+            workspace__slug=slug, pk=memory_id, deleted_at__isnull=True
+        ).first()
+        if not memory:
+            return Response({"error": "memory not found"}, status=status.HTTP_404_NOT_FOUND)
+        memory.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AgentRunListEndpoint(BaseAPIView):
