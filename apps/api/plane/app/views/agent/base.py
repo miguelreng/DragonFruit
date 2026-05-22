@@ -23,8 +23,8 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
-from plane.app.serializers.agent import AgentMemorySerializer, AgentRunSerializer, AgentSerializer
-from plane.db.models import Agent, AgentMemory, AgentRun, Workspace, WorkspaceMember
+from plane.app.serializers.agent import AgentAutomationSerializer, AgentMemorySerializer, AgentRunSerializer, AgentSerializer
+from plane.db.models import Agent, AgentAutomation, AgentMemory, AgentRun, Workspace, WorkspaceMember
 from plane.license.utils.encryption import encrypt_data
 
 from ..base import BaseAPIView
@@ -438,6 +438,106 @@ class AgentMemoryDetailEndpoint(BaseAPIView):
         if not memory:
             return Response({"error": "memory not found"}, status=status.HTTP_404_NOT_FOUND)
         memory.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AgentAutomationEndpoint(BaseAPIView):
+    """CRUD for agent automation rules visible in-app."""
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def get(self, request, slug):
+        rows = AgentAutomation.objects.filter(
+            workspace__slug=slug,
+            deleted_at__isnull=True,
+        ).select_related("agent")
+        return Response(AgentAutomationSerializer(rows, many=True).data, status=status.HTTP_200_OK)
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug):
+        name = (request.data.get("name") or "").strip()
+        agent_id = request.data.get("agent")
+        trigger_event = (request.data.get("trigger_event") or "issue_created").strip()
+        conditions = request.data.get("conditions") or {}
+        is_enabled = bool(request.data.get("is_enabled", True))
+
+        if not name:
+            return Response({"error": "name is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if trigger_event not in {"issue_created"}:
+            return Response({"error": "unsupported trigger_event"}, status=status.HTTP_400_BAD_REQUEST)
+        if not agent_id:
+            return Response({"error": "agent is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(conditions, dict):
+            return Response({"error": "conditions must be an object"}, status=status.HTTP_400_BAD_REQUEST)
+
+        workspace = Workspace.objects.filter(slug=slug).first()
+        if not workspace:
+            return Response({"error": "workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+        agent = Agent.objects.filter(
+            workspace=workspace,
+            pk=agent_id,
+            deleted_at__isnull=True,
+        ).first()
+        if not agent:
+            return Response({"error": "agent not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        row = AgentAutomation.objects.create(
+            workspace=workspace,
+            agent=agent,
+            name=name[:180],
+            trigger_event=trigger_event,
+            conditions=conditions,
+            is_enabled=is_enabled,
+        )
+        return Response(AgentAutomationSerializer(row).data, status=status.HTTP_201_CREATED)
+
+
+class AgentAutomationDetailEndpoint(BaseAPIView):
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def patch(self, request, slug, automation_id):
+        row = AgentAutomation.objects.filter(
+            workspace__slug=slug,
+            pk=automation_id,
+            deleted_at__isnull=True,
+        ).first()
+        if not row:
+            return Response({"error": "automation not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if "name" in request.data:
+            name = (request.data.get("name") or "").strip()
+            if not name:
+                return Response({"error": "name cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+            row.name = name[:180]
+        if "is_enabled" in request.data:
+            row.is_enabled = bool(request.data.get("is_enabled"))
+        if "conditions" in request.data:
+            conditions = request.data.get("conditions") or {}
+            if not isinstance(conditions, dict):
+                return Response({"error": "conditions must be an object"}, status=status.HTTP_400_BAD_REQUEST)
+            row.conditions = conditions
+        if "agent" in request.data:
+            agent_id = request.data.get("agent")
+            agent = Agent.objects.filter(
+                workspace=row.workspace,
+                pk=agent_id,
+                deleted_at__isnull=True,
+            ).first()
+            if not agent:
+                return Response({"error": "agent not found"}, status=status.HTTP_404_NOT_FOUND)
+            row.agent = agent
+
+        row.save()
+        return Response(AgentAutomationSerializer(row).data, status=status.HTTP_200_OK)
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def delete(self, request, slug, automation_id):
+        row = AgentAutomation.objects.filter(
+            workspace__slug=slug,
+            pk=automation_id,
+            deleted_at__isnull=True,
+        ).first()
+        if not row:
+            return Response({"error": "automation not found"}, status=status.HTTP_404_NOT_FOUND)
+        row.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

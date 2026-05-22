@@ -10,6 +10,8 @@ from plane.app.views.agent import (
     AgentChatSessionEndpoint,
     AgentCostSummaryEndpoint,
     AgentDetailEndpoint,
+    AgentAutomationDetailEndpoint,
+    AgentAutomationEndpoint,
     AgentDraftCommentApproveEndpoint,
     AgentDraftCommentDiscardEndpoint,
     AgentEndpoint,
@@ -36,6 +38,16 @@ urlpatterns = [
         "workspaces/<str:slug>/agents/<uuid:agent_id>/",
         AgentDetailEndpoint.as_view(),
         name="workspace-agent-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-automations/",
+        AgentAutomationEndpoint.as_view(),
+        name="workspace-agent-automations",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-automations/<uuid:automation_id>/",
+        AgentAutomationDetailEndpoint.as_view(),
+        name="workspace-agent-automation-detail",
     ),
     path(
         "workspaces/<str:slug>/agent-memory/",

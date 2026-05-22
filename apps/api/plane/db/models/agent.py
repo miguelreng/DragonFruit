@@ -233,6 +233,43 @@ class AgentMemory(BaseModel):
         return f"{scope}: {self.key}"
 
 
+class AgentAutomation(BaseModel):
+    """Workspace automation rules that execute agents on triggers."""
+
+    TRIGGER_CHOICES = (
+        ("issue_created", "Issue created"),
+    )
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="agent_automations",
+    )
+    agent = models.ForeignKey(
+        Agent,
+        on_delete=models.CASCADE,
+        related_name="automations",
+    )
+    name = models.CharField(max_length=180)
+    trigger_event = models.CharField(max_length=32, choices=TRIGGER_CHOICES, default="issue_created")
+    # Optional filter object (project_ids, state_ids, labels, etc.).
+    conditions = models.JSONField(default=dict, blank=True)
+    is_enabled = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "agent_automations"
+        verbose_name = "Agent Automation"
+        verbose_name_plural = "Agent Automations"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["workspace", "is_enabled", "trigger_event"]),
+            models.Index(fields=["agent", "is_enabled"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.trigger_event})"
+
+
 class AgentChatMessage(BaseModel):
     """One turn in a chat session — either a user message or an
     assistant reply. Stored as plain text (no HTML/markdown rendering
@@ -426,20 +463,47 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
             deleted_at__isnull=True,
         )
     )
-    if not agents:
+    automations = list(
+        AgentAutomation.objects.select_related("agent")
+        .filter(
+            workspace_id=instance.workspace_id,
+            trigger_event="issue_created",
+            is_enabled=True,
+            deleted_at__isnull=True,
+            agent__is_enabled=True,
+            agent__deleted_at__isnull=True,
+        )
+    )
+    if not agents and not automations:
         return
 
     from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
 
+    dispatched_agent_ids = set()
     for agent in agents:
         if not (agent.triggers or {}).get("issue_created", False):
             continue
         try:
             dispatch_agent_event.delay(str(agent.id), str(instance.id), "issue_created")
+            dispatched_agent_ids.add(str(agent.id))
         except Exception:  # noqa: BLE001
             logger.exception(
                 "agent dispatch enqueue failed for agent=%s issue=%s (issue_created)",
                 agent.id,
+                instance.id,
+            )
+
+    for automation in automations:
+        # If agent-level trigger already dispatched this same event, avoid duplicates.
+        if str(automation.agent_id) in dispatched_agent_ids:
+            continue
+        try:
+            dispatch_agent_event.delay(str(automation.agent_id), str(instance.id), "issue_created")
+            dispatched_agent_ids.add(str(automation.agent_id))
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "agent automation dispatch enqueue failed for automation=%s issue=%s",
+                automation.id,
                 instance.id,
             )
 

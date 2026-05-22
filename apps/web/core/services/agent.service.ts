@@ -117,6 +117,19 @@ export type TAgentCostSummary = {
   by_agent_last_30_days: TAgentCostSummaryByAgent[];
 };
 
+export type TAgentAutomation = {
+  id: string;
+  workspace: string;
+  agent: string;
+  agent_name: string;
+  name: string;
+  trigger_event: "issue_created";
+  conditions: Record<string, unknown>;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export class AgentService extends APIService {
   constructor() {
     super(API_BASE_URL);
@@ -264,6 +277,51 @@ export class AgentService extends APIService {
   ): Promise<TAgentMemory> {
     return this.post(`/api/workspaces/${workspaceSlug}/agent-memory/`, payload)
       .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  async listAutomations(workspaceSlug: string): Promise<TAgentAutomation[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/agent-automations/`)
+      .then((res) => res?.data ?? [])
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  async createAutomation(
+    workspaceSlug: string,
+    payload: {
+      name: string;
+      agent: string;
+      trigger_event: "issue_created";
+      conditions?: Record<string, unknown>;
+      is_enabled?: boolean;
+    }
+  ): Promise<TAgentAutomation> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agent-automations/`, payload)
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  async updateAutomation(
+    workspaceSlug: string,
+    automationId: string,
+    payload: Partial<Pick<TAgentAutomation, "name" | "agent" | "conditions" | "is_enabled">>
+  ): Promise<TAgentAutomation> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/agent-automations/${automationId}/`, payload)
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  async deleteAutomation(workspaceSlug: string, automationId: string): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/agent-automations/${automationId}/`)
+      .then(() => undefined)
       .catch((err) => {
         throw err?.response?.data;
       });

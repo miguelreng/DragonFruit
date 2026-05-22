@@ -13,7 +13,7 @@ import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // components
-import { AgentFormModal, AgentsList } from "@/components/agents";
+import { AgentAutomationsModal, AgentFormModal, AgentsList } from "@/components/agents";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
@@ -38,6 +38,7 @@ const agentService = new AgentService();
 function AgentsSettingsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAutomationsModal, setShowAutomationsModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<TAgent | null>(null);
   const { t } = useTranslation();
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
@@ -158,13 +159,24 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
             onSubmit={handleUpdate}
           />
         )}
+        <AgentAutomationsModal
+          workspaceSlug={workspaceSlug}
+          agents={agents}
+          isOpen={showAutomationsModal}
+          onClose={() => setShowAutomationsModal(false)}
+        />
         <SettingsHeading
           title={t("workspace_settings.settings.agents.heading")}
           description={t("workspace_settings.settings.agents.description")}
           control={
-            <Button variant="primary" size="lg" onClick={() => setShowCreateModal(true)}>
-              {t("workspace_settings.settings.agents.add_agent")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="lg" onClick={() => setShowAutomationsModal(true)}>
+                Automations
+              </Button>
+              <Button variant="primary" size="lg" onClick={() => setShowCreateModal(true)}>
+                {t("workspace_settings.settings.agents.add_agent")}
+              </Button>
+            </div>
           }
         />
         {agents.length > 0 ? (
