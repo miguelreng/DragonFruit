@@ -33,9 +33,7 @@ const keywordStyle: React.CSSProperties = {
 
 const AuthLegend = (
   <span>
-    Where <span style={keywordStyle}>ideas</span> become <span style={keywordStyle}>work</span>.{" "}
-    <span style={keywordStyle}>Good morning</span>, <span style={keywordStyle}>good afternoon</span>,{" "}
-    <span style={keywordStyle}>good evening</span>, <span style={keywordStyle}>good night</span>.
+    Where <span style={keywordStyle}>ideas</span> become <span style={keywordStyle}>work</span>.
   </span>
 );
 

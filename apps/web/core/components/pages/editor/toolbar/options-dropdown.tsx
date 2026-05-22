@@ -201,6 +201,8 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
           "archive-restore",
           "delete",
           "toggle-access",
+          "copy-public-link",
+          "edit-public-url",
           "export",
         ]}
         page={page}

@@ -22,6 +22,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { ProjectPageService } from "@/services/page/project-page.service";
 
 const pageService = new ProjectPageService();
+const PAGE_READY_RETRY_DELAYS_MS = [150, 300, 500, 800, 1200];
 
 const TYPE_META: Record<TPageType, { label: string; Icon: typeof FileText }> = {
   doc: { label: "Doc", Icon: FileText },
@@ -90,6 +91,15 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
     try {
       const page = await pageService.create(workspaceSlug, projectId, payload);
       if (page?.id) {
+        // Avoid opening the editor before the new page is queryable.
+        for (const delay of PAGE_READY_RETRY_DELAYS_MS) {
+          try {
+            await pageService.fetchById(workspaceSlug, projectId, page.id, false);
+            break;
+          } catch {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+        }
         navigate(`/${workspaceSlug}/projects/${projectId}/pages/${page.id}`);
       }
     } catch (err: any) {
