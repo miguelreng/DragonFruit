@@ -34,12 +34,14 @@ from typing import Any, Dict, Optional
 from celery import shared_task
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone as dj_timezone
 
 from plane.db.models import (
     Agent,
     AgentRun,
     Issue,
+    IssueAttachment,
     IssueComment,
     IssueLabel,
     Label,
@@ -153,6 +155,9 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         _make_post_comment_tool(agent=agent, issue=issue, run=run),
         _make_change_state_tool(agent=agent, issue=issue, run=run),
         _make_add_label_tool(agent=agent, issue=issue, run=run),
+        _make_search_issues_tool(agent=agent, issue=issue, run=run),
+        _make_list_attachments_tool(agent=agent, issue=issue, run=run),
+        _make_plan_next_steps_tool(agent=agent, issue=issue, run=run),
     ]
     tools.extend(_load_mcp_tools_for(agent))
 
@@ -517,6 +522,134 @@ def _make_add_label_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMToo
                 },
             },
             "required": ["label_name"],
+        },
+        handler=handler,
+    )
+
+
+def _make_search_issues_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMTool:
+    """Search issues in the same workspace/project to gather context quickly."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        query = (args.get("query") or "").strip()
+        limit_raw = args.get("limit", 5)
+        try:
+            limit = max(1, min(int(limit_raw), 20))
+        except Exception:  # noqa: BLE001
+            limit = 5
+
+        if not query:
+            return "tool_error: pass a non-empty `query`"
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        rows = (
+            Issue.issue_objects.filter(workspace=issue.workspace, project=issue.project)
+            .filter(Q(name__icontains=query) | Q(description_stripped__icontains=query))
+            .select_related("state")
+            .order_by("-updated_at")[:limit]
+        )
+        payload = [
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "state": row.state.name if row.state else "",
+                "priority": row.priority,
+                "sequence_id": row.sequence_id,
+            }
+            for row in rows
+        ]
+        return json.dumps(payload, cls=DjangoJSONEncoder)
+
+    return LLMTool(
+        name="search_issues",
+        description=(
+            "Search tasks in this workspace project by free text query. Use this to find related work "
+            "before replying or proposing state/label updates."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+            },
+            "required": ["query"],
+        },
+        handler=handler,
+    )
+
+
+def _make_list_attachments_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMTool:
+    """List issue attachments so the agent can reference files explicitly."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        limit_raw = args.get("limit", 20)
+        try:
+            limit = max(1, min(int(limit_raw), 50))
+        except Exception:  # noqa: BLE001
+            limit = 20
+
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        rows = (
+            IssueAttachment.objects.filter(issue=issue, deleted_at__isnull=True)
+            .order_by("-created_at")
+            .values("id", "asset", "external_source", "created_at")[:limit]
+        )
+        payload = [
+            {
+                "id": str(row["id"]),
+                "asset": str(row["asset"]),
+                "external_source": row["external_source"],
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
+        return json.dumps(payload, cls=DjangoJSONEncoder)
+
+    return LLMTool(
+        name="list_attachments",
+        description="List file attachments on the current task.",
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+            },
+        },
+        handler=handler,
+    )
+
+
+def _make_plan_next_steps_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMTool:
+    """Generate a deterministic planning scaffold for multi-step execution."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        objective = (args.get("objective") or issue.name or "").strip()
+        constraints = (args.get("constraints") or "").strip()
+        checklist = [
+            f"Clarify objective: {objective}",
+            "Gather dependencies, blockers, and required approvals",
+            "Break into 3-5 incremental steps with clear outputs",
+            "Define validation criteria and rollback/safety checks",
+            "Post status update with next action and owner",
+        ]
+        if constraints:
+            checklist.insert(1, f"Respect constraints: {constraints}")
+        return json.dumps({"objective": objective, "checklist": checklist}, cls=DjangoJSONEncoder)
+
+    return LLMTool(
+        name="plan_next_steps",
+        description="Return a structured multi-step execution checklist for the current task.",
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "objective": {"type": "string"},
+                "constraints": {"type": "string"},
+            },
         },
         handler=handler,
     )

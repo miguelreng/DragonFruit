@@ -97,8 +97,10 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
   // derived values
   const {
     isContentEditable,
+    view_props,
     editor: { setEditorRef },
   } = page;
+  const isFocusMode = Boolean(view_props?.focus_mode);
   // page fallback
   const { isFetchingFallbackBinary } = usePageFallback({
     editorRef,
@@ -207,7 +209,7 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           restoreEnabled={isContentEditable}
           storeType={storeType}
         />
-        {!isCanvasPage && (
+        {!isCanvasPage && !isFocusMode && (
           <PageEditorToolbarRoot
             handleOpenNavigationPane={handleOpenNavigationPane}
             isNavigationPaneOpen={isNavigationPaneOpen}
@@ -240,7 +242,7 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           )}
         </Suspense>
       </div>
-      {!isCanvasPage && (
+      {!isCanvasPage && !isFocusMode && (
         <PageNavigationPaneRoot
           storeType={storeType}
           handleClose={handleCloseNavigationPane}

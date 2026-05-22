@@ -107,9 +107,12 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
   const {
     id: pageId,
     isContentEditable,
+    view_props,
     editor: { editorRef, updateAssetsList },
     setSyncingStatus,
   } = page;
+  const isFocusMode = Boolean(view_props?.focus_mode);
+  const isDropCapEnabled = Boolean(view_props?.drop_cap);
   const workspaceId = getWorkspaceBySlug(workspaceSlug)?.id ?? "";
   // use editor mention
   const { fetchMentions } = useEditorMention({
@@ -326,6 +329,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     "mx-auto block w-full max-w-[720px] bg-transparent transition-all duration-200 ease-in-out",
     {
       "max-w-[1152px]": isFullWidth,
+      "max-w-[680px]": isFocusMode,
     }
   );
 
@@ -335,12 +339,18 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
 
   return (
     <Row
-      className="vertical-scrollbar relative flex scrollbar-md size-full flex-col overflow-x-hidden overflow-y-auto duration-200"
+      className={cn(
+        "vertical-scrollbar relative flex scrollbar-md size-full flex-col overflow-x-hidden overflow-y-auto duration-200",
+        {
+          "page-focus-mode": isFocusMode,
+          "page-drop-cap": isDropCapEnabled,
+        }
+      )}
       variant={ERowVariant.HUGGING}
     >
       <div id="page-content-container" className="relative w-full flex-shrink-0">
         {/* table of content */}
-        {!isNavigationPaneOpen && (
+        {!isNavigationPaneOpen && !isFocusMode && (
           <div className="page-summary-container absolute top-[64px] right-0 z-[5] h-full">
             <div className="sticky top-[72px]">
               <div className="group/page-toc relative px-page-x">
