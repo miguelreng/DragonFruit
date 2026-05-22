@@ -39,6 +39,8 @@ User = get_user_model()
 # explicitly per-agent (not in Slice 1).
 _BOT_WORKSPACE_ROLE = 5  # Guest
 _TOOL_POLICY_VALUES = {"auto", "ask", "never"}
+_AUTOMATION_CONDITION_KEYS = {"project_ids", "priorities", "label_ids", "issue_type_ids"}
+_ISSUE_PRIORITY_VALUES = {"urgent", "high", "medium", "low", "none"}
 
 
 def _normalise_mcp_servers(submitted: list, *, previous: list) -> list:
@@ -124,6 +126,25 @@ def _build_bot_user(workspace_slug: str, agent_name: str) -> "User":
     user.set_unusable_password()
     user.save()
     return user
+
+
+def _normalise_automation_conditions(raw_conditions: dict) -> dict:
+    """Allowlist and normalize rule-builder condition payloads."""
+    if not isinstance(raw_conditions, dict):
+        return {}
+
+    normalised: dict = {}
+    for key in _AUTOMATION_CONDITION_KEYS:
+        raw_values = raw_conditions.get(key)
+        if not isinstance(raw_values, list):
+            continue
+        values = [str(value).strip() for value in raw_values if str(value).strip()]
+        if key == "priorities":
+            values = [value for value in values if value in _ISSUE_PRIORITY_VALUES]
+        deduped_values = list(dict.fromkeys(values))
+        if deduped_values:
+            normalised[key] = deduped_values
+    return normalised
 
 
 class AgentEndpoint(BaseAPIView):
@@ -468,6 +489,7 @@ class AgentAutomationEndpoint(BaseAPIView):
             return Response({"error": "agent is required"}, status=status.HTTP_400_BAD_REQUEST)
         if not isinstance(conditions, dict):
             return Response({"error": "conditions must be an object"}, status=status.HTTP_400_BAD_REQUEST)
+        conditions = _normalise_automation_conditions(conditions)
 
         workspace = Workspace.objects.filter(slug=slug).first()
         if not workspace:
@@ -513,7 +535,7 @@ class AgentAutomationDetailEndpoint(BaseAPIView):
             conditions = request.data.get("conditions") or {}
             if not isinstance(conditions, dict):
                 return Response({"error": "conditions must be an object"}, status=status.HTTP_400_BAD_REQUEST)
-            row.conditions = conditions
+            row.conditions = _normalise_automation_conditions(conditions)
         if "agent" in request.data:
             agent_id = request.data.get("agent")
             agent = Agent.objects.filter(

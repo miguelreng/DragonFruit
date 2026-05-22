@@ -30,6 +30,7 @@ from .base import BaseModel
 
 
 logger = logging.getLogger(__name__)
+_ISSUE_PRIORITY_VALUES = {"urgent", "high", "medium", "low", "none"}
 
 
 def _default_triggers() -> dict:
@@ -69,6 +70,40 @@ def _default_tool_policies() -> dict:
         "plan_next_steps": "auto",
         "record_step": "auto",
     }
+
+
+def _automation_matches_issue(automation: "AgentAutomation", issue: "Issue") -> bool:
+    """Return True when the automation's conditions match the created issue."""
+    conditions = automation.conditions or {}
+    if not isinstance(conditions, dict):
+        return True
+
+    project_ids = [str(value).strip() for value in (conditions.get("project_ids") or []) if str(value).strip()]
+    if project_ids and str(issue.project_id) not in project_ids:
+        return False
+
+    priorities = [str(value).strip() for value in (conditions.get("priorities") or []) if str(value).strip()]
+    valid_priorities = [value for value in priorities if value in _ISSUE_PRIORITY_VALUES]
+    if valid_priorities and (issue.priority or "none") not in valid_priorities:
+        return False
+
+    issue_type_ids = [str(value).strip() for value in (conditions.get("issue_type_ids") or []) if str(value).strip()]
+    if issue_type_ids and str(issue.type_id) not in issue_type_ids:
+        return False
+
+    label_ids = [str(value).strip() for value in (conditions.get("label_ids") or []) if str(value).strip()]
+    if label_ids:
+        from .issue import IssueLabel
+
+        has_match = IssueLabel.objects.filter(
+            issue_id=issue.id,
+            label_id__in=label_ids,
+            deleted_at__isnull=True,
+        ).exists()
+        if not has_match:
+            return False
+
+    return True
 
 
 class Agent(BaseModel):
@@ -496,6 +531,8 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
     for automation in automations:
         # If agent-level trigger already dispatched this same event, avoid duplicates.
         if str(automation.agent_id) in dispatched_agent_ids:
+            continue
+        if not _automation_matches_issue(automation, instance):
             continue
         try:
             dispatch_agent_event.delay(str(automation.agent_id), str(instance.id), "issue_created")
