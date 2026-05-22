@@ -118,12 +118,12 @@ pnpm install
 
 Then open:
 
-| App   | URL                       | What it is                          |
-| ----- | ------------------------- | ----------------------------------- |
-| web   | http://127.0.0.1:3000     | the product (workspaces, projects)  |
-| admin | http://127.0.0.1:3001     | instance settings (SMTP, OAuth, LLM)|
-| space | http://127.0.0.1:3002     | public published pages              |
-| live  | http://127.0.0.1:3100     | HocusPocus realtime collab          |
+| App   | URL                   | What it is                           |
+| ----- | --------------------- | ------------------------------------ |
+| web   | http://127.0.0.1:3000 | the product (workspaces, projects)   |
+| admin | http://127.0.0.1:3001 | instance settings (SMTP, OAuth, LLM) |
+| space | http://127.0.0.1:3002 | public published pages               |
+| live  | http://127.0.0.1:3100 | HocusPocus realtime collab           |
 
 `dev.sh` also supports a few modes:
 
@@ -193,6 +193,7 @@ Shipped:
 - [x] Full rebrand — logos, favicons, OG, PWA, "Work item" → "Task"
 - [x] Self-hosted Newsreader (serif) and Figtree (sans)
 - [x] AI agents (BYOK, tool-use, @-mention, runs panel)
+- [x] Agent automation center (browse/manage, rule builder, edit/duplicate/test-run)
 - [x] Native task calendar + optional Google Calendar overlay
 - [x] Diagrams (Mermaid) and Whiteboards (Excalidraw)
 - [x] Workspace-level Docs and Drafts surfaces

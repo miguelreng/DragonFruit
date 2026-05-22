@@ -347,6 +347,7 @@ What's deferred for the full v1:
 - Slash menu polish with quick blocks and richer quote/callout variants.
 - Better page covers + emoji header defaults on new pages.
 - More agent tools: search issues, list attachments, multi-step planning helper.
+- Agent automation center: in-app browse/manage, condition rules, edit/duplicate, and test-run queueing.
 - Two-way Google Calendar sync: outbound task sync to Google + Google-event-to-task quick-import flow.
 
 ### Still Largely Plane-Base

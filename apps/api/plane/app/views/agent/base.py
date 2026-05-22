@@ -24,7 +24,7 @@ from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers.agent import AgentAutomationSerializer, AgentMemorySerializer, AgentRunSerializer, AgentSerializer
-from plane.db.models import Agent, AgentAutomation, AgentMemory, AgentRun, Workspace, WorkspaceMember
+from plane.db.models import Agent, AgentAutomation, AgentMemory, AgentRun, Issue, Workspace, WorkspaceMember
 from plane.license.utils.encryption import encrypt_data
 
 from ..base import BaseAPIView
@@ -561,6 +561,69 @@ class AgentAutomationDetailEndpoint(BaseAPIView):
             return Response({"error": "automation not found"}, status=status.HTTP_404_NOT_FOUND)
         row.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AgentAutomationCloneEndpoint(BaseAPIView):
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug, automation_id):
+        row = AgentAutomation.objects.filter(
+            workspace__slug=slug,
+            pk=automation_id,
+            deleted_at__isnull=True,
+        ).first()
+        if not row:
+            return Response({"error": "automation not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        cloned = AgentAutomation.objects.create(
+            workspace=row.workspace,
+            agent=row.agent,
+            name=f"{row.name} (copy)"[:180],
+            trigger_event=row.trigger_event,
+            conditions=_normalise_automation_conditions(row.conditions or {}),
+            is_enabled=row.is_enabled,
+        )
+        return Response(AgentAutomationSerializer(cloned).data, status=status.HTTP_201_CREATED)
+
+
+class AgentAutomationTestRunEndpoint(BaseAPIView):
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def post(self, request, slug, automation_id):
+        row = AgentAutomation.objects.filter(
+            workspace__slug=slug,
+            pk=automation_id,
+            deleted_at__isnull=True,
+            is_enabled=True,
+            agent__deleted_at__isnull=True,
+            agent__is_enabled=True,
+        ).first()
+        if not row:
+            return Response({"error": "automation not found or disabled"}, status=status.HTTP_404_NOT_FOUND)
+
+        issue_id = request.data.get("issue_id")
+        if not issue_id:
+            return Response({"error": "issue_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        issue = Issue.objects.filter(
+            workspace__slug=slug,
+            pk=issue_id,
+            deleted_at__isnull=True,
+        ).first()
+        if not issue:
+            return Response({"error": "issue not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+
+        dispatch_agent_event.delay(str(row.agent_id), str(issue.id), row.trigger_event)
+        return Response(
+            {
+                "queued": True,
+                "automation_id": str(row.id),
+                "agent_id": str(row.agent_id),
+                "issue_id": str(issue.id),
+                "trigger_event": row.trigger_event,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class AgentRunListEndpoint(BaseAPIView):
