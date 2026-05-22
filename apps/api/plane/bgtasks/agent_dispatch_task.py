@@ -71,7 +71,12 @@ _DEFAULT_SYSTEM_PROMPT = (
     "You are a Dragon Fruit agent — a workspace teammate that participates in tasks like a "
     "real member. Read the task description and the most recent comments, then reply with a "
     "single concise comment that moves the task forward. Ask clarifying questions if the task "
-    "is ambiguous. To reply, call the `post_comment` tool. Do not produce other output."
+    "is ambiguous. To reply, call the `post_comment` tool. Do not produce other output.\n\n"
+    "Execution protocol (mandatory):\n"
+    "1) Call `plan_next_steps` first.\n"
+    "2) For each meaningful step, call `record_step` with phase=`plan`|`act`|`verify`|`report`.\n"
+    "3) Every `record_step` must include `result`, `evidence`, and `next_action`.\n"
+    "4) Before finishing, call `record_step` with phase=`report`, then post the final comment."
 )
 
 # Trigger-specific framing prepended to the user prompt so the model
@@ -126,6 +131,7 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         trigger_event=trigger_event,
         status="running",
         dispatched_at=now,
+        tool_calls=[{"kind": "lifecycle", "phase": "run_started", "trigger_event": trigger_event}],
     )
 
     # If the agent has no BYOK config yet (provider_model / api_key), we
@@ -158,6 +164,7 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         _make_search_issues_tool(agent=agent, issue=issue, run=run),
         _make_list_attachments_tool(agent=agent, issue=issue, run=run),
         _make_plan_next_steps_tool(agent=agent, issue=issue, run=run),
+        _make_record_step_tool(run=run),
     ]
     tools.extend(_load_mcp_tools_for(agent))
 
@@ -168,6 +175,7 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
             tools=tools,
             max_iterations=_MAX_ITERATIONS_PER_RUN,
             is_cancelled=lambda: _is_cancelled(run.id),
+            on_tool_call=lambda call: _persist_tool_call_progress(run, call),
         )
     except Exception as exc:  # noqa: BLE001 — record the failure on the run row
         logger.exception("agent_dispatch: provider.run failed for agent=%s issue=%s", agent_id, issue_id)
@@ -655,6 +663,60 @@ def _make_plan_next_steps_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> 
     )
 
 
+def _make_record_step_tool(*, run: AgentRun) -> LLMTool:
+    """Record a structured plan/act/verify/report step."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        phase = (args.get("phase") or "").strip().lower()
+        result_text = (args.get("result") or "").strip()
+        evidence = (args.get("evidence") or "").strip()
+        next_action = (args.get("next_action") or "").strip()
+
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+        if phase not in {"plan", "act", "verify", "report"}:
+            return "tool_error: `phase` must be one of plan|act|verify|report"
+        if not result_text:
+            return "tool_error: `result` is required"
+        if not evidence:
+            return "tool_error: `evidence` is required"
+        if not next_action:
+            return "tool_error: `next_action` is required"
+
+        return json.dumps(
+            {
+                "ok": True,
+                "phase": phase,
+                "result": result_text[:1200],
+                "evidence": evidence[:1200],
+                "next_action": next_action[:1200],
+            },
+            cls=DjangoJSONEncoder,
+        )
+
+    return LLMTool(
+        name="record_step",
+        description=(
+            "Record execution progress as structured steps so runs are resumable and auditable. "
+            "Use in order: plan -> act -> verify -> report."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "phase": {
+                    "type": "string",
+                    "enum": ["plan", "act", "verify", "report"],
+                },
+                "result": {"type": "string"},
+                "evidence": {"type": "string"},
+                "next_action": {"type": "string"},
+            },
+            "required": ["phase", "result", "evidence", "next_action"],
+        },
+        handler=handler,
+    )
+
+
 def _emit_state_activity(*, issue: Issue, agent: Agent, previous_state_id, new_state_id: str) -> None:
     """Fire the standard issue_activity Celery task for an agent state change.
 
@@ -748,6 +810,15 @@ def _mark_failed(run: AgentRun, message: str) -> None:
     run.save(update_fields=["status", "error", "completed_at", "updated_at"])
 
 
+def _persist_tool_call_progress(run: AgentRun, tool_call: Dict[str, Any]) -> None:
+    """Persist each tool call as it happens for resumable in-flight runs."""
+    current = list(run.tool_calls or [])
+    current.append(tool_call)
+    run.tool_calls = current
+    run.iterations = max(int(run.iterations or 0), int(tool_call.get("iteration") or 0))
+    run.save(update_fields=["tool_calls", "iterations", "updated_at"])
+
+
 # =====================================================================
 # Page block comment path — analog of the issue dispatcher
 # =====================================================================
@@ -793,6 +864,7 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
         trigger_event=trigger_event,
         status="running",
         dispatched_at=datetime.now(timezone.utc),
+        tool_calls=[{"kind": "lifecycle", "phase": "run_started", "trigger_event": trigger_event}],
     )
 
     try:
@@ -804,7 +876,10 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
     page = page_comment.page
     user_prompt = _build_page_comment_user_prompt(page_comment=page_comment, trigger_event=trigger_event)
     system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT
-    tools = [_make_post_page_comment_tool(agent=agent, page_comment=page_comment, run=run)]
+    tools = [
+        _make_post_page_comment_tool(agent=agent, page_comment=page_comment, run=run),
+        _make_record_step_tool(run=run),
+    ]
 
     try:
         result = provider.run(
@@ -813,6 +888,7 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
             tools=tools,
             max_iterations=_MAX_ITERATIONS_PER_RUN,
             is_cancelled=lambda: _is_cancelled(run.id),
+            on_tool_call=lambda call: _persist_tool_call_progress(run, call),
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("agent_dispatch (page): provider.run failed for agent=%s comment=%s", agent_id, page_comment_id)
@@ -835,7 +911,9 @@ _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT = (
     "real member. Someone @-mentioned you in a comment on a page. Read the thread and the "
     "page excerpt, then reply with a single concise comment in the same thread. Ask "
     "clarifying questions if the request is ambiguous. To reply, call the "
-    "`post_page_comment` tool. Do not produce other output."
+    "`post_page_comment` tool. Do not produce other output.\n\n"
+    "Execution protocol (mandatory): use `record_step` for plan, act, verify, and report; "
+    "each entry must include result, evidence, and next_action."
 )
 
 
@@ -977,7 +1055,9 @@ def _finalise_run(run: AgentRun, result: LLMRunResult) -> None:
     run.prompt_tokens = result.prompt_tokens
     run.completion_tokens = result.completion_tokens
     run.total_tokens = result.total_tokens
-    run.tool_calls = result.tool_calls
+    existing_calls = list(run.tool_calls or [])
+    lifecycle_entries = [entry for entry in existing_calls if isinstance(entry, dict) and entry.get("kind") == "lifecycle"]
+    run.tool_calls = lifecycle_entries + result.tool_calls
     # Compute dollar cost from the per-model pricing table. Unknown
     # models fall back to 0 — better than showing a guessed number.
     run.cost_usd = estimate_cost_usd(
