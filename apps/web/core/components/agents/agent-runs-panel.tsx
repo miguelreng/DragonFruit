@@ -183,7 +183,7 @@ export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps)
                   <div className="mt-0.5 truncate text-caption-sm-regular text-tertiary">called: {toolSummary}</div>
                 )}
                 {run.error && (
-                  <div className="mt-0.5 truncate text-caption-sm-regular text-danger-strong">{run.error}</div>
+                  <div className="text-danger-strong mt-0.5 truncate text-caption-sm-regular">{run.error}</div>
                 )}
               </div>
               {isInFlight && (

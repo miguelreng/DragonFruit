@@ -169,9 +169,7 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
           <div className="px-4 py-3">
             <div className="mb-2 flex items-baseline justify-between gap-2">
               <h6 className="text-body-sm-medium">Triggers</h6>
-              <p className="text-caption-sm-regular text-tertiary">
-                What events make {agent.name} reply.
-              </p>
+              <p className="text-caption-sm-regular text-tertiary">What events make {agent.name} reply.</p>
             </div>
             <ul className="flex flex-col gap-1 rounded-md border border-subtle bg-layer-2">
               {TRIGGER_LABELS.map(({ key, title, description }, idx) => {

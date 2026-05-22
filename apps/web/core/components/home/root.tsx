@@ -17,13 +17,7 @@ import { useUserProfile } from "@/hooks/store/user";
 import { HomePeekOverviewsRoot } from "@/plane-web/components/home";
 import { TourRoot } from "@/plane-web/components/onboarding/tour/root";
 // local imports
-import {
-  ActivityHeatmapSection,
-  AgentCostSection,
-  FavoritesSection,
-  InboxSection,
-  OnMyPlateSection,
-} from "./sections";
+import { ActivityHeatmapSection, AgentCostSection, FavoritesSection, InboxSection, OnMyPlateSection } from "./sections";
 
 const SECTION_RENDERERS: Record<string, () => ReactNode> = {
   inbox: () => <InboxSection />,
@@ -67,7 +61,7 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
         </div>
       )}
       <HomePeekOverviewsRoot />
-      <ContentWrapper className={cn("scrollbar-hide gap-6 bg-surface-1", header ? "!py-0 !px-0" : "px-page-x")}>
+      <ContentWrapper className={cn("scrollbar-hide gap-6 bg-surface-1", header ? "!px-0 !py-0" : "px-page-x")}>
         {header}
         <div
           className={cn(
@@ -80,9 +74,7 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
           {enabledKeys("inbox") && SECTION_RENDERERS.inbox()}
           {enabledKeys("agent_cost") && SECTION_RENDERERS.agent_cost()}
           {enabledKeys("on_my_plate") && SECTION_RENDERERS.on_my_plate()}
-          {enabledKeys("favorites") && (
-            <div className="col-span-2">{SECTION_RENDERERS.favorites()}</div>
-          )}
+          {enabledKeys("favorites") && <div className="col-span-2">{SECTION_RENDERERS.favorites()}</div>}
         </div>
       </ContentWrapper>
     </>

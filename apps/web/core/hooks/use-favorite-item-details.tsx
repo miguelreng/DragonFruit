@@ -103,9 +103,7 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
       // `viewDetails` isn't loaded (e.g. the user hasn't opened this view's
       // parent project yet this session, so `fetchViews` hasn't run).
       itemIcon = getFavoriteViewIcon(
-        (viewDetails?.display_filters?.layout ?? favorite.entity_data?.view_layout) as
-          | EIssueLayoutTypes
-          | undefined
+        (viewDetails?.display_filters?.layout ?? favorite.entity_data?.view_layout) as EIssueLayoutTypes | undefined
       );
       break;
     case "cycle":

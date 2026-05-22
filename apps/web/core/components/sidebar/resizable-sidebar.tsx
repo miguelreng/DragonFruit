@@ -251,7 +251,6 @@ export function ResizableSidebar({
           />
         </aside>
       </div>
-
     </>
   );
 }

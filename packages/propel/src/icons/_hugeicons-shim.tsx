@@ -16,15 +16,17 @@ import type { ISvgIcons } from "./type";
  * working unchanged after the swap from custom SVG → HugeIcons stroke-rounded.
  */
 export function hugeIcon(icon: IconSvgElement) {
-  return function HugeIconShim({ color, width, height, ...rest }: ISvgIcons) {
+  return function HugeIconShim({ color, width, height, strokeWidth, ...rest }: ISvgIcons) {
     const size = (width ?? height) as number | string | undefined;
+    const parsedStrokeWidth = typeof strokeWidth === "number" ? strokeWidth : Number(strokeWidth);
+
     return (
       <HugeiconsIcon
+        {...rest}
         icon={icon}
         color={(color as string) ?? "currentColor"}
-        strokeWidth={1.5}
+        strokeWidth={Number.isFinite(parsedStrokeWidth) ? parsedStrokeWidth : 1.5}
         size={size ?? "1em"}
-        {...rest}
       />
     );
   };

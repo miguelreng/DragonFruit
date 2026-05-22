@@ -78,10 +78,7 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
           {sources.map((s, index) => (
             <SettingsBoxedControlItem
               key={s.key}
-              className={cn(
-                "rounded-none border-0",
-                index < sources.length - 1 && "border-b border-subtle"
-              )}
+              className={cn("rounded-none border-0", index < sources.length - 1 && "border-b border-subtle")}
               title={
                 <span className="flex items-center gap-2">
                   <span>{s.title}</span>
@@ -95,12 +92,10 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
               description={s.description}
               control={
                 <Button
-                  variant={s.ready ? "primary" : "neutral-primary"}
+                  variant={s.ready ? "primary" : "secondary"}
                   size="sm"
                   onClick={() =>
-                    s.key === "csv"
-                      ? setActive({ kind: "csv" })
-                      : setActive({ kind: "connect", service: s.key })
+                    s.key === "csv" ? setActive({ kind: "csv" }) : setActive({ kind: "connect", service: s.key })
                   }
                 >
                   {s.cta}
@@ -111,11 +106,7 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
         </div>
       </div>
 
-      <CsvImportModal
-        workspaceSlug={workspaceSlug}
-        isOpen={active?.kind === "csv"}
-        onClose={() => setActive(null)}
-      />
+      <CsvImportModal workspaceSlug={workspaceSlug} isOpen={active?.kind === "csv"} onClose={() => setActive(null)} />
       <ConnectInfoModal
         service={active?.kind === "connect" ? active.service : "notion"}
         isOpen={active?.kind === "connect"}

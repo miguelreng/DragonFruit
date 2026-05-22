@@ -169,7 +169,6 @@ export const List = observer(function List(props: IList) {
                   />
                 ))}
               </div>
-
             </>
           )}
         </MultipleSelectGroup>

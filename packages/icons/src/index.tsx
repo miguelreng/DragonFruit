@@ -173,19 +173,20 @@ import {
 type LucideShimProps = React.SVGAttributes<SVGSVGElement> & {
   size?: number | string;
   color?: string;
-  strokeWidth?: number;
+  strokeWidth?: number | string;
 };
 
 function huge(icon: IconSvgElement) {
   return function HugeShim({ color = "currentColor", strokeWidth, size, width, height, ...rest }: LucideShimProps) {
     const resolvedSize = (size ?? width ?? height) as number | string | undefined;
+    const parsedStrokeWidth = typeof strokeWidth === "number" ? strokeWidth : Number(strokeWidth);
     return (
       <HugeiconsIcon
+        {...rest}
         icon={icon}
         color={color}
-        strokeWidth={strokeWidth ?? 1.5}
+        strokeWidth={Number.isFinite(parsedStrokeWidth) ? parsedStrokeWidth : 1.5}
         size={resolvedSize ?? "1em"}
-        {...rest}
       />
     );
   };

@@ -246,18 +246,16 @@ export function BlockCommentFloating(props: Props) {
       // above the editor's own floating menus (which sit at z<=10).
       style={{ ...styles.popper, zIndex: 50 }}
       {...attributes.popper}
-      className={cn(
-        "border-strong bg-surface-1 shadow-raised-200 w-96 max-w-[90vw] rounded-lg border-[0.5px]"
-      )}
+      className={cn("w-96 max-w-[90vw] rounded-lg border-[0.5px] border-strong bg-surface-1 shadow-raised-200")}
     >
-      <div className="border-subtle flex items-center justify-between border-b px-3 py-2">
+      <div className="flex items-center justify-between border-b border-subtle px-3 py-2">
         <div className="text-caption-md-medium text-primary">
           {isEmptyThread ? "Add comment" : tops.length === 1 ? "Comment" : "Comments"}
         </div>
         <button
           type="button"
           onClick={() => (isEmptyThread ? onCancelEmpty() : onClose())}
-          className="hover:bg-layer-2 rounded p-1 text-tertiary hover:text-primary"
+          className="rounded p-1 text-tertiary hover:bg-layer-2 hover:text-primary"
           aria-label="Close"
         >
           <X className="size-3.5" />
@@ -265,17 +263,17 @@ export function BlockCommentFloating(props: Props) {
       </div>
 
       <div className="flex max-h-[60vh] flex-col overflow-y-auto">
-        {loading && <div className="text-12 px-3 py-2 text-tertiary">Loading…</div>}
-        {error && <div className="text-error text-12 px-3 py-2">{error}</div>}
+        {loading && <div className="px-3 py-2 text-12 text-tertiary">Loading…</div>}
+        {error && <div className="text-error px-3 py-2 text-12">{error}</div>}
         {tops.map((parent) => (
-          <div key={parent.id} className="border-subtle border-b px-3 py-2 last:border-b-0">
+          <div key={parent.id} className="border-b border-subtle px-3 py-2 last:border-b-0">
             <CommentBody
               html={parent.content}
               workspaceSlug={workspaceSlug}
               workspaceId={workspaceId}
               projectId={projectId}
             />
-            <div className="text-11 mt-1 flex items-center justify-between text-tertiary">
+            <div className="mt-1 flex items-center justify-between text-11 text-tertiary">
               <span>{new Date(parent.created_at).toLocaleString()}</span>
               <button
                 type="button"
@@ -287,7 +285,7 @@ export function BlockCommentFloating(props: Props) {
               </button>
             </div>
             {(repliesByParent.get(parent.id) ?? []).map((reply) => (
-              <div key={reply.id} className="border-subtle mt-2 border-l pl-3">
+              <div key={reply.id} className="mt-2 border-l border-subtle pl-3">
                 <CommentBody
                   html={reply.content}
                   workspaceSlug={workspaceSlug}
@@ -302,7 +300,7 @@ export function BlockCommentFloating(props: Props) {
       </div>
 
       <div
-        className="border-subtle border-t px-3 py-2"
+        className="border-t border-subtle px-3 py-2"
         // `role="presentation"` because the div itself isn't
         // interactive — it just catches Enter that bubbles up from
         // the editor. The actual interactive element is the LiteText
@@ -361,8 +359,7 @@ export function BlockCommentFloating(props: Props) {
         ) : null}
         <div className="mt-2 flex items-center justify-between">
           <span className="text-11 text-tertiary">
-            <span className="font-medium">@</span> to mention ·{" "}
-            <span className="font-medium">Enter</span> to post ·{" "}
+            <span className="font-medium">@</span> to mention · <span className="font-medium">Enter</span> to post ·{" "}
             <span className="font-medium">Shift+Enter</span> for newline
           </span>
           <button
@@ -370,7 +367,7 @@ export function BlockCommentFloating(props: Props) {
             onClick={() => void handlePost()}
             disabled={saving || draftEmpty}
             className={cn(
-              "text-on-accent-primary text-12 inline-flex items-center gap-1.5 rounded bg-accent-primary px-2.5 py-1 font-medium",
+              "text-on-accent-primary inline-flex items-center gap-1.5 rounded bg-accent-primary px-2.5 py-1 text-12 font-medium",
               (saving || draftEmpty) && "cursor-not-allowed opacity-60"
             )}
           >
@@ -400,7 +397,7 @@ function CommentBody(props: {
   const { html, workspaceSlug, workspaceId, projectId } = props;
   const ref = useRef<EditorRefApi>(null);
   if (!workspaceSlug || !workspaceId) {
-    return <p className="text-13 text-primary whitespace-pre-wrap">{html.replace(/<[^>]+>/g, "")}</p>;
+    return <p className="text-13 whitespace-pre-wrap text-primary">{html.replace(/<[^>]+>/g, "")}</p>;
   }
   return (
     <LiteTextEditor

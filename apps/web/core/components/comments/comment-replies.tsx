@@ -60,7 +60,7 @@ export const CommentReplies = observer(function CommentReplies(props: TCommentRe
   return (
     <div className="mt-2 flex flex-col gap-2">
       {hasReplies && (
-        <ul className="border-subtle ml-2 flex flex-col gap-2 border-l pl-3">
+        <ul className="ml-2 flex flex-col gap-2 border-l border-subtle pl-3">
           {replyIds.map((id) => (
             <ReplyRow
               key={id}
@@ -92,7 +92,7 @@ export const CommentReplies = observer(function CommentReplies(props: TCommentRe
               <button
                 type="button"
                 onClick={() => setIsComposing(false)}
-                className="text-caption-sm text-tertiary self-start hover:text-secondary"
+                className="text-caption-sm self-start text-tertiary hover:text-secondary"
               >
                 Close
               </button>
@@ -101,7 +101,7 @@ export const CommentReplies = observer(function CommentReplies(props: TCommentRe
             <button
               type="button"
               onClick={() => setIsComposing(true)}
-              className="text-caption-sm-medium text-secondary hover:text-primary inline-flex items-center gap-1.5"
+              className="inline-flex items-center gap-1.5 text-caption-sm-medium text-secondary hover:text-primary"
             >
               <CornerDownRight className="size-3" />
               {hasReplies ? `Reply` : `Reply to this comment`}

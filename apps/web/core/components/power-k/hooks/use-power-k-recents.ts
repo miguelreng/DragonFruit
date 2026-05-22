@@ -59,16 +59,15 @@ export const usePowerKRecents = () => {
   const togglePin = useCallback((item: Omit<TPowerKRecentItem, "ts">) => {
     setPins((prev) => {
       const existing = prev.find((p) => p.id === item.id);
-      const next = existing ? prev.filter((p) => p.id !== item.id) : [{ ...item, ts: Date.now() }, ...prev].slice(0, MAX_PINS);
+      const next = existing
+        ? prev.filter((p) => p.id !== item.id)
+        : [{ ...item, ts: Date.now() }, ...prev].slice(0, MAX_PINS);
       write(PINS_KEY, next);
       return next;
     });
   }, []);
 
-  const isPinned = useCallback(
-    (id: string) => pins.some((p) => p.id === id),
-    [pins]
-  );
+  const isPinned = useCallback((id: string) => pins.some((p) => p.id === id), [pins]);
 
   return { recents, pins, recordVisit, togglePin, isPinned };
 };

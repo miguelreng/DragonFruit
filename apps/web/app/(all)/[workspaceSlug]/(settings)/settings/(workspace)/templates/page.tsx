@@ -224,7 +224,7 @@ function TemplatesSettingsPage() {
                           >
                             {isBusy ? "…" : "Save"}
                           </Button>
-                          <Button variant="neutral-primary" size="sm" onClick={cancelEdit} disabled={isBusy}>
+                          <Button variant="secondary" size="sm" onClick={cancelEdit} disabled={isBusy}>
                             Cancel
                           </Button>
                         </>

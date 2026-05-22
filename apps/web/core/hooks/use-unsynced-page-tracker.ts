@@ -26,13 +26,7 @@ type Args = {
  * No-op when ids are missing (e.g. before page load) or the page never
  * actually entered an edit session.
  */
-export function useUnsyncedPageTracker({
-  pageId,
-  pageName,
-  workspaceSlug,
-  projectId,
-  collaborationState,
-}: Args) {
+export function useUnsyncedPageTracker({ pageId, pageName, workspaceSlug, projectId, collaborationState }: Args) {
   // The user has actually touched this doc in this session — set on first non-synced state
   // after a synced one (i.e. they made an edit while disconnected) OR on any disconnected
   // state with cached content. We do NOT want to mark every page the user merely opens.

@@ -235,15 +235,13 @@ function AISettingsPage() {
                 <div className="flex flex-col gap-1">
                   {error && <p className="text-12 text-danger-primary">{error}</p>}
                   {status === "saved" && (
-                    <p className="text-12 text-success-primary">
-                      {t("workspace_settings.settings.ai.saved")}
-                    </p>
+                    <p className="text-12 text-success-primary">{t("workspace_settings.settings.ai.saved")}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   {config?.has_workspace_override && (
                     <Button
-                      variant="neutral-primary"
+                      variant="secondary"
                       size="sm"
                       disabled={!canEdit || saving}
                       onClick={() => void handleClear()}

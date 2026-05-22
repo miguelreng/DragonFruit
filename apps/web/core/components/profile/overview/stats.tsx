@@ -45,14 +45,14 @@ export function ProfileStats({ userProfile }: Props) {
     <section className="space-y-3">
       <h3 className="text-13 font-medium text-tertiary">{t("profile.stats.overview")}</h3>
       {userProfile ? (
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border-[0.5px] border-subtle bg-subtle md:grid-cols-3">
+        <div className="bg-subtle grid grid-cols-1 gap-px overflow-hidden rounded-lg border-[0.5px] border-subtle md:grid-cols-3">
           {overviewCards.map((card) => (
             <Link
               key={card.route}
               href={`/${workspaceSlug}/profile/${userId}/${card.route}`}
               className="group flex items-center gap-4 bg-surface-1 px-5 py-4 transition-colors hover:bg-surface-2"
             >
-              <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-surface-2 text-tertiary transition-colors group-hover:bg-surface-3 group-hover:text-secondary">
+              <div className="group-hover:bg-surface-3 grid h-10 w-10 flex-shrink-0 place-items-center rounded-md bg-surface-2 text-tertiary transition-colors group-hover:text-secondary">
                 <card.icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">

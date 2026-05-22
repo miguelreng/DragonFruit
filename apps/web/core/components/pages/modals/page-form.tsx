@@ -87,7 +87,7 @@ export function PageForm(props: Props) {
           <div className="flex items-center gap-3">
             {/* span — visual label only, the CustomMenu trigger is a
                 non-input element so there's nothing to bind htmlFor to. */}
-            <span className="text-12 shrink-0 text-tertiary">Start from</span>
+            <span className="shrink-0 text-12 text-tertiary">Start from</span>
             {/* CustomMenu picker (replaces a native <select> for parity
                 with the project create flow and the rest of the design
                 system). customButton is a <div> — CustomMenu wraps it
@@ -95,7 +95,7 @@ export function PageForm(props: Props) {
                 <button> would produce invalid nested-button markup. */}
             <CustomMenu
               customButton={
-                <div className="border-subtle bg-layer-1 text-13 hover:bg-layer-2 flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-md border-[0.5px] px-3 py-2 text-primary">
+                <div className="flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
                   <span className="truncate">
                     {templates.find((t) => t.id === selectedTemplateId)?.name ?? "Blank page"}
                   </span>
@@ -114,9 +114,9 @@ export function PageForm(props: Props) {
               {templates.map((template) => (
                 <CustomMenu.MenuItem key={template.id} onClick={() => onTemplateChange(template.id)}>
                   <div className="flex min-w-0 flex-col">
-                    <span className="text-13 truncate text-primary">{template.name}</span>
+                    <span className="truncate text-13 text-primary">{template.name}</span>
                     {template.description && (
-                      <span className="text-11 truncate text-tertiary">{template.description}</span>
+                      <span className="truncate text-11 text-tertiary">{template.description}</span>
                     )}
                   </div>
                 </CustomMenu.MenuItem>

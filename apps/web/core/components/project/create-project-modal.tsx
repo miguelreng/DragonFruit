@@ -50,11 +50,7 @@ export function CreateProjectModal(props: Props) {
   const isFeatureStep = currentStep === EProjectCreationSteps.FEATURE_SELECTION;
 
   return (
-    <ModalCore
-      isOpen={isOpen}
-      position={EModalPosition.TOP}
-      width={isFeatureStep ? EModalWidth.XXXXL : EModalWidth.XL}
-    >
+    <ModalCore isOpen={isOpen} position={EModalPosition.TOP} width={isFeatureStep ? EModalWidth.XXXXL : EModalWidth.XL}>
       {currentStep === EProjectCreationSteps.CREATE_PROJECT && (
         <CreateProjectForm
           setToFavorite={setToFavorite}

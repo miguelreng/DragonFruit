@@ -105,9 +105,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
   // if the user can't access the endpoint.
   useSWR(
     workspaceSlug && currentWorkspace ? WORKSPACE_AGENTS(workspaceSlug.toString()) : null,
-    workspaceSlug && currentWorkspace
-      ? () => agentStore.fetchAgents(workspaceSlug.toString()).catch(() => [])
-      : null,
+    workspaceSlug && currentWorkspace ? () => agentStore.fetchAgents(workspaceSlug.toString()).catch(() => []) : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
   // fetch workspace favorite
@@ -186,7 +184,11 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
           </div>
           <div className="relative flex h-full w-full flex-grow flex-col items-center justify-center space-y-3">
             <div className="relative flex-shrink-0">
-              <img src={WorkSpaceNotAvailable} className="h-[220px] object-contain object-center" alt="DragonFruit logo" />
+              <img
+                src={WorkSpaceNotAvailable}
+                className="h-[220px] object-contain object-center"
+                alt="DragonFruit logo"
+              />
             </div>
             <h3 className="text-center text-16 font-semibold">Workspace not found</h3>
             <p className="text-center text-13 text-secondary">

@@ -300,9 +300,7 @@ export const TopNavPowerK = observer(() => {
             </button>
           ) : (
             !isOpen && (
-              <kbd className="font-sans ml-2 shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-11 text-white/60">
-                ⌘ K
-              </kbd>
+              <kbd className="font-sans ml-2 shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-11 text-white/60">⌘ K</kbd>
             )
           )}
         </div>

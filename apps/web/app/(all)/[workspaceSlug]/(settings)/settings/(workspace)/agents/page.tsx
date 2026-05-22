@@ -23,7 +23,12 @@ import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { useUserPermissions } from "@/hooks/store/user";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // services
-import { AgentService, type TAgent, type TAgentCreatePayload, type TAgentUpdatePayload } from "@/services/agent.service";
+import {
+  AgentService,
+  type TAgent,
+  type TAgentCreatePayload,
+  type TAgentUpdatePayload,
+} from "@/services/agent.service";
 // local
 import type { Route } from "./+types/page";
 import { AgentsWorkspaceSettingsHeader } from "./header";

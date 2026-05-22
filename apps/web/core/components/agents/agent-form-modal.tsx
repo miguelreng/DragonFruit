@@ -153,13 +153,7 @@ export function AgentFormModal(props: IAgentFormModalProps) {
   const subheading = isEdit
     ? "Update this agent’s profile and BYOK provider config. Leave the API key blank to keep the one already on file."
     : "Agents are bot members of this workspace. Assign them to a task and they’ll participate like a teammate.";
-  const submitLabel = isEdit
-    ? submitting
-      ? "Saving…"
-      : "Save changes"
-    : submitting
-      ? "Creating…"
-      : "Create agent";
+  const submitLabel = isEdit ? (submitting ? "Saving…" : "Save changes") : submitting ? "Creating…" : "Create agent";
   const apiKeyHelper =
     isEdit && props.agent.has_api_key
       ? "A key is on file. Leave blank to keep it, or paste a new one to replace it."

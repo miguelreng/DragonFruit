@@ -61,11 +61,7 @@ export class ProjectTemplateService extends APIService {
       });
   }
 
-  async update(
-    workspaceSlug: string,
-    templateId: string,
-    data: Partial<TProjectTemplate>
-  ): Promise<TProjectTemplate> {
+  async update(workspaceSlug: string, templateId: string, data: Partial<TProjectTemplate>): Promise<TProjectTemplate> {
     return this.patch(`/api/workspaces/${workspaceSlug}/project-templates/${templateId}/`, data)
       .then((res) => res?.data)
       .catch((error) => {
@@ -93,10 +89,7 @@ export class ProjectTemplateService extends APIService {
     templateId: string,
     data: Record<string, unknown>
   ): Promise<{ id: string; identifier: string; name: string }> {
-    return this.post(
-      `/api/workspaces/${workspaceSlug}/project-templates/${templateId}/instantiate/`,
-      data
-    )
+    return this.post(`/api/workspaces/${workspaceSlug}/project-templates/${templateId}/instantiate/`, data)
       .then((res) => res?.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -114,10 +107,7 @@ export class ProjectTemplateService extends APIService {
     projectId: string,
     data: { name?: string; description?: string; include_tasks?: boolean }
   ): Promise<TProjectTemplate> {
-    return this.post(
-      `/api/workspaces/${workspaceSlug}/projects/${projectId}/save-as-template/`,
-      data
-    )
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/save-as-template/`, data)
       .then((res) => res?.data)
       .catch((error) => {
         throw error?.response?.data;

@@ -196,8 +196,7 @@ export function ExportPageModal(props: Props) {
       // Defensive interop: depending on Vite's CJS interop, named exports
       // can land either at the top level or under `.default`. Try both.
       const mod: any = await import("html-docx-js-typescript");
-      const asBlob: ((html: string) => Promise<Blob | ArrayBuffer>) | undefined =
-        mod?.asBlob ?? mod?.default?.asBlob;
+      const asBlob: ((html: string) => Promise<Blob | ArrayBuffer>) | undefined = mod?.asBlob ?? mod?.default?.asBlob;
       if (typeof asBlob !== "function") {
         throw new Error("html-docx-js-typescript: asBlob() not found on the imported module");
       }

@@ -58,10 +58,7 @@ export function ProjectsAppPowerKCommandsList(props: TPowerKCommandsListProps) {
         onResultClick={onResultClick}
       />
       {!activePage && !hideAskAI && (
-        <PowerKAskAISection
-          workspaceSlug={context.params.workspaceSlug?.toString()}
-          searchTerm={searchTerm}
-        />
+        <PowerKAskAISection workspaceSlug={context.params.workspaceSlug?.toString()} searchTerm={searchTerm} />
       )}
       <PowerKContextBasedPagesList
         activeContext={context.activeContext}

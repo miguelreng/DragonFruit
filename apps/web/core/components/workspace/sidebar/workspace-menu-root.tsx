@@ -114,7 +114,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
             {variant === "top-navigation" && (
               <Menu.Button
                 className={cn(
-                  "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm py-1 pl-4 pr-1 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
+                  "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm py-1 pr-1 pl-4 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
                   {
                     "bg-layer-1": open,
                   }

@@ -100,7 +100,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="pointer-events-auto w-full max-w-xl rounded-xl border border-subtle-1 bg-canvas p-4 shadow-raised-200 animate-in fade-in slide-in-from-bottom-2 duration-150"
+        className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto w-full max-w-xl rounded-xl border border-subtle-1 bg-canvas p-4 shadow-raised-200 duration-150"
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -130,10 +130,10 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
           }}
           placeholder="What should the agent do with this block?"
           rows={3}
-          className="w-full resize-none rounded-md border border-subtle-1 bg-transparent px-3 py-2 text-sm outline-none focus:border-strong"
+          className="text-sm w-full resize-none rounded-md border border-subtle-1 bg-transparent px-3 py-2 outline-none focus:border-strong"
         />
         {detailRef.current.paragraphText && (
-          <div className="mt-2 text-xs text-tertiary">
+          <div className="text-xs mt-2 text-tertiary">
             Context: <span className="italic">"{detailRef.current.paragraphText.slice(0, 140)}"</span>
           </div>
         )}
@@ -143,7 +143,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
             type="button"
             onClick={handleSubmit}
             disabled={isSending || !prompt.trim()}
-            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="bg-primary text-sm text-primary-foreground rounded-md px-3 py-1.5 font-medium hover:opacity-90 disabled:opacity-50"
           >
             {isSending ? "Sending…" : "Send"}
           </button>

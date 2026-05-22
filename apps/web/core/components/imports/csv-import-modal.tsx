@@ -255,9 +255,7 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
 
           {parsed && (
             <div>
-              <label className={LABEL_CLASS}>
-                {t("workspace_settings.settings.imports.csv_modal.step_mapping")}
-              </label>
+              <label className={LABEL_CLASS}>{t("workspace_settings.settings.imports.csv_modal.step_mapping")}</label>
               <p className="-mt-0.5 mb-3 text-11 text-tertiary">
                 {t("workspace_settings.settings.imports.csv_modal.mapping_hint")}
               </p>
@@ -273,7 +271,7 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
                     <div key={key} className="flex flex-col">
                       <span className="mb-1 text-11 font-medium text-secondary">
                         {t(`workspace_settings.settings.imports.csv_modal.field_${key}`)}
-                        {required && <span className="ml-0.5 text-danger-strong">*</span>}
+                        {required && <span className="text-danger-strong ml-0.5">*</span>}
                       </span>
                       <CustomSelect
                         value={idx === null ? "" : String(idx)}

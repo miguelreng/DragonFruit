@@ -38,13 +38,13 @@ export function ProjectTemplateSelect(props: TProjectTemplateSelect) {
       {/* span, not label — there's no native form control to point
           `htmlFor` at (the trigger is a non-input <div> that
           CustomMenu wraps in its own <button>). Visual label only. */}
-      <span className="text-12 shrink-0 text-tertiary">Start from</span>
+      <span className="shrink-0 text-12 text-tertiary">Start from</span>
       <CustomMenu
         disabled={disabled}
         customButton={
           // div, not button — CustomMenu wraps customButton in its
           // own <button> internally. Avoids nested-button HTML.
-          <div className="border-subtle bg-layer-1 text-13 hover:bg-layer-2 flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-md border-[0.5px] px-3 py-2 text-primary">
+          <div className="flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
             <span className="truncate">{triggerLabel}</span>
             <ChevronDown className="size-3.5 text-tertiary" />
           </div>
@@ -61,10 +61,8 @@ export function ProjectTemplateSelect(props: TProjectTemplateSelect) {
         {templates.map((t) => (
           <CustomMenu.MenuItem key={t.id} onClick={() => onTemplateChange(t.id)}>
             <div className="flex min-w-0 flex-col">
-              <span className="text-13 truncate text-primary">{t.name}</span>
-              {t.description && (
-                <span className="text-11 truncate text-tertiary">{t.description}</span>
-              )}
+              <span className="truncate text-13 text-primary">{t.name}</span>
+              {t.description && <span className="truncate text-11 text-tertiary">{t.description}</span>}
             </div>
           </CustomMenu.MenuItem>
         ))}

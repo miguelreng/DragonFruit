@@ -121,7 +121,9 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   // the fileHandler / mentionHandler reference changes. Without memoization,
   // every parent render recreated these objects and re-initialized ProseMirror
   // — visible cost on issue-detail pages with many read-only comments.
-  const uploadFile = editable ? (props as Extract<LiteTextEditorWrapperProps, { editable: true }>).uploadFile : undefined;
+  const uploadFile = editable
+    ? (props as Extract<LiteTextEditorWrapperProps, { editable: true }>).uploadFile
+    : undefined;
   const duplicateFile = editable
     ? (props as Extract<LiteTextEditorWrapperProps, { editable: true }>).duplicateFile
     : undefined;

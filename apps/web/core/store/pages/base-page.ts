@@ -142,8 +142,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     this.archived_at = page?.archived_at || undefined;
     this.workspace = page?.workspace || undefined;
     this.project_ids = page?.project_ids || undefined;
-    this.view_props =
-      (page as TPage & { view_props?: Record<string, unknown> })?.view_props ?? undefined;
+    this.view_props = (page as TPage & { view_props?: Record<string, unknown> })?.view_props ?? undefined;
     this.created_by = page?.created_by || undefined;
     this.updated_by = page?.updated_by || undefined;
     this.created_at = page?.created_at || undefined;

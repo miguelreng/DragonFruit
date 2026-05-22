@@ -30,9 +30,9 @@ function AboutSettingsPage() {
         <article className="mt-8 flex max-w-[560px] flex-col gap-5 text-body-md-regular text-secondary">
           <p>Hi —</p>
           <p>
-            DragonFruit started as a small frustration. I love how Linear feels, I love how Notion docs read, and I
-            love that Plane is open source. But none of them, on their own, was the thing I actually wanted to work
-            in every day. So I started carving one out.
+            DragonFruit started as a small frustration. I love how Linear feels, I love how Notion docs read, and I love
+            that Plane is open source. But none of them, on their own, was the thing I actually wanted to work in every
+            day. So I started carving one out.
           </p>
           <p>
             This is a fork of Plane, but the goal isn&apos;t to track Plane. It&apos;s to make the work itself feel
@@ -40,10 +40,10 @@ function AboutSettingsPage() {
             bring your own key to so nothing about your work routes through somebody else&apos;s pricing page.
           </p>
           <p>
-            A few principles I keep coming back to as I build this. Nothing here is hosted by us in the
-            data-extraction sense — your LLM keys are yours, your data is yours, and the source is open. When a
-            feature gets removed, it gets removed cleanly, not hidden behind a flag. Empty states should feel like
-            an invitation, not a billboard. Speed and quiet are features.
+            A few principles I keep coming back to as I build this. Nothing here is hosted by us in the data-extraction
+            sense — your LLM keys are yours, your data is yours, and the source is open. When a feature gets removed, it
+            gets removed cleanly, not hidden behind a flag. Empty states should feel like an invitation, not a
+            billboard. Speed and quiet are features.
           </p>
           <p>
             If you&apos;re reading this, you&apos;re either using DragonFruit or kicking the tires on it. Either way,
@@ -52,7 +52,7 @@ function AboutSettingsPage() {
           <p className="mt-4">
             — Miguel
             <br />
-            <span className="text-tertiary text-body-sm-regular">maker of DragonFruit</span>
+            <span className="text-body-sm-regular text-tertiary">maker of DragonFruit</span>
           </p>
         </article>
       </div>

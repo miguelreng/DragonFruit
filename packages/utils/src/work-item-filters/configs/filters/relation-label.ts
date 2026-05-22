@@ -19,11 +19,11 @@ import { createFilterConfig, createOperatorConfigEntry, getMultiSelectConfig } f
  * the consumer fetches these from `GET /workspaces/<slug>/relation-labels/`
  * once and passes them in.
  */
-// The icon config is parameterized over `unknown` because the relation-label
+// The icon config is parameterized over `undefined` because the relation-label
 // items don't have per-option icons — just text. `filterIcon` (the icon shown
 // next to "Relation label" in the dropdown header) still needs to be a prop.
 export type TCreateRelationLabelFilterParams = TCreateFilterConfigParams &
-  IFilterIconConfig<unknown> & {
+  IFilterIconConfig<undefined> & {
     labels: string[];
   };
 

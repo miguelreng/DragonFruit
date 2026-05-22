@@ -153,8 +153,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
       // The mark lands in the DOM synchronously inside Tiptap's
       // chain().run(), but ProseMirror does its own micro-task batching.
       // Querying on the next animation frame guarantees the span exists.
-      const findAnchor = () =>
-        document.querySelector<HTMLElement>(`[data-block-comment-id="${detail.commentId}"]`);
+      const findAnchor = () => document.querySelector<HTMLElement>(`[data-block-comment-id="${detail.commentId}"]`);
       requestAnimationFrame(() => {
         const el = findAnchor();
         if (!el) {

@@ -190,9 +190,9 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
             <CodeBlock code={genericJson} label="MCP client config" />
 
             <p className="text-caption-md mt-3 text-tertiary">
-              Both <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">Authorization: Bearer …</code>{" "}
-              and <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">X-Api-Key: …</code> headers work —
-              pick whichever your client supports natively.
+              Both <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">Authorization: Bearer …</code>{" "}
+              and <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">X-Api-Key: …</code> headers work
+              — pick whichever your client supports natively.
             </p>
           </Step>
 
@@ -226,15 +226,15 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
               <ExternalLink className="size-3" />
             </Link>{" "}
             and pick an agent. On its detail panel you can add MCP servers with{" "}
-            <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">name</code>,{" "}
-            <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">url</code>, and an optional{" "}
-            <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">auth_header</code> (Fernet-encrypted at
-            rest).
+            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">name</code>,{" "}
+            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">url</code>, and an optional{" "}
+            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">auth_header</code> (Fernet-encrypted
+            at rest).
           </p>
 
           <p className="text-caption-md mt-2 text-secondary">
             Tools from each server appear in the agent's toolbelt prefixed with the server's name (e.g.{" "}
-            <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">github__list_issues</code>) so you can
+            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">github__list_issues</code>) so you can
             run multiple servers side-by-side without collisions. If a server is unreachable at dispatch time, the agent
             silently falls back to its built-in tools — one broken integration doesn't kill the run.
           </p>
@@ -285,7 +285,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
             <li>
               Auth headers configured on agents for outgoing MCP calls are stored Fernet-encrypted — ciphertext is never
               returned by the API (you'll only see{" "}
-              <code className="font-mono text-[10px] rounded bg-layer-3 px-1 py-px">has_auth_header: true</code>).
+              <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">has_auth_header: true</code>).
             </li>
             <li>
               When you rotate or revoke an API token (Settings → API Tokens), any MCP client using it loses access
