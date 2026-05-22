@@ -18,6 +18,8 @@ interface IAgentRunsPanelProps {
 }
 
 const agentService = new AgentService();
+const EXECUTION_PHASES = ["plan", "act", "verify", "report"] as const;
+type TExecutionPhase = (typeof EXECUTION_PHASES)[number];
 
 const STATUS_STYLES: Record<TAgentRun["status"], string> = {
   pending: "bg-layer-3 text-tertiary",
@@ -65,6 +67,28 @@ function extractDraftPointer(tc: TAgentToolCall): { id: string; kind: TAgentDraf
   if (!match) return null;
   const kind: TAgentDraftKind = tc.name === "post_page_comment" ? "page" : "issue";
   return { id: match[1], kind };
+}
+
+function getPhaseCoverage(toolCalls: TAgentToolCall[]): Set<TExecutionPhase> {
+  const phases = new Set<TExecutionPhase>();
+  for (const tc of toolCalls) {
+    if (tc.name !== "record_step") continue;
+    const argPhase = String(tc.arguments?.phase ?? "").toLowerCase();
+    if (EXECUTION_PHASES.includes(argPhase as TExecutionPhase)) {
+      phases.add(argPhase as TExecutionPhase);
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(String(tc.result ?? "{}")) as { phase?: string };
+      const parsedPhase = String(parsed.phase ?? "").toLowerCase();
+      if (EXECUTION_PHASES.includes(parsedPhase as TExecutionPhase)) {
+        phases.add(parsedPhase as TExecutionPhase);
+      }
+    } catch {
+      // ignore parse errors from non-JSON tool results
+    }
+  }
+  return phases;
 }
 
 export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps) {
@@ -140,8 +164,9 @@ export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps)
       {runs.map((run) => {
         const isInFlight = run.status === "pending" || run.status === "running";
         const toolCalls = run.tool_calls ?? [];
-        const toolNames = toolCalls.map((tc) => tc.name);
+        const toolNames = toolCalls.map((tc) => tc.name).filter((n): n is string => !!n);
         const toolSummary = toolNames.length === 0 ? null : Array.from(new Set(toolNames)).join(", ");
+        const phaseCoverage = getPhaseCoverage(toolCalls);
         const drafts = toolCalls
           .map(extractDraftPointer)
           .filter((d): d is { id: string; kind: TAgentDraftKind } => !!d);
@@ -181,6 +206,27 @@ export function AgentRunsPanel({ workspaceSlug, agentId }: IAgentRunsPanelProps)
                 </div>
                 {toolSummary && (
                   <div className="mt-0.5 truncate text-caption-sm-regular text-tertiary">called: {toolSummary}</div>
+                )}
+                {toolNames.includes("record_step") && (
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    <span className="text-caption-sm-regular text-tertiary">loop:</span>
+                    {EXECUTION_PHASES.map((phase) => {
+                      const done = phaseCoverage.has(phase);
+                      return (
+                        <span
+                          key={`${run.id}-${phase}`}
+                          className={cn(
+                            "rounded px-1.5 py-0.5 text-caption-sm-medium",
+                            done
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                              : "bg-layer-2 text-tertiary"
+                          )}
+                        >
+                          {phase}
+                        </span>
+                      );
+                    })}
+                  </div>
                 )}
                 {run.error && (
                   <div className="text-danger-strong mt-0.5 truncate text-caption-sm-regular">{run.error}</div>
