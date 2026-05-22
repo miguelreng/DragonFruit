@@ -1,6 +1,8 @@
 from .base import (
     AgentCostSummaryEndpoint,
     AgentDetailEndpoint,
+    AgentAutomationDetailEndpoint,
+    AgentAutomationEndpoint,
     AgentDraftCommentApproveEndpoint,
     AgentDraftCommentDiscardEndpoint,
     AgentEndpoint,
