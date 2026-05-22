@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { ArchiveRestoreIcon, FileOutput, FileText, LockKeyhole, LockKeyholeOpen } from "@/components/icons/lucide-shim";
@@ -43,7 +43,9 @@ const templateService = new PageTemplateService();
 
 export type TPageActions =
   | "full-screen"
+  | "focus-mode"
   | "sticky-toolbar"
+  | "drop-cap"
   | "copy-markdown"
   | "toggle-lock"
   | "toggle-access"
@@ -88,7 +90,7 @@ export const PageActions = observer(function PageActions(props: Props) {
     page,
   });
 
-  const handleSaveAsTemplate = async () => {
+  const handleSaveAsTemplate = useCallback(async () => {
     if (!workspaceSlug || !page.id) return;
     const defaultName = page.name || "Untitled template";
     const name = window.prompt("Save this page as a template — pick a name:", defaultName);
@@ -107,7 +109,7 @@ export const PageActions = observer(function PageActions(props: Props) {
         message: err?.error || "Try again in a moment.",
       });
     }
-  };
+  }, [workspaceSlug, page.id, page.name]);
   // derived values
   const {
     access,
@@ -263,8 +265,8 @@ export const PageActions = observer(function PageActions(props: Props) {
       canSaveAsTemplate,
       isMovePageEnabled,
       pageOperations,
-      // handleSaveAsTemplate closes over `page` + `workspaceSlug` — both are
-      // already in the dep array indirectly via the page instance object identity.
+      page,
+      workspaceSlug,
       handleSaveAsTemplate,
     ]
   );

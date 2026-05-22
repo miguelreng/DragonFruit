@@ -218,6 +218,7 @@ from .calendar.base import (
     CalendarAccountsListEndpoint,
     CalendarAccountDetailEndpoint,
     CalendarAccountEventsEndpoint,
+    CalendarSyncTasksToGoogleEndpoint,
     GoogleCalendarStartEndpoint,
     GoogleCalendarCallbackEndpoint,
     MyCalendarTasksEndpoint,

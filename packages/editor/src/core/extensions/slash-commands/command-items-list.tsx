@@ -63,6 +63,25 @@ export type TSlashCommandSection = {
   items: ISlashCommandItem[];
 };
 
+const applyCalloutPreset = (
+  editor: CommandProps["editor"],
+  range: CommandProps["range"],
+  preset: { emoji: string; background: string | null }
+) => {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(
+      "editor-calloutComponent-logo",
+      JSON.stringify({
+        in_use: "emoji",
+        emoji: { value: preset.emoji },
+      })
+    );
+    if (preset.background) window.localStorage.setItem("editor-calloutComponent-background", preset.background);
+    else window.localStorage.removeItem("editor-calloutComponent-background");
+  }
+  insertCallout(editor, range);
+};
+
 export const getSlashCommandFilteredSections =
   (args: TExtensionProps) =>
   ({ query }: { query: string }): TSlashCommandSection[] => {
@@ -197,6 +216,38 @@ export const getSlashCommandFilteredSections =
             description: "Insert callout",
             searchTerms: ["callout", "comment", "message", "info", "alert"],
             command: ({ editor, range }: CommandProps) => insertCallout(editor, range),
+          },
+          {
+            commandKey: "callout",
+            key: "callout-tip",
+            title: "Tip callout",
+            icon: <Sparkles className="size-3.5" />,
+            description: "Callout with a tip preset",
+            searchTerms: ["callout", "tip", "hint", "craft"],
+            command: ({ editor, range }: CommandProps) =>
+              applyCalloutPreset(editor, range, { emoji: "128161", background: "yellow" }),
+          },
+          {
+            commandKey: "callout",
+            key: "callout-warning",
+            title: "Warning callout",
+            icon: <MessageCircle className="size-3.5" />,
+            description: "Callout with a warning preset",
+            searchTerms: ["callout", "warning", "alert", "caution"],
+            command: ({ editor, range }: CommandProps) =>
+              applyCalloutPreset(editor, range, { emoji: "9888", background: "orange" }),
+          },
+          {
+            commandKey: "quote",
+            key: "pull-quote",
+            title: "Pull quote",
+            description: "Large quote block starter",
+            searchTerms: ["quote", "pull", "blockquote"],
+            icon: <TextQuote className="size-3.5" />,
+            command: ({ editor, range }) => {
+              toggleBlockquote(editor, range);
+              editor.chain().focus().toggleItalic().run();
+            },
           },
           {
             commandKey: "divider",
@@ -341,7 +392,8 @@ export const getSlashCommandFilteredSections =
                 )
                 .run();
 
-              void issueConfig.onConvertToTask?.({ title: blockText }).then((attrs) => {
+              void (async () => {
+                const attrs = await issueConfig.onConvertToTask?.({ title: blockText });
                 if (!attrs) return; // creation failed — leave the draft card so the user can retry
                 let foundPos = -1;
                 let foundAttrs: Record<string, unknown> = {};
@@ -366,7 +418,7 @@ export const getSlashCommandFilteredSections =
                   entity_name: "work_item",
                 });
                 editor.view.dispatch(tr);
-              });
+              })();
             },
           });
         }

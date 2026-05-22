@@ -397,3 +397,22 @@
   font-weight: 500 !important;
   padding: 2px 6px !important;
 }
+
+/* Page-level reading modes */
+.page-focus-mode .page-header-container {
+  padding-top: 20px;
+}
+
+.page-focus-mode .page-summary-container {
+  display: none !important;
+}
+
+.page-drop-cap .ProseMirror > p:first-of-type::first-letter {
+  float: left;
+  font-family: "Newsreader Variable", ui-serif, Georgia, serif;
+  font-size: 3.2rem;
+  line-height: 0.95;
+  margin-right: 0.35rem;
+  margin-top: 0.2rem;
+  font-weight: 600;
+}

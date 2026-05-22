@@ -331,3 +331,26 @@ What's deferred for the full v1:
 - A subtle line below the textarea reports what was stripped (e.g. _"Cleaned Granola export — kept only the transcript section, removed 4 metadata lines, stripped 18 timestamp markers."_).
 - Detection is conservative: if the input doesn't have two signals (header + metadata + timestamps + the word "Granola"), the button doesn't appear and nothing is touched.
 - One-click pull from the Granola MCP would require either a per-user sync script (Claude → API) or a webhook endpoint — both deferred.
+
+## Roadmap Status vs Plane Base (Updated May 22, 2026)
+
+### Shipped in DragonFruit (Delta vs Plane)
+
+- Rebrand + task terminology.
+- Newsreader/Figtree typography.
+- AI agents: BYOK, tool use loop, runs panel, draft approvals.
+- Native calendar + Google overlay.
+- Diagrams + whiteboards.
+- Workspace docs + drafts.
+- Redesigned home.
+- Page-level focus mode + drop cap toggles.
+- Slash menu polish with quick blocks and richer quote/callout variants.
+- Better page covers + emoji header defaults on new pages.
+- More agent tools: search issues, list attachments, multi-step planning helper.
+- Two-way Google Calendar sync: outbound task sync to Google + Google-event-to-task quick-import flow.
+
+### Still Largely Plane-Base
+
+- Core issue/project/cycle schemas and permission model.
+- Base work item CRUD endpoints and most list/filter semantics.
+- Core collaboration and real-time foundations outside DragonFruit-specific editor/agent/calendar additions.

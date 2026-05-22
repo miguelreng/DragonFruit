@@ -8,6 +8,7 @@ from plane.app.views import (
     CalendarAccountsListEndpoint,
     CalendarAccountDetailEndpoint,
     CalendarAccountEventsEndpoint,
+    CalendarSyncTasksToGoogleEndpoint,
     GoogleCalendarStartEndpoint,
     GoogleCalendarCallbackEndpoint,
     MyCalendarTasksEndpoint,
@@ -44,5 +45,10 @@ urlpatterns = [
         "users/me/calendar-accounts/<uuid:account_id>/events/",
         CalendarAccountEventsEndpoint.as_view(),
         name="calendar-accounts-events",
+    ),
+    path(
+        "workspaces/<str:slug>/calendar/google/sync-tasks/",
+        CalendarSyncTasksToGoogleEndpoint.as_view(),
+        name="workspace-calendar-google-sync-tasks",
     ),
 ]

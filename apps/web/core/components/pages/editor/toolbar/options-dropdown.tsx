@@ -54,9 +54,12 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
     name,
     isContentEditable,
     project_ids,
+    view_props,
     editor: { editorRef },
   } = page;
   const docProjectId = project_ids?.[0];
+  const isFocusMode = Boolean(view_props?.focus_mode);
+  const isDropCapEnabled = Boolean(view_props?.drop_cap);
   // page filters
   const { isFullWidth, handleFullWidth, isStickyToolbarEnabled, handleStickyToolbar } = usePageFilters();
   // query params
@@ -83,6 +86,34 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
             <>
               Sticky toolbar
               <ToggleSwitch value={isStickyToolbarEnabled} onChange={() => {}} />
+            </>
+          ),
+          className: "flex items-center justify-between gap-2",
+          shouldRender: isContentEditable,
+        },
+        {
+          key: "focus-mode",
+          action: () => {
+            void page.updateViewProps({ focus_mode: !isFocusMode });
+          },
+          customContent: (
+            <>
+              Focus mode
+              <ToggleSwitch value={isFocusMode} onChange={() => {}} />
+            </>
+          ),
+          className: "flex items-center justify-between gap-2",
+          shouldRender: isContentEditable,
+        },
+        {
+          key: "drop-cap",
+          action: () => {
+            void page.updateViewProps({ drop_cap: !isDropCapEnabled });
+          },
+          customContent: (
+            <>
+              Drop cap
+              <ToggleSwitch value={isDropCapEnabled} onChange={() => {}} />
             </>
           ),
           className: "flex items-center justify-between gap-2",
@@ -163,6 +194,9 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
       isFullWidth,
       handleStickyToolbar,
       isStickyToolbarEnabled,
+      page,
+      isFocusMode,
+      isDropCapEnabled,
       isContentEditable,
       editorRef,
       updateQueryParams,
@@ -193,6 +227,8 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
         optionsOrder={[
           "full-screen",
           "sticky-toolbar",
+          "focus-mode",
+          "drop-cap",
           "copy-markdown",
           "version-history",
           "turn-into-task",

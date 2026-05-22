@@ -34,7 +34,7 @@ from ..base import BaseAPIView
 GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_CAL_API = "https://www.googleapis.com/calendar/v3"
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly", "openid", "email"]
+SCOPES = ["https://www.googleapis.com/auth/calendar", "openid", "email"]
 
 
 def _client_credentials() -> tuple[str, str, str]:
@@ -255,6 +255,97 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
         data = resp.json()
         events = [_event_to_dict(e) for e in data.get("items", [])]
         return Response({"events": events}, status=status.HTTP_200_OK)
+
+
+def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue) -> str:
+    """Create/update a Google Calendar event for one issue and return event id."""
+    calendar_id = account.primary_calendar_id or "primary"
+    access_token = _refresh_if_needed(account)
+    start_date = issue.start_date or issue.target_date
+    end_date = issue.target_date or issue.start_date or start_date
+    if start_date is None:
+        raise ValueError("Issue has no start or target date to sync")
+
+    payload = {
+        "summary": issue.name,
+        "description": issue.description_stripped or "",
+        "start": {"date": start_date.isoformat()},
+        "end": {"date": end_date.isoformat()},
+    }
+
+    if issue.external_source == "google_calendar" and issue.external_id:
+        resp = requests.patch(
+            f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events/{issue.external_id}",
+            json=payload,
+            headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            return issue.external_id
+
+    create_resp = requests.post(
+        f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events",
+        json=payload,
+        headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+        timeout=10,
+    )
+    if create_resp.status_code not in (200, 201):
+        raise RuntimeError(f"google_event_sync_failed:{create_resp.status_code}")
+    event_id = create_resp.json().get("id")
+    if not event_id:
+        raise RuntimeError("google_event_sync_failed:no_event_id")
+    issue.external_source = "google_calendar"
+    issue.external_id = event_id
+    issue.save(update_fields=["external_source", "external_id", "updated_at"])
+    return event_id
+
+
+class CalendarSyncTasksToGoogleEndpoint(BaseAPIView):
+    """Two-way sync step 1: push DragonFruit tasks to Google Calendar events."""
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def post(self, request, slug):
+        account_id = request.data.get("account_id")
+        if not account_id:
+            return Response({"error": "account_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            account = UserCalendarAccount.objects.get(id=account_id, user=request.user, is_active=True)
+        except UserCalendarAccount.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        time_from = request.data.get("from")
+        time_to = request.data.get("to")
+        if not time_from or not time_to:
+            return Response({"error": "from and to are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from_dt = datetime.fromisoformat(str(time_from).replace("Z", "+00:00"))
+            to_dt = datetime.fromisoformat(str(time_to).replace("Z", "+00:00"))
+        except ValueError:
+            return Response({"error": "from/to must be ISO-8601"}, status=status.HTTP_400_BAD_REQUEST)
+
+        issues = (
+            Issue.issue_objects.filter(workspace__slug=slug)
+            .filter(project__project_projectmember__member=request.user, project__project_projectmember__is_active=True)
+            .filter(Q(assignees=request.user) | Q(created_by=request.user))
+            .filter(
+                Q(target_date__range=(from_dt.date(), to_dt.date()))
+                | Q(start_date__range=(from_dt.date(), to_dt.date()))
+            )
+            .distinct()
+            .order_by("target_date", "start_date")
+        )
+
+        synced = 0
+        failed: list[dict] = []
+        for issue in issues:
+            try:
+                _upsert_google_event_for_issue(account=account, issue=issue)
+                synced += 1
+            except Exception as exc:  # noqa: BLE001
+                failed.append({"issue_id": str(issue.id), "reason": str(exc)[:200]})
+
+        return Response({"synced": synced, "failed": failed}, status=status.HTTP_200_OK)
 
 
 def _event_to_dict(e: dict) -> dict:

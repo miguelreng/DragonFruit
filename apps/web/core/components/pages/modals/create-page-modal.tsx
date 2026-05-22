@@ -19,10 +19,50 @@ import { usePageStore } from "@/plane-web/hooks/store";
 import { PageTemplateService } from "@/services/page/page-template.service";
 // local imports
 import { PageForm } from "./page-form";
+import { PAGE_COVER_OPTIONS } from "../editor/header/cover-options";
 
 const templateService = new PageTemplateService();
 const PAGE_READY_RETRY_DELAYS_MS = [150, 300, 500, 800, 1200];
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const DEFAULT_EMOJI_HEADERS = ["128221", "128214", "128173", "128196", "127807"];
+const fetchPageWithRetry = async (
+  fetchPageDetails: (workspaceSlug: string, projectId: string, pageId: string) => Promise<unknown>,
+  workspaceSlug: string,
+  projectId: string,
+  pageId: string,
+  delays: readonly number[],
+  attempt = 0
+): Promise<void> => {
+  try {
+    await fetchPageDetails(workspaceSlug, projectId, pageId);
+  } catch {
+    if (attempt >= delays.length) return;
+    await sleep(delays[attempt]);
+    await fetchPageWithRetry(fetchPageDetails, workspaceSlug, projectId, pageId, delays, attempt + 1);
+  }
+};
+
+const getDefaultPageFormState = (pageAccess?: EPageAccess): Partial<TPage> => {
+  const randomCover = PAGE_COVER_OPTIONS[Math.floor(Math.random() * PAGE_COVER_OPTIONS.length)]?.id;
+  const randomEmoji = DEFAULT_EMOJI_HEADERS[Math.floor(Math.random() * DEFAULT_EMOJI_HEADERS.length)] ?? "128221";
+
+  return {
+    id: undefined,
+    name: "",
+    access: pageAccess,
+    logo_props: {
+      in_use: "emoji",
+      emoji: {
+        value: randomEmoji,
+      },
+    },
+    view_props: randomCover
+      ? {
+          cover: randomCover,
+        }
+      : undefined,
+  };
+};
 
 type Props = {
   workspaceSlug: string;
@@ -46,9 +86,7 @@ export function CreatePageModal(props: Props) {
   } = props;
   // states
   const [pageFormData, setPageFormData] = useState<Partial<TPage>>({
-    id: undefined,
-    name: "",
-    logo_props: undefined,
+    ...getDefaultPageFormState(pageAccess),
   });
   const [templates, setTemplates] = useState<TPageTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
@@ -84,7 +122,7 @@ export function CreatePageModal(props: Props) {
   }, [isModalOpen, workspaceSlug]);
 
   const handleStateClear = useCallback(() => {
-    setPageFormData({ id: undefined, name: "", access: pageAccess });
+    setPageFormData(getDefaultPageFormState(pageAccess));
     setSelectedTemplateId("");
     handleModalClose();
   }, [pageAccess, handleModalClose]);
@@ -103,14 +141,7 @@ export function CreatePageModal(props: Props) {
           access: pageFormData.access,
         });
         if (created?.id) {
-          for (const delay of PAGE_READY_RETRY_DELAYS_MS) {
-            try {
-              await fetchPageDetails(workspaceSlug, projectId, created.id);
-              break;
-            } catch {
-              await sleep(delay);
-            }
-          }
+          await fetchPageWithRetry(fetchPageDetails, workspaceSlug, projectId, created.id, PAGE_READY_RETRY_DELAYS_MS);
           handleStateClear();
           if (redirectionEnabled) router.push(`/${workspaceSlug}/projects/${projectId}/pages/${created.id}`);
         }
@@ -119,14 +150,7 @@ export function CreatePageModal(props: Props) {
 
       const pageData = await createPage(pageFormData);
       if (pageData?.id) {
-        for (const delay of PAGE_READY_RETRY_DELAYS_MS) {
-          try {
-            await fetchPageDetails(workspaceSlug, projectId, pageData.id);
-            break;
-          } catch {
-            await sleep(delay);
-          }
-        }
+        await fetchPageWithRetry(fetchPageDetails, workspaceSlug, projectId, pageData.id, PAGE_READY_RETRY_DELAYS_MS);
         handleStateClear();
         if (redirectionEnabled) router.push(`/${workspaceSlug}/projects/${projectId}/pages/${pageData.id}`);
       } else {

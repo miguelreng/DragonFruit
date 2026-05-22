@@ -36,6 +36,7 @@ import {
   Trash2,
 } from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Breadcrumbs, Header } from "@plane/ui";
 import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
@@ -52,6 +53,9 @@ import {
 const calendarService = new CalendarService();
 const TASKS_CALENDAR_ID = "tasks";
 const GOOGLE_CALENDAR_ID = "google";
+type TDragonfruitEventMeta =
+  | { kind: "task"; projectId: string; taskId: string; workspaceSlug: string }
+  | { kind: "google_event"; event: TCalendarEvent };
 
 // Schedule-X v4: events use Temporal types. All-day -> PlainDate; timed -> ZonedDateTime.
 // We pull Temporal off the global (the same namespace Schedule-X's instanceof
@@ -100,6 +104,7 @@ function googleEventToScheduleXEvent(e: TCalendarEvent) {
     calendarId: GOOGLE_CALENDAR_ID,
     description: e.description,
     location: e.location,
+    _dragonfruit: { kind: "google_event" as const, event: e },
   };
 }
 
@@ -135,6 +140,12 @@ export function CalendarRoot() {
   // "Quick add" task: opened via Schedule-X day-click. Holds the date the
   // user clicked so we can preload the CreateUpdateIssueModal.
   const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
+  const [quickAddSeed, setQuickAddSeed] = useState<{
+    name?: string;
+    description_html?: string;
+    start_date: string;
+    target_date: string;
+  } | null>(null);
 
   // Google: optional overlay.
   const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>("CALENDAR_ACCOUNTS", () =>
@@ -188,12 +199,22 @@ export function CalendarRoot() {
         onClickDateTime: (dateTime) =>
           openQuickAddRef.current(typeof dateTime === "string" ? dateTime.slice(0, 10) : ""),
         onEventClick: (event) => {
-          // Only task events carry the _dragonfruit payload; Google events
-          // intentionally do nothing here (no peek view for them).
-          const meta = (event as unknown as { _dragonfruit?: { kind: string; projectId?: string; taskId?: string } })
-            ._dragonfruit;
-          if (meta?.kind === "task" && meta.projectId && meta.taskId) {
+          const meta = (event as unknown as { _dragonfruit?: TDragonfruitEventMeta })._dragonfruit;
+          if (meta?.kind === "task") {
             openTaskPeekRef.current({ projectId: meta.projectId, taskId: meta.taskId });
+            return;
+          }
+          if (meta?.kind === "google_event") {
+            const e = meta.event;
+            const start = e.start?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+            const end = e.end?.slice(0, 10) ?? start;
+            setQuickAddSeed({
+              name: e.title,
+              description_html: e.description || "",
+              start_date: start,
+              target_date: end,
+            });
+            setQuickAddDate(start);
           }
         },
         onRangeUpdate: () => {
@@ -247,6 +268,7 @@ export function CalendarRoot() {
             workspaceSlug={workspaceSlug}
             taskCount={tasksRes?.tasks?.length ?? 0}
             googleAccount={googleAccount}
+            taskRange={taskRange}
             refetchAccounts={refetchAccounts}
             onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
             view={view}
@@ -267,17 +289,23 @@ export function CalendarRoot() {
           the date the user clicked into. */}
       <CreateUpdateIssueModal
         isOpen={quickAddDate !== null}
-        onClose={() => setQuickAddDate(null)}
+        onClose={() => {
+          setQuickAddDate(null);
+          setQuickAddSeed(null);
+        }}
         onSubmit={async () => {
           await refetchTasks();
+          setQuickAddSeed(null);
         }}
         data={
-          quickAddDate
-            ? {
-                start_date: quickAddDate,
-                target_date: quickAddDate,
-              }
-            : undefined
+          quickAddSeed
+            ? quickAddSeed
+            : quickAddDate
+              ? {
+                  start_date: quickAddDate,
+                  target_date: quickAddDate,
+                }
+              : undefined
         }
       />
       {/* Click-a-task → open the standard peek-overview drawer. The store
@@ -291,6 +319,7 @@ type CalendarPageHeaderProps = {
   workspaceSlug: string;
   taskCount: number;
   googleAccount: TCalendarAccount | undefined;
+  taskRange: { from: string; to: string };
   refetchAccounts: () => void;
   onQuickAdd: () => void;
   view: string;
@@ -304,6 +333,7 @@ type CalendarPageHeaderProps = {
 function CalendarPageHeader({
   taskCount,
   googleAccount,
+  taskRange,
   refetchAccounts,
   workspaceSlug,
   onQuickAdd,
@@ -315,6 +345,7 @@ function CalendarPageHeader({
   onViewChange,
 }: CalendarPageHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -337,6 +368,31 @@ function CalendarPageHeader({
     if (!confirm("Disconnect Google Calendar?")) return;
     await calendarService.disconnect(googleAccount.id);
     refetchAccounts();
+  };
+
+  const handleSyncTasks = async () => {
+    if (!googleAccount || isSyncingTasks) return;
+    setIsSyncingTasks(true);
+    try {
+      const res = await calendarService.syncTasksToGoogle(workspaceSlug, {
+        account_id: googleAccount.id,
+        from: taskRange.from,
+        to: taskRange.to,
+      });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: `Synced ${res.synced} tasks`,
+        message: res.failed.length > 0 ? `${res.failed.length} failed` : "Google Calendar is up to date.",
+      });
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't sync tasks",
+        message: "Try again in a moment.",
+      });
+    } finally {
+      setIsSyncingTasks(false);
+    }
   };
 
   return (
@@ -390,9 +446,14 @@ function CalendarPageHeader({
           New task
         </Button>
         {googleAccount ? (
-          <Button variant="ghost" size="lg" prependIcon={<Trash2 />} onClick={handleDisconnect}>
-            Disconnect Google
-          </Button>
+          <>
+            <Button variant="secondary" size="lg" onClick={handleSyncTasks} disabled={isSyncingTasks}>
+              {isSyncingTasks ? "Syncing…" : "Sync tasks to Google"}
+            </Button>
+            <Button variant="ghost" size="lg" prependIcon={<Trash2 />} onClick={handleDisconnect}>
+              Disconnect Google
+            </Button>
+          </>
         ) : (
           <Button
             variant="secondary"
