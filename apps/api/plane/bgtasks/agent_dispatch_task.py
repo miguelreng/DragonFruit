@@ -85,6 +85,10 @@ _DEFAULT_SYSTEM_PROMPT = (
 # assigned" vs "someone @-mentioned you in a comment" elicits very
 # different replies.
 _TRIGGER_FRAMING = {
+    "issue_created": (
+        "A new task was just created. Triage it quickly: clarify ambiguity, identify likely owner/domain, "
+        "and propose the first concrete next steps."
+    ),
     "assigned": "You were just assigned to this task. Look at the most recent context and respond.",
     "mentioned": (
         "Someone @-mentioned you in this task. The most recent comment (or the description) "
