@@ -453,39 +453,39 @@ class AgentRun(BaseModel):
 
 @receiver(post_save, sender="db.IssueAssignee")
 def _dispatch_agent_on_assignee_added(sender, instance, created, **kwargs):
-    if not created:
-        return
-
-    # Most assignees are humans; cheap exit path keeps this near-free.
-    if not getattr(instance.assignee, "is_bot", False):
-        return
-
-    agent = (
-        Agent.objects.select_related("bot_user")
-        .filter(
-            bot_user_id=instance.assignee_id,
-            workspace_id=instance.workspace_id,
-            is_enabled=True,
-            deleted_at__isnull=True,
-        )
-        .first()
-    )
-    if not agent:
-        return
-
-    if not (agent.triggers or {}).get("assigned", True):
-        return
-
-    # Local import so model import order stays clean (bgtasks imports models).
-    from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
-
     try:
+        if not created:
+            return
+
+        # Most assignees are humans; cheap exit path keeps this near-free.
+        if not getattr(instance.assignee, "is_bot", False):
+            return
+
+        agent = (
+            Agent.objects.select_related("bot_user")
+            .filter(
+                bot_user_id=instance.assignee_id,
+                workspace_id=instance.workspace_id,
+                is_enabled=True,
+                deleted_at__isnull=True,
+            )
+            .first()
+        )
+        if not agent:
+            return
+
+        if not (agent.triggers or {}).get("assigned", True):
+            return
+
+        # Local import so model import order stays clean (bgtasks imports models).
+        from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+
         dispatch_agent_event.delay(str(agent.id), str(instance.issue_id), "assigned")
-    except Exception:  # noqa: BLE001 — never let a broker outage break assignment
+    except Exception:  # noqa: BLE001 — never let agent wiring break assignment flow
         logger.exception(
-            "agent dispatch enqueue failed for agent=%s issue=%s",
-            agent.id,
+            "agent-assigned signal failed for issue=%s assignee=%s",
             instance.issue_id,
+            instance.assignee_id,
         )
 
 
@@ -519,7 +519,7 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
                 agent__deleted_at__isnull=True,
             )
         )
-    except DatabaseError:
+    except Exception:
         # Never block issue creation if agent/automation persistence is out of
         # sync (e.g. migrations not applied yet).
         logger.exception(
@@ -590,94 +590,101 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender="db.IssueMention")
 def _dispatch_agent_on_issue_mention(sender, instance, created, **kwargs):
-    if not created:
-        return
-
-    mentioned_user = getattr(instance, "mention", None)
-    if not getattr(mentioned_user, "is_bot", False):
-        return
-
-    agent = (
-        Agent.objects.select_related("bot_user")
-        .filter(
-            bot_user_id=instance.mention_id,
-            workspace_id=instance.workspace_id,
-            is_enabled=True,
-            deleted_at__isnull=True,
-        )
-        .first()
-    )
-    if not agent:
-        return
-
-    if not (agent.triggers or {}).get("mentioned", True):
-        return
-
-    from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
-
     try:
+        if not created:
+            return
+
+        mentioned_user = getattr(instance, "mention", None)
+        if not getattr(mentioned_user, "is_bot", False):
+            return
+
+        agent = (
+            Agent.objects.select_related("bot_user")
+            .filter(
+                bot_user_id=instance.mention_id,
+                workspace_id=instance.workspace_id,
+                is_enabled=True,
+                deleted_at__isnull=True,
+            )
+            .first()
+        )
+        if not agent:
+            return
+
+        if not (agent.triggers or {}).get("mentioned", True):
+            return
+
+        from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+
         dispatch_agent_event.delay(str(agent.id), str(instance.issue_id), "mentioned")
     except Exception:  # noqa: BLE001
         logger.exception(
-            "agent dispatch enqueue failed for agent=%s issue=%s (description mention)",
-            agent.id,
+            "agent-mention signal failed for issue=%s mention=%s",
             instance.issue_id,
+            instance.mention_id,
         )
 
 
 @receiver(post_save, sender="db.IssueComment")
 def _dispatch_agent_on_comment_mention(sender, instance, created, **kwargs):
-    if not created:
-        return
-
-    # Loop guard: skip when an agent's own bot user authored the comment.
-    # Avoids an agent triggering another agent (or itself) via comment text.
-    actor = getattr(instance, "actor", None)
-    if actor is not None and getattr(actor, "is_bot", False):
-        return
-
-    # Reuse the existing comment-mention parser to avoid duplicating the
-    # HTML/mention-component conventions. Import lazily — this module
-    # loads at app startup and notification_task pulls in BS4 + the full
-    # Issue model graph.
     try:
-        from plane.bgtasks.notification_task import extract_comment_mentions
-    except Exception:  # noqa: BLE001
-        logger.exception("could not import extract_comment_mentions; skipping agent mention dispatch")
-        return
+        if not created:
+            return
 
-    mention_ids = extract_comment_mentions(instance.comment_html or "")
-    if not mention_ids:
-        return
+        # Loop guard: skip when an agent's own bot user authored the comment.
+        # Avoids an agent triggering another agent (or itself) via comment text.
+        actor = getattr(instance, "actor", None)
+        if actor is not None and getattr(actor, "is_bot", False):
+            return
 
-    # Find any agents in this workspace whose bot user matches one of the
-    # mentioned IDs. A single comment can @ multiple agents; we dispatch
-    # each. Inner-join via bot_user_id, scoped to the comment's workspace
-    # so a mention can't reach an agent in a different workspace.
-    matching_agents = list(
-        Agent.objects.select_related("bot_user").filter(
-            bot_user_id__in=mention_ids,
-            workspace_id=instance.workspace_id,
-            is_enabled=True,
-            deleted_at__isnull=True,
-        )
-    )
-    if not matching_agents:
-        return
-
-    from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
-
-    for agent in matching_agents:
-        if not (agent.triggers or {}).get("mentioned", True):
-            continue
+        # Reuse the existing comment-mention parser to avoid duplicating the
+        # HTML/mention-component conventions. Import lazily — this module
+        # loads at app startup and notification_task pulls in BS4 + the full
+        # Issue model graph.
         try:
-            dispatch_agent_event.delay(str(agent.id), str(instance.issue_id), "mentioned")
+            from plane.bgtasks.notification_task import extract_comment_mentions
         except Exception:  # noqa: BLE001
-            logger.exception(
-                "agent dispatch enqueue failed for agent=%s issue=%s (comment mention)",
-                agent.id,
-                instance.issue_id,
+            logger.exception("could not import extract_comment_mentions; skipping agent mention dispatch")
+            return
+
+        mention_ids = extract_comment_mentions(instance.comment_html or "")
+        if not mention_ids:
+            return
+
+        # Find any agents in this workspace whose bot user matches one of the
+        # mentioned IDs. A single comment can @ multiple agents; we dispatch
+        # each. Inner-join via bot_user_id, scoped to the comment's workspace
+        # so a mention can't reach an agent in a different workspace.
+        matching_agents = list(
+            Agent.objects.select_related("bot_user").filter(
+                bot_user_id__in=mention_ids,
+                workspace_id=instance.workspace_id,
+                is_enabled=True,
+                deleted_at__isnull=True,
             )
+        )
+        if not matching_agents:
+            return
+
+        from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
+
+        for agent in matching_agents:
+            if not (agent.triggers or {}).get("mentioned", True):
+                continue
+            try:
+                dispatch_agent_event.delay(str(agent.id), str(instance.issue_id), "mentioned")
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "agent dispatch enqueue failed for agent=%s issue=%s (comment mention)",
+                    agent.id,
+                    instance.issue_id,
+                )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "agent comment-mention signal failed for issue=%s comment=%s",
+            instance.issue_id,
+            instance.id,
+        )
 
 
 @receiver(post_save, sender="db.PageBlockComment")
@@ -689,44 +696,51 @@ def _dispatch_agent_on_page_comment_mention(sender, instance, created, **kwargs)
     enqueue the page-comment dispatch task. The loop guard skips when
     the comment's `created_by` is itself a bot user.
     """
-    if not created:
-        return
-
-    created_by = getattr(instance, "created_by", None)
-    if created_by is not None and getattr(created_by, "is_bot", False):
-        return
-
     try:
-        from plane.bgtasks.notification_task import extract_comment_mentions
-    except Exception:  # noqa: BLE001
-        logger.exception("could not import extract_comment_mentions; skipping page-comment dispatch")
-        return
+        if not created:
+            return
 
-    mention_ids = extract_comment_mentions(instance.content or "")
-    if not mention_ids:
-        return
+        created_by = getattr(instance, "created_by", None)
+        if created_by is not None and getattr(created_by, "is_bot", False):
+            return
 
-    matching_agents = list(
-        Agent.objects.select_related("bot_user").filter(
-            bot_user_id__in=mention_ids,
-            workspace_id=instance.workspace_id,
-            is_enabled=True,
-            deleted_at__isnull=True,
-        )
-    )
-    if not matching_agents:
-        return
-
-    from plane.bgtasks.agent_dispatch_task import dispatch_agent_for_page_comment
-
-    for agent in matching_agents:
-        if not (agent.triggers or {}).get("mentioned", True):
-            continue
         try:
-            dispatch_agent_for_page_comment.delay(str(agent.id), str(instance.id), "mentioned")
+            from plane.bgtasks.notification_task import extract_comment_mentions
         except Exception:  # noqa: BLE001
-            logger.exception(
-                "agent dispatch enqueue failed for agent=%s page_comment=%s",
-                agent.id,
-                instance.id,
+            logger.exception("could not import extract_comment_mentions; skipping page-comment dispatch")
+            return
+
+        mention_ids = extract_comment_mentions(instance.content or "")
+        if not mention_ids:
+            return
+
+        matching_agents = list(
+            Agent.objects.select_related("bot_user").filter(
+                bot_user_id__in=mention_ids,
+                workspace_id=instance.workspace_id,
+                is_enabled=True,
+                deleted_at__isnull=True,
             )
+        )
+        if not matching_agents:
+            return
+
+        from plane.bgtasks.agent_dispatch_task import dispatch_agent_for_page_comment
+
+        for agent in matching_agents:
+            if not (agent.triggers or {}).get("mentioned", True):
+                continue
+            try:
+                dispatch_agent_for_page_comment.delay(str(agent.id), str(instance.id), "mentioned")
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "agent dispatch enqueue failed for agent=%s page_comment=%s",
+                    agent.id,
+                    instance.id,
+                )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "agent page-comment mention signal failed for page_comment=%s workspace=%s",
+            instance.id,
+            instance.workspace_id,
+        )
