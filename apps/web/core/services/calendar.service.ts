@@ -62,8 +62,8 @@ export class CalendarService extends APIService {
     return this.get(`/api/users/me/calendar-accounts/google/start/`).then((r) => r?.data);
   }
 
-  async finishGoogle(code: string): Promise<TCalendarAccount> {
-    return this.post(`/api/users/me/calendar-accounts/google/callback/`, { code }).then((r) => r?.data);
+  async finishGoogle(code: string, state?: string | null): Promise<TCalendarAccount> {
+    return this.post(`/api/users/me/calendar-accounts/google/callback/`, { code, state }).then((r) => r?.data);
   }
 
   async disconnect(accountId: string): Promise<void> {
