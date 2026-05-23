@@ -14,7 +14,12 @@ import { AIService } from "@/services/ai.service";
 import type { TTranscriptToDocResponse } from "@/services/ai.service";
 // local
 import { transcriptResponseToProseMirror } from "./convert";
-import { cleanGranolaExport, looksLikeGranolaExport } from "./granola";
+import {
+  cleanGoogleMeetingNotesExport,
+  cleanGranolaExport,
+  looksLikeGoogleMeetingNotesExport,
+  looksLikeGranolaExport,
+} from "./granola";
 
 const aiService = new AIService();
 
@@ -55,14 +60,17 @@ export function TranscriptSpecModal(props: Props) {
     return () => window.clearTimeout(t);
   }, [isOpen]);
 
-  const granolaDetected = useMemo(
-    () => cleanedSummary === null && looksLikeGranolaExport(transcript),
-    [transcript, cleanedSummary]
-  );
+  const detectedSource = useMemo(() => {
+    if (cleanedSummary !== null) return null;
+    if (looksLikeGranolaExport(transcript)) return "granola";
+    if (looksLikeGoogleMeetingNotesExport(transcript)) return "google";
+    return null;
+  }, [transcript, cleanedSummary]);
 
-  const handleCleanGranola = useCallback(() => {
-    const result = cleanGranolaExport(transcript);
-    if (!result.wasGranola) return;
+  const handleCleanMeetingNotes = useCallback(() => {
+    const result =
+      detectedSource === "granola" ? cleanGranolaExport(transcript) : cleanGoogleMeetingNotesExport(transcript);
+    if (!result.source) return;
     setTranscript(result.cleaned);
     const bits: string[] = [];
     if (result.keptOnlyTranscriptSection) bits.push("kept only the transcript section");
@@ -72,8 +80,9 @@ export function TranscriptSpecModal(props: Props) {
       bits.push(
         `stripped ${result.removedTimestampMarkers} timestamp marker${result.removedTimestampMarkers === 1 ? "" : "s"}`
       );
-    setCleanedSummary(bits.length > 0 ? `Cleaned Granola export — ${bits.join(", ")}.` : "Cleaned Granola export.");
-  }, [transcript]);
+    const sourceLabel = result.source === "granola" ? "Granola export" : "Google Meeting Notes";
+    setCleanedSummary(bits.length > 0 ? `Cleaned ${sourceLabel} — ${bits.join(", ")}.` : `Cleaned ${sourceLabel}.`);
+  }, [detectedSource, transcript]);
 
   const handleTranscriptChange = useCallback((value: string) => {
     setTranscript(value);
@@ -169,14 +178,16 @@ export function TranscriptSpecModal(props: Props) {
               <label className="block">
                 <div className="flex items-center justify-between">
                   <span className="block text-12 font-medium text-secondary">Transcript</span>
-                  {granolaDetected && (
+                  {detectedSource && (
                     <button
                       type="button"
-                      onClick={handleCleanGranola}
+                      onClick={handleCleanMeetingNotes}
                       className="flex items-center gap-1 text-11 font-medium text-accent-primary hover:underline"
                     >
                       <Wand2 className="size-3" />
-                      Granola export detected — clean it up
+                      {detectedSource === "granola"
+                        ? "Granola export detected — clean it up"
+                        : "Google Meeting Notes detected — clean it up"}
                     </button>
                   )}
                 </div>
