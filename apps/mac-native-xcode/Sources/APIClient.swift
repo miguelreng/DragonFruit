@@ -134,7 +134,7 @@ struct APIClient {
 
     func startGoogleOAuth() async throws -> URL {
         var components = URLComponents(url: baseURL.appending(path: "api/users/me/calendar-accounts/google/start/"), resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: "client", value: "native")]
+        components?.queryItems = [URLQueryItem(name: "client", value: "web")]
         guard let url = components?.url else {
             throw NSError(domain: "DragonFruitNative", code: 1004, userInfo: [NSLocalizedDescriptionKey: "Invalid Google start URL"])
         }

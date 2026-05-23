@@ -1,4 +1,5 @@
 import AuthenticationServices
+import AppKit
 import AVFoundation
 import Foundation
 import Speech
@@ -66,6 +67,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private var oauthSession: ASWebAuthenticationSession?
     private var loginPollTask: Task<Void, Never>?
+    private var calendarPollTask: Task<Void, Never>?
     private var apiToken: String = ""
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "es-ES"))
     private let audioEngine = AVAudioEngine()
@@ -265,7 +267,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 meeting = MeetingInfo(title: event.title.isEmpty ? "Untitled meeting" : event.title, startAt: start)
                 statusMessage = "Loaded \(events.count) upcoming meeting\(events.count == 1 ? "" : "s")."
             } else if accounts.isEmpty {
-                meeting = MeetingInfo(title: "Connect Google Calendar to see meetings", startAt: .now)
+                meeting = MeetingInfo(title: "Google Calendar is not connected", startAt: .now)
                 statusMessage = "Calendar not connected yet."
             } else {
                 meeting = MeetingInfo(title: "No upcoming meetings", startAt: .now)
@@ -291,42 +293,41 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         do {
             let client = try makeClient()
             let authorizeURL = try await client.startGoogleOAuth()
-            statusMessage = "Waiting for Google consent..."
-            let session = ASWebAuthenticationSession(url: authorizeURL, callbackURLScheme: "dragonfruitmini") { [weak self] callbackURL, error in
-                guard let self else { return }
-                if let error {
-                    Task { @MainActor in self.statusMessage = error.localizedDescription }
-                    return
-                }
-                guard
-                    let callbackURL,
-                    let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-                    let code = components.queryItems?.first(where: { $0.name == "code" })?.value
-                else {
-                    Task { @MainActor in self.statusMessage = "Missing OAuth code" }
-                    return
-                }
-                Task { @MainActor in
-                    await self.finishGoogleConnect(code: code)
-                }
-            }
-            session.presentationContextProvider = self
-            session.prefersEphemeralWebBrowserSession = false
-            oauthSession = session
-            _ = session.start()
+            statusMessage = "Finish Google Calendar setup in your browser..."
+            NSWorkspace.shared.open(authorizeURL)
+            startCalendarPolling()
         } catch {
             statusMessage = error.localizedDescription
         }
     }
 
-    private func finishGoogleConnect(code: String) async {
-        do {
-            let client = try makeClient()
-            try await client.finishGoogleOAuth(code: code)
-            statusMessage = "Google connected"
-            await refreshCalendarState()
-        } catch {
-            statusMessage = error.localizedDescription
+    private func startCalendarPolling() {
+        calendarPollTask?.cancel()
+        calendarPollTask = Task { [weak self] in
+            guard let self else { return }
+            for _ in 0..<90 {
+                if Task.isCancelled { return }
+                do {
+                    let client = try self.makeClient()
+                    let accounts = try await client.listCalendarAccounts()
+                    if !accounts.isEmpty {
+                        await MainActor.run {
+                            self.googleConnected = true
+                            self.statusMessage = "Google Calendar connected."
+                        }
+                        await self.refreshCalendarState()
+                        return
+                    }
+                } catch {
+                    // Keep polling while the browser completes OAuth.
+                }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+            await MainActor.run {
+                if !self.googleConnected {
+                    self.statusMessage = "Calendar still not connected. Try again from Settings."
+                }
+            }
         }
     }
 
