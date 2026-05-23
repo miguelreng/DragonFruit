@@ -21,6 +21,7 @@ from .views import (
     MagicGenerateEndpoint,
     MagicSignInEndpoint,
     MagicSignUpEndpoint,
+    NativeLoginStartEndpoint,
     SignInAuthEndpoint,
     SignOutAuthEndpoint,
     SignUpAuthEndpoint,
@@ -57,6 +58,7 @@ urlpatterns = [
     path("spaces/sign-out/", SignOutAuthSpaceEndpoint.as_view(), name="space-sign-out"),
     # csrf token
     path("get-csrf-token/", CSRFTokenEndpoint.as_view(), name="get_csrf_token"),
+    path("native/start/", NativeLoginStartEndpoint.as_view(), name="native-login-start"),
     # Magic sign in
     path("magic-generate/", MagicGenerateEndpoint.as_view(), name="magic-generate"),
     path("magic-sign-in/", MagicSignInEndpoint.as_view(), name="magic-sign-in"),

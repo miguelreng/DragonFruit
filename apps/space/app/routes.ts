@@ -9,6 +9,7 @@ import { index, layout, route } from "@react-router/dev/routes";
 
 export default [
   index("./page.tsx"),
+  route("native-login", "./native-login/page.tsx"),
   route(":workspaceSlug/:projectId", "./[workspaceSlug]/[projectId]/page.tsx"),
   layout("./issues/[anchor]/layout.tsx", [route("issues/:anchor", "./issues/[anchor]/page.tsx")]),
   // Catch-all route for 404 handling

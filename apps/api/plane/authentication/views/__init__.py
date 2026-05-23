@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from .common import ChangePasswordEndpoint, CSRFTokenEndpoint, SetUserPasswordEndpoint
+from .common import ChangePasswordEndpoint, CSRFTokenEndpoint, NativeLoginStartEndpoint, SetUserPasswordEndpoint
 
 from .app.check import EmailCheckEndpoint
 

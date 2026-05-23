@@ -13,8 +13,9 @@ struct MeetingInfo: Identifiable {
     let startAt: Date
 }
 
+@MainActor
 final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresentationContextProviding {
-    @Published var baseURL = "http://localhost:8000"
+    @Published var baseURL = "https://api.dragonfruit.sh"
     @Published var appURL = "https://app.dragonfruit.sh"
     @Published var isAuthenticated = false
     @Published var googleConnected = false
@@ -35,7 +36,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     override init() {
         super.init()
         let defaults = UserDefaults.standard
-        baseURL = defaults.string(forKey: "df_base_url") ?? "http://localhost:8000"
+        let savedBaseURL = defaults.string(forKey: "df_base_url")
+        baseURL = savedBaseURL?.contains("localhost") == true ? "https://api.dragonfruit.sh" : (savedBaseURL ?? "https://api.dragonfruit.sh")
         appURL = defaults.string(forKey: "df_app_url") ?? "https://app.dragonfruit.sh"
         apiToken = defaults.string(forKey: "df_api_token") ?? ""
 
@@ -90,27 +92,31 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     func beginDragonFruitLogin() async {
         do {
-            let appHost = appURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            guard var components = URLComponents(string: "\(appHost)/login") else {
-                throw NSError(domain: "DragonFruitNative", code: 5, userInfo: [NSLocalizedDescriptionKey: "Invalid app URL"])
+            let apiHost = baseURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            guard var components = URLComponents(string: "\(apiHost)/auth/native/start/") else {
+                throw NSError(domain: "DragonFruitNative", code: 5, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
             }
             components.queryItems = [
-                URLQueryItem(name: "next_path", value: "dragonfruitmini://auth/login-callback"),
+                URLQueryItem(name: "callback", value: "dragonfruitmini://auth/login-callback"),
             ]
             guard let loginURL = components.url else {
-                throw NSError(domain: "DragonFruitNative", code: 5, userInfo: [NSLocalizedDescriptionKey: "Invalid app URL"])
+                throw NSError(domain: "DragonFruitNative", code: 5, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
             }
             statusMessage = "Continue sign in to return here automatically..."
             let session = ASWebAuthenticationSession(url: loginURL, callbackURLScheme: "dragonfruitmini") { [weak self] callbackURL, error in
                 guard let self else { return }
                 if let error {
-                    Task { @MainActor in self.statusMessage = error.localizedDescription }
-                    self.startLoginPolling()
+                    Task { @MainActor in
+                        self.statusMessage = error.localizedDescription
+                        self.startLoginPolling()
+                    }
                     return
                 }
                 guard let callbackURL else {
-                    Task { @MainActor in self.statusMessage = "Missing login callback" }
-                    self.startLoginPolling()
+                    Task { @MainActor in
+                        self.statusMessage = "Missing login callback"
+                        self.startLoginPolling()
+                    }
                     return
                 }
                 Task { @MainActor in
