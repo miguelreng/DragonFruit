@@ -159,7 +159,14 @@ function isGoogleSourceVisible(source: TGoogleCalendarSource, prefs: TCalendarPr
 }
 
 function googleSourceLabel(source: TGoogleCalendarSource) {
-  return source.calendar.summary || calendarAccountLabel(source.account);
+  const summary = source.calendar.summary?.trim();
+  const accountEmail = calendarAccountLabel(source.account);
+  const isGenericSummary =
+    !summary ||
+    summary.toLowerCase() === "google calendar" ||
+    summary === source.calendar.id ||
+    source.calendar.primary;
+  return isGenericSummary ? accountEmail : summary;
 }
 
 function googleEventToScheduleXEvent(e: TCalendarEventWithSource) {
