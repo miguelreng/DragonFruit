@@ -49,6 +49,11 @@ export const coreRoutes: RouteConfigEntry[] = [
     route("calendar/oauth/callback", "./(all)/calendar-oauth-callback/page.tsx"),
   ]),
 
+  // Public Google verification and legal pages.
+  route("google-oauth", "./(public)/google-oauth/page.tsx"),
+  route("legal/privacy", "./(public)/legal/privacy/page.tsx"),
+  route("legal/terms", "./(public)/legal/terms/page.tsx"),
+
   // Dev-only preview of the home Activity widget. No auth — mounts the
   // section with mock data so the grid is viewable directly.
   layout("./(all)/__preview/layout.tsx", [route("__preview/activity", "./(all)/__preview/activity/page.tsx")]),
