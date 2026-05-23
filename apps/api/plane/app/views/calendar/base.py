@@ -36,7 +36,7 @@ from ..base import BaseAPIView
 GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_CAL_API = "https://www.googleapis.com/calendar/v3"
-SCOPES = ["https://www.googleapis.com/auth/calendar", "openid", "email"]
+SCOPES = ["https://www.googleapis.com/auth/calendar.events", "openid", "email"]
 
 
 def _first_config_value(keys: list[str], default: str = "") -> str:
@@ -104,9 +104,14 @@ def _redirect_uri_for_client(client: str | None) -> str:
         if native:
             return native
 
+    app_base_url = (
+        getattr(settings, "APP_BASE_URL", None)
+        or getattr(settings, "WEB_URL", "http://localhost:3000")
+    ).rstrip("/")
+
     return _first_config_value(
         ["GOOGLE_CALENDAR_REDIRECT_URI"],
-        f"{getattr(settings, 'WEB_URL', 'http://localhost:3000').rstrip('/')}/calendar/oauth/callback",
+        f"{app_base_url}/calendar/oauth/callback",
     )
 
 

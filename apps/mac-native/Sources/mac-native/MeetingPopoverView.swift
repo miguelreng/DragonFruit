@@ -31,6 +31,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var events: [CalendarEvent] = []
     private var oauthSession: ASWebAuthenticationSession?
     private var loginPollTask: Task<Void, Never>?
+    private var calendarPollTask: Task<Void, Never>?
     private var apiToken: String = ""
 
     override init() {
@@ -207,7 +208,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 meeting = MeetingInfo(title: event.title.isEmpty ? "Untitled meeting" : event.title, startAt: startDate)
                 statusMessage = "Loaded \(events.count) upcoming meeting\(events.count == 1 ? "" : "s")."
             } else if accounts.isEmpty {
-                meeting = MeetingInfo(title: "Connect Google Calendar to see meetings", startAt: .now)
+                meeting = MeetingInfo(title: "Google Calendar is not connected", startAt: .now)
                 statusMessage = "Calendar not connected yet."
             } else {
                 meeting = MeetingInfo(title: "No upcoming meetings", startAt: .now)
@@ -233,12 +234,43 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         do {
             let client = try makeClient()
             let authorizeURL = try await client.startGoogleOAuth()
-            statusMessage = "Opened Google OAuth in browser"
+            statusMessage = "Finish Google Calendar setup in your browser..."
             if let url = URL(string: authorizeURL) {
                 NSWorkspace.shared.open(url)
+                startCalendarPolling()
             }
         } catch {
             statusMessage = error.localizedDescription
+        }
+    }
+
+    private func startCalendarPolling() {
+        calendarPollTask?.cancel()
+        calendarPollTask = Task { [weak self] in
+            guard let self else { return }
+            for _ in 0..<90 {
+                if Task.isCancelled { return }
+                do {
+                    let client = try self.makeClient()
+                    let accounts = try await client.listCalendarAccounts()
+                    if !accounts.isEmpty {
+                        await MainActor.run {
+                            self.googleConnected = true
+                            self.statusMessage = "Google Calendar connected."
+                        }
+                        await self.refreshCalendar()
+                        return
+                    }
+                } catch {
+                    // Keep polling while the browser completes OAuth.
+                }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+            await MainActor.run {
+                if !self.googleConnected {
+                    self.statusMessage = "Calendar still not connected. Try again from Settings."
+                }
+            }
         }
     }
 
@@ -291,12 +323,9 @@ struct MeetingPopoverView: View {
                 }
             } else {
                 card {
-                    labelRow("Settings", value: store.googleConnected ? "Connected" : "Connect")
-                    Text(store.googleConnected ? "Calendar connected and voice capture ready." : "Connect Google Calendar to bring meetings here.")
-                        .font(.custom("Figtree", size: 12).weight(.medium))
-                        .foregroundStyle(BrandTheme.labelLight)
-                    HStack {
-                        Button(store.googleConnected ? "Refresh meetings" : "Connect Google Calendar") {
+                    labelRow("Settings", value: store.googleConnected ? "Connected" : "Open")
+                    HStack(spacing: 8) {
+                        Button(store.googleConnected ? "Refresh meetings" : "Connect Calendar") {
                             Task {
                                 if store.googleConnected {
                                     await store.refreshCalendar()
@@ -306,6 +335,14 @@ struct MeetingPopoverView: View {
                             }
                         }
                         .buttonStyle(DragonFruitPrimaryButtonStyle())
+                        Button("Open DragonFruit") {
+                            if let url = URL(string: store.appURL) {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .font(.custom("Figtree", size: 12).weight(.medium))
+                        .foregroundStyle(BrandTheme.textSecondary)
                         Spacer()
                     }
                 }
@@ -314,10 +351,17 @@ struct MeetingPopoverView: View {
             if store.isAuthenticated {
                 card {
                     labelRow("Upcoming meeting", value: store.countdownLabel)
-                    Text(store.meeting.title)
-                        .font(.custom("Newsreader", size: 18).weight(.medium))
-                        .lineSpacing(0)
-                        .lineLimit(2)
+                    if store.googleConnected {
+                        Text(store.meeting.title)
+                            .font(.custom("Newsreader", size: 18).weight(.medium))
+                            .lineSpacing(0)
+                            .lineLimit(2)
+                    } else {
+                        Button("Connect Google Calendar") {
+                            Task { await store.beginGoogleConnect() }
+                        }
+                        .buttonStyle(DragonFruitPrimaryButtonStyle())
+                    }
                 }
             }
 
