@@ -291,10 +291,23 @@ struct MeetingPopoverView: View {
                 }
             } else {
                 card {
-                    labelRow("Settings", value: "Open")
-                    Text("Calendar connected and voice capture ready.")
+                    labelRow("Settings", value: store.googleConnected ? "Connected" : "Connect")
+                    Text(store.googleConnected ? "Calendar connected and voice capture ready." : "Connect Google Calendar to bring meetings here.")
                         .font(.custom("Figtree", size: 12).weight(.medium))
                         .foregroundStyle(BrandTheme.labelLight)
+                    HStack {
+                        Button(store.googleConnected ? "Refresh meetings" : "Connect Google Calendar") {
+                            Task {
+                                if store.googleConnected {
+                                    await store.refreshCalendar()
+                                } else {
+                                    await store.beginGoogleConnect()
+                                }
+                            }
+                        }
+                        .buttonStyle(DragonFruitPrimaryButtonStyle())
+                        Spacer()
+                    }
                 }
             }
 
