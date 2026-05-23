@@ -60,6 +60,10 @@ struct AgentChatMessageEnvelope: Codable {
     let assistant_message: Message
 }
 
+private struct PagedResponse<Element: Decodable>: Decodable {
+    let results: [Element]
+}
+
 struct OAuthStartResponse: Codable {
     let authorize_url: String
 }
@@ -336,9 +340,6 @@ struct APIClient {
         if let direct = try? JSONDecoder().decode([T].self, from: data) {
             return direct
         }
-        struct Paged<T: Decodable>: Decodable {
-            let results: [T]
-        }
-        return try JSONDecoder().decode(Paged<T>.self, from: data).results
+        return try JSONDecoder().decode(PagedResponse<T>.self, from: data).results
     }
 }

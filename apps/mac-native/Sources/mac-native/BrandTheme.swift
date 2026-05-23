@@ -1,5 +1,6 @@
 import AppKit
 import CoreText
+import Foundation
 import SwiftUI
 
 enum BrandTheme {
@@ -12,29 +13,33 @@ enum BrandTheme {
     static let labelLight = Color(red: 0.38, green: 0.38, blue: 0.45).opacity(0.7)
 
     static var menuBarIcon: NSImage? {
-        guard let path = Bundle.main.path(forResource: "icon-white", ofType: "svg") else { return nil }
-        let url = URL(fileURLWithPath: path)
-        guard let image = NSImage(contentsOf: url) else { return nil }
+        guard let url = Bundle.module.url(forResource: "icon-white", withExtension: "svg") else {
+            return nil
+        }
+        guard let image = NSImage(contentsOf: url) else {
+            return nil
+        }
         image.size = NSSize(width: 16, height: 16)
         image.isTemplate = true
         return image
     }
 
     static func registerFontsIfNeeded() {
-        registerFont(named: "Figtree-Variable", ext: "ttf")
-        registerFont(named: "Figtree-Italic-Variable", ext: "ttf")
-        registerFont(named: "Newsreader-Variable", ext: "ttf")
-        registerFont(named: "Newsreader-Italic-Variable", ext: "ttf")
+        registerFont(name: "Figtree-Variable", ext: "ttf")
+        registerFont(name: "Figtree-Italic-Variable", ext: "ttf")
+        registerFont(name: "Newsreader-Variable", ext: "ttf")
+        registerFont(name: "Newsreader-Italic-Variable", ext: "ttf")
     }
 
     static var logo: NSImage? {
-        guard let path = Bundle.main.path(forResource: "logo", ofType: "svg") else { return nil }
-        return NSImage(contentsOfFile: path)
+        guard let url = Bundle.module.url(forResource: "logo", withExtension: "svg") else {
+            return nil
+        }
+        return NSImage(contentsOf: url)
     }
 
-    private static func registerFont(named: String, ext: String) {
-        guard let path = Bundle.main.path(forResource: named, ofType: ext) else { return }
-        let url = URL(fileURLWithPath: path)
+    private static func registerFont(name: String, ext: String) {
+        guard let url = Bundle.module.url(forResource: name, withExtension: ext) else { return }
         CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
     }
 }

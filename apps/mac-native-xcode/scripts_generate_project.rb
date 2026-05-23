@@ -54,7 +54,9 @@ File.write(plist_path, <<~PLIST)
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>DragonFruitMini</string>
+  <string>DragonFruit Copilot</string>
+  <key>CFBundleDisplayName</key>
+  <string>DragonFruit Copilot</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

@@ -53,6 +53,11 @@ def _first_config_value(keys: list[str], default: str = "") -> str:
     return default
 
 
+def _normalize_client(client: str | None) -> str:
+    normalized = (client or "web").strip().lower()
+    return normalized if normalized in {"web", "native"} else "web"
+
+
 def _client_credentials(client: str | None) -> tuple[str, str]:
     """Read Google credentials from Django settings.
 
@@ -60,7 +65,7 @@ def _client_credentials(client: str | None) -> tuple[str, str]:
     `IS_GOOGLE_ENABLED`); admins just need to add the `calendar.readonly`
     scope in Google Cloud and add a redirect URI for this view.
     """
-    normalized = (client or "web").strip().lower()
+    normalized = _normalize_client(client)
     if normalized == "native":
         return (
             _first_config_value(
@@ -93,7 +98,7 @@ def _redirect_uri_for_client(client: str | None) -> str:
     - web/default: GOOGLE_CALENDAR_REDIRECT_URI
     - fallback web callback under WEB_URL
     """
-    normalized = (client or "web").strip().lower()
+    normalized = _normalize_client(client)
     if normalized == "native":
         native = _first_config_value(
             [
@@ -122,6 +127,17 @@ def _client_from_state(state: str | None) -> str | None:
     if client in {"web", "native"}:
         return client
     return None
+
+
+def _details_from_response(response: requests.Response) -> str:
+    try:
+        payload = response.json()
+        if isinstance(payload, dict):
+            message = payload.get("error_description") or payload.get("error") or payload
+            return str(message)[:500]
+    except ValueError:
+        pass
+    return response.text[:500]
 
 
 def _serialize(acc: UserCalendarAccount) -> dict:
@@ -156,7 +172,7 @@ class GoogleCalendarStartEndpoint(BaseAPIView):
     """Return the Google OAuth authorize URL with the calendar scope."""
 
     def get(self, request):
-        client = request.query_params.get("client", "web")
+        client = _normalize_client(request.query_params.get("client", "web"))
         client_id, _ = _client_credentials(client)
         redirect_uri = _redirect_uri_for_client(client)
         if not client_id:
@@ -214,7 +230,7 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
             timeout=10,
         )
         if token_resp.status_code != 200:
-            details = token_resp.text[:500]
+            details = _details_from_response(token_resp)
             return Response(
                 {
                     "error": "Token exchange failed",
@@ -243,24 +259,27 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
             primary_calendar_id = data.get("id", "")
             account_email = data.get("id", "")
 
-        account, _ = UserCalendarAccount.objects.update_or_create(
-            user=request.user,
-            provider=UserCalendarAccount.PROVIDER_GOOGLE,
-            account_email=account_email,
-            defaults={
-                "access_token_encrypted": encrypt_data(access_token or ""),
-                "refresh_token_encrypted": encrypt_data(refresh_token or ""),
-                "token_expires_at": datetime.now(timezone.utc) + timedelta(seconds=expires_in) if expires_in else None,
-                "primary_calendar_id": primary_calendar_id,
-                "scopes": scope,
-                "is_active": True,
-            },
+        account = (
+            UserCalendarAccount.objects.filter(
+                user=request.user,
+                provider=UserCalendarAccount.PROVIDER_GOOGLE,
+                account_email=account_email,
+            ).first()
+            or UserCalendarAccount(user=request.user, provider=UserCalendarAccount.PROVIDER_GOOGLE, account_email=account_email)
         )
+        account.access_token_encrypted = encrypt_data(access_token or "")
+        if refresh_token:
+            account.refresh_token_encrypted = encrypt_data(refresh_token)
+        account.token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in) if expires_in else None
+        account.primary_calendar_id = primary_calendar_id
+        account.scopes = scope
+        account.is_active = True
+        account.save()
 
         return Response(_serialize(account), status=status.HTTP_200_OK)
 
 
-def _refresh_if_needed(account: UserCalendarAccount) -> str:
+def _refresh_if_needed(account: UserCalendarAccount, client: str | None = "web") -> str:
     """Return a fresh access token, refreshing via Google if expired."""
     access_token = decrypt_data(account.access_token_encrypted)
     expires_at = account.token_expires_at
@@ -272,7 +291,9 @@ def _refresh_if_needed(account: UserCalendarAccount) -> str:
     if not refresh_token:
         return access_token  # best-effort; caller will get 401 and surface it
 
-    client_id, client_secret = _client_credentials("web")
+    client_id, client_secret = _client_credentials(client)
+    if not client_id or not client_secret:
+        return access_token
     resp = requests.post(
         GOOGLE_TOKEN_URL,
         data={
@@ -326,7 +347,7 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
         )
         if resp.status_code != 200:
             return Response(
-                {"error": "Failed to fetch events", "status": resp.status_code, "details": resp.text[:500]},
+                {"error": "Failed to fetch events", "status": resp.status_code, "details": _details_from_response(resp)},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
@@ -363,6 +384,22 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
                 timeout=10,
             )
             if resp.status_code != 200:
+                events.append(
+                    {
+                        "id": f"error-{account.id}",
+                        "title": "Google Calendar needs reconnect",
+                        "description": _details_from_response(resp),
+                        "location": "",
+                        "start": time_min,
+                        "end": time_min,
+                        "all_day": False,
+                        "html_link": "",
+                        "status": "error",
+                        "account_id": str(account.id),
+                        "account_email": account.account_email,
+                        "source": "google_calendar",
+                    }
+                )
                 continue
             for raw_event in resp.json().get("items", []):
                 event = _event_to_dict(raw_event)
@@ -479,9 +516,9 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
         project_id = request.data.get("project_id")
         time_from = request.data.get("from")
         time_to = request.data.get("to")
-        if not account_id or not project_id:
+        if not account_id:
             return Response(
-                {"error": "account_id and project_id are required"},
+                {"error": "account_id is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not time_from or not time_to:
@@ -489,11 +526,14 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
 
         try:
             account = UserCalendarAccount.objects.get(id=account_id, user=request.user, is_active=True)
-            project = Project.objects.get(
-                id=project_id,
+            project_query = Project.objects.filter(
                 workspace__slug=slug,
                 project_projectmember__member=request.user,
+                project_projectmember__is_active=True,
             )
+            project = project_query.get(id=project_id) if project_id else project_query.order_by("created_at").first()
+            if project is None:
+                return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
         except UserCalendarAccount.DoesNotExist:
             return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
         except Project.DoesNotExist:
@@ -515,7 +555,7 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
         )
         if resp.status_code != 200:
             return Response(
-                {"error": "Failed to fetch events", "status": resp.status_code, "details": resp.text[:500]},
+                {"error": "Failed to fetch events", "status": resp.status_code, "details": _details_from_response(resp)},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 

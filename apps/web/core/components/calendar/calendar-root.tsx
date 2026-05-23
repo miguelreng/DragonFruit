@@ -346,6 +346,7 @@ function CalendarPageHeader({
 }: CalendarPageHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncingTasks, setIsSyncingTasks] = useState(false);
+  const [isImportingGoogle, setIsImportingGoogle] = useState(false);
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -359,6 +360,15 @@ function CalendarPageHeader({
       window.location.href = authorize_url;
     } catch (err) {
       console.error("Could not start Google OAuth", err);
+      const message =
+        (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data?.details ||
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        "Try again in a moment.";
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't start Google Calendar",
+        message,
+      });
       setIsConnecting(false);
     }
   };
@@ -392,6 +402,35 @@ function CalendarPageHeader({
       });
     } finally {
       setIsSyncingTasks(false);
+    }
+  };
+
+  const handleImportGoogle = async () => {
+    if (!googleAccount || isImportingGoogle) return;
+    setIsImportingGoogle(true);
+    try {
+      const res = await calendarService.importGoogleEvents(workspaceSlug, {
+        account_id: googleAccount.id,
+        from: taskRange.from,
+        to: taskRange.to,
+      });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: `Imported ${res.imported} Google events`,
+        message: res.skipped > 0 ? `${res.skipped} skipped` : "DragonFruit calendar is up to date.",
+      });
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data?.details ||
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        "Try again in a moment.";
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't import Google events",
+        message,
+      });
+    } finally {
+      setIsImportingGoogle(false);
     }
   };
 
@@ -449,6 +488,9 @@ function CalendarPageHeader({
           <>
             <Button variant="secondary" size="lg" onClick={handleSyncTasks} disabled={isSyncingTasks}>
               {isSyncingTasks ? "Syncing…" : "Sync tasks to Google"}
+            </Button>
+            <Button variant="secondary" size="lg" onClick={handleImportGoogle} disabled={isImportingGoogle}>
+              {isImportingGoogle ? "Importing…" : "Import Google events"}
             </Button>
             <Button variant="ghost" size="lg" prependIcon={<Trash2 />} onClick={handleDisconnect}>
               Disconnect Google
