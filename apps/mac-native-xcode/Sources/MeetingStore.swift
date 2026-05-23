@@ -65,6 +65,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var selectedAgentId = ""
 
     private var oauthSession: ASWebAuthenticationSession?
+    private var loginPollTask: Task<Void, Never>?
+    private var apiToken: String = ""
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "es-ES"))
     private let audioEngine = AVAudioEngine()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -80,6 +82,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let defaults = UserDefaults.standard
         baseURL = defaults.string(forKey: "df_base_url") ?? "http://localhost:8000"
         appURL = defaults.string(forKey: "df_app_url") ?? "https://app.dragonfruit.sh"
+        apiToken = defaults.string(forKey: "df_api_token") ?? ""
         setupHotkey()
     }
 
@@ -112,21 +115,27 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     func beginDragonFruitLogin() async {
         do {
             let appHost = appURL.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            guard
-                let loginURL = URL(string: "\(appHost)/?next_path=dragonfruitmini://auth/login-callback")
-            else {
+            guard var components = URLComponents(string: "\(appHost)/login") else {
+                throw NSError(domain: "DragonFruitNative", code: 5, userInfo: [NSLocalizedDescriptionKey: "Invalid app URL"])
+            }
+            components.queryItems = [
+                URLQueryItem(name: "next_path", value: "dragonfruitmini://auth/login-callback"),
+            ]
+            guard let loginURL = components.url else {
                 throw NSError(domain: "DragonFruitNative", code: 5, userInfo: [NSLocalizedDescriptionKey: "Invalid app URL"])
             }
 
-            statusMessage = "Open browser to sign in or sign up..."
+            statusMessage = "Continue sign in to return here automatically..."
             let session = ASWebAuthenticationSession(url: loginURL, callbackURLScheme: "dragonfruitmini") { [weak self] callbackURL, error in
                 guard let self else { return }
                 if let error {
                     Task { @MainActor in self.statusMessage = error.localizedDescription }
+                    self.startLoginPolling()
                     return
                 }
                 guard let callbackURL else {
                     Task { @MainActor in self.statusMessage = "Missing login callback" }
+                    self.startLoginPolling()
                     return
                 }
                 Task { @MainActor in
@@ -147,6 +156,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             statusMessage = "Unexpected callback URL"
             return
         }
+        if let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+           let token = components.queryItems?.first(where: { $0.name == "api_token" })?.value,
+           !token.isEmpty
+        {
+            apiToken = token
+            UserDefaults.standard.set(token, forKey: "df_api_token")
+        }
 
         do {
             let client = try makeClient()
@@ -159,6 +175,35 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         } catch {
             isAuthenticated = false
             statusMessage = "Login finished, but API session is missing. Please retry."
+        }
+    }
+
+    private func startLoginPolling() {
+        loginPollTask?.cancel()
+        loginPollTask = Task { [weak self] in
+            guard let self else { return }
+            for _ in 0..<60 {
+                if Task.isCancelled { return }
+                do {
+                    let client = try self.makeClient()
+                    _ = try await client.getCurrentUser()
+                    await MainActor.run {
+                        self.isAuthenticated = true
+                        self.persistSettings()
+                        self.statusMessage = "Signed in to DragonFruit"
+                    }
+                    await self.refreshCalendarState()
+                    await self.refreshAvailableAgents()
+                    return
+                } catch {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                }
+            }
+            await MainActor.run {
+                if !self.isAuthenticated {
+                    self.statusMessage = "Login complete on web? Click again to retry sync."
+                }
+            }
         }
     }
 
@@ -263,7 +308,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         guard let url = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             throw NSError(domain: "DragonFruitNative", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid API base URL"])
         }
-        return APIClient(baseURL: url)
+        return APIClient(baseURL: url, apiToken: apiToken.isEmpty ? nil : apiToken)
     }
 
     private func persistCredentials() {
