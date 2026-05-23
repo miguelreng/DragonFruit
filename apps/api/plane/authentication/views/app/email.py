@@ -21,7 +21,11 @@ from plane.authentication.adapter.error import (
     AUTHENTICATION_ERROR_CODES,
 )
 from plane.utils.path_validator import get_safe_redirect_url
-from plane.authentication.utils.native_handoff import create_native_api_token, is_native_callback
+from plane.authentication.utils.native_handoff import (
+    create_native_api_token,
+    is_native_callback,
+    native_handoff_response,
+)
 
 
 class SignInAuthEndpoint(View):
@@ -125,6 +129,8 @@ class SignInAuthEndpoint(View):
                 next_path=path,
                 params=params,
             )
+            if is_native_callback(path):
+                return native_handoff_response(url)
             return HttpResponseRedirect(url)
         except AuthenticationException as e:
             params = e.get_error_dict()
@@ -234,6 +240,8 @@ class SignUpAuthEndpoint(View):
                 next_path=path,
                 params=params,
             )
+            if is_native_callback(path):
+                return native_handoff_response(url)
             return HttpResponseRedirect(url)
         except AuthenticationException as e:
             params = e.get_error_dict()

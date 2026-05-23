@@ -21,7 +21,11 @@ from plane.authentication.adapter.error import (
     AUTHENTICATION_ERROR_CODES,
 )
 from plane.utils.path_validator import get_safe_redirect_url
-from plane.authentication.utils.native_handoff import create_native_api_token, is_native_callback
+from plane.authentication.utils.native_handoff import (
+    create_native_api_token,
+    is_native_callback,
+    native_handoff_response,
+)
 
 
 class GitLabOauthInitiateEndpoint(View):
@@ -102,6 +106,8 @@ class GitLabCallbackEndpoint(View):
             if is_native_callback(path):
                 params["api_token"] = create_native_api_token(user)
             url = get_safe_redirect_url(base_url=base_host(request=request, is_app=True), next_path=path, params=params)
+            if is_native_callback(path):
+                return native_handoff_response(url)
             return HttpResponseRedirect(url)
         except AuthenticationException as e:
             params = e.get_error_dict()
