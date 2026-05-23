@@ -50,7 +50,8 @@ struct APIClient {
 
     func fetchCSRFToken() async throws -> String {
         let url = baseURL.appending(path: "auth/get-csrf-token/")
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
         let decoded = try JSONDecoder().decode(CSRFResponse.self, from: data)
         return decoded.csrf_token
@@ -100,7 +101,8 @@ struct APIClient {
         guard let url = components?.url else {
             throw NSError(domain: "DragonFruitNative", code: 1004, userInfo: [NSLocalizedDescriptionKey: "Invalid Google start URL"])
         }
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
         let payload = try JSONDecoder().decode(OAuthStartResponse.self, from: data)
         return payload.authorize_url

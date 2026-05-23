@@ -15,6 +15,7 @@ There are two halves to this module:
     overlay on top of the native task feed. Tokens stored Fernet-encrypted.
 """
 
+import os
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
@@ -26,6 +27,7 @@ from rest_framework.response import Response
 
 from plane.app.permissions import allow_permission, ROLE
 from plane.db.models import Issue, Project, State, UserCalendarAccount
+from plane.license.utils.instance_value import get_configuration_value
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 
 from ..base import BaseAPIView
@@ -37,6 +39,20 @@ GOOGLE_CAL_API = "https://www.googleapis.com/calendar/v3"
 SCOPES = ["https://www.googleapis.com/auth/calendar", "openid", "email"]
 
 
+def _first_config_value(keys: list[str], default: str = "") -> str:
+    values = get_configuration_value(
+        [{"key": key, "default": os.environ.get(key, "")} for key in keys]
+    )
+    for value in values:
+        if value:
+            return str(value)
+    for key in keys:
+        value = os.environ.get(key)
+        if value:
+            return value
+    return default
+
+
 def _client_credentials(client: str | None) -> tuple[str, str]:
     """Read Google credentials from Django settings.
 
@@ -46,31 +62,27 @@ def _client_credentials(client: str | None) -> tuple[str, str]:
     """
     normalized = (client or "web").strip().lower()
     if normalized == "native":
-        client_id = (
-            getattr(settings, "GOOGLE_CALENDAR_NATIVE_CLIENT_ID", None)
-            or getattr(settings, "GOOGLE_CALENDAR_CLIENT_ID", None)
-            or getattr(settings, "GOOGLE_CLIENT_ID", None)
-            or ""
+        return (
+            _first_config_value(
+                [
+                    "GOOGLE_CALENDAR_NATIVE_CLIENT_ID",
+                    "GOOGLE_CALENDAR_CLIENT_ID",
+                    "GOOGLE_CLIENT_ID",
+                ]
+            ),
+            _first_config_value(
+                [
+                    "GOOGLE_CALENDAR_NATIVE_CLIENT_SECRET",
+                    "GOOGLE_CALENDAR_CLIENT_SECRET",
+                    "GOOGLE_CLIENT_SECRET",
+                ]
+            ),
         )
-        client_secret = (
-            getattr(settings, "GOOGLE_CALENDAR_NATIVE_CLIENT_SECRET", None)
-            or getattr(settings, "GOOGLE_CALENDAR_CLIENT_SECRET", None)
-            or getattr(settings, "GOOGLE_CLIENT_SECRET", None)
-            or ""
-        )
-        return client_id, client_secret
 
-    client_id = (
-        getattr(settings, "GOOGLE_CALENDAR_CLIENT_ID", None)
-        or getattr(settings, "GOOGLE_CLIENT_ID", None)
-        or ""
+    return (
+        _first_config_value(["GOOGLE_CALENDAR_CLIENT_ID", "GOOGLE_CLIENT_ID"]),
+        _first_config_value(["GOOGLE_CALENDAR_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"]),
     )
-    client_secret = (
-        getattr(settings, "GOOGLE_CALENDAR_CLIENT_SECRET", None)
-        or getattr(settings, "GOOGLE_CLIENT_SECRET", None)
-        or ""
-    )
-    return client_id, client_secret
 
 
 def _redirect_uri_for_client(client: str | None) -> str:
@@ -83,17 +95,18 @@ def _redirect_uri_for_client(client: str | None) -> str:
     """
     normalized = (client or "web").strip().lower()
     if normalized == "native":
-        native = (
-            getattr(settings, "GOOGLE_CALENDAR_NATIVE_REDIRECT_URI", None)
-            or getattr(settings, "GOOGLE_CALENDAR_REDIRECT_URI_NATIVE", None)
-            or ""
+        native = _first_config_value(
+            [
+                "GOOGLE_CALENDAR_NATIVE_REDIRECT_URI",
+                "GOOGLE_CALENDAR_REDIRECT_URI_NATIVE",
+            ]
         )
         if native:
             return native
 
-    return (
-        getattr(settings, "GOOGLE_CALENDAR_REDIRECT_URI", None)
-        or f"{getattr(settings, 'WEB_URL', 'http://localhost:3000').rstrip('/')}/calendar/oauth/callback"
+    return _first_config_value(
+        ["GOOGLE_CALENDAR_REDIRECT_URI"],
+        f"{getattr(settings, 'WEB_URL', 'http://localhost:3000').rstrip('/')}/calendar/oauth/callback",
     )
 
 
