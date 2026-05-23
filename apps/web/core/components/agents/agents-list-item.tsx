@@ -116,7 +116,7 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
         disclosure — we keep the chevron at the far right of the title so
         the row's affordance is clear without an avatar prefix.
       */}
-      <div className="flex w-full flex-col items-start gap-4 px-4 py-3 md:flex-row md:items-center md:justify-between md:gap-8">
+      <div className="flex w-full items-center justify-between gap-4 px-4 py-3">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -147,7 +147,7 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
             )}
           </div>
         </button>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => onEdit(agent)}

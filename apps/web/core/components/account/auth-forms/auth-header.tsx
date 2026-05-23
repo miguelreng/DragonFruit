@@ -28,12 +28,20 @@ type TAuthHeader = {
 const keywordStyle: React.CSSProperties = {
   fontFamily: "Newsreader, serif",
   fontStyle: "italic",
-  fontWeight: 400,
+  fontWeight: 300,
 };
 
 const AuthLegend = (
   <span>
-    Where <span style={keywordStyle}>ideas</span> become <span style={keywordStyle}>work</span>.
+    Where{" "}
+    <span className="text-[1.08em]" style={keywordStyle}>
+      ideas
+    </span>{" "}
+    become{" "}
+    <span className="text-[1.08em]" style={keywordStyle}>
+      work
+    </span>
+    .
   </span>
 );
 

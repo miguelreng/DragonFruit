@@ -20,6 +20,7 @@ import {
 } from "@/services/agent.service";
 import { IssueLabelService } from "@/services/issue/issue_label.service";
 import { ProjectService } from "@/services/project/project.service";
+import { ArrowRight } from "@/components/icons/lucide-shim";
 
 type Props = {
   workspaceSlug: string;
@@ -78,18 +79,18 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
 
   // eslint-disable-next-line unicorn/no-array-sort
   const sortedAgents = useMemo(
-    () => [...agents].sort((a: TAgent, b: TAgent) => a.name.localeCompare(b.name)),
+    () => [...agents].toSorted((a: TAgent, b: TAgent) => a.name.localeCompare(b.name)),
     [agents]
   );
   const selectedAgent = sortedAgents.find((a) => a.id === selectedAgentId);
   // eslint-disable-next-line unicorn/no-array-sort
   const sortedProjects = useMemo(
-    () => [...(projects ?? [])].sort((a: TPartialProject, b: TPartialProject) => a.name.localeCompare(b.name)),
+    () => [...(projects ?? [])].toSorted((a: TPartialProject, b: TPartialProject) => a.name.localeCompare(b.name)),
     [projects]
   );
   // eslint-disable-next-line unicorn/no-array-sort
   const sortedLabels = useMemo(
-    () => [...(labels ?? [])].sort((a: IIssueLabel, b: IIssueLabel) => a.name.localeCompare(b.name)),
+    () => [...(labels ?? [])].toSorted((a: IIssueLabel, b: IIssueLabel) => a.name.localeCompare(b.name)),
     [labels]
   );
 
@@ -213,7 +214,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
 
   return (
     <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.CENTER} width={EModalWidth.XXXXL}>
-      <div className="bg-custom-background-100 flex h-[72vh] min-h-[560px] flex-col overflow-hidden rounded-lg">
+      <div className="bg-custom-background-100 flex h-[78vh] min-h-[620px] flex-col overflow-hidden rounded-lg">
         <div className="border-custom-border-200 flex items-center justify-between border-b px-5 py-4">
           <div>
             <h3 className="text-lg text-custom-text-100 font-semibold">Automations</h3>
@@ -249,9 +250,24 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
 
         {tab === "browse" && (
           <div className="flex-1 overflow-auto px-5 py-4">
-            <div className="border-custom-border-200 bg-custom-background-90 mb-4 rounded-lg border p-4">
+            <div className="border-custom-border-200 bg-custom-background-90 mb-4 rounded-xl border p-4">
+              <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+                <div className="border-custom-border-200 bg-custom-background-100 rounded-lg border px-4 py-3">
+                  <p className="text-xs font-semibold tracking-wide text-custom-text-300 uppercase">Trigger</p>
+                  <p className="mt-1 text-base font-semibold text-custom-text-100">Task created</p>
+                  <p className="mt-1 text-sm text-custom-text-300">Watch newly created tasks.</p>
+                </div>
+                <div className="bg-custom-background-100 border-custom-border-200 grid h-10 w-10 place-items-center rounded-lg border text-custom-text-300">
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+                <div className="border-custom-border-200 bg-custom-background-100 rounded-lg border px-4 py-3">
+                  <p className="text-xs font-semibold tracking-wide text-custom-text-300 uppercase">Action</p>
+                  <p className="mt-1 text-base font-semibold text-custom-text-100">Assign to agent</p>
+                  <p className="mt-1 text-sm text-custom-text-300">Auto-triage and post next steps.</p>
+                </div>
+              </div>
               <h4 className="text-sm text-custom-text-100 font-semibold">Suggested</h4>
-              <p className="text-sm text-custom-text-300 mt-1">
+              <p className="mt-1 text-sm text-custom-text-300">
                 Triage every newly created task with an agent and post first next steps automatically.
               </p>
               <div className="mt-3 grid gap-1">
@@ -266,35 +282,40 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                   className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2"
                 />
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <select
-                  value={selectedAgentId}
-                  onChange={(e) => setSelectedAgentId(e.target.value)}
-                  className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 min-w-[240px] rounded-md border px-3 py-2"
-                >
-                  {sortedAgents.map((agent) => (
-                    <option key={agent.id} value={agent.id}>
-                      {agent.name}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  variant="primary"
-                  size="base"
-                  disabled={!selectedAgentId || isSubmitting}
-                  onClick={handleUpsertAutomation}
-                >
-                  {isSubmitting ? "Saving..." : editingAutomationId ? "Save Changes" : "Create Automation"}
-                </Button>
-                {editingAutomationId && (
-                  <Button variant="secondary" size="base" onClick={resetBuilder}>
-                    Cancel Edit
+              <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                <label className="flex min-w-[260px] flex-1 flex-col gap-1">
+                  <span className="text-xs text-custom-text-300 font-medium uppercase">Agent</span>
+                  <select
+                    value={selectedAgentId}
+                    onChange={(e) => setSelectedAgentId(e.target.value)}
+                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2"
+                  >
+                    {sortedAgents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="ml-auto flex items-center gap-2">
+                  {editingAutomationId && (
+                    <Button variant="secondary" size="base" onClick={resetBuilder}>
+                      Cancel Edit
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    size="base"
+                    disabled={!selectedAgentId || isSubmitting}
+                    onClick={handleUpsertAutomation}
+                  >
+                    {isSubmitting ? "Saving..." : editingAutomationId ? "Save Changes" : "Create Automation"}
                   </Button>
-                )}
+                </div>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-custom-text-300 font-medium uppercase">Projects</span>
+                  <span className="text-xs text-custom-text-300 font-medium tracking-wide uppercase">Projects</span>
                   <select
                     multiple
                     value={selectedProjectIds}
@@ -312,7 +333,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-custom-text-300 font-medium uppercase">Priorities</span>
+                  <span className="text-xs text-custom-text-300 font-medium tracking-wide uppercase">Priorities</span>
                   <select
                     multiple
                     value={selectedPriorities}
@@ -330,7 +351,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-custom-text-300 font-medium uppercase">Labels</span>
+                  <span className="text-xs text-custom-text-300 font-medium tracking-wide uppercase">Labels</span>
                   <select
                     multiple
                     value={selectedLabelIds}
@@ -348,7 +369,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-custom-text-300 font-medium uppercase">Issue Type IDs</span>
+                  <span className="text-xs text-custom-text-300 font-medium tracking-wide uppercase">Issue Type IDs</span>
                   <input
                     value={issueTypeIdsInput}
                     onChange={(e) => setIssueTypeIdsInput(e.target.value)}
