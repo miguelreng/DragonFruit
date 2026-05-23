@@ -115,6 +115,15 @@ def _redirect_uri_for_client(client: str | None) -> str:
     )
 
 
+def _client_from_state(state: str | None) -> str | None:
+    if not state or ":" not in state:
+        return None
+    client = state.rsplit(":", 1)[-1].strip().lower()
+    if client in {"web", "native"}:
+        return client
+    return None
+
+
 def _serialize(acc: UserCalendarAccount) -> dict:
     return {
         "id": str(acc.id),
@@ -180,7 +189,8 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
 
     def post(self, request):
         code = request.data.get("code")
-        client = request.data.get("client", "web")
+        state = request.data.get("state")
+        client = request.data.get("client") or _client_from_state(state) or "web"
         if not code:
             return Response({"error": "code is required"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -204,8 +214,14 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
             timeout=10,
         )
         if token_resp.status_code != 200:
+            details = token_resp.text[:500]
             return Response(
-                {"error": "Token exchange failed", "details": token_resp.text[:500]},
+                {
+                    "error": "Token exchange failed",
+                    "details": details,
+                    "client": client,
+                    "redirect_uri": redirect_uri,
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         td = token_resp.json()

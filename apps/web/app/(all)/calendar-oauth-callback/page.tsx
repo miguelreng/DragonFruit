@@ -26,6 +26,7 @@ function CalendarOauthCallbackPage() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const state = searchParams.get("state");
     const oauthError = searchParams.get("error");
 
     if (oauthError) {
@@ -39,14 +40,16 @@ function CalendarOauthCallbackPage() {
 
     (async () => {
       try {
-        await calendarService.finishGoogle(code);
+        await calendarService.finishGoogle(code, state);
         // Best-effort: bounce back to the workspace calendar the user came from.
         // Falls back to the app root, which already redirects to the last workspace.
         const slug = typeof window !== "undefined" ? window.localStorage.getItem(LAST_WORKSPACE_LS_KEY) : null;
         navigate(slug ? `/${slug}/calendar/` : "/");
       } catch (err) {
         console.error(err);
-        setError("Could not connect Google Calendar. Please try again.");
+        const responseData = (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data;
+        const message = [responseData?.error, responseData?.details].filter(Boolean).join(": ");
+        setError(message || "Could not connect Google Calendar. Please try again.");
       }
     })();
   }, [searchParams, navigate]);
