@@ -81,10 +81,11 @@ struct MeetingPopoverView: View {
 
     private var settingsCard: some View {
         card {
-            labelRow("Settings", value: store.needsCalendarReconnect ? "Reconnect" : (store.googleConnected ? "Connected" : "Connect"))
-            Text(settingsCopy)
-                .font(.custom("Figtree", size: 12).weight(.medium))
-                .foregroundStyle(BrandTheme.textSecondary)
+            sectionLabel("Settings")
+            featureToggle("Meeting notes", isOn: $store.meetingNotesEnabled)
+            featureToggle("Speech", isOn: $store.speechCaptureEnabled)
+            featureToggle("Cursor buddy", isOn: $store.cursorBuddyEnabled)
+            featureToggle("Gaze tracking", isOn: $store.gazeTrackingEnabled, detail: "Soon", disabled: true)
             HStack(spacing: 8) {
                 Button(settingsButtonTitle) {
                     Task {
@@ -111,7 +112,7 @@ struct MeetingPopoverView: View {
 
     private var upcomingCard: some View {
         card {
-            labelRow("Upcoming meeting", value: store.countdownLabel)
+            sectionLabel("Upcoming meeting")
             if store.needsCalendarReconnect {
                 Text("Reconnect Google Calendar to bring meetings here.")
                     .font(.custom("Newsreader", size: 18).weight(.medium))
@@ -134,6 +135,9 @@ struct MeetingPopoverView: View {
                     .lineLimit(2)
                 if store.meeting.id != "empty" {
                     HStack(spacing: 8) {
+                        Text(store.countdownLabel)
+                            .font(.custom("Figtree", size: 11).weight(.medium))
+                            .foregroundStyle(BrandTheme.textSecondary)
                         if store.meeting.joinURL != nil {
                             Button("Join meeting") {
                                 store.openJoinLink()
@@ -161,8 +165,11 @@ struct MeetingPopoverView: View {
     private var recorderCard: some View {
         card {
             HStack {
-                labelRow("Recorder", value: store.meetingState)
+                sectionLabel("Recorder")
                 Spacer()
+                Text(store.meetingState)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
                 if store.lastMeetingNotesURL != nil {
                     Button("Open notes") {
                         store.openMeetingNotes()
@@ -190,13 +197,6 @@ struct MeetingPopoverView: View {
         }
     }
 
-    private var settingsCopy: String {
-        if store.needsCalendarReconnect {
-            return "Google Calendar needs a fresh connection to read your latest meetings."
-        }
-        return store.googleConnected ? "Calendar connected and voice capture ready." : "Connect Google Calendar to bring meetings here."
-    }
-
     private var settingsButtonTitle: String {
         if store.needsCalendarReconnect { return "Reconnect Calendar" }
         return store.googleConnected ? "Refresh meetings" : "Connect Google Calendar"
@@ -204,7 +204,7 @@ struct MeetingPopoverView: View {
 
     private var voiceCard: some View {
         card {
-            labelRow("Voice notes", value: store.isListening ? "Listening" : "⌥⌘Space")
+            sectionLabel("Voice notes")
             Text("Capture an idea and DragonFruit routes it as a task, doc, sticky, or agent request.")
                 .font(.custom("Figtree", size: 11).weight(.medium))
                 .foregroundStyle(BrandTheme.textSecondary)
@@ -219,6 +219,9 @@ struct MeetingPopoverView: View {
                 .buttonStyle(.plain)
                 .font(.custom("Figtree", size: 12).weight(.medium))
                 .foregroundStyle(BrandTheme.textSecondary)
+                Text(store.isListening ? "Listening" : "⌥⌘Space")
+                    .font(.custom("Figtree", size: 10).weight(.medium))
+                    .foregroundStyle(BrandTheme.labelLight)
                 Spacer()
             }
             if let capture = store.lastCapture {
@@ -255,15 +258,32 @@ struct MeetingPopoverView: View {
     }
 
     @ViewBuilder
-    private func labelRow(_ label: String, value: String) -> some View {
-        HStack {
-            Text(label.uppercased())
-                .font(.custom("Figtree", size: 10).weight(.medium))
-                .foregroundStyle(BrandTheme.labelLight)
-            Spacer()
-            Text(value)
-                .font(.custom("Figtree", size: 11).weight(.medium))
-                .foregroundStyle(BrandTheme.textSecondary)
+    private func sectionLabel(_ label: String) -> some View {
+        Text(label.uppercased())
+            .font(.custom("Figtree", size: 10).weight(.medium))
+            .foregroundStyle(BrandTheme.labelLight)
+    }
+
+    private func featureToggle(
+        _ label: String,
+        isOn: Binding<Bool>,
+        detail: String? = nil,
+        disabled: Bool = false
+    ) -> some View {
+        Toggle(isOn: isOn) {
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(disabled ? BrandTheme.labelLight : BrandTheme.textPrimary)
+                if let detail {
+                    Text(detail)
+                        .font(.custom("Figtree", size: 10).weight(.medium))
+                        .foregroundStyle(BrandTheme.labelLight)
+                }
+            }
         }
+        .toggleStyle(.switch)
+        .tint(BrandTheme.accent)
+        .disabled(disabled)
     }
 }
