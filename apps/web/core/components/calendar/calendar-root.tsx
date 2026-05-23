@@ -50,15 +50,29 @@ import {
   type TCalendarAccount,
   type TCalendarEvent,
   type TCalendarTask,
+  type TGoogleCalendar,
 } from "@/services/calendar.service";
 
 const calendarService = new CalendarService();
 const TASKS_CALENDAR_ID = "tasks";
-type TCalendarEventWithAccount = TCalendarEvent & { accountId: string; accountEmail: string };
+type TGoogleCalendarSource = {
+  id: string;
+  account: TCalendarAccount;
+  calendar: TGoogleCalendar;
+  accountIndex: number;
+  calendarIndex: number;
+};
+type TCalendarEventWithSource = TCalendarEvent & {
+  sourceId: string;
+  accountId: string;
+  accountEmail: string;
+  calendarId: string;
+  calendarName: string;
+};
 type TCalendarPrefs = Record<string, { visible: boolean; color: string }>;
 type TDragonfruitEventMeta =
   | { kind: "task"; projectId: string; taskId: string; workspaceSlug: string }
-  | { kind: "google_event"; event: TCalendarEventWithAccount };
+  | { kind: "google_event"; event: TCalendarEventWithSource };
 
 const GOOGLE_COLORS = ["#2563eb", "#0f9f6e", "#f97316", "#7c3aed", "#0891b2", "#be123c"];
 const CALENDAR_PREFS_KEY = "dragonfruit.calendar.googlePrefs";
@@ -113,8 +127,8 @@ function calendarAccountLabel(account: TCalendarAccount) {
   return account.account_email || "Google Calendar";
 }
 
-function googleCalendarId(accountId: string) {
-  return `google-${accountId}`;
+function googleCalendarSourceId(accountId: string, calendarId: string) {
+  return `google-${accountId}-${encodeURIComponent(calendarId)}`;
 }
 
 function loadCalendarPrefs(): TCalendarPrefs {
@@ -131,25 +145,36 @@ function saveCalendarPrefs(prefs: TCalendarPrefs) {
   window.localStorage.setItem(CALENDAR_PREFS_KEY, JSON.stringify(prefs));
 }
 
-function googleAccountColor(account: TCalendarAccount, index: number, prefs: TCalendarPrefs) {
-  return prefs[account.id]?.color || GOOGLE_COLORS[index % GOOGLE_COLORS.length] || "#2563eb";
+function googleSourceColor(source: TGoogleCalendarSource, prefs: TCalendarPrefs) {
+  return (
+    prefs[source.id]?.color ||
+    source.calendar.background_color ||
+    GOOGLE_COLORS[(source.accountIndex + source.calendarIndex) % GOOGLE_COLORS.length] ||
+    "#2563eb"
+  );
 }
 
-function isGoogleAccountVisible(account: TCalendarAccount, prefs: TCalendarPrefs) {
-  return prefs[account.id]?.visible ?? true;
+function isGoogleSourceVisible(source: TGoogleCalendarSource, prefs: TCalendarPrefs) {
+  return prefs[source.id]?.visible ?? source.calendar.selected ?? true;
 }
 
-function googleEventToScheduleXEvent(e: TCalendarEventWithAccount) {
+function googleSourceLabel(source: TGoogleCalendarSource) {
+  return source.calendar.summary || calendarAccountLabel(source.account);
+}
+
+function googleEventToScheduleXEvent(e: TCalendarEventWithSource) {
   const start = toTemporal(e.start, e.all_day);
   const end = toTemporal(e.end, e.all_day);
   if (!start || !end) return null;
   return {
-    id: `gcal-${e.accountId}-${e.id}`,
+    id: `gcal-${e.sourceId}-${e.id}`,
     title: e.title,
     start,
     end,
-    calendarId: googleCalendarId(e.accountId),
-    description: e.accountEmail ? `${e.accountEmail}${e.description ? `\n\n${e.description}` : ""}` : e.description,
+    calendarId: e.sourceId,
+    description: `${e.calendarName}${e.accountEmail ? ` · ${e.accountEmail}` : ""}${
+      e.description ? `\n\n${e.description}` : ""
+    }`,
     location: e.location,
     _dragonfruit: { kind: "google_event" as const, event: e },
   };
@@ -195,18 +220,54 @@ export function CalendarRoot() {
   );
   const googleAccounts = useMemo(() => accounts ?? [], [accounts]);
   const [calendarPrefs, setCalendarPrefs] = useState<TCalendarPrefs>(() => loadCalendarPrefs());
-  const visibleGoogleAccounts = useMemo(
-    () => googleAccounts.filter((account) => isGoogleAccountVisible(account, calendarPrefs)),
-    [googleAccounts, calendarPrefs]
+  const { data: googleSources = [] } = useSWR<TGoogleCalendarSource[]>(
+    googleAccounts.length > 0 ? `CALENDAR_SOURCES_${googleAccounts.map((account) => account.id).join("_")}` : null,
+    async () => {
+      const results = await Promise.all(
+        googleAccounts.map(async (account, accountIndex) => {
+          let calendars;
+          try {
+            const res = await calendarService.calendars(account.id);
+            calendars = res.calendars;
+          } catch (err) {
+            console.warn("Falling back to primary Google calendar", { accountId: account.id, err });
+            calendars = [
+              {
+                id: account.primary_calendar_id || "primary",
+                summary: calendarAccountLabel(account),
+                description: "",
+                background_color: "",
+                foreground_color: "",
+                primary: true,
+                selected: true,
+                access_role: "",
+              },
+            ];
+          }
+          return (calendars ?? []).map((calendar, calendarIndex) => ({
+            id: googleCalendarSourceId(account.id, calendar.id),
+            account,
+            calendar,
+            accountIndex,
+            calendarIndex,
+          }));
+        })
+      );
+      return results.flat();
+    }
+  );
+  const visibleGoogleSources = useMemo(
+    () => googleSources.filter((source) => isGoogleSourceVisible(source, calendarPrefs)),
+    [googleSources, calendarPrefs]
   );
   const updateCalendarPrefs = useCallback(
-    (account: TCalendarAccount, patch: Partial<{ visible: boolean; color: string }>, index: number) => {
+    (source: TGoogleCalendarSource, patch: Partial<{ visible: boolean; color: string }>) => {
       setCalendarPrefs((current) => {
         const next = {
           ...current,
-          [account.id]: {
-            visible: current[account.id]?.visible ?? true,
-            color: current[account.id]?.color || GOOGLE_COLORS[index % GOOGLE_COLORS.length] || "#2563eb",
+          [source.id]: {
+            visible: current[source.id]?.visible ?? true,
+            color: current[source.id]?.color || googleSourceColor(source, current),
             ...patch,
           },
         };
@@ -218,12 +279,12 @@ export function CalendarRoot() {
   );
   const calendarsConfig = useMemo(() => {
     const googleCalendars = Object.fromEntries(
-      visibleGoogleAccounts.map((account, index) => {
-        const color = googleAccountColor(account, index, calendarPrefs);
+      visibleGoogleSources.map((source) => {
+        const color = googleSourceColor(source, calendarPrefs);
         return [
-          googleCalendarId(account.id),
+          source.id,
           {
-            colorName: googleCalendarId(account.id),
+            colorName: source.id,
             lightColors: { main: color, container: `${color}1f`, onContainer: color },
             darkColors: { main: color, container: `${color}33`, onContainer: "#ffffff" },
           },
@@ -231,20 +292,26 @@ export function CalendarRoot() {
       })
     );
     return { ...BASE_CALENDARS_CONFIG, ...googleCalendars };
-  }, [calendarPrefs, visibleGoogleAccounts]);
+  }, [calendarPrefs, visibleGoogleSources]);
 
-  const { data: googleEvents = [] } = useSWR<TCalendarEventWithAccount[]>(
-    visibleGoogleAccounts.length > 0
-      ? `CALENDAR_EVENTS_${visibleGoogleAccounts.map((account) => account.id).join("_")}`
+  const { data: googleEvents = [] } = useSWR<TCalendarEventWithSource[]>(
+    visibleGoogleSources.length > 0
+      ? `CALENDAR_EVENTS_${visibleGoogleSources.map((source) => source.id).join("_")}`
       : null,
     async () => {
       const results = await Promise.all(
-        visibleGoogleAccounts.map(async (account) => {
-          const res = await calendarService.events(account.id, taskRange);
+        visibleGoogleSources.map(async (source) => {
+          const res = await calendarService.events(source.account.id, {
+            ...taskRange,
+            calendar_id: source.calendar.id,
+          });
           return (res.events ?? []).map((event) =>
             Object.assign({}, event, {
-              accountId: account.id,
-              accountEmail: account.account_email,
+              sourceId: source.id,
+              accountId: source.account.id,
+              accountEmail: source.account.account_email,
+              calendarId: source.calendar.id,
+              calendarName: googleSourceLabel(source),
             })
           );
         })
@@ -266,13 +333,13 @@ export function CalendarRoot() {
   const calendarConfigKey = useMemo(
     () =>
       JSON.stringify(
-        visibleGoogleAccounts.map((account, index) => [
-          account.id,
-          isGoogleAccountVisible(account, calendarPrefs),
-          googleAccountColor(account, index, calendarPrefs),
+        visibleGoogleSources.map((source) => [
+          source.id,
+          isGoogleSourceVisible(source, calendarPrefs),
+          googleSourceColor(source, calendarPrefs),
         ])
       ),
-    [calendarPrefs, visibleGoogleAccounts]
+    [calendarPrefs, visibleGoogleSources]
   );
   const [visibleMonth, setVisibleMonth] = useState<string>(() => {
     const now = new Date();
@@ -367,6 +434,7 @@ export function CalendarRoot() {
             workspaceSlug={workspaceSlug}
             taskCount={tasksRes?.tasks?.length ?? 0}
             googleAccounts={googleAccounts}
+            googleSources={googleSources}
             calendarPrefs={calendarPrefs}
             taskRange={taskRange}
             refetchAccounts={refetchAccounts}
@@ -419,14 +487,11 @@ type CalendarPageHeaderProps = {
   workspaceSlug: string;
   taskCount: number;
   googleAccounts: TCalendarAccount[];
+  googleSources: TGoogleCalendarSource[];
   calendarPrefs: TCalendarPrefs;
   taskRange: { from: string; to: string };
   refetchAccounts: () => void;
-  onUpdateCalendarPrefs: (
-    account: TCalendarAccount,
-    patch: Partial<{ visible: boolean; color: string }>,
-    index: number
-  ) => void;
+  onUpdateCalendarPrefs: (source: TGoogleCalendarSource, patch: Partial<{ visible: boolean; color: string }>) => void;
   onImportComplete: () => void;
   onQuickAdd: () => void;
   visibleMonth: string;
@@ -438,6 +503,7 @@ type CalendarPageHeaderProps = {
 function CalendarPageHeader({
   taskCount,
   googleAccounts,
+  googleSources,
   calendarPrefs,
   taskRange,
   refetchAccounts,
@@ -454,7 +520,7 @@ function CalendarPageHeader({
   const [syncingAccountId, setSyncingAccountId] = useState<string | null>(null);
   const [importingAccountId, setImportingAccountId] = useState<string | null>(null);
   const hasGoogleAccounts = googleAccounts.length > 0;
-  const visibleGoogleAccounts = googleAccounts.filter((account) => isGoogleAccountVisible(account, calendarPrefs));
+  const visibleGoogleSources = googleSources.filter((source) => isGoogleSourceVisible(source, calendarPrefs));
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -487,20 +553,20 @@ function CalendarPageHeader({
     refetchAccounts();
   };
 
-  const handleSyncTasks = async (account: TCalendarAccount) => {
+  const handleSyncTasks = async (source: TGoogleCalendarSource) => {
     if (syncingAccountId) return;
-    setSyncingAccountId(account.id);
+    setSyncingAccountId(source.id);
     try {
       const res = await calendarService.syncTasksToGoogle(workspaceSlug, {
-        account_id: account.id,
+        account_id: source.account.id,
+        calendar_id: source.calendar.id,
         from: taskRange.from,
         to: taskRange.to,
       });
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: `Synced ${res.synced} tasks`,
-        message:
-          res.failed.length > 0 ? `${res.failed.length} failed` : `${calendarAccountLabel(account)} is up to date.`,
+        message: res.failed.length > 0 ? `${res.failed.length} failed` : `${googleSourceLabel(source)} is up to date.`,
       });
     } catch {
       setToast({
@@ -513,12 +579,13 @@ function CalendarPageHeader({
     }
   };
 
-  const handleImportGoogle = async (account: TCalendarAccount) => {
+  const handleImportGoogle = async (source: TGoogleCalendarSource) => {
     if (importingAccountId) return;
-    setImportingAccountId(account.id);
+    setImportingAccountId(source.id);
     try {
       const res = await calendarService.importGoogleEvents(workspaceSlug, {
-        account_id: account.id,
+        account_id: source.account.id,
+        calendar_id: source.calendar.id,
         from: taskRange.from,
         to: taskRange.to,
       });
@@ -564,13 +631,11 @@ function CalendarPageHeader({
           {hasGoogleAccounts && (
             <>
               <span className="text-tertiary">·</span>
-              <LegendDot
-                color={googleAccounts[0] ? googleAccountColor(googleAccounts[0], 0, calendarPrefs) : "#2563eb"}
-              />
+              <LegendDot color={googleSources[0] ? googleSourceColor(googleSources[0], calendarPrefs) : "#2563eb"} />
               <span className="truncate">
-                {googleAccounts.length === 1
-                  ? calendarAccountLabel(googleAccounts[0]!)
-                  : `${visibleGoogleAccounts.length}/${googleAccounts.length} Google calendars`}
+                {googleSources.length === 1
+                  ? googleSourceLabel(googleSources[0]!)
+                  : `${visibleGoogleSources.length}/${googleSources.length} Google calendars`}
               </span>
             </>
           )}
@@ -615,6 +680,7 @@ function CalendarPageHeader({
         {hasGoogleAccounts && (
           <GoogleAccountsMenu
             accounts={googleAccounts}
+            sources={googleSources}
             syncingAccountId={syncingAccountId}
             importingAccountId={importingAccountId}
             calendarPrefs={calendarPrefs}
@@ -631,21 +697,19 @@ function CalendarPageHeader({
 
 type GoogleAccountsMenuProps = {
   accounts: TCalendarAccount[];
+  sources: TGoogleCalendarSource[];
   syncingAccountId: string | null;
   importingAccountId: string | null;
   calendarPrefs: TCalendarPrefs;
-  onUpdateCalendarPrefs: (
-    account: TCalendarAccount,
-    patch: Partial<{ visible: boolean; color: string }>,
-    index: number
-  ) => void;
-  onSync: (account: TCalendarAccount) => void;
-  onImport: (account: TCalendarAccount) => void;
+  onUpdateCalendarPrefs: (source: TGoogleCalendarSource, patch: Partial<{ visible: boolean; color: string }>) => void;
+  onSync: (source: TGoogleCalendarSource) => void;
+  onImport: (source: TGoogleCalendarSource) => void;
   onDisconnect: (account: TCalendarAccount) => void;
 };
 
 function GoogleAccountsMenu({
   accounts,
+  sources,
   syncingAccountId,
   importingAccountId,
   calendarPrefs,
@@ -661,69 +725,88 @@ function GoogleAccountsMenu({
         <ChevronDown className="size-3.5 text-tertiary" />
       </Menu.Button>
       <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-72 rounded-md border border-strong bg-layer-2 py-1 outline-none">
-        {accounts.map((account, index) => {
-          const color = googleAccountColor(account, index, calendarPrefs);
-          const visible = isGoogleAccountVisible(account, calendarPrefs);
+        {accounts.map((account) => {
+          const accountSources = sources.filter((source) => source.account.id === account.id);
           return (
             <div key={account.id} className="border-b border-subtle px-2 py-2 last:border-b-0">
-              <div className="mb-1 flex items-center gap-2 px-1 text-13 font-medium text-primary">
-                <LegendDot color={color} />
+              <div className="mb-2 flex items-center justify-between gap-2 px-1 text-13 font-medium text-primary">
                 <span className="min-w-0 truncate">{calendarAccountLabel(account)}</span>
-              </div>
-              <div className="mb-1 flex items-center justify-between gap-2 px-1">
-                <button
-                  type="button"
-                  onClick={() => onUpdateCalendarPrefs(account, { visible: !visible }, index)}
-                  className="inline-flex items-center gap-1.5 rounded px-1.5 py-1 text-12 text-secondary hover:bg-layer-2-hover"
-                >
-                  {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-                  {visible ? "Shown" : "Hidden"}
-                </button>
-                <div className="flex items-center gap-1">
-                  {GOOGLE_COLORS.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      aria-label={`Use calendar color ${option}`}
-                      onClick={() => onUpdateCalendarPrefs(account, { color: option }, index)}
-                      className="grid size-5 place-items-center rounded-full border border-subtle"
-                      style={{ backgroundColor: option }}
-                    >
-                      {color === option && <Check className="size-3 text-on-color" strokeWidth={3} />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Menu.Item>
-                <button
-                  type="button"
-                  onClick={() => onImport(account)}
-                  disabled={importingAccountId !== null}
-                  className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-13 text-secondary hover:bg-layer-2-hover disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span>{importingAccountId === account.id ? "Importing..." : "Import events"}</span>
-                </button>
-              </Menu.Item>
-              <Menu.Item>
-                <button
-                  type="button"
-                  onClick={() => onSync(account)}
-                  disabled={syncingAccountId !== null}
-                  className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-13 text-secondary hover:bg-layer-2-hover disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span>{syncingAccountId === account.id ? "Syncing..." : "Sync tasks to this account"}</span>
-                </button>
-              </Menu.Item>
-              <Menu.Item>
                 <button
                   type="button"
                   onClick={() => onDisconnect(account)}
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-13 text-danger-primary hover:bg-layer-2-hover"
+                  className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-12 text-danger-primary hover:bg-layer-2-hover"
                 >
                   <Trash2 className="size-3.5" />
                   Disconnect
                 </button>
-              </Menu.Item>
+              </div>
+              {accountSources.length === 0 && (
+                <div className="px-1 py-2 text-12 text-tertiary">Loading calendars...</div>
+              )}
+              {accountSources.map((source) => {
+                const color = googleSourceColor(source, calendarPrefs);
+                const visible = isGoogleSourceVisible(source, calendarPrefs);
+                return (
+                  <div key={source.id} className="rounded-md px-1 py-1.5 hover:bg-layer-2-hover">
+                    <div className="mb-1 flex items-center gap-2">
+                      <LegendDot color={color} />
+                      <span className="min-w-0 flex-1 truncate text-13 text-primary">{googleSourceLabel(source)}</span>
+                      {source.calendar.primary && <span className="text-11 text-tertiary">Primary</span>}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onUpdateCalendarPrefs(source, { visible: !visible })}
+                        className="inline-flex items-center gap-1.5 rounded px-1.5 py-1 text-12 text-secondary hover:bg-layer-2-hover"
+                      >
+                        {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                        {visible ? "Shown" : "Hidden"}
+                      </button>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="color"
+                          aria-label={`Custom color for ${googleSourceLabel(source)}`}
+                          value={color}
+                          onChange={(event) => onUpdateCalendarPrefs(source, { color: event.target.value })}
+                          className="size-5 cursor-pointer rounded-full border border-subtle bg-transparent p-0"
+                        />
+                        {GOOGLE_COLORS.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            aria-label={`Use calendar color ${option}`}
+                            onClick={() => onUpdateCalendarPrefs(source, { color: option })}
+                            className="grid size-5 place-items-center rounded-full border border-subtle"
+                            style={{ backgroundColor: option }}
+                          >
+                            {color.toLowerCase() === option.toLowerCase() && (
+                              <Check className="size-3 text-on-color" strokeWidth={3} />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-1 grid grid-cols-2 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onImport(source)}
+                        disabled={importingAccountId !== null}
+                        className="rounded px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2-hover disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {importingAccountId === source.id ? "Importing..." : "Import events"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onSync(source)}
+                        disabled={syncingAccountId !== null}
+                        className="rounded px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2-hover disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {syncingAccountId === source.id ? "Syncing..." : "Sync tasks"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           );
         })}

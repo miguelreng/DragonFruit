@@ -216,6 +216,7 @@ from .mcp.base import MCPEndpoint
 
 from .calendar.base import (
     CalendarAccountsListEndpoint,
+    CalendarAccountCalendarsEndpoint,
     CalendarAccountDetailEndpoint,
     CalendarAccountEventsEndpoint,
     CalendarImportGoogleEventsEndpoint,

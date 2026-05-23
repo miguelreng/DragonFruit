@@ -17,7 +17,7 @@ There are two halves to this module:
 
 import os
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import requests
 from django.conf import settings
@@ -36,7 +36,12 @@ from ..base import BaseAPIView
 GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_CAL_API = "https://www.googleapis.com/calendar/v3"
-SCOPES = ["https://www.googleapis.com/auth/calendar.events", "openid", "email"]
+SCOPES = [
+    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+    "openid",
+    "email",
+]
 
 
 def _first_config_value(keys: list[str], default: str = "", *, prefer_env: bool = False) -> str:
@@ -219,6 +224,27 @@ def _serialize(acc: UserCalendarAccount) -> dict:
     }
 
 
+def _google_calendar_url(calendar_id: str, suffix: str = "") -> str:
+    encoded_calendar_id = quote(calendar_id or "primary", safe="")
+    suffix = suffix.strip("/")
+    if suffix:
+        return f"{GOOGLE_CAL_API}/calendars/{encoded_calendar_id}/{suffix}"
+    return f"{GOOGLE_CAL_API}/calendars/{encoded_calendar_id}"
+
+
+def _calendar_to_dict(calendar: dict) -> dict:
+    return {
+        "id": calendar.get("id", ""),
+        "summary": calendar.get("summary") or calendar.get("id") or "Google Calendar",
+        "description": calendar.get("description") or "",
+        "background_color": calendar.get("backgroundColor") or "",
+        "foreground_color": calendar.get("foregroundColor") or "",
+        "primary": bool(calendar.get("primary")),
+        "selected": calendar.get("selected", True),
+        "access_role": calendar.get("accessRole", ""),
+    }
+
+
 class CalendarAccountsListEndpoint(BaseAPIView):
     """List the calendar accounts the current user has connected."""
 
@@ -233,6 +259,37 @@ class CalendarAccountDetailEndpoint(BaseAPIView):
     def delete(self, request, account_id):
         UserCalendarAccount.objects.filter(id=account_id, user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CalendarAccountCalendarsEndpoint(BaseAPIView):
+    """List calendars available inside one connected Google account."""
+
+    def get(self, request, account_id):
+        try:
+            account = UserCalendarAccount.objects.get(id=account_id, user=request.user, is_active=True)
+        except UserCalendarAccount.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        access_token = _refresh_if_needed(account)
+        resp = requests.get(
+            f"{GOOGLE_CAL_API}/users/me/calendarList",
+            params={"maxResults": 250, "minAccessRole": "reader"},
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return Response(
+                {
+                    "error": "Failed to fetch calendars",
+                    "status": resp.status_code,
+                    "details": _details_from_response(resp),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        calendars = [_calendar_to_dict(c) for c in resp.json().get("items", []) if c.get("id")]
+        calendars.sort(key=lambda c: (not c["primary"], c["summary"].lower()))
+        return Response({"calendars": calendars}, status=status.HTTP_200_OK)
 
 
 class GoogleCalendarStartEndpoint(BaseAPIView):
@@ -412,11 +469,11 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
             request.query_params.get("to")
             or (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
         )
-        calendar_id = account.primary_calendar_id or "primary"
+        calendar_id = request.query_params.get("calendar_id") or account.primary_calendar_id or "primary"
 
         access_token = _refresh_if_needed(account)
         resp = requests.get(
-            f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events",
+            _google_calendar_url(calendar_id, "events"),
             params={
                 "timeMin": time_min,
                 "timeMax": time_max,
@@ -434,7 +491,11 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
             )
 
         data = resp.json()
-        events = [_event_to_dict(e) for e in data.get("items", [])]
+        events = []
+        for raw_event in data.get("items", []):
+            event = _event_to_dict(raw_event)
+            event["calendar_id"] = calendar_id
+            events.append(event)
         return Response({"events": events}, status=status.HTTP_200_OK)
 
 
@@ -454,7 +515,7 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
             calendar_id = account.primary_calendar_id or "primary"
             access_token = _refresh_if_needed(account)
             resp = requests.get(
-                f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events",
+                _google_calendar_url(calendar_id, "events"),
                 params={
                     "timeMin": time_min,
                     "timeMax": time_max,
@@ -495,9 +556,9 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
         return Response({"events": events[:20]}, status=status.HTTP_200_OK)
 
 
-def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue) -> str:
+def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue, calendar_id: str | None = None) -> str:
     """Create/update a Google Calendar event for one issue and return event id."""
-    calendar_id = account.primary_calendar_id or "primary"
+    calendar_id = calendar_id or account.primary_calendar_id or "primary"
     access_token = _refresh_if_needed(account)
     start_date = issue.start_date or issue.target_date
     end_date = issue.target_date or issue.start_date or start_date
@@ -512,17 +573,18 @@ def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue
     }
 
     if issue.external_source == "google_calendar" and issue.external_id:
+        event_id = issue.external_id.rsplit(":", 1)[-1]
         resp = requests.patch(
-            f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events/{issue.external_id}",
+            _google_calendar_url(calendar_id, f"events/{event_id}"),
             json=payload,
             headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
             timeout=10,
         )
         if resp.status_code == 200:
-            return issue.external_id
+            return event_id
 
     create_resp = requests.post(
-        f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events",
+        _google_calendar_url(calendar_id, "events"),
         json=payload,
         headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
         timeout=10,
@@ -533,7 +595,7 @@ def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue
     if not event_id:
         raise RuntimeError("google_event_sync_failed:no_event_id")
     issue.external_source = "google_calendar"
-    issue.external_id = event_id
+    issue.external_id = f"{account.id}:{calendar_id}:{event_id}"
     issue.save(update_fields=["external_source", "external_id", "updated_at"])
     return event_id
 
@@ -544,6 +606,7 @@ class CalendarSyncTasksToGoogleEndpoint(BaseAPIView):
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def post(self, request, slug):
         account_id = request.data.get("account_id")
+        calendar_id = request.data.get("calendar_id")
         if not account_id:
             return Response({"error": "account_id is required"}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -581,7 +644,7 @@ class CalendarSyncTasksToGoogleEndpoint(BaseAPIView):
         failed: list[dict] = []
         for issue in issues:
             try:
-                _upsert_google_event_for_issue(account=account, issue=issue)
+                _upsert_google_event_for_issue(account=account, issue=issue, calendar_id=calendar_id)
                 synced += 1
             except Exception as exc:  # noqa: BLE001
                 failed.append({"issue_id": str(issue.id), "reason": str(exc)[:200]})
@@ -622,9 +685,9 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
             return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
 
         access_token = _refresh_if_needed(account)
-        calendar_id = account.primary_calendar_id or "primary"
+        calendar_id = request.data.get("calendar_id") or account.primary_calendar_id or "primary"
         resp = requests.get(
-            f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events",
+            _google_calendar_url(calendar_id, "events"),
             params={
                 "timeMin": time_from,
                 "timeMax": time_to,
@@ -663,7 +726,7 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
                     workspace=project.workspace,
                     project=project,
                     external_source="google_calendar",
-                    external_id=f"{account.id}:{event_id}",
+                    external_id=f"{account.id}:{calendar_id}:{event_id}",
                     defaults={
                         "name": event.get("summary") or "Untitled calendar event",
                         "description_html": event.get("description") or "<p>Imported from Google Calendar.</p>",
