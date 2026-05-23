@@ -13,6 +13,7 @@ from plane.app.views import (
     CalendarSyncTasksToGoogleEndpoint,
     GoogleCalendarStartEndpoint,
     GoogleCalendarCallbackEndpoint,
+    MeetingNotesDraftEndpoint,
     MyCalendarTasksEndpoint,
     UpcomingCalendarMeetingsEndpoint,
 )
@@ -68,5 +69,10 @@ urlpatterns = [
         "workspaces/<str:slug>/calendar/google/import-events/",
         CalendarImportGoogleEventsEndpoint.as_view(),
         name="workspace-calendar-google-import-events",
+    ),
+    path(
+        "workspaces/<str:slug>/calendar/meeting-notes/",
+        MeetingNotesDraftEndpoint.as_view(),
+        name="workspace-calendar-meeting-notes",
     ),
 ]

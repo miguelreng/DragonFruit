@@ -220,6 +220,7 @@ from .calendar.base import (
     CalendarAccountDetailEndpoint,
     CalendarAccountEventsEndpoint,
     CalendarImportGoogleEventsEndpoint,
+    MeetingNotesDraftEndpoint,
     CalendarSyncTasksToGoogleEndpoint,
     GoogleCalendarStartEndpoint,
     GoogleCalendarCallbackEndpoint,

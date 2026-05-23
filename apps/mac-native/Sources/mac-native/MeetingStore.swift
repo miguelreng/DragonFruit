@@ -4,11 +4,69 @@ import AVFoundation
 import Foundation
 import Speech
 import SwiftUI
+import UserNotifications
 
 struct MeetingInfo: Identifiable {
-    let id = UUID()
+    let id: String
+    let eventId: String
     let title: String
     let startAt: Date
+    let endAt: Date
+    let description: String
+    let location: String
+    let htmlLink: String?
+    let hangoutLink: String?
+    let accountId: String?
+    let accountEmail: String?
+    let calendarId: String?
+    let calendarName: String?
+
+    var joinURL: URL? {
+        let candidates = [hangoutLink, location, description, htmlLink].compactMap { $0 }
+        for candidate in candidates {
+            if let url = Self.extractJoinURL(from: candidate) {
+                return url
+            }
+        }
+        return nil
+    }
+
+    var calendarDisplayName: String {
+        calendarName ?? accountEmail ?? ""
+    }
+
+    private static func extractJoinURL(from text: String) -> URL? {
+        let patterns = [
+            #"https://meet\.google\.com/[A-Za-z0-9\-_/?=&%.]+"#,
+            #"https://(?:[A-Za-z0-9\-]+\.)?zoom\.us/j/[A-Za-z0-9\-_/?=&%.]+"#,
+            #"https://teams\.microsoft\.com/[A-Za-z0-9\-_/?=&%.]+"#,
+        ]
+        for pattern in patterns {
+            if let range = text.range(of: pattern, options: .regularExpression) {
+                return URL(string: String(text[range]))
+            }
+        }
+        return URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines))
+            .flatMap { $0.scheme?.hasPrefix("http") == true ? $0 : nil }
+    }
+
+    static var empty: MeetingInfo {
+        MeetingInfo(
+            id: "empty",
+            eventId: "empty",
+            title: "No meeting yet",
+            startAt: .now,
+            endAt: .now,
+            description: "",
+            location: "",
+            htmlLink: nil,
+            hangoutLink: nil,
+            accountId: nil,
+            accountEmail: nil,
+            calendarId: nil,
+            calendarName: nil
+        )
+    }
 }
 
 enum VoiceCaptureType: String {
@@ -53,11 +111,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var isAuthenticated = false
     @Published var googleConnected = false
 
-    @Published var meeting = MeetingInfo(title: "No meeting yet", startAt: .now)
+    @Published var meeting = MeetingInfo.empty
+    @Published var meetings: [MeetingInfo] = []
+    @Published var hasMeetingsToday = false
     @Published var meetingState = "Upcoming"
     @Published var autoStartEnabled = true
     @Published var autoStartMinutesBefore = 2
     @Published var isListening = false
+    @Published var isMeetingRecording = false
+    @Published var meetingNotesTranscript = ""
+    @Published var lastMeetingNotesURL: URL?
+    @Published var lastSavedMeetingTitle = ""
     @Published var lastTranscript = ""
     @Published var lastCapture: VoiceCaptureResult?
     @Published var lastAgentTextResponse = ""
@@ -68,11 +132,14 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var oauthSession: ASWebAuthenticationSession?
     private var loginPollTask: Task<Void, Never>?
     private var calendarPollTask: Task<Void, Never>?
+    private var meetingRefreshTask: Task<Void, Never>?
     private var apiToken: String = ""
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "es-ES"))
     private let audioEngine = AVAudioEngine()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var recordingMeeting: MeetingInfo?
+    private var notifiedMeetingIds: Set<String> = []
     private var localKeyMonitor: Any?
     private var globalKeyMonitor: Any?
     private var lastRoutingTarget: RoutingTarget?
@@ -87,10 +154,19 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         appURL = defaults.string(forKey: "df_app_url") ?? "https://app.dragonfruit.sh"
         apiToken = defaults.string(forKey: "df_api_token") ?? ""
         setupHotkey()
+        if !apiToken.isEmpty {
+            Task { @MainActor in
+                await restoreSession()
+            }
+        }
     }
 
     var countdownLabel: String {
+        if !googleConnected { return "Connect" }
+        if !hasMeetingsToday, meeting.id != "empty" { return "Next up" }
+        if meeting.id == "empty" { return "No meetings" }
         let delta = Int(meeting.startAt.timeIntervalSinceNow)
+        if Date() >= meeting.startAt && Date() <= meeting.endAt { return "Happening now" }
         if delta <= 0 { return "Starting now" }
         return "in \(max(1, delta / 60))m"
     }
@@ -99,12 +175,42 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         NSApplication.shared.windows.first ?? ASPresentationAnchor()
     }
 
-    func toggleRecording() {
-        if meetingState == "Recording" {
-            meetingState = "Summary"
-        } else {
-            meetingState = "Recording"
+    func restoreSession() async {
+        do {
+            let client = try makeClient()
+            _ = try await client.getCurrentUser()
+            isAuthenticated = true
+            statusMessage = "Signed in to DragonFruit"
+            await refreshCalendarState()
+            await refreshAvailableAgents()
+            startMeetingRefreshLoop()
+        } catch {
+            isAuthenticated = false
         }
+    }
+
+    func toggleRecording() {
+        if isMeetingRecording {
+            Task { await stopMeetingRecordingAndSave() }
+        } else {
+            Task { await startMeetingRecording() }
+        }
+    }
+
+    func openJoinLink() {
+        guard let url = meeting.joinURL else {
+            statusMessage = "No meeting link found yet."
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+
+    func openMeetingNotes() {
+        guard let url = lastMeetingNotesURL else {
+            statusMessage = "No meeting notes draft saved yet."
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
 
     func toggleVoiceCapture() {
@@ -185,6 +291,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             statusMessage = "Signed in to DragonFruit"
             await refreshCalendarState()
             await refreshAvailableAgents()
+            startMeetingRefreshLoop()
         } catch {
             isAuthenticated = false
             statusMessage = "Login finished, but API session is missing. Please retry."
@@ -207,6 +314,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     }
                     await self.refreshCalendarState()
                     await self.refreshAvailableAgents()
+                    await MainActor.run {
+                        self.startMeetingRefreshLoop()
+                    }
                     return
                 } catch {
                     try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -263,19 +373,78 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             let from = formatter.string(from: .now)
             let to = formatter.string(from: .now.addingTimeInterval(7 * 24 * 60 * 60))
             let events = accounts.isEmpty ? [] : try await client.getUpcomingMeetings(fromISO: from, toISO: to)
-            if let event = events.first, let start = parseCalendarDate(event.start) {
-                meeting = MeetingInfo(title: event.title.isEmpty ? "Untitled meeting" : event.title, startAt: start)
-                statusMessage = "Loaded \(events.count) upcoming meeting\(events.count == 1 ? "" : "s")."
+            let mappedMeetings = events.compactMap(makeMeetingInfo(from:))
+            meetings = mappedMeetings
+            hasMeetingsToday = mappedMeetings.contains(where: isTodayMeeting)
+
+            if let currentOrUpcomingToday = mappedMeetings.first(where: { isTodayMeeting($0) && $0.endAt >= .now }) {
+                meeting = currentOrUpcomingToday
+                updateMeetingState(for: currentOrUpcomingToday)
+                notifyIfNeeded(for: currentOrUpcomingToday)
+                statusMessage = "Loaded \(mappedMeetings.count) upcoming meeting\(mappedMeetings.count == 1 ? "" : "s")."
+            } else if let next = mappedMeetings.first {
+                meeting = next
+                meetingState = hasMeetingsToday ? "Upcoming" : "Next upcoming"
+                statusMessage = hasMeetingsToday ? "No more meetings today." : "No meetings today."
             } else if accounts.isEmpty {
-                meeting = MeetingInfo(title: "Google Calendar is not connected", startAt: .now)
+                meeting = MeetingInfo.empty
+                meetings = []
+                hasMeetingsToday = false
+                meetingState = "Connect"
                 statusMessage = "Calendar not connected yet."
             } else {
-                meeting = MeetingInfo(title: "No upcoming meetings", startAt: .now)
+                meeting = MeetingInfo.empty
+                meetingState = "Clear"
                 statusMessage = "No meetings found for the next 7 days."
             }
         } catch {
             statusMessage = error.localizedDescription
         }
+    }
+
+    private func makeMeetingInfo(from event: CalendarEvent) -> MeetingInfo? {
+        guard let start = parseCalendarDate(event.start) else { return nil }
+        let end = parseCalendarDate(event.end) ?? start.addingTimeInterval(60 * 60)
+        return MeetingInfo(
+            id: [event.account_id, event.calendar_id, event.id].compactMap { $0 }.joined(separator: ":"),
+            eventId: event.id,
+            title: event.title.isEmpty ? "Untitled meeting" : event.title,
+            startAt: start,
+            endAt: max(end, start.addingTimeInterval(15 * 60)),
+            description: event.description,
+            location: event.location,
+            htmlLink: event.html_link.isEmpty ? nil : event.html_link,
+            hangoutLink: event.hangout_link,
+            accountId: event.account_id,
+            accountEmail: event.account_email,
+            calendarId: event.calendar_id,
+            calendarName: event.calendar_name
+        )
+    }
+
+    private func isTodayMeeting(_ meeting: MeetingInfo) -> Bool {
+        Calendar.current.isDate(meeting.startAt, inSameDayAs: .now)
+    }
+
+    private func updateMeetingState(for meeting: MeetingInfo) {
+        let now = Date()
+        if isMeetingRecording {
+            meetingState = "Recording"
+        } else if now >= meeting.startAt && now <= meeting.endAt {
+            meetingState = "Live"
+        } else if meeting.startAt.timeIntervalSince(now) <= Double(autoStartMinutesBefore * 60) {
+            meetingState = "Starting"
+        } else {
+            meetingState = "Upcoming"
+        }
+    }
+
+    private func notifyIfNeeded(for meeting: MeetingInfo) {
+        guard meeting.id != "empty", !notifiedMeetingIds.contains(meeting.id) else { return }
+        let secondsUntilStart = meeting.startAt.timeIntervalSinceNow
+        guard secondsUntilStart >= 0, secondsUntilStart <= Double(max(1, autoStartMinutesBefore) * 60) else { return }
+        notifiedMeetingIds.insert(meeting.id)
+        deliverNotification(title: "Meeting starting", body: meeting.title)
     }
 
     private func parseCalendarDate(_ value: String) -> Date? {
@@ -316,6 +485,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                             self.statusMessage = "Google Calendar connected."
                         }
                         await self.refreshCalendarState()
+                        await MainActor.run {
+                            self.startMeetingRefreshLoop()
+                        }
                         return
                     }
                 } catch {
@@ -327,6 +499,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 if !self.googleConnected {
                     self.statusMessage = "Calendar still not connected. Try again from Settings."
                 }
+            }
+        }
+    }
+
+    private func startMeetingRefreshLoop() {
+        meetingRefreshTask?.cancel()
+        meetingRefreshTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                await self.refreshCalendarState()
+                try? await Task.sleep(nanoseconds: 60_000_000_000)
             }
         }
     }
@@ -368,6 +551,144 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private func isVoiceHotkey(event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         return flags == [.option, .command] && event.keyCode == 49
+    }
+
+    private func startMeetingRecording() async {
+        guard isAuthenticated else {
+            statusMessage = "Sign in first to record meeting notes."
+            return
+        }
+        guard googleConnected, meeting.id != "empty" else {
+            statusMessage = "Connect Google Calendar and choose a meeting first."
+            return
+        }
+        guard let recognizer = speechRecognizer, recognizer.isAvailable else {
+            statusMessage = "Speech recognizer unavailable."
+            return
+        }
+
+        if isListening {
+            stopVoiceCapture()
+        }
+
+        do {
+            let speechAuth = await requestSpeechAuthorization()
+            guard speechAuth == .authorized else {
+                statusMessage = "Speech permission denied."
+                return
+            }
+            let micGranted = await requestMicrophonePermission()
+            guard micGranted else {
+                statusMessage = "Microphone permission denied."
+                return
+            }
+
+            recognitionTask?.cancel()
+            recognitionTask = nil
+            recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+            guard let request = recognitionRequest else { return }
+            request.shouldReportPartialResults = true
+
+            meetingNotesTranscript = ""
+            recordingMeeting = meeting
+            let node = audioEngine.inputNode
+            let format = node.outputFormat(forBus: 0)
+            node.removeTap(onBus: 0)
+            node.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+                self?.recognitionRequest?.append(buffer)
+            }
+
+            audioEngine.prepare()
+            try audioEngine.start()
+            isMeetingRecording = true
+            meetingState = "Recording"
+            statusMessage = "Recording meeting notes..."
+
+            recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
+                guard let self else { return }
+                if let result {
+                    Task { @MainActor in self.meetingNotesTranscript = result.bestTranscription.formattedString }
+                }
+                if error != nil {
+                    Task { @MainActor in
+                        if self.isMeetingRecording {
+                            await self.stopMeetingRecordingAndSave()
+                        }
+                    }
+                }
+            }
+        } catch {
+            statusMessage = "Meeting recording failed: \(error.localizedDescription)"
+            stopAudioCapture()
+        }
+    }
+
+    private func stopMeetingRecordingAndSave() async {
+        stopAudioCapture()
+        isMeetingRecording = false
+        meetingState = "Saving"
+
+        let notes = meetingNotesTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !notes.isEmpty else {
+            meetingState = "Summary"
+            statusMessage = "Recording stopped. No transcript captured."
+            return
+        }
+
+        do {
+            let client = try makeClient()
+            let workspaces = try await client.listWorkspaces()
+            let workspace = workspaces.first
+            guard let workspace else {
+                statusMessage = "No workspace available for meeting notes."
+                meetingState = "Summary"
+                return
+            }
+            let targetMeeting = recordingMeeting ?? meeting
+            let draft = try await client.createMeetingNotesDraft(
+                workspaceSlug: workspace.slug,
+                meeting: targetMeeting,
+                notes: notes
+            )
+            lastMeetingNotesURL = draft.url.flatMap(URL.init(string:))
+            lastSavedMeetingTitle = targetMeeting.title
+            meetingState = "Notes ready"
+            statusMessage = "Meeting notes saved to Drafts."
+            notifyMeetingNotesSaved(title: targetMeeting.title)
+        } catch {
+            meetingState = "Summary"
+            statusMessage = "Could not save meeting notes: \(error.localizedDescription)"
+        }
+    }
+
+    private func stopAudioCapture() {
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        recognitionRequest = nil
+    }
+
+    private func notifyMeetingNotesSaved(title: String) {
+        deliverNotification(title: "Meeting notes saved", body: title)
+    }
+
+    private func deliverNotification(title: String, body: String) {
+        Task {
+            let center = UNUserNotificationCenter.current()
+            _ = try? await center.requestAuthorization(options: [.alert, .sound])
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+            let request = UNNotificationRequest(
+                identifier: UUID().uuidString,
+                content: content,
+                trigger: nil
+            )
+            try? await center.add(request)
+        }
     }
 
     private func startVoiceCapture() async {
@@ -426,12 +747,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private func stopVoiceCapture() {
         isListening = false
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        recognitionRequest = nil
+        stopAudioCapture()
 
         let text = lastTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
