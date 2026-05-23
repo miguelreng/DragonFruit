@@ -43,7 +43,7 @@ struct APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         if let apiToken, !apiToken.isEmpty {
-            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+            request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
         return request
     }
@@ -113,7 +113,7 @@ struct APIClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
         if let apiToken, !apiToken.isEmpty {
-            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+            request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
         request.httpBody = try JSONEncoder().encode(["code": code, "client": "native"])
 

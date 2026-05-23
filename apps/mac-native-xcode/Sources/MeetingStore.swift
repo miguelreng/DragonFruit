@@ -165,15 +165,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             statusMessage = "Unexpected callback URL"
             return
         }
-        if let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-           let token = components.queryItems?.first(where: { $0.name == "api_token" })?.value,
-           !token.isEmpty
-        {
-            apiToken = token
-            UserDefaults.standard.set(token, forKey: "df_api_token")
+        guard let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+              let token = components.queryItems?.first(where: { $0.name == "api_token" })?.value,
+              !token.isEmpty
+        else {
+            statusMessage = "Login callback missing API token. Please try again."
+            return
         }
 
         do {
+            apiToken = token
+            UserDefaults.standard.set(token, forKey: "df_api_token")
             let client = try makeClient()
             _ = try await client.getCurrentUser()
             isAuthenticated = true

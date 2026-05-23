@@ -5,7 +5,7 @@
 # Django imports
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 # Third party imports
 from rest_framework import status
@@ -46,8 +46,8 @@ class NativeLoginStartEndpoint(APIView):
             return native_handoff_response(f"{callback}{separator}api_token={quote(token)}")
 
         app_host = base_host(request=request, is_app=True).rstrip("/")
-        native_login_path = f"/native-login?callback={quote(callback, safe='')}"
-        return HttpResponseRedirect(f"{app_host}/login?next_path={quote(native_login_path, safe='/?=&')}")
+        native_login_path = f"/native-login?{urlencode({'callback': callback})}"
+        return HttpResponseRedirect(f"{app_host}/login?{urlencode({'next_path': native_login_path})}")
 
 
 class CSRFTokenEndpoint(APIView):
