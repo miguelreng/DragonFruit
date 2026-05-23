@@ -1,0 +1,10 @@
+{
+  "extends": "@plane/typescript-config/node-library.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "xmcp.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

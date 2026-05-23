@@ -69,7 +69,7 @@ export function Toast(props: ToastProps) {
 
 const TOAST_DATA = {
   [TOAST_TYPE.SUCCESS]: {
-    icon: <CheckIcon width={12} height={12} className="text-on-color" />,
+    icon: <CheckIcon width={14} height={14} className="text-on-color" />,
     iconBgClassName: "bg-success-primary",
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
@@ -115,6 +115,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
   const toastData = toast.data as SetToastProps;
   const type = toastData.type as TOAST_TYPE;
   const data = TOAST_DATA[type];
+  const isSuccess = type === TOAST_TYPE.SUCCESS;
 
   return (
     <BaseToast.Root
@@ -122,7 +123,8 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
       key={id}
       className={cn(
         // Base layout and positioning
-        "group flex w-[350px] items-center rounded-lg border shadow-raised-200",
+        "group flex items-center border shadow-raised-200",
+        isSuccess ? "w-[390px] max-w-[calc(100vw-2rem)] rounded-xl" : "w-[350px] rounded-lg",
         "absolute right-3 bottom-3 z-[calc(1000-var(--toast-index))]",
         "ease-&lsqb;cubic-bezier(0.22,1,0.36,1)&rsqb; transition-[opacity,transform] duration-500 select-none",
 
@@ -163,25 +165,41 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         e.preventDefault();
       }}
     >
-      <BaseToast.Close className="absolute top-3 right-3 cursor-pointer text-icon-secondary hover:text-icon-tertiary">
-        <CloseIcon strokeWidth={1.5} width={16} height={16} />
+      <BaseToast.Close
+        className={cn(
+          "absolute cursor-pointer text-icon-secondary hover:text-icon-tertiary",
+          isSuccess ? "top-4 right-4" : "top-3 right-3"
+        )}
+      >
+        <CloseIcon strokeWidth={1.5} width={isSuccess ? 18 : 16} height={isSuccess ? 18 : 16} />
       </BaseToast.Close>
-      <div className="flex w-full items-start gap-2 p-4">
-        <div className="py-1">
+      <div className={cn("flex w-full items-start", isSuccess ? "gap-3 p-5" : "gap-2 p-4")}>
+        <div className={cn(isSuccess ? "py-0.5" : "py-1")}>
           {data.icon && (
             <div
-              className={cn("flex size-4 flex-shrink-0 items-center justify-center rounded-full", data.iconBgClassName)}
+              className={cn(
+                "flex flex-shrink-0 items-center justify-center rounded-full",
+                isSuccess ? "size-8" : "size-4",
+                data.iconBgClassName
+              )}
             >
               {data.icon}
             </div>
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <BaseToast.Title className="text-body-sm-medium text-primary">
+          <BaseToast.Title
+            className={cn("text-primary", isSuccess ? "text-[34px] leading-tight font-medium" : "text-body-sm-medium")}
+          >
             {toastData.type === TOAST_TYPE.LOADING ? (toastData.title ?? "Loading...") : toastData.title}
           </BaseToast.Title>
           {toastData.type !== TOAST_TYPE.LOADING && toastData.message && (
-            <BaseToast.Description className="text-body-xs-regular text-tertiary">
+            <BaseToast.Description
+              className={cn(
+                "text-tertiary",
+                isSuccess ? "font-normal text-[20px] leading-snug" : "text-body-xs-regular"
+              )}
+            >
               {toastData.message}
             </BaseToast.Description>
           )}
