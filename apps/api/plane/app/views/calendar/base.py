@@ -25,7 +25,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import allow_permission, ROLE
-from plane.db.models import Issue, IssueAssignee, UserCalendarAccount
+from plane.db.models import Issue, Project, State, UserCalendarAccount
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 
 from ..base import BaseAPIView
@@ -301,6 +301,47 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
         return Response({"events": events}, status=status.HTTP_200_OK)
 
 
+class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
+    """Fetch the current user's next Google Calendar meetings across accounts."""
+
+    def get(self, request):
+        time_min = request.query_params.get("from") or datetime.now(timezone.utc).isoformat()
+        time_max = (
+            request.query_params.get("to")
+            or (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+        )
+        accounts = UserCalendarAccount.objects.filter(user=request.user, is_active=True)
+        events: list[dict] = []
+
+        for account in accounts:
+            calendar_id = account.primary_calendar_id or "primary"
+            access_token = _refresh_if_needed(account)
+            resp = requests.get(
+                f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events",
+                params={
+                    "timeMin": time_min,
+                    "timeMax": time_max,
+                    "singleEvents": "true",
+                    "orderBy": "startTime",
+                    "maxResults": 20,
+                },
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10,
+            )
+            if resp.status_code != 200:
+                continue
+            for raw_event in resp.json().get("items", []):
+                event = _event_to_dict(raw_event)
+                event["account_id"] = str(account.id)
+                event["account_email"] = account.account_email
+                event["source"] = "google_calendar"
+                events.append(event)
+
+        events = [event for event in events if event.get("start")]
+        events.sort(key=lambda event: event["start"])
+        return Response({"events": events[:20]}, status=status.HTTP_200_OK)
+
+
 def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue) -> str:
     """Create/update a Google Calendar event for one issue and return event id."""
     calendar_id = account.primary_calendar_id or "primary"
@@ -370,7 +411,10 @@ class CalendarSyncTasksToGoogleEndpoint(BaseAPIView):
 
         issues = (
             Issue.issue_objects.filter(workspace__slug=slug)
-            .filter(project__project_projectmember__member=request.user, project__project_projectmember__is_active=True)
+            .filter(
+                project__project_projectmember__member=request.user,
+                project__project_projectmember__is_active=True,
+            )
             .filter(Q(assignees=request.user) | Q(created_by=request.user))
             .filter(
                 Q(target_date__range=(from_dt.date(), to_dt.date()))
@@ -390,6 +434,102 @@ class CalendarSyncTasksToGoogleEndpoint(BaseAPIView):
                 failed.append({"issue_id": str(issue.id), "reason": str(exc)[:200]})
 
         return Response({"synced": synced, "failed": failed}, status=status.HTTP_200_OK)
+
+
+class CalendarImportGoogleEventsEndpoint(BaseAPIView):
+    """Two-way sync step 2: import Google Calendar events into a DragonFruit project."""
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def post(self, request, slug):
+        account_id = request.data.get("account_id")
+        project_id = request.data.get("project_id")
+        time_from = request.data.get("from")
+        time_to = request.data.get("to")
+        if not account_id or not project_id:
+            return Response(
+                {"error": "account_id and project_id are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not time_from or not time_to:
+            return Response({"error": "from and to are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            account = UserCalendarAccount.objects.get(id=account_id, user=request.user, is_active=True)
+            project = Project.objects.get(
+                id=project_id,
+                workspace__slug=slug,
+                project_projectmember__member=request.user,
+            )
+        except UserCalendarAccount.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Project.DoesNotExist:
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        access_token = _refresh_if_needed(account)
+        calendar_id = account.primary_calendar_id or "primary"
+        resp = requests.get(
+            f"{GOOGLE_CAL_API}/calendars/{calendar_id}/events",
+            params={
+                "timeMin": time_from,
+                "timeMax": time_to,
+                "singleEvents": "true",
+                "orderBy": "startTime",
+                "maxResults": 250,
+            },
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return Response(
+                {"error": "Failed to fetch events", "status": resp.status_code, "details": resp.text[:500]},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        default_state = (
+            State.objects.filter(project=project, default=True).first()
+            or State.objects.filter(project=project).order_by("sequence").first()
+        )
+        imported = 0
+        skipped = 0
+        for event in resp.json().get("items", []):
+            event_id = event.get("id")
+            if not event_id or event.get("status") == "cancelled":
+                skipped += 1
+                continue
+            start_date = _google_event_date(event.get("start", {}))
+            end_date = _google_event_date(event.get("end", {})) or start_date
+            if not start_date:
+                skipped += 1
+                continue
+            issue, created = Issue.issue_objects.update_or_create(
+                workspace=project.workspace,
+                project=project,
+                external_source="google_calendar",
+                external_id=event_id,
+                defaults={
+                    "name": event.get("summary") or "Untitled calendar event",
+                    "description_html": event.get("description") or "<p>Imported from Google Calendar.</p>",
+                    "start_date": start_date,
+                    "target_date": end_date,
+                    "state": default_state,
+                    "priority": "none",
+                },
+            )
+            if created:
+                issue.assignees.add(request.user)
+            imported += 1
+
+        return Response({"imported": imported, "skipped": skipped}, status=status.HTTP_200_OK)
+
+
+def _google_event_date(value: dict):
+    raw = value.get("dateTime") or value.get("date")
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(str(raw).replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
 
 
 def _event_to_dict(e: dict) -> dict:
