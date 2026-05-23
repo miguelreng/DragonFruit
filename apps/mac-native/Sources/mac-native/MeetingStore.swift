@@ -228,6 +228,21 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         NSWorkspace.shared.open(url)
     }
 
+    func logout() {
+        loginPollTask?.cancel()
+        calendarPollTask?.cancel()
+        meetingRefreshTask?.cancel()
+        if isListening {
+            stopVoiceCapture()
+        }
+        if isMeetingRecording {
+            stopAudioCapture()
+            isMeetingRecording = false
+            meetingState = "Upcoming"
+        }
+        clearSavedSession(message: "")
+    }
+
     func toggleVoiceCapture() {
         if isListening {
             stopVoiceCapture()

@@ -16,12 +16,7 @@ struct MeetingPopoverView: View {
                 upcomingCard
             }
 
-            if !store.statusMessage.isEmpty {
-                Text(store.statusMessage)
-                    .font(.custom("Figtree", size: 11).weight(.medium))
-                    .foregroundStyle(BrandTheme.textSecondary)
-                    .lineLimit(3)
-            }
+            footer
         }
         .padding(12)
         .background(BrandTheme.surface)
@@ -116,10 +111,6 @@ struct MeetingPopoverView: View {
                     .font(.custom("Newsreader", size: 18).weight(.medium))
                     .foregroundStyle(BrandTheme.textPrimary)
                     .lineLimit(2)
-                Button("Reconnect Google Calendar") {
-                    Task { await store.connectGoogle() }
-                }
-                .buttonStyle(DragonFruitPrimaryButtonStyle())
             } else if store.googleConnected {
                 if !store.hasMeetingsToday && store.meeting.id != "empty" {
                     Text("No meetings today")
@@ -163,6 +154,27 @@ struct MeetingPopoverView: View {
     private var settingsButtonTitle: String {
         if store.needsCalendarReconnect { return "Reconnect Calendar" }
         return store.googleConnected ? "Refresh meetings" : "Connect Google Calendar"
+    }
+
+    private var footer: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            if store.isAuthenticated {
+                Button("Log out") {
+                    store.logout()
+                }
+                .buttonStyle(.plain)
+                .font(.custom("Figtree", size: 11).weight(.medium))
+                .foregroundStyle(BrandTheme.textSecondary)
+            }
+            Spacer(minLength: 8)
+            if !store.statusMessage.isEmpty {
+                Text(store.statusMessage)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                    .multilineTextAlignment(.trailing)
+                    .lineLimit(2)
+            }
+        }
     }
 
     @ViewBuilder
