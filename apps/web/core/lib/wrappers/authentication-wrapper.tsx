@@ -30,6 +30,8 @@ const isValidURL = (url: string): boolean => {
   return !disallowedSchemes.test(url);
 };
 
+const isNativeSchemeURL = (url: string): boolean => /^[a-z][a-z0-9+.-]*:\/\//i.test(url);
+
 export const AuthenticationWrapper = observer(function AuthenticationWrapper(props: TAuthenticationWrapper) {
   const pathname = usePathname();
   const router = useAppRouter();
@@ -92,7 +94,11 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     else {
       if (currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.push(currentRedirectRoute);
+        if (isNativeSchemeURL(currentRedirectRoute)) {
+          window.location.assign(currentRedirectRoute);
+        } else {
+          router.push(currentRedirectRoute);
+        }
         return <></>;
       } else {
         router.push("/onboarding");
@@ -108,7 +114,11 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     } else {
       if (currentUser && currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.replace(currentRedirectRoute);
+        if (isNativeSchemeURL(currentRedirectRoute)) {
+          window.location.assign(currentRedirectRoute);
+        } else {
+          router.replace(currentRedirectRoute);
+        }
         return <></>;
       } else return <>{children}</>;
     }
@@ -121,7 +131,11 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     } else {
       if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
-        router.push(currentRedirectRoute);
+        if (isNativeSchemeURL(currentRedirectRoute)) {
+          window.location.assign(currentRedirectRoute);
+        } else {
+          router.push(currentRedirectRoute);
+        }
         return <></>;
       } else return <>{children}</>;
     }
