@@ -108,8 +108,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var appURL = "https://app.dragonfruit.sh"
     @Published var statusMessage = ""
 
+    @Published var isRestoringSession = false
     @Published var isAuthenticated = false
     @Published var googleConnected = false
+    @Published var needsCalendarReconnect = false
 
     @Published var meeting = MeetingInfo.empty
     @Published var meetings: [MeetingInfo] = []
@@ -153,6 +155,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         baseURL = savedBaseURL?.contains("localhost") == true ? "https://api.dragonfruit.sh" : (savedBaseURL ?? "https://api.dragonfruit.sh")
         appURL = defaults.string(forKey: "df_app_url") ?? "https://app.dragonfruit.sh"
         apiToken = defaults.string(forKey: "df_api_token") ?? ""
+        isRestoringSession = !apiToken.isEmpty
         setupHotkey()
         if !apiToken.isEmpty {
             Task { @MainActor in
@@ -162,6 +165,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     var countdownLabel: String {
+        if needsCalendarReconnect { return "Reconnect" }
         if !googleConnected { return "Connect" }
         if !hasMeetingsToday, meeting.id != "empty" { return "Next up" }
         if meeting.id == "empty" { return "No meetings" }
@@ -176,16 +180,19 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     func restoreSession() async {
+        isRestoringSession = true
         do {
             let client = try makeClient()
             _ = try await client.getCurrentUser()
             isAuthenticated = true
+            isRestoringSession = false
             statusMessage = "Signed in to DragonFruit"
             await refreshCalendarState()
             await refreshAvailableAgents()
             startMeetingRefreshLoop()
         } catch {
-            isAuthenticated = false
+            clearSavedSession(message: "")
+            isRestoringSession = false
         }
     }
 
@@ -293,7 +300,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             await refreshAvailableAgents()
             startMeetingRefreshLoop()
         } catch {
-            isAuthenticated = false
+            clearSavedSession(message: "Login finished, but API session is missing. Please retry.")
             statusMessage = "Login finished, but API session is missing. Please retry."
         }
     }
@@ -373,11 +380,21 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             let from = formatter.string(from: .now)
             let to = formatter.string(from: .now.addingTimeInterval(7 * 24 * 60 * 60))
             let events = accounts.isEmpty ? [] : try await client.getUpcomingMeetings(fromISO: from, toISO: to)
-            let mappedMeetings = events.compactMap(makeMeetingInfo(from:))
+            let errorEvents = events.filter { $0.status.lowercased() == "error" }
+            let realEvents = events.filter { event in
+                let status = event.status.lowercased()
+                return status != "error" && status != "cancelled"
+            }
+            needsCalendarReconnect = !errorEvents.isEmpty && realEvents.isEmpty
+            let mappedMeetings = realEvents.compactMap(makeMeetingInfo(from:))
             meetings = mappedMeetings
             hasMeetingsToday = mappedMeetings.contains(where: isTodayMeeting)
 
-            if let currentOrUpcomingToday = mappedMeetings.first(where: { isTodayMeeting($0) && $0.endAt >= .now }) {
+            if needsCalendarReconnect {
+                meeting = MeetingInfo.empty
+                meetingState = "Reconnect"
+                statusMessage = "Google Calendar needs reconnect. Click Reconnect in Settings."
+            } else if let currentOrUpcomingToday = mappedMeetings.first(where: { isTodayMeeting($0) && $0.endAt >= .now }) {
                 meeting = currentOrUpcomingToday
                 updateMeetingState(for: currentOrUpcomingToday)
                 notifyIfNeeded(for: currentOrUpcomingToday)
@@ -390,10 +407,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 meeting = MeetingInfo.empty
                 meetings = []
                 hasMeetingsToday = false
+                needsCalendarReconnect = false
                 meetingState = "Connect"
                 statusMessage = "Calendar not connected yet."
             } else {
                 meeting = MeetingInfo.empty
+                needsCalendarReconnect = false
                 meetingState = "Clear"
                 statusMessage = "No meetings found for the next 7 days."
             }
@@ -529,6 +548,21 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private func persistSettings() {
         persistCredentials()
+    }
+
+    private func clearSavedSession(message: String) {
+        apiToken = ""
+        isAuthenticated = false
+        googleConnected = false
+        needsCalendarReconnect = false
+        meeting = .empty
+        meetings = []
+        hasMeetingsToday = false
+        meetingRefreshTask?.cancel()
+        UserDefaults.standard.removeObject(forKey: "df_api_token")
+        if !message.isEmpty {
+            statusMessage = message
+        }
     }
 
     private func setupHotkey() {

@@ -7,7 +7,9 @@ struct MeetingPopoverView: View {
         VStack(alignment: .leading, spacing: 10) {
             header
 
-            if !store.isAuthenticated {
+            if store.isRestoringSession {
+                loadingCard
+            } else if !store.isAuthenticated {
                 loginCard
             } else {
                 settingsCard
@@ -59,16 +61,34 @@ struct MeetingPopoverView: View {
         }
     }
 
+    private var loadingCard: some View {
+        card {
+            HStack(spacing: 10) {
+                ProgressView()
+                    .controlSize(.small)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Checking your DragonFruit session")
+                        .font(.custom("Figtree", size: 12).weight(.medium))
+                        .foregroundStyle(BrandTheme.textPrimary)
+                    Text("One moment while Copilot verifies this Mac.")
+                        .font(.custom("Figtree", size: 11).weight(.medium))
+                        .foregroundStyle(BrandTheme.textSecondary)
+                }
+                Spacer()
+            }
+        }
+    }
+
     private var settingsCard: some View {
         card {
-            labelRow("Settings", value: store.googleConnected ? "Connected" : "Connect")
-            Text(store.googleConnected ? "Calendar connected and voice capture ready." : "Connect Google Calendar to bring meetings here.")
+            labelRow("Settings", value: store.needsCalendarReconnect ? "Reconnect" : (store.googleConnected ? "Connected" : "Connect"))
+            Text(settingsCopy)
                 .font(.custom("Figtree", size: 12).weight(.medium))
                 .foregroundStyle(BrandTheme.textSecondary)
             HStack(spacing: 8) {
-                Button(store.googleConnected ? "Refresh meetings" : "Connect Google Calendar") {
+                Button(settingsButtonTitle) {
                     Task {
-                        if store.googleConnected {
+                        if store.googleConnected && !store.needsCalendarReconnect {
                             await store.refreshCalendarState()
                         } else {
                             await store.connectGoogle()
@@ -92,7 +112,16 @@ struct MeetingPopoverView: View {
     private var upcomingCard: some View {
         card {
             labelRow("Upcoming meeting", value: store.countdownLabel)
-            if store.googleConnected {
+            if store.needsCalendarReconnect {
+                Text("Reconnect Google Calendar to bring meetings here.")
+                    .font(.custom("Newsreader", size: 18).weight(.medium))
+                    .foregroundStyle(BrandTheme.textPrimary)
+                    .lineLimit(2)
+                Button("Reconnect Google Calendar") {
+                    Task { await store.connectGoogle() }
+                }
+                .buttonStyle(DragonFruitPrimaryButtonStyle())
+            } else if store.googleConnected {
                 if !store.hasMeetingsToday && store.meeting.id != "empty" {
                     Text("No meetings today")
                         .font(.custom("Figtree", size: 12).weight(.medium))
@@ -159,6 +188,18 @@ struct MeetingPopoverView: View {
                     .lineLimit(2)
             }
         }
+    }
+
+    private var settingsCopy: String {
+        if store.needsCalendarReconnect {
+            return "Google Calendar needs a fresh connection to read your latest meetings."
+        }
+        return store.googleConnected ? "Calendar connected and voice capture ready." : "Connect Google Calendar to bring meetings here."
+    }
+
+    private var settingsButtonTitle: String {
+        if store.needsCalendarReconnect { return "Reconnect Calendar" }
+        return store.googleConnected ? "Refresh meetings" : "Connect Google Calendar"
     }
 
     private var voiceCard: some View {
