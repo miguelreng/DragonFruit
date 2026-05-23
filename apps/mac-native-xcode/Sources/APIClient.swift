@@ -70,12 +70,22 @@ struct CSRFResponse: Codable {
 
 struct APIClient {
     var baseURL: URL
+    var apiToken: String?
 
     private var session: URLSession {
         let configuration = URLSessionConfiguration.default
         configuration.httpCookieStorage = HTTPCookieStorage.shared
         configuration.httpCookieAcceptPolicy = .always
         return URLSession(configuration: configuration)
+    }
+
+    private func authorizedRequest(url: URL, method: String = "GET") -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        }
+        return request
     }
 
     func fetchCSRFToken() async throws -> String {
@@ -105,7 +115,8 @@ struct APIClient {
 
     func getCurrentUser() async throws -> [String: Any] {
         let url = baseURL.appending(path: "api/users/me/")
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw NSError(domain: "DragonFruitNative", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Invalid user payload"])
@@ -115,7 +126,8 @@ struct APIClient {
 
     func listCalendarAccounts() async throws -> [CalendarAccount] {
         let url = baseURL.appending(path: "api/users/me/calendar-accounts/")
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
         return try JSONDecoder().decode([CalendarAccount].self, from: data)
     }
@@ -126,7 +138,8 @@ struct APIClient {
         guard let url = components?.url else {
             throw NSError(domain: "DragonFruitNative", code: 1004, userInfo: [NSLocalizedDescriptionKey: "Invalid Google start URL"])
         }
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
         let payload = try JSONDecoder().decode(OAuthStartResponse.self, from: data)
         guard let authURL = URL(string: payload.authorize_url) else {
@@ -141,6 +154,9 @@ struct APIClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONEncoder().encode(["code": code, "client": "native"])
 
         let (_, response) = try await session.data(for: request)
@@ -156,7 +172,8 @@ struct APIClient {
         guard let url = components?.url else {
             throw NSError(domain: "DragonFruitNative", code: 1002, userInfo: [NSLocalizedDescriptionKey: "Invalid events URL"])
         }
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
 
         struct EventsResponse: Codable {
@@ -168,14 +185,16 @@ struct APIClient {
 
     func listWorkspaces() async throws -> [WorkspaceSummary] {
         let url = baseURL.appending(path: "api/workspaces/")
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
         return try decodeArrayOrResults(data, as: WorkspaceSummary.self)
     }
 
     func listProjects(workspaceSlug: String) async throws -> [ProjectSummary] {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/projects/")
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
         return try decodeArrayOrResults(data, as: ProjectSummary.self)
     }
@@ -185,6 +204,9 @@ struct APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "name": title,
             "description_html": descriptionHtml,
@@ -200,6 +222,9 @@ struct APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "name": title,
             "page_type": "doc",
@@ -215,6 +240,9 @@ struct APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "name": title,
             "description_html": descriptionHtml,
@@ -226,7 +254,8 @@ struct APIClient {
 
     func listAgents(workspaceSlug: String) async throws -> [AgentSummary] {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agents/")
-        let (data, response) = try await session.data(from: url)
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
         try ensureStatus(response, allowed: [200])
         return try decodeArrayOrResults(data, as: AgentSummary.self)
     }
@@ -236,6 +265,9 @@ struct APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "agent_id": agentId,
             "title": title,
@@ -250,6 +282,9 @@ struct APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "content": content,
         ])

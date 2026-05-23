@@ -28,6 +28,7 @@ from plane.authentication.adapter.error import (
 )
 from plane.authentication.rate_limit import AuthenticationThrottle
 from plane.utils.path_validator import get_safe_redirect_url
+from plane.authentication.utils.native_handoff import create_native_api_token, is_native_callback
 
 
 class MagicGenerateEndpoint(APIView):
@@ -114,10 +115,13 @@ class MagicSignInEndpoint(View):
                 # Get the redirection path
                 path = str(get_redirection_path(user=user))
             # redirect to referer path
+            params = {}
+            if is_native_callback(path):
+                params["api_token"] = create_native_api_token(user)
             url = get_safe_redirect_url(
                 base_url=base_host(request=request, is_app=True),
                 next_path=path,
-                params={},
+                params=params,
             )
             return HttpResponseRedirect(url)
 
@@ -181,10 +185,13 @@ class MagicSignUpEndpoint(View):
             else:
                 path = get_redirection_path(user=user)
             # redirect to referer path
+            params = {}
+            if is_native_callback(path):
+                params["api_token"] = create_native_api_token(user)
             url = get_safe_redirect_url(
                 base_url=base_host(request=request, is_app=True),
                 next_path=path,
-                params={},
+                params=params,
             )
             return HttpResponseRedirect(url)
 
