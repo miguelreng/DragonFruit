@@ -6,7 +6,7 @@
 
 import type { ReactNode } from "react";
 import Script from "next/script";
-import { Links, Meta, Outlet, Scripts } from "react-router";
+import { Links, Meta, Outlet, Scripts, useLocation } from "react-router";
 import type { LinksFunction } from "react-router";
 import { ThemeProvider } from "next-themes";
 // plane imports
@@ -22,8 +22,6 @@ import icon512 from "@/app/assets/icons/icon-512x512.png?url";
 import ogImage from "@/app/assets/og-image.png?url";
 import globalStyles from "@/styles/globals.css?url";
 import type { Route } from "./+types/root";
-// components
-import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 // local
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
@@ -133,6 +131,19 @@ export const meta: Route.MetaFunction = () => [
 ];
 
 export default function Root() {
+  const { pathname } = useLocation();
+  const isPublicLegalRoute = pathname === "/google-oauth" || pathname.startsWith("/legal/");
+
+  if (isPublicLegalRoute) {
+    return (
+      <div className={cn("relative flex h-screen w-full flex-col overflow-hidden bg-canvas", "desktop-app-container")}>
+        <main className="relative h-full w-full overflow-hidden">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <AppProvider>
       <div className={cn("relative flex h-screen w-full flex-col overflow-hidden bg-canvas", "desktop-app-container")}>
@@ -145,13 +156,7 @@ export default function Root() {
 }
 
 export function HydrateFallback() {
-  // AppLoadingScreen is theme-independent (always renders against a black backdrop)
-  // and produces identical markup on server and client. Rendering it unconditionally
-  // here avoids the SSR/CSR divergence that previously caused React to tear down the
-  // root tree mid-session and flash the full-screen loader during routine
-  // client-side navigations — see also AppProgressBar for the in-page progress
-  // indicator used during normal route transitions.
-  return <AppLoadingScreen />;
+  return null;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
