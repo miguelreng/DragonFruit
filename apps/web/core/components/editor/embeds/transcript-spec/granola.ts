@@ -32,11 +32,32 @@ const TRANSCRIPT_HEADERS = new Set(["transcript", "full transcript", "raw transc
 
 export type CleanResult = {
   cleaned: string;
-  wasGranola: boolean;
+  source: "granola" | "google" | null;
   removedMetadataLines: number;
   removedTimestampMarkers: number;
   keptOnlyTranscriptSection: boolean;
 };
+
+const GOOGLE_METADATA_LINE =
+  /^(date|time|meeting id|location|attendees|participants|meeting link|organizer|recurring|guests)\s*:\s*/i;
+const GOOGLE_SECTION_HEADERS_TO_DROP = new Set([
+  "summary",
+  "meeting summary",
+  "ai summary",
+  "notes summary",
+  "key takeaways",
+  "action items",
+  "tasks",
+]);
+const GOOGLE_TRANSCRIPT_HEADERS = new Set([
+  "transcript",
+  "meeting transcript",
+  "notes",
+  "discussion",
+  "full transcript",
+]);
+const GOOGLE_TIMESTAMP_SPEAKER = /^\s*\[\d{1,2}:\d{2}(?::\d{2})?\]\s*([A-Z][\w. '-]{0,50})\s*:?\s*/;
+const GOOGLE_MEET_HINT = /(google meet|meeting notes by gemini|take notes for me|meeting notes)/i;
 
 export function looksLikeGranolaExport(input: string): boolean {
   if (!input || input.length < 80) return false;
@@ -57,7 +78,7 @@ export function cleanGranolaExport(input: string): CleanResult {
   if (!looksLikeGranolaExport(input)) {
     return {
       cleaned: input,
-      wasGranola: false,
+      source: null,
       removedMetadataLines: 0,
       removedTimestampMarkers: 0,
       keptOnlyTranscriptSection: false,
@@ -133,7 +154,98 @@ export function cleanGranolaExport(input: string): CleanResult {
 
   return {
     cleaned: out.join("\n"),
-    wasGranola: true,
+    source: "granola",
+    removedMetadataLines,
+    removedTimestampMarkers,
+    keptOnlyTranscriptSection,
+  };
+}
+
+export function looksLikeGoogleMeetingNotesExport(input: string): boolean {
+  if (!input || input.length < 80) return false;
+  let signals = 0;
+
+  const lines = input.split(/\r?\n/);
+  const head = lines.slice(0, 30).map((line) => line.trim());
+  const headText = head.join("\n");
+
+  if (GOOGLE_MEET_HINT.test(headText)) signals += 2;
+  if (head.some((line) => GOOGLE_METADATA_LINE.test(line))) signals++;
+  if (lines.some((line) => GOOGLE_TIMESTAMP_SPEAKER.test(line))) signals++;
+  if (lines.some((line) => /^#{1,6}\s+/.test(line.trim()))) signals++;
+
+  return signals >= 2;
+}
+
+export function cleanGoogleMeetingNotesExport(input: string): CleanResult {
+  if (!looksLikeGoogleMeetingNotesExport(input)) {
+    return {
+      cleaned: input,
+      source: null,
+      removedMetadataLines: 0,
+      removedTimestampMarkers: 0,
+      keptOnlyTranscriptSection: false,
+    };
+  }
+
+  const lines = input.split(/\r?\n/);
+  let removedMetadataLines = 0;
+  let removedTimestampMarkers = 0;
+
+  let startIdx = 0;
+  let keptOnlyTranscriptSection = false;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].trim().match(SECTION_HEADER);
+    if (m && GOOGLE_TRANSCRIPT_HEADERS.has(m[1].toLowerCase())) {
+      startIdx = i + 1;
+      keptOnlyTranscriptSection = true;
+      break;
+    }
+  }
+
+  const out: string[] = [];
+  let dropping = false;
+  for (let i = startIdx; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const line = rawLine.trim();
+    const sectionMatch = line.match(SECTION_HEADER);
+
+    if (sectionMatch) {
+      const name = sectionMatch[1].toLowerCase();
+      dropping = GOOGLE_SECTION_HEADERS_TO_DROP.has(name);
+      continue;
+    }
+
+    if (dropping) continue;
+
+    if (!line) {
+      if (out.length > 0 && out[out.length - 1] !== "") out.push("");
+      continue;
+    }
+
+    if (GOOGLE_METADATA_LINE.test(line)) {
+      removedMetadataLines++;
+      continue;
+    }
+
+    let cleanedLine = rawLine;
+    const timestampSpeakerMatch = cleanedLine.match(GOOGLE_TIMESTAMP_SPEAKER);
+    if (timestampSpeakerMatch) {
+      cleanedLine = cleanedLine.replace(GOOGLE_TIMESTAMP_SPEAKER, `${timestampSpeakerMatch[1]}: `);
+      removedTimestampMarkers++;
+    } else if (TIMESTAMP_PREFIX.test(cleanedLine)) {
+      cleanedLine = cleanedLine.replace(TIMESTAMP_PREFIX, "");
+      removedTimestampMarkers++;
+    }
+
+    out.push(cleanedLine);
+  }
+
+  while (out.length > 0 && out[out.length - 1] === "") out.pop();
+
+  return {
+    cleaned: out.join("\n"),
+    source: "google",
     removedMetadataLines,
     removedTimestampMarkers,
     keptOnlyTranscriptSection,

@@ -1,0 +1,29 @@
+{
+  "name": "@dragonfruit/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "xmcp server exposing Dragon Fruit workspace tools",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "scripts": {
+    "build": "xmcp build",
+    "dev": "xmcp dev",
+    "start": "node dist/http.js",
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "check:lint": "oxlint --max-warnings=0 src xmcp.config.ts",
+    "check:types": "tsc --noEmit",
+    "check:format": "oxfmt --check package.json README.md tsconfig.json xmcp.config.ts src scripts",
+    "fix:lint": "oxlint --fix src xmcp.config.ts",
+    "fix:format": "oxfmt package.json README.md tsconfig.json xmcp.config.ts src scripts",
+    "clean": "rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist"
+  },
+  "dependencies": {
+    "xmcp": "^0.6.10",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@plane/typescript-config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
