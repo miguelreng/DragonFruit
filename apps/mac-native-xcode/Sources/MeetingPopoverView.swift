@@ -5,164 +5,156 @@ struct MeetingPopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                if let logo = BrandTheme.logo {
-                    Image(nsImage: logo)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                }
-                Text("DragonFruit")
-                    .font(.custom("Figtree", size: 11).weight(.semibold))
-                    .foregroundStyle(BrandTheme.accent)
-            }
-
-            Text("DragonFruit Orbit")
-                .font(.custom("Newsreader", size: 30).weight(.semibold))
-                .foregroundStyle(BrandTheme.textPrimary)
-                .lineLimit(1)
+            header
 
             if !store.isAuthenticated {
-                card {
-                    Text("Login to DragonFruit")
-                        .font(.custom("Figtree", size: 12).weight(.semibold))
-                        .foregroundStyle(BrandTheme.textSecondary)
-                    Button("Continue with DragonFruit") {
-                        Task { await store.beginDragonFruitLogin() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    Text("Use email/password or Google from the web screen, then return automatically.")
-                        .font(.custom("Figtree", size: 11).weight(.medium))
-                        .foregroundStyle(BrandTheme.textSecondary)
-                }
+                loginCard
             } else {
-                card {
-                    HStack {
-                        labelRow("Google", value: store.googleConnected ? "Connected" : "Not connected")
-                        Spacer()
-                        Button(store.googleConnected ? "Refresh" : "Connect") {
-                            Task {
-                                if store.googleConnected {
-                                    await store.refreshCalendarState()
-                                } else {
-                                    await store.connectGoogle()
-                                }
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                }
-            }
-
-            card {
-                labelRow("Upcoming meeting", value: store.countdownLabel)
-                Text(store.meeting.title)
-                    .font(.custom("Newsreader", size: 34).weight(.medium))
-                    .lineSpacing(-2)
-                    .lineLimit(2)
-            }
-
-            card {
-                HStack {
-                    labelRow("Recorder", value: store.meetingState)
-                    Spacer()
-                    Button(store.meetingState == "Recording" ? "Stop" : "Start") {
-                        store.toggleRecording()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                }
-            }
-
-            card {
-                HStack(spacing: 10) {
-                    Toggle("Auto-start", isOn: $store.autoStartEnabled)
-                    Spacer()
-                    Text("\(store.autoStartMinutesBefore) min")
-                        .font(.custom("Figtree", size: 12).weight(.medium))
-                        .foregroundStyle(BrandTheme.textSecondary)
-                    Stepper("", value: $store.autoStartMinutesBefore, in: 0 ... 30)
-                        .labelsHidden()
-                }
-            }
-
-            card {
-                labelRow("Voice Notes", value: store.isListening ? "Listening" : "Idle")
-                Text("Press ⌥⌘Space to capture an idea and auto-sort to Task / Doc / Sticky.")
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(BrandTheme.textSecondary)
-                HStack {
-                    Button(store.isListening ? "Stop listening" : "Start listening") {
-                        store.toggleVoiceCapture()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-
-                    Button("Spawn DragonFruit Agent") {
-                        store.spawnAgentFromVoice()
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-                HStack(spacing: 8) {
-                    Text("Agent")
-                        .font(.custom("Figtree", size: 11).weight(.semibold))
-                        .foregroundStyle(BrandTheme.textSecondary)
-                    if store.availableAgents.isEmpty {
-                        Text("No enabled agents")
-                            .font(.custom("Figtree", size: 11).weight(.medium))
-                            .foregroundStyle(BrandTheme.textSecondary)
-                    } else {
-                        Picker("Agent", selection: $store.selectedAgentId) {
-                            ForEach(store.availableAgents) { agent in
-                                Text(agent.name).tag(agent.id)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                    }
-                    Spacer()
-                    Button("Refresh") {
-                        Task { await store.refreshAvailableAgents() }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                }
-                if let capture = store.lastCapture {
-                    Text("\(capture.type.rawValue) → \(capture.projectHint)")
-                        .font(.custom("Figtree", size: 11).weight(.semibold))
-                        .foregroundStyle(BrandTheme.accent)
-                    Text(capture.title)
-                        .font(.custom("Newsreader", size: 18).weight(.medium))
-                        .foregroundStyle(BrandTheme.textPrimary)
-                        .lineLimit(2)
-                }
-                if !store.lastAgentTextResponse.isEmpty {
-                    Text("Agent reply")
-                        .font(.custom("Figtree", size: 11).weight(.semibold))
-                        .foregroundStyle(BrandTheme.accent)
-                    Text(store.lastAgentTextResponse)
-                        .font(.custom("Figtree", size: 12).weight(.medium))
-                        .foregroundStyle(BrandTheme.textPrimary)
-                        .lineLimit(6)
-                }
-                if store.isAgentResponding {
-                    Text("Agent is typing...")
-                        .font(.custom("Figtree", size: 11).weight(.medium))
-                        .foregroundStyle(BrandTheme.textSecondary)
-                }
+                settingsCard
+                upcomingCard
+                recorderCard
+                voiceCard
             }
 
             if !store.statusMessage.isEmpty {
                 Text(store.statusMessage)
                     .font(.custom("Figtree", size: 11).weight(.medium))
                     .foregroundStyle(BrandTheme.textSecondary)
+                    .lineLimit(3)
             }
         }
         .padding(12)
         .background(BrandTheme.surface)
         .preferredColorScheme(.light)
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            if let logo = BrandTheme.logo {
+                Image(nsImage: logo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 16)
+                    .opacity(0.62)
+            }
+            Spacer()
+            Text("Copilot")
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.labelLight)
+        }
+    }
+
+    private var loginCard: some View {
+        card {
+            Text("Login to DragonFruit")
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.labelLight)
+            Button("Continue with DragonFruit") {
+                Task { await store.beginDragonFruitLogin() }
+            }
+            .buttonStyle(DragonFruitPrimaryButtonStyle())
+            Text("Sign in on the web to sync meetings and cowork with your agent. You’ll return here automatically.")
+                .font(.custom("Figtree", size: 11).weight(.medium))
+                .foregroundStyle(BrandTheme.textSecondary)
+        }
+    }
+
+    private var settingsCard: some View {
+        card {
+            labelRow("Settings", value: store.googleConnected ? "Connected" : "Connect")
+            Text(store.googleConnected ? "Calendar connected and voice capture ready." : "Connect Google Calendar to bring meetings here.")
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.textSecondary)
+            HStack(spacing: 8) {
+                Button(store.googleConnected ? "Refresh meetings" : "Connect Google Calendar") {
+                    Task {
+                        if store.googleConnected {
+                            await store.refreshCalendarState()
+                        } else {
+                            await store.connectGoogle()
+                        }
+                    }
+                }
+                .buttonStyle(DragonFruitPrimaryButtonStyle())
+                Button("Open") {
+                    if let url = URL(string: store.appURL) {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.textSecondary)
+                Spacer()
+            }
+        }
+    }
+
+    private var upcomingCard: some View {
+        card {
+            labelRow("Upcoming meeting", value: store.countdownLabel)
+            if store.googleConnected {
+                Text(store.meeting.title)
+                    .font(.custom("Newsreader", size: 18).weight(.medium))
+                    .foregroundStyle(BrandTheme.textPrimary)
+                    .lineSpacing(0)
+                    .lineLimit(2)
+            } else {
+                Button("Connect Google Calendar") {
+                    Task { await store.connectGoogle() }
+                }
+                .buttonStyle(DragonFruitPrimaryButtonStyle())
+            }
+        }
+    }
+
+    private var recorderCard: some View {
+        card {
+            HStack {
+                labelRow("Recorder", value: store.meetingState)
+                Spacer()
+                Button(store.meetingState == "Recording" ? "Stop" : "Start") {
+                    store.toggleRecording()
+                }
+                .buttonStyle(DragonFruitPrimaryButtonStyle())
+            }
+        }
+    }
+
+    private var voiceCard: some View {
+        card {
+            labelRow("Voice notes", value: store.isListening ? "Listening" : "⌥⌘Space")
+            Text("Capture an idea and DragonFruit routes it as a task, doc, sticky, or agent request.")
+                .font(.custom("Figtree", size: 11).weight(.medium))
+                .foregroundStyle(BrandTheme.textSecondary)
+            HStack(spacing: 8) {
+                Button(store.isListening ? "Stop" : "Capture") {
+                    store.toggleVoiceCapture()
+                }
+                .buttonStyle(DragonFruitPrimaryButtonStyle())
+                Button("Agent") {
+                    store.spawnAgentFromVoice()
+                }
+                .buttonStyle(.plain)
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.textSecondary)
+                Spacer()
+            }
+            if let capture = store.lastCapture {
+                Text("\(capture.type.rawValue) · \(capture.projectHint)")
+                    .font(.custom("Figtree", size: 10).weight(.medium))
+                    .foregroundStyle(BrandTheme.labelLight)
+                Text(capture.title)
+                    .font(.custom("Newsreader", size: 16).weight(.medium))
+                    .foregroundStyle(BrandTheme.textPrimary)
+                    .lineLimit(2)
+            }
+            if !store.lastAgentTextResponse.isEmpty {
+                Text(store.lastAgentTextResponse)
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(BrandTheme.textPrimary)
+                    .lineLimit(5)
+            }
+        }
     }
 
     @ViewBuilder
@@ -184,8 +176,8 @@ struct MeetingPopoverView: View {
     private func labelRow(_ label: String, value: String) -> some View {
         HStack {
             Text(label.uppercased())
-                .font(.custom("Figtree", size: 10).weight(.semibold))
-                .foregroundStyle(BrandTheme.accent)
+                .font(.custom("Figtree", size: 10).weight(.medium))
+                .foregroundStyle(BrandTheme.labelLight)
             Spacer()
             Text(value)
                 .font(.custom("Figtree", size: 11).weight(.medium))
