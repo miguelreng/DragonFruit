@@ -84,7 +84,7 @@ export class CalendarService extends APIService {
   async importGoogleEvents(
     workspaceSlug: string,
     payload: { account_id: string; project_id?: string; from: string; to: string }
-  ): Promise<{ imported: number; skipped: number }> {
+  ): Promise<{ imported: number; skipped: number; failed: Array<{ event_id: string; reason: string }> }> {
     return this.post(`/api/workspaces/${workspaceSlug}/calendar/google/import-events/`, payload).then((r) => r?.data);
   }
 }

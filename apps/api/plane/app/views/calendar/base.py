@@ -647,6 +647,7 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
         )
         imported = 0
         skipped = 0
+        failed: list[dict] = []
         for event in resp.json().get("items", []):
             event_id = event.get("id")
             if not event_id or event.get("status") == "cancelled":
@@ -657,25 +658,28 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
             if not start_date:
                 skipped += 1
                 continue
-            issue, created = Issue.issue_objects.update_or_create(
-                workspace=project.workspace,
-                project=project,
-                external_source="google_calendar",
-                external_id=event_id,
-                defaults={
-                    "name": event.get("summary") or "Untitled calendar event",
-                    "description_html": event.get("description") or "<p>Imported from Google Calendar.</p>",
-                    "start_date": start_date,
-                    "target_date": end_date,
-                    "state": default_state,
-                    "priority": "none",
-                },
-            )
-            if created:
-                issue.assignees.add(request.user)
-            imported += 1
+            try:
+                issue, created = Issue.issue_objects.update_or_create(
+                    workspace=project.workspace,
+                    project=project,
+                    external_source="google_calendar",
+                    external_id=f"{account.id}:{event_id}",
+                    defaults={
+                        "name": event.get("summary") or "Untitled calendar event",
+                        "description_html": event.get("description") or "<p>Imported from Google Calendar.</p>",
+                        "start_date": start_date,
+                        "target_date": end_date,
+                        "state": default_state,
+                        "priority": "none",
+                    },
+                )
+                if created:
+                    issue.assignees.add(request.user)
+                imported += 1
+            except Exception as exc:  # noqa: BLE001
+                failed.append({"event_id": event_id, "reason": str(exc)[:200]})
 
-        return Response({"imported": imported, "skipped": skipped}, status=status.HTTP_200_OK)
+        return Response({"imported": imported, "skipped": skipped, "failed": failed}, status=status.HTTP_200_OK)
 
 
 def _google_event_date(value: dict):
