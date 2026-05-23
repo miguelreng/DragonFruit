@@ -103,32 +103,36 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 throw NSError(domain: "DragonFruitNative", code: 5, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
             }
             statusMessage = "Continue sign in to return here automatically..."
-            let session = ASWebAuthenticationSession(url: loginURL, callbackURLScheme: "dragonfruitmini") { [weak self] callbackURL, error in
-                guard let self else { return }
-                if let error {
-                    Task { @MainActor in
-                        self.statusMessage = error.localizedDescription
-                        self.startLoginPolling()
-                    }
-                    return
-                }
-                guard let callbackURL else {
-                    Task { @MainActor in
-                        self.statusMessage = "Missing login callback"
-                        self.startLoginPolling()
-                    }
-                    return
-                }
-                Task { @MainActor in
-                    await self.finishDragonFruitLogin(callbackURL: callbackURL)
-                }
-            }
+            let session = ASWebAuthenticationSession(
+                url: loginURL,
+                callbackURLScheme: "dragonfruitmini",
+                completionHandler: Self.makeLoginCompletionHandler(store: self)
+            )
             session.presentationContextProvider = self
             session.prefersEphemeralWebBrowserSession = false
             oauthSession = session
             _ = session.start()
         } catch {
             statusMessage = error.localizedDescription
+        }
+    }
+
+    nonisolated private static func makeLoginCompletionHandler(store: MeetingStore) -> (URL?, Error?) -> Void {
+        { [weak store] callbackURL, error in
+            Task { @MainActor in
+                guard let store else { return }
+                if let error {
+                    store.statusMessage = error.localizedDescription
+                    store.startLoginPolling()
+                    return
+                }
+                guard let callbackURL else {
+                    store.statusMessage = "Missing login callback"
+                    store.startLoginPolling()
+                    return
+                }
+                await store.finishDragonFruitLogin(callbackURL: callbackURL)
+            }
         }
     }
 
