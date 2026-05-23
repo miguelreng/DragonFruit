@@ -39,7 +39,13 @@ GOOGLE_CAL_API = "https://www.googleapis.com/calendar/v3"
 SCOPES = ["https://www.googleapis.com/auth/calendar.events", "openid", "email"]
 
 
-def _first_config_value(keys: list[str], default: str = "") -> str:
+def _first_config_value(keys: list[str], default: str = "", *, prefer_env: bool = False) -> str:
+    if prefer_env:
+        for key in keys:
+            value = os.environ.get(key)
+            if value:
+                return value
+
     values = get_configuration_value(
         [{"key": key, "default": os.environ.get(key, "")} for key in keys]
     )
@@ -51,6 +57,19 @@ def _first_config_value(keys: list[str], default: str = "") -> str:
         if value:
             return value
     return default
+
+
+def _calendar_web_credentials() -> tuple[str, str]:
+    calendar_client_id = _first_config_value(["GOOGLE_CALENDAR_CLIENT_ID"], prefer_env=True)
+    calendar_client_secret = _first_config_value(["GOOGLE_CALENDAR_CLIENT_SECRET"], prefer_env=True)
+    google_client_id = _first_config_value(["GOOGLE_CLIENT_ID"], prefer_env=True)
+    google_client_secret = _first_config_value(["GOOGLE_CLIENT_SECRET"], prefer_env=True)
+
+    client_id = calendar_client_id or google_client_id
+    if calendar_client_id and google_client_id and calendar_client_id == google_client_id and google_client_secret:
+        return client_id, google_client_secret
+
+    return client_id, calendar_client_secret or google_client_secret
 
 
 def _normalize_client(client: str | None) -> str:
@@ -84,10 +103,7 @@ def _client_credentials(client: str | None) -> tuple[str, str]:
             ),
         )
 
-    return (
-        _first_config_value(["GOOGLE_CALENDAR_CLIENT_ID", "GOOGLE_CLIENT_ID"]),
-        _first_config_value(["GOOGLE_CALENDAR_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"]),
-    )
+    return _calendar_web_credentials()
 
 
 def _redirect_uri_for_client(client: str | None) -> str:
