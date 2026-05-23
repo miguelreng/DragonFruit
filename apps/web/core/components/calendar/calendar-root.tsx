@@ -66,11 +66,22 @@ function toTemporal(iso: string, allDay: boolean) {
   const GlobalT = (globalThis as any).Temporal as typeof Temporal | undefined;
   if (!GlobalT) return null;
   const dateOnly = allDay || iso.length === 10;
-  if (dateOnly) {
-    return GlobalT.PlainDate.from(iso.slice(0, 10));
+  try {
+    if (dateOnly) {
+      return GlobalT.PlainDate.from(iso.slice(0, 10));
+    }
+
+    const hasOffset = /(?:Z|[+-]\d{2}:\d{2})$/.test(iso);
+    if (hasOffset) {
+      const normalized = iso.endsWith("Z") ? iso : iso.replace(/([+-]\d{2}:\d{2})$/, "$1");
+      return GlobalT.Instant.from(normalized).toZonedDateTimeISO("UTC");
+    }
+
+    return GlobalT.PlainDateTime.from(iso).toZonedDateTime("UTC", { disambiguation: "compatible" });
+  } catch (err) {
+    console.warn("Skipping calendar item with invalid date", { iso, allDay, err });
+    return null;
   }
-  const normalized = iso.endsWith("Z") ? iso.slice(0, -1) + "+00:00" : iso;
-  return GlobalT.ZonedDateTime.from(`${normalized}[UTC]`);
 }
 
 function taskToScheduleXEvent(t: TCalendarTask, workspaceSlug: string) {
