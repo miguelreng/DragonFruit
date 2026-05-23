@@ -4,6 +4,8 @@
 
 # Django imports
 from django.shortcuts import render
+from django.http import HttpResponseRedirect
+from urllib.parse import quote
 
 # Third party imports
 from rest_framework import status
@@ -23,6 +25,29 @@ from plane.authentication.adapter.error import (
 from django.middleware.csrf import get_token
 from plane.utils.cache import invalidate_cache
 from plane.authentication.utils.host import base_host
+from plane.authentication.utils.native_handoff import (
+    create_native_api_token,
+    is_native_callback,
+    native_handoff_response,
+)
+
+
+class NativeLoginStartEndpoint(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        callback = request.GET.get("callback", "dragonfruitmini://auth/login-callback")
+        if not is_native_callback(callback):
+            callback = "dragonfruitmini://auth/login-callback"
+
+        if request.user.is_authenticated:
+            separator = "&" if "?" in callback else "?"
+            token = create_native_api_token(request.user)
+            return native_handoff_response(f"{callback}{separator}api_token={quote(token)}")
+
+        app_host = base_host(request=request, is_app=True).rstrip("/")
+        native_login_path = f"/native-login?callback={quote(callback, safe='')}"
+        return HttpResponseRedirect(f"{app_host}/login?next_path={quote(native_login_path, safe='/?=&')}")
 
 
 class CSRFTokenEndpoint(APIView):
