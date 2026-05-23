@@ -22,11 +22,12 @@ from urllib.parse import quote, urlencode
 import requests
 from django.conf import settings
 from django.db.models import Q
+from django.utils.html import escape
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import allow_permission, ROLE
-from plane.db.models import Issue, Project, State, UserCalendarAccount
+from plane.db.models import DraftIssue, Issue, Project, State, UserCalendarAccount, Workspace
 from plane.license.utils.instance_value import get_configuration_value
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 
@@ -512,48 +513,163 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
         events: list[dict] = []
 
         for account in accounts:
-            calendar_id = account.primary_calendar_id or "primary"
             access_token = _refresh_if_needed(account)
-            resp = requests.get(
-                _google_calendar_url(calendar_id, "events"),
-                params={
-                    "timeMin": time_min,
-                    "timeMax": time_max,
-                    "singleEvents": "true",
-                    "orderBy": "startTime",
-                    "maxResults": 20,
-                },
+            calendars_resp = requests.get(
+                f"{GOOGLE_CAL_API}/users/me/calendarList",
+                params={"maxResults": 250, "minAccessRole": "reader"},
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=10,
             )
-            if resp.status_code != 200:
-                events.append(
-                    {
-                        "id": f"error-{account.id}",
-                        "title": "Google Calendar needs reconnect",
-                        "description": _details_from_response(resp),
-                        "location": "",
-                        "start": time_min,
-                        "end": time_min,
-                        "all_day": False,
-                        "html_link": "",
-                        "status": "error",
-                        "account_id": str(account.id),
-                        "account_email": account.account_email,
-                        "source": "google_calendar",
-                    }
+
+            if calendars_resp.status_code == 200:
+                calendars = [
+                    _calendar_to_dict(calendar)
+                    for calendar in calendars_resp.json().get("items", [])
+                    if calendar.get("selected", True)
+                ]
+            else:
+                calendars = [{"id": account.primary_calendar_id or "primary", "summary": account.account_email}]
+
+            for calendar in calendars:
+                calendar_id = calendar.get("id") or account.primary_calendar_id or "primary"
+                resp = requests.get(
+                    _google_calendar_url(calendar_id, "events"),
+                    params={
+                        "timeMin": time_min,
+                        "timeMax": time_max,
+                        "singleEvents": "true",
+                        "orderBy": "startTime",
+                        "maxResults": 20,
+                    },
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=10,
                 )
-                continue
-            for raw_event in resp.json().get("items", []):
-                event = _event_to_dict(raw_event)
-                event["account_id"] = str(account.id)
-                event["account_email"] = account.account_email
-                event["source"] = "google_calendar"
-                events.append(event)
+                if resp.status_code != 200:
+                    events.append(
+                        {
+                            "id": f"error-{account.id}",
+                            "title": "Google Calendar needs reconnect",
+                            "description": _details_from_response(resp),
+                            "location": "",
+                            "start": time_min,
+                            "end": time_min,
+                            "all_day": False,
+                            "html_link": "",
+                            "status": "error",
+                            "account_id": str(account.id),
+                            "account_email": account.account_email,
+                            "calendar_id": calendar_id,
+                            "calendar_name": calendar.get("summary") or account.account_email,
+                            "source": "google_calendar",
+                        }
+                    )
+                    continue
+                for raw_event in resp.json().get("items", []):
+                    event = _event_to_dict(raw_event)
+                    event["account_id"] = str(account.id)
+                    event["account_email"] = account.account_email
+                    event["calendar_id"] = calendar_id
+                    event["calendar_name"] = calendar.get("summary") or account.account_email
+                    event["source"] = "google_calendar"
+                    events.append(event)
 
         events = [event for event in events if event.get("start")]
         events.sort(key=lambda event: event["start"])
         return Response({"events": events[:20]}, status=status.HTTP_200_OK)
+
+
+class MeetingNotesDraftEndpoint(BaseAPIView):
+    """Create or update a workspace draft from captured meeting notes."""
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def post(self, request, slug):
+        workspace = Workspace.objects.filter(slug=slug).first()
+        if not workspace:
+            return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        meeting_id = str(request.data.get("meeting_id") or "").strip()
+        meeting_title = str(request.data.get("meeting_title") or "Meeting").strip()
+        notes = str(request.data.get("notes") or "").strip()
+        if not notes:
+            return Response({"error": "Meeting notes are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        account_id = str(request.data.get("account_id") or "").strip()
+        calendar_id = str(request.data.get("calendar_id") or "").strip()
+        external_key = ":".join(part for part in [account_id, calendar_id, meeting_id] if part)[:255]
+        if not external_key:
+            external_key = f"meeting-notes:{request.user.id}:{datetime.now(timezone.utc).timestamp()}"[:255]
+
+        description_html = _meeting_notes_html(
+            meeting_title=meeting_title,
+            notes=notes,
+            start=str(request.data.get("start") or ""),
+            end=str(request.data.get("end") or ""),
+            meeting_url=str(request.data.get("meeting_url") or ""),
+            account_email=str(request.data.get("account_email") or ""),
+        )
+
+        draft, created = DraftIssue.objects.update_or_create(
+            workspace=workspace,
+            created_by=request.user,
+            external_source="google_meeting_notes",
+            external_id=external_key,
+            defaults={
+                "name": f"Meeting notes: {meeting_title}"[:255],
+                "description_html": description_html,
+                "priority": "none",
+                "project": None,
+            },
+        )
+
+        app_base_url = (
+            getattr(settings, "APP_BASE_URL", None)
+            or getattr(settings, "WEB_URL", "http://localhost:3000")
+        ).rstrip("/")
+
+        return Response(
+            {
+                "id": str(draft.id),
+                "name": draft.name,
+                "created": created,
+                "workspace_slug": slug,
+                "url": f"{app_base_url}/{slug}/drafts/",
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+def _meeting_notes_html(
+    *,
+    meeting_title: str,
+    notes: str,
+    start: str,
+    end: str,
+    meeting_url: str,
+    account_email: str,
+) -> str:
+    metadata = []
+    if start:
+        metadata.append(f"<li><strong>Start:</strong> {escape(start)}</li>")
+    if end:
+        metadata.append(f"<li><strong>End:</strong> {escape(end)}</li>")
+    if account_email:
+        metadata.append(f"<li><strong>Calendar:</strong> {escape(account_email)}</li>")
+    if meeting_url:
+        metadata.append(f'<li><strong>Join link:</strong> <a href="{escape(meeting_url)}">{escape(meeting_url)}</a></li>')
+
+    paragraphs = "".join(f"<p>{escape(line)}</p>" for line in notes.splitlines() if line.strip())
+    if not paragraphs:
+        paragraphs = f"<p>{escape(notes)}</p>"
+
+    return (
+        f"<h2>{escape(meeting_title)}</h2>"
+        f"<p><em>Captured by DragonFruit Copilot.</em></p>"
+        f"<ul>{''.join(metadata)}</ul>"
+        f"<h3>Meeting notes</h3>"
+        f"{paragraphs}"
+        f"<h3>Next steps</h3>"
+        f"<p>Move this draft into a project, convert it into tasks, or keep it as meeting context.</p>"
+    )
 
 
 def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue, calendar_id: str | None = None) -> str:
@@ -769,6 +885,7 @@ def _event_to_dict(e: dict) -> dict:
         "end": end.get("dateTime") or end.get("date"),
         "all_day": is_all_day,
         "html_link": e.get("htmlLink", ""),
+        "hangout_link": e.get("hangoutLink", ""),
         "status": e.get("status", ""),
     }
 

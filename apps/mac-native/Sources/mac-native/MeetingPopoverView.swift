@@ -93,11 +93,33 @@ struct MeetingPopoverView: View {
         card {
             labelRow("Upcoming meeting", value: store.countdownLabel)
             if store.googleConnected {
-                Text(store.meeting.title)
+                if !store.hasMeetingsToday && store.meeting.id != "empty" {
+                    Text("No meetings today")
+                        .font(.custom("Figtree", size: 12).weight(.medium))
+                        .foregroundStyle(BrandTheme.textSecondary)
+                }
+                Text(store.meeting.id == "empty" ? "No upcoming meetings" : store.meeting.title)
                     .font(.custom("Newsreader", size: 18).weight(.medium))
                     .foregroundStyle(BrandTheme.textPrimary)
                     .lineSpacing(0)
                     .lineLimit(2)
+                if store.meeting.id != "empty" {
+                    HStack(spacing: 8) {
+                        if store.meeting.joinURL != nil {
+                            Button("Join meeting") {
+                                store.openJoinLink()
+                            }
+                            .buttonStyle(DragonFruitPrimaryButtonStyle())
+                        }
+                        if !store.meeting.calendarDisplayName.isEmpty {
+                            Text(store.meeting.calendarDisplayName)
+                                .font(.custom("Figtree", size: 10).weight(.medium))
+                                .foregroundStyle(BrandTheme.labelLight)
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                    }
+                }
             } else {
                 Button("Connect Google Calendar") {
                     Task { await store.connectGoogle() }
@@ -112,10 +134,29 @@ struct MeetingPopoverView: View {
             HStack {
                 labelRow("Recorder", value: store.meetingState)
                 Spacer()
-                Button(store.meetingState == "Recording" ? "Stop" : "Start") {
+                if store.lastMeetingNotesURL != nil {
+                    Button("Open notes") {
+                        store.openMeetingNotes()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                }
+                Button(store.isMeetingRecording ? "Stop & save" : "Start notes") {
                     store.toggleRecording()
                 }
                 .buttonStyle(DragonFruitPrimaryButtonStyle())
+            }
+            if store.isMeetingRecording && !store.meetingNotesTranscript.isEmpty {
+                Text(store.meetingNotesTranscript)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                    .lineLimit(3)
+            } else if !store.lastSavedMeetingTitle.isEmpty {
+                Text("Saved draft for \(store.lastSavedMeetingTitle).")
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                    .lineLimit(2)
             }
         }
     }

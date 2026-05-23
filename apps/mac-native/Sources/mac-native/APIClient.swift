@@ -17,7 +17,13 @@ struct CalendarEvent: Codable, Identifiable {
     let end: String
     let all_day: Bool
     let html_link: String
+    let hangout_link: String?
     let status: String
+    let account_id: String?
+    let account_email: String?
+    let calendar_id: String?
+    let calendar_name: String?
+    let source: String?
 }
 
 struct WorkspaceSummary: Codable, Identifiable {
@@ -35,6 +41,14 @@ struct ProjectSummary: Codable, Identifiable {
 struct CreatedEntity: Codable {
     let id: String
     let name: String?
+}
+
+struct MeetingNotesDraftResponse: Codable {
+    let id: String
+    let name: String?
+    let created: Bool?
+    let workspace_slug: String?
+    let url: String?
 }
 
 struct AgentSummary: Codable, Identifiable {
@@ -205,6 +219,34 @@ struct APIClient {
         }
 
         return try JSONDecoder().decode(EventsResponse.self, from: data).events
+    }
+
+    func createMeetingNotesDraft(
+        workspaceSlug: String,
+        meeting: MeetingInfo,
+        notes: String
+    ) async throws -> MeetingNotesDraftResponse {
+        let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/calendar/meeting-notes/")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "meeting_id": meeting.eventId,
+            "meeting_title": meeting.title,
+            "start": ISO8601DateFormatter().string(from: meeting.startAt),
+            "end": ISO8601DateFormatter().string(from: meeting.endAt),
+            "meeting_url": meeting.joinURL?.absoluteString ?? meeting.htmlLink ?? "",
+            "account_id": meeting.accountId ?? "",
+            "account_email": meeting.accountEmail ?? "",
+            "calendar_id": meeting.calendarId ?? "",
+            "notes": notes,
+        ])
+        let (data, response) = try await session.data(for: request)
+        try ensureStatus(response, allowed: [200, 201])
+        return try JSONDecoder().decode(MeetingNotesDraftResponse.self, from: data)
     }
 
     func listWorkspaces() async throws -> [WorkspaceSummary] {
