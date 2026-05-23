@@ -301,17 +301,31 @@ export function CalendarRoot() {
     return { ...BASE_CALENDARS_CONFIG, ...googleCalendars };
   }, [calendarPrefs, visibleGoogleSources]);
 
-  const { data: googleEvents = [] } = useSWR<TCalendarEventWithSource[]>(
+  const {
+    data: googleEvents = [],
+    error: googleEventsError,
+    isLoading: isLoadingGoogleEvents,
+  } = useSWR<TCalendarEventWithSource[]>(
     visibleGoogleSources.length > 0
-      ? `CALENDAR_EVENTS_${visibleGoogleSources.map((source) => source.id).join("_")}`
+      ? `CALENDAR_EVENTS_${taskRange.from}_${taskRange.to}_${visibleGoogleSources.map((source) => source.id).join("_")}`
       : null,
     async () => {
       const results = await Promise.all(
         visibleGoogleSources.map(async (source) => {
-          const res = await calendarService.events(source.account.id, {
-            ...taskRange,
-            calendar_id: source.calendar.id,
-          });
+          let res: { events: TCalendarEvent[] };
+          try {
+            res = await calendarService.events(source.account.id, {
+              ...taskRange,
+              calendar_id: source.calendar.id,
+            });
+          } catch (err) {
+            console.warn("Could not load Google Calendar events", {
+              accountId: source.account.id,
+              calendarId: source.calendar.id,
+              err,
+            });
+            return [];
+          }
           return (res.events ?? []).map((event) =>
             Object.assign({}, event, {
               sourceId: source.id,
@@ -324,6 +338,11 @@ export function CalendarRoot() {
         })
       );
       return results.flat();
+    },
+    {
+      refreshInterval: 30_000,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
     }
   );
 
@@ -367,7 +386,7 @@ export function CalendarRoot() {
       createCalendar({
         views: [createViewMonthGrid()],
         defaultView: createViewMonthGrid().name,
-        events: [],
+        events: sxEvents,
         calendars: calendarsConfig,
         plugins: [eventsService, calendarControls],
         callbacks: {
@@ -406,7 +425,7 @@ export function CalendarRoot() {
           },
         },
       }),
-    [calendarControls, calendarsConfig, eventsService]
+    [calendarControls, calendarsConfig, eventsService, sxEvents]
   );
 
   const handleSetDate = (d: Date) => {
@@ -449,6 +468,9 @@ export function CalendarRoot() {
             onImportComplete={refetchTasks}
             onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
             visibleMonth={visibleMonth}
+            googleEventCount={googleEvents.length}
+            isLoadingGoogleEvents={isLoadingGoogleEvents}
+            hasGoogleEventsError={Boolean(googleEventsError)}
             onToday={handleToday}
             onPrev={() => handleStep(-1)}
             onNext={() => handleStep(1)}
@@ -502,6 +524,9 @@ type CalendarPageHeaderProps = {
   onImportComplete: () => void;
   onQuickAdd: () => void;
   visibleMonth: string;
+  googleEventCount: number;
+  isLoadingGoogleEvents: boolean;
+  hasGoogleEventsError: boolean;
   onToday: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -519,6 +544,9 @@ function CalendarPageHeader({
   onImportComplete,
   onQuickAdd,
   visibleMonth,
+  googleEventCount,
+  isLoadingGoogleEvents,
+  hasGoogleEventsError,
   onToday,
   onPrev,
   onNext,
@@ -640,9 +668,14 @@ function CalendarPageHeader({
               <span className="text-tertiary">·</span>
               <LegendDot color={googleSources[0] ? googleSourceColor(googleSources[0], calendarPrefs) : "#2563eb"} />
               <span className="truncate">
-                {googleSources.length === 1
-                  ? googleSourceLabel(googleSources[0]!)
-                  : `${visibleGoogleSources.length}/${googleSources.length} Google calendars`}
+                {isLoadingGoogleEvents
+                  ? "Loading Google events"
+                  : hasGoogleEventsError
+                    ? "Google events need attention"
+                    : googleSources.length === 1
+                      ? googleSourceLabel(googleSources[0]!)
+                      : `${visibleGoogleSources.length}/${googleSources.length} Google calendars`}
+                <span className="ml-0.5 text-tertiary">· {googleEventCount}</span>
               </span>
             </>
           )}

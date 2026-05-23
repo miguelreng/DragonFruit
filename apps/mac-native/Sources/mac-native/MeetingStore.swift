@@ -119,6 +119,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var meetingState = "Upcoming"
     @Published var autoStartEnabled = true
     @Published var autoStartMinutesBefore = 2
+    @Published var meetingNotesEnabled = true
+    @Published var speechCaptureEnabled = true
+    @Published var cursorBuddyEnabled = true
+    @Published var gazeTrackingEnabled = false
     @Published var isListening = false
     @Published var isMeetingRecording = false
     @Published var meetingNotesTranscript = ""
@@ -200,6 +204,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         if isMeetingRecording {
             Task { await stopMeetingRecordingAndSave() }
         } else {
+            guard meetingNotesEnabled else {
+                statusMessage = "Turn on meeting notes in Settings first."
+                return
+            }
             Task { await startMeetingRecording() }
         }
     }
@@ -224,6 +232,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         if isListening {
             stopVoiceCapture()
         } else {
+            guard speechCaptureEnabled else {
+                statusMessage = "Turn on speech capture in Settings first."
+                return
+            }
             Task { await startVoiceCapture() }
         }
     }
