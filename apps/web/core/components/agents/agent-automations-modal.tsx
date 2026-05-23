@@ -77,22 +77,20 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
     isOpen && workspaceSlug ? () => issueLabelService.getWorkspaceIssueLabels(workspaceSlug) : null
   );
 
-  // eslint-disable-next-line unicorn/no-array-sort
-  const sortedAgents = useMemo(
-    () => [...agents].toSorted((a: TAgent, b: TAgent) => a.name.localeCompare(b.name)),
-    [agents]
-  );
+  const sortedAgents = useMemo(() => {
+    // `toSorted` (ES2023) isn't in this app's TS lib config; the spread keeps the sort local-only.
+    // oxlint-disable-next-line no-array-sort
+    return [...agents].sort((a: TAgent, b: TAgent) => a.name.localeCompare(b.name));
+  }, [agents]);
   const selectedAgent = sortedAgents.find((a) => a.id === selectedAgentId);
-  // eslint-disable-next-line unicorn/no-array-sort
-  const sortedProjects = useMemo(
-    () => [...(projects ?? [])].toSorted((a: TPartialProject, b: TPartialProject) => a.name.localeCompare(b.name)),
-    [projects]
-  );
-  // eslint-disable-next-line unicorn/no-array-sort
-  const sortedLabels = useMemo(
-    () => [...(labels ?? [])].toSorted((a: IIssueLabel, b: IIssueLabel) => a.name.localeCompare(b.name)),
-    [labels]
-  );
+  const sortedProjects = useMemo(() => {
+    // oxlint-disable-next-line no-array-sort
+    return [...(projects ?? [])].sort((a: TPartialProject, b: TPartialProject) => a.name.localeCompare(b.name));
+  }, [projects]);
+  const sortedLabels = useMemo(() => {
+    // oxlint-disable-next-line no-array-sort
+    return [...(labels ?? [])].sort((a: IIssueLabel, b: IIssueLabel) => a.name.localeCompare(b.name));
+  }, [labels]);
 
   const parsedIssueTypeIds = useMemo(
     () =>
@@ -253,21 +251,21 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
             <div className="border-custom-border-200 bg-custom-background-90 mb-4 rounded-xl border p-4">
               <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
                 <div className="border-custom-border-200 bg-custom-background-100 rounded-lg border px-4 py-3">
-                  <p className="text-xs font-semibold tracking-wide text-custom-text-300 uppercase">Trigger</p>
-                  <p className="mt-1 text-base font-semibold text-custom-text-100">Task created</p>
-                  <p className="mt-1 text-sm text-custom-text-300">Watch newly created tasks.</p>
+                  <p className="text-xs text-custom-text-300 font-semibold tracking-wide uppercase">Trigger</p>
+                  <p className="text-base text-custom-text-100 mt-1 font-semibold">Task created</p>
+                  <p className="text-sm text-custom-text-300 mt-1">Watch newly created tasks.</p>
                 </div>
-                <div className="bg-custom-background-100 border-custom-border-200 grid h-10 w-10 place-items-center rounded-lg border text-custom-text-300">
+                <div className="bg-custom-background-100 border-custom-border-200 text-custom-text-300 grid h-10 w-10 place-items-center rounded-lg border">
                   <ArrowRight className="h-4 w-4" />
                 </div>
                 <div className="border-custom-border-200 bg-custom-background-100 rounded-lg border px-4 py-3">
-                  <p className="text-xs font-semibold tracking-wide text-custom-text-300 uppercase">Action</p>
-                  <p className="mt-1 text-base font-semibold text-custom-text-100">Assign to agent</p>
-                  <p className="mt-1 text-sm text-custom-text-300">Auto-triage and post next steps.</p>
+                  <p className="text-xs text-custom-text-300 font-semibold tracking-wide uppercase">Action</p>
+                  <p className="text-base text-custom-text-100 mt-1 font-semibold">Assign to agent</p>
+                  <p className="text-sm text-custom-text-300 mt-1">Auto-triage and post next steps.</p>
                 </div>
               </div>
               <h4 className="text-sm text-custom-text-100 font-semibold">Suggested</h4>
-              <p className="mt-1 text-sm text-custom-text-300">
+              <p className="text-sm text-custom-text-300 mt-1">
                 Triage every newly created task with an agent and post first next steps automatically.
               </p>
               <div className="mt-3 grid gap-1">
@@ -369,7 +367,9 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-custom-text-300 font-medium tracking-wide uppercase">Issue Type IDs</span>
+                  <span className="text-xs text-custom-text-300 font-medium tracking-wide uppercase">
+                    Issue Type IDs
+                  </span>
                   <input
                     value={issueTypeIdsInput}
                     onChange={(e) => setIssueTypeIdsInput(e.target.value)}
