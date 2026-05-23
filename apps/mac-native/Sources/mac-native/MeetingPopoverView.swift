@@ -14,8 +14,6 @@ struct MeetingPopoverView: View {
             } else {
                 settingsCard
                 upcomingCard
-                recorderCard
-                voiceCard
             }
 
             if !store.statusMessage.isEmpty {
@@ -162,84 +160,9 @@ struct MeetingPopoverView: View {
         }
     }
 
-    private var recorderCard: some View {
-        card {
-            HStack {
-                sectionLabel("Recorder")
-                Spacer()
-                Text(store.meetingState)
-                    .font(.custom("Figtree", size: 11).weight(.medium))
-                    .foregroundStyle(BrandTheme.textSecondary)
-                if store.lastMeetingNotesURL != nil {
-                    Button("Open notes") {
-                        store.openMeetingNotes()
-                    }
-                    .buttonStyle(.plain)
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(BrandTheme.textSecondary)
-                }
-                Button(store.isMeetingRecording ? "Stop & save" : "Start notes") {
-                    store.toggleRecording()
-                }
-                .buttonStyle(DragonFruitPrimaryButtonStyle())
-            }
-            if store.isMeetingRecording && !store.meetingNotesTranscript.isEmpty {
-                Text(store.meetingNotesTranscript)
-                    .font(.custom("Figtree", size: 11).weight(.medium))
-                    .foregroundStyle(BrandTheme.textSecondary)
-                    .lineLimit(3)
-            } else if !store.lastSavedMeetingTitle.isEmpty {
-                Text("Saved draft for \(store.lastSavedMeetingTitle).")
-                    .font(.custom("Figtree", size: 11).weight(.medium))
-                    .foregroundStyle(BrandTheme.textSecondary)
-                    .lineLimit(2)
-            }
-        }
-    }
-
     private var settingsButtonTitle: String {
         if store.needsCalendarReconnect { return "Reconnect Calendar" }
         return store.googleConnected ? "Refresh meetings" : "Connect Google Calendar"
-    }
-
-    private var voiceCard: some View {
-        card {
-            sectionLabel("Voice notes")
-            Text("Capture an idea and DragonFruit routes it as a task, doc, sticky, or agent request.")
-                .font(.custom("Figtree", size: 11).weight(.medium))
-                .foregroundStyle(BrandTheme.textSecondary)
-            HStack(spacing: 8) {
-                Button(store.isListening ? "Stop" : "Capture") {
-                    store.toggleVoiceCapture()
-                }
-                .buttonStyle(DragonFruitPrimaryButtonStyle())
-                Button("Agent") {
-                    store.spawnAgentFromVoice()
-                }
-                .buttonStyle(.plain)
-                .font(.custom("Figtree", size: 12).weight(.medium))
-                .foregroundStyle(BrandTheme.textSecondary)
-                Text(store.isListening ? "Listening" : "⌥⌘Space")
-                    .font(.custom("Figtree", size: 10).weight(.medium))
-                    .foregroundStyle(BrandTheme.labelLight)
-                Spacer()
-            }
-            if let capture = store.lastCapture {
-                Text("\(capture.type.rawValue) · \(capture.projectHint)")
-                    .font(.custom("Figtree", size: 10).weight(.medium))
-                    .foregroundStyle(BrandTheme.labelLight)
-                Text(capture.title)
-                    .font(.custom("Newsreader", size: 16).weight(.medium))
-                    .foregroundStyle(BrandTheme.textPrimary)
-                    .lineLimit(2)
-            }
-            if !store.lastAgentTextResponse.isEmpty {
-                Text(store.lastAgentTextResponse)
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(BrandTheme.textPrimary)
-                    .lineLimit(5)
-            }
-        }
     }
 
     @ViewBuilder
@@ -270,7 +193,7 @@ struct MeetingPopoverView: View {
         detail: String? = nil,
         disabled: Bool = false
     ) -> some View {
-        Toggle(isOn: isOn) {
+        HStack(spacing: 10) {
             HStack(spacing: 6) {
                 Text(label)
                     .font(.custom("Figtree", size: 12).weight(.medium))
@@ -281,9 +204,13 @@ struct MeetingPopoverView: View {
                         .foregroundStyle(BrandTheme.labelLight)
                 }
             }
+            Spacer(minLength: 12)
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .tint(BrandTheme.accent)
+                .disabled(disabled)
         }
-        .toggleStyle(.switch)
-        .tint(BrandTheme.accent)
-        .disabled(disabled)
+        .frame(maxWidth: .infinity)
     }
 }
