@@ -53,9 +53,10 @@ import {
 const calendarService = new CalendarService();
 const TASKS_CALENDAR_ID = "tasks";
 const GOOGLE_CALENDAR_ID = "google";
+type TCalendarEventWithAccount = TCalendarEvent & { accountId: string; accountEmail: string };
 type TDragonfruitEventMeta =
   | { kind: "task"; projectId: string; taskId: string; workspaceSlug: string }
-  | { kind: "google_event"; event: TCalendarEvent };
+  | { kind: "google_event"; event: TCalendarEventWithAccount };
 
 // Schedule-X v4: events use Temporal types. All-day -> PlainDate; timed -> ZonedDateTime.
 // We pull Temporal off the global (the same namespace Schedule-X's instanceof
@@ -103,17 +104,21 @@ function taskToScheduleXEvent(t: TCalendarTask, workspaceSlug: string) {
   };
 }
 
-function googleEventToScheduleXEvent(e: TCalendarEvent) {
+function calendarAccountLabel(account: TCalendarAccount) {
+  return account.account_email || "Google Calendar";
+}
+
+function googleEventToScheduleXEvent(e: TCalendarEventWithAccount) {
   const start = toTemporal(e.start, e.all_day);
   const end = toTemporal(e.end, e.all_day);
   if (!start || !end) return null;
   return {
-    id: `gcal-${e.id}`,
+    id: `gcal-${e.accountId}-${e.id}`,
     title: e.title,
     start,
     end,
     calendarId: GOOGLE_CALENDAR_ID,
-    description: e.description,
+    description: e.accountEmail ? `${e.accountEmail}${e.description ? `\n\n${e.description}` : ""}` : e.description,
     location: e.location,
     _dragonfruit: { kind: "google_event" as const, event: e },
   };
@@ -162,21 +167,33 @@ export function CalendarRoot() {
   const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>("CALENDAR_ACCOUNTS", () =>
     calendarService.list()
   );
-  const googleAccount = accounts?.[0];
+  const googleAccounts = useMemo(() => accounts ?? [], [accounts]);
 
-  const { data: gEventsRes } = useSWR(googleAccount ? `CALENDAR_EVENTS_${googleAccount.id}` : null, () =>
-    calendarService.events(googleAccount!.id, taskRange)
+  const { data: googleEvents = [] } = useSWR<TCalendarEventWithAccount[]>(
+    googleAccounts.length > 0 ? `CALENDAR_EVENTS_${googleAccounts.map((account) => account.id).join("_")}` : null,
+    async () => {
+      const results = await Promise.all(
+        googleAccounts.map(async (account) => {
+          const res = await calendarService.events(account.id, taskRange);
+          return (res.events ?? []).map((event) =>
+            Object.assign({}, event, {
+              accountId: account.id,
+              accountEmail: account.account_email,
+            })
+          );
+        })
+      );
+      return results.flat();
+    }
   );
 
   const sxEvents = useMemo(() => {
     const taskEvents = (tasksRes?.tasks ?? [])
       .map((t) => taskToScheduleXEvent(t, workspaceSlug))
       .filter((e): e is NonNullable<typeof e> => e !== null);
-    const gEvents = (gEventsRes?.events ?? [])
-      .map(googleEventToScheduleXEvent)
-      .filter((e): e is NonNullable<typeof e> => e !== null);
+    const gEvents = googleEvents.map(googleEventToScheduleXEvent).filter((e): e is NonNullable<typeof e> => e !== null);
     return [...taskEvents, ...gEvents];
-  }, [tasksRes, gEventsRes, workspaceSlug]);
+  }, [tasksRes, googleEvents, workspaceSlug]);
 
   const eventsService = useRef(createEventsServicePlugin()).current;
   const calendarControls = useRef(createCalendarControlsPlugin()).current;
@@ -278,7 +295,7 @@ export function CalendarRoot() {
           <CalendarPageHeader
             workspaceSlug={workspaceSlug}
             taskCount={tasksRes?.tasks?.length ?? 0}
-            googleAccount={googleAccount}
+            googleAccounts={googleAccounts}
             taskRange={taskRange}
             refetchAccounts={refetchAccounts}
             onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
@@ -329,7 +346,7 @@ export function CalendarRoot() {
 type CalendarPageHeaderProps = {
   workspaceSlug: string;
   taskCount: number;
-  googleAccount: TCalendarAccount | undefined;
+  googleAccounts: TCalendarAccount[];
   taskRange: { from: string; to: string };
   refetchAccounts: () => void;
   onQuickAdd: () => void;
@@ -343,7 +360,7 @@ type CalendarPageHeaderProps = {
 
 function CalendarPageHeader({
   taskCount,
-  googleAccount,
+  googleAccounts,
   taskRange,
   refetchAccounts,
   workspaceSlug,
@@ -356,8 +373,9 @@ function CalendarPageHeader({
   onViewChange,
 }: CalendarPageHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
-  const [isImportingGoogle, setIsImportingGoogle] = useState(false);
+  const [syncingAccountId, setSyncingAccountId] = useState<string | null>(null);
+  const [importingAccountId, setImportingAccountId] = useState<string | null>(null);
+  const hasGoogleAccounts = googleAccounts.length > 0;
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -384,26 +402,26 @@ function CalendarPageHeader({
     }
   };
 
-  const handleDisconnect = async () => {
-    if (!googleAccount) return;
-    if (!confirm("Disconnect Google Calendar?")) return;
-    await calendarService.disconnect(googleAccount.id);
+  const handleDisconnect = async (account: TCalendarAccount) => {
+    if (!confirm(`Disconnect ${calendarAccountLabel(account)}?`)) return;
+    await calendarService.disconnect(account.id);
     refetchAccounts();
   };
 
-  const handleSyncTasks = async () => {
-    if (!googleAccount || isSyncingTasks) return;
-    setIsSyncingTasks(true);
+  const handleSyncTasks = async (account: TCalendarAccount) => {
+    if (syncingAccountId) return;
+    setSyncingAccountId(account.id);
     try {
       const res = await calendarService.syncTasksToGoogle(workspaceSlug, {
-        account_id: googleAccount.id,
+        account_id: account.id,
         from: taskRange.from,
         to: taskRange.to,
       });
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: `Synced ${res.synced} tasks`,
-        message: res.failed.length > 0 ? `${res.failed.length} failed` : "Google Calendar is up to date.",
+        message:
+          res.failed.length > 0 ? `${res.failed.length} failed` : `${calendarAccountLabel(account)} is up to date.`,
       });
     } catch {
       setToast({
@@ -412,16 +430,16 @@ function CalendarPageHeader({
         message: "Try again in a moment.",
       });
     } finally {
-      setIsSyncingTasks(false);
+      setSyncingAccountId(null);
     }
   };
 
-  const handleImportGoogle = async () => {
-    if (!googleAccount || isImportingGoogle) return;
-    setIsImportingGoogle(true);
+  const handleImportGoogle = async (account: TCalendarAccount) => {
+    if (importingAccountId) return;
+    setImportingAccountId(account.id);
     try {
       const res = await calendarService.importGoogleEvents(workspaceSlug, {
-        account_id: googleAccount.id,
+        account_id: account.id,
         from: taskRange.from,
         to: taskRange.to,
       });
@@ -441,7 +459,7 @@ function CalendarPageHeader({
         message,
       });
     } finally {
-      setIsImportingGoogle(false);
+      setImportingAccountId(null);
     }
   };
 
@@ -458,11 +476,15 @@ function CalendarPageHeader({
           <span>
             Your tasks <span className="ml-0.5 text-tertiary">· {taskCount}</span>
           </span>
-          {googleAccount && (
+          {hasGoogleAccounts && (
             <>
               <span className="text-tertiary">·</span>
               <LegendDot color="#2563eb" />
-              <span className="truncate">{googleAccount.account_email || "Google Calendar"}</span>
+              <span className="truncate">
+                {googleAccounts.length === 1
+                  ? calendarAccountLabel(googleAccounts[0]!)
+                  : `${googleAccounts.length} Google calendars`}
+              </span>
             </>
           )}
         </div>
@@ -495,31 +517,94 @@ function CalendarPageHeader({
         <Button variant="primary" size="lg" prependIcon={<Plus />} onClick={onQuickAdd}>
           New task
         </Button>
-        {googleAccount ? (
-          <>
-            <Button variant="secondary" size="lg" onClick={handleSyncTasks} disabled={isSyncingTasks}>
-              {isSyncingTasks ? "Syncing…" : "Sync tasks to Google"}
-            </Button>
-            <Button variant="secondary" size="lg" onClick={handleImportGoogle} disabled={isImportingGoogle}>
-              {isImportingGoogle ? "Importing…" : "Import Google events"}
-            </Button>
-            <Button variant="ghost" size="lg" prependIcon={<Trash2 />} onClick={handleDisconnect}>
-              Disconnect Google
-            </Button>
-          </>
-        ) : (
-          <Button
-            variant="secondary"
-            size="lg"
-            prependIcon={<CalendarIcon />}
-            onClick={handleConnect}
-            disabled={isConnecting}
-          >
-            {isConnecting ? "Redirecting…" : "Connect Google Calendar"}
-          </Button>
+        <Button
+          variant="secondary"
+          size="lg"
+          prependIcon={<CalendarIcon />}
+          onClick={handleConnect}
+          disabled={isConnecting}
+        >
+          {isConnecting ? "Redirecting…" : hasGoogleAccounts ? "Add Google Calendar" : "Connect Google Calendar"}
+        </Button>
+        {hasGoogleAccounts && (
+          <GoogleAccountsMenu
+            accounts={googleAccounts}
+            syncingAccountId={syncingAccountId}
+            importingAccountId={importingAccountId}
+            onSync={handleSyncTasks}
+            onImport={handleImportGoogle}
+            onDisconnect={handleDisconnect}
+          />
         )}
       </Header.RightItem>
     </Header>
+  );
+}
+
+type GoogleAccountsMenuProps = {
+  accounts: TCalendarAccount[];
+  syncingAccountId: string | null;
+  importingAccountId: string | null;
+  onSync: (account: TCalendarAccount) => void;
+  onImport: (account: TCalendarAccount) => void;
+  onDisconnect: (account: TCalendarAccount) => void;
+};
+
+function GoogleAccountsMenu({
+  accounts,
+  syncingAccountId,
+  importingAccountId,
+  onSync,
+  onImport,
+  onDisconnect,
+}: GoogleAccountsMenuProps) {
+  return (
+    <Menu as="div" className="relative">
+      <Menu.Button className="inline-flex h-7 items-center gap-1.5 rounded-md border border-strong bg-layer-2 px-2 text-body-xs-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover">
+        Google calendars
+        <ChevronDown className="size-3.5 text-tertiary" />
+      </Menu.Button>
+      <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-72 rounded-md border border-strong bg-layer-2 py-1 outline-none">
+        {accounts.map((account) => (
+          <div key={account.id} className="border-b border-subtle px-2 py-2 last:border-b-0">
+            <div className="mb-1 flex items-center gap-2 px-1 text-13 font-medium text-primary">
+              <LegendDot color="#2563eb" />
+              <span className="min-w-0 truncate">{calendarAccountLabel(account)}</span>
+            </div>
+            <Menu.Item>
+              <button
+                type="button"
+                onClick={() => onImport(account)}
+                disabled={importingAccountId !== null}
+                className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-13 text-secondary hover:bg-layer-2-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span>{importingAccountId === account.id ? "Importing..." : "Import events"}</span>
+              </button>
+            </Menu.Item>
+            <Menu.Item>
+              <button
+                type="button"
+                onClick={() => onSync(account)}
+                disabled={syncingAccountId !== null}
+                className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-13 text-secondary hover:bg-layer-2-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span>{syncingAccountId === account.id ? "Syncing..." : "Sync tasks to this account"}</span>
+              </button>
+            </Menu.Item>
+            <Menu.Item>
+              <button
+                type="button"
+                onClick={() => onDisconnect(account)}
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-13 text-danger-primary hover:bg-layer-2-hover"
+              >
+                <Trash2 className="size-3.5" />
+                Disconnect
+              </button>
+            </Menu.Item>
+          </div>
+        ))}
+      </Menu.Items>
+    </Menu>
   );
 }
 

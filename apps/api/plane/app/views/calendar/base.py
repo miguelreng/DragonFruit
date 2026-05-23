@@ -257,7 +257,7 @@ class GoogleCalendarStartEndpoint(BaseAPIView):
             "response_type": "code",
             "scope": " ".join(SCOPES),
             "access_type": "offline",
-            "prompt": "consent",
+            "prompt": "consent select_account",
             "include_granted_scopes": "true",
             "state": f"{request.user.id}:{client}",
         }
