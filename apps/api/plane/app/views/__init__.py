@@ -218,10 +218,12 @@ from .calendar.base import (
     CalendarAccountsListEndpoint,
     CalendarAccountDetailEndpoint,
     CalendarAccountEventsEndpoint,
+    CalendarImportGoogleEventsEndpoint,
     CalendarSyncTasksToGoogleEndpoint,
     GoogleCalendarStartEndpoint,
     GoogleCalendarCallbackEndpoint,
     MyCalendarTasksEndpoint,
+    UpcomingCalendarMeetingsEndpoint,
 )
 
 from .search.base import GlobalSearchEndpoint, SearchEndpoint

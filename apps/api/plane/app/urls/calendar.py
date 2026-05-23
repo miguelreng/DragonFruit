@@ -8,10 +8,12 @@ from plane.app.views import (
     CalendarAccountsListEndpoint,
     CalendarAccountDetailEndpoint,
     CalendarAccountEventsEndpoint,
+    CalendarImportGoogleEventsEndpoint,
     CalendarSyncTasksToGoogleEndpoint,
     GoogleCalendarStartEndpoint,
     GoogleCalendarCallbackEndpoint,
     MyCalendarTasksEndpoint,
+    UpcomingCalendarMeetingsEndpoint,
 )
 
 
@@ -47,8 +49,18 @@ urlpatterns = [
         name="calendar-accounts-events",
     ),
     path(
+        "users/me/calendar/upcoming-meetings/",
+        UpcomingCalendarMeetingsEndpoint.as_view(),
+        name="calendar-upcoming-meetings",
+    ),
+    path(
         "workspaces/<str:slug>/calendar/google/sync-tasks/",
         CalendarSyncTasksToGoogleEndpoint.as_view(),
         name="workspace-calendar-google-sync-tasks",
+    ),
+    path(
+        "workspaces/<str:slug>/calendar/google/import-events/",
+        CalendarImportGoogleEventsEndpoint.as_view(),
+        name="workspace-calendar-google-import-events",
     ),
 ]

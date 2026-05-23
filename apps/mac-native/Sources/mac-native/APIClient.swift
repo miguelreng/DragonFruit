@@ -141,6 +141,26 @@ struct APIClient {
         return try JSONDecoder().decode(EventsResponse.self, from: data).events
     }
 
+    func getUpcomingMeetings(fromISO: String, toISO: String) async throws -> [CalendarEvent] {
+        var components = URLComponents(url: baseURL.appending(path: "api/users/me/calendar/upcoming-meetings/"), resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "from", value: fromISO),
+            URLQueryItem(name: "to", value: toISO),
+        ]
+        guard let url = components?.url else {
+            throw NSError(domain: "DragonFruitNative", code: 1005, userInfo: [NSLocalizedDescriptionKey: "Invalid meetings URL"])
+        }
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await session.data(for: request)
+        try ensureStatus(response, allowed: [200])
+
+        struct EventsResponse: Codable {
+            let events: [CalendarEvent]
+        }
+
+        return try JSONDecoder().decode(EventsResponse.self, from: data).events
+    }
+
     private func ensureStatus(_ response: URLResponse, allowed: Set<Int>) throws {
         guard let http = response as? HTTPURLResponse else {
             throw NSError(domain: "DragonFruitNative", code: 900, userInfo: [NSLocalizedDescriptionKey: "Non-HTTP response"])

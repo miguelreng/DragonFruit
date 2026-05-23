@@ -257,19 +257,34 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             let client = try makeClient()
             let accounts = try await client.listCalendarAccounts()
             googleConnected = !accounts.isEmpty
-            if let account = accounts.first {
-                let formatter = ISO8601DateFormatter()
-                let from = formatter.string(from: .now)
-                let to = formatter.string(from: .now.addingTimeInterval(24 * 60 * 60))
-                let events = try await client.getEvents(accountId: account.id, fromISO: from, toISO: to)
-                if let event = events.first {
-                    let start = formatter.date(from: event.start) ?? .now.addingTimeInterval(300)
-                    meeting = MeetingInfo(title: event.title.isEmpty ? "Untitled meeting" : event.title, startAt: start)
-                }
+            let formatter = ISO8601DateFormatter()
+            let from = formatter.string(from: .now)
+            let to = formatter.string(from: .now.addingTimeInterval(7 * 24 * 60 * 60))
+            let events = accounts.isEmpty ? [] : try await client.getUpcomingMeetings(fromISO: from, toISO: to)
+            if let event = events.first, let start = parseCalendarDate(event.start) {
+                meeting = MeetingInfo(title: event.title.isEmpty ? "Untitled meeting" : event.title, startAt: start)
+                statusMessage = "Loaded \(events.count) upcoming meeting\(events.count == 1 ? "" : "s")."
+            } else if accounts.isEmpty {
+                meeting = MeetingInfo(title: "Connect Google Calendar to see meetings", startAt: .now)
+                statusMessage = "Calendar not connected yet."
+            } else {
+                meeting = MeetingInfo(title: "No upcoming meetings", startAt: .now)
+                statusMessage = "No meetings found for the next 7 days."
             }
         } catch {
             statusMessage = error.localizedDescription
         }
+    }
+
+    private func parseCalendarDate(_ value: String) -> Date? {
+        if let date = ISO8601DateFormatter().date(from: value) {
+            return date
+        }
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: value)
     }
 
     func connectGoogle() async {
