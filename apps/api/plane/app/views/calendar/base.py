@@ -72,6 +72,51 @@ def _calendar_web_credentials() -> tuple[str, str]:
     return client_id, calendar_client_secret or google_client_secret
 
 
+def _unique_credential_pairs(pairs: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    seen: set[tuple[str, str]] = set()
+    unique: list[tuple[str, str]] = []
+    for client_id, client_secret in pairs:
+        if not client_id or not client_secret:
+            continue
+        key = (client_id, client_secret)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(key)
+    return unique
+
+
+def _web_credential_candidates() -> list[tuple[str, str]]:
+    primary = _calendar_web_credentials()
+
+    env_calendar = (
+        _first_config_value(["GOOGLE_CALENDAR_CLIENT_ID"], prefer_env=True),
+        _first_config_value(["GOOGLE_CALENDAR_CLIENT_SECRET"], prefer_env=True),
+    )
+    env_google = (
+        _first_config_value(["GOOGLE_CLIENT_ID"], prefer_env=True),
+        _first_config_value(["GOOGLE_CLIENT_SECRET"], prefer_env=True),
+    )
+    configured_calendar = (
+        _first_config_value(["GOOGLE_CALENDAR_CLIENT_ID"]),
+        _first_config_value(["GOOGLE_CALENDAR_CLIENT_SECRET"]),
+    )
+    configured_google = (
+        _first_config_value(["GOOGLE_CLIENT_ID"]),
+        _first_config_value(["GOOGLE_CLIENT_SECRET"]),
+    )
+
+    return _unique_credential_pairs(
+        [
+            primary,
+            env_calendar,
+            env_google,
+            configured_calendar,
+            configured_google,
+        ]
+    )
+
+
 def _normalize_client(client: str | None) -> str:
     normalized = (client or "web").strip().lower()
     return normalized if normalized in {"web", "native"} else "web"
@@ -104,6 +149,12 @@ def _client_credentials(client: str | None) -> tuple[str, str]:
         )
 
     return _calendar_web_credentials()
+
+
+def _client_credential_candidates(client: str | None) -> list[tuple[str, str]]:
+    if _normalize_client(client) == "web":
+        return _web_credential_candidates()
+    return _unique_credential_pairs([_client_credentials(client)])
 
 
 def _redirect_uri_for_client(client: str | None) -> str:
@@ -226,25 +277,38 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
         if not code:
             return Response({"error": "code is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        client_id, client_secret = _client_credentials(client)
+        credential_candidates = _client_credential_candidates(client)
         redirect_uri = _redirect_uri_for_client(client)
-        if not client_id or not client_secret:
+        if not credential_candidates:
             return Response(
                 {"error": "Google OAuth is not configured on this instance."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        token_resp = requests.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "code": code,
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "redirect_uri": redirect_uri,
-                "grant_type": "authorization_code",
-            },
-            timeout=10,
-        )
+        token_resp = None
+        used_candidate_index = 0
+        for index, (client_id, client_secret) in enumerate(credential_candidates):
+            token_resp = requests.post(
+                GOOGLE_TOKEN_URL,
+                data={
+                    "code": code,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+                timeout=10,
+            )
+            used_candidate_index = index
+            if token_resp.status_code == 200:
+                break
+
+        if token_resp is None:
+            return Response(
+                {"error": "Google OAuth is not configured on this instance."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
         if token_resp.status_code != 200:
             details = _details_from_response(token_resp)
             return Response(
@@ -253,6 +317,8 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
                     "details": details,
                     "client": client,
                     "redirect_uri": redirect_uri,
+                    "credential_candidates": len(credential_candidates),
+                    "last_candidate": used_candidate_index + 1,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
