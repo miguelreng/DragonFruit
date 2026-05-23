@@ -27,6 +27,18 @@ export type TCalendarEvent = {
   all_day: boolean;
   html_link: string;
   status: string;
+  calendar_id?: string;
+};
+
+export type TGoogleCalendar = {
+  id: string;
+  summary: string;
+  description: string;
+  background_color: string;
+  foreground_color: string;
+  primary: boolean;
+  selected: boolean;
+  access_role: string;
 };
 
 export type TCalendarTask = {
@@ -70,20 +82,27 @@ export class CalendarService extends APIService {
     await this.delete(`/api/users/me/calendar-accounts/${accountId}/`);
   }
 
-  async events(accountId: string, params: { from: string; to: string }): Promise<{ events: TCalendarEvent[] }> {
+  async calendars(accountId: string): Promise<{ calendars: TGoogleCalendar[] }> {
+    return this.get(`/api/users/me/calendar-accounts/${accountId}/calendars/`).then((r) => r?.data);
+  }
+
+  async events(
+    accountId: string,
+    params: { from: string; to: string; calendar_id?: string }
+  ): Promise<{ events: TCalendarEvent[] }> {
     return this.get(`/api/users/me/calendar-accounts/${accountId}/events/`, { params }).then((r) => r?.data);
   }
 
   async syncTasksToGoogle(
     workspaceSlug: string,
-    payload: { account_id: string; from: string; to: string }
+    payload: { account_id: string; calendar_id?: string; from: string; to: string }
   ): Promise<{ synced: number; failed: Array<{ issue_id: string; reason: string }> }> {
     return this.post(`/api/workspaces/${workspaceSlug}/calendar/google/sync-tasks/`, payload).then((r) => r?.data);
   }
 
   async importGoogleEvents(
     workspaceSlug: string,
-    payload: { account_id: string; project_id?: string; from: string; to: string }
+    payload: { account_id: string; calendar_id?: string; project_id?: string; from: string; to: string }
   ): Promise<{ imported: number; skipped: number; failed: Array<{ event_id: string; reason: string }> }> {
     return this.post(`/api/workspaces/${workspaceSlug}/calendar/google/import-events/`, payload).then((r) => r?.data);
   }

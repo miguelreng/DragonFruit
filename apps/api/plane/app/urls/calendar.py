@@ -6,6 +6,7 @@ from django.urls import path
 
 from plane.app.views import (
     CalendarAccountsListEndpoint,
+    CalendarAccountCalendarsEndpoint,
     CalendarAccountDetailEndpoint,
     CalendarAccountEventsEndpoint,
     CalendarImportGoogleEventsEndpoint,
@@ -42,6 +43,11 @@ urlpatterns = [
         "users/me/calendar-accounts/<uuid:account_id>/",
         CalendarAccountDetailEndpoint.as_view(),
         name="calendar-accounts-detail",
+    ),
+    path(
+        "users/me/calendar-accounts/<uuid:account_id>/calendars/",
+        CalendarAccountCalendarsEndpoint.as_view(),
+        name="calendar-accounts-calendars",
     ),
     path(
         "users/me/calendar-accounts/<uuid:account_id>/events/",
