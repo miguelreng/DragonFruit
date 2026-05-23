@@ -20,7 +20,14 @@ const DEFAULT_CALLBACK = "dragonfruitmini://auth/login-callback";
 
 export default function NativeLoginPage() {
   const searchParams = useSearchParams();
-  const callback = searchParams.get("callback") || DEFAULT_CALLBACK;
+  const callbackParam = searchParams.get("callback") || DEFAULT_CALLBACK;
+  const callback = useMemo(() => {
+    try {
+      return decodeURIComponent(callbackParam);
+    } catch {
+      return callbackParam;
+    }
+  }, [callbackParam]);
   const [attempted, setAttempted] = useState(false);
   const startUrl = useMemo(() => {
     const params = new URLSearchParams({ callback });
