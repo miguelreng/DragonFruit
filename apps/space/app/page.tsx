@@ -26,12 +26,19 @@ const HomePage = observer(function HomePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const nextPath = searchParams.get("next_path");
+  const isNativeCallback = Boolean(nextPath && /^dragonfruitmini:\/\/.+/i.test(nextPath));
 
   useEffect(() => {
-    if (currentUser && isAuthenticated && nextPath && isValidNextPath(nextPath)) {
-      router.replace(nextPath);
+    if (currentUser && isAuthenticated && nextPath) {
+      if (isNativeCallback) {
+        window.location.assign(nextPath);
+        return;
+      }
+      if (isValidNextPath(nextPath)) {
+        router.replace(nextPath);
+      }
     }
-  }, [currentUser, isAuthenticated, nextPath, router]);
+  }, [currentUser, isAuthenticated, isNativeCallback, nextPath, router]);
 
   if (isInitializing)
     return (
@@ -41,7 +48,7 @@ const HomePage = observer(function HomePage() {
     );
 
   if (currentUser && isAuthenticated) {
-    if (nextPath && isValidNextPath(nextPath)) {
+    if ((nextPath && isValidNextPath(nextPath)) || isNativeCallback) {
       return (
         <div className="flex h-screen min-h-[500px] w-full items-center justify-center bg-surface-1">
           <LogoSpinner />
