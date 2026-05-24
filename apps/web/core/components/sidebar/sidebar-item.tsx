@@ -158,9 +158,11 @@ const AppSidebarLinkItem = React.forwardRef<HTMLAnchorElement, AppSidebarLinkIte
     </Link>
   );
 
+  const tooltipTrigger = <span className={cn("inline-flex max-w-full", { "w-fit": isInline })}>{linkContent}</span>;
+
   return (
     <AppSidebarTooltip tooltipContent={tooltipContent} disabled={tooltipDisabled}>
-      {linkContent}
+      {tooltipTrigger}
     </AppSidebarTooltip>
   );
 });

@@ -13,8 +13,10 @@ import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   CalendarDays,
+  Download,
   FileText,
   Folder,
+  FolderOpen,
   Layers,
   ListTodo,
   Star,
@@ -24,7 +26,7 @@ import {
   PanelLeft,
   PanelRight,
 } from "@/components/icons/lucide-shim";
-import { ChevronDownIcon, ChevronRightIcon, PlusIcon } from "@plane/propel/icons";
+import { ChevronRightIcon, PlusIcon } from "@plane/propel/icons";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { CustomMenu } from "@plane/ui";
 import { cn } from "@plane/utils";
@@ -75,7 +77,8 @@ const COMPACT_RAIL_ICON_CLASS = "grid size-5 place-items-center [&_svg]:size-5 [
 const EXPANDED_RAIL_ICON_CLASS = "grid size-4 flex-shrink-0 place-items-center [&_svg]:size-4 [&_svg]:text-current";
 const RAIL_ICON_ACTIVE = "text-current";
 const RAIL_ICON_INACTIVE = "text-icon-tertiary dark:text-white/60";
-const RAIL_SECTION_CLASS = "flex flex-col gap-1";
+const RAIL_TREE_LINE_CLASS = "absolute top-0 bottom-1 left-1 w-px bg-[var(--border-color-strong)] dark:bg-white/[0.28]";
+const RAIL_LOGO_ICON_SIZE = 14;
 
 const isRouteMatch = (targetPath: string, pathname: string) => {
   const normalizedTargetPath = targetPath.split("?")[0];
@@ -101,7 +104,7 @@ const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps |
       const iconProps = projectLogoProps ?? favorite.entity_data?.logo_props;
 
       if (layout) return getFavoriteLayoutRailIcon(layout) ?? <ListTodo className={RAIL_INLINE_ICON_CLASS} />;
-      if (iconProps?.in_use) return <Logo logo={iconProps} size={16} type="material" />;
+      if (iconProps?.in_use) return <Logo logo={iconProps} size={RAIL_LOGO_ICON_SIZE} type="material" />;
 
       return <Folder className={RAIL_INLINE_ICON_CLASS} />;
     }
@@ -235,9 +238,9 @@ const CompactRailItemGroup = (props: {
 
   return (
     <div
-      className={cn(RAIL_SECTION_CLASS, {
-        "items-center": isCompact,
-        "items-start": !isCompact,
+      className={cn("flex flex-col", {
+        "items-center gap-1": isCompact,
+        "items-start gap-0.5": !isCompact,
       })}
     >
       {primaryItems.map((item) => (
@@ -272,21 +275,24 @@ const RailCategory = (props: {
           <button
             type="button"
             onClick={onToggle}
-            className="tracking-normal flex min-w-0 flex-1 items-center gap-1 px-2 py-1 text-left text-12 font-medium text-tertiary hover:text-secondary dark:text-white/60 dark:hover:text-white/90"
+            className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left text-12 font-medium text-tertiary hover:text-secondary dark:text-white/60 dark:hover:text-white/90"
             aria-label={title}
             aria-expanded={isOpen}
           >
-            <ChevronDownIcon
-              className={cn("size-4 flex-shrink-0 text-icon-tertiary transition-transform dark:text-white/50", {
-                "-rotate-90": !isOpen,
-              })}
-            />
-            <span className="truncate">{title}</span>
+            <span className="flex size-5 flex-shrink-0 items-center justify-center text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current">
+              {isOpen ? <FolderOpen /> : <Folder />}
+            </span>
+            <span className="min-w-0 flex-1 truncate">{title}</span>
           </button>
         </AppSidebarTooltip>
         {action}
       </div>
-      {isOpen && children}
+      {isOpen && (
+        <div className="relative ml-3 flex w-[calc(100%-0.75rem)] flex-col gap-0.5 pl-3">
+          <div className={RAIL_TREE_LINE_CLASS} />
+          {children}
+        </div>
+      )}
     </div>
   );
 };
@@ -344,7 +350,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string }
       </div>
       {isOpen && (
         <div className="relative mt-0.5 mb-1 ml-4 flex flex-col gap-0.5 pl-3">
-          <div className="absolute top-0 bottom-1 left-1 w-px bg-layer-3 dark:bg-white/[0.10]" />
+          <div className={RAIL_TREE_LINE_CLASS} />
           <AppSidebarTooltip tooltipContent={`${item.label} Tasks`}>
             <Link
               href={item.tasksHref}
@@ -433,7 +439,7 @@ export const AppRailRoot = observer(() => {
         tasksHref,
         pagesHref,
         label: project.name,
-        icon: <Logo logo={project.logo_props} size={16} type="material" />,
+        icon: <Logo logo={project.logo_props} size={RAIL_LOGO_ICON_SIZE} type="material" />,
         isActive: pathname.includes(`/${slug}/projects/${project.id}`),
       };
     }) satisfies TProjectRailItem[];
@@ -566,7 +572,7 @@ export const AppRailRoot = observer(() => {
                         event.stopPropagation();
                         toggleCreateProjectModal(true);
                       }}
-                      className="grid size-6 flex-shrink-0 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-4 [&_svg]:text-current"
+                      className="grid size-5 flex-shrink-0 place-items-center rounded-md text-icon-tertiary opacity-0 transition-opacity group-hover/category:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-3.5 [&_svg]:text-current"
                       aria-label={t("aria_labels.projects_sidebar.create_new_project")}
                     >
                       <PlusIcon />
@@ -612,6 +618,15 @@ export const AppRailRoot = observer(() => {
               icon: <Sparkles />,
               isActive: agentChatOpen,
               onClick: () => toggleAgentChat(),
+              isInline: isRailExpanded,
+              showLabel: showRailLabels,
+            }}
+          />
+          <AppSidebarItem
+            variant="button"
+            item={{
+              label: "Install Copilot",
+              icon: <Download />,
               isInline: isRailExpanded,
               showLabel: showRailLabels,
             }}
