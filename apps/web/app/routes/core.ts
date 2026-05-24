@@ -120,6 +120,12 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/notifications", "./(all)/[workspaceSlug]/(projects)/notifications/page.tsx"),
         ]),
 
+        // Workspace Projects list
+        route(":workspaceSlug/projects", "./(all)/[workspaceSlug]/(projects)/projects/page.tsx"),
+
+        // Favorites
+        route(":workspaceSlug/favorites", "./(all)/[workspaceSlug]/(projects)/favorites/page.tsx"),
+
         // Profile
         layout("./(all)/[workspaceSlug]/(projects)/profile/[userId]/layout.tsx", [
           route(":workspaceSlug/profile/:userId", "./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx"),

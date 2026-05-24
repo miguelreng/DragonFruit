@@ -212,12 +212,16 @@ function ContextMenuWithoutPortal(props: ContextMenuProps) {
     >
       <div
         ref={contextMenuRef}
-        className="vertical-scrollbar fixed scrollbar-sm max-h-72 min-w-[12rem] overflow-y-scroll rounded-md border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-2.5"
+        className={cn(
+          "t-dropdown vertical-scrollbar fixed scrollbar-sm max-h-72 min-w-[12rem] overflow-y-scroll rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-2.5",
+          isOpen && "is-open"
+        )}
         style={{
           top: position.y,
           left: position.x,
         }}
         data-context-menu="true"
+        data-origin="top-left"
       >
         <ContextMenuContext.Provider value={{ closeAllSubmenus, registerSubmenu, portalContainer }}>
           {renderedItems.map((item, index) => (

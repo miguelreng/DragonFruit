@@ -43,13 +43,15 @@ export function StickyInput(props: TProps) {
   // form info
   const { handleSubmit, reset, control } = useForm<TSticky>({
     defaultValues: {
+      name: stickyData?.name ?? "",
       description_html: stickyData?.description_html,
     },
   });
-  // handle description update
+
   const handleFormSubmit = useCallback(
     async (formdata: Partial<TSticky>) => {
       await handleUpdate({
+        name: formdata.name ?? "",
         description_html: formdata.description_html ?? "<p></p>",
       });
     },
@@ -60,12 +62,30 @@ export function StickyInput(props: TProps) {
     if (!stickyId) return;
     reset({
       id: stickyId,
+      name: stickyData?.name ?? "",
       description_html: stickyData?.description_html?.trim() === "" ? "<p></p>" : stickyData?.description_html,
     });
   }, [stickyData, stickyId, reset]);
 
   return (
     <div className="flex-1">
+      <Controller
+        name="name"
+        control={control}
+        render={({ field: { value, onChange } }) => (
+          <input
+            type="text"
+            value={value ?? ""}
+            onChange={(e) => {
+              onChange(e.target.value);
+              handleSubmit(handleFormSubmit)();
+            }}
+            placeholder="Title"
+            className="content-title-font w-full border-0 bg-transparent px-4 pt-4 pb-1 text-20 font-medium text-primary placeholder:text-primary/40 focus:outline-none"
+            maxLength={100}
+          />
+        )}
+      />
       <Controller
         name="description_html"
         control={control}
@@ -86,7 +106,7 @@ export function StickyInput(props: TProps) {
               return "Click to type here";
             }}
             containerClassName={cn(
-              "vertical-scrollbar scrollbar-sm max-h-[540px] min-h-[256px] w-full overflow-y-scroll p-4 text-14",
+              "sticky-title-editor vertical-scrollbar scrollbar-sm max-h-[540px] min-h-[256px] w-full overflow-y-scroll p-4 text-14",
               {
                 "max-h-[588px]": isStickiesPage,
               }

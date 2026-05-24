@@ -144,12 +144,12 @@ export const InlineCreateSubIssue = observer(function InlineCreateSubIssue(props
         onChange={(event) => setName(event.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        placeholder={t("sub_work_item.add.placeholder") || "Subtask name, then Enter…"}
+        placeholder={t("sub_work_item.add.placeholder")}
         className="text-sm flex-1 bg-transparent text-primary placeholder:text-tertiary focus:outline-none"
         // Bound long names server-side; for the inline path keep it loose
         // and let validation surface as a toast.
         maxLength={255}
-        disabled={isSubmitting}
+        readOnly={isSubmitting}
       />
     </form>
   );

@@ -28,17 +28,17 @@ type TAuthHeader = {
 const keywordStyle: React.CSSProperties = {
   fontFamily: "Newsreader, serif",
   fontStyle: "italic",
-  fontWeight: 300,
+  fontWeight: 400,
 };
 
 const AuthLegend = (
   <span>
     Where{" "}
-    <span className="text-[1.08em]" style={keywordStyle}>
+    <span className="text-[1.18em]" style={keywordStyle}>
       ideas
     </span>{" "}
     become{" "}
-    <span className="text-[1.08em]" style={keywordStyle}>
+    <span className="text-[1.18em]" style={keywordStyle}>
       work
     </span>
     .

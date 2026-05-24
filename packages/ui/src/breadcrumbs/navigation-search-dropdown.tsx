@@ -23,6 +23,7 @@ type TBreadcrumbNavigationSearchDropdownProps = {
   handleOnClick?: () => void;
   disableRootHover?: boolean;
   shouldTruncate?: boolean;
+  titleClassName?: string;
 };
 
 export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationSearchDropdownProps) {
@@ -36,6 +37,7 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
     isLast = false,
     handleOnClick,
     shouldTruncate = false,
+    titleClassName = "",
   } = props;
   // state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -80,7 +82,7 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
                 })}
               >
                 {icon && <Breadcrumbs.Icon>{icon}</Breadcrumbs.Icon>}
-                <Breadcrumbs.Label>{title}</Breadcrumbs.Label>
+                <Breadcrumbs.Label className={titleClassName}>{title}</Breadcrumbs.Label>
               </div>
             </button>
           </Tooltip>
@@ -99,9 +101,9 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
         </>
       }
       disabled={navigationDisabled}
-      className="h-full rounded-sm"
+      className="h-full rounded-md"
       customButtonClassName={cn(
-        "group flex h-full cursor-pointer items-center gap-0.5 rounded-sm outline-none hover:bg-surface-2",
+        "group flex h-full cursor-pointer items-center gap-0.5 rounded-md outline-none hover:bg-surface-2",
         {
           "bg-surface-2": isDropdownOpen,
         }

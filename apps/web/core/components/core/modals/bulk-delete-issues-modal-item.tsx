@@ -47,7 +47,7 @@ export const BulkDeleteIssuesModalItem = observer(function BulkDeleteIssuesModal
           issueSequenceId={issue.sequence_id}
           size="xs"
         />
-        <span>{issue.name}</span>
+        <span className="content-title-font">{issue.name}</span>
       </div>
     </Combobox.Option>
   );

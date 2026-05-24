@@ -89,7 +89,11 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
       >
         {dragHandleRef && <StickyItemDragHandle ref={dragHandleRef} />}
         {onClose && (
-          <button type="button" className="flex flex-shrink-0 justify-end p-2.5" onClick={onClose}>
+          <button
+            type="button"
+            className="ml-auto flex flex-shrink-0 justify-end rounded-md p-2.5 hover:bg-black/5"
+            onClick={onClose}
+          >
             <Minimize2 className="size-4" />
           </button>
         )}

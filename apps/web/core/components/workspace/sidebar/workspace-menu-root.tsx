@@ -8,18 +8,18 @@ import { Fragment, useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
-import { CirclePlus, LogOut, Mails } from "@/components/icons/lucide-shim";
+import { CirclePlus, LogOut, Mails, Settings, UserPlus } from "@/components/icons/lucide-shim";
 // ui
 import { Menu, Transition } from "@headlessui/react";
 // plane imports
+import { EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { ChevronDownIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspace } from "@plane/types";
 import { Loader } from "@plane/ui";
 import { orderWorkspacesList, cn } from "@plane/utils";
-// helpers
-import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
+import { AppSidebarTooltip } from "@/components/sidebar/sidebar-item";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useWorkspace } from "@/hooks/store/use-workspace";
@@ -31,10 +31,11 @@ import SidebarDropdownItem from "./dropdown-item";
 
 type WorkspaceMenuRootProps = {
   variant: "sidebar" | "top-navigation";
+  showLabel?: boolean;
 };
 
 export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: WorkspaceMenuRootProps) {
-  const { variant } = props;
+  const { variant, showLabel = false } = props;
   // store hooks
   const { toggleSidebar, toggleAnySidebarDropdown } = useAppTheme();
   const { config } = useInstance();
@@ -67,6 +68,9 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
     }
   };
   const workspacesList = orderWorkspacesList(Object.values(workspaces ?? {}));
+  const canManageActiveWorkspace =
+    !!activeWorkspace && [EUserPermissions.ADMIN, EUserPermissions.MEMBER].includes(activeWorkspace.role);
+  const canInviteToActiveWorkspace = !!activeWorkspace && activeWorkspace.role === EUserPermissions.ADMIN;
   // TODO: fix workspaces list scroll
 
   // Toggle sidebar dropdown state when either menu is open
@@ -77,12 +81,13 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   return (
     <Menu
       as="div"
-      className={cn("relative flex h-full w-fit max-w-48 truncate whitespace-nowrap", {
-        "w-full justify-center text-center": variant === "sidebar",
+      className={cn("relative flex w-fit max-w-48 truncate whitespace-nowrap", {
+        "justify-start text-left": variant === "sidebar" && showLabel,
+        "w-full justify-center text-center": variant === "sidebar" && !showLabel,
         "justify-start truncate text-left": variant === "top-navigation",
       })}
     >
-      {({ open, close }: { open: boolean; close: () => void }) => {
+      {({ open }: { open: boolean }) => {
         // Update local state directly
         if (isWorkspaceMenuOpen !== open) {
           setIsWorkspaceMenuOpen(open);
@@ -91,30 +96,44 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
         return (
           <>
             {variant === "sidebar" && (
-              <Menu.Button
-                className={cn("flex size-8 w-full items-center justify-center rounded-md", {
-                  "bg-layer-1": open,
-                })}
-              >
-                <AppSidebarItem
-                  variant="button"
-                  item={{
-                    icon: (
-                      <WorkspaceLogo
-                        logo={activeWorkspace?.logo_url}
-                        name={activeWorkspace?.name}
-                        workspaceId={activeWorkspace?.id}
-                        classNames="size-8 rounded-md border border-subtle"
+              <AppSidebarTooltip tooltipContent={activeWorkspace?.name ?? t("loading")} disabled={showLabel}>
+                <Menu.Button
+                  aria-label={activeWorkspace?.name ?? t("aria_labels.projects_sidebar.open_workspace_switcher")}
+                  className={cn(
+                    "flex h-8 max-w-full items-center rounded-md hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
+                    {
+                      "bg-layer-1": open,
+                      "dark:bg-white/[0.12]": open,
+                      "w-fit justify-start gap-2 px-2": showLabel,
+                      "w-8 justify-center": !showLabel,
+                    }
+                  )}
+                >
+                  <WorkspaceLogo
+                    logo={activeWorkspace?.logo_url}
+                    name={activeWorkspace?.name}
+                    workspaceId={activeWorkspace?.id}
+                    classNames="size-5 flex-shrink-0 rounded-md border border-subtle"
+                  />
+                  {showLabel && (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-13 font-medium text-secondary dark:text-white/80">
+                        {activeWorkspace?.name ?? t("loading")}
+                      </span>
+                      <ChevronDownIcon
+                        className={cn("size-4 flex-shrink-0 text-icon-tertiary duration-300 dark:text-white/55", {
+                          "rotate-180": open,
+                        })}
                       />
-                    ),
-                  }}
-                />
-              </Menu.Button>
+                    </>
+                  )}
+                </Menu.Button>
+              </AppSidebarTooltip>
             )}
             {variant === "top-navigation" && (
               <Menu.Button
                 className={cn(
-                  "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm py-1 pr-1 pl-4 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
+                  "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm py-1 pr-1 pl-0 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
                   {
                     "bg-layer-1": open,
                   }
@@ -149,10 +168,10 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
               <Menu.Items as={Fragment}>
                 <div
                   className={cn(
-                    "fixed z-21 mt-1 flex w-[19rem] origin-top-left flex-col divide-y divide-subtle rounded-md border-[0.5px] border-strong bg-surface-1 shadow-raised-200 outline-none",
+                    "fixed z-21 mt-1 flex w-[19rem] origin-top-left flex-col divide-y divide-subtle rounded-[18px] border-[0.5px] border-strong bg-surface-1 shadow-raised-200 outline-none",
                     {
                       "top-11 left-14": variant === "sidebar",
-                      "top-10 left-4": variant === "top-navigation",
+                      "top-10 left-0": variant === "top-navigation",
                     }
                   )}
                 >
@@ -175,7 +194,6 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                             activeWorkspace={activeWorkspace}
                             handleItemClick={handleItemClick}
                             handleWorkspaceNavigation={handleWorkspaceNavigation}
-                            handleClose={close}
                           />
                         ))}
                       </div>
@@ -188,12 +206,44 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       </div>
                     )}
                   </div>
-                  <div className="flex w-full flex-col items-start justify-start gap-2 px-2 py-2 text-13">
+                  <div className="flex w-full flex-col items-start justify-start gap-1 px-2 py-2 text-13">
+                    {canManageActiveWorkspace && (
+                      <Link href={`/${activeWorkspace.slug}/settings`} className="w-full" onClick={handleItemClick}>
+                        <Menu.Item
+                          as="div"
+                          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                        >
+                          <Settings className="size-4 flex-shrink-0" />
+                          <span>{t("settings")}</span>
+                        </Menu.Item>
+                      </Link>
+                    )}
+
+                    {canInviteToActiveWorkspace && (
+                      <Link
+                        href={`/${activeWorkspace.slug}/settings/members`}
+                        className="w-full"
+                        onClick={handleItemClick}
+                      >
+                        <Menu.Item
+                          as="div"
+                          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                        >
+                          <UserPlus className="size-4 flex-shrink-0" />
+                          <span>{t("project_settings.members.invite_members.title")}</span>
+                        </Menu.Item>
+                      </Link>
+                    )}
+
+                    {(canManageActiveWorkspace || canInviteToActiveWorkspace) && (
+                      <div className="bg-border-200 my-1 h-px w-full" />
+                    )}
+
                     {!isWorkspaceCreationDisabled && (
                       <Link href="/create-workspace" className="w-full">
                         <Menu.Item
                           as="div"
-                          className="flex items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
+                          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
                         >
                           <CirclePlus className="size-4 flex-shrink-0" />
                           {t("create_workspace")}
@@ -204,7 +254,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                     <Link href="/invitations" className="w-full" onClick={handleItemClick}>
                       <Menu.Item
                         as="div"
-                        className="flex items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
                       >
                         <Mails className="h-4 w-4 flex-shrink-0" />
                         {t("workspace_invites")}
@@ -215,7 +265,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       <Menu.Item
                         as="button"
                         type="button"
-                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
                         onClick={handleSignOut}
                       >
                         <LogOut className="size-4 flex-shrink-0" />

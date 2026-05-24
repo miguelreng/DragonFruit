@@ -29,10 +29,10 @@ export interface IButtonStyling {
 }
 
 enum buttonSizeStyling {
-  sm = `px-3 py-1.5 font-medium text-11 rounded-sm flex items-center gap-1.5 whitespace-nowrap transition-all justify-center`,
-  md = `px-4 py-1.5 font-medium text-13 rounded-sm flex items-center gap-1.5 whitespace-nowrap transition-all justify-center`,
-  lg = `px-5 py-2 font-medium text-13 rounded-sm flex items-center gap-1.5 whitespace-nowrap transition-all justify-center`,
-  xl = `px-5 py-3.5 font-medium text-13 rounded-sm flex items-center gap-1.5 whitespace-nowrap transition-all justify-center`,
+  sm = `t-resize px-3 py-1.5 font-medium text-11 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-all justify-center`,
+  md = `t-resize px-4 py-1.5 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-all justify-center`,
+  lg = `t-resize px-5 py-2 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-all justify-center`,
+  xl = `t-resize px-5 py-3.5 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-all justify-center`,
 }
 
 enum buttonIconStyling {
@@ -44,9 +44,9 @@ enum buttonIconStyling {
 
 export const buttonStyling: IButtonStyling = {
   primary: {
-    default: `text-on-color bg-accent-primary`,
-    hover: `hover:bg-accent-primary/80`,
-    pressed: `focus:text-custom-brand-40 focus:bg-accent-primary/80`,
+    default: `text-white bg-[#e548a5]`,
+    hover: `hover:bg-[#d93d9a]`,
+    pressed: `focus:text-white focus:bg-[#c9368e] active:bg-[#c9368e]`,
     disabled: `cursor-not-allowed !bg-layer-1 !text-on-color-disabled`,
   },
   "accent-primary": {

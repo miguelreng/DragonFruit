@@ -89,7 +89,7 @@ export const StickySearch = observer(function StickySearch() {
         {isSearchOpen && (
           <button
             type="button"
-            className="grid place-items-center"
+            className="grid place-items-center rounded-md p-0.5 hover:bg-layer-transparent-hover"
             onClick={() => {
               updateSearchQuery("");
               setIsSearchOpen(false);

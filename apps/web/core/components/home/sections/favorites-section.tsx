@@ -74,7 +74,7 @@ export const FavoritesSection = observer(function FavoritesSection() {
           <h3 className="text-14 font-semibold text-secondary">Favorites</h3>
         </div>
       </div>
-      <div className="rounded-md border border-subtle bg-surface-1">
+      <div className="rounded-[18px] border border-subtle bg-surface-1">
         {items.length === 0 ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">
             No favorites yet. Star a doc, project, list, cycle or module to pin it here.

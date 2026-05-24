@@ -7,8 +7,6 @@
 // plane imports
 import { ScrollArea } from "@plane/propel/scrollarea";
 import { cn } from "@plane/utils";
-// local imports
-import { WorkspaceSettingsSidebarHeader } from "./header";
 import { WorkspaceSettingsSidebarItemCategories } from "./item-categories";
 
 type Props = {
@@ -28,7 +26,6 @@ export function WorkspaceSettingsSidebarRoot(props: Props) {
         className
       )}
     >
-      <WorkspaceSettingsSidebarHeader />
       <WorkspaceSettingsSidebarItemCategories />
     </ScrollArea>
   );

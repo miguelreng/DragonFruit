@@ -64,7 +64,7 @@ export const OnMyPlateSection = observer(function OnMyPlateSection() {
           </Link>
         )}
       </div>
-      <div className="rounded-md border border-subtle bg-surface-1">
+      <div className="rounded-[18px] border border-subtle bg-surface-1">
         {isLoading ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
         ) : issues.length === 0 ? (

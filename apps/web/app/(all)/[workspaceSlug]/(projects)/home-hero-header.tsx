@@ -45,7 +45,7 @@ export function HomeHeroHeader({ user }: Props) {
     minute: "2-digit",
   }).format(currentTime);
 
-  const greeting = parseInt(hour, 10) < 12 ? "morning" : parseInt(hour, 10) < 18 ? "afternoon" : "evening";
+  const greeting = parseInt(hour, 10) < 12 ? "morning" : parseInt(hour, 10) < 18 ? "afternoon" : "night";
   const emoji = greeting === "morning" ? "🌤️" : greeting === "afternoon" ? "🌥️" : "🌙️";
   const heroBg = greeting === "morning" ? heroBgMorning : greeting === "afternoon" ? heroBgAfternoon : heroBgEvening;
 
@@ -57,8 +57,9 @@ export function HomeHeroHeader({ user }: Props) {
       <div aria-hidden className="absolute inset-0 bg-black/40" />
       {/* Greeting */}
       <div className="relative z-10 flex w-full flex-col items-center px-page-x text-center">
-        <h2 className="text-22 font-semibold text-white drop-shadow-sm" style={{ fontFamily: "Newsreader, serif" }}>
-          Good {greeting}, {user.first_name} {user.last_name}
+        <h2 className="text-22 font-semibold text-white drop-shadow-sm">
+          <span style={{ fontFamily: "Newsreader, serif", fontWeight: 400 }}>Good {greeting}</span>, {user.first_name}{" "}
+          {user.last_name}
         </h2>
         <p className="mt-1 flex items-center gap-2 text-13 font-medium text-white/85 drop-shadow-sm">
           <span>{emoji}</span>

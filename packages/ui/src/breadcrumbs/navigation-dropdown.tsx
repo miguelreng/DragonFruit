@@ -85,9 +85,9 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
         </>
       }
       placement="bottom-start"
-      className="h-full rounded-sm"
+      className="h-full rounded-md"
       customButtonClassName={cn(
-        "group flex h-full cursor-pointer items-center gap-0.5 rounded-sm outline-none hover:bg-surface-2",
+        "group flex h-full cursor-pointer items-center gap-0.5 rounded-md outline-none hover:bg-surface-2",
         {
           "bg-surface-2": isOpen,
         }

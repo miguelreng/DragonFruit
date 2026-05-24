@@ -176,7 +176,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           <label htmlFor="email" className="text-13 font-medium text-tertiary">
             {t("auth.common.email.label")}
           </label>
-          <div className={`relative flex items-center rounded-md border border-strong bg-surface-1`}>
+          <div className={`relative flex items-center rounded-lg border border-strong bg-surface-1`}>
             <Input
               id="email"
               name="email"
@@ -204,7 +204,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
           <label htmlFor="password" className="text-13 font-medium text-tertiary">
             {mode === EAuthModes.SIGN_IN ? t("auth.common.password.label") : t("auth.common.password.set_password")}
           </label>
-          <div className="relative flex items-center rounded-md bg-surface-1">
+          <div className="relative flex items-center rounded-lg bg-surface-1">
             <Input
               type={showPassword?.password ? "text" : "password"}
               id="password"
@@ -212,7 +212,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               value={passwordFormData.password}
               onChange={(e) => handleFormChange("password", e.target.value)}
               placeholder={t("auth.common.password.placeholder")}
-              className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
+              className="h-10 w-full rounded-lg border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
               onFocus={() => setIsPasswordInputFocused(true)}
               onBlur={() => setIsPasswordInputFocused(false)}
               autoComplete="off"
@@ -243,7 +243,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
             <label htmlFor="confirm-password" className="text-13 font-medium text-tertiary">
               {t("auth.common.password.confirm_password.label")}
             </label>
-            <div className="relative flex items-center rounded-md bg-surface-1">
+            <div className="relative flex items-center rounded-lg bg-surface-1">
               <Input
                 type={showPassword?.retypePassword ? "text" : "password"}
                 id="confirm-password"
@@ -251,7 +251,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
                 value={passwordFormData.confirm_password}
                 onChange={(e) => handleFormChange("confirm_password", e.target.value)}
                 placeholder={t("auth.common.password.confirm_password.placeholder")}
-                className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
+                className="h-10 w-full rounded-lg border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
                 onFocus={() => setIsRetryPasswordInputFocused(true)}
                 onBlur={() => setIsRetryPasswordInputFocused(false)}
                 autoComplete="off"
@@ -284,7 +284,13 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
         <div className="space-y-2.5">
           {mode === EAuthModes.SIGN_IN ? (
             <>
-              <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full rounded-lg"
+                size="xl"
+                disabled={isButtonDisabled}
+              >
                 {isSubmitting ? (
                   <Spinner height="20px" width="20px" />
                 ) : isSMTPConfigured ? (
@@ -299,7 +305,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
                   data-ph-element={AUTH_TRACKER_ELEMENTS.SIGN_IN_WITH_UNIQUE_CODE}
                   onClick={redirectToUniqueCodeSignIn}
                   variant="secondary"
-                  className="w-full"
+                  className="w-full rounded-lg"
                   size="xl"
                 >
                   {t("auth.common.sign_in_with_unique_code")}
@@ -307,7 +313,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               )}
             </>
           ) : (
-            <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
+            <Button type="submit" variant="primary" className="w-full rounded-lg" size="xl" disabled={isButtonDisabled}>
               {isSubmitting ? <Spinner height="20px" width="20px" /> : "Create account"}
             </Button>
           )}

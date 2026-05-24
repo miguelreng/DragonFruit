@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, Settings2 } from "@/components/icons/lucide-shim";
+import { LogOut, Settings2 } from "@/components/icons/lucide-shim";
 // plane imports
 import { GOD_MODE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -19,10 +19,16 @@ import { AppSidebarItem } from "@/components/sidebar/sidebar-item";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
-import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 import { useUser } from "@/hooks/store/user";
+import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 
-export const UserMenuRoot = observer(function UserMenuRoot() {
+type TUserMenuRootProps = {
+  showLabel?: boolean;
+  isInline?: boolean;
+};
+
+export const UserMenuRoot = observer(function UserMenuRoot(props: TUserMenuRootProps) {
+  const { showLabel = true, isInline = false } = props;
   // states
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   // router
@@ -32,8 +38,7 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
   const { data: currentUser } = useUser();
   const { signOut } = useUser();
   const { toggleProfileSettingsModal } = useCommandPalette();
-  // top bar theme — menu matches the frame
-  const topBarTheme = useTopBarTheme();
+  const surfaceTheme = useTopBarTheme();
   // derived values
   const isUserInstanceAdmin = false;
   // translation
@@ -62,6 +67,7 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
         <AppSidebarItem
           variant="button"
           item={{
+            label: "Profile",
             icon: (
               <Avatar
                 name={currentUser?.display_name}
@@ -70,7 +76,9 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
                 shape="circle"
               />
             ),
+            isInline,
             isActive: isUserMenuOpen,
+            showLabel,
           }}
         />
       }
@@ -78,8 +86,8 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
       onMenuClose={() => setIsUserMenuOpen(false)}
       placement="bottom-end"
       maxHeight="2xl"
-      optionsClassName="w-72 p-2 flex flex-col gap-y-1"
-      panelDataTheme={topBarTheme}
+      optionsClassName="w-72 p-2 flex flex-col gap-y-1 border-[0.5px] border-strong bg-surface-1 shadow-raised-200"
+      panelDataTheme={surfaceTheme}
       closeOnSelect
     >
       <div className="flex items-center gap-3 border-b border-subtle px-2 pt-1 pb-3">
@@ -101,29 +109,20 @@ export const UserMenuRoot = observer(function UserMenuRoot() {
         <CustomMenu.MenuItem
           onClick={() =>
             toggleProfileSettingsModal({
-              activeTab: "general",
-              isOpen: true,
-            })
-          }
-          className="flex items-center gap-2"
-        >
-          <Settings className="size-3.5 shrink-0" />
-          {t("settings")}
-        </CustomMenu.MenuItem>
-        <CustomMenu.MenuItem
-          onClick={() =>
-            toggleProfileSettingsModal({
               activeTab: "preferences",
               isOpen: true,
             })
           }
-          className="flex items-center gap-2"
+          className="flex h-8 items-center gap-2 rounded-md text-13 font-medium"
         >
           <Settings2 className="size-3.5 shrink-0" />
           {t("preferences")}
         </CustomMenu.MenuItem>
       </div>
-      <CustomMenu.MenuItem onClick={handleSignOut} className="flex items-center gap-2">
+      <CustomMenu.MenuItem
+        onClick={handleSignOut}
+        className="flex h-8 items-center gap-2 rounded-md text-13 font-medium"
+      >
         <LogOut className="size-3.5 shrink-0" />
         {t("sign_out")}
       </CustomMenu.MenuItem>

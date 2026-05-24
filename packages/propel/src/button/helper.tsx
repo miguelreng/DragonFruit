@@ -8,12 +8,12 @@ import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-1 whitespace-nowrap transition-colors focus-visible:outline-none disabled:pointer-events-none",
+  "t-resize inline-flex items-center justify-center gap-1 whitespace-nowrap transition-colors focus-visible:outline-none disabled:pointer-events-none",
   {
     variants: {
       variant: {
         primary:
-          "bg-accent-primary text-on-color hover:bg-accent-primary-hover active:bg-accent-primary-active disabled:bg-layer-disabled disabled:text-on-color-disabled",
+          "bg-[#e548a5] text-white hover:bg-[#d93d9a] active:bg-[#c9368e] disabled:bg-layer-disabled disabled:text-on-color-disabled",
         "error-fill":
           "bg-danger-primary text-on-color hover:bg-danger-primary-hover active:bg-danger-primary-active disabled:bg-layer-disabled disabled:text-disabled",
         "error-outline":
@@ -29,10 +29,10 @@ export const buttonVariants = cva(
           "px-0 text-accent-primary hover:text-accent-secondary focus:text-accent-secondary active:text-accent-secondary disabled:text-disabled",
       },
       size: {
-        sm: "h-5 rounded-sm px-1.5 text-caption-md-medium",
-        base: "h-6 rounded-md px-2 text-body-xs-medium",
-        lg: "h-7 rounded-md px-2 text-body-xs-medium",
-        xl: "h-8 rounded-md px-2 text-body-sm-medium",
+        sm: "h-5 rounded-lg px-1.5 text-caption-md-medium",
+        base: "h-6 rounded-lg px-2 text-body-xs-medium",
+        lg: "h-7 rounded-lg px-2 text-body-xs-medium",
+        xl: "h-8 rounded-lg px-2 text-body-sm-medium",
       },
     },
     defaultVariants: {

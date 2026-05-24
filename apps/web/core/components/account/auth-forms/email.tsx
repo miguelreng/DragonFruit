@@ -56,7 +56,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
         </label>
         <div
           className={cn(
-            `relative flex items-center rounded-md border bg-surface-1`,
+            `relative flex items-center rounded-lg border bg-surface-1`,
             !isFocused && Boolean(emailError?.email) ? `border-danger-strong` : `border-strong`
           )}
           onFocus={() => {
@@ -75,6 +75,8 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
             placeholder={t("auth.common.email.placeholder")}
             className={`h-10 w-full border-0 disable-autofill-style placeholder:text-placeholder autofill:bg-danger-primary focus:bg-none active:bg-transparent`}
             autoComplete="off"
+            // reason: first input of auth form
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             ref={inputRef}
           />
@@ -100,7 +102,7 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
           </p>
         )}
       </div>
-      <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
+      <Button type="submit" variant="primary" className="w-full rounded-lg" size="xl" disabled={isButtonDisabled}>
         {isSubmitting ? <Spinner height="20px" width="20px" /> : t("common.continue")}
       </Button>
     </form>

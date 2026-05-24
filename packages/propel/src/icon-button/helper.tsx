@@ -14,7 +14,7 @@ export const iconButtonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-accent-primary text-on-color hover:bg-accent-primary-hover focus:bg-accent-primary-active active:bg-accent-primary-active disabled:bg-layer-disabled disabled:text-on-color-disabled",
+          "bg-[#e548a5] text-white hover:bg-[#d93d9a] focus:bg-[#c9368e] active:bg-[#c9368e] disabled:bg-layer-disabled disabled:text-on-color-disabled",
         "error-fill":
           "bg-danger-primary text-on-color hover:bg-danger-primary-hover focus:bg-danger-primary-active active:bg-danger-primary-active disabled:bg-layer-disabled disabled:text-disabled",
         "error-outline":
@@ -27,7 +27,7 @@ export const iconButtonVariants = cva(
           "bg-layer-transparent text-secondary hover:bg-layer-transparent-hover focus:bg-layer-transparent-active active:bg-layer-transparent-active disabled:bg-layer-transparent disabled:text-disabled",
       },
       size: {
-        sm: "size-5 rounded-sm",
+        sm: "size-5 rounded-md",
         base: "size-6 rounded-md",
         lg: "size-7 rounded-md",
         xl: "size-8 rounded-md",

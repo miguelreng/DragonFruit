@@ -42,6 +42,7 @@ export function RecentPage(props: BlockProps) {
       key={activity.id}
       itemLink={pageLink}
       title={getPageName(pageDetails?.name)}
+      titleClassName="content-title-font"
       prependTitleElement={
         <div className="flex flex-shrink-0 items-center gap-2">
           <div className="grid size-8 flex-shrink-0 place-items-center rounded-sm bg-layer-2">

@@ -32,8 +32,7 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
   const [isWorkspaceLevel, setIsWorkspaceLevel] = useState(false);
   // store hooks
   const { activePage, setActivePage } = usePowerK();
-  // top bar theme — modal matches the frame, not the page
-  const topBarTheme = useTopBarTheme();
+  const surfaceTheme = useTopBarTheme();
 
   // Handle command selection
   const handleCommandSelect = useCallback(
@@ -147,8 +146,8 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
               <Dialog.Panel
-                data-theme={topBarTheme}
-                className="divide-opacity-10 relative flex w-full max-w-2xl transform flex-col items-center justify-center divide-y divide-subtle-1 rounded-lg bg-surface-1 text-primary shadow-raised-200 transition-all"
+                data-theme={surfaceTheme}
+                className="divide-opacity-10 relative flex w-full max-w-2xl transform flex-col items-center justify-center divide-y divide-subtle-1 rounded-[18px] border-[0.5px] border-strong bg-surface-1 text-primary shadow-raised-200 transition-all"
               >
                 <Command
                   filter={(i18nValue: string, search: string) => {

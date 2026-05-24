@@ -14,10 +14,10 @@ interface AppRailVisibilityProviderProps {
 
 /**
  * CE AppRailVisibilityProvider
- * Wraps core provider with isEnabled hardcoded to false
+ * Keeps the DragonFruit rail enabled as the primary app chrome.
  */
 export const AppRailVisibilityProvider = observer(function AppRailVisibilityProvider({
   children,
 }: AppRailVisibilityProviderProps) {
-  return <CoreProvider isEnabled={false}>{children}</CoreProvider>;
+  return <CoreProvider isEnabled>{children}</CoreProvider>;
 });
