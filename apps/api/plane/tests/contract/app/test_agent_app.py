@@ -5,7 +5,13 @@
 import pytest
 from rest_framework import status
 
-from plane.db.models import Agent, WorkspaceMember
+from plane.app.views.agent.chat import (
+    _build_fallback_document_html,
+    _make_create_document_tool,
+    _normalise_document_subject,
+    _title_from_subject,
+)
+from plane.db.models import Agent, Page, Project, ProjectPage, WorkspaceMember
 
 
 @pytest.mark.contract
@@ -37,3 +43,66 @@ class TestAgentAPI:
             ).exists()
             is False
         )
+
+    @pytest.mark.django_db
+    def test_chat_create_document_tool_creates_project_doc(self, workspace, create_user):
+        project = Project.objects.create(name="Docs Project", identifier="DP", workspace=workspace)
+        tool = _make_create_document_tool(
+            workspace=workspace,
+            user=create_user,
+            project_id=str(project.id),
+        )
+
+        result = tool.handler(
+            {
+                "title": "Benefits of Meditation",
+                "description_html": (
+                    "<h1>Benefits of Meditation</h1>"
+                    "<p>Meditation can support attention and stress regulation.</p>"
+                    "<h2>Sources</h2>"
+                    '<ul><li><a href="https://www.nccih.nih.gov/">NCCIH</a></li></ul>'
+                ),
+            }
+        )
+
+        page = Page.objects.get(name="Benefits of Meditation")
+        assert result.startswith("ok: created document")
+        assert page.page_type == Page.PAGE_TYPE_DOC
+        assert page.workspace == workspace
+        assert page.owned_by == create_user
+        assert "Sources" in page.description_html
+        assert ProjectPage.objects.filter(project=project, page=page, workspace=workspace).exists()
+
+    @pytest.mark.django_db
+    def test_chat_create_document_tool_requires_project_context(self, workspace, create_user):
+        tool = _make_create_document_tool(workspace=workspace, user=create_user, project_id=None)
+
+        result = tool.handler({"title": "Benefits of Meditation", "description_html": "<p>Draft</p>"})
+
+        assert result.startswith("tool_error: no project is currently open")
+        assert Page.objects.filter(name="Benefits of Meditation").exists() is False
+
+    def test_chat_document_subject_cleanup_handles_user_phrasing(self):
+        subject = _normalise_document_subject(
+            "Can you create a document where displayed the benefits of meditating please"
+        )
+
+        assert subject == "benefits of meditation"
+        assert _title_from_subject(subject) == "Benefits of Meditation"
+
+    def test_chat_fallback_document_writes_body_and_sources(self):
+        html = _build_fallback_document_html(
+            title="Benefits of Meditation",
+            subject="benefits of meditation",
+            research_results=[
+                {
+                    "title": "Mayo Clinic: Meditation, a simple fast way to reduce stress",
+                    "url": "https://www.mayoclinic.org/tests-procedures/meditation/in-depth/meditation/art-20045858",
+                }
+            ],
+        )
+
+        assert "<h1>Benefits of Meditation</h1>" in html
+        assert "Reduced stress" in html
+        assert "<h2>Sources</h2>" in html
+        assert "mayoclinic.org" in html
