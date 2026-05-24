@@ -12,8 +12,12 @@ struct MeetingPopoverView: View {
             } else if !store.isAuthenticated {
                 loginCard
             } else {
+                copilotCard
+                if store.meetingNotesEnabled {
+                    upcomingCard
+                }
+                permissionsCard
                 settingsCard
-                upcomingCard
             }
 
             footer
@@ -36,6 +40,70 @@ struct MeetingPopoverView: View {
             Text("Copilot")
                 .font(.custom("Figtree", size: 12).weight(.medium))
                 .foregroundStyle(BrandTheme.labelLight)
+        }
+    }
+
+    private var copilotCard: some View {
+        card {
+            HStack(alignment: .center, spacing: 8) {
+                sectionLabel("Voice copilot")
+                Spacer()
+                HStack(spacing: 5) {
+                    hotkeyPill("⌥Space")
+                    hotkeyPill("⌥⇧Space")
+                }
+            }
+
+            if store.availableAgents.count > 1 {
+                Picker("", selection: $store.selectedAgentId) {
+                    ForEach(store.availableAgents) { agent in
+                        Text(agent.name).tag(agent.id)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .font(.custom("Figtree", size: 12).weight(.medium))
+            } else if let agent = store.availableAgents.first {
+                Text(agent.name)
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(BrandTheme.textPrimary)
+                    .lineLimit(1)
+            } else {
+                Text("No enabled agent")
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+            }
+
+            Button(store.isListening ? "Stop and act" : "Talk to Copilot") {
+                store.toggleCopilotVoiceCapture()
+            }
+            .buttonStyle(DragonFruitPrimaryButtonStyle())
+            .disabled(store.availableAgents.isEmpty && !store.isListening)
+
+            if store.isListening {
+                Text(store.lastTranscript.isEmpty ? "Listening..." : store.lastTranscript)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                    .lineLimit(3)
+            } else if store.isAgentResponding {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Copilot is acting...")
+                        .font(.custom("Figtree", size: 11).weight(.medium))
+                        .foregroundStyle(BrandTheme.textSecondary)
+                }
+            } else if !store.lastAgentTextResponse.isEmpty {
+                Text(store.lastAgentTextResponse)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                    .lineLimit(5)
+            } else if !store.statusMessage.isEmpty && !isMeetingRefreshStatusVisible {
+                Text(store.statusMessage)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                    .lineLimit(2)
+            }
         }
     }
 
@@ -76,29 +144,50 @@ struct MeetingPopoverView: View {
         card {
             sectionLabel("Settings")
             featureToggle("Meeting notes", isOn: $store.meetingNotesEnabled)
-            featureToggle("Speech", isOn: $store.speechCaptureEnabled)
-            featureToggle("Cursor buddy", isOn: $store.cursorBuddyEnabled)
+            featureToggle("Voice actions", isOn: $store.speechCaptureEnabled, detail: "⌥Space")
+            featureToggle("Dictation", isOn: $store.cursorBuddyEnabled, detail: "⌥⇧Space")
             featureToggle("Gaze tracking", isOn: $store.gazeTrackingEnabled, detail: "Soon", disabled: true)
-            HStack(spacing: 8) {
-                Button(settingsButtonTitle) {
-                    Task {
-                        if store.googleConnected && !store.needsCalendarReconnect {
-                            await store.refreshCalendarState()
-                        } else {
-                            await store.connectGoogle()
-                        }
-                    }
+        }
+    }
+
+    private var permissionsCard: some View {
+        card {
+            sectionLabel("Permissions")
+            ForEach(store.permissionStatuses) { permission in
+                HStack(spacing: 8) {
+                    Text(permission.name)
+                        .font(.custom("Figtree", size: 12).weight(.medium))
+                        .foregroundStyle(BrandTheme.textPrimary)
+                    Spacer()
+                    Text(permission.state)
+                        .font(.custom("Figtree", size: 10).weight(.semibold))
+                        .foregroundStyle(BrandTheme.labelLight)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(BrandTheme.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
-                .buttonStyle(DragonFruitPrimaryButtonStyle())
-                Button("Open") {
-                    if let url = URL(string: store.appURL) {
-                        NSWorkspace.shared.open(url)
-                    }
+            }
+            HStack(spacing: 8) {
+                Button("Voice") {
+                    store.requestVoicePermissions()
+                }
+                .buttonStyle(.plain)
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.textSecondary)
+                Button("Dictation") {
+                    store.openAccessibilitySettings()
                 }
                 .buttonStyle(.plain)
                 .font(.custom("Figtree", size: 12).weight(.medium))
                 .foregroundStyle(BrandTheme.textSecondary)
                 Spacer()
+                Button("Refresh") {
+                    store.refreshPermissionStatuses()
+                }
+                .buttonStyle(.plain)
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.textSecondary)
             }
         }
     }
@@ -107,26 +196,32 @@ struct MeetingPopoverView: View {
         card {
             sectionLabel("Upcoming meeting")
             if store.needsCalendarReconnect {
-                Text("Reconnect Google Calendar to bring meetings here.")
-                    .font(.custom("Newsreader", size: 18).weight(.medium))
-                    .foregroundStyle(BrandTheme.textPrimary)
+                Text("Reconnect to load next meeting.")
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
                     .lineLimit(2)
             } else if store.googleConnected {
                 if !store.hasMeetingsToday && store.meeting.id != "empty" {
                     Text("No meetings today")
                         .font(.custom("Figtree", size: 12).weight(.medium))
                         .foregroundStyle(BrandTheme.textSecondary)
-                }
-                Text(store.meeting.id == "empty" ? "No upcoming meetings" : store.meeting.title)
-                    .font(.custom("Newsreader", size: 18).weight(.medium))
-                    .foregroundStyle(BrandTheme.textPrimary)
-                    .lineSpacing(0)
-                    .lineLimit(2)
-                if store.meeting.id != "empty" {
+                } else if store.meeting.id == "empty" {
+                    Text("No upcoming meetings")
+                        .font(.custom("Figtree", size: 12).weight(.medium))
+                        .foregroundStyle(BrandTheme.textSecondary)
+                } else {
+                    Text(store.meeting.title)
+                        .font(.custom("Newsreader", size: 16).weight(.regular))
+                        .foregroundStyle(BrandTheme.textPrimary)
+                        .lineLimit(2)
+                        .lineSpacing(0)
                     HStack(spacing: 8) {
-                        Text(store.countdownLabel)
+                        Text(store.nextUpCountdownLabel)
                             .font(.custom("Figtree", size: 11).weight(.medium))
                             .foregroundStyle(BrandTheme.textSecondary)
+                        Spacer()
+                    }
+                    HStack(spacing: 8) {
                         if store.meeting.joinURL != nil {
                             Button("Join meeting") {
                                 store.openJoinLink()
@@ -151,11 +246,6 @@ struct MeetingPopoverView: View {
         }
     }
 
-    private var settingsButtonTitle: String {
-        if store.needsCalendarReconnect { return "Reconnect Calendar" }
-        return store.googleConnected ? "Refresh meetings" : "Connect Google Calendar"
-    }
-
     private var footer: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             if store.isAuthenticated {
@@ -167,7 +257,7 @@ struct MeetingPopoverView: View {
                 .foregroundStyle(BrandTheme.textSecondary)
             }
             Spacer(minLength: 8)
-            if !store.statusMessage.isEmpty {
+            if isMeetingRefreshStatusVisible {
                 Text(store.statusMessage)
                     .font(.custom("Figtree", size: 11).weight(.medium))
                     .foregroundStyle(BrandTheme.textSecondary)
@@ -175,6 +265,12 @@ struct MeetingPopoverView: View {
                     .lineLimit(2)
             }
         }
+    }
+
+    private var isMeetingRefreshStatusVisible: Bool {
+        guard store.meetingNotesEnabled else { return false }
+        let normalized = store.statusMessage.lowercased()
+        return normalized.contains("refresh") && !normalized.contains("not connected")
     }
 
     @ViewBuilder
@@ -197,6 +293,16 @@ struct MeetingPopoverView: View {
         Text(label.uppercased())
             .font(.custom("Figtree", size: 10).weight(.medium))
             .foregroundStyle(BrandTheme.labelLight)
+    }
+
+    private func hotkeyPill(_ label: String) -> some View {
+        Text(label)
+            .font(.custom("Figtree", size: 10).weight(.semibold))
+            .foregroundStyle(BrandTheme.labelLight)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(BrandTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     private func featureToggle(

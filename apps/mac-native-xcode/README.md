@@ -1,18 +1,37 @@
-# DragonFruit Mini Native (Xcode Target)
+# DragonFruit Copilot Native (Xcode Target)
 
-This is a native macOS app target (SwiftUI + MenuBarExtra) with:
+This is the canonical native macOS app target (SwiftUI + MenuBarExtra). Use this `.app` bundle for real Copilot testing because macOS permissions are tied to the app bundle identifier.
 
-- DragonFruit email/password session sign-in
+- Stable bundle identifier: `sh.dragonfruit.copilot`
+- DragonFruit native session sign-in
 - Google Calendar OAuth start + callback (`ASWebAuthenticationSession`)
-- URL scheme callback: `dragonfruitmini://calendar/oauth/callback`
+- URL scheme callback: `dragonfruitmini://auth/login-callback`
+- Registered app hotkeys, not global keyboard monitors
+- Microphone, speech recognition, and accessibility permission status
 - Brand icon + Figtree fonts bundled locally
 
-## Open in Xcode
+## Develop
 
-1. Open [DragonFruitMini.xcodeproj](./DragonFruitMini.xcodeproj)
-2. Select target `DragonFruitMini`
-3. Set Team/Signing in **Signing & Capabilities**
-4. Run
+From the repo root:
+
+```sh
+pnpm mac:dev
+```
+
+If the machine does not have full Xcode selected, open the project directly:
+
+```sh
+pnpm mac:open
+```
+
+Then select target `DragonFruitMini`, set Team/Signing in **Signing & Capabilities**, and run.
+
+Do not use `swift run` for real hotkey, microphone, speech, or dictation testing. SwiftPM launches a debug executable, while these features need a stable `.app` identity.
+
+## Hotkeys
+
+- `Option Space`: create an action in DragonFruit from speech
+- `Option Shift Space`: dictate into the focused input
 
 ## Required backend env vars
 

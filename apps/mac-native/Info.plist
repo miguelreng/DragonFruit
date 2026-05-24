@@ -4,17 +4,15 @@
 <dict>
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
+  <key>CFBundleDisplayName</key>
+  <string>DragonFruit Copilot</string>
   <key>CFBundleExecutable</key>
-  <string>$(EXECUTABLE_NAME)</string>
+  <string>mac-native</string>
   <key>CFBundleIdentifier</key>
-  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-  <key>CFBundleIconFile</key>
-  <string>AppIcon</string>
+  <string>sh.dragonfruit.copilot</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>DragonFruit Copilot</string>
-  <key>CFBundleDisplayName</key>
   <string>DragonFruit Copilot</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
@@ -22,24 +20,13 @@
   <string>1.0</string>
   <key>CFBundleVersion</key>
   <string>1</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.productivity</string>
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>NSMicrophoneUsageDescription</key>
   <string>DragonFruit Copilot listens when you use a voice hotkey so it can create work items or type dictation.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
   <string>DragonFruit Copilot transcribes your voice commands and dictation.</string>
-  <key>LSApplicationCategoryType</key>
-  <string>public.app-category.productivity</string>
-  <key>CFBundleURLTypes</key>
-  <array>
-    <dict>
-      <key>CFBundleURLName</key>
-      <string>dragonfruitmini.oauth</string>
-      <key>CFBundleURLSchemes</key>
-      <array>
-        <string>dragonfruitmini</string>
-      </array>
-    </dict>
-  </array>
 </dict>
 </plist>
