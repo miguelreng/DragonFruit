@@ -94,6 +94,11 @@ export const BASE_NOTIFICATION_CONTENT_MAP: TNotificationContentMap = {
     value: "the task and assigned it to you.",
     showConnector: false,
   }),
+  cursor_buddy_file: () => ({
+    action: "created with Cursor Buddy",
+    value: null,
+    showConnector: false,
+  }),
   // Fields below only define value - action falls through to default handler
   attachment: () => ({
     action: null,
@@ -157,6 +162,7 @@ export function NotificationContent({
   renderCommentBox?: boolean;
 }) {
   const { data, triggered_by_details: triggeredBy } = notification;
+  const cursorBuddyResource = data?.cursor_buddy;
   const notificationField = data?.issue_activity.field;
   const newValue = data?.issue_activity.new_value;
   const oldValue = data?.issue_activity.old_value;
@@ -204,10 +210,19 @@ export function NotificationContent({
     <>
       {renderTriggerName()}
       <span className="text-tertiary">{renderAction()} </span>
+      {cursorBuddyResource && (
+        <>
+          <span className="font-medium text-primary">{cursorBuddyResource.name}</span>
+        </>
+      )}
       {verb !== "deleted" && (
         <>
-          {showConnector && <span className="text-tertiary">to </span>}
-          <span className="font-medium text-primary">{renderValue()}</span>
+          {!cursorBuddyResource && (
+            <>
+              {showConnector && <span className="text-tertiary">to </span>}
+              <span className="font-medium text-primary">{renderValue()}</span>
+            </>
+          )}
           {notificationField === "comment" && renderCommentBox && (
             <div className="origin-left scale-75">
               <LiteTextEditor

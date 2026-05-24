@@ -56,6 +56,7 @@ from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.copy_s3_object import copy_s3_objects_of_description_and_assets
 from plane.app.permissions import ProjectPagePermission
 from plane.utils.exception_logger import log_exception
+from plane.app.buddy_notification import create_cursor_buddy_notification, is_cursor_buddy_request
 
 
 def unarchive_archive_page_and_descendants(page_id, archived_at):
@@ -152,6 +153,17 @@ class PageViewSet(BaseViewSet):
             except Exception as e:
                 log_exception(e)
             page = self.get_queryset().get(pk=serializer.data["id"])
+            if is_cursor_buddy_request(request):
+                project = Project.objects.get(pk=project_id, workspace__slug=slug)
+                create_cursor_buddy_notification(
+                    request=request,
+                    workspace=page.workspace,
+                    project=project,
+                    resource=page,
+                    resource_type=page.page_type or "doc",
+                    resource_name=page.name,
+                    resource_url=f"/{slug}/projects/{project_id}/pages/{page.id}",
+                )
             serializer = PageDetailSerializer(page)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

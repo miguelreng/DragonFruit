@@ -38,6 +38,18 @@ enum BrandTheme {
         return NSImage(contentsOf: url)
     }
 
+    static var cursorBuddyIcon: NSImage? {
+        guard let url = Bundle.module.url(forResource: "AppIcon", withExtension: "icns") else {
+            return nil
+        }
+        guard let image = NSImage(contentsOf: url) else {
+            return nil
+        }
+        image.size = NSSize(width: 24, height: 24)
+        image.isTemplate = false
+        return image
+    }
+
     private static func registerFont(name: String, ext: String) {
         guard let url = Bundle.module.url(forResource: name, withExtension: ext) else { return }
         CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)

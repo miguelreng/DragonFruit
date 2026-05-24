@@ -29,6 +29,12 @@ export type TNotificationIssueLite = {
 
 export type TNotificationData = {
   issue: TNotificationIssueLite | undefined;
+  cursor_buddy?: {
+    id: string;
+    type: "doc" | "page" | "sticky" | "task" | string;
+    name: string;
+    url: string;
+  };
   issue_activity: {
     id: string | undefined;
     actor: string | undefined;

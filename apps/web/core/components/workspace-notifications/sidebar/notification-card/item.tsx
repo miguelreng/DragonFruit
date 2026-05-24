@@ -38,12 +38,25 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
   // derived values
   const projectId = notification?.project || undefined;
   const issueId = notification?.data?.issue?.id || undefined;
+  const cursorBuddyResource = notification?.data?.cursor_buddy;
   const workspace = getWorkspaceBySlug(workspaceSlug);
 
   const notificationField = notification?.data?.issue_activity.field || undefined;
   const notificationTriggeredBy = notification.triggered_by_details || undefined;
 
   const handleNotificationIssuePeekOverview = async () => {
+    if (workspaceSlug && cursorBuddyResource?.url && !isSnoozeStateModalOpen && !customSnoozeModal) {
+      if (notification.read_at === null) {
+        try {
+          await markNotificationAsRead(workspaceSlug);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      window.location.href = cursorBuddyResource.url;
+      return;
+    }
+
     if (workspaceSlug && projectId && issueId && !isSnoozeStateModalOpen && !customSnoozeModal) {
       setPeekIssue(undefined);
       setCurrentSelectedNotificationId(notificationId);
@@ -65,7 +78,14 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
     }
   };
 
-  if (!workspaceSlug || !notificationId || !notification?.id || !notificationField || !workspace?.id || !projectId)
+  if (
+    !workspaceSlug ||
+    !notificationId ||
+    !notification?.id ||
+    !notificationField ||
+    !workspace?.id ||
+    (!projectId && !cursorBuddyResource)
+  )
     return <></>;
 
   return (
@@ -103,7 +123,7 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
                 notification={notification}
                 workspaceId={workspace.id}
                 workspaceSlug={workspaceSlug}
-                projectId={projectId}
+                projectId={projectId ?? ""}
               />
             </div>
             <NotificationOption
@@ -118,8 +138,16 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
 
           <div className="relative flex items-center gap-3 text-caption-sm-regular text-secondary">
             <div className="line-clamp-1 w-full truncate overflow-hidden break-words whitespace-normal">
-              {notification?.data?.issue?.identifier}-{notification?.data?.issue?.sequence_id}&nbsp;
-              {notification?.data?.issue?.name}
+              {cursorBuddyResource ? (
+                <>
+                  {cursorBuddyResource.type} · {cursorBuddyResource.name}
+                </>
+              ) : (
+                <>
+                  {notification?.data?.issue?.identifier}-{notification?.data?.issue?.sequence_id}&nbsp;
+                  {notification?.data?.issue?.name}
+                </>
+              )}
             </div>
             <div className="flex-shrink-0">
               {notification?.snoozed_till ? (
