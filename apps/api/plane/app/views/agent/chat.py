@@ -69,8 +69,7 @@ _MAX_TEXT_EXCERPT_CHARS = 50_000       # cap CSV / plaintext at ~50KB
 _IMAGE_MIME_PREFIXES = ("image/png", "image/jpeg", "image/gif", "image/webp")
 _TEXT_MIME_TYPES = {"text/csv", "text/plain", "application/csv"}
 _DOCUMENT_CREATION_RE = re.compile(
-    r"\b(create|write|draft|generate|make|prepare)\b.{0,80}\b(document|doc|page)\b"
-    r"|\b(document|doc|page)\b.{0,80}\b(about|on|explaining|that explains|where)",
+    r"\b(create|write|draft|generate|make|prepare)\b.{0,80}\b(document|doc|page)\b",
     re.IGNORECASE,
 )
 
@@ -85,7 +84,7 @@ Default Buddy personality, always:
 - when answering from workspace files, say what you found and cite the file/task/sticky names
 - if you do not know, say so clearly and offer the next concrete step
 
-If the user asks you to create, write, draft, generate, make, or prepare a document/page/doc,
+Only if the user explicitly asks you to create, write, draft, generate, make, or prepare a document/page/doc,
 you must call `create_document` exactly once instead of merely describing what you would do.
 For document-creation requests:
 - infer a concise document title from the request unless the user provides an explicit title
@@ -96,11 +95,12 @@ For document-creation requests:
 - include a final "Sources" section with credible source names and URLs when the topic relies on factual claims
 - after the tool succeeds, reply with a short confirmation and a link to the created document
 
-If the user asks for clarification, brainstorming, analysis, or a normal chat answer, respond normally.
+If the user asks a question, asks for retrieval ("get/find/show/list/fetch X from Y"), asks for clarification,
+brainstorming, analysis, or a normal chat answer, respond normally.
 If the user asks about information in their files, docs, tasks, notes, stickies, workspace, or project,
 call `search_workspace` first and answer only from the returned context unless you clearly label outside knowledge.
-If the user asks you to create a task, call `create_task`.
-If the user asks you to create a sticky/note, call `create_sticky`.
+Only if the user explicitly asks you to create a task, call `create_task`.
+Only if the user explicitly asks you to create a sticky/note, call `create_sticky`.
 Do not reveal private chain-of-thought; only share a brief rationale if it helps the user.
 """.strip()
 

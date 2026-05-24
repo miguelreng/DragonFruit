@@ -7,6 +7,7 @@ from rest_framework import status
 
 from plane.app.views.agent.chat import (
     _build_fallback_document_html,
+    _looks_like_document_request,
     _make_create_document_tool,
     _normalise_document_subject,
     _title_from_subject,
@@ -106,3 +107,16 @@ class TestAgentAPI:
         assert "Reduced stress" in html
         assert "<h2>Sources</h2>" in html
         assert "mayoclinic.org" in html
+
+    @pytest.mark.parametrize(
+        ("prompt", "expected"),
+        [
+            ("create a document about launch plan", True),
+            ("draft a page for onboarding", True),
+            ("what document explains onboarding?", False),
+            ("get the launch notes from Project X", False),
+            ("show me the page about pricing", False),
+        ],
+    )
+    def test_chat_document_request_detector_requires_explicit_creation(self, prompt, expected):
+        assert _looks_like_document_request(prompt) is expected
