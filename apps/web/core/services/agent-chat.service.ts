@@ -119,11 +119,13 @@ export class AgentChatService extends APIService {
     workspaceSlug: string,
     sessionId: string,
     content: string,
-    attachments?: TAgentChatAttachmentPayload[]
+    attachments?: TAgentChatAttachmentPayload[],
+    context?: { project_id?: string }
   ): Promise<TAgentChatPostResponse> {
     return this.post(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/messages/`, {
       content,
       attachments: attachments ?? [],
+      project_id: context?.project_id,
     })
       .then((res) => res?.data)
       .catch((error) => {

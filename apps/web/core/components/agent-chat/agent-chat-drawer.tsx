@@ -106,8 +106,9 @@ type View = "chat" | "history";
  * always-visible sidebar that eats half the drawer width.
  */
 export const AgentChatDrawer = observer(function AgentChatDrawer() {
-  const { workspaceSlug: rawSlug } = useParams();
+  const { workspaceSlug: rawSlug, projectId: rawProjectId } = useParams();
   const workspaceSlug = rawSlug?.toString();
+  const projectId = rawProjectId?.toString();
   const { toggleAgentChat } = useAppTheme();
   const onClose = () => toggleAgentChat(false);
 
@@ -196,6 +197,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
       {view === "chat" && (
         <ChatView
           workspaceSlug={workspaceSlug ?? ""}
+          projectId={projectId}
           sessionId={activeId}
           agent={activeAgent}
           agents={agents ?? []}
@@ -231,6 +233,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
 
 function ChatView(props: {
   workspaceSlug: string;
+  projectId: string | undefined;
   sessionId: string | null;
   agent: TAgent | undefined;
   agents: TAgent[];
@@ -240,8 +243,17 @@ function ChatView(props: {
   onStartSession: (agentId: string) => Promise<void>;
   onSentRefreshSessions: () => void;
 }) {
-  const { workspaceSlug, sessionId, agent, agents, onClose, onOpenHistory, onStartSession, onSentRefreshSessions } =
-    props;
+  const {
+    workspaceSlug,
+    projectId,
+    sessionId,
+    agent,
+    agents,
+    onClose,
+    onOpenHistory,
+    onStartSession,
+    onSentRefreshSessions,
+  } = props;
 
   return (
     <>
@@ -266,6 +278,7 @@ function ChatView(props: {
           key={sessionId}
           workspaceSlug={workspaceSlug}
           sessionId={sessionId}
+          projectId={projectId}
           agent={agent}
           onSentRefreshSessions={onSentRefreshSessions}
         />
@@ -478,10 +491,11 @@ function HistoryView(props: {
 function ChatThread(props: {
   workspaceSlug: string;
   sessionId: string;
+  projectId: string | undefined;
   agent: TAgent | undefined;
   onSentRefreshSessions: () => void;
 }) {
-  const { workspaceSlug, sessionId, agent, onSentRefreshSessions } = props;
+  const { workspaceSlug, sessionId, projectId, agent, onSentRefreshSessions } = props;
   const { data, mutate } = useSWR(
     `agent-chat/${workspaceSlug}/${sessionId}`,
     () => chatService.getSession(workspaceSlug, sessionId),
@@ -614,7 +628,7 @@ function ChatThread(props: {
     setDraft("");
     setPendingFiles([]);
     try {
-      await chatService.sendMessage(workspaceSlug, sessionId, trimmed, attachments);
+      await chatService.sendMessage(workspaceSlug, sessionId, trimmed, attachments, { project_id: projectId });
       await mutate();
       onSentRefreshSessions();
     } catch (err) {
@@ -624,7 +638,7 @@ function ChatThread(props: {
     } finally {
       setSending(false);
     }
-  }, [draft, pendingFiles, sending, sessionId, workspaceSlug, mutate, onSentRefreshSessions]);
+  }, [draft, pendingFiles, sending, sessionId, workspaceSlug, projectId, mutate, onSentRefreshSessions]);
 
   const isEmpty = messages.length === 0;
 
