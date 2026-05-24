@@ -270,7 +270,11 @@
   },
   "sub_work_item": {
     "add": {
-      "inline": "Add subtask"
+      "inline": "Add subtask",
+      "placeholder": "Subtask name, then Enter"
+    },
+    "create": {
+      "error": "Couldn't create the subtask. Please try again."
     },
     "update": {
       "success": "Sub-task updated successfully",

@@ -66,7 +66,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
                       e.preventDefault();
                       onShow(item.key);
                     }}
-                    className="invisible rounded-sm p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary"
+                    className="invisible rounded-md p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary"
                     title="Show"
                   >
                     <Pin className="size-3" />
@@ -80,7 +80,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
                       onToggleDefault(item.key);
                     }}
                     className={cn(
-                      "invisible rounded-sm p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary",
+                      "invisible rounded-md p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary",
                       {
                         visible: isDefault,
                       }

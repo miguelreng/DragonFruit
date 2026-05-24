@@ -153,7 +153,7 @@ export const NoProjectsEmptyState = observer(function NoProjectsEmptyState() {
         {EMPTY_STATE_DATA.map((item) => {
           const isStateComplete = isComplete(item.flag);
           return (
-            <div key={item.id} className="flex flex-col rounded-xl border border-subtle bg-layer-2 p-4">
+            <div key={item.id} className="flex flex-col rounded-[18px] border border-subtle bg-layer-2 p-4">
               <div
                 className={cn("mb-3 grid size-9 place-items-center rounded-full bg-surface-2 text-placeholder", {
                   "bg-accent-primary/10 text-accent-primary": !isStateComplete,

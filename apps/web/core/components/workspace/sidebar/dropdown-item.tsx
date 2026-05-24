@@ -7,10 +7,8 @@
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Settings, UserPlus } from "@/components/icons/lucide-shim";
 import { Menu } from "@headlessui/react";
 // plane imports
-import { EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type { IWorkspace } from "@plane/types";
 import { cn, getUserRole } from "@plane/utils";
@@ -24,10 +22,9 @@ type TProps = {
   activeWorkspace: IWorkspace | null;
   handleItemClick: () => void;
   handleWorkspaceNavigation: (workspace: IWorkspace) => void;
-  handleClose: () => void;
 };
 const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps) {
-  const { workspace, activeWorkspace, handleItemClick, handleWorkspaceNavigation, handleClose } = props;
+  const { workspace, activeWorkspace, handleItemClick, handleWorkspaceNavigation } = props;
   // router
   const { workspaceSlug } = useParams();
   // hooks
@@ -72,38 +69,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
               </div>
             </div>
           </div>
-          {workspace.id === activeWorkspace?.id ? (
-            <div className="flex flex-shrink-0 items-center gap-0.5">
-              {[EUserPermissions.ADMIN, EUserPermissions.MEMBER].includes(workspace?.role) && (
-                <Link
-                  href={`/${workspace.slug}/settings`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClose();
-                  }}
-                  aria-label={t("settings")}
-                  className="flex size-7 items-center justify-center rounded-sm text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
-                >
-                  <Settings className="size-3.5" />
-                </Link>
-              )}
-              {[EUserPermissions.ADMIN].includes(workspace?.role) && (
-                <Link
-                  href={`/${workspace.slug}/settings/members`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClose();
-                  }}
-                  aria-label={t("project_settings.members.invite_members.title")}
-                  className="flex size-7 items-center justify-center rounded-sm text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
-                >
-                  <UserPlus className="size-3.5" />
-                </Link>
-              )}
-            </div>
-          ) : (
-            <SubscriptionPill workspace={workspace} />
-          )}
+          {workspace.id !== activeWorkspace?.id && <SubscriptionPill workspace={workspace} />}
         </div>
       </Menu.Item>
     </Link>

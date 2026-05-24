@@ -113,7 +113,6 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
                 placeholder={t("task_name")}
                 autoFocus
                 className="text-base w-full border-0 bg-transparent px-0 font-medium text-primary placeholder:text-placeholder focus:outline-none"
-                style={{ fontFamily: "Newsreader, serif" }}
               />
             )}
           />

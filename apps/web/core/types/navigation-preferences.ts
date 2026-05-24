@@ -77,5 +77,5 @@ export interface TAppRailPreferences {
 }
 
 export const DEFAULT_APP_RAIL_PREFERENCES: TAppRailPreferences = {
-  displayMode: "icon_with_label",
+  displayMode: "icon_only",
 };

@@ -7,10 +7,13 @@
 // hoc/withDockItems.tsx
 import React from "react";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-import { PlaneNewIcon } from "@plane/propel/icons";
+import { useTranslation } from "@plane/i18n";
+import { useParams, usePathname } from "next/navigation";
+import { EUserPermissionsLevel, WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS } from "@plane/constants";
+import { joinUrlPath } from "@plane/utils";
 import type { AppSidebarItemData } from "@/components/sidebar/sidebar-item";
-import { useWorkspacePaths } from "@/hooks/use-workspace-paths";
+import { useUser, useUserPermissions } from "@/hooks/store/user";
+import { getSidebarNavigationItemIcon } from "@/plane-web/components/workspace/sidebar/helper";
 
 type WithDockItemsProps = {
   dockItems: (AppSidebarItemData & { shouldRender: boolean })[];
@@ -19,17 +22,49 @@ type WithDockItemsProps = {
 export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: React.ComponentType<P>) {
   const ComponentWithDockItems = observer(function ComponentWithDockItems(props: Omit<P, keyof WithDockItemsProps>) {
     const { workspaceSlug } = useParams();
-    const { isProjectsPath, isNotificationsPath } = useWorkspacePaths();
+    const pathname = usePathname();
+    const { t } = useTranslation();
+    const { allowPermissions } = useUserPermissions();
+    const { data: currentUser } = useUser();
+    const slug = workspaceSlug?.toString() ?? "";
 
-    const dockItems: (AppSidebarItemData & { shouldRender: boolean })[] = [
-      {
-        label: "Projects",
-        icon: <PlaneNewIcon className="size-5" />,
-        href: `/${workspaceSlug}/`,
-        isActive: isProjectsPath && !isNotificationsPath,
-        shouldRender: true,
-      },
+    const railItemKeys: Array<keyof typeof WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS> = [
+      "home",
+      "your-work",
+      "drafts",
+      "docs",
+      "stickies",
+      "whiteboards",
+      "calendar",
     ];
+
+    const railItems = railItemKeys.map((key) => {
+      const item = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS[key];
+      if (!item || !slug || !allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, slug)) return null;
+
+      const href =
+        item.key === "your_work" && currentUser?.id
+          ? joinUrlPath(`/${slug}`, item.href, currentUser.id)
+          : joinUrlPath(`/${slug}`, item.href);
+
+      return {
+        label:
+          item.key === "your_work"
+            ? "On my plate"
+            : item.key === "whiteboards"
+              ? "Whiteboard"
+              : t(item.labelTranslationKey),
+        icon: getSidebarNavigationItemIcon(item.key),
+        href,
+        isActive: item.highlight(pathname || "", href),
+        shouldRender: item.key !== "your_work" || !!currentUser?.id,
+      };
+    });
+
+    const dockItems = railItems.reduce((acc: (AppSidebarItemData & { shouldRender: boolean })[], item) => {
+      if (item) acc.push(item);
+      return acc;
+    }, []);
 
     return <WrappedComponent {...(props as P)} dockItems={dockItems} />;
   });

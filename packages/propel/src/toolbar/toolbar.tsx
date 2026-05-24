@@ -86,7 +86,7 @@ const ToolbarItem = React.forwardRef(function ToolbarItem(
       ref={ref}
       type="button"
       className={cn(
-        "grid aspect-square place-items-center rounded-xs p-0.5 text-placeholder transition-colors hover:bg-layer-1",
+        "grid aspect-square place-items-center rounded-md p-0.5 text-placeholder transition-colors hover:bg-layer-1",
         {
           "bg-layer-1 text-primary": isActive,
         },
@@ -130,7 +130,7 @@ const ToolbarSeparator = React.forwardRef(function ToolbarSeparator(
 });
 
 const buttonVariants = {
-  primary: "bg-accent-primary text-on-color hover:bg-accent-primary/80 focus:bg-accent-primary/80",
+  primary: "bg-[#e548a5] text-white hover:bg-[#d93d9a] focus:bg-[#c9368e]",
   secondary: "bg-surface-1 text-secondary border border-subtle hover:bg-surface-2 focus:bg-surface-2",
   outline:
     "border border-accent-strong text-accent-primary bg-transparent hover:bg-accent-primary/10 focus:bg-accent-primary/20",

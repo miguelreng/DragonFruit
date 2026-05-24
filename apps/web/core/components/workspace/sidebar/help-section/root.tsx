@@ -20,7 +20,13 @@ import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 // plane web components
 import { PlaneVersionNumber } from "@/plane-web/components/global";
 
-export const HelpMenuRoot = observer(function HelpMenuRoot() {
+type THelpMenuRootProps = {
+  showLabel?: boolean;
+  isInline?: boolean;
+};
+
+export const HelpMenuRoot = observer(function HelpMenuRoot(props: THelpMenuRootProps) {
+  const { showLabel = true, isInline = false } = props;
   // store hooks
   const { t } = useTranslation();
   const { toggleShortcutsListModal } = usePowerK();
@@ -39,8 +45,11 @@ export const HelpMenuRoot = observer(function HelpMenuRoot() {
           <AppSidebarItem
             variant="button"
             item={{
+              label: "Help",
               icon: <HelpCircle className="size-5" />,
               isActive: isNeedHelpOpen,
+              isInline,
+              showLabel,
             }}
           />
         }

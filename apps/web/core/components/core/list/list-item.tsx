@@ -32,6 +32,7 @@ interface IListItemProps {
   preventDefaultProgress?: boolean;
   leftElementClassName?: string;
   rightElementClassName?: string;
+  titleClassName?: string;
 }
 
 export function ListItem(props: IListItemProps) {
@@ -54,6 +55,7 @@ export function ListItem(props: IListItemProps) {
     preventDefaultProgress = false,
     leftElementClassName = "",
     rightElementClassName = "",
+    titleClassName = "",
   } = props;
 
   // router
@@ -87,7 +89,7 @@ export function ListItem(props: IListItemProps) {
             <div className={cn("flex items-center gap-4 truncate", leftElementClassName)}>
               {prependTitleElement && <span className="flex flex-shrink-0 items-center">{prependTitleElement}</span>}
               <Tooltip tooltipContent={title} position="top" isMobile={isMobile}>
-                <span className="truncate text-13">{title}</span>
+                <span className={cn("truncate text-13", titleClassName)}>{title}</span>
               </Tooltip>
             </div>
             {appendTitleElement && (

@@ -49,6 +49,13 @@
   src: url("/fonts/Newsreader-Italic-Variable.ttf") format("truetype-variations");
 }
 
+.sticky-title-editor .ProseMirror h1.editor-heading-block,
+.sticky-title-editor .ProseMirror h2.editor-heading-block,
+.sticky-title-editor .ProseMirror h3.editor-heading-block {
+  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  letter-spacing: -0.015em;
+}
+
 /* stickies and editor colors */
 :root {
   /* text colors */
@@ -252,12 +259,13 @@
   --sx-color-on-primary: #ffffff;
   --sx-color-primary-container: color-mix(in srgb, var(--background-color-accent-primary) 14%, transparent);
   --sx-color-on-primary-container: var(--text-color-primary);
-  /* Day cells should sit on the canvas, not the layer-1 grey. */
-  --sx-color-surface: var(--background-color-canvas);
-  --sx-color-surface-variant: var(--background-color-canvas);
+  /* Day cells should sit on the main panel surface, not the app frame. */
+  --dragonfruit-calendar-surface: var(--background-color-surface-1, var(--background-color-canvas));
+  --sx-color-surface: var(--dragonfruit-calendar-surface);
+  --sx-color-surface-variant: var(--dragonfruit-calendar-surface);
   --sx-color-on-surface: var(--text-color-primary);
   --sx-color-on-surface-variant: var(--text-color-tertiary);
-  --sx-color-background: var(--background-color-canvas);
+  --sx-color-background: var(--dragonfruit-calendar-surface);
   /* All Schedule-X borders/lines resolve through these tokens — pin them to
    * a very light gray (neutral-200, one step lighter than --border-subtle)
    * so the calendar's internal grid reads as a quiet divider rather than a
@@ -274,6 +282,7 @@
     system-ui,
     -apple-system,
     sans-serif;
+  background-color: var(--dragonfruit-calendar-surface);
 }
 
 /* Strip the default Schedule-X outer frame so the calendar sits flush with
@@ -327,7 +336,7 @@
 .dragonfruit-calendar .sx__month-grid-day--trailing,
 .dragonfruit-calendar .sx__week-grid,
 .dragonfruit-calendar .sx__month-grid {
-  background-color: var(--background-color-canvas) !important;
+  background-color: var(--dragonfruit-calendar-surface) !important;
 }
 
 /* Hide Schedule-X's built-in toolbar (Today / chevrons / View / Date) —
@@ -350,7 +359,7 @@
 }
 
 .dragonfruit-calendar .sx__today-button {
-  background-color: var(--background-color-canvas) !important;
+  background-color: var(--dragonfruit-calendar-surface) !important;
   border: 1px solid var(--border-color-subtle-1) !important;
   padding: 4px 10px !important;
   transition: background-color 0.12s ease;

@@ -121,7 +121,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
         </Menu.Button>
         <Menu.Button
           aria-label="Choose type and project"
-          className="flex items-center rounded-r-md bg-accent-primary px-1.5 text-on-color hover:bg-accent-primary-hover active:bg-accent-primary-active"
+          className="flex items-center rounded-r-md bg-[#e548a5] px-1.5 text-white hover:bg-[#d93d9a] active:bg-[#c9368e]"
         >
           <ChevronDown className="size-4" />
         </Menu.Button>

@@ -158,7 +158,7 @@ export function EmojiPicker(props: TCustomEmojiPicker) {
                 onRemove();
                 if (closeOnSelect) handleToggle(false);
               }}
-              className="rounded-sm px-2 py-1 text-13 font-medium text-danger-primary transition-colors hover:bg-danger-primary/10"
+              className="rounded-md px-2 py-1 text-13 font-medium text-danger-primary transition-colors hover:bg-danger-primary/10"
             >
               Remove
             </button>

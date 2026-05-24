@@ -54,7 +54,12 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
         query: _page.name,
         content: (
           <div className="flex items-center justify-between gap-2">
-            <SwitcherLabel logo_props={_page.logo_props} name={getPageName(_page.name)} LabelIcon={PageIcon} />
+            <SwitcherLabel
+              logo_props={_page.logo_props}
+              name={getPageName(_page.name)}
+              LabelIcon={PageIcon}
+              className="content-title-font"
+            />
             <PageAccessIcon {..._page} />
           </div>
         ),
@@ -82,20 +87,22 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
 
             <Breadcrumbs.Item
               component={
-                <BreadcrumbNavigationSearchDropdown
-                  selectedItem={pageId?.toString() ?? ""}
-                  navigationItems={switcherOptions}
-                  onChange={(value: string) => {
-                    router.push(`/${workspaceSlug}/projects/${projectId}/pages/${value}`);
-                  }}
-                  title={getPageName(page?.name)}
-                  icon={
-                    <Breadcrumbs.Icon>
-                      <SwitcherIcon logo_props={page.logo_props} LabelIcon={PageIcon} size={16} />
-                    </Breadcrumbs.Icon>
-                  }
-                  isLast
-                />
+                <div className="content-title-font">
+                  <BreadcrumbNavigationSearchDropdown
+                    selectedItem={pageId?.toString() ?? ""}
+                    navigationItems={switcherOptions}
+                    onChange={(value: string) => {
+                      router.push(`/${workspaceSlug}/projects/${projectId}/pages/${value}`);
+                    }}
+                    title={getPageName(page?.name)}
+                    icon={
+                      <Breadcrumbs.Icon>
+                        <SwitcherIcon logo_props={page.logo_props} LabelIcon={PageIcon} size={16} />
+                      </Breadcrumbs.Icon>
+                    }
+                    isLast
+                  />
+                </div>
               }
             />
           </Breadcrumbs>

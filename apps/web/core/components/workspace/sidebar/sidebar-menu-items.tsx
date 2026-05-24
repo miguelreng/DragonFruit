@@ -15,15 +15,8 @@ import {
 import { SidebarItem } from "@/plane-web/components/workspace/sidebar/sidebar-item";
 
 const ALWAYS_ON_TOP_KEYS: Array<keyof typeof WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS> = [
-  "your-work",
-  "docs",
-  "drafts",
-  "stickies",
-  "whiteboards",
-  "calendar",
-  "agents",
-  "analytics",
-  "archives",
+  // Navigation is now hosted by the left app rail. Keep home only in this
+  // sidebar wrapper so we don't duplicate links in the main content area.
 ];
 
 export const SidebarMenuItems = observer(function SidebarMenuItems() {

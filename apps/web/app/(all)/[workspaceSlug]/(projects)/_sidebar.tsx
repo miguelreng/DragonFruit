@@ -8,7 +8,6 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { useParams, usePathname } from "next/navigation";
-import { SIDEBAR_WIDTH } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
 // components
 import { ResizableSidebar } from "@/components/sidebar/resizable-sidebar";
@@ -17,12 +16,14 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 // local imports
 import { AppSidebar } from "./sidebar";
 
+const HOME_SIDEBAR_WIDTH = 232;
+
 export const ProjectAppSidebar = observer(function ProjectAppSidebar() {
   // store hooks
   const { sidebarCollapsed, toggleSidebar, sidebarPeek, toggleSidebarPeek, isAnySidebarDropdownOpen } = useAppTheme();
-  const { storedValue, setValue } = useLocalStorage("sidebarWidth", SIDEBAR_WIDTH);
+  const { storedValue, setValue } = useLocalStorage("sidebarWidth", HOME_SIDEBAR_WIDTH);
   // states
-  const [sidebarWidth, setSidebarWidth] = useState<number>(storedValue ?? SIDEBAR_WIDTH);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(storedValue ?? HOME_SIDEBAR_WIDTH);
   // routes
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
@@ -35,21 +36,23 @@ export const ProjectAppSidebar = observer(function ProjectAppSidebar() {
   if (isNotificationsPath) return null;
 
   return (
-    <ResizableSidebar
-      showPeek={sidebarPeek}
-      defaultWidth={storedValue ?? 250}
-      width={sidebarWidth}
-      setWidth={setSidebarWidth}
-      defaultCollapsed={sidebarCollapsed}
-      peekDuration={1500}
-      onWidthChange={handleWidthChange}
-      onCollapsedChange={toggleSidebar}
-      isCollapsed={sidebarCollapsed}
-      toggleCollapsed={toggleSidebar}
-      togglePeek={toggleSidebarPeek}
-      isAnySidebarDropdownOpen={isAnySidebarDropdownOpen}
-    >
-      <AppSidebar />
-    </ResizableSidebar>
+    <div className="h-full p-2">
+      <ResizableSidebar
+        showPeek={sidebarPeek}
+        defaultWidth={storedValue ?? HOME_SIDEBAR_WIDTH}
+        width={sidebarWidth}
+        setWidth={setSidebarWidth}
+        defaultCollapsed={sidebarCollapsed}
+        peekDuration={1500}
+        onWidthChange={handleWidthChange}
+        onCollapsedChange={toggleSidebar}
+        isCollapsed={sidebarCollapsed}
+        toggleCollapsed={toggleSidebar}
+        togglePeek={toggleSidebarPeek}
+        isAnySidebarDropdownOpen={isAnySidebarDropdownOpen}
+      >
+        <AppSidebar />
+      </ResizableSidebar>
+    </div>
   );
 });

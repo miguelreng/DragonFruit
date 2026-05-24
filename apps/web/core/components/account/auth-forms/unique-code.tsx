@@ -99,7 +99,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
         <label htmlFor="email" className="text-13 font-medium text-tertiary">
           {t("auth.common.email.label")}
         </label>
-        <div className={`relative flex items-center rounded-md border border-strong bg-surface-1`}>
+        <div className={`relative flex items-center rounded-lg border border-strong bg-surface-1`}>
           <Input
             id="email"
             name="email"
@@ -134,7 +134,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
           value={uniqueCodeFormData.code}
           onChange={(e) => handleFormChange("code", e.target.value)}
           placeholder={t("auth.common.unique_code.placeholder")}
-          className="h-10 w-full border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
+          className="h-10 w-full rounded-lg border border-strong !bg-surface-1 pr-12 disable-autofill-style placeholder:text-placeholder"
           autoComplete="off"
           // reason: first input of OTP form
           // eslint-disable-next-line jsx-a11y/no-autofocus
@@ -165,7 +165,7 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
       </div>
 
       <div className="space-y-2.5">
-        <Button type="submit" variant="primary" className="w-full" size="xl" disabled={isButtonDisabled}>
+        <Button type="submit" variant="primary" className="w-full rounded-lg" size="xl" disabled={isButtonDisabled}>
           {isRequestingNewCode ? (
             t("auth.common.unique_code.sending_code")
           ) : isSubmitting ? (

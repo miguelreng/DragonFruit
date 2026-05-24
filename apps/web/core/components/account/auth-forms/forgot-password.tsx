@@ -68,6 +68,7 @@ export const ForgotPasswordForm = observer(function ForgotPasswordForm() {
           message: t("auth.forgot_password.toast.success.message"),
         });
         setResendCodeTimer(30);
+        return undefined;
       })
       .catch((err) => {
         setToast({
@@ -103,7 +104,7 @@ export const ForgotPasswordForm = observer(function ForgotPasswordForm() {
                 ref={ref}
                 hasError={Boolean(errors.email)}
                 placeholder={t("auth.common.email.placeholder")}
-                className="h-10 w-full border border-strong !bg-surface-1 pr-12 placeholder:text-placeholder"
+                className="h-10 w-full rounded-lg border border-strong !bg-surface-1 pr-12 placeholder:text-placeholder"
                 autoComplete="off"
                 disabled={resendTimerCode > 0}
               />
@@ -119,7 +120,7 @@ export const ForgotPasswordForm = observer(function ForgotPasswordForm() {
         <Button
           type="submit"
           variant="primary"
-          className="w-full"
+          className="w-full rounded-lg"
           size="xl"
           disabled={!isValid}
           loading={isSubmitting || resendTimerCode > 0}

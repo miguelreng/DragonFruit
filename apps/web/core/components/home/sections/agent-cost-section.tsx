@@ -75,7 +75,7 @@ export const AgentCostSection = observer(function AgentCostSection() {
           )}
         </div>
       </div>
-      <div className="rounded-md border border-subtle bg-surface-1">
+      <div className="rounded-[18px] border border-subtle bg-surface-1">
         {!summary ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
         ) : !hasAnyRuns ? (

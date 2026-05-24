@@ -65,21 +65,26 @@ export function AuthBase({ authType }: AuthBaseProps) {
           <AuthRoot authMode={authType} />
         </div>
       </div>
-      <div
-        className="relative hidden lg:block lg:w-1/2"
-        style={{
-          backgroundImage: `url(${hero.src})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div aria-hidden className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-transparent" />
-        <p className="font-normal absolute right-4 bottom-4 text-12 leading-tight text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-          <span className="font-normal italic" style={{ fontFamily: "Newsreader, serif" }}>
-            {hero.title}
-          </span>
-          , {hero.year} — {hero.artist}
-        </p>
+      <div className="hidden p-3 lg:block lg:w-1/2">
+        <div
+          className="relative h-full w-full overflow-hidden rounded-[18px]"
+          style={{
+            backgroundImage: `url(${hero.src})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-transparent"
+          />
+          <p className="font-normal absolute right-4 bottom-4 text-12 leading-tight text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+            <span className="font-normal italic" style={{ fontFamily: "Newsreader, serif" }}>
+              {hero.title}
+            </span>
+            , {hero.year} — {hero.artist}
+          </p>
+        </div>
       </div>
     </div>
   );

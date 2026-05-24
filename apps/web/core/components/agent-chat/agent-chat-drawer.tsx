@@ -185,13 +185,13 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
     // In-flow column. The parent (WorkspaceContentWrapper) already
     // wraps us in a `pr-2 pb-2` gap-on-the-frame container, so we
     // just paint our own rounded surface here at the matching size.
-    // `bg-surface-2` is a hair darker than the brown main content so
-    // the two read as distinct surfaces side-by-side instead of one
-    // continuous strip.
+    // Match the main workspace panel so the AI drawer reads as the same
+    // surface family inside the app frame.
     <aside
       className={cn(
-        "flex h-full w-[420px] max-w-[95vw] flex-col overflow-hidden rounded-md border-[0.5px] border-subtle bg-surface-2"
+        "t-panel-slide flex h-full w-[420px] max-w-[95vw] flex-col overflow-hidden rounded-md border-[0.5px] border-subtle bg-surface-1"
       )}
+      data-open="true"
     >
       {view === "chat" && (
         <ChatView
@@ -350,7 +350,7 @@ function NewChatLanding(props: { agents: TAgent[]; onStartSession: (agentId: str
               void onStartSession(pickedId);
             }}
             disabled={!pickedId}
-            className="text-on-accent-primary rounded-md bg-accent-primary px-3 py-2 text-13 font-medium disabled:opacity-60"
+            className="rounded-md bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a] disabled:opacity-60"
           >
             Start chat
           </button>
@@ -404,7 +404,7 @@ function HistoryView(props: {
         <div className="border-b border-subtle px-3 py-2">
           <CustomMenu
             customButton={
-              <div className="text-on-accent-primary flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border-accent-strong bg-accent-primary px-3 py-2 text-13 font-medium hover:bg-accent-primary/90">
+              <div className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]">
                 <Plus className="size-3.5" />
                 New chat
               </div>
@@ -751,7 +751,7 @@ function ChatThread(props: {
                 "grid size-7 shrink-0 place-items-center rounded-full transition-colors",
                 (draft.trim().length === 0 && pendingFiles.length === 0) || sending
                   ? "bg-layer-2 text-tertiary"
-                  : "text-on-accent-primary bg-accent-primary hover:bg-accent-primary/90"
+                  : "bg-[#e548a5] text-white hover:bg-[#d93d9a]"
               )}
               aria-label="Send message"
             >

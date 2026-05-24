@@ -96,13 +96,13 @@ export const PagesListHeader = observer(function PagesListHeader() {
                 size="lg"
                 onClick={() => handleCreatePage("doc")}
                 loading={isCreatingPage}
-                className="rounded-r-none bg-accent-primary hover:bg-accent-primary-hover active:bg-accent-primary-active"
+                className="rounded-r-none bg-[#e548a5] hover:bg-[#d93d9a] active:bg-[#c9368e]"
               >
                 {isCreatingPage ? "Adding" : "Add page"}
               </Button>
               <Menu.Button
                 aria-label="Add page menu"
-                className="flex items-center rounded-r-md bg-accent-primary px-1.5 text-on-color hover:bg-accent-primary-hover active:bg-accent-primary-active"
+                className="flex items-center rounded-r-md bg-[#e548a5] px-1.5 text-white hover:bg-[#d93d9a] active:bg-[#c9368e]"
               >
                 <ChevronDown className="size-4" />
               </Menu.Button>

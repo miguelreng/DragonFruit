@@ -263,7 +263,7 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
   const card = (
     <div
       className={cn(
-        "group flex h-[260px] flex-col gap-3 rounded-md border border-subtle bg-surface-1 p-4 transition-colors",
+        "group flex h-[260px] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 transition-colors",
         { "hover:border-strong": itemLink, "opacity-60": !itemLink }
       )}
     >
@@ -279,7 +279,7 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
           {getPageName(page.name)}
         </h3>
       </div>
-      <div className="relative flex-1 overflow-hidden rounded-sm border border-subtle/60">
+      <div className="relative flex-1 overflow-hidden rounded-md border border-subtle/60">
         {page.description_snippet ? (
           <p
             className="px-3 pt-3 pb-6 text-12 leading-relaxed text-secondary"
@@ -316,7 +316,7 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
   return (
     <Link
       to={itemLink}
-      className="focus-visible:ring-accent-primary/40 block rounded-md focus:outline-none focus-visible:ring-2"
+      className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
     >
       {card}
     </Link>

@@ -45,8 +45,7 @@ export const TopNavPowerK = observer(() => {
   // store hooks
   const { activeContext, setActivePage, activePage, setTopNavInputRef } = usePowerK();
   const { data: currentUser } = useUser();
-  // top bar theme — dropdown matches the frame, not the page
-  const topBarTheme = useTopBarTheme();
+  const surfaceTheme = useTopBarTheme();
 
   const handleOnClose = useCallback(() => {
     setSearchTerm("");
@@ -306,9 +305,9 @@ export const TopNavPowerK = observer(() => {
         </div>
       </div>
       <div
-        data-theme={topBarTheme}
+        data-theme={surfaceTheme}
         className={cn(
-          "shadow-lg absolute -top-[6px] left-1/2 z-20 flex -translate-x-1/2 flex-col overflow-hidden rounded-md border border-subtle bg-surface-1 px-2 pt-10 pb-2 text-primary transition-all duration-300 ease-in-out",
+          "absolute -top-[6px] left-1/2 z-20 flex -translate-x-1/2 flex-col overflow-hidden rounded-[18px] border-[0.5px] border-strong bg-surface-1 px-2 pt-10 pb-2 text-primary shadow-raised-200 transition-all duration-300 ease-in-out",
           {
             "max-h-[80vh] w-[570px] opacity-100": isOpen,
             "h-0 w-0 opacity-0": !isOpen,

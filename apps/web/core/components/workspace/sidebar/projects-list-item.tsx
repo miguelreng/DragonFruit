@@ -14,7 +14,7 @@ import { observer } from "mobx-react";
 import { useParams, useRouter } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
-import { Briefcase, Settings, Share2, LogOut, MoreHorizontal } from "@/components/icons/lucide-shim";
+import { Briefcase, FileText, Settings, Share2, LogOut, MoreHorizontal } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
@@ -150,6 +150,22 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
 
   const handleLeaveProject = () => {
     setLeaveProjectModal(true);
+  };
+
+  const pageNavigationItem = navigationItems.find((item) => item.key === "pages");
+
+  const handleProjectHover = () => {
+    const menuButton = actionSectionRef.current;
+    if (!menuButton) return;
+
+    menuButton.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+  };
+
+  const handleProjectLeave = () => {
+    const menuButton = actionSectionRef.current;
+    if (!menuButton) return;
+
+    menuButton.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
   };
 
   useEffect(() => {
@@ -303,6 +319,8 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
         >
           <DropIndicator classNames="absolute top-0" isVisible={instruction === "DRAG_OVER"} />
           <div
+            onMouseEnter={handleProjectHover}
+            onMouseLeave={handleProjectLeave}
             className={cn(
               "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary hover:bg-layer-transparent-hover",
               {
@@ -366,6 +384,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               </ControlLink>
               <div className="flex items-center gap-1">
                 <CustomMenu
+                  openOnHover
                   customButton={
                     <IconButton
                       ref={actionSectionRef}
@@ -389,6 +408,24 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   closeOnSelect
                   onMenuClose={() => setIsMenuActive(false)}
                 >
+                  {pageNavigationItem && (
+                    <CustomMenu.MenuItem onClick={() => router.push(pageNavigationItem.href)}>
+                      <div className="flex cursor-pointer items-center justify-start gap-2">
+                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-all duration-300 hover:bg-layer-1">
+                          <pageNavigationItem.icon className="h-3.5 w-3.5 stroke-[1.5]" />
+                        </div>
+                        <div>{t(pageNavigationItem.i18n_key)}</div>
+                      </div>
+                    </CustomMenu.MenuItem>
+                  )}
+                  <CustomMenu.MenuItem onClick={() => router.push(`/${workspaceSlug.toString()}/docs`)}>
+                    <div className="flex cursor-pointer items-center justify-start gap-2">
+                      <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-all duration-300 hover:bg-layer-1">
+                        <FileText className="h-3.5 w-3.5 stroke-[1.5]" />
+                      </div>
+                      <div>{t("sidebar.docs")}</div>
+                    </div>
+                  </CustomMenu.MenuItem>
                   {/* TODO: Removed is_favorite logic due to the optimization in projects API */}
                   {/* {isAuthorized && (
                     <CustomMenu.MenuItem

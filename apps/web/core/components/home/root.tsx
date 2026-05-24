@@ -63,18 +63,16 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
       <HomePeekOverviewsRoot />
       <ContentWrapper className={cn("scrollbar-hide gap-6 bg-surface-1", header ? "!px-0 !py-0" : "px-page-x")}>
         {header}
-        <div
-          className={cn(
-            "mx-auto grid w-full max-w-[1100px] grid-cols-2 gap-x-6 gap-y-6 pb-12",
-            header ? "pt-6" : "pt-2",
-            header && "px-page-x"
-          )}
-        >
-          {enabledKeys("activity") && SECTION_RENDERERS.activity()}
-          {enabledKeys("inbox") && SECTION_RENDERERS.inbox()}
-          {enabledKeys("agent_cost") && SECTION_RENDERERS.agent_cost()}
-          {enabledKeys("on_my_plate") && SECTION_RENDERERS.on_my_plate()}
-          {enabledKeys("favorites") && <div className="col-span-2">{SECTION_RENDERERS.favorites()}</div>}
+        <div className={cn("home-dashboard-container", header && "px-page-x")}>
+          <div className={cn("home-dashboard-grid", header ? "pt-6" : "pt-2")}>
+            {enabledKeys("activity") && SECTION_RENDERERS.activity()}
+            {enabledKeys("inbox") && SECTION_RENDERERS.inbox()}
+            {enabledKeys("agent_cost") && SECTION_RENDERERS.agent_cost()}
+            {enabledKeys("on_my_plate") && SECTION_RENDERERS.on_my_plate()}
+            {enabledKeys("favorites") && (
+              <div className="home-dashboard-favorites">{SECTION_RENDERERS.favorites()}</div>
+            )}
+          </div>
         </div>
       </ContentWrapper>
     </>

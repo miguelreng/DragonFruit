@@ -93,7 +93,7 @@ function buildGrid(buckets: TActivitySummary["daily_buckets"]): GridCell[][] {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-subtle bg-surface-1 px-3 py-2.5">
+    <div className="rounded-[18px] border border-subtle bg-surface-1 px-3 py-2.5">
       <div className="text-11 font-medium text-placeholder">{label}</div>
       <div className="text-15 mt-0.5 font-semibold text-primary tabular-nums">{value}</div>
     </div>
@@ -221,7 +221,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
         </div>
       </div>
 
-      <div className="rounded-md border border-subtle bg-surface-1">
+      <div className="rounded-[18px] border border-subtle bg-surface-1">
         {/* Header row: tabs left, range filter right */}
         <div className="flex items-center justify-between border-b border-subtle px-3 py-2">
           <div className="flex items-center gap-1">

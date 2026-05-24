@@ -35,7 +35,9 @@ function SubMenu(props: TSubMenuProps) {
       </BaseMenu.SubmenuTrigger>
       <BaseMenu.Portal>
         <BaseMenu.Positioner className={""} alignOffset={-4} sideOffset={-4}>
-          <BaseMenu.Popup className={className}>{children} </BaseMenu.Popup>
+          <BaseMenu.Popup className={cn("t-dropdown is-open", className)} data-origin="top-left">
+            {children}{" "}
+          </BaseMenu.Popup>
         </BaseMenu.Positioner>
       </BaseMenu.Portal>
     </BaseMenu.SubmenuRoot>
@@ -50,7 +52,7 @@ function MenuItem(props: TMenuItemProps) {
     <BaseMenu.Item
       disabled={disabled}
       className={cn(
-        "w-full cursor-pointer truncate rounded-sm px-1 py-1.5 text-left text-secondary outline-none select-none hover:bg-layer-1",
+        "w-full cursor-pointer truncate rounded-md px-1 py-1.5 text-left text-secondary outline-none select-none hover:bg-layer-1",
         {
           "text-placeholder": disabled,
         },
@@ -148,7 +150,7 @@ function Menu(props: TMenuProps) {
               type="button"
               onClick={handleMenuButtonClick}
               disabled={disabled}
-              className={`relative grid place-items-center rounded-sm p-1 text-secondary outline-none hover:text-primary ${
+              className={`relative grid place-items-center rounded-md p-1 text-secondary outline-none hover:text-primary ${
                 disabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-layer-1"
               } ${buttonClassName}`}
               tabIndex={customButtonTabIndex}
@@ -186,7 +188,7 @@ function Menu(props: TMenuProps) {
           <BaseMenu.Popup
             tabIndex={tabIndex}
             className={cn(
-              "my-1 min-w-[12rem] overflow-y-scroll rounded-md border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 whitespace-nowrap shadow-raised-200 focus:outline-none",
+              "t-dropdown is-open my-1 min-w-[12rem] overflow-y-scroll rounded-[18px] border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 whitespace-nowrap shadow-raised-200 focus:outline-none",
               {
                 "max-h-60": maxHeight === "lg",
                 "max-h-48": maxHeight === "md",
@@ -196,6 +198,7 @@ function Menu(props: TMenuProps) {
               optionsClassName
             )}
             data-main-menu="true"
+            data-origin="top-left"
           >
             <MenuContext.Provider value={{ closeAllSubmenus, registerSubmenu }}>{children}</MenuContext.Provider>
           </BaseMenu.Popup>

@@ -42,14 +42,15 @@ type TSwitcherLabelProps = {
   name?: string;
   LabelIcon: FC<ISvgIcons>;
   type?: "lucide" | "material";
+  className?: string;
 };
 
 export function SwitcherLabel(props: TSwitcherLabelProps) {
-  const { logo_props, name, LabelIcon, logo_url, type = "lucide" } = props;
+  const { logo_props, name, LabelIcon, logo_url, type = "lucide", className = "" } = props;
   return (
     <div className="flex items-center gap-1 text-secondary">
       <SwitcherIcon logo_props={logo_props} logo_url={logo_url} LabelIcon={LabelIcon} type={type} />
-      {truncateText(name ?? "", 40)}
+      <span className={className}>{truncateText(name ?? "", 40)}</span>
     </div>
   );
 }

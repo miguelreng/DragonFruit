@@ -14,15 +14,16 @@ import { withDockItems } from "@/plane-web/components/app-rail/app-rail-hoc";
 type Props = {
   dockItems: (AppSidebarItemData & { shouldRender: boolean })[];
   showLabel?: boolean;
+  isInline?: boolean;
 };
 
-function Component({ dockItems, showLabel = true }: Props) {
+function Component({ dockItems, showLabel = true, isInline = false }: Props) {
   return (
     <>
       {dockItems
         .filter((item) => item.shouldRender)
         .map((item) => (
-          <AppSidebarItem key={item.label} item={{ ...item, showLabel }} variant="link" />
+          <AppSidebarItem key={item.label} item={{ ...item, showLabel, isInline }} variant="link" />
         ))}
     </>
   );

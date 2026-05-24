@@ -301,7 +301,7 @@ export function ExistingIssuesListModal(props: Props) {
                               variant="secondary"
                             />
                           </span>
-                          <span className="truncate">{issue.name}</span>
+                          <span className="content-title-font truncate">{issue.name}</span>
                         </div>
                         <a
                           href={generateWorkItemLink({

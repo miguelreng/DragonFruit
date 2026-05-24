@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 // plane types
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -44,17 +44,20 @@ export const useStickyOperations = (props: TProps) => {
     useSticky();
   const { t } = useTranslation();
 
-  const isValid = (data: Partial<TSticky>) => {
-    if (data.name && data.name.length > 100) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("stickies.toasts.not_updated.title"),
-        message: t("stickies.toasts.errors.wrong_name"),
-      });
-      return false;
-    }
-    return true;
-  };
+  const isValid = useCallback(
+    (data: Partial<TSticky>) => {
+      if (data.name && data.name.length > 100) {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: t("stickies.toasts.not_updated.title"),
+          message: t("stickies.toasts.errors.wrong_name"),
+        });
+        return false;
+      }
+      return true;
+    },
+    [t]
+  );
 
   const stickyOperations: TOperations = useMemo(
     () => ({
@@ -68,7 +71,11 @@ export const useStickyOperations = (props: TProps) => {
           // check if latest sticky is empty
           if (workspaceStickIds && workspaceStickIds.length >= 0) {
             const latestSticky = stickies[workspaceStickIds[0]];
-            if (latestSticky && (!latestSticky.description_html || isCommentEmpty(latestSticky.description_html))) {
+            const hasLatestTitle = Boolean(latestSticky?.name?.trim());
+            const hasLatestDescription = Boolean(
+              latestSticky?.description_html && !isCommentEmpty(latestSticky.description_html)
+            );
+            if (latestSticky && !hasLatestTitle && !hasLatestDescription) {
               setToast({
                 message: t("stickies.toasts.errors.already_exists"),
                 type: TOAST_TYPE.WARNING,
@@ -127,14 +134,14 @@ export const useStickyOperations = (props: TProps) => {
         }
       },
       updatePosition: async (
-        workspaceSlug: string,
+        targetWorkspaceSlug: string,
         sourceId: string,
         droppedId: string,
         instruction: InstructionType
       ) => {
         try {
-          if (!workspaceSlug) throw new Error("Missing required fields");
-          await updateStickyPosition(workspaceSlug, sourceId, droppedId, instruction);
+          if (!targetWorkspaceSlug) throw new Error("Missing required fields");
+          await updateStickyPosition(targetWorkspaceSlug, sourceId, droppedId, instruction);
         } catch (error) {
           console.error("Error in updating sticky position:", error);
           setToast({
@@ -145,7 +152,17 @@ export const useStickyOperations = (props: TProps) => {
         }
       },
     }),
-    [createSticky, deleteSticky, getWorkspaceStickyIds, stickies, updateSticky, updateStickyPosition, workspaceSlug]
+    [
+      createSticky,
+      deleteSticky,
+      getWorkspaceStickyIds,
+      isValid,
+      stickies,
+      t,
+      updateSticky,
+      updateStickyPosition,
+      workspaceSlug,
+    ]
   );
 
   return {

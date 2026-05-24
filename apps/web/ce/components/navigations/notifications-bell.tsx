@@ -7,24 +7,30 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+import { cn } from "@plane/utils";
 // plane imports
 import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
 import { Popover } from "@plane/propel/popover";
-import { Tooltip } from "@plane/propel/tooltip";
 // icons
 import { Bell } from "@/components/icons/lucide-shim";
 // components
+import { AppSidebarTooltip } from "@/components/sidebar/sidebar-item";
 import { NotificationItem } from "@/components/workspace-notifications/sidebar/notification-card/item";
 // hooks
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
-import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 import { useWorkspace } from "@/hooks/store/use-workspace";
+import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 
-export const NotificationsBell = observer(function NotificationsBell() {
+type TNotificationsBellProps = {
+  showLabel?: boolean;
+  isInline?: boolean;
+};
+
+export const NotificationsBell = observer(function NotificationsBell(props: TNotificationsBellProps) {
+  const { showLabel = true, isInline = false } = props;
   const { workspaceSlug } = useParams();
   const slug = workspaceSlug?.toString();
-  // top bar theme — panel matches the frame
-  const topBarTheme = useTopBarTheme();
+  const surfaceTheme = useTopBarTheme();
   // store hooks
   const { currentWorkspace } = useWorkspace();
   const { unreadNotificationsCount, getNotifications, getUnreadNotificationsCount, notificationIdsByWorkspaceId } =
@@ -49,25 +55,49 @@ export const NotificationsBell = observer(function NotificationsBell() {
 
   return (
     <Popover>
-      <Tooltip tooltipContent="Notifications" position="bottom">
+      <AppSidebarTooltip tooltipContent="Notifications">
         <Popover.Button
           aria-label="Notifications"
-          className="group flex flex-col items-center justify-center gap-0.5 text-tertiary outline-none"
+          className={cn(
+            "text-tertiary outline-none dark:text-white/65",
+            isInline
+              ? "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-md px-2 py-1 text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]"
+              : "group flex flex-col items-center justify-center gap-0.5"
+          )}
         >
-          <div className="flex size-8 items-center justify-center gap-2 rounded-md text-icon-tertiary group-hover:bg-layer-transparent-hover group-hover:text-icon-secondary">
+          <div
+            className={cn(
+              "rounded-md text-icon-tertiary dark:text-white/55 [&_svg]:text-current",
+              isInline
+                ? "flex size-5 flex-shrink-0 items-center justify-center [&_svg]:size-4"
+                : "flex size-8 items-center justify-center gap-2 [&_svg]:size-5"
+            )}
+          >
             <div className="relative">
-              <Bell className="size-5" />
+              <Bell />
               {totalUnread > 0 && <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />}
             </div>
           </div>
+          {showLabel && (
+            <span
+              className={cn(
+                "font-medium",
+                isInline
+                  ? "flex h-5 items-center text-13 leading-5"
+                  : "text-11 text-tertiary group-hover:text-secondary dark:text-white/65 dark:group-hover:text-white/90"
+              )}
+            >
+              Notifications
+            </span>
+          )}
         </Popover.Button>
-      </Tooltip>
+      </AppSidebarTooltip>
       <Popover.Panel
         side="bottom"
         align="end"
         positionerClassName="z-[1000]"
-        data-theme={topBarTheme}
-        className="shadow-lg w-[380px] overflow-hidden rounded-md border border-subtle bg-surface-1 text-secondary outline-none"
+        data-theme={surfaceTheme}
+        className="w-[380px] overflow-hidden rounded-[18px] border-[0.5px] border-strong bg-surface-1 text-secondary shadow-raised-200 outline-none"
       >
         <div className="flex items-center justify-between border-b border-subtle px-3 py-2">
           <h3 className="text-13 font-semibold text-secondary">Notifications</h3>

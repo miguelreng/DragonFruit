@@ -8,7 +8,7 @@ import { Outlet } from "react-router";
 
 export default function WorkspaceCalendarLayout() {
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-surface-1">
       <Outlet />
     </div>
   );

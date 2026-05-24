@@ -51,6 +51,7 @@ export const PageListBlock = observer(function PageListBlock(props: TPageListBlo
         </>
       }
       title={getPageName(name)}
+      titleClassName="content-title-font"
       itemLink={getRedirectionLink()}
       actionableItems={<BlockItemAction page={page} parentRef={parentRef} storeType={storeType} />}
       isMobile={isMobile}
