@@ -94,6 +94,7 @@ struct VoiceCaptureResult: Identifiable {
     let projectHint: String
     let title: String
     let body: String
+    let rawTranscript: String
 }
 
 struct VoiceActionResult: Identifiable {
@@ -1658,7 +1659,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             type: type,
             projectHint: project,
             title: title.prefix(80).description,
-            body: payload
+            body: payload,
+            rawTranscript: transcript
         )
     }
 
@@ -1793,21 +1795,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     statusMessage = "No project found for doc. Say the project name in your note."
                     return
                 }
-                let created = try await client.createDoc(
-                    workspaceSlug: routing.workspaceSlug,
-                    projectId: projectId,
-                    title: title,
-                    descriptionHtml: html
-                )
-                let resultTitle = created.name ?? title
-                let url = resourceURL(type: .doc, workspaceSlug: routing.workspaceSlug, projectId: projectId, entityId: created.id)
-                lastVoiceActionResult = VoiceActionResult(
-                    type: .doc,
-                    title: resultTitle,
-                    detail: "Created in \(routing.projectName ?? "project")",
-                    resourceURL: url
-                )
-                statusMessage = "Doc created: \(resultTitle)"
+                statusMessage = "Buddy is creating the document..."
+                await triggerAgentPrompt(promptWithCursorContext(intent.rawTranscript), projectId: projectId)
             case .sticky:
                 let created = try await client.createSticky(
                     workspaceSlug: routing.workspaceSlug,
@@ -1887,7 +1876,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             .replacingOccurrences(of: "'", with: "&#39;")
     }
 
-    private func triggerAgentPrompt(_ prompt: String) async {
+    private func triggerAgentPrompt(_ prompt: String, projectId: String? = nil) async {
         guard isAuthenticated else {
             statusMessage = "Sign in first to launch a DragonFruit agent."
             return
@@ -1914,7 +1903,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             let envelope = try await client.sendAgentChatMessage(
                 workspaceSlug: agentTarget.workspaceSlug,
                 sessionId: sessionId,
-                content: prompt
+                content: prompt,
+                projectId: projectId
             )
 
             if !envelope.assistant_message.error_message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
