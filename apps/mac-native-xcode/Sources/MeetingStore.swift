@@ -874,7 +874,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             meetingNotesTranscript = ""
             recordingMeeting = meeting
             let node = audioEngine.inputNode
-            let format = node.outputFormat(forBus: 0)
+            let format = try inputTapFormat(for: node)
             removeInputTapIfNeeded()
             node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
                 request.append(buffer)
@@ -960,6 +960,18 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         isInputTapInstalled = false
     }
 
+    private func inputTapFormat(for node: AVAudioInputNode) throws -> AVAudioFormat {
+        let format = node.inputFormat(forBus: 0)
+        guard format.channelCount > 0, format.sampleRate > 0 else {
+            throw NSError(
+                domain: "DragonFruitNative",
+                code: 1201,
+                userInfo: [NSLocalizedDescriptionKey: "Microphone format is not available yet. Try again."]
+            )
+        }
+        return format
+    }
+
     private func notifyMeetingNotesSaved(title: String) {
         deliverNotification(title: "Meeting notes saved", body: title)
     }
@@ -1018,7 +1030,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             voiceTranscriptFlushTask?.cancel()
             voiceTranscriptFlushTask = nil
             let node = audioEngine.inputNode
-            let format = node.outputFormat(forBus: 0)
+            let format = try inputTapFormat(for: node)
             removeInputTapIfNeeded()
             node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
                 request.append(buffer)
