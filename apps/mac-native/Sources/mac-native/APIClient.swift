@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 struct CalendarAccount: Codable, Identifiable {
     let id: String
@@ -89,17 +90,25 @@ struct CSRFResponse: Codable {
 struct APIClient {
     var baseURL: URL
     var apiToken: String?
+    private let session: URLSession
+    private static let logger = Logger(subsystem: "sh.dragonfruit.copilot", category: "api")
 
-    private var session: URLSession {
+    init(baseURL: URL, apiToken: String?) {
+        self.baseURL = baseURL
+        self.apiToken = apiToken
         let configuration = URLSessionConfiguration.default
         configuration.httpCookieStorage = HTTPCookieStorage.shared
         configuration.httpCookieAcceptPolicy = .always
-        return URLSession(configuration: configuration)
+        configuration.timeoutIntervalForRequest = 12
+        configuration.timeoutIntervalForResource = 20
+        configuration.waitsForConnectivity = false
+        session = URLSession(configuration: configuration)
     }
 
     private func authorizedRequest(url: URL, method: String = "GET") -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method
+        request.timeoutInterval = 12
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
@@ -108,7 +117,7 @@ struct APIClient {
 
     func fetchCSRFToken() async throws -> String {
         let url = baseURL.appending(path: "auth/get-csrf-token/")
-        let (data, response) = try await session.data(from: url)
+        let (data, response) = try await send(URLRequest(url: url), endpoint: "GET auth/get-csrf-token")
         try ensureStatus(response, allowed: [200])
         return try JSONDecoder().decode(CSRFResponse.self, from: data).csrf_token
     }
@@ -117,6 +126,7 @@ struct APIClient {
         let csrf = try await fetchCSRFToken()
         var request = URLRequest(url: baseURL.appending(path: "auth/sign-in/"))
         request.httpMethod = "POST"
+        request.timeoutInterval = 12
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         let body = [
             "email": email,
@@ -126,7 +136,7 @@ struct APIClient {
         ]
         request.httpBody = formEncode(body).data(using: .utf8)
 
-        let (_, response) = try await session.data(for: request)
+        let (_, response) = try await send(request, endpoint: "POST auth/sign-in")
         try ensureStatus(response, allowed: [200, 302, 303])
         _ = try await getCurrentUser()
     }
@@ -134,7 +144,7 @@ struct APIClient {
     func getCurrentUser() async throws -> [String: Any] {
         let url = baseURL.appending(path: "api/users/me/")
         let request = authorizedRequest(url: url)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "GET api/users/me")
         try ensureStatus(response, allowed: [200])
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw NSError(domain: "DragonFruitNative", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Invalid user payload"])
@@ -145,7 +155,7 @@ struct APIClient {
     func listCalendarAccounts() async throws -> [CalendarAccount] {
         let url = baseURL.appending(path: "api/users/me/calendar-accounts/")
         let request = authorizedRequest(url: url)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "GET calendar-accounts")
         try ensureStatus(response, allowed: [200])
         return try JSONDecoder().decode([CalendarAccount].self, from: data)
     }
@@ -157,7 +167,7 @@ struct APIClient {
             throw NSError(domain: "DragonFruitNative", code: 1004, userInfo: [NSLocalizedDescriptionKey: "Invalid Google start URL"])
         }
         let request = authorizedRequest(url: url)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "GET google/start")
         try ensureStatus(response, allowed: [200])
         let payload = try JSONDecoder().decode(OAuthStartResponse.self, from: data)
         guard let authURL = URL(string: payload.authorize_url) else {
@@ -170,6 +180,7 @@ struct APIClient {
         let csrf = try await fetchCSRFToken()
         var request = URLRequest(url: baseURL.appending(path: "api/users/me/calendar-accounts/google/callback/"))
         request.httpMethod = "POST"
+        request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
         if let apiToken, !apiToken.isEmpty {
@@ -177,7 +188,7 @@ struct APIClient {
         }
         request.httpBody = try JSONEncoder().encode(["code": code, "client": "native"])
 
-        let (_, response) = try await session.data(for: request)
+        let (_, response) = try await send(request, endpoint: "POST google/callback")
         try ensureStatus(response, allowed: [200])
     }
 
@@ -191,7 +202,7 @@ struct APIClient {
             throw NSError(domain: "DragonFruitNative", code: 1002, userInfo: [NSLocalizedDescriptionKey: "Invalid events URL"])
         }
         let request = authorizedRequest(url: url)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "GET calendar events")
         try ensureStatus(response, allowed: [200])
 
         struct EventsResponse: Codable {
@@ -211,7 +222,7 @@ struct APIClient {
             throw NSError(domain: "DragonFruitNative", code: 1005, userInfo: [NSLocalizedDescriptionKey: "Invalid meetings URL"])
         }
         let request = authorizedRequest(url: url)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "GET upcoming meetings")
         try ensureStatus(response, allowed: [200])
 
         struct EventsResponse: Codable {
@@ -229,6 +240,7 @@ struct APIClient {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/calendar/meeting-notes/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
@@ -244,7 +256,7 @@ struct APIClient {
             "calendar_id": meeting.calendarId ?? "",
             "notes": notes,
         ])
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "POST meeting notes")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(MeetingNotesDraftResponse.self, from: data)
     }
@@ -252,7 +264,7 @@ struct APIClient {
     func listWorkspaces() async throws -> [WorkspaceSummary] {
         let url = baseURL.appending(path: "api/workspaces/")
         let request = authorizedRequest(url: url)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "GET workspaces")
         try ensureStatus(response, allowed: [200])
         return try decodeArrayOrResults(data, as: WorkspaceSummary.self)
     }
@@ -260,7 +272,7 @@ struct APIClient {
     func listProjects(workspaceSlug: String) async throws -> [ProjectSummary] {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/projects/")
         let request = authorizedRequest(url: url)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "GET projects")
         try ensureStatus(response, allowed: [200])
         return try decodeArrayOrResults(data, as: ProjectSummary.self)
     }
@@ -269,6 +281,7 @@ struct APIClient {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/projects/\(projectId)/issues/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
@@ -278,7 +291,7 @@ struct APIClient {
             "description_html": descriptionHtml,
             "priority": "none",
         ])
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "POST task")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(CreatedEntity.self, from: data)
     }
@@ -287,6 +300,7 @@ struct APIClient {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/projects/\(projectId)/pages/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
@@ -296,7 +310,7 @@ struct APIClient {
             "page_type": "doc",
             "description_html": descriptionHtml,
         ])
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "POST doc")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(CreatedEntity.self, from: data)
     }
@@ -305,6 +319,7 @@ struct APIClient {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/stickies/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
@@ -313,7 +328,7 @@ struct APIClient {
             "name": title,
             "description_html": descriptionHtml,
         ])
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "POST sticky")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(CreatedEntity.self, from: data)
     }
@@ -321,7 +336,7 @@ struct APIClient {
     func listAgents(workspaceSlug: String) async throws -> [AgentSummary] {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agents/")
         let request = authorizedRequest(url: url)
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "GET agents")
         try ensureStatus(response, allowed: [200])
         return try decodeArrayOrResults(data, as: AgentSummary.self)
     }
@@ -330,6 +345,7 @@ struct APIClient {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agent-chats/sessions/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
@@ -338,7 +354,7 @@ struct APIClient {
             "agent_id": agentId,
             "title": title,
         ])
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "POST agent session")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(AgentChatSession.self, from: data)
     }
@@ -347,6 +363,7 @@ struct APIClient {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agent-chats/sessions/\(sessionId)/messages/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 20
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
@@ -354,9 +371,30 @@ struct APIClient {
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "content": content,
         ])
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await send(request, endpoint: "POST agent message")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(AgentChatMessageEnvelope.self, from: data)
+    }
+
+    private func send(_ request: URLRequest, endpoint: String) async throws -> (Data, URLResponse) {
+        let startedAt = Date()
+        do {
+            let result = try await session.data(for: request)
+            let elapsed = Date().timeIntervalSince(startedAt)
+            Self.logger.info("DragonFruit API \(endpoint, privacy: .public) completed in \(elapsed, privacy: .public)s")
+            return result
+        } catch {
+            let elapsed = Date().timeIntervalSince(startedAt)
+            Self.logger.error("DragonFruit API \(endpoint, privacy: .public) failed in \(elapsed, privacy: .public)s: \(error.localizedDescription, privacy: .public)")
+            if let urlError = error as? URLError, urlError.code == .timedOut {
+                throw NSError(
+                    domain: "DragonFruitNative",
+                    code: urlError.errorCode,
+                    userInfo: [NSLocalizedDescriptionKey: "\(endpoint) timed out. Please try again."]
+                )
+            }
+            throw error
+        }
     }
 
     private func ensureStatus(_ response: URLResponse, allowed: Set<Int>) throws {

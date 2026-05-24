@@ -1,7 +1,10 @@
 import AuthenticationServices
+import ApplicationServices
 import AppKit
 import AVFoundation
+import Carbon
 import Foundation
+import os
 import Speech
 import SwiftUI
 import UserNotifications
@@ -32,22 +35,25 @@ struct MeetingInfo: Identifiable {
     }
 
     var calendarDisplayName: String {
-        calendarName ?? accountEmail ?? ""
+        let candidate = calendarName ?? accountEmail ?? ""
+        let normalized = candidate.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if ["personal", "personal calendar"].contains(normalized) {
+            return ""
+        }
+        return candidate
     }
 
     private static func extractJoinURL(from text: String) -> URL? {
         let patterns = [
             #"https://meet\.google\.com/[A-Za-z0-9\-_/?=&%.]+"#,
             #"https://(?:[A-Za-z0-9\-]+\.)?zoom\.us/j/[A-Za-z0-9\-_/?=&%.]+"#,
-            #"https://teams\.microsoft\.com/[A-Za-z0-9\-_/?=&%.]+"#,
         ]
         for pattern in patterns {
             if let range = text.range(of: pattern, options: .regularExpression) {
                 return URL(string: String(text[range]))
             }
         }
-        return URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines))
-            .flatMap { $0.scheme?.hasPrefix("http") == true ? $0 : nil }
+        return nil
     }
 
     static var empty: MeetingInfo {
@@ -76,6 +82,12 @@ enum VoiceCaptureType: String {
     case agent = "Agent"
 }
 
+enum VoiceCaptureMode {
+    case intent
+    case copilot
+    case dictation
+}
+
 struct VoiceCaptureResult: Identifiable {
     let id = UUID()
     let type: VoiceCaptureType
@@ -102,8 +114,16 @@ struct AgentOption: Identifiable, Hashable {
     let workspaceSlug: String
 }
 
+struct PermissionStatus: Identifiable {
+    let id: String
+    let name: String
+    let state: String
+}
+
 @MainActor
 final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresentationContextProviding {
+    private static let logger = Logger(subsystem: "sh.dragonfruit.copilot", category: "store")
+
     @Published var baseURL = "https://api.dragonfruit.sh"
     @Published var appURL = "https://app.dragonfruit.sh"
     @Published var statusMessage = ""
@@ -134,6 +154,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var isAgentResponding = false
     @Published var availableAgents: [AgentOption] = []
     @Published var selectedAgentId = ""
+    @Published private var permissionsRefreshCounter = 0
 
     private var oauthSession: ASWebAuthenticationSession?
     private var loginPollTask: Task<Void, Never>?
@@ -144,13 +165,19 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private let audioEngine = AVAudioEngine()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var isInputTapInstalled = false
     private var recordingMeeting: MeetingInfo?
     private var notifiedMeetingIds: Set<String> = []
-    private var localKeyMonitor: Any?
-    private var globalKeyMonitor: Any?
+    private var actionHotKeyRef: EventHotKeyRef?
+    private var dictationHotKeyRef: EventHotKeyRef?
+    private var hotKeyEventHandlerRef: EventHandlerRef?
     private var lastRoutingTarget: RoutingTarget?
     private var activeAgentSessionByWorkspace: [String: String] = [:]
     private var agentTypingTask: Task<Void, Never>?
+    private var voiceCaptureMode: VoiceCaptureMode = .intent
+    private var isStartingVoiceCapture = false
+    private var pendingVoiceTranscript = ""
+    private var voiceTranscriptFlushTask: Task<Void, Never>?
 
     override init() {
         super.init()
@@ -160,6 +187,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         appURL = defaults.string(forKey: "df_app_url") ?? "https://app.dragonfruit.sh"
         apiToken = defaults.string(forKey: "df_api_token") ?? ""
         isRestoringSession = !apiToken.isEmpty
+        Self.logger.info("DragonFruit store initialized. savedToken=\(!self.apiToken.isEmpty, privacy: .public)")
         setupHotkey()
         if !apiToken.isEmpty {
             Task { @MainActor in
@@ -179,22 +207,91 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         return "in \(max(1, delta / 60))m"
     }
 
+    var nextUpCountdownLabel: String {
+        if needsCalendarReconnect { return "Reconnect" }
+        if !googleConnected { return "Connect" }
+        if meeting.id == "empty" { return "No meetings" }
+        let delta = Int(meeting.startAt.timeIntervalSinceNow)
+        if Date() >= meeting.startAt && Date() <= meeting.endAt { return "Happening now" }
+        if delta <= 0 { return "Starting now" }
+        return "in \(max(1, delta / 60))m"
+    }
+
+    var permissionStatuses: [PermissionStatus] {
+        [
+            PermissionStatus(id: "login", name: "DragonFruit", state: isAuthenticated ? "Connected" : "Sign in"),
+            PermissionStatus(id: "mic", name: "Microphone", state: microphonePermissionLabel),
+            PermissionStatus(id: "speech", name: "Speech", state: speechPermissionLabel),
+            PermissionStatus(id: "accessibility", name: "Dictation", state: accessibilityPermissionLabel),
+        ]
+    }
+
+    private var microphonePermissionLabel: String {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            return "Allowed"
+        case .denied, .restricted:
+            return "Blocked"
+        case .notDetermined:
+            return "Ask"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
+    private var speechPermissionLabel: String {
+        switch SFSpeechRecognizer.authorizationStatus() {
+        case .authorized:
+            return "Allowed"
+        case .denied, .restricted:
+            return "Blocked"
+        case .notDetermined:
+            return "Ask"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
+    private var accessibilityPermissionLabel: String {
+        AXIsProcessTrusted() ? "Allowed" : "Needed"
+    }
+
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         NSApplication.shared.windows.first ?? ASPresentationAnchor()
     }
 
+    func refreshPermissionStatuses() {
+        permissionsRefreshCounter += 1
+    }
+
+    func requestVoicePermissions() {
+        Task { @MainActor in
+            _ = await Self.requestSpeechAuthorization()
+            _ = await Self.requestMicrophonePermission()
+            refreshPermissionStatuses()
+        }
+    }
+
+    func openAccessibilitySettings() {
+        Self.requestAccessibilityPermissionIfNeeded()
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+        refreshPermissionStatuses()
+    }
+
     func restoreSession() async {
         isRestoringSession = true
+        Self.logger.info("Restoring DragonFruit session")
         do {
             let client = try makeClient()
             _ = try await client.getCurrentUser()
             isAuthenticated = true
             isRestoringSession = false
             statusMessage = "Signed in to DragonFruit"
-            await refreshCalendarState()
-            await refreshAvailableAgents()
-            startMeetingRefreshLoop()
+            startPostLoginRefresh()
         } catch {
+            Self.logger.error("Session restore failed: \(error.localizedDescription, privacy: .public)")
             clearSavedSession(message: "")
             isRestoringSession = false
         }
@@ -244,14 +341,35 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     func toggleVoiceCapture() {
+        toggleVoiceCapture(mode: .intent)
+    }
+
+    func toggleCopilotVoiceCapture() {
+        toggleVoiceCapture(mode: .copilot)
+    }
+
+    func toggleActionVoiceCapture() {
+        toggleVoiceCapture(mode: .intent)
+    }
+
+    func toggleDictationVoiceCapture() {
+        guard cursorBuddyEnabled else {
+            statusMessage = "Turn on dictation in Settings first."
+            return
+        }
+        toggleVoiceCapture(mode: .dictation)
+    }
+
+    private func toggleVoiceCapture(mode: VoiceCaptureMode) {
         if isListening {
             stopVoiceCapture()
         } else {
+            guard !isStartingVoiceCapture else { return }
             guard speechCaptureEnabled else {
                 statusMessage = "Turn on speech capture in Settings first."
                 return
             }
-            Task { await startVoiceCapture() }
+            Task { await startVoiceCapture(mode: mode) }
         }
     }
 
@@ -323,9 +441,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             isAuthenticated = true
             persistSettings()
             statusMessage = "Signed in to DragonFruit"
-            await refreshCalendarState()
-            await refreshAvailableAgents()
-            startMeetingRefreshLoop()
+            startPostLoginRefresh()
         } catch {
             clearSavedSession(message: "Login finished, but API session is missing. Please retry.")
             statusMessage = "Login finished, but API session is missing. Please retry."
@@ -345,11 +461,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                         self.isAuthenticated = true
                         self.persistSettings()
                         self.statusMessage = "Signed in to DragonFruit"
-                    }
-                    await self.refreshCalendarState()
-                    await self.refreshAvailableAgents()
-                    await MainActor.run {
-                        self.startMeetingRefreshLoop()
+                        self.startPostLoginRefresh()
                     }
                     return
                 } catch {
@@ -361,6 +473,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     self.statusMessage = "Login complete on web? Click again to retry sync."
                 }
             }
+        }
+    }
+
+    private func startPostLoginRefresh() {
+        meetingRefreshTask?.cancel()
+        statusMessage = "Signed in. Loading copilot context..."
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.refreshCalendarState()
+            await self.refreshAvailableAgents()
+            self.startMeetingRefreshLoop()
         }
     }
 
@@ -413,14 +536,16 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 return status != "error" && status != "cancelled"
             }
             needsCalendarReconnect = !errorEvents.isEmpty && realEvents.isEmpty
-            let mappedMeetings = realEvents.compactMap(makeMeetingInfo(from:))
+            let mappedMeetings = realEvents
+                .compactMap(makeMeetingInfo(from:))
+                .filter { $0.joinURL != nil }
             meetings = mappedMeetings
             hasMeetingsToday = mappedMeetings.contains(where: isTodayMeeting)
 
             if needsCalendarReconnect {
                 meeting = MeetingInfo.empty
                 meetingState = "Reconnect"
-                statusMessage = "Google Calendar needs reconnect. Click Reconnect in Settings."
+                statusMessage = "Calendar needs reconnect. Open Settings."
             } else if let currentOrUpcomingToday = mappedMeetings.first(where: { isTodayMeeting($0) && $0.endAt >= .now }) {
                 meeting = currentOrUpcomingToday
                 updateMeetingState(for: currentOrUpcomingToday)
@@ -593,25 +718,121 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func setupHotkey() {
-        localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self else { return event }
-            if self.isVoiceHotkey(event: event) {
-                Task { @MainActor in self.toggleVoiceCapture() }
-                return nil
-            }
-            return event
+        var eventType = EventTypeSpec(
+            eventClass: OSType(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
+        let installStatus = InstallEventHandler(
+            GetApplicationEventTarget(),
+            Self.handleCarbonHotKey,
+            1,
+            &eventType,
+            Unmanaged.passUnretained(self).toOpaque(),
+            &hotKeyEventHandlerRef
+        )
+        guard installStatus == noErr else {
+            statusMessage = "Could not register hotkeys."
+            return
         }
-        globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self else { return }
-            if self.isVoiceHotkey(event: event) {
-                Task { @MainActor in self.toggleVoiceCapture() }
-            }
+
+        registerHotKey(id: 1, modifiers: UInt32(optionKey), storage: &actionHotKeyRef)
+        registerHotKey(id: 2, modifiers: UInt32(optionKey | shiftKey), storage: &dictationHotKeyRef)
+    }
+
+    private func registerHotKey(id: UInt32, modifiers: UInt32, storage: inout EventHotKeyRef?) {
+        let hotKeyID = EventHotKeyID(signature: Self.hotKeySignature, id: id)
+        let status = RegisterEventHotKey(
+            UInt32(kVK_Space),
+            modifiers,
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &storage
+        )
+        if status != noErr {
+            statusMessage = "Could not register shortcut \(id)."
         }
     }
 
-    private func isVoiceHotkey(event: NSEvent) -> Bool {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        return flags == [.option, .command] && event.keyCode == 49
+    nonisolated private static let hotKeySignature: OSType = 0x4452_4654
+
+    nonisolated private static let handleCarbonHotKey: EventHandlerUPP = { _, event, userData in
+        guard let event, let userData else { return OSStatus(eventNotHandledErr) }
+
+        var hotKeyID = EventHotKeyID()
+        let status = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+        guard status == noErr, hotKeyID.signature == MeetingStore.hotKeySignature else {
+            return OSStatus(eventNotHandledErr)
+        }
+
+        let store = Unmanaged<MeetingStore>.fromOpaque(userData).takeUnretainedValue()
+        Task { @MainActor in
+            switch hotKeyID.id {
+            case 1:
+                store.toggleActionVoiceCapture()
+            case 2:
+                store.toggleDictationVoiceCapture()
+            default:
+                break
+            }
+        }
+        return noErr
+    }
+
+    nonisolated private static func focusedElementAcceptsTextInput() -> Bool {
+        guard AXIsProcessTrusted() else { return false }
+
+        let systemWideElement = AXUIElementCreateSystemWide()
+        var focusedElementValue: CFTypeRef?
+        let error = AXUIElementCopyAttributeValue(
+            systemWideElement,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElementValue
+        )
+        guard error == .success, let focusedElementValue else { return false }
+        guard CFGetTypeID(focusedElementValue) == AXUIElementGetTypeID() else { return false }
+
+        let focusedElement = focusedElementValue as! AXUIElement
+        let role = copyAXStringAttribute(kAXRoleAttribute, from: focusedElement)
+        let roleDescription = copyAXStringAttribute(kAXRoleDescriptionAttribute, from: focusedElement)
+        let editable = copyAXBoolAttribute("AXEditable", from: focusedElement)
+
+        let textRoles = Set([
+            kAXTextFieldRole as String,
+            kAXTextAreaRole as String,
+            kAXComboBoxRole as String,
+            "AXSearchField",
+        ])
+
+        if let role, textRoles.contains(role) { return true }
+        if editable == true { return true }
+        return roleDescription?.localizedCaseInsensitiveContains("text") == true
+    }
+
+    nonisolated private static func requestAccessibilityPermissionIfNeeded() {
+        guard !AXIsProcessTrusted() else { return }
+        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+    }
+
+    nonisolated private static func copyAXStringAttribute(_ attribute: String, from element: AXUIElement) -> String? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
+        return value as? String
+    }
+
+    nonisolated private static func copyAXBoolAttribute(_ attribute: String, from element: AXUIElement) -> Bool? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
+        return value as? Bool
     }
 
     private func startMeetingRecording() async {
@@ -633,12 +854,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
 
         do {
-            let speechAuth = await requestSpeechAuthorization()
+            let speechAuth = await Self.requestSpeechAuthorization()
             guard speechAuth == .authorized else {
                 statusMessage = "Speech permission denied."
                 return
             }
-            let micGranted = await requestMicrophonePermission()
+            let micGranted = await Self.requestMicrophonePermission()
             guard micGranted else {
                 statusMessage = "Microphone permission denied."
                 return
@@ -654,10 +875,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             recordingMeeting = meeting
             let node = audioEngine.inputNode
             let format = node.outputFormat(forBus: 0)
-            node.removeTap(onBus: 0)
-            node.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-                self?.recognitionRequest?.append(buffer)
+            removeInputTapIfNeeded()
+            node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+                request.append(buffer)
             }
+            isInputTapInstalled = true
 
             audioEngine.prepare()
             try audioEngine.start()
@@ -665,16 +887,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             meetingState = "Recording"
             statusMessage = "Recording meeting notes..."
 
-            recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
-                guard let self else { return }
+            recognitionTask = Self.startRecognitionTask(recognizer: recognizer, request: request) { [weak self] result, error in
                 if let result {
-                    Task { @MainActor in self.meetingNotesTranscript = result.bestTranscription.formattedString }
+                    let transcript = result.bestTranscription.formattedString
+                    Task { @MainActor in
+                        self?.meetingNotesTranscript = transcript
+                    }
                 }
                 if error != nil {
                     Task { @MainActor in
-                        if self.isMeetingRecording {
-                            await self.stopMeetingRecordingAndSave()
-                        }
+                        guard let self, self.isMeetingRecording else { return }
+                        await self.stopMeetingRecordingAndSave()
                     }
                 }
             }
@@ -724,11 +947,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private func stopAudioCapture() {
         audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
+        removeInputTapIfNeeded()
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionTask = nil
         recognitionRequest = nil
+    }
+
+    private func removeInputTapIfNeeded() {
+        guard isInputTapInstalled else { return }
+        audioEngine.inputNode.removeTap(onBus: 0)
+        isInputTapInstalled = false
     }
 
     private func notifyMeetingNotesSaved(title: String) {
@@ -752,7 +981,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
-    private func startVoiceCapture() async {
+    private func startVoiceCapture(mode: VoiceCaptureMode) async {
+        guard !isStartingVoiceCapture else { return }
+        isStartingVoiceCapture = true
+        defer { isStartingVoiceCapture = false }
+
         guard isAuthenticated else {
             statusMessage = "Sign in first to capture voice notes."
             return
@@ -762,12 +995,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             return
         }
         do {
-            let speechAuth = await requestSpeechAuthorization()
+            let speechAuth = await Self.requestSpeechAuthorization()
             guard speechAuth == .authorized else {
                 statusMessage = "Speech permission denied."
                 return
             }
-            let micGranted = await requestMicrophonePermission()
+            let micGranted = await Self.requestMicrophonePermission()
             guard micGranted else {
                 statusMessage = "Microphone permission denied."
                 return
@@ -779,36 +1012,58 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             guard let request = recognitionRequest else { return }
             request.shouldReportPartialResults = true
 
+            voiceCaptureMode = mode
+            lastTranscript = ""
+            pendingVoiceTranscript = ""
+            voiceTranscriptFlushTask?.cancel()
+            voiceTranscriptFlushTask = nil
             let node = audioEngine.inputNode
             let format = node.outputFormat(forBus: 0)
-            node.removeTap(onBus: 0)
-            node.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-                self?.recognitionRequest?.append(buffer)
+            removeInputTapIfNeeded()
+            node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+                request.append(buffer)
             }
+            isInputTapInstalled = true
 
             audioEngine.prepare()
             try audioEngine.start()
             isListening = true
-            statusMessage = "Listening... (⌥⌘Space to stop)"
+            statusMessage = statusMessageForListening(mode: mode)
 
-            recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
-                guard let self else { return }
+            recognitionTask = Self.startRecognitionTask(recognizer: recognizer, request: request) { [weak self] result, error in
                 if let result {
-                    Task { @MainActor in self.lastTranscript = result.bestTranscription.formattedString }
+                    let transcript = result.bestTranscription.formattedString
+                    Task { @MainActor in
+                        self?.queueVoiceTranscriptUpdate(transcript)
+                    }
                 }
                 if error != nil {
-                    Task { @MainActor in self.stopVoiceCapture() }
+                    Task { @MainActor in
+                        guard let self, self.isListening else { return }
+                        self.stopVoiceCapture()
+                    }
                 }
             }
         } catch {
             statusMessage = "Voice capture failed: \(error.localizedDescription)"
-            stopVoiceCapture()
+            stopAudioCapture()
+            pendingVoiceTranscript = ""
+            voiceTranscriptFlushTask?.cancel()
+            voiceTranscriptFlushTask = nil
+            isListening = false
         }
     }
 
     private func stopVoiceCapture() {
+        guard isListening else { return }
         isListening = false
         stopAudioCapture()
+        voiceTranscriptFlushTask?.cancel()
+        voiceTranscriptFlushTask = nil
+        if !pendingVoiceTranscript.isEmpty {
+            lastTranscript = pendingVoiceTranscript
+            pendingVoiceTranscript = ""
+        }
 
         let text = lastTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
@@ -819,9 +1074,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let intent = classifyIntent(from: text)
         lastCapture = intent
 
-        if intent.type == .agent {
+        if voiceCaptureMode == .dictation {
+            typeTextIntoFocusedInput(text)
+        } else if voiceCaptureMode == .copilot || intent.type == .agent {
             Task { @MainActor in
-                await triggerAgentPrompt(intent.body)
+                await triggerAgentPrompt(text)
             }
         } else {
             Task { @MainActor in
@@ -830,7 +1087,79 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
-    private func requestSpeechAuthorization() async -> SFSpeechRecognizerAuthorizationStatus {
+    private func statusMessageForListening(mode: VoiceCaptureMode) -> String {
+        switch mode {
+        case .copilot:
+            return "Copilot listening... (⌥Space to act)"
+        case .dictation:
+            return "Dictating... (⌥⇧Space to type)"
+        case .intent:
+            return "Copilot listening... (⌥Space to create)"
+        }
+    }
+
+    private func typeTextIntoFocusedInput(_ text: String) {
+        guard !text.isEmpty else { return }
+        guard AXIsProcessTrusted() else {
+            statusMessage = "Allow Accessibility access to use dictation."
+            openAccessibilitySettings()
+            return
+        }
+        guard let source = CGEventSource(stateID: .hidSystemState) else {
+            statusMessage = "Could not type dictation."
+            return
+        }
+
+        let pasteboard = NSPasteboard.general
+        let previousItems = pasteboard.pasteboardItems?.map(Self.copyPasteboardItem) ?? []
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
+        keyDown?.flags = .maskCommand
+        keyUp?.flags = .maskCommand
+        keyDown?.post(tap: .cghidEventTap)
+        keyUp?.post(tap: .cghidEventTap)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            pasteboard.clearContents()
+            pasteboard.writeObjects(previousItems)
+        }
+        statusMessage = "Typed dictation."
+    }
+
+    nonisolated private static func copyPasteboardItem(_ item: NSPasteboardItem) -> NSPasteboardItem {
+        let copy = NSPasteboardItem()
+        for type in item.types {
+            if let data = item.data(forType: type) {
+                copy.setData(data, forType: type)
+            }
+        }
+        return copy
+    }
+
+    private func queueVoiceTranscriptUpdate(_ transcript: String) {
+        pendingVoiceTranscript = transcript
+        guard voiceTranscriptFlushTask == nil else { return }
+        voiceTranscriptFlushTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 120_000_000)
+                guard let self else { return }
+                guard self.isListening else {
+                    self.voiceTranscriptFlushTask = nil
+                    return
+                }
+                if !self.pendingVoiceTranscript.isEmpty, self.lastTranscript != self.pendingVoiceTranscript {
+                    self.lastTranscript = self.pendingVoiceTranscript
+                }
+                self.voiceTranscriptFlushTask = nil
+                return
+            }
+        }
+    }
+
+    nonisolated private static func requestSpeechAuthorization() async -> SFSpeechRecognizerAuthorizationStatus {
         await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { status in
                 continuation.resume(returning: status)
@@ -838,12 +1167,20 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
-    private func requestMicrophonePermission() async -> Bool {
+    nonisolated private static func requestMicrophonePermission() async -> Bool {
         await withCheckedContinuation { continuation in
             AVCaptureDevice.requestAccess(for: .audio) { granted in
                 continuation.resume(returning: granted)
             }
         }
+    }
+
+    nonisolated private static func startRecognitionTask(
+        recognizer: SFSpeechRecognizer,
+        request: SFSpeechRecognitionRequest,
+        resultHandler: @escaping @Sendable (SFSpeechRecognitionResult?, Error?) -> Void
+    ) -> SFSpeechRecognitionTask {
+        recognizer.recognitionTask(with: request, resultHandler: resultHandler)
     }
 
     private func classifyIntent(from transcript: String) -> VoiceCaptureResult {

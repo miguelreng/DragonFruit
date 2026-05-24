@@ -13,6 +13,14 @@ let package = Package(
             name: "mac-native",
             resources: [
                 .process("Resources"),
+            ],
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "Info.plist",
+                ]),
             ]
         ),
     ],

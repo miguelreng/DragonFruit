@@ -13,7 +13,7 @@ app_target.product_reference.name = 'DragonFruitMini.app'
 
 app_target.build_configurations.each do |config|
   settings = config.build_settings
-  settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'sh.dragonfruit.macmini'
+  settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'sh.dragonfruit.copilot'
   settings['SWIFT_VERSION'] = '5.0'
   settings['MACOSX_DEPLOYMENT_TARGET'] = '13.0'
   settings['INFOPLIST_FILE'] = 'Info.plist'
@@ -51,6 +51,8 @@ File.write(plist_path, <<~PLIST)
   <string>$(EXECUTABLE_NAME)</string>
   <key>CFBundleIdentifier</key>
   <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
@@ -66,7 +68,9 @@ File.write(plist_path, <<~PLIST)
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>NSMicrophoneUsageDescription</key>
-  <string>DragonFruit Mini records meeting audio to generate notes.</string>
+  <string>DragonFruit Copilot listens when you use a voice hotkey so it can create work items or type dictation.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>DragonFruit Copilot transcribes your voice commands and dictation.</string>
   <key>LSApplicationCategoryType</key>
   <string>public.app-category.productivity</string>
   <key>CFBundleURLTypes</key>
