@@ -11,6 +11,7 @@ from plane.app.views.base import BaseViewSet
 from plane.app.permissions import ROLE, allow_permission
 from plane.db.models import Sticky, Workspace
 from plane.app.serializers import StickySerializer
+from plane.app.buddy_notification import create_cursor_buddy_notification, is_cursor_buddy_request
 
 
 class WorkspaceStickyViewSet(BaseViewSet):
@@ -33,7 +34,16 @@ class WorkspaceStickyViewSet(BaseViewSet):
         workspace = Workspace.objects.get(slug=slug)
         serializer = StickySerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(workspace_id=workspace.id, owner_id=request.user.id)
+            sticky = serializer.save(workspace_id=workspace.id, owner_id=request.user.id)
+            if is_cursor_buddy_request(request):
+                create_cursor_buddy_notification(
+                    request=request,
+                    workspace=workspace,
+                    resource=sticky,
+                    resource_type="sticky",
+                    resource_name=sticky.name,
+                    resource_url=f"/{slug}/stickies",
+                )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

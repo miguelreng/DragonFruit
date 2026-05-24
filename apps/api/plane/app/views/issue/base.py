@@ -76,6 +76,7 @@ from plane.utils.order_queryset import order_issue_queryset
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
 from plane.utils.timezone_converter import user_timezone_converter
 from plane.utils.exception_logger import log_exception
+from plane.app.buddy_notification import create_cursor_buddy_notification, is_cursor_buddy_request
 
 from .. import BaseAPIView, BaseViewSet
 
@@ -422,7 +423,7 @@ class IssueViewSet(BaseViewSet):
         )
 
         if serializer.is_valid():
-            serializer.save()
+            issue = serializer.save()
 
             # Track the issue
             try:
@@ -439,6 +440,16 @@ class IssueViewSet(BaseViewSet):
                 )
             except Exception as e:
                 log_exception(e)
+            if is_cursor_buddy_request(request):
+                create_cursor_buddy_notification(
+                    request=request,
+                    workspace=project.workspace,
+                    project=project,
+                    resource=issue,
+                    resource_type="task",
+                    resource_name=issue.name,
+                    resource_url=f"/{slug}/projects/{project_id}/issues/{issue.id}",
+                )
             queryset = self.get_queryset()
             queryset = self.apply_annotations(queryset)
             issue = (

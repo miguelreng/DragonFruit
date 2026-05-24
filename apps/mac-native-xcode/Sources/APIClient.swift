@@ -242,6 +242,7 @@ struct APIClient {
         request.httpMethod = "POST"
         request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("cursor-buddy", forHTTPHeaderField: "X-DragonFruit-Source")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
@@ -283,6 +284,7 @@ struct APIClient {
         request.httpMethod = "POST"
         request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("cursor-buddy", forHTTPHeaderField: "X-DragonFruit-Source")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
@@ -302,6 +304,7 @@ struct APIClient {
         request.httpMethod = "POST"
         request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("cursor-buddy", forHTTPHeaderField: "X-DragonFruit-Source")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }

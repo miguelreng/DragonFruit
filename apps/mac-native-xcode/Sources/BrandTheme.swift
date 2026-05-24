@@ -32,6 +32,14 @@ enum BrandTheme {
         return NSImage(contentsOfFile: path)
     }
 
+    static var cursorBuddyIcon: NSImage? {
+        guard let path = Bundle.main.path(forResource: "AppIcon", ofType: "icns") else { return nil }
+        guard let image = NSImage(contentsOfFile: path) else { return nil }
+        image.size = NSSize(width: 24, height: 24)
+        image.isTemplate = false
+        return image
+    }
+
     private static func registerFont(named: String, ext: String) {
         guard let path = Bundle.main.path(forResource: named, ofType: ext) else { return }
         let url = URL(fileURLWithPath: path)

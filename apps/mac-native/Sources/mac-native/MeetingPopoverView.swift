@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MeetingPopoverView: View {
-    @StateObject private var store = MeetingStore()
+    @ObservedObject var store: MeetingStore
     @State private var showDiagnostics = false
 
     var body: some View {
@@ -13,9 +13,14 @@ struct MeetingPopoverView: View {
             } else if !store.isAuthenticated {
                 loginCard
             } else {
-                copilotCard
                 if store.meetingNotesEnabled {
                     upcomingCard
+                }
+                if store.lastVoiceActionResult != nil {
+                    voiceActionResultCard
+                }
+                if store.isAgentResponding || !store.lastAgentTextResponse.isEmpty {
+                    agentResponseCard
                 }
                 settingsCard
             }
@@ -122,6 +127,76 @@ struct MeetingPopoverView: View {
         }
     }
 
+    private var voiceActionResultCard: some View {
+        card {
+            if let result = store.lastVoiceActionResult {
+                HStack(alignment: .top, spacing: 9) {
+                    Image(systemName: voiceActionIcon(for: result.type))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(BrandTheme.accent)
+                        .frame(width: 18)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(result.type.rawValue) created")
+                            .font(.custom("Figtree", size: 10).weight(.semibold))
+                            .foregroundStyle(BrandTheme.labelLight)
+                        Text(result.title)
+                            .font(.custom("Newsreader", size: 16).weight(.regular))
+                            .foregroundStyle(BrandTheme.textPrimary)
+                            .lineLimit(2)
+                        Text(result.detail)
+                            .font(.custom("Figtree", size: 11).weight(.medium))
+                            .foregroundStyle(BrandTheme.textSecondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
+                    if result.resourceURL != nil {
+                        Button {
+                            store.openLastVoiceActionResult()
+                        } label: {
+                            Image(systemName: "arrow.up.forward")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(BrandTheme.accent)
+                                .frame(width: 24, height: 24)
+                                .background(BrandTheme.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var agentResponseCard: some View {
+        card {
+            HStack(alignment: .top, spacing: 9) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(BrandTheme.accent)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Copilot answer")
+                        .font(.custom("Figtree", size: 10).weight(.semibold))
+                        .foregroundStyle(BrandTheme.labelLight)
+                    if store.isAgentResponding && store.lastAgentTextResponse.isEmpty {
+                        HStack(spacing: 7) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Thinking with cursor context...")
+                                .font(.custom("Figtree", size: 11).weight(.medium))
+                                .foregroundStyle(BrandTheme.textSecondary)
+                        }
+                    } else {
+                        Text(store.lastAgentTextResponse)
+                            .font(.custom("Newsreader", size: 15).weight(.regular))
+                            .foregroundStyle(BrandTheme.textPrimary)
+                            .lineLimit(5)
+                    }
+                }
+            }
+        }
+    }
+
     private var loadingCard: some View {
         card {
             HStack(spacing: 10) {
@@ -144,8 +219,14 @@ struct MeetingPopoverView: View {
         card {
             sectionLabel("Settings")
             featureToggle("Meeting notes", isOn: $store.meetingNotesEnabled)
-            featureToggle("Voice actions", isOn: $store.speechCaptureEnabled, detail: "⌥Space")
-            featureToggle("Dictation", isOn: $store.cursorBuddyEnabled, detail: "⌥⇧Space")
+            featureToggle("Cursor Buddy", isOn: $store.speechCaptureEnabled, detail: "⌥Space")
+            if store.speechCaptureEnabled {
+                cursorBuddyAgentPicker
+            }
+            featureToggle("Dictation", isOn: $store.cursorBuddyEnabled, detail: "Hold ⌥")
+            if store.cursorBuddyEnabled {
+                languagePicker
+            }
             featureToggle("Gaze tracking", isOn: $store.gazeTrackingEnabled, detail: "Soon", disabled: true)
 
             Divider()
@@ -174,35 +255,15 @@ struct MeetingPopoverView: View {
 
             if showDiagnostics || permissionsNeedAttention {
                 ForEach(store.permissionStatuses) { permission in
-                    HStack(spacing: 8) {
-                        Text(permission.name)
-                            .font(.custom("Figtree", size: 12).weight(.medium))
-                            .foregroundStyle(BrandTheme.textPrimary)
-                        Spacer()
-                        Text(permission.state)
-                            .font(.custom("Figtree", size: 10).weight(.semibold))
-                            .foregroundStyle(permissionStateColor(permission.state))
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(BrandTheme.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    Button {
+                        store.handlePermissionAction(permission)
+                    } label: {
+                        permissionRow(permission)
                     }
+                    .buttonStyle(.plain)
                 }
 
                 HStack(spacing: 8) {
-                    Button("Voice") {
-                        store.requestVoicePermissions()
-                    }
-                    .buttonStyle(.plain)
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(BrandTheme.textSecondary)
-                    Button("Dictation") {
-                        store.openAccessibilitySettings()
-                    }
-                    .buttonStyle(.plain)
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(BrandTheme.textSecondary)
-                    Spacer()
                     Button("Refresh") {
                         store.refreshPermissionStatuses()
                     }
@@ -212,6 +273,95 @@ struct MeetingPopoverView: View {
                 }
             }
         }
+    }
+
+    private var cursorBuddyAgentPicker: some View {
+        HStack(spacing: 10) {
+            Text("Agent")
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.textPrimary)
+            Spacer(minLength: 12)
+            if store.availableAgents.count > 1 {
+                Menu {
+                    ForEach(store.availableAgents) { agent in
+                        Button {
+                            store.selectedAgentId = agent.id
+                        } label: {
+                            if store.selectedAgentId == agent.id {
+                                Label(agent.name, systemImage: "checkmark")
+                            } else {
+                                Text(agent.name)
+                            }
+                        }
+                    }
+                } label: {
+                    pickerPill(selectedAgentName)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+            } else {
+                pickerPill(selectedAgentName)
+            }
+        }
+    }
+
+    private var selectedAgentName: String {
+        store.availableAgents.first(where: { $0.id == store.selectedAgentId })?.name
+            ?? store.availableAgents.first?.name
+            ?? "No enabled agent"
+    }
+
+    private var languagePicker: some View {
+        HStack(spacing: 10) {
+            Text("Language")
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.textPrimary)
+            Spacer(minLength: 12)
+            Picker("", selection: $store.speechLanguage) {
+                ForEach(SpeechLanguage.availableCases) { language in
+                    Text(language.displayLabel).tag(language)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .controlSize(.small)
+            .font(.custom("Figtree", size: 12).weight(.medium))
+            .fixedSize()
+        }
+    }
+
+    private func pickerPill(_ label: String) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.custom("Figtree", size: 12).weight(.semibold))
+                .foregroundStyle(BrandTheme.textPrimary)
+                .lineLimit(1)
+            Image(systemName: "chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(BrandTheme.labelLight)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(BrandTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+
+    private func permissionRow(_ permission: PermissionStatus) -> some View {
+        HStack(spacing: 8) {
+            Text(permission.name)
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(BrandTheme.textPrimary)
+            Spacer()
+            Text(permission.state)
+                .font(.custom("Figtree", size: 10).weight(.semibold))
+                .foregroundStyle(permissionStateColor(permission.state))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(BrandTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .contentShape(Rectangle())
     }
 
     private var upcomingCard: some View {
@@ -279,12 +429,12 @@ struct MeetingPopoverView: View {
                 .foregroundStyle(BrandTheme.textSecondary)
             }
             Spacer(minLength: 8)
-            if isMeetingRefreshStatusVisible {
-                Text(store.statusMessage)
+            if isFooterStatusVisible {
+                Text(footerStatusText)
                     .font(.custom("Figtree", size: 11).weight(.medium))
                     .foregroundStyle(BrandTheme.textSecondary)
                     .multilineTextAlignment(.trailing)
-                    .lineLimit(2)
+                    .lineLimit(3)
             }
         }
     }
@@ -295,6 +445,17 @@ struct MeetingPopoverView: View {
         return normalized.contains("refresh") && !normalized.contains("not connected")
     }
 
+    private var isFooterStatusVisible: Bool {
+        !footerStatusText.isEmpty && !store.isRestoringSession
+    }
+
+    private var footerStatusText: String {
+        if store.isListening {
+            return store.lastTranscript.isEmpty ? store.statusMessage : store.lastTranscript
+        }
+        return store.statusMessage
+    }
+
     private var permissionsNeedAttention: Bool {
         store.permissionStatuses.contains { permission in
             !["Allowed", "Connected"].contains(permission.state)
@@ -303,6 +464,19 @@ struct MeetingPopoverView: View {
 
     private func permissionStateColor(_ state: String) -> Color {
         ["Allowed", "Connected"].contains(state) ? BrandTheme.labelLight : BrandTheme.accent
+    }
+
+    private func voiceActionIcon(for type: VoiceCaptureType) -> String {
+        switch type {
+        case .task:
+            return "checkmark.circle.fill"
+        case .doc:
+            return "doc.text.fill"
+        case .sticky:
+            return "note.text"
+        case .agent:
+            return "sparkles"
+        }
     }
 
     @ViewBuilder
