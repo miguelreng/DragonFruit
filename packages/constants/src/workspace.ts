@@ -223,6 +223,13 @@ export const WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS: Record<string, IWorkspac
     access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
     highlight: (pathname: string, url: string) => pathname.includes(url),
   },
+  bookmarks: {
+    key: "bookmarks",
+    labelTranslationKey: "bookmarks",
+    href: `/bookmarks/`,
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
+    highlight: (pathname: string, url: string) => pathname.includes(url),
+  },
   whiteboards: {
     key: "whiteboards",
     labelTranslationKey: "sidebar.whiteboards",

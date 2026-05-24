@@ -16,7 +16,6 @@ import {
   Download,
   FileText,
   Folder,
-  FolderOpen,
   Layers,
   ListTodo,
   Star,
@@ -280,7 +279,7 @@ const RailCategory = (props: {
             aria-expanded={isOpen}
           >
             <span className="flex size-5 flex-shrink-0 items-center justify-center text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current">
-              {isOpen ? <FolderOpen /> : <Folder />}
+              <Folder />
             </span>
             <span className="min-w-0 flex-1 truncate">{title}</span>
           </button>

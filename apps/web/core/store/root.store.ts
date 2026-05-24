@@ -33,6 +33,8 @@ import type { IProjectEstimateStore } from "./estimates/project-estimate.store";
 import { ProjectEstimateStore } from "./estimates/project-estimate.store";
 import type { IFavoriteStore } from "./favorite.store";
 import { FavoriteStore } from "./favorite.store";
+import type { IBookmarkStore } from "./bookmark.store";
+import { BookmarkStore } from "./bookmark.store";
 import type { IProjectInboxStore } from "./inbox/project-inbox.store";
 import { ProjectInboxStore } from "./inbox/project-inbox.store";
 import type { IInstanceStore } from "./instance.store";
@@ -110,6 +112,7 @@ export class CoreRootStore {
   private _multipleSelect?: IMultipleSelectStore;
   private _workspaceNotification?: IWorkspaceNotificationStore;
   private _favorite?: IFavoriteStore;
+  private _bookmark?: IBookmarkStore;
   private _stickyStore?: IStickyStore;
   private _editorAssetStore?: IEditorAssetStore;
   private _workItemFilters?: IWorkItemFilterStore;
@@ -173,6 +176,9 @@ export class CoreRootStore {
   get favorite(): IFavoriteStore {
     return (this._favorite ??= new FavoriteStore(this));
   }
+  get bookmark(): IBookmarkStore {
+    return (this._bookmark ??= new BookmarkStore());
+  }
   get stickyStore(): IStickyStore {
     return (this._stickyStore ??= new StickyStore());
   }
@@ -217,6 +223,7 @@ export class CoreRootStore {
     this._multipleSelect = undefined;
     this._workspaceNotification = undefined;
     this._favorite = undefined;
+    this._bookmark = undefined;
     this._stickyStore = undefined;
     this._editorAssetStore = undefined;
     this._workItemFilters = undefined;

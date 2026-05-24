@@ -33,6 +33,7 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
       "your-work",
       "drafts",
       "docs",
+      "bookmarks",
       "stickies",
       "whiteboards",
       "calendar",

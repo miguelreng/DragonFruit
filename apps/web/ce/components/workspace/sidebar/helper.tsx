@@ -8,6 +8,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   AiBrain01Icon,
   Archive02Icon,
+  Bookmark,
   BriefcaseIcon,
   Calendar01Icon,
   ChartBarLineIcon,
@@ -49,6 +50,8 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
       return <SidebarNavIcon icon={StickyNote02Icon} className={cls} />;
     case "docs":
       return <SidebarNavIcon icon={File02Icon} className={cls} />;
+    case "bookmarks":
+      return <SidebarNavIcon icon={Bookmark} className={cls} />;
     case "whiteboards":
       return <SidebarNavIcon icon={PaintBoardIcon} className={cls} />;
     case "calendar":

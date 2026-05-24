@@ -22,6 +22,7 @@ from plane.app.views import (
     UserProjectRolesEndpoint,
     ProjectArchiveUnarchiveEndpoint,
     ProjectMemberPreferenceEndpoint,
+    ProjectBookmarkViewSet,
 )
 
 
@@ -107,6 +108,16 @@ urlpatterns = [
         "workspaces/<str:slug>/user-favorite-projects/",
         ProjectFavoritesViewSet.as_view({"get": "list", "post": "create"}),
         name="project-favorite",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/",
+        ProjectBookmarkViewSet.as_view({"get": "list", "post": "create"}),
+        name="project-bookmarks",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/<uuid:pk>/",
+        ProjectBookmarkViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
+        name="project-bookmarks",
     ),
     path(
         "workspaces/<str:slug>/user-favorite-projects/<uuid:project_id>/",

@@ -126,6 +126,9 @@ export const coreRoutes: RouteConfigEntry[] = [
         // Favorites
         route(":workspaceSlug/favorites", "./(all)/[workspaceSlug]/(projects)/favorites/page.tsx"),
 
+        // Bookmarks
+        route(":workspaceSlug/bookmarks", "./(all)/[workspaceSlug]/(projects)/bookmarks/page.tsx"),
+
         // Profile
         layout("./(all)/[workspaceSlug]/(projects)/profile/[userId]/layout.tsx", [
           route(":workspaceSlug/profile/:userId", "./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx"),
@@ -234,6 +237,11 @@ export const coreRoutes: RouteConfigEntry[] = [
               "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx"
             ),
           ]),
+          // Bookmarks
+          route(
+            ":workspaceSlug/projects/:projectId/bookmarks",
+            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/bookmarks/page.tsx"
+          ),
           // Intake list
           layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/layout.tsx", [
             route(

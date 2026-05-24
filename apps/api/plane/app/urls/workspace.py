@@ -37,6 +37,7 @@ from plane.app.views import (
     WorkspaceActivitySummaryEndpoint,
     WorkspaceStickyViewSet,
     WorkspaceUserPreferenceViewSet,
+    WorkspaceProjectBookmarkViewSet,
 )
 
 
@@ -256,6 +257,11 @@ urlpatterns = [
         "workspaces/<str:slug>/stickies/<uuid:pk>/",
         WorkspaceStickyViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="workspace-sticky",
+    ),
+    path(
+        "workspaces/<str:slug>/bookmarks/",
+        WorkspaceProjectBookmarkViewSet.as_view({"get": "list"}),
+        name="workspace-bookmarks",
     ),
     # User Preference
     path(
