@@ -30,6 +30,7 @@ from .project.template import (
     ProjectTemplateInstantiateEndpoint,
     ProjectTemplateListEndpoint,
 )
+from .project.bookmark import ProjectBookmarkViewSet, WorkspaceProjectBookmarkViewSet
 
 from .user.base import (
     UserEndpoint,

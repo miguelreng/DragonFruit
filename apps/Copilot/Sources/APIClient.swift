@@ -44,6 +44,11 @@ struct CreatedEntity: Codable {
     let name: String?
 }
 
+struct CreatedBookmark: Codable {
+    let id: String
+    let title: String
+}
+
 struct MeetingNotesDraftResponse: Codable {
     let id: String
     let name: String?
@@ -75,6 +80,20 @@ struct AgentChatMessageEnvelope: Codable {
     let assistant_message: Message
 }
 
+struct AgentChatAttachmentPayload {
+    let name: String
+    let mimeType: String
+    let contentBase64: String
+
+    var jsonObject: [String: String] {
+        [
+            "name": name,
+            "mime_type": mimeType,
+            "content_base64": contentBase64,
+        ]
+    }
+}
+
 private struct PagedResponse<Element: Decodable>: Decodable {
     let results: [Element]
 }
@@ -100,7 +119,7 @@ struct APIClient {
         configuration.httpCookieStorage = HTTPCookieStorage.shared
         configuration.httpCookieAcceptPolicy = .always
         configuration.timeoutIntervalForRequest = 12
-        configuration.timeoutIntervalForResource = 20
+        configuration.timeoutIntervalForResource = 90
         configuration.waitsForConnectivity = false
         session = URLSession(configuration: configuration)
     }
@@ -336,6 +355,36 @@ struct APIClient {
         return try JSONDecoder().decode(CreatedEntity.self, from: data)
     }
 
+    func createBookmark(
+        workspaceSlug: String,
+        projectId: String,
+        title: String,
+        url bookmarkURL: String,
+        description: String,
+        metadata: [String: String],
+        tags: [String] = []
+    ) async throws -> CreatedBookmark {
+        let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/projects/\(projectId)/bookmarks/")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 12
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("cursor-buddy", forHTTPHeaderField: "X-DragonFruit-Source")
+        if let apiToken, !apiToken.isEmpty {
+            request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "title": title,
+            "url": bookmarkURL,
+            "description": description,
+            "metadata": metadata,
+            "tags": tags,
+        ])
+        let (data, response) = try await send(request, endpoint: "POST bookmark")
+        try ensureStatus(response, allowed: [200, 201])
+        return try JSONDecoder().decode(CreatedBookmark.self, from: data)
+    }
+
     func listAgents(workspaceSlug: String) async throws -> [AgentSummary] {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agents/")
         let request = authorizedRequest(url: url)
@@ -348,7 +397,7 @@ struct APIClient {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agent-chats/sessions/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 12
+        request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
@@ -362,11 +411,18 @@ struct APIClient {
         return try JSONDecoder().decode(AgentChatSession.self, from: data)
     }
 
-    func sendAgentChatMessage(workspaceSlug: String, sessionId: String, content: String, projectId: String? = nil) async throws -> AgentChatMessageEnvelope {
+    func sendAgentChatMessage(
+        workspaceSlug: String,
+        sessionId: String,
+        content: String,
+        projectId: String? = nil,
+        toolMode: String? = nil,
+        attachments: [AgentChatAttachmentPayload] = []
+    ) async throws -> AgentChatMessageEnvelope {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agent-chats/sessions/\(sessionId)/messages/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 20
+        request.timeoutInterval = 75
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
@@ -374,6 +430,12 @@ struct APIClient {
         var body: [String: Any] = ["content": content]
         if let projectId, !projectId.isEmpty {
             body["project_id"] = projectId
+        }
+        if let toolMode, !toolMode.isEmpty {
+            body["tool_mode"] = toolMode
+        }
+        if !attachments.isEmpty {
+            body["attachments"] = attachments.map(\.jsonObject)
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await send(request, endpoint: "POST agent message")

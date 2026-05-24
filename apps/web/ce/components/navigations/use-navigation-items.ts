@@ -5,6 +5,7 @@
  */
 
 import { useMemo, useCallback } from "react";
+import { PenTool, Star } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@plane/propel/icons";
@@ -31,7 +32,7 @@ export const useNavigationItems = ({
 }: UseNavigationItemsProps): TNavigationItem[] => {
   // Base navigation items
   const baseNavigation = useCallback(
-    (workspaceSlug: string, projectId: string): TNavigationItem[] => [
+    (): TNavigationItem[] => [
       {
         i18n_key: "sidebar.work_items",
         key: "work_items",
@@ -83,6 +84,26 @@ export const useNavigationItems = ({
         sortOrder: 5,
       },
       {
+        i18n_key: "bookmarks",
+        key: "bookmarks",
+        name: "Bookmarks",
+        href: `/${workspaceSlug}/projects/${projectId}/bookmarks`,
+        icon: Star,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: true,
+        sortOrder: 6,
+      },
+      {
+        i18n_key: "sidebar.whiteboards",
+        key: "whiteboards",
+        name: "Whiteboards",
+        href: `/${workspaceSlug}/projects/${projectId}/whiteboards`,
+        icon: PenTool,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: !!project?.page_view,
+        sortOrder: 7,
+      },
+      {
         i18n_key: "sidebar.intake",
         key: "intake",
         name: "Intake",
@@ -90,15 +111,15 @@ export const useNavigationItems = ({
         icon: IntakeIcon,
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: !!project?.inbox_view,
-        sortOrder: 6,
+        sortOrder: 8,
       },
     ],
-    [project]
+    [project, projectId, workspaceSlug]
   );
 
   // Combine, filter, and sort navigation items
   const navigationItems = useMemo(() => {
-    const navItems = baseNavigation(workspaceSlug, projectId);
+    const navItems = baseNavigation();
 
     // Filter by permissions and shouldRender
     const filteredItems = navItems.filter((item) => {
@@ -108,8 +129,9 @@ export const useNavigationItems = ({
     });
 
     // Sort by sortOrder
+    // oxlint-disable-next-line unicorn/no-array-sort
     return filteredItems.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-  }, [workspaceSlug, projectId, baseNavigation, allowPermissions, project?.id]);
+  }, [workspaceSlug, baseNavigation, allowPermissions, project?.id]);
 
   return navigationItems;
 };

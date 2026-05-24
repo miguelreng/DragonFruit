@@ -8,6 +8,7 @@ import React, { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
+import { PenTool, Star } from "@/components/icons/lucide-shim";
 import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@plane/propel/icons";
@@ -65,7 +66,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
   };
 
   const baseNavigation = useCallback(
-    (workspaceSlug: string, projectId: string): TNavigationItem[] => [
+    (): TNavigationItem[] => [
       {
         i18n_key: "sidebar.work_items",
         key: "work_items",
@@ -117,6 +118,26 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         sortOrder: 5,
       },
       {
+        i18n_key: "bookmarks",
+        key: "bookmarks",
+        name: "Bookmarks",
+        href: `/${workspaceSlug}/projects/${projectId}/bookmarks`,
+        icon: Star,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: true,
+        sortOrder: 6,
+      },
+      {
+        i18n_key: "sidebar.whiteboards",
+        key: "whiteboards",
+        name: "Whiteboards",
+        href: `/${workspaceSlug}/projects/${projectId}/whiteboards`,
+        icon: PenTool,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: project?.page_view ?? false,
+        sortOrder: 7,
+      },
+      {
         i18n_key: "sidebar.intake",
         key: "intake",
         name: "Intake",
@@ -124,16 +145,16 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         icon: IntakeIcon,
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.inbox_view ?? false,
-        sortOrder: 6,
+        sortOrder: 8,
       },
     ],
-    [project]
+    [project, projectId, workspaceSlug]
   );
 
   // memoized navigation items and adding additional navigation items
   const navigationItemsMemo = useMemo(() => {
-    const navigationItems = (workspaceSlug: string, projectId: string): TNavigationItem[] => {
-      const navItems = baseNavigation(workspaceSlug, projectId);
+    const navigationItems = (): TNavigationItem[] => {
+      const navItems = baseNavigation();
 
       if (additionalNavigationItems) {
         navItems.push(...additionalNavigationItems(workspaceSlug, projectId));
@@ -143,9 +164,8 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
     };
 
     // sort navigation items by sortOrder
-    const sortedNavigationItems = navigationItems(workspaceSlug, projectId).sort(
-      (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
-    );
+    // oxlint-disable-next-line unicorn/no-array-sort
+    const sortedNavigationItems = navigationItems().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     return sortedNavigationItems;
   }, [workspaceSlug, projectId, baseNavigation, additionalNavigationItems]);

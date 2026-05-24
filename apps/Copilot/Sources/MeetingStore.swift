@@ -79,6 +79,7 @@ enum VoiceCaptureType: String {
     case task = "Task"
     case doc = "Doc"
     case sticky = "Sticky"
+    case bookmark = "Bookmark"
     case agent = "Agent"
 }
 
@@ -103,6 +104,64 @@ struct VoiceActionResult: Identifiable {
     let title: String
     let detail: String
     let resourceURL: URL?
+}
+
+struct VoiceCursorContext {
+    var selectedText: String?
+    var focusedSelectedText: String?
+    var details: [String]
+    var attachments: [AgentChatAttachmentPayload]
+    var hoveredURL: String?
+    var hoveredTitle: String?
+    var hoveredRole: String?
+
+    static let empty = VoiceCursorContext(
+        selectedText: nil,
+        focusedSelectedText: nil,
+        details: [],
+        attachments: [],
+        hoveredURL: nil,
+        hoveredTitle: nil,
+        hoveredRole: nil
+    )
+
+    var primaryText: String? {
+        let candidates = [selectedText, focusedSelectedText]
+        return candidates
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
+    }
+
+    var promptText: String {
+        var lines: [String] = []
+        if let selectedText, !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            lines.append("selected text: \(selectedText)")
+        }
+        if let focusedSelectedText,
+           focusedSelectedText != selectedText,
+           !focusedSelectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            lines.append("focused selected text: \(focusedSelectedText)")
+        }
+        lines.append(contentsOf: details)
+        if !attachments.isEmpty {
+            lines.append("visual context: \(attachments.map(\.name).joined(separator: ", ")) attached")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    var looksLikeHoveredImage: Bool {
+        let roleText = (hoveredRole ?? "").lowercased()
+        let titleText = (hoveredTitle ?? "").lowercased()
+        let urlText = (hoveredURL ?? "").lowercased()
+        return roleText.contains("image") ||
+            titleText.contains("image") ||
+            urlText.range(of: #"\.(apng|avif|gif|jpe?g|png|svg|webp)(\?|#|$)"#, options: .regularExpression) != nil
+    }
+}
+
+private enum VoiceTransformIntent {
+    case translate(targetLanguage: String?)
+    case rewrite(instruction: String)
 }
 
 struct RoutingTarget {
@@ -396,6 +455,12 @@ enum SpeechLanguage: String, CaseIterable, Identifiable {
 final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresentationContextProviding {
     private static let logger = Logger(subsystem: "sh.dragonfruit.copilot", category: "store")
 
+    private enum AccessibilityResetResult: Sendable {
+        case success
+        case failure
+        case error(String)
+    }
+
     @Published var baseURL = "https://api.dragonfruit.sh"
     @Published var appURL = "https://app.dragonfruit.sh"
     @Published var statusMessage = ""
@@ -413,11 +478,26 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var autoStartMinutesBefore = 2
     @Published var meetingNotesEnabled = true
     @Published var showCursorBuddyEnabled = true
+    @Published var cursorBuddyOpacity: Double = 1.0 {
+        didSet {
+            let clampedOpacity = min(max(cursorBuddyOpacity, 0.35), 1.0)
+            guard clampedOpacity == cursorBuddyOpacity else {
+                cursorBuddyOpacity = clampedOpacity
+                return
+            }
+            UserDefaults.standard.set(cursorBuddyOpacity, forKey: "df_cursor_buddy_opacity")
+        }
+    }
     @Published var voiceActionsEnabled = true
     @Published var cursorBuddyEnabled = true {
         didSet {
             guard cursorBuddyEnabled, oldValue != cursorBuddyEnabled else { return }
             requestDictationPermissions()
+        }
+    }
+    @Published var copilotTheme: CopilotThemeMode = .light {
+        didSet {
+            UserDefaults.standard.set(copilotTheme.rawValue, forKey: "df_copilot_theme")
         }
     }
     @Published var speechLanguage: SpeechLanguage = .spanishES {
@@ -478,11 +558,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var isStartingVoiceCapture = false
     private var pendingVoiceTranscript = ""
     private var voiceTranscriptFlushTask: Task<Void, Never>?
-    private var pendingCursorContext = ""
+    private var pendingCursorContext = VoiceCursorContext.empty
     private var lastAudioLevelPublishedAt: TimeInterval = 0
     private var heldHotKeyIds: Set<UInt32> = []
     private var dictationStreamedText = ""
     private var dictationSavedPasteboardItems: [NSPasteboardItem]?
+    private var dictationTargetApplication: NSRunningApplication?
+    private var dictationTargetElement: AXUIElement?
     private var isOptionDictationHeld = false
     private var optionDictationStartTask: Task<Void, Never>?
 
@@ -493,6 +575,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         baseURL = savedBaseURL?.contains("localhost") == true ? "https://api.dragonfruit.sh" : (savedBaseURL ?? "https://api.dragonfruit.sh")
         appURL = defaults.string(forKey: "df_app_url") ?? "https://app.dragonfruit.sh"
         apiToken = defaults.string(forKey: "df_api_token") ?? ""
+        copilotTheme = CopilotThemeMode(rawValue: defaults.string(forKey: "df_copilot_theme") ?? "") ?? .light
+        let savedCursorBuddyOpacity = defaults.object(forKey: "df_cursor_buddy_opacity") as? Double
+        cursorBuddyOpacity = min(max(savedCursorBuddyOpacity ?? 1.0, 0.35), 1.0)
         speechLanguage = SpeechLanguage(rawValue: defaults.string(forKey: "df_speech_language") ?? "") ?? .spanishES
         selectedWorkspaceSlug = defaults.string(forKey: "df_selected_workspace_slug") ?? ""
         selectedAgentId = defaults.string(forKey: "df_selected_agent_id") ?? ""
@@ -545,6 +630,24 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             PermissionStatus(id: "speech", name: "Copilot voice", state: speechPermissionLabel),
             PermissionStatus(id: "accessibility", name: "Cursor context & dictation", state: accessibilityPermissionLabel),
         ]
+    }
+
+    var copilotPermissionStatuses: [PermissionStatus] {
+        permissionStatuses.filter { $0.id != "login" }
+    }
+
+    var currentMissingCopilotPermission: PermissionStatus? {
+        copilotPermissionStatuses.first { $0.state != "Allowed" }
+    }
+
+    var completedCopilotPermissionCount: Int {
+        copilotPermissionStatuses.filter { $0.state == "Allowed" }.count
+    }
+
+    var needsPermissionOnboarding: Bool {
+        AVCaptureDevice.authorizationStatus(for: .audio) != .authorized ||
+            SFSpeechRecognizer.authorizationStatus() != .authorized ||
+            !AXIsProcessTrusted()
     }
 
     private var microphonePermissionLabel: String {
@@ -606,6 +709,18 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
+    func requestCopilotPermissions() {
+        Self.requestAccessibilityPermissionIfNeeded()
+        Task { @MainActor in
+            _ = await Self.requestSpeechAuthorization()
+            _ = await Self.requestMicrophonePermission()
+            refreshPermissionStatuses()
+            if !AXIsProcessTrusted() {
+                openPrivacySettings(anchor: "Privacy_Accessibility")
+            }
+        }
+    }
+
     func handlePermissionAction(_ permission: PermissionStatus) {
         switch permission.id {
         case "login":
@@ -613,14 +728,20 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         case "mic":
             Task { @MainActor in
                 _ = await Self.requestMicrophonePermission()
-                openPrivacySettings(anchor: "Privacy_Microphone")
                 refreshPermissionStatuses()
+                refreshPermissionStatusesAfterSystemPrompt()
+                if AVCaptureDevice.authorizationStatus(for: .audio) != .authorized {
+                    openPrivacySettings(anchor: "Privacy_Microphone")
+                }
             }
         case "speech":
             Task { @MainActor in
                 _ = await Self.requestSpeechAuthorization()
-                openPrivacySettings(anchor: "Privacy_SpeechRecognition")
                 refreshPermissionStatuses()
+                refreshPermissionStatusesAfterSystemPrompt()
+                if SFSpeechRecognizer.authorizationStatus() != .authorized {
+                    openPrivacySettings(anchor: "Privacy_SpeechRecognition")
+                }
             }
         case "accessibility":
             openAccessibilitySettings()
@@ -633,6 +754,48 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         Self.requestAccessibilityPermissionIfNeeded()
         openPrivacySettings(anchor: "Privacy_Accessibility")
         refreshPermissionStatuses()
+    }
+
+    private func refreshPermissionStatusesAfterSystemPrompt() {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            refreshPermissionStatuses()
+            NSApplication.shared.activate(ignoringOtherApps: true)
+        }
+    }
+
+    func resetAccessibilityAccess() {
+        Task { @MainActor in
+            let result = await Self.resetAccessibilityAccessWithTccutil()
+            switch result {
+            case .success:
+                statusMessage = "Accessibility access reset."
+                openPrivacySettings(anchor: "Privacy_Accessibility")
+            case .failure:
+                statusMessage = "Could not reset Accessibility access."
+            case .error(let message):
+                statusMessage = "Could not reset Accessibility access: \(message)"
+            }
+            refreshPermissionStatuses()
+        }
+    }
+
+    nonisolated private static func resetAccessibilityAccessWithTccutil() async -> AccessibilityResetResult {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+                process.arguments = ["reset", "Accessibility", "sh.dragonfruit.copilot"]
+
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    continuation.resume(returning: process.terminationStatus == 0 ? .success : .failure)
+                } catch {
+                    continuation.resume(returning: .error(error.localizedDescription))
+                }
+            }
+        }
     }
 
     private func openPrivacySettings(anchor: String) {
@@ -714,7 +877,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     func beginActionVoiceCapture(hotKeyID: UInt32? = nil) {
         cancelOptionDictationStart()
-        pendingCursorContext = voiceActionsEnabled ? captureCursorContext() : ""
+        pendingCursorContext = voiceActionsEnabled ? captureCursorContext() : VoiceCursorContext.empty
         lastVoiceActionResult = nil
         lastAgentTextResponse = ""
         isVoiceActionProcessing = false
@@ -785,7 +948,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             return
         }
         if mode == .copilot {
-            pendingCursorContext = voiceActionsEnabled ? captureCursorContext() : ""
+            pendingCursorContext = voiceActionsEnabled ? captureCursorContext() : VoiceCursorContext.empty
             lastVoiceActionResult = nil
         }
         if let requiredHeldHotKeyID {
@@ -1251,19 +1414,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     nonisolated private static func focusedElementAcceptsTextInput() -> Bool {
-        guard AXIsProcessTrusted() else { return false }
-
-        let systemWideElement = AXUIElementCreateSystemWide()
-        var focusedElementValue: CFTypeRef?
-        let error = AXUIElementCopyAttributeValue(
-            systemWideElement,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedElementValue
-        )
-        guard error == .success, let focusedElementValue else { return false }
-        guard CFGetTypeID(focusedElementValue) == AXUIElementGetTypeID() else { return false }
-
-        let focusedElement = focusedElementValue as! AXUIElement
+        guard let focusedElement = focusedTextElement() else { return false }
         let role = copyAXStringAttribute(kAXRoleAttribute, from: focusedElement)
         let roleDescription = copyAXStringAttribute(kAXRoleDescriptionAttribute, from: focusedElement)
         let editable = copyAXBoolAttribute("AXEditable", from: focusedElement)
@@ -1280,9 +1431,31 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         return roleDescription?.localizedCaseInsensitiveContains("text") == true
     }
 
-    private func captureCursorContext() -> String {
+    nonisolated private static func focusedTextElement() -> AXUIElement? {
+        guard AXIsProcessTrusted() else { return nil }
+        let systemWideElement = AXUIElementCreateSystemWide()
+        var focusedElementValue: CFTypeRef?
+        let error = AXUIElementCopyAttributeValue(
+            systemWideElement,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElementValue
+        )
+        guard error == .success, let focusedElementValue else { return nil }
+        guard CFGetTypeID(focusedElementValue) == AXUIElementGetTypeID() else { return nil }
+        return (focusedElementValue as! AXUIElement)
+    }
+
+    private func captureCursorContext() -> VoiceCursorContext {
         guard AXIsProcessTrusted() else {
-            return "Cursor context unavailable because Accessibility permission is not allowed."
+            return VoiceCursorContext(
+                selectedText: nil,
+                focusedSelectedText: nil,
+                details: ["Cursor context unavailable because Accessibility permission is not allowed."],
+                attachments: [],
+                hoveredURL: nil,
+                hoveredTitle: nil,
+                hoveredRole: nil
+            )
         }
 
         let systemElement = AXUIElementCreateSystemWide()
@@ -1290,7 +1463,15 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         var elementValue: AXUIElement?
         let result = AXUIElementCopyElementAtPosition(systemElement, Float(mouse.x), Float(mouse.y), &elementValue)
         guard result == .success, let element = elementValue else {
-            return frontmostAppContext()
+            return VoiceCursorContext(
+                selectedText: nil,
+                focusedSelectedText: Self.focusedSelectedText(),
+                details: [frontmostAppContext()],
+                attachments: captureFrontmostWindowAttachment(),
+                hoveredURL: nil,
+                hoveredTitle: nil,
+                hoveredRole: nil
+            )
         }
 
         let appName = frontmostAppContext()
@@ -1308,17 +1489,19 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         if let role { details.append("role: \(role)") }
         if let roleDescription { details.append("role description: \(roleDescription)") }
         if let description { details.append("description: \(description)") }
-        if let selectedText { details.append("selected text: \(selectedText)") }
-        if let focusedSelectedText, focusedSelectedText != selectedText {
-            details.append("focused selected text: \(focusedSelectedText)")
-        }
         if let value { details.append("value: \(value)") }
         if let url { details.append("url: \(url)") }
 
-        if details.isEmpty {
-            return appName
-        }
-        return ([appName] + details).joined(separator: "\n")
+        let attachments = captureElementAttachment(element: element, role: role) ?? captureFrontmostWindowAttachment()
+        return VoiceCursorContext(
+            selectedText: selectedText,
+            focusedSelectedText: focusedSelectedText,
+            details: details.isEmpty ? [appName] : ([appName] + details),
+            attachments: attachments,
+            hoveredURL: url,
+            hoveredTitle: title ?? description ?? value,
+            hoveredRole: role ?? roleDescription
+        )
     }
 
     private func frontmostAppContext() -> String {
@@ -1326,22 +1509,153 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         return "frontmost app: \(appName)"
     }
 
+    private func frontmostApplicationName() -> String {
+        NSWorkspace.shared.frontmostApplication?.localizedName ?? "Unknown app"
+    }
+
+    private func captureElementAttachment(element: AXUIElement, role: String?) -> [AgentChatAttachmentPayload]? {
+        guard let frame = copyAXFrame(from: element), frame.width >= 24, frame.height >= 24 else { return nil }
+        let loweredRole = role?.lowercased() ?? ""
+        let looksVisual = loweredRole.contains("image") || loweredRole.contains("webarea") || loweredRole.contains("group")
+        let bounded = Self.boundedScreenshotRect(frame, maxSide: looksVisual ? 1_200 : 900)
+        return captureScreenshotAttachment(rect: bounded, name: looksVisual ? "selected-context.jpg" : "hovered-context.jpg")
+    }
+
+    private func captureFrontmostWindowAttachment() -> [AgentChatAttachmentPayload] {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return [] }
+        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return []
+        }
+        guard let window = windows.first(where: { info in
+            let ownerPID = info[kCGWindowOwnerPID as String] as? pid_t
+            let layer = info[kCGWindowLayer as String] as? Int
+            return ownerPID == app.processIdentifier && layer == 0
+        }),
+        let boundsDict = window[kCGWindowBounds as String] as? [String: Any],
+        let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
+        else {
+            return []
+        }
+        return captureScreenshotAttachment(rect: Self.boundedScreenshotRect(bounds, maxSide: 1_200), name: "page-context.jpg")
+    }
+
+    private func captureScreenshotAttachment(rect: CGRect, name: String) -> [AgentChatAttachmentPayload] {
+        let clipped = rect.integral
+        guard clipped.width >= 24, clipped.height >= 24 else { return [] }
+        guard let image = CGWindowListCreateImage(clipped, .optionOnScreenOnly, kCGNullWindowID, [.bestResolution]) else {
+            return []
+        }
+        guard let data = Self.jpegData(from: image, compressionQuality: 0.72) else { return [] }
+        return [
+            AgentChatAttachmentPayload(
+                name: name,
+                mimeType: "image/jpeg",
+                contentBase64: data.base64EncodedString()
+            ),
+        ]
+    }
+
+    private static func boundedScreenshotRect(_ rect: CGRect, maxSide: CGFloat) -> CGRect {
+        guard rect.width > maxSide || rect.height > maxSide else { return rect }
+        let scale = min(maxSide / max(rect.width, 1), maxSide / max(rect.height, 1))
+        let size = CGSize(width: rect.width * scale, height: rect.height * scale)
+        return CGRect(
+            x: rect.midX - size.width / 2,
+            y: rect.midY - size.height / 2,
+            width: size.width,
+            height: size.height
+        )
+    }
+
+    nonisolated private static func jpegData(from image: CGImage, compressionQuality: CGFloat) -> Data? {
+        let bitmap = NSBitmapImageRep(cgImage: image)
+        return bitmap.representation(using: .jpeg, properties: [.compressionFactor: compressionQuality])
+    }
+
+    private func extractURL(from text: String) -> String? {
+        let pattern = #"https?://[^\s<>"']+"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let match = regex.firstMatch(in: text, range: range), let swiftRange = Range(match.range, in: text) else {
+            return nil
+        }
+        return String(text[swiftRange]).trimmingCharacters(in: CharacterSet(charactersIn: ".,);]"))
+    }
+
+    private func isImageBookmarkIntent(_ transcript: String) -> Bool {
+        let normalized = normalizedForIntent(transcript)
+        return normalized.contains("image") ||
+            normalized.contains("picture") ||
+            normalized.contains("photo") ||
+            normalized.contains("imagen") ||
+            normalized.contains("foto")
+    }
+
+    private func bookmarkTitle(for intent: VoiceCaptureResult, url: String, isImage: Bool) -> String {
+        let cleanedTitle = intent.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let commandTitles = [
+            "bookmark this",
+            "save this bookmark",
+            "save this link",
+            "save this page",
+            "save this image",
+            "save image",
+            "bookmark this image",
+            "capture this image",
+            "guarda este link",
+            "guardar link",
+            "guarda esta imagen",
+            "guardar imagen",
+            "marcador",
+        ]
+        if !cleanedTitle.isEmpty && !commandTitles.contains(cleanedTitle.lowercased()) {
+            return cleanedTitle
+        }
+        if isImage, let title = pendingCursorContext.hoveredTitle?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+            return title.prefix(80).description
+        }
+        guard let parsed = URL(string: url) else { return isImage ? "Saved image" : url }
+        let lastPath = parsed.pathComponents.last?.removingPercentEncoding?.replacingOccurrences(of: "[-_]+", with: " ", options: .regularExpression)
+        if let lastPath, !lastPath.isEmpty, lastPath != "/" {
+            return lastPath.prefix(80).description
+        }
+        return parsed.host ?? (isImage ? "Saved image" : url)
+    }
+
     private func promptWithCursorContext(_ prompt: String) -> String {
-        let context = pendingCursorContext.trimmingCharacters(in: .whitespacesAndNewlines)
+        var context = pendingCursorContext.promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if shouldAttachVisualContext(for: prompt), pendingCursorContext.attachments.isEmpty {
+            let note = "visual context unavailable: screenshot capture did not return an image."
+            context = context.isEmpty ? note : "\(context)\n\(note)"
+        }
         guard !context.isEmpty else { return prompt }
         return """
         \(prompt)
 
-        Cursor Buddy context:
+        Copilot context:
         \(context)
 
-        Resolve words like "this", "that", "look at this", "translate this", or "summarize this" against the selected text, focused text, hovered UI element, URL, and frontmost app context above. If selected text is present, treat it as the primary object of the request.
+        Resolve words like "this", "that", "look at this", "translate this", or "summarize this" against the selected text, focused text, hovered UI element, URL, visual attachment, and frontmost app context above. If selected text is present, treat it as the primary object of the request.
         """
+    }
+
+    private func attachmentsForPrompt(_ prompt: String) -> [AgentChatAttachmentPayload] {
+        guard shouldAttachVisualContext(for: prompt) else { return [] }
+        return pendingCursorContext.attachments
+    }
+
+    private func shouldAttachVisualContext(for prompt: String) -> Bool {
+        let normalized = normalizedForIntent(prompt)
+        let markers = [
+            "image", "photo", "picture", "screenshot", "screen", "page", "website", "site", "visual", "see", "look",
+            "imagen", "foto", "captura", "pantalla", "pagina", "página", "sitio", "visual", "ves", "mira",
+        ]
+        return markers.contains { normalized.contains($0) }
     }
 
     nonisolated private static func requestAccessibilityPermissionIfNeeded() {
         guard !AXIsProcessTrusted() else { return }
-        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
@@ -1380,6 +1694,53 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
         return value as? Bool
+    }
+
+    nonisolated private static func copyAXSelectedTextRange(from element: AXUIElement) -> CFRange? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &value) == .success,
+              let value,
+              CFGetTypeID(value) == AXValueGetTypeID()
+        else {
+            return nil
+        }
+
+        let axValue = value as! AXValue
+        guard AXValueGetType(axValue) == .cfRange else { return nil }
+        var range = CFRange()
+        guard AXValueGetValue(axValue, .cfRange, &range) else { return nil }
+        return range
+    }
+
+    private func copyAXFrame(from element: AXUIElement) -> CGRect? {
+        var positionValue: CFTypeRef?
+        var sizeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &positionValue) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeValue) == .success,
+              let positionValue,
+              let sizeValue,
+              CFGetTypeID(positionValue) == AXValueGetTypeID(),
+              CFGetTypeID(sizeValue) == AXValueGetTypeID()
+        else {
+            return nil
+        }
+
+        let positionAXValue = positionValue as! AXValue
+        let sizeAXValue = sizeValue as! AXValue
+        guard AXValueGetType(positionAXValue) == .cgPoint,
+              AXValueGetType(sizeAXValue) == .cgSize
+        else {
+            return nil
+        }
+
+        var position = CGPoint.zero
+        var size = CGSize.zero
+        guard AXValueGetValue(positionAXValue, .cgPoint, &position),
+              AXValueGetValue(sizeAXValue, .cgSize, &size)
+        else {
+            return nil
+        }
+        return CGRect(origin: position, size: size)
     }
 
     private func startMeetingRecording() async {
@@ -1667,11 +2028,22 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             if dictationStreamedText.isEmpty {
                 dictationSavedPasteboardItems = nil
                 typeTextIntoFocusedInput(text)
-                statusMessage = "Typed dictation."
             } else {
                 streamDictationText(text)
                 finishStreamingDictation()
                 statusMessage = "Typed dictation."
+            }
+            return
+        }
+
+        if let transformIntent = transformIntent(from: text) {
+            guard let selectedText = pendingCursorContext.primaryText else {
+                statusMessage = "Select text first, then ask Copilot to translate or rewrite it."
+                return
+            }
+            isVoiceActionProcessing = true
+            Task { @MainActor in
+                await triggerAgentTransform(transformIntent, selectedText: selectedText)
             }
             return
         }
@@ -1683,7 +2055,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         if intent.type == .agent {
             isVoiceActionProcessing = true
             Task { @MainActor in
-                await triggerAgentPrompt(promptWithCursorContext(text))
+                await triggerAgentPrompt(promptWithCursorContext(text), toolMode: "none", attachments: attachmentsForPrompt(text))
             }
         } else {
             isVoiceActionProcessing = true
@@ -1738,6 +2110,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             openAccessibilitySettings()
             return
         }
+
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             statusMessage = "Could not type dictation."
             return
@@ -1748,12 +2121,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
-        keyDown?.flags = .maskCommand
-        keyUp?.flags = .maskCommand
-        keyDown?.post(tap: .cghidEventTap)
-        keyUp?.post(tap: .cghidEventTap)
+        restoreDictationTargetFocus()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            self.postKeyboardShortcut(virtualKey: 9, flags: .maskCommand, source: source)
+        }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             pasteboard.clearContents()
@@ -1762,18 +2133,31 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         statusMessage = "Typed dictation."
     }
 
+    private func copyDictationToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        statusMessage = "Copied dictation. Press ⌘V to paste."
+    }
+
     private func prepareStreamingDictation() {
         dictationStreamedText = ""
         dictationSavedPasteboardItems = NSPasteboard.general.pasteboardItems?.map(Self.copyPasteboardItem) ?? []
+        dictationTargetApplication = NSWorkspace.shared.frontmostApplication
+        dictationTargetElement = Self.focusedTextElement()
     }
 
     private func finishStreamingDictation() {
         guard let savedItems = dictationSavedPasteboardItems else {
             dictationStreamedText = ""
+            dictationTargetApplication = nil
+            dictationTargetElement = nil
             return
         }
         dictationSavedPasteboardItems = nil
         dictationStreamedText = ""
+        dictationTargetApplication = nil
+        dictationTargetElement = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
@@ -1805,7 +2189,61 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        restoreDictationTargetFocus()
         postKeyboardShortcut(virtualKey: 9, flags: .maskCommand, source: source)
+    }
+
+    private func insertTextIntoDictationTarget(_ text: String, replacingPreviousCount: Int = 0) -> Bool {
+        guard !text.isEmpty else { return true }
+        let element = dictationTargetElement ?? Self.focusedTextElement()
+        guard let element else { return false }
+
+        restoreDictationTargetFocus()
+
+        if replacingPreviousCount <= 0,
+           AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFTypeRef) == .success {
+            return true
+        }
+
+        guard let currentValue = Self.copyAXStringAttribute(kAXValueAttribute, from: element),
+              var selectedRange = Self.copyAXSelectedTextRange(from: element)
+        else {
+            return false
+        }
+
+        let characters = Array(currentValue)
+        let boundedLocation = min(max(0, selectedRange.location), characters.count)
+        let replacementLength: Int
+        if replacingPreviousCount > 0, selectedRange.length == 0 {
+            let replacementStart = max(0, boundedLocation - replacingPreviousCount)
+            replacementLength = boundedLocation - replacementStart
+            selectedRange = CFRange(location: replacementStart, length: replacementLength)
+        } else {
+            replacementLength = max(0, min(selectedRange.length, characters.count - boundedLocation))
+            selectedRange = CFRange(location: boundedLocation, length: replacementLength)
+        }
+
+        let prefix = String(characters.prefix(selectedRange.location))
+        let suffixStart = min(characters.count, selectedRange.location + selectedRange.length)
+        let suffix = String(characters.dropFirst(suffixStart))
+        let nextValue = prefix + text + suffix
+
+        guard AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, nextValue as CFTypeRef) == .success else {
+            return false
+        }
+
+        var nextSelection = CFRange(location: selectedRange.location + text.count, length: 0)
+        if let axRange = AXValueCreate(.cfRange, &nextSelection) {
+            AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, axRange)
+        }
+        return true
+    }
+
+    private func restoreDictationTargetFocus() {
+        dictationTargetApplication?.activate(options: [.activateIgnoringOtherApps])
+        if let element = dictationTargetElement {
+            AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        }
     }
 
     private func selectPreviousCharacters(_ count: Int, source: CGEventSource) {
@@ -1884,10 +2322,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let type: VoiceCaptureType
 
         let stickyMarkers = ["sticky", "stickie", "stickies", "stickiy", "stick ", "post it", "post-it", "note", "nota", "idea", "memo"]
+        let bookmarkMarkers = [
+            "bookmark", "book mark", "save this link", "save this page", "save this url",
+            "save this image", "save image", "bookmark this image", "capture this image",
+            "guardar link", "guarda este link", "guarda esta imagen", "guardar imagen", "marcador",
+        ]
         let docMarkers = ["doc", "document", "documento", "spec", "file", "archivo", "page", "pagina", "nota larga", "brief"]
         let taskMarkers = ["task", "todo", "to do", "tarea", "issue", "bug", "ticket", "accion", "action", "follow up", "reminder", "recordatorio"]
 
-        if isExplicitCreationRequest(normalized, verbs: stickyCreationVerbs, markers: stickyMarkers) {
+        if isExplicitCreationRequest(normalized, verbs: bookmarkCreationVerbs, markers: bookmarkMarkers) {
+            type = .bookmark
+        } else if isExplicitCreationRequest(normalized, verbs: stickyCreationVerbs, markers: stickyMarkers) {
             type = .sticky
         } else if isExplicitCreationRequest(normalized, verbs: docCreationVerbs, markers: docMarkers) {
             type = .doc
@@ -1931,6 +2376,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         ["create", "make", "add", "save", "crear", "crea", "haz", "hacer", "agrega", "anade", "guarda"]
     }
 
+    private var bookmarkCreationVerbs: [String] {
+        ["bookmark", "save", "add", "capture", "guardar", "guarda", "agrega", "anade"]
+    }
+
     private func isExplicitCreationRequest(_ normalizedTranscript: String, verbs: [String], markers: [String]) -> Bool {
         guard !isInformationRequest(normalizedTranscript) else { return false }
         return containsAny(verbs, in: normalizedTranscript) && containsAny(markers, in: normalizedTranscript)
@@ -1946,6 +2395,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             return "Creating document..."
         case .sticky:
             return "Creating sticky..."
+        case .bookmark:
+            return "Saving bookmark..."
         }
     }
 
@@ -2001,6 +2452,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             specific = ["crea un documento", "crea un doc", "create a doc", "create a document", "documento", "doc"]
         case .sticky:
             specific = ["crea un sticky", "crea una sticky", "crea una nota", "crea un note", "create a sticky", "create a note", "make a sticky", "add a sticky", "sticky", "nota"]
+        case .bookmark:
+            specific = [
+                "bookmark this", "save this bookmark", "save this link", "save this page",
+                "save this image", "save image", "bookmark this image", "add bookmark", "bookmark",
+                "guarda este link", "guardar link", "guarda esta imagen", "guardar imagen", "marcador",
+            ]
         case .agent:
             specific = ["pregunta ", "ask ", "agent ", "dragonfruit agent "]
         }
@@ -2033,6 +2490,40 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             "obten ", "busca ", "muestra ", "lista ",
         ]
         return markers.contains { lowercasedTranscript.contains($0) }
+    }
+
+    private func transformIntent(from transcript: String) -> VoiceTransformIntent? {
+        let normalized = normalizedForIntent(transcript)
+        let translateMarkers = [
+            "translate this", "translate selected", "translate selection", "translate the selected",
+            "traduce esto", "traducir esto", "traduce seleccionado", "traduce el texto", "traduce la seleccion", "traduce la selección",
+        ]
+        if translateMarkers.contains(where: { normalized.contains($0) }) {
+            return .translate(targetLanguage: targetLanguage(from: normalized))
+        }
+
+        let rewriteMarkers = [
+            "rewrite this", "rewrite selected", "rewrite selection", "rephrase this", "make this clearer", "make it clearer",
+            "fix this", "improve this", "clean this up", "polish this",
+            "reescribe esto", "reescribir esto", "reescribe seleccionado", "mejora esto", "arregla esto", "hazlo mas claro", "hazlo más claro",
+        ]
+        if rewriteMarkers.contains(where: { normalized.contains($0) }) {
+            return .rewrite(instruction: transcript.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return nil
+    }
+
+    private func targetLanguage(from normalizedTranscript: String) -> String? {
+        let markers = [" to ", " into ", " a ", " al ", " en "]
+        for marker in markers {
+            guard let range = normalizedTranscript.range(of: marker) else { continue }
+            let tail = normalizedTranscript[range.upperBound...]
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !tail.isEmpty else { continue }
+            let words = tail.split(separator: " ").prefix(3).joined(separator: " ")
+            if !words.isEmpty { return words }
+        }
+        return nil
     }
 
     private func extractProjectHint(from transcript: String) -> String {
@@ -2100,6 +2591,43 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     resourceURL: url
                 )
                 statusMessage = "Sticky created: \(resultTitle)"
+            case .bookmark:
+                guard let projectId = routing.projectId else {
+                    statusMessage = "No project found for bookmark. Say the project name in your note."
+                    return
+                }
+                let context = pendingCursorContext.promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+                let fallbackText = context.isEmpty ? intent.rawTranscript : context
+                guard let bookmarkURL = pendingCursorContext.hoveredURL ?? extractURL(from: fallbackText) else {
+                    statusMessage = "No URL found to bookmark. Hover or focus the page or image, then try again."
+                    return
+                }
+                let isImageBookmark = isImageBookmarkIntent(intent.rawTranscript) || pendingCursorContext.looksLikeHoveredImage
+                var metadata = [
+                    "source_app": frontmostApplicationName(),
+                    "captured_text": context,
+                ]
+                if isImageBookmark {
+                    metadata["image_url"] = bookmarkURL
+                    metadata["site_name"] = "Image"
+                }
+                let created = try await client.createBookmark(
+                    workspaceSlug: routing.workspaceSlug,
+                    projectId: projectId,
+                    title: bookmarkTitle(for: intent, url: bookmarkURL, isImage: isImageBookmark),
+                    url: bookmarkURL,
+                    description: intent.body,
+                    metadata: metadata,
+                    tags: isImageBookmark ? ["image"] : []
+                )
+                let url = resourceURL(type: .bookmark, workspaceSlug: routing.workspaceSlug, projectId: projectId, entityId: created.id)
+                lastVoiceActionResult = VoiceActionResult(
+                    type: .bookmark,
+                    title: created.title,
+                    detail: "Saved in \(routing.projectName ?? "project")",
+                    resourceURL: url
+                )
+                statusMessage = "Bookmark saved: \(created.title)"
             case .agent:
                 await triggerAgentPrompt(promptWithCursorContext(intent.body))
             }
@@ -2121,6 +2649,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             path = "/\(workspaceSlug)/projects/\(projectId)/pages/\(entityId)"
         case .sticky:
             path = "/\(workspaceSlug)/stickies"
+        case .bookmark:
+            guard let projectId else { return nil }
+            path = "/\(workspaceSlug)/projects/\(projectId)/bookmarks"
         case .agent:
             path = "/\(workspaceSlug)/settings/agents"
         }
@@ -2167,7 +2698,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             .replacingOccurrences(of: "'", with: "&#39;")
     }
 
-    private func triggerAgentPrompt(_ prompt: String, projectId: String? = nil) async {
+    private func triggerAgentPrompt(
+        _ prompt: String,
+        projectId: String? = nil,
+        toolMode: String? = nil,
+        attachments: [AgentChatAttachmentPayload]? = nil
+    ) async {
         guard isAuthenticated else {
             statusMessage = "Sign in first to launch a DragonFruit agent."
             isVoiceActionProcessing = false
@@ -2200,11 +2736,14 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 workspaceSlug: agentTarget.workspaceSlug,
                 sessionId: sessionId,
                 content: prompt,
-                projectId: projectId
+                projectId: projectId,
+                toolMode: toolMode,
+                attachments: attachments ?? attachmentsForPrompt(prompt)
             )
 
             if !envelope.assistant_message.error_message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                statusMessage = envelope.assistant_message.error_message
+                Self.logger.error("Agent returned error: \(envelope.assistant_message.error_message, privacy: .public)")
+                statusMessage = Self.userFacingAgentErrorMessage(envelope.assistant_message.error_message)
                 lastAgentTextResponse = ""
                 isAgentResponding = false
             } else {
@@ -2214,8 +2753,126 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             }
         } catch {
             isAgentResponding = false
-            statusMessage = "Agent request failed: \(error.localizedDescription)"
+            Self.logger.error("Agent request failed: \(error.localizedDescription, privacy: .public)")
+            statusMessage = Self.userFacingAgentErrorMessage(error.localizedDescription)
         }
+    }
+
+    private func triggerAgentTransform(_ intent: VoiceTransformIntent, selectedText: String) async {
+        guard isAuthenticated else {
+            statusMessage = "Sign in first to use Copilot transforms."
+            isVoiceActionProcessing = false
+            return
+        }
+        isVoiceActionProcessing = true
+        agentResponseDismissTask?.cancel()
+        agentResponseDismissTask = nil
+        defer { isVoiceActionProcessing = false }
+        do {
+            let client = try makeClient()
+            let agentTarget = try await resolveAgentTarget(client: client)
+
+            let sessionId: String
+            if let existing = activeAgentSessionByWorkspace[agentTarget.workspaceSlug] {
+                sessionId = existing
+            } else {
+                let createdSession = try await client.createAgentChatSession(
+                    workspaceSlug: agentTarget.workspaceSlug,
+                    agentId: agentTarget.agentId,
+                    title: "DragonFruit Orbit Voice"
+                )
+                sessionId = createdSession.id
+                activeAgentSessionByWorkspace[agentTarget.workspaceSlug] = sessionId
+            }
+
+            statusMessage = "Transforming selected text..."
+            isAgentResponding = true
+            let prompt = transformPrompt(for: intent, selectedText: selectedText)
+            let envelope = try await client.sendAgentChatMessage(
+                workspaceSlug: agentTarget.workspaceSlug,
+                sessionId: sessionId,
+                content: prompt,
+                toolMode: "none"
+            )
+            isAgentResponding = false
+
+            let errorMessage = envelope.assistant_message.error_message.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard errorMessage.isEmpty else {
+                Self.logger.error("Agent transform returned error: \(errorMessage, privacy: .public)")
+                statusMessage = Self.userFacingAgentErrorMessage(errorMessage)
+                lastAgentTextResponse = ""
+                return
+            }
+
+            let transformed = cleanTransformResponse(envelope.assistant_message.content)
+            guard !transformed.isEmpty else {
+                statusMessage = "Copilot returned an empty transform. Try again."
+                lastAgentTextResponse = ""
+                return
+            }
+
+            copyTextToClipboard(transformed)
+            switch intent {
+            case .translate:
+                statusMessage = "Translated text copied to clipboard."
+                lastAgentTextResponse = "Translated text copied to clipboard."
+            case .rewrite:
+                statusMessage = "Rewritten text copied to clipboard."
+                lastAgentTextResponse = "Rewritten text copied to clipboard."
+            }
+            scheduleAgentResponseDismiss()
+        } catch {
+            isAgentResponding = false
+            Self.logger.error("Agent transform failed: \(error.localizedDescription, privacy: .public)")
+            statusMessage = Self.userFacingAgentErrorMessage(error.localizedDescription)
+            lastAgentTextResponse = ""
+        }
+    }
+
+    private func transformPrompt(for intent: VoiceTransformIntent, selectedText: String) -> String {
+        let instruction: String
+        switch intent {
+        case .translate(let targetLanguage):
+            if let targetLanguage, !targetLanguage.isEmpty {
+                instruction = "Translate the selected text to \(targetLanguage)."
+            } else {
+                instruction = "Translate the selected text to the most likely requested language."
+            }
+        case .rewrite(let userInstruction):
+            instruction = "Rewrite the selected text according to this voice instruction: \(userInstruction)"
+        }
+        return """
+        \(instruction)
+        Return only the transformed text. Do not add explanations, quotes, labels, markdown fences, or commentary.
+
+        Selected text:
+        \(selectedText)
+        """
+    }
+
+    private func cleanTransformResponse(_ text: String) -> String {
+        var cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("```"), cleaned.hasSuffix("```") {
+            cleaned = cleaned
+                .replacingOccurrences(of: #"^```[a-zA-Z0-9_-]*\s*"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"```$"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return cleaned.trimmingCharacters(in: CharacterSet(charactersIn: "\"“”"))
+    }
+
+    private func copyTextToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+
+    private static func userFacingAgentErrorMessage(_ rawMessage: String) -> String {
+        let normalized = rawMessage.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized.contains("timed out") || normalized.contains("timeout") {
+            return "Copilot took too long to answer. Try again."
+        }
+        return "Copilot couldn’t answer that. Try again."
     }
 
     private func resolveAgentTarget(client: APIClient) async throws -> AgentRoutingTarget {

@@ -10,6 +10,7 @@ export * from "./ai-connectors";
 export * from "./analytics";
 export * from "./api_token";
 export * from "./auth";
+export * from "./bookmark";
 export * from "./calendar";
 export * from "./charts";
 export * from "./command-palette";
