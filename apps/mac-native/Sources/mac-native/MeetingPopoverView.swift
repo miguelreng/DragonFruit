@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MeetingPopoverView: View {
     @StateObject private var store = MeetingStore()
+    @State private var showDiagnostics = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -16,7 +17,6 @@ struct MeetingPopoverView: View {
                 if store.meetingNotesEnabled {
                     upcomingCard
                 }
-                permissionsCard
                 settingsCard
             }
 
@@ -147,47 +147,69 @@ struct MeetingPopoverView: View {
             featureToggle("Voice actions", isOn: $store.speechCaptureEnabled, detail: "⌥Space")
             featureToggle("Dictation", isOn: $store.cursorBuddyEnabled, detail: "⌥⇧Space")
             featureToggle("Gaze tracking", isOn: $store.gazeTrackingEnabled, detail: "Soon", disabled: true)
-        }
-    }
 
-    private var permissionsCard: some View {
-        card {
-            sectionLabel("Permissions")
-            ForEach(store.permissionStatuses) { permission in
+            Divider()
+                .overlay(BrandTheme.border)
+                .padding(.vertical, 1)
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    showDiagnostics.toggle()
+                }
+            } label: {
                 HStack(spacing: 8) {
-                    Text(permission.name)
-                        .font(.custom("Figtree", size: 12).weight(.medium))
-                        .foregroundStyle(BrandTheme.textPrimary)
+                    sectionLabel("Setup & diagnostics")
                     Spacer()
-                    Text(permission.state)
+                    if permissionsNeedAttention {
+                        Text("Needs attention")
+                            .font(.custom("Figtree", size: 10).weight(.semibold))
+                            .foregroundStyle(BrandTheme.accent)
+                    }
+                    Text(showDiagnostics || permissionsNeedAttention ? "Hide" : "Show")
                         .font(.custom("Figtree", size: 10).weight(.semibold))
                         .foregroundStyle(BrandTheme.labelLight)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(BrandTheme.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
             }
-            HStack(spacing: 8) {
-                Button("Voice") {
-                    store.requestVoicePermissions()
+            .buttonStyle(.plain)
+
+            if showDiagnostics || permissionsNeedAttention {
+                ForEach(store.permissionStatuses) { permission in
+                    HStack(spacing: 8) {
+                        Text(permission.name)
+                            .font(.custom("Figtree", size: 12).weight(.medium))
+                            .foregroundStyle(BrandTheme.textPrimary)
+                        Spacer()
+                        Text(permission.state)
+                            .font(.custom("Figtree", size: 10).weight(.semibold))
+                            .foregroundStyle(permissionStateColor(permission.state))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(BrandTheme.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
                 }
-                .buttonStyle(.plain)
-                .font(.custom("Figtree", size: 12).weight(.medium))
-                .foregroundStyle(BrandTheme.textSecondary)
-                Button("Dictation") {
-                    store.openAccessibilitySettings()
+
+                HStack(spacing: 8) {
+                    Button("Voice") {
+                        store.requestVoicePermissions()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                    Button("Dictation") {
+                        store.openAccessibilitySettings()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
+                    Spacer()
+                    Button("Refresh") {
+                        store.refreshPermissionStatuses()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(BrandTheme.textSecondary)
                 }
-                .buttonStyle(.plain)
-                .font(.custom("Figtree", size: 12).weight(.medium))
-                .foregroundStyle(BrandTheme.textSecondary)
-                Spacer()
-                Button("Refresh") {
-                    store.refreshPermissionStatuses()
-                }
-                .buttonStyle(.plain)
-                .font(.custom("Figtree", size: 12).weight(.medium))
-                .foregroundStyle(BrandTheme.textSecondary)
             }
         }
     }
@@ -271,6 +293,16 @@ struct MeetingPopoverView: View {
         guard store.meetingNotesEnabled else { return false }
         let normalized = store.statusMessage.lowercased()
         return normalized.contains("refresh") && !normalized.contains("not connected")
+    }
+
+    private var permissionsNeedAttention: Bool {
+        store.permissionStatuses.contains { permission in
+            !["Allowed", "Connected"].contains(permission.state)
+        }
+    }
+
+    private func permissionStateColor(_ state: String) -> Color {
+        ["Allowed", "Connected"].contains(state) ? BrandTheme.labelLight : BrandTheme.accent
     }
 
     @ViewBuilder
