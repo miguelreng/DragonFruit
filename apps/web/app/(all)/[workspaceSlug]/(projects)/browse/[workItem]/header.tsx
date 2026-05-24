@@ -38,7 +38,7 @@ export const ProjectWorkItemDetailsHeader = observer(function ProjectWorkItemDet
     <>
       {projectPreferences.navigationMode === "TABBED" && (
         <div className="z-20">
-          <Row className="flex h-header w-full items-center gap-2 border-b border-subtle bg-surface-1">
+          <Row className="flex min-h-14 w-full items-center gap-2 bg-surface-1 pt-3 pb-2">
             <div className="flex h-full w-full items-center gap-2 divide-x divide-subtle">
               <div className="flex size-full flex-1 items-center gap-2">
                 {sidebarCollapsed && (

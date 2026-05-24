@@ -66,6 +66,7 @@ import {
   ViewOffIcon,
   File02Icon,
   FilterIcon,
+  Folder01Icon,
   Folder02Icon,
   FolderAddIcon,
   FolderTreeIcon as FolderTreeIconSvg,
@@ -280,7 +281,8 @@ export const FileOutput = huge(File02Icon);
 export const Files = huge(File02Icon);
 export const FileStack = Files;
 export const FileText = huge(File02Icon);
-export const Folder = huge(Folder02Icon);
+export const Folder = huge(Folder01Icon);
+export const FolderOpen = huge(Folder02Icon);
 export const FolderPlus = huge(FolderAddIcon);
 export const Funnel = huge(FilterIcon);
 export const ListFilter = Funnel;

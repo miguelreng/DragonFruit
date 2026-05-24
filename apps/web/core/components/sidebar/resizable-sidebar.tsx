@@ -142,7 +142,7 @@ export function ResizableSidebar({
     if (!isAnySidebarDropdownOpen && isCollapsed && isHoveringTrigger) {
       handlePeekLeave();
     }
-  }, [isAnySidebarDropdownOpen]);
+  }, [handlePeekLeave, isAnySidebarDropdownOpen, isCollapsed, isHoveringTrigger]);
 
   // Reset peek when sidebar is expanded
   useEffect(() => {
@@ -170,7 +170,7 @@ export function ResizableSidebar({
       <div
         id="main-sidebar"
         className={cn(
-          "shadow-sm z-20 h-full overflow-hidden rounded-[18px] border border-subtle bg-surface-1",
+          "shadow-sm z-20 h-full overflow-hidden rounded-[18px] bg-surface-1",
           !isResizing && "transition-all duration-300 ease-in-out",
           isCollapsed ? "w-0 translate-x-[-100%] opacity-0" : "translate-x-0 opacity-100",
           isMobile && "absolute",
@@ -185,12 +185,7 @@ export function ResizableSidebar({
         aria-label="Main sidebar"
         data-prevent-outside-click={isMobile}
       >
-        <aside
-          className={cn(
-            "group/sidebar relative flex h-full w-full flex-col overflow-hidden bg-surface-1",
-            false && "rounded-none"
-          )}
-        >
+        <aside className="group/sidebar relative flex h-full w-full flex-col overflow-hidden bg-surface-1">
           {children}
 
           {/* Resize Handle */}
@@ -212,7 +207,7 @@ export function ResizableSidebar({
       {/* Peek View */}
       <div
         className={cn(
-          "shadow-sm absolute left-0 z-20 h-full overflow-hidden rounded-[18px] border border-subtle bg-surface-1",
+          "shadow-sm absolute left-0 z-20 h-full overflow-hidden rounded-[18px] bg-surface-1",
           !isResizing && "transition-all duration-300 ease-in-out",
           isCollapsed && showPeek ? "translate-x-0 opacity-100" : "translate-x-[-100%] opacity-0",
           "pointer-events-none",
@@ -230,8 +225,7 @@ export function ResizableSidebar({
         <aside
           className={cn(
             "group/sidebar relative z-20 flex h-full w-full flex-col overflow-hidden bg-surface-1 pt-4",
-            "self-center rounded-md rounded-tl-none rounded-bl-none border-r border-subtle",
-            false && "rounded-none"
+            "self-center rounded-md rounded-tl-none rounded-bl-none border-r border-subtle"
           )}
         >
           {children}
