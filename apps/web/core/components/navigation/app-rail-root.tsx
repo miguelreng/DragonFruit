@@ -614,7 +614,7 @@ export const AppRailRoot = observer(() => {
           <AppSidebarItem
             variant="button"
             item={{
-              label: "Ask AI",
+              label: "Ask Copilot",
               icon: <Sparkles />,
               isActive: agentChatOpen,
               onClick: () => toggleAgentChat(),
@@ -625,7 +625,7 @@ export const AppRailRoot = observer(() => {
           <AppSidebarItem
             variant="button"
             item={{
-              label: "Install Copilot",
+              label: "Get Copilot",
               icon: <Download />,
               isInline: isRailExpanded,
               showLabel: showRailLabels,

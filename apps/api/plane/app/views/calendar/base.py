@@ -163,6 +163,32 @@ def _client_credential_candidates(client: str | None) -> list[tuple[str, str]]:
     return _unique_credential_pairs([_client_credentials(client)])
 
 
+def _token_exchange_candidates(client: str | None) -> list[dict]:
+    normalized = _normalize_client(client)
+    clients = [normalized]
+    alternate = "native" if normalized == "web" else "web"
+    clients.append(alternate)
+
+    seen: set[tuple[str, str, str]] = set()
+    candidates: list[dict] = []
+    for candidate_client in clients:
+        redirect_uri = _redirect_uri_for_client(candidate_client)
+        for client_id, client_secret in _client_credential_candidates(candidate_client):
+            key = (client_id, client_secret, redirect_uri)
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(
+                {
+                    "client": candidate_client,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": redirect_uri,
+                }
+            )
+    return candidates
+
+
 def _redirect_uri_for_client(client: str | None) -> str:
     """Resolve the Google redirect URI for web/native clients.
 
@@ -223,6 +249,48 @@ def _serialize(acc: UserCalendarAccount) -> dict:
         "scopes": acc.scopes,
         "created_at": acc.created_at.isoformat() if acc.created_at else None,
     }
+
+
+def _upsert_calendar_account(
+    *,
+    user,
+    account_email: str,
+    access_token: str,
+    refresh_token: str,
+    expires_in: int,
+    primary_calendar_id: str,
+    scope: str,
+) -> UserCalendarAccount:
+    account = UserCalendarAccount.objects.filter(
+        user=user,
+        provider=UserCalendarAccount.PROVIDER_GOOGLE,
+        account_email=account_email,
+    ).first()
+
+    if account is None:
+        account = UserCalendarAccount.all_objects.filter(
+            user=user,
+            provider=UserCalendarAccount.PROVIDER_GOOGLE,
+            account_email=account_email,
+        ).first()
+
+    if account is None:
+        account = UserCalendarAccount(
+            user=user,
+            provider=UserCalendarAccount.PROVIDER_GOOGLE,
+            account_email=account_email,
+        )
+
+    account.access_token_encrypted = encrypt_data(access_token)
+    if refresh_token:
+        account.refresh_token_encrypted = encrypt_data(refresh_token)
+    account.token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in) if expires_in else None
+    account.primary_calendar_id = primary_calendar_id
+    account.scopes = scope
+    account.is_active = True
+    account.deleted_at = None
+    account.save()
+    return account
 
 
 def _google_calendar_url(calendar_id: str, suffix: str = "") -> str:
@@ -335,29 +403,30 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
         if not code:
             return Response({"error": "code is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        credential_candidates = _client_credential_candidates(client)
-        redirect_uri = _redirect_uri_for_client(client)
-        if not credential_candidates:
+        exchange_candidates = _token_exchange_candidates(client)
+        if not exchange_candidates:
             return Response(
                 {"error": "Google OAuth is not configured on this instance."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         token_resp = None
+        used_candidate = None
         used_candidate_index = 0
-        for index, (client_id, client_secret) in enumerate(credential_candidates):
+        for index, candidate in enumerate(exchange_candidates):
             token_resp = requests.post(
                 GOOGLE_TOKEN_URL,
                 data={
                     "code": code,
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                    "redirect_uri": redirect_uri,
+                    "client_id": candidate["client_id"],
+                    "client_secret": candidate["client_secret"],
+                    "redirect_uri": candidate["redirect_uri"],
                     "grant_type": "authorization_code",
                 },
                 timeout=10,
             )
             used_candidate_index = index
+            used_candidate = candidate
             if token_resp.status_code == 200:
                 break
 
@@ -374,8 +443,8 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
                     "error": "Token exchange failed",
                     "details": details,
                     "client": client,
-                    "redirect_uri": redirect_uri,
-                    "credential_candidates": len(credential_candidates),
+                    "redirect_uri": used_candidate["redirect_uri"] if used_candidate else "",
+                    "credential_candidates": len(exchange_candidates),
                     "last_candidate": used_candidate_index + 1,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -399,22 +468,15 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
             primary_calendar_id = data.get("id", "")
             account_email = data.get("id", "")
 
-        account = (
-            UserCalendarAccount.objects.filter(
-                user=request.user,
-                provider=UserCalendarAccount.PROVIDER_GOOGLE,
-                account_email=account_email,
-            ).first()
-            or UserCalendarAccount(user=request.user, provider=UserCalendarAccount.PROVIDER_GOOGLE, account_email=account_email)
+        account = _upsert_calendar_account(
+            user=request.user,
+            account_email=account_email,
+            access_token=access_token or "",
+            refresh_token=refresh_token,
+            expires_in=expires_in,
+            primary_calendar_id=primary_calendar_id,
+            scope=scope,
         )
-        account.access_token_encrypted = encrypt_data(access_token or "")
-        if refresh_token:
-            account.refresh_token_encrypted = encrypt_data(refresh_token)
-        account.token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in) if expires_in else None
-        account.primary_calendar_id = primary_calendar_id
-        account.scopes = scope
-        account.is_active = True
-        account.save()
 
         return Response(_serialize(account), status=status.HTTP_200_OK)
 
