@@ -2,6 +2,14 @@
   box-sizing: border-box;
 }
 
+@font-face {
+  font-family: Figtree;
+  src: url("./fonts/Figtree-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+}
+
 :root {
   --canvas: #f3f3f4;
   --surface: rgba(255, 255, 255, 0.97);
