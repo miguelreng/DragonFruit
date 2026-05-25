@@ -180,6 +180,11 @@ class IssueAttachmentV2Endpoint(BaseAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            if asset.external_source == "google_drive":
+                web_view_link = asset.attributes.get("webViewLink") or asset.attributes.get("web_view_link")
+                if web_view_link:
+                    return HttpResponseRedirect(web_view_link)
+
             storage = S3Storage(request=request)
             presigned_url = storage.generate_presigned_url(
                 object_name=asset.asset.name,
@@ -228,3 +233,84 @@ class IssueAttachmentV2Endpoint(BaseAPIView):
             get_asset_object_metadata.delay(str(issue_attachment.id))
         issue_attachment.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class IssueGoogleDriveAttachmentEndpoint(BaseAPIView):
+    serializer_class = IssueAttachmentSerializer
+    model = FileAsset
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def post(self, request, slug, project_id, issue_id):
+        file_id = str(request.data.get("file_id") or "").strip()
+        name = str(request.data.get("name") or "").strip()
+        mime_type = str(request.data.get("mime_type") or request.data.get("mimeType") or "").strip()
+        web_view_link = str(request.data.get("web_view_link") or request.data.get("webViewLink") or "").strip()
+        icon_link = str(request.data.get("icon_link") or request.data.get("iconLink") or "").strip()
+        thumbnail_link = str(request.data.get("thumbnail_link") or request.data.get("thumbnailLink") or "").strip()
+        try:
+            size = int(request.data.get("size") or 0)
+        except (TypeError, ValueError):
+            size = 0
+
+        if not file_id or not name or not web_view_link:
+            return Response(
+                {"error": "file_id, name, and web_view_link are required.", "status": False},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        existing_asset = FileAsset.objects.filter(
+            project_id=project_id,
+            workspace__slug=slug,
+            external_source="google_drive",
+            external_id=file_id,
+            issue_id=issue_id,
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+            is_deleted=False,
+        ).first()
+        if existing_asset:
+            return Response(
+                {
+                    "error": "Google Drive file already attached.",
+                    "id": str(existing_asset.id),
+                    "attachment": IssueAttachmentSerializer(existing_asset).data,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        workspace = Workspace.objects.get(slug=slug)
+        attributes = {
+            "name": name,
+            "type": mime_type or "application/vnd.google-apps.unknown",
+            "size": size,
+            "webViewLink": web_view_link,
+            "iconLink": icon_link,
+            "thumbnailLink": thumbnail_link,
+            "provider": "google_drive",
+        }
+        asset = FileAsset.objects.create(
+            attributes=attributes,
+            asset=f"google-drive/{file_id}",
+            size=size,
+            workspace_id=workspace.id,
+            created_by=request.user,
+            issue_id=issue_id,
+            project_id=project_id,
+            entity_type=FileAsset.EntityTypeContext.ISSUE_ATTACHMENT,
+            external_id=file_id,
+            external_source="google_drive",
+            is_uploaded=True,
+        )
+
+        issue_activity.delay(
+            type="attachment.activity.created",
+            requested_data=None,
+            actor_id=str(self.request.user.id),
+            issue_id=str(issue_id),
+            project_id=str(project_id),
+            current_instance=json.dumps(IssueAttachmentSerializer(asset).data, cls=DjangoJSONEncoder),
+            epoch=int(timezone.now().timestamp()),
+            notification=True,
+            origin=base_host(request=request, is_app=True),
+        )
+
+        return Response(IssueAttachmentSerializer(asset).data, status=status.HTTP_201_CREATED)

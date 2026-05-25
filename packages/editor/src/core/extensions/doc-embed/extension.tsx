@@ -17,6 +17,7 @@ type Props = {
     whiteboard?: TDocEmbedConfig<"whiteboard">;
     sticky?: TDocEmbedConfig<"sticky">;
     task_view?: TDocEmbedConfig<"task_view">;
+    google_drive?: TDocEmbedConfig<"google_drive">;
   };
 };
 
@@ -72,6 +73,17 @@ function renderDocEmbedWidget({
   }
   if (embedType === "sticky") {
     const typedConfig = config as TDocEmbedConfig<"sticky">;
+    return typedConfig.widgetCallback({
+      embedType,
+      entityId: attrs[EDocEmbedAttributeNames.ENTITY_IDENTIFIER] ?? "",
+      projectId: attrs[EDocEmbedAttributeNames.PROJECT_IDENTIFIER],
+      workspaceSlug: attrs[EDocEmbedAttributeNames.WORKSPACE_IDENTIFIER],
+      title: attrs[EDocEmbedAttributeNames.TITLE],
+      snapshot: attrs[EDocEmbedAttributeNames.SNAPSHOT],
+    });
+  }
+  if (embedType === "google_drive") {
+    const typedConfig = config as TDocEmbedConfig<"google_drive">;
     return typedConfig.widgetCallback({
       embedType,
       entityId: attrs[EDocEmbedAttributeNames.ENTITY_IDENTIFIER] ?? "",

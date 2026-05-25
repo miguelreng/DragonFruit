@@ -82,6 +82,7 @@ export const DocumentEditor = forwardRef(function DocumentEditor(
     whiteboardEmbedProps,
     stickyEmbedProps,
     taskViewEmbedProps,
+    googleDriveEmbedProps,
     renderPicker: renderDocEmbedPicker,
   } = useDocEmbed({
     projectId,
@@ -93,8 +94,9 @@ export const DocumentEditor = forwardRef(function DocumentEditor(
       whiteboard: whiteboardEmbedProps,
       sticky: stickyEmbedProps,
       taskView: taskViewEmbedProps,
+      googleDrive: googleDriveEmbedProps,
     }),
-    [issueEmbedProps, stickyEmbedProps, taskViewEmbedProps, whiteboardEmbedProps]
+    [googleDriveEmbedProps, issueEmbedProps, stickyEmbedProps, taskViewEmbedProps, whiteboardEmbedProps]
   );
   // editor config
   const { getEditorFileHandlers } = useEditorConfig();

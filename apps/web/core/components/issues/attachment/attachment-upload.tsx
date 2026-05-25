@@ -4,20 +4,22 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type MouseEvent } from "react";
 import { observer } from "mobx-react";
 import { useDropzone } from "react-dropzone";
+import { HardDrive } from "@/components/icons/lucide-shim";
+import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
 // plane web hooks
 import { useFileSize } from "@/plane-web/hooks/use-file-size";
 // types
 import type { TAttachmentOperations } from "../issue-detail-widgets/attachments/helper";
 
-type TAttachmentOperationsModal = Pick<TAttachmentOperations, "create">;
+type TAttachmentOperationsWithDrive = Pick<TAttachmentOperations, "create" | "createGoogleDrive">;
 
 type Props = {
   workspaceSlug: string;
   disabled?: boolean;
-  attachmentOperations: TAttachmentOperationsModal;
+  attachmentOperations: TAttachmentOperationsWithDrive;
 };
 
 export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(props: Props) {
@@ -37,6 +39,16 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
     },
     [attachmentOperations, workspaceSlug]
   );
+
+  const handleAttachDrive = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!workspaceSlug || disabled || isLoading) return;
+    const pickedFile = await pickGoogleDriveFile();
+    if (!pickedFile) return;
+    setIsLoading(true);
+    attachmentOperations.createGoogleDrive(pickedFile).finally(() => setIsLoading(false));
+  };
 
   const { getRootProps, getInputProps, isDragActive, isDragReject, fileRejections } = useDropzone({
     onDrop,
@@ -67,6 +79,16 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
           <p className="text-center">Click or drag a file here</p>
         )}
       </span>
+      {!disabled && !isLoading && (
+        <button
+          type="button"
+          onClick={handleAttachDrive}
+          className="ml-3 inline-flex items-center gap-1 rounded border border-subtle bg-surface-1 px-2 py-1 text-11 text-secondary hover:bg-surface-2"
+        >
+          <HardDrive className="size-3.5" />
+          Google Drive
+        </button>
+      )}
     </div>
   );
 });

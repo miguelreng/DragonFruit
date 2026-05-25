@@ -16,6 +16,7 @@ import type {
   TIssueServiceType,
   TWorkItemWidgets,
 } from "@plane/types";
+import type { TGoogleDriveAttachmentPayload } from "@/services/issue";
 // plane web store
 import { IssueActivityStore } from "@/plane-web/store/issue/issue-details/activity.store";
 import type {
@@ -335,6 +336,12 @@ export abstract class IssueDetail implements IIssueDetail {
     this.attachment.fetchAttachments(workspaceSlug, projectId, issueId);
   createAttachment = async (workspaceSlug: string, projectId: string, issueId: string, file: File) =>
     this.attachment.createAttachment(workspaceSlug, projectId, issueId, file);
+  createGoogleDriveAttachment = async (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    payload: TGoogleDriveAttachmentPayload
+  ) => this.attachment.createGoogleDriveAttachment(workspaceSlug, projectId, issueId, payload);
   removeAttachment = async (workspaceSlug: string, projectId: string, issueId: string, attachmentId: string) =>
     this.attachment.removeAttachment(workspaceSlug, projectId, issueId, attachmentId);
 

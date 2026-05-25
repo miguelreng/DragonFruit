@@ -31,6 +31,7 @@ from plane.app.views import (
     WorkItemDescriptionVersionEndpoint,
     IssueMetaEndpoint,
     IssueDetailIdentifierEndpoint,
+    IssueGoogleDriveAttachmentEndpoint,
     WorkItemTemplateDetailEndpoint,
     WorkItemTemplateInstantiateEndpoint,
     WorkItemTemplateListEndpoint,
@@ -141,6 +142,11 @@ urlpatterns = [
         "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/",
         IssueAttachmentV2Endpoint.as_view(),
         name="project-issue-attachments",
+    ),
+    path(
+        "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/google-drive/",
+        IssueGoogleDriveAttachmentEndpoint.as_view(),
+        name="project-issue-google-drive-attachments",
     ),
     path(
         "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/attachments/<uuid:pk>/",

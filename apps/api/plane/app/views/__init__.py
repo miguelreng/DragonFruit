@@ -30,7 +30,7 @@ from .project.template import (
     ProjectTemplateInstantiateEndpoint,
     ProjectTemplateListEndpoint,
 )
-from .project.bookmark import ProjectBookmarkViewSet, WorkspaceProjectBookmarkViewSet
+from .project.bookmark import BookmarkExtensionContextEndpoint, ProjectBookmarkViewSet, WorkspaceProjectBookmarkViewSet
 
 from .user.base import (
     UserEndpoint,
@@ -142,6 +142,7 @@ from .issue.archive import IssueArchiveViewSet, BulkArchiveIssuesEndpoint
 
 from .issue.attachment import (
     IssueAttachmentEndpoint,
+    IssueGoogleDriveAttachmentEndpoint,
     # V2
     IssueAttachmentV2Endpoint,
 )

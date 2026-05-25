@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 // types
 import type { TIssueAttachment, TIssueAttachmentMap, TIssueAttachmentIdMap, TIssueServiceType } from "@plane/types";
 // services
-import { IssueAttachmentService } from "@/services/issue";
+import { IssueAttachmentService, type TGoogleDriveAttachmentPayload } from "@/services/issue";
 import type { IIssueRootStore } from "../root.store";
 import type { IIssueDetail } from "./root.store";
 
@@ -32,6 +32,12 @@ export interface IIssueAttachmentStoreActions {
     projectId: string,
     issueId: string,
     file: File
+  ) => Promise<TIssueAttachment>;
+  createGoogleDriveAttachment: (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    payload: TGoogleDriveAttachmentPayload
   ) => Promise<TIssueAttachment>;
   removeAttachment: (
     workspaceSlug: string,
@@ -78,6 +84,7 @@ export class IssueAttachmentStore implements IIssueAttachmentStore {
       addAttachments: action.bound,
       fetchAttachments: action,
       createAttachment: action,
+      createGoogleDriveAttachment: action,
       removeAttachment: action,
     });
     // root store
@@ -182,6 +189,32 @@ export class IssueAttachmentStore implements IIssueAttachmentStore {
         delete this.attachmentsUploadStatusMap[issueId][tempId];
       });
     }
+  };
+
+  createGoogleDriveAttachment = async (
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    payload: TGoogleDriveAttachmentPayload
+  ) => {
+    const response = await this.issueAttachmentService.createGoogleDriveAttachment(
+      workspaceSlug,
+      projectId,
+      issueId,
+      payload
+    );
+
+    if (response?.id) {
+      runInAction(() => {
+        update(this.attachments, [issueId], (attachmentIds = []) => uniq(concat(attachmentIds, [response.id])));
+        set(this.attachmentMap, response.id, response);
+        this.rootIssueStore.issues.updateIssue(issueId, {
+          attachment_count: this.getAttachmentsCountByIssueId(issueId),
+        });
+      });
+    }
+
+    return response;
   };
 
   removeAttachment = async (workspaceSlug: string, projectId: string, issueId: string, attachmentId: string) => {

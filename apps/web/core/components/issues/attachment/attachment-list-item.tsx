@@ -6,6 +6,7 @@
 
 import { observer } from "mobx-react";
 
+import { HardDrive } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { TrashIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
@@ -42,10 +43,15 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
   } = useIssueDetail(issueServiceType);
   // derived values
   const attachment = attachmentId ? getAttachmentById(attachmentId) : undefined;
-  const fileName = getFileName(attachment?.attributes.name ?? "");
-  const fileExtension = getFileExtension(attachment?.attributes.name ?? "");
-  const fileIcon = getFileIcon(fileExtension, 18);
-  const fileURL = getFileURL(attachment?.asset_url ?? "");
+  const isGoogleDrive = attachment?.external_source === "google_drive";
+  const fileName = isGoogleDrive
+    ? (attachment?.attributes.name ?? "Google Drive file")
+    : getFileName(attachment?.attributes.name ?? "");
+  const fileExtension = isGoogleDrive ? "Drive" : getFileExtension(attachment?.attributes.name ?? "");
+  const fileIcon = isGoogleDrive ? <HardDrive className="size-[18px]" /> : getFileIcon(fileExtension, 18);
+  const fileURL = isGoogleDrive
+    ? (attachment?.attributes.webViewLink ?? attachment?.attributes.web_view_link ?? "")
+    : getFileURL(attachment?.asset_url ?? "");
   // hooks
   const { isMobile } = usePlatformOS();
 
@@ -63,11 +69,15 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
         <div className="group flex h-11 items-center justify-between gap-3 pr-2 pl-9 hover:bg-surface-2">
           <div className="flex items-center gap-3 truncate text-13">
             <div className="flex items-center gap-3">{fileIcon}</div>
-            <Tooltip tooltipContent={`${fileName}.${fileExtension}`} isMobile={isMobile}>
-              <p className="truncate font-medium text-secondary">{`${fileName}.${fileExtension}`}</p>
+            <Tooltip tooltipContent={isGoogleDrive ? fileName : `${fileName}.${fileExtension}`} isMobile={isMobile}>
+              <p className="truncate font-medium text-secondary">
+                {isGoogleDrive ? fileName : `${fileName}.${fileExtension}`}
+              </p>
             </Tooltip>
             <span className="flex size-1.5 rounded-full bg-layer-1" />
-            <span className="flex-shrink-0 text-placeholder">{convertBytesToSize(attachment.attributes.size)}</span>
+            <span className="flex-shrink-0 text-placeholder">
+              {isGoogleDrive ? "Google Drive" : convertBytesToSize(attachment.attributes.size)}
+            </span>
           </div>
 
           <div className="flex items-center gap-3">

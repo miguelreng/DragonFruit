@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DragonFruit Bookmarks</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <strong>DragonFruit</strong>
+        <span>Bookmarks</span>
+      </header>
+      <label>
+        App URL
+        <input id="app-url" type="url" placeholder="http://localhost:3000" />
+      </label>
+      <label>
+        Workspace slug
+        <input id="workspace-slug" type="text" placeholder="workspace" />
+      </label>
+      <div class="row">
+        <button id="load-projects" type="button">Load projects</button>
+        <span id="status"></span>
+      </div>
+      <label>
+        Project
+        <select id="project-id"></select>
+      </label>
+      <button id="save-page" type="button" class="primary">Save current page</button>
+    </main>
+    <script src="./popup.js" type="module"></script>
+  </body>
+</html>

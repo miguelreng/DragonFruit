@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { AlertCircle } from "@/components/icons/lucide-shim";
+import { AlertCircle, HardDrive } from "@/components/icons/lucide-shim";
 import { CloseIcon } from "@plane/propel/icons";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
@@ -52,10 +52,15 @@ export const IssueAttachmentsDetail = observer(function IssueAttachmentsDetail(p
   const [isDeleteIssueAttachmentModalOpen, setIsDeleteIssueAttachmentModalOpen] = useState(false);
   // derived values
   const attachment = attachmentId ? getAttachmentById(attachmentId) : undefined;
-  const fileName = getFileName(attachment?.attributes.name ?? "");
-  const fileExtension = getFileExtension(attachment?.asset_url ?? "");
-  const fileIcon = getFileIcon(fileExtension, 28);
-  const fileURL = getFileURL(attachment?.asset_url ?? "");
+  const isGoogleDrive = attachment?.external_source === "google_drive";
+  const fileName = isGoogleDrive
+    ? (attachment?.attributes.name ?? "Google Drive file")
+    : getFileName(attachment?.attributes.name ?? "");
+  const fileExtension = isGoogleDrive ? "Drive" : getFileExtension(attachment?.asset_url ?? "");
+  const fileIcon = isGoogleDrive ? <HardDrive className="size-7" /> : getFileIcon(fileExtension, 28);
+  const fileURL = isGoogleDrive
+    ? (attachment?.attributes.webViewLink ?? attachment?.attributes.web_view_link ?? "")
+    : getFileURL(attachment?.asset_url ?? "");
   // hooks
   const { isMobile } = usePlatformOS();
 
@@ -94,7 +99,7 @@ export const IssueAttachmentsDetail = observer(function IssueAttachmentsDetail(p
 
               <div className="flex items-center gap-3 text-11 text-secondary">
                 <span>{fileExtension.toUpperCase()}</span>
-                <span>{convertBytesToSize(attachment.attributes.size)}</span>
+                <span>{isGoogleDrive ? "Google Drive" : convertBytesToSize(attachment.attributes.size)}</span>
               </div>
             </div>
           </div>
