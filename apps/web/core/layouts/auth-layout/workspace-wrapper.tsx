@@ -18,7 +18,6 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // assets
-import WorkSpaceNotAvailable from "@/app/assets/workspace/workspace-not-available.png?url";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // constants
@@ -206,7 +205,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
           <div className="relative flex h-full w-full flex-grow flex-col items-center justify-center space-y-3">
             <div className="relative flex-shrink-0">
               <img
-                src={WorkSpaceNotAvailable}
+                src="/empty-state/renaissance-sketch/invalid-link.png"
                 className="h-[220px] object-contain object-center"
                 alt="DragonFruit logo"
               />
