@@ -68,7 +68,12 @@ class ProjectBookmarkViewSet(BaseViewSet):
         serializer = ProjectBookmarkSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                bookmark = serializer.save(project=project, workspace=project.workspace, created_by=request.user)
+                bookmark = serializer.save(
+                    project=project,
+                    workspace=project.workspace,
+                    created_by=request.user,
+                    updated_by=request.user,
+                )
             except DjangoValidationError as exc:
                 error = exc.message_dict if hasattr(exc, "message_dict") else exc.messages
                 return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
