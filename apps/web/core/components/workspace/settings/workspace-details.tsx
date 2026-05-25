@@ -41,6 +41,17 @@ const defaultValues: Partial<IWorkspace> = {
   timezone: "UTC",
 };
 
+const getUpdatedWorkspacePath = (pathname: string, previousSlug: string, nextSlug: string) => {
+  const segments = pathname.split("/");
+
+  if (segments[1] === previousSlug) {
+    segments[1] = nextSlug;
+    return segments.join("/") || `/${nextSlug}`;
+  }
+
+  return `/${nextSlug}`;
+};
+
 export const WorkspaceDetails = observer(function WorkspaceDetails() {
   // states
   const [isLoading, setIsLoading] = useState(false);
@@ -84,10 +95,11 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
 
     try {
       const previousSlug = currentWorkspace.slug;
-      await updateWorkspace(currentWorkspace.slug, payload);
-      if (payload.slug && payload.slug !== previousSlug && typeof window !== "undefined") {
-        const nextPath = window.location.pathname.replace(`/${previousSlug}/`, `/${payload.slug}/`);
-        router.replace(nextPath);
+      const updatedWorkspace = await updateWorkspace(currentWorkspace.slug, payload);
+      const nextSlug = updatedWorkspace.slug;
+      if (nextSlug && nextSlug !== previousSlug && typeof window !== "undefined") {
+        const nextPath = getUpdatedWorkspacePath(window.location.pathname, previousSlug, nextSlug);
+        router.replace(`${nextPath}${window.location.search}${window.location.hash}`);
       }
       setToast({
         title: "Success!",

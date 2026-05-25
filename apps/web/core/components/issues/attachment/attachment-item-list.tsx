@@ -9,6 +9,8 @@ import { observer } from "mobx-react";
 import type { FileRejection } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
 import { UploadCloud } from "@/components/icons/lucide-shim";
+import { HardDrive } from "@/components/icons/lucide-shim";
+import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssueServiceType } from "@plane/types";
@@ -100,8 +102,19 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
       });
       return;
     },
-    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities]
+    [createAttachment, maxFileSize, workspaceSlug, handleFetchPropertyActivities, t]
   );
+
+  const handleAttachDrive = async () => {
+    if (!workspaceSlug || disabled || isUploading) return;
+    const pickedFile = await pickGoogleDriveFile();
+    if (!pickedFile) return;
+    setIsUploading(true);
+    attachmentOperations
+      .createGoogleDrive(pickedFile)
+      .then(handleFetchPropertyActivities)
+      .finally(() => setIsUploading(false));
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -112,8 +125,8 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
 
   return (
     <>
-      {uploadStatus?.map((uploadStatus) => (
-        <IssueAttachmentsUploadItem key={uploadStatus.id} uploadStatus={uploadStatus} />
+      {uploadStatus?.map((currentUploadStatus) => (
+        <IssueAttachmentsUploadItem key={currentUploadStatus.id} uploadStatus={currentUploadStatus} />
       ))}
       {issueAttachments && (
         <>
@@ -149,6 +162,20 @@ export const IssueAttachmentItemList = observer(function IssueAttachmentItemList
                 issueServiceType={issueServiceType}
               />
             ))}
+            {!disabled && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void handleAttachDrive();
+                }}
+                className="mx-9 my-2 inline-flex h-8 items-center justify-center gap-2 rounded-md border border-dashed border-subtle text-12 text-secondary hover:border-strong hover:bg-surface-2"
+              >
+                <HardDrive className="size-3.5" />
+                Attach Google Drive file
+              </button>
+            )}
           </div>
         </>
       )}

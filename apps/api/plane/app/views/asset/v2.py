@@ -422,6 +422,11 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        if asset.external_source == "google_drive":
+            web_view_link = asset.attributes.get("webViewLink") or asset.attributes.get("web_view_link")
+            if web_view_link:
+                return HttpResponseRedirect(web_view_link)
+
         # Get the presigned URL
         storage = S3Storage(request=request)
         # Generate a presigned URL to share an S3 object
@@ -620,6 +625,11 @@ class ProjectAssetEndpoint(BaseAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        if asset.external_source == "google_drive":
+            web_view_link = asset.attributes.get("webViewLink") or asset.attributes.get("web_view_link")
+            if web_view_link:
+                return HttpResponseRedirect(web_view_link)
+
         # Get the presigned URL
         storage = S3Storage(request=request)
         # Generate a presigned URL to share an S3 object
@@ -812,6 +822,11 @@ class WorkspaceAssetDownloadEndpoint(BaseAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        if asset.external_source == "google_drive":
+            web_view_link = asset.attributes.get("webViewLink") or asset.attributes.get("web_view_link")
+            if web_view_link:
+                return HttpResponseRedirect(web_view_link)
+
         storage = S3Storage(request=request)
         signed_url = storage.generate_presigned_url(
             object_name=asset.asset.name,
@@ -839,6 +854,11 @@ class ProjectAssetDownloadEndpoint(BaseAPIView):
                 {"error": "The requested asset could not be found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        if asset.external_source == "google_drive":
+            web_view_link = asset.attributes.get("webViewLink") or asset.attributes.get("web_view_link")
+            if web_view_link:
+                return HttpResponseRedirect(web_view_link)
 
         storage = S3Storage(request=request)
         signed_url = storage.generate_presigned_url(

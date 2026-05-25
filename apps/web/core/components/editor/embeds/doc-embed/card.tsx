@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { ExternalLink, ListChecks, Loader2, PenTool, StickyNote } from "@/components/icons/lucide-shim";
+import { ExternalLink, HardDrive, ListChecks, Loader2, PenTool, StickyNote } from "@/components/icons/lucide-shim";
 import type { IProjectView, TPage, TSticky } from "@plane/types";
 import { EViewAccess } from "@plane/types";
 import { cn } from "@plane/utils";
@@ -20,11 +20,12 @@ const stickyService = new StickyService();
 const viewService = new ViewService();
 
 type Props = {
-  embedType: "whiteboard" | "sticky" | "task_view";
+  embedType: "whiteboard" | "sticky" | "task_view" | "google_drive";
   entityId: string;
   projectId: string | undefined;
   workspaceSlug: string | undefined;
   title?: string;
+  snapshot?: unknown;
 };
 
 type LoadState =
@@ -39,11 +40,12 @@ const stripHtml = (html?: string) =>
     .trim();
 
 export function DocEmbedCard(props: Props) {
-  const { embedType, entityId, projectId, workspaceSlug, title } = props;
+  const { embedType, entityId, projectId, workspaceSlug, title, snapshot } = props;
   const [state, setState] = useState<LoadState>({ status: "idle" });
 
   useEffect(() => {
     if (!workspaceSlug || !entityId) return;
+    if (embedType === "google_drive") return;
     if ((embedType === "whiteboard" || embedType === "task_view") && !projectId) return;
     let cancelled = false;
     setState({ status: "loading" });
@@ -70,6 +72,16 @@ export function DocEmbedCard(props: Props) {
   }, [embedType, entityId, projectId, workspaceSlug]);
 
   const meta = useMemo(() => {
+    if (embedType === "google_drive") {
+      const driveSnapshot = snapshot && typeof snapshot === "object" ? (snapshot as Record<string, unknown>) : {};
+      return {
+        label: "Google Drive",
+        Icon: HardDrive,
+        name: title || "Google Drive file",
+        href: typeof driveSnapshot.url === "string" ? driveSnapshot.url : undefined,
+        body: typeof driveSnapshot.mimeType === "string" ? driveSnapshot.mimeType : "Drive file",
+      };
+    }
     if (embedType === "whiteboard") {
       const page = state.status === "ready" ? state.page : undefined;
       return {
@@ -98,7 +110,7 @@ export function DocEmbedCard(props: Props) {
       href: workspaceSlug && projectId ? `/${workspaceSlug}/projects/${projectId}/views/${entityId}` : undefined,
       body: view?.access === EViewAccess.PRIVATE ? "Private saved view" : "Saved task view",
     };
-  }, [embedType, entityId, projectId, state, title, workspaceSlug]);
+  }, [embedType, entityId, projectId, snapshot, state, title, workspaceSlug]);
 
   if (!workspaceSlug || !entityId) return <EmbedFallback>Embedded content — missing identifiers</EmbedFallback>;
   if (state.status === "error")
@@ -141,7 +153,11 @@ export function DocEmbedCard(props: Props) {
     </div>
   );
 
-  return meta.href ? (
+  return meta.href && embedType === "google_drive" ? (
+    <a href={meta.href} target="_blank" rel="noreferrer" className="block no-underline">
+      {shell}
+    </a>
+  ) : meta.href ? (
     <Link to={meta.href} className="block no-underline">
       {shell}
     </Link>

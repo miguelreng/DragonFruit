@@ -1,6 +1,14 @@
 import Foundation
 import os
 
+private extension Data {
+    mutating func append(_ string: String) {
+        if let data = string.data(using: .utf8) {
+            append(data)
+        }
+    }
+}
+
 struct CalendarAccount: Codable, Identifiable {
     let id: String
     let provider: String
@@ -104,6 +112,12 @@ struct OAuthStartResponse: Codable {
 
 struct CSRFResponse: Codable {
     let csrf_token: String
+}
+
+private struct MultipartFile {
+    let fieldName: String
+    let fileURL: URL
+    let mimeType: String
 }
 
 struct APIClient {
@@ -254,18 +268,19 @@ struct APIClient {
     func createMeetingNotesDraft(
         workspaceSlug: String,
         meeting: MeetingInfo,
-        notes: String
+        notes: String,
+        micAudioURL: URL? = nil,
+        systemAudioURL: URL? = nil
     ) async throws -> MeetingNotesDraftResponse {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/calendar/meeting-notes/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 12
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
         request.setValue("cursor-buddy", forHTTPHeaderField: "X-DragonFruit-Source")
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
-        request.httpBody = try JSONSerialization.data(withJSONObject: [
+        let fields = [
             "meeting_id": meeting.eventId,
             "meeting_title": meeting.title,
             "start": ISO8601DateFormatter().string(from: meeting.startAt),
@@ -275,7 +290,22 @@ struct APIClient {
             "account_email": meeting.accountEmail ?? "",
             "calendar_id": meeting.calendarId ?? "",
             "notes": notes,
-        ])
+        ]
+        let files = [
+            ("mic_audio", micAudioURL, "audio/wav"),
+            ("system_audio", systemAudioURL, "audio/m4a"),
+        ].compactMap { fieldName, url, mimeType -> MultipartFile? in
+            guard let url, FileManager.default.fileExists(atPath: url.path) else { return nil }
+            return MultipartFile(fieldName: fieldName, fileURL: url, mimeType: mimeType)
+        }
+        if files.isEmpty {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: fields)
+        } else {
+            let boundary = "DragonFruitBoundary-\(UUID().uuidString)"
+            request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try makeMultipartBody(fields: fields, files: files, boundary: boundary)
+        }
         let (data, response) = try await send(request, endpoint: "POST meeting notes")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(MeetingNotesDraftResponse.self, from: data)
@@ -481,6 +511,29 @@ struct APIClient {
                 return "\(escapedKey)=\(escapedValue)"
             }
             .joined(separator: "&")
+    }
+
+    private func makeMultipartBody(fields: [String: String], files: [MultipartFile], boundary: String) throws -> Data {
+        var body = Data()
+        let lineBreak = "\r\n"
+
+        for (key, value) in fields {
+            body.append("--\(boundary)\(lineBreak)")
+            body.append("Content-Disposition: form-data; name=\"\(key)\"\(lineBreak)\(lineBreak)")
+            body.append("\(value)\(lineBreak)")
+        }
+
+        for file in files {
+            let filename = file.fileURL.lastPathComponent
+            body.append("--\(boundary)\(lineBreak)")
+            body.append("Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(filename)\"\(lineBreak)")
+            body.append("Content-Type: \(file.mimeType)\(lineBreak)\(lineBreak)")
+            body.append(try Data(contentsOf: file.fileURL))
+            body.append(lineBreak)
+        }
+
+        body.append("--\(boundary)--\(lineBreak)")
+        return body
     }
 
     private func decodeArrayOrResults<T: Decodable>(_ data: Data, as type: T.Type) throws -> [T] {

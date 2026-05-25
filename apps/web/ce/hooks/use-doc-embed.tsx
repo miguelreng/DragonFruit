@@ -26,13 +26,14 @@ type ActivePicker = {
 
 const makeWidgetCallback =
   <T extends TDocEmbedType>(embedType: T): NonNullable<TDocEmbedConfig<T>["widgetCallback"]> =>
-  ({ entityId, projectId, workspaceSlug, title }) => (
+  ({ entityId, projectId, workspaceSlug, title, snapshot }) => (
     <DocEmbedCard
       embedType={embedType}
       entityId={entityId}
       projectId={projectId}
       workspaceSlug={workspaceSlug}
       title={title}
+      snapshot={snapshot}
     />
   );
 
@@ -88,6 +89,16 @@ export const useDocEmbed = ({ projectId, workspaceSlug }: Props) => {
     [onPickerRequest, projectId, workspaceSlug]
   );
 
+  const googleDriveEmbedProps: TDocEmbedConfig<"google_drive"> = useMemo(
+    () => ({
+      widgetCallback: makeWidgetCallback("google_drive"),
+      onPickerRequest,
+      workspaceSlug,
+      projectId,
+    }),
+    [onPickerRequest, projectId, workspaceSlug]
+  );
+
   const renderPicker = useCallback(
     () =>
       activePicker ? (
@@ -108,6 +119,7 @@ export const useDocEmbed = ({ projectId, workspaceSlug }: Props) => {
     whiteboardEmbedProps,
     stickyEmbedProps,
     taskViewEmbedProps,
+    googleDriveEmbedProps,
     renderPicker,
   };
 };

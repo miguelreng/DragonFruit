@@ -7,6 +7,8 @@
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useForm, Controller } from "react-hook-form";
+import { HardDrive } from "@/components/icons/lucide-shim";
+import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
 // plane imports
 import { EIssueCommentAccessSpecifier } from "@plane/constants";
 import type { EditorRefApi } from "@plane/editor";
@@ -107,6 +109,26 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
   const commentHTML = watch("comment_html");
   const isEmpty = isCommentEmpty(commentHTML ?? undefined);
 
+  const handleAttachDriveFile = async () => {
+    const pickedFile = await pickGoogleDriveFile();
+    if (!pickedFile) return;
+    editorRef.current?.setEditorValueAtCursorPosition({
+      type: "paragraph",
+      content: [
+        {
+          type: "text",
+          text: pickedFile.name,
+          marks: [
+            {
+              type: "link",
+              attrs: { href: pickedFile.web_view_link, target: "_blank" },
+            },
+          ],
+        },
+      ],
+    });
+  };
+
   return (
     <div
       // Replies are inline inside the parent card — no sticky footer
@@ -114,6 +136,7 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
       // composer is reachable while scrolling the activity feed on
       // mobile.
       className={cn(compact ? "bg-transparent" : "sticky bottom-0 z-[4] bg-surface-1 sm:static")}
+      role="presentation"
       onKeyDown={(e) => {
         if (
           e.key === "Enter" &&
@@ -174,6 +197,16 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
           />
         )}
       />
+      <div className="flex justify-end px-2 pb-2">
+        <button
+          type="button"
+          onClick={handleAttachDriveFile}
+          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-12 text-secondary hover:bg-surface-2"
+        >
+          <HardDrive className="size-3.5" />
+          Google Drive
+        </button>
+      </div>
     </div>
   );
 });

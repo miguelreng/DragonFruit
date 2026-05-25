@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import ProjectBookmarkSerializer
-from plane.app.views.base import BaseViewSet
+from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.db.models import Project, ProjectBookmark, ProjectMember, WorkspaceMember
 
 
@@ -124,4 +124,43 @@ class WorkspaceProjectBookmarkViewSet(ProjectBookmarkViewSet):
             queryset=queryset,
             on_results=lambda bookmarks: ProjectBookmarkSerializer(bookmarks, many=True).data,
             default_per_page=50,
+        )
+
+
+class BookmarkExtensionContextEndpoint(BaseAPIView):
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def get(self, request, slug):
+        project_memberships = (
+            ProjectMember.objects.filter(
+                member=request.user,
+                workspace__slug=slug,
+                is_active=True,
+                role__in=[ROLE.ADMIN.value, ROLE.MEMBER.value],
+            )
+            .select_related("project", "workspace")
+            .order_by("project__name")
+        )
+        projects = [
+            {
+                "id": str(membership.project_id),
+                "name": membership.project.name,
+                "identifier": membership.project.identifier,
+                "workspace_slug": slug,
+                "workspace_name": membership.workspace.name,
+                "role": membership.role,
+            }
+            for membership in project_memberships
+        ]
+        return Response(
+            {
+                "user": {
+                    "id": str(request.user.id),
+                    "email": request.user.email,
+                    "display_name": getattr(request.user, "display_name", request.user.email),
+                },
+                "workspace_slug": slug,
+                "projects": projects,
+                "default_project_id": projects[0]["id"] if projects else None,
+            },
+            status=status.HTTP_200_OK,
         )

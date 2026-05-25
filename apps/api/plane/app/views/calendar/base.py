@@ -16,6 +16,7 @@ There are two halves to this module:
 """
 
 import os
+import tempfile
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote, urlencode
 
@@ -25,9 +26,12 @@ from django.db.models import Q
 from django.utils.html import escape
 from rest_framework import status
 from rest_framework.response import Response
+from openai import OpenAI
 
 from plane.app.permissions import allow_permission, ROLE
-from plane.db.models import DraftIssue, Issue, Project, State, UserCalendarAccount, Workspace
+from plane.db.models import Issue, Page, Project, ProjectPage, State, UserCalendarAccount, Workspace
+from plane.bgtasks.page_transaction_task import page_transaction
+from plane.app.views.external.base import get_llm_config
 from plane.license.utils.instance_value import get_configuration_value
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 
@@ -641,7 +645,7 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
 
 
 class MeetingNotesDraftEndpoint(BaseAPIView):
-    """Create or update a workspace draft from captured meeting notes."""
+    """Create or update a workspace document from captured meeting notes."""
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def post(self, request, slug):
@@ -652,6 +656,12 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
         meeting_id = str(request.data.get("meeting_id") or "").strip()
         meeting_title = str(request.data.get("meeting_title") or "Meeting").strip()
         notes = str(request.data.get("notes") or "").strip()
+        if request.FILES:
+            transcript, transcription_error = _transcribe_meeting_audio(request=request, workspace=workspace)
+            if transcription_error:
+                return Response({"error": transcription_error}, status=status.HTTP_400_BAD_REQUEST)
+            if transcript:
+                notes = transcript
         if not notes:
             return Response({"error": "Meeting notes are required"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -670,18 +680,62 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
             account_email=str(request.data.get("account_email") or ""),
         )
 
-        draft, created = DraftIssue.objects.update_or_create(
+        project = (
+            Project.objects.filter(
+                workspace=workspace,
+                archived_at__isnull=True,
+                project_projectmember__member=request.user,
+                project_projectmember__is_active=True,
+            )
+            .order_by("created_at")
+            .first()
+        )
+        if not project:
+            return Response({"error": "No project available for meeting notes"}, status=status.HTTP_400_BAD_REQUEST)
+
+        page = Page.objects.filter(
             workspace=workspace,
-            created_by=request.user,
             external_source="google_meeting_notes",
             external_id=external_key,
+        ).first()
+        created = page is None
+        old_description_html = None if created else page.description_html
+
+        if page is None:
+            page = Page(
+                workspace=workspace,
+                name=f"Meeting notes: {meeting_title}"[:255],
+                page_type=Page.PAGE_TYPE_DOC,
+                description_html=description_html,
+                owned_by=request.user,
+                access=Page.PRIVATE_ACCESS,
+                external_source="google_meeting_notes",
+                external_id=external_key,
+            )
+            page.save(created_by_id=request.user.id)
+        else:
+            page.name = f"Meeting notes: {meeting_title}"[:255]
+            page.description_html = description_html
+            page.page_type = Page.PAGE_TYPE_DOC
+            page.save(updated_by_id=request.user.id)
+
+        ProjectPage.objects.get_or_create(
+            workspace=workspace,
+            project=project,
+            page=page,
             defaults={
-                "name": f"Meeting notes: {meeting_title}"[:255],
-                "description_html": description_html,
-                "priority": "none",
-                "project": None,
+                "created_by_id": request.user.id,
+                "updated_by_id": request.user.id,
             },
         )
+        try:
+            page_transaction.delay(
+                new_description_html=description_html,
+                old_description_html=old_description_html,
+                page_id=str(page.id),
+            )
+        except Exception:
+            pass
 
         app_base_url = (
             getattr(settings, "APP_BASE_URL", None)
@@ -690,11 +744,11 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
 
         return Response(
             {
-                "id": str(draft.id),
-                "name": draft.name,
+                "id": str(page.id),
+                "name": page.name,
                 "created": created,
                 "workspace_slug": slug,
-                "url": f"{app_base_url}/{slug}/drafts/",
+                "url": f"{app_base_url}/{slug}/projects/{project.id}/pages/{page.id}",
             },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
@@ -732,6 +786,39 @@ def _meeting_notes_html(
         f"<h3>Next steps</h3>"
         f"<p>Move this draft into a project, convert it into tasks, or keep it as meeting context.</p>"
     )
+
+
+def _transcribe_meeting_audio(*, request, workspace: Workspace) -> tuple[str, str | None]:
+    api_key, _, provider = get_llm_config(workspace=workspace)
+    if (provider or "").lower() != "openai" or not api_key:
+        return "", "Meeting audio transcription requires an OpenAI key in workspace AI settings or instance LLM config."
+
+    client = OpenAI(api_key=api_key)
+    model = os.environ.get("LLM_TRANSCRIPTION_MODEL", "gpt-4o-transcribe")
+    parts = []
+    for field, label in (("system_audio", "Meeting audio"), ("mic_audio", "Microphone")):
+        uploaded = request.FILES.get(field)
+        if not uploaded:
+            continue
+        suffix = os.path.splitext(uploaded.name or "")[1] or ".m4a"
+        with tempfile.NamedTemporaryFile(suffix=suffix) as temp:
+            for chunk in uploaded.chunks():
+                temp.write(chunk)
+            temp.flush()
+            temp.seek(0)
+            try:
+                result = client.audio.transcriptions.create(
+                    model=model,
+                    file=temp,
+                    prompt="This is a work meeting. Speakers may switch between English and Spanish.",
+                )
+            except Exception as exc:
+                return "", f"Could not transcribe meeting audio: {exc}"
+        text = getattr(result, "text", "") or ""
+        text = text.strip()
+        if text:
+            parts.append(f"{label}:\n{text}")
+    return "\n\n".join(parts).strip(), None
 
 
 def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue, calendar_id: str | None = None) -> str:
