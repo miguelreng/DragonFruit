@@ -11,6 +11,7 @@ const savePageButton = document.querySelector("#save-page");
 const statusEl = document.querySelector("#status");
 
 let isAuthenticated = false;
+let authPollTimer = null;
 
 init();
 
@@ -39,10 +40,25 @@ async function refreshAuthState() {
       return;
     }
     isAuthenticated = Boolean(response?.authenticated);
+    if (response?.pending) {
+      authActionButton.textContent = "Connecting...";
+      authActionButton.dataset.connected = "false";
+      setStatus("Finish sign in", "loading");
+      startAuthPolling();
+      return;
+    }
+    if (response?.error) {
+      authActionButton.textContent = "Connect";
+      authActionButton.dataset.connected = "false";
+      setStatus(response.error, "error");
+      stopAuthPolling();
+      return;
+    }
     const label = response?.user?.display_name || response?.user?.email || "Connected";
     authActionButton.textContent = isAuthenticated ? label : "Connect";
     authActionButton.dataset.connected = String(isAuthenticated);
     setStatus(isAuthenticated ? "Connected" : "Connect account", isAuthenticated ? "success" : "");
+    if (isAuthenticated) stopAuthPolling();
   });
 }
 
@@ -77,12 +93,22 @@ async function toggleAuth() {
       setStatus(response?.error || "Could not connect", "error");
       return;
     }
-    isAuthenticated = true;
-    const label = response?.user?.display_name || response?.user?.email || "Connected";
-    authActionButton.textContent = label;
-    authActionButton.dataset.connected = "true";
-    setStatus("Connected", "success");
+    authActionButton.textContent = "Connecting...";
+    authActionButton.dataset.connected = "false";
+    setStatus("Finish sign in", "loading");
+    startAuthPolling();
   });
+}
+
+function startAuthPolling() {
+  if (authPollTimer) return;
+  authPollTimer = setInterval(refreshAuthState, 1200);
+}
+
+function stopAuthPolling() {
+  if (!authPollTimer) return;
+  clearInterval(authPollTimer);
+  authPollTimer = null;
 }
 
 async function loadProjects() {

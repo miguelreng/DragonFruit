@@ -34,8 +34,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   if (message?.type === "SIGN_IN") {
-    void respond(signIn(message.appUrl), sendResponse);
-    return true;
+    void startSignIn(message.appUrl);
+    sendResponse({ ok: true, pending: true });
+    return false;
   }
   if (message?.type === "SIGN_OUT") {
     void respond(signOut(), sendResponse);
@@ -70,9 +71,22 @@ async function signIn(appUrlValue) {
   });
   const token = new URL(redirectUrl).searchParams.get("api_token");
   if (!token) return { ok: false, error: "Login callback missing API token." };
-  await chrome.storage.sync.set({ appUrl, apiToken: token });
+  await chrome.storage.sync.set({ appUrl, apiToken: token, authStatus: "connected", authError: "" });
   const user = await fetchCurrentUser(appUrl, token);
   return { ok: true, user };
+}
+
+async function startSignIn(appUrlValue) {
+  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
+  await chrome.storage.sync.set({ appUrl, authStatus: "pending", authError: "" });
+  try {
+    await signIn(appUrl);
+  } catch (error) {
+    await chrome.storage.sync.set({
+      authStatus: "error",
+      authError: error?.message || "DragonFruit login failed.",
+    });
+  }
 }
 
 async function launchAuthFlow(details) {
@@ -93,20 +107,28 @@ async function launchAuthFlow(details) {
 }
 
 async function signOut() {
-  await chrome.storage.sync.remove(["apiToken", "projects", "projectId"]);
+  await chrome.storage.sync.remove(["apiToken", "projects", "projectId", "authStatus", "authError"]);
   return { ok: true };
 }
 
 async function getAuthState(appUrlValue) {
   const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
-  const { apiToken } = await chrome.storage.sync.get(["apiToken"]);
-  if (!apiToken) return { ok: true, authenticated: false };
+  const { apiToken, authStatus, authError } = await chrome.storage.sync.get(["apiToken", "authStatus", "authError"]);
+  if (!apiToken) {
+    return {
+      ok: true,
+      authenticated: false,
+      pending: authStatus === "pending",
+      error: authStatus === "error" ? authError || "DragonFruit login failed." : "",
+    };
+  }
   try {
     const user = await fetchCurrentUser(appUrl, apiToken);
+    await chrome.storage.sync.set({ authStatus: "connected", authError: "" });
     return { ok: true, authenticated: true, user };
   } catch {
     await chrome.storage.sync.remove(["apiToken"]);
-    return { ok: true, authenticated: false };
+    return { ok: true, authenticated: false, error: "Saved DragonFruit session expired." };
   }
 }
 
