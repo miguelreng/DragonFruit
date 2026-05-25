@@ -18,5 +18,5 @@
     }
   ],
   "host_permissions": ["<all_urls>"],
-  "permissions": ["activeTab", "contextMenus", "cookies", "scripting", "storage", "tabs"]
+  "permissions": ["activeTab", "contextMenus", "identity", "scripting", "storage", "tabs"]
 }

@@ -14,6 +14,20 @@ from urllib.parse import urlparse, urlencode
 ALLOWED_NATIVE_REDIRECT_SCHEMES = {"dragonfruitmini"}
 
 
+def is_allowed_native_redirect_url(url: str | None) -> bool:
+    if not url:
+        return False
+    parsed_url = urlparse(str(url))
+    if parsed_url.scheme in ALLOWED_NATIVE_REDIRECT_SCHEMES and parsed_url.path.startswith("/"):
+        return True
+    return (
+        parsed_url.scheme == "https"
+        and bool(parsed_url.hostname)
+        and parsed_url.hostname.endswith(".chromiumapp.org")
+        and parsed_url.path.startswith("/")
+    )
+
+
 def sanitize_filename(filename):
     """
     Sanitize a filename to prevent path traversal attacks.
@@ -125,7 +139,7 @@ def validate_next_path(next_path: str) -> str:
 
     # Allow a tightly-scoped native app callback URI (for desktop OAuth/login handoff).
     if parsed_url.scheme:
-        if parsed_url.scheme in ALLOWED_NATIVE_REDIRECT_SCHEMES and parsed_url.path.startswith("/"):
+        if is_allowed_native_redirect_url(next_path):
             if _contains_suspicious_patterns(next_path):
                 return ""
             return next_path
@@ -167,7 +181,7 @@ def get_safe_redirect_url(base_url: str, next_path: str = "", params: dict = {})
     validated_path = validate_next_path(next_path)
 
     # Direct native callback redirect.
-    if validated_path and urlparse(validated_path).scheme in ALLOWED_NATIVE_REDIRECT_SCHEMES:
+    if validated_path and is_allowed_native_redirect_url(validated_path):
         if params:
             query = urlencode(params)
             separator = "&" if "?" in validated_path else "?"
