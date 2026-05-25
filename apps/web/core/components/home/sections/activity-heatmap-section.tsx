@@ -23,6 +23,7 @@ const SECTION_ID = "activity";
 // sidebar is open.
 const VISIBLE_WEEKS = 20;
 const VISIBLE_DAYS = VISIBLE_WEEKS * 7;
+const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 const service = new HomePreferencesService();
 
@@ -65,6 +66,7 @@ function intensityClass(count: number, max: number, dim = false): string {
 }
 
 type GridCell = { date: string; count: number; docs: number; work_items: number } | null;
+type RenderGridCell = { key: string; cell: GridCell };
 
 /**
  * Pack the daily buckets into a `weeks x 7` grid (rows = weekdays Sun..Sat,
@@ -89,6 +91,13 @@ function buildGrid(buckets: TActivitySummary["daily_buckets"]): GridCell[][] {
     grid.push(week);
   }
   return grid;
+}
+
+function getRenderWeekCells(week: GridCell[], weekKey: string): RenderGridCell[] {
+  return week.map((cell, dayIndex) => ({
+    key: cell?.date ?? `${weekKey}-${WEEKDAY_KEYS[dayIndex]}`,
+    cell,
+  }));
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -208,7 +217,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
     if (summary.totals.docs > summary.totals.work_items * 2)
       return "You write more than you ticket — a doc-first workspace.";
     if (summary.totals.work_items > summary.totals.docs * 2)
-      return "Heavy on work items, light on docs. Consider writing one down.";
+      return "Heavy on tasks, light on docs. Consider writing one down.";
     return `${formatNumber(t)} entries across ${summary.active_days} active days.`;
   }, [summary]);
 
@@ -274,7 +283,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                         : "border-subtle text-placeholder hover:text-secondary")
                     }
                   >
-                    {tf === "docs" ? "Docs" : "Work items"}
+                    {tf === "docs" ? "Docs" : "Tasks"}
                     <span className="ml-1.5 text-placeholder tabular-nums">
                       {tf === "docs" ? summary.totals.docs : summary.totals.work_items}
                     </span>
@@ -286,7 +295,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
             {/* Stat cards */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <StatCard
-                label={tab === "overview" ? "Entries" : typeFocus === "docs" ? "Docs" : "Work items"}
+                label={tab === "overview" ? "Entries" : typeFocus === "docs" ? "Docs" : "Tasks"}
                 value={formatNumber(
                   tab === "overview"
                     ? summary.totals.items
@@ -300,8 +309,8 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
               <StatCard label="Longest streak" value={`${summary.longest_streak}d`} />
               <StatCard label="Peak hour" value={formatHour(summary.peak_hour)} />
               <StatCard label="Docs" value={formatNumber(summary.totals.docs)} />
-              <StatCard label="Work items" value={formatNumber(summary.totals.work_items)} />
-              <StatCard label="Top type" value={summary.top_type === "docs" ? "Docs" : "Work items"} />
+              <StatCard label="Tasks" value={formatNumber(summary.totals.work_items)} />
+              <StatCard label="Top type" value={summary.top_type === "docs" ? "Docs" : "Tasks"} />
             </div>
 
             {/* Heatmap renders a fixed recent window (VISIBLE_WEEKS) and
@@ -312,22 +321,25 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
             {grid.length > 0 && (
               <div className="min-w-0 overflow-hidden pt-1">
                 <div className="flex w-full gap-[3px]">
-                  {grid.map((week, wi) => (
-                    <div key={wi} className="flex flex-1 flex-col gap-[3px]">
-                      {week.map((cell, di) => {
-                        if (!cell) return <div key={di} className="aspect-square w-full" />;
-                        const value =
-                          tab === "overview" ? cell.count : typeFocus === "docs" ? cell.docs : cell.work_items;
-                        return (
-                          <div
-                            key={di}
-                            title={`${cell.date} — ${value} ${value === 1 ? "entry" : "entries"}`}
-                            className={"aspect-square w-full rounded-[3px] " + intensityClass(value, maxCount)}
-                          />
-                        );
-                      })}
-                    </div>
-                  ))}
+                  {grid.map((week) => {
+                    const weekKey = week.find((cell) => cell)?.date ?? "empty-week";
+                    return (
+                      <div key={weekKey} className="flex flex-1 flex-col gap-[3px]">
+                        {getRenderWeekCells(week, weekKey).map(({ key, cell }) => {
+                          if (!cell) return <div key={key} className="aspect-square w-full" />;
+                          const value =
+                            tab === "overview" ? cell.count : typeFocus === "docs" ? cell.docs : cell.work_items;
+                          return (
+                            <div
+                              key={key}
+                              title={`${cell.date} — ${value} ${value === 1 ? "entry" : "entries"}`}
+                              className={"aspect-square w-full rounded-[3px] " + intensityClass(value, maxCount)}
+                            />
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
