@@ -314,6 +314,13 @@ async function saveBookmark(payload) {
     await openSettings();
     throw new Error("Choose a workspace and project in the extension popup first.");
   }
+
+  const user = await fetchCurrentUser(settings.appUrl, settings.apiToken).catch(() => null);
+  const payloadWithAudit = {
+    ...payload,
+    ...(user?.id ? { updated_by: user.id } : {}),
+  };
+
   const response = await fetch(
     `${settings.appUrl}/api/workspaces/${settings.workspaceSlug}/projects/${settings.projectId}/bookmarks/`,
     {
@@ -323,7 +330,7 @@ async function saveBookmark(payload) {
         ...authorizedHeaders(settings.apiToken),
         "X-DragonFruit-Source": "chrome-extension",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payloadWithAudit),
     }
   );
   if (!response.ok) throw new Error(await bookmarkErrorMessage(response));

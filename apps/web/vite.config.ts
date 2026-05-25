@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir: mode === "production" ? false : undefined,
+    publicDir: path.resolve(__dirname, "public"),
     define: {
       "process.env": JSON.stringify(viteEnv),
     },

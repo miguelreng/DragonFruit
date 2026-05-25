@@ -43,7 +43,6 @@ export const links: LinksFunction = () => [
   { rel: "icon", type: "image/png", sizes: "32x32", href: favicon32 },
   { rel: "icon", type: "image/png", sizes: "16x16", href: favicon16 },
   { rel: "shortcut icon", href: faviconIco },
-  { rel: "manifest", href: "/site.webmanifest.json" },
   { rel: "apple-touch-icon", href: icon512 },
   { rel: "apple-touch-icon", sizes: "180x180", href: icon180 },
   { rel: "apple-touch-icon", sizes: "512x512", href: icon512 },
@@ -72,7 +71,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#fff" />
         {/* Meta info for PWA */}
         <meta name="application-name" content="DragonFruit" />

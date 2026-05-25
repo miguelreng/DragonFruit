@@ -216,11 +216,29 @@ export abstract class BaseWorkspaceRootStore implements IWorkspaceRootStore {
       if (res && res.id) {
         runInAction(() => {
           const currentWorkspace = this.workspaces[res.id] ?? {};
+          const previousSlug = currentWorkspace.slug ?? workspaceSlug;
           set(this.workspaces, res.id, {
             ...currentWorkspace,
             ...data,
             ...res,
           });
+          const nextSlug = this.workspaces[res.id]?.slug;
+
+          if (nextSlug && previousSlug !== nextSlug) {
+            if (this.router.workspaceSlug === previousSlug) {
+              this.router.setQuery({ ...this.router.query, workspaceSlug: nextSlug });
+            }
+
+            if (this.navigationPreferencesMap[previousSlug]) {
+              this.navigationPreferencesMap[nextSlug] = this.navigationPreferencesMap[previousSlug];
+              delete this.navigationPreferencesMap[previousSlug];
+            }
+
+            if (this.projectNavigationPreferencesMap[previousSlug]) {
+              this.projectNavigationPreferencesMap[nextSlug] = this.projectNavigationPreferencesMap[previousSlug];
+              delete this.projectNavigationPreferencesMap[previousSlug];
+            }
+          }
         });
       }
       return res;
