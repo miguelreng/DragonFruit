@@ -42,9 +42,9 @@ channels==4.1.0
 # anthropic ship as transitive deps via litellm, but pinning them
 # explicitly here keeps the existing /agent webhook + slash command paths
 # stable until they're migrated onto the abstraction.
-openai==1.63.2
+openai==2.8.0
 anthropic==0.39.0
-litellm==1.55.7
+litellm==1.80.17
 # slack
 slack-sdk==3.27.1
 # apm
