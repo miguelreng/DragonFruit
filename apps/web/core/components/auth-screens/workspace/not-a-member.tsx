@@ -15,6 +15,11 @@ export function NotAWorkspaceMember() {
     <DefaultLayout>
       <div className="grid h-full place-items-center p-4">
         <div className="space-y-8 text-center">
+          <img
+            src="/empty-state/renaissance-sketch/not-authorized.png"
+            alt=""
+            className="mx-auto h-40 w-40 object-contain"
+          />
           <div className="space-y-2">
             <h3 className="text-16 font-semibold">Not Authorized!</h3>
             <p className="mx-auto w-1/2 text-13 text-secondary">

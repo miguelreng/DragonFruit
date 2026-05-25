@@ -17,7 +17,7 @@ export function SidebarNavItem(props: TSidebarNavItem) {
   return (
     <div
       className={cn(
-        "group relative flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-md px-2 py-1 outline-none",
+        "group relative flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-lg px-2 py-1 outline-none",
         {
           "!bg-[#fff7f8] text-primary dark:!bg-danger-subtle": isActive,
           "text-secondary hover:bg-[#fffafb] active:bg-[#fff7f8] dark:hover:bg-danger-subtle-hover dark:active:bg-danger-subtle-active":

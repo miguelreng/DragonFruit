@@ -168,6 +168,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     menuButton.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
   };
 
+  const projectLogoProps = project?.logo_props;
+  const projectName = project?.name;
+
   useEffect(() => {
     const element = projectRef.current;
     const dragHandleElement = dragHandleRef.current;
@@ -193,11 +196,11 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
             render: ({ container }) => {
               const root = createRoot(container);
               root.render(
-                <div className="flex items-center rounded-sm bg-surface-1 p-1 pr-2 text-13">
+                <div className="flex items-center rounded-lg bg-surface-1 p-1 pr-2 text-13">
                   <div className="grid size-4 flex-shrink-0 place-items-center">
-                    {project && <Logo logo={project?.logo_props} />}
+                    {projectLogoProps && <Logo logo={projectLogoProps} />}
                   </div>
-                  <p className="truncate text-secondary">{project?.name}</p>
+                  <p className="truncate text-secondary">{projectName}</p>
                 </div>
               );
               return () => root.unmount();
@@ -210,13 +213,13 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
         element,
         canDrop: ({ source }) =>
           !disableDrop && source?.data?.id !== projectId && source?.data?.dragInstanceId === "PROJECTS",
-        getData: ({ input, element }) => {
+        getData: ({ input, element: targetElement }) => {
           const data = { id: projectId };
 
           // attach instruction for last in list
           return attachInstruction(data, {
             input,
-            element,
+            element: targetElement,
             currentLevel: 0,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
@@ -255,7 +258,16 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
         },
       })
     );
-  }, [projectId, isLastChild, projectListType, handleOnProjectDrop]);
+  }, [
+    disableDrag,
+    disableDrop,
+    handleOnProjectDrop,
+    isLastChild,
+    projectId,
+    projectListType,
+    projectLogoProps,
+    projectName,
+  ]);
 
   useEffect(() => {
     if (isMenuActive) toggleAnySidebarDropdown(true);
