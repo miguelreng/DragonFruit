@@ -46,7 +46,9 @@ function extractApiTokenFromHtml(html: string) {
     .replaceAll("&#x27;", "'")
     .replaceAll("&lt;", "<")
     .replaceAll("&gt;", ">");
-  const callbackMatch = decodedHtml.match(/https:\/\/[^"'<>\s]+\.chromiumapp\.org\/[^"'<>\s]*api_token=[^"'<>\s]+/);
+  const callbackMatch = decodedHtml.match(
+    /(?:https:\/\/[^"'<>\s]+\.chromiumapp\.org|dragonfruitmini:\/\/)[^"'<>\s]*api_token=[^"'<>\s]+/
+  );
   return callbackMatch ? extractApiToken(callbackMatch[0]) : "";
 }
 
