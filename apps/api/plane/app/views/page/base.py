@@ -80,15 +80,17 @@ class PageViewSet(BaseViewSet):
     model = Page
     permission_classes = [ProjectPagePermission]
     search_fields = ["name"]
+    ALLOWED_PAGE_TYPES = {choice[0] for choice in Page.PAGE_TYPE_CHOICES}
 
     def get_queryset(self):
+        page_type = self.request.query_params.get("page_type")
         subquery = UserFavorite.objects.filter(
             user=self.request.user,
             entity_type="page",
             entity_identifier=OuterRef("pk"),
             workspace__slug=self.kwargs.get("slug"),
         )
-        return self.filter_queryset(
+        queryset = self.filter_queryset(
             super()
             .get_queryset()
             .filter(workspace__slug=self.kwargs.get("slug"))
@@ -128,6 +130,9 @@ class PageViewSet(BaseViewSet):
             .filter(project=True)
             .distinct()
         )
+        if page_type and page_type in self.ALLOWED_PAGE_TYPES:
+            queryset = queryset.filter(page_type=page_type)
+        return queryset
 
     def create(self, request, slug, project_id):
         serializer = PageSerializer(

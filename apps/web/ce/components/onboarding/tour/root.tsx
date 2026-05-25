@@ -145,7 +145,7 @@ export const TourRoot = observer(function TourRoot(props: TOnboardingTourProps) 
       {step === "welcome" ? (
         <div className="w-4/5 overflow-hidden rounded-[10px] bg-surface-1 md:w-1/2 lg:w-2/5">
           <div className="h-full overflow-hidden">
-              <div
+            <div
               className="relative grid h-64 place-items-center bg-cover bg-center bg-no-repeat"
               style={{ backgroundImage: `url(${ReturnOfTheProdigalSon})` }}
             >

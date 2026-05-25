@@ -27,3 +27,36 @@ class TestPageAPIPost:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["name"] == "Whiteboard 1"
         assert response.data["page_type"] == "whiteboard"
+
+
+@pytest.mark.contract
+class TestPageAPIGet:
+    def get_pages_url(self, workspace_slug: str, project_id: str) -> str:
+        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/pages/"
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.page.base.page_transaction.delay", side_effect=Exception("broker unavailable"))
+    def test_list_pages_can_filter_by_page_type(self, _mock_page_tx, session_client, workspace):
+        project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
+        url = self.get_pages_url(workspace.slug, str(project.id))
+
+        doc_response = session_client.post(url, {"name": "Spec", "page_type": "doc"}, format="json")
+        whiteboard_response = session_client.post(url, {"name": "Flow", "page_type": "whiteboard"}, format="json")
+
+        assert doc_response.status_code == status.HTTP_201_CREATED
+        assert whiteboard_response.status_code == status.HTTP_201_CREATED
+
+        docs_response = session_client.get(f"{url}?page_type=doc")
+        whiteboards_response = session_client.get(f"{url}?page_type=whiteboard")
+        mixed_response = session_client.get(url)
+
+        assert docs_response.status_code == status.HTTP_200_OK
+        assert [page["page_type"] for page in docs_response.data] == ["doc"]
+        assert [page["name"] for page in docs_response.data] == ["Spec"]
+
+        assert whiteboards_response.status_code == status.HTTP_200_OK
+        assert [page["page_type"] for page in whiteboards_response.data] == ["whiteboard"]
+        assert [page["name"] for page in whiteboards_response.data] == ["Flow"]
+
+        assert mixed_response.status_code == status.HTTP_200_OK
+        assert {page["page_type"] for page in mixed_response.data} == {"doc", "whiteboard"}

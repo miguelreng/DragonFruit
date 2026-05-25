@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import type {
   DropTargetRecord,
@@ -19,6 +19,10 @@ import { observer } from "mobx-react";
 import { createRoot } from "react-dom/client";
 // plane types
 import type { InstructionType } from "@plane/types";
+// plane ui
+import { DropIndicator } from "@plane/ui";
+// plane utils
+import { cn } from "@plane/utils";
 // components
 import { StickyNote } from "../sticky";
 // helpers
@@ -36,13 +40,15 @@ type Props = {
 };
 
 export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props) {
-  const { stickyId, workspaceSlug, itemWidth, isLastChild, handleDrop, handleLayout } = props;
+  const { stickyId, workspaceSlug, itemWidth, isLastChild, isInFirstRow, isInLastRow, handleDrop, handleLayout } =
+    props;
   // states
   const [isDragging, setIsDragging] = useState(false);
-  const [_instruction, setInstruction] = useState<InstructionType | undefined>(undefined);
+  const [instruction, setInstruction] = useState<InstructionType | undefined>(undefined);
   // refs
   const elementRef = useRef<HTMLDivElement>(null);
   const dragHandleRef = useRef<HTMLDivElement>(null);
+  const previousRectRef = useRef<DOMRect | null>(null);
   // Capture latest values without re-running the dnd setup mid-drag.
   // Re-registering the draggable while a drag is in flight cancels it.
   const handleDropRef = useRef(handleDrop);
@@ -50,12 +56,32 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
   handleDropRef.current = handleDrop;
   isLastChildRef.current = isLastChild;
 
+  useLayoutEffect(() => {
+    const element = elementRef.current;
+    if (!element) return;
+
+    const previousRect = previousRectRef.current;
+    const nextRect = element.getBoundingClientRect();
+    previousRectRef.current = nextRect;
+
+    if (!previousRect || isDragging) return;
+
+    const deltaX = previousRect.left - nextRect.left;
+    const deltaY = previousRect.top - nextRect.top;
+    if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
+
+    element.animate([{ transform: `translate(${deltaX}px, ${deltaY}px)` }, { transform: "translate(0, 0)" }], {
+      duration: 220,
+      easing: "cubic-bezier(0.2, 0, 0, 1)",
+    });
+  });
+
   useEffect(() => {
     const element = elementRef.current;
     const dragHandle = dragHandleRef.current;
     if (!element || !dragHandle) return;
 
-    const initialData = { id: stickyId, type: "sticky" };
+    const initialData = { id: stickyId, type: "sticky", parentId: null, isGroup: false, isChild: false };
 
     return combine(
       draggable({
@@ -70,12 +96,12 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
         },
         onGenerateDragPreview: ({ nativeSetDragImage }) => {
           setCustomNativeDragPreview({
-            getOffset: pointerOutsideOfPreview({ x: "-200px", y: "0px" }),
+            getOffset: pointerOutsideOfPreview({ x: "16px", y: "12px" }),
             render: ({ container }) => {
               const root = createRoot(container);
               root.render(
-                <div className="scale-50">
-                  <div className="-m-2 max-h-[150px]">
+                <div className="shadow-2xl scale-[0.92] rotate-[1.5deg] opacity-95">
+                  <div className="max-h-[190px] overflow-hidden rounded-sm ring-1 ring-black/10">
                     <StickyNote
                       className={"w-[290px]"}
                       workspaceSlug={workspaceSlug.toString()}
@@ -94,12 +120,12 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
       dropTargetForElements({
         element,
         canDrop: ({ source }) => source.data?.type === "sticky" && source.data?.id !== stickyId,
-        getData: ({ input, element }) => {
+        getData: ({ input, element: targetElement }) => {
           const lastChild = isLastChildRef.current;
 
           return attachInstruction(initialData, {
             input,
-            element,
+            element: targetElement,
             currentLevel: 1,
             indentPerLevel: 0,
             mode: lastChild ? "last-in-group" : "standard",
@@ -107,8 +133,8 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
           });
         },
         onDrag: ({ self, source, location }) => {
-          const instruction = getInstructionFromPayload(self, source, location);
-          setInstruction(instruction);
+          const nextInstruction = getInstructionFromPayload(self, source, location);
+          setInstruction(nextInstruction);
         },
         onDragLeave: () => {
           setInstruction(undefined);
@@ -124,21 +150,36 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
   return (
     <div
       ref={elementRef}
-      className="box-border flex flex-col p-[8px]"
+      className={cn(
+        "box-border flex flex-col p-2 motion-safe:transition-[opacity,transform,filter] motion-safe:duration-200 motion-safe:ease-out",
+        {
+          "z-[1] scale-[0.985] opacity-30 grayscale-[0.2]": isDragging,
+        }
+      )}
       style={{
         width: itemWidth,
-        opacity: isDragging ? 0.4 : 1,
       }}
     >
-      {/* {!isInFirstRow && <DropIndicator isVisible={instruction === "reorder-above"} />} */}
+      {!isInFirstRow && (
+        <DropIndicator
+          classNames="my-1 rounded-full motion-safe:transition-colors"
+          isVisible={instruction === "reorder-above"}
+        />
+      )}
       <StickyNote
         key={stickyId || "new"}
         workspaceSlug={workspaceSlug}
         stickyId={stickyId}
         handleLayout={handleLayout}
         dragHandleRef={dragHandleRef}
+        isDragging={isDragging}
       />
-      {/* {!isInLastRow && <DropIndicator isVisible={instruction === "reorder-below"} />} */}
+      {(isInLastRow || isLastChild) && (
+        <DropIndicator
+          classNames="my-1 rounded-full motion-safe:transition-colors"
+          isVisible={instruction === "reorder-below"}
+        />
+      )}
     </div>
   );
 });

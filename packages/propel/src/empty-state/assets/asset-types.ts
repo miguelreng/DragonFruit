@@ -48,6 +48,7 @@ export type VerticalStackAssetType =
   | "server-error"
   | "teamspace"
   | "view"
+  | "whiteboard"
   | "work-item";
 
 // Illustration Asset Types

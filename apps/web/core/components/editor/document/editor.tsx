@@ -16,6 +16,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
 // plane web hooks
 import { useEditorFlagging } from "@/plane-web/hooks/use-editor-flagging";
+import { useDocEmbed } from "@/plane-web/hooks/use-doc-embed";
 import { useIssueEmbed } from "@/plane-web/hooks/use-issue-embed";
 // local imports
 import { EditorMentionsRoot } from "../embeds/mentions";
@@ -77,7 +78,24 @@ export const DocumentEditor = forwardRef(function DocumentEditor(
     projectId,
     workspaceSlug,
   });
-  const embedConfig = useMemo(() => ({ issue: issueEmbedProps }), [issueEmbedProps]);
+  const {
+    whiteboardEmbedProps,
+    stickyEmbedProps,
+    taskViewEmbedProps,
+    renderPicker: renderDocEmbedPicker,
+  } = useDocEmbed({
+    projectId,
+    workspaceSlug,
+  });
+  const embedConfig = useMemo(
+    () => ({
+      issue: issueEmbedProps,
+      whiteboard: whiteboardEmbedProps,
+      sticky: stickyEmbedProps,
+      taskView: taskViewEmbedProps,
+    }),
+    [issueEmbedProps, stickyEmbedProps, taskViewEmbedProps, whiteboardEmbedProps]
+  );
   // editor config
   const { getEditorFileHandlers } = useEditorConfig();
 
@@ -111,6 +129,7 @@ export const DocumentEditor = forwardRef(function DocumentEditor(
         containerClassName={cn("relative pb-3 pl-3", containerClassName)}
       />
       {renderWorkItemPicker()}
+      {renderDocEmbedPicker()}
     </>
   );
 });

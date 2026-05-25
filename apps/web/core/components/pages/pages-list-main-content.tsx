@@ -12,7 +12,7 @@ import { EUserPermissionsLevel, EPageAccess } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage, TPageNavigationTabs } from "@plane/types";
+import type { TPage, TPageNavigationTabs, TPageType } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 // components
 import { PageLoader } from "@/components/pages/loaders/page-loader";
@@ -23,12 +23,13 @@ import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 
 type Props = {
   children: React.ReactNode;
+  contentType?: TPageType;
   pageType: TPageNavigationTabs;
   storeType: EPageStoreType;
 };
 
 export const PagesListMainContent = observer(function PagesListMainContent(props: Props) {
-  const { children, pageType, storeType } = props;
+  const { children, contentType = "doc", pageType, storeType } = props;
   // plane hooks
   const { t } = useTranslation();
   // store hooks
@@ -43,8 +44,14 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
   const router = useRouter();
   const { workspaceSlug } = useParams();
   // derived values
-  const pageIds = getCurrentProjectPageIdsByTab(pageType);
-  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType);
+  const pageIds = getCurrentProjectPageIdsByTab(pageType, contentType);
+  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType, contentType);
+  const isWhiteboard = contentType === "whiteboard";
+  const emptyStateTitle = isWhiteboard ? "No whiteboards yet" : t("project_empty_state.pages.title");
+  const emptyStateDescription = isWhiteboard
+    ? "Create a whiteboard to sketch ideas, flows, and project plans."
+    : t("project_empty_state.pages.description");
+  const emptyStateActionLabel = isWhiteboard ? "Add whiteboard" : t("project_empty_state.pages.cta_primary");
   const canPerformEmptyStateActions = allowPermissions(
     [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER],
     EUserPermissionsLevel.PROJECT
@@ -56,6 +63,7 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
 
     const payload: Partial<TPage> = {
       access: pageType === "private" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
+      page_type: contentType,
     };
 
     try {
@@ -87,12 +95,12 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
     if (!isAnyPageAvailable) {
       return (
         <EmptyStateDetailed
-          assetKey="page"
-          title={t("project_empty_state.pages.title")}
-          description={t("project_empty_state.pages.description")}
+          assetKey={isWhiteboard ? "whiteboard" : "page"}
+          title={emptyStateTitle}
+          description={emptyStateDescription}
           actions={[
             {
-              label: t("project_empty_state.pages.cta_primary"),
+              label: emptyStateActionLabel,
               onClick: () => {
                 handleCreatePage();
               },
@@ -106,12 +114,12 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
     if (pageType === "public")
       return (
         <EmptyStateDetailed
-          assetKey="page"
-          title={t("project_empty_state.pages.title")}
-          description={t("project_empty_state.pages.description")}
+          assetKey={isWhiteboard ? "whiteboard" : "page"}
+          title={emptyStateTitle}
+          description={emptyStateDescription}
           actions={[
             {
-              label: t("project_empty_state.pages.cta_primary"),
+              label: emptyStateActionLabel,
               onClick: () => {
                 handleCreatePage();
               },
@@ -124,12 +132,12 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
     if (pageType === "private")
       return (
         <EmptyStateDetailed
-          assetKey="page"
-          title={t("project_empty_state.pages.title")}
-          description={t("project_empty_state.pages.description")}
+          assetKey={isWhiteboard ? "whiteboard" : "page"}
+          title={emptyStateTitle}
+          description={emptyStateDescription}
           actions={[
             {
-              label: t("project_empty_state.pages.cta_primary"),
+              label: emptyStateActionLabel,
               onClick: () => {
                 handleCreatePage();
               },
@@ -142,7 +150,7 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
     if (pageType === "archived")
       return (
         <EmptyStateDetailed
-          assetKey="page"
+          assetKey={isWhiteboard ? "whiteboard" : "page"}
           title={t("project_empty_state.archive_pages.title")}
           description={t("project_empty_state.archive_pages.description")}
         />

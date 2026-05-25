@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useState, type Ref } from "react";
+import { useCallback, useMemo, useState, type Ref } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { Minimize2 } from "@/components/icons/lucide-shim";
@@ -29,9 +29,19 @@ type TProps = {
   showToolbar?: boolean;
   handleLayout?: () => void;
   dragHandleRef?: Ref<HTMLDivElement>;
+  isDragging?: boolean;
 };
 export const StickyNote = observer(function StickyNote(props: TProps) {
-  const { onClose, workspaceSlug, className = "", stickyId, showToolbar, handleLayout, dragHandleRef } = props;
+  const {
+    onClose,
+    workspaceSlug,
+    className = "",
+    stickyId,
+    showToolbar,
+    handleLayout,
+    dragHandleRef,
+    isDragging,
+  } = props;
   // navigation
   // const pathName = usePathname();
   // states
@@ -41,7 +51,10 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
   // sticky operations
   const { stickyOperations } = useStickyOperations({ workspaceSlug });
   // derived values
-  const stickyData: Partial<TSticky> = stickyId ? stickies[stickyId] : { background_color: getRandomStickyColor() };
+  const stickyData: Partial<TSticky> = useMemo(
+    () => (stickyId ? stickies[stickyId] : { background_color: getRandomStickyColor() }),
+    [stickies, stickyId]
+  );
   // const isStickiesPage = pathName?.includes("stickies");
   const backgroundColor =
     STICKY_COLORS_LIST.find((c) => c.key === stickyData?.background_color)?.backgroundColor ||
@@ -58,14 +71,15 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
         });
       }
     },
-    [stickyId, stickyOperations]
+    [stickyData, stickyId, stickyOperations]
   );
 
-  const debouncedFormSave = useCallback(
-    debounce(async (payload: Partial<TSticky>) => {
-      await handleChange(payload);
-    }, 500),
-    [stickyOperations, stickyData, handleChange]
+  const debouncedFormSave = useMemo(
+    () =>
+      debounce(async (payload: Partial<TSticky>) => {
+        await handleChange(payload);
+      }, 500),
+    [handleChange]
   );
 
   const handleDelete = async () => {
@@ -82,12 +96,18 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
         handleClose={() => setIsDeleteModalOpen(false)}
       />
       <div
-        className={cn("group/sticky relative flex h-fit w-full flex-col overflow-y-scroll rounded-sm", className)}
+        className={cn(
+          "group/sticky shadow-sm hover:shadow-md relative flex h-fit w-full flex-col overflow-y-scroll rounded-sm ring-1 ring-black/5 transition-[box-shadow,transform,filter] duration-200 ease-out hover:-translate-y-0.5",
+          {
+            "shadow-lg ring-accent-primary/30 cursor-grabbing": isDragging,
+          },
+          className
+        )}
         style={{
           backgroundColor,
         }}
       >
-        {dragHandleRef && <StickyItemDragHandle ref={dragHandleRef} />}
+        {dragHandleRef && <StickyItemDragHandle ref={dragHandleRef} isDragging={isDragging} />}
         {onClose && (
           <button
             type="button"

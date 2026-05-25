@@ -18,15 +18,18 @@ import {
   ImageIcon,
   Link as LinkIcon,
   List,
+  ListChecks,
   ListOrdered,
   ListTodo,
   MessageCircle,
   MessageSquareText,
   MinusSquare,
   PanelRightOpen,
+  PenTool,
   Plus,
   Smile,
   Sparkles,
+  StickyNote,
   Table,
   TextQuote,
 } from "@plane/icons";
@@ -80,6 +83,39 @@ const applyCalloutPreset = (
     else window.localStorage.removeItem("editor-calloutComponent-background");
   }
   insertCallout(editor, range);
+};
+
+const insertDocEmbed = ({
+  editor,
+  range,
+  embedType,
+  attrs,
+}: CommandProps & {
+  embedType: "whiteboard" | "sticky" | "task_view";
+  attrs: {
+    entityId: string;
+    projectId?: string;
+    workspaceSlug: string;
+    title?: string;
+    snapshot?: unknown;
+  };
+}) => {
+  editor
+    .chain()
+    .focus()
+    .deleteRange(range)
+    .insertContent({
+      type: CORE_EXTENSIONS.DOC_EMBED,
+      attrs: {
+        embed_type: embedType,
+        entity_identifier: attrs.entityId,
+        project_identifier: attrs.projectId,
+        workspace_identifier: attrs.workspaceSlug,
+        title: attrs.title,
+        snapshot: attrs.snapshot,
+      },
+    })
+    .run();
 };
 
 export const getSlashCommandFilteredSections =
@@ -433,6 +469,93 @@ export const getSlashCommandFilteredSections =
             command: ({ editor, range }: CommandProps) => {
               editor.chain().focus().deleteRange(range).run();
               embedConfig.issue?.onTranscriptRequest?.();
+            },
+          });
+        }
+        if (embedConfig?.whiteboard?.onPickerRequest) {
+          workItems.push({
+            commandKey: "external-embed",
+            key: "embed-whiteboard",
+            title: "Whiteboard",
+            description: "Embed a whiteboard canvas",
+            searchTerms: ["whiteboard", "canvas", "draw", "diagram", "sketch"],
+            icon: <PenTool className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              embedConfig.whiteboard?.onPickerRequest?.({
+                embedType: "whiteboard",
+                mode: "embed",
+                insertEmbed: (attrs) =>
+                  insertDocEmbed({
+                    editor,
+                    range,
+                    embedType: "whiteboard",
+                    attrs: {
+                      entityId: attrs.entityId,
+                      projectId: attrs.projectId,
+                      workspaceSlug: attrs.workspaceSlug,
+                      title: attrs.title,
+                      snapshot: attrs.snapshot,
+                    },
+                  }),
+              });
+            },
+          });
+        }
+        if (embedConfig?.sticky?.onPickerRequest) {
+          workItems.push({
+            commandKey: "external-embed",
+            key: "embed-sticky",
+            title: "Sticky",
+            description: "Embed a sticky note",
+            searchTerms: ["sticky", "note", "memo", "post-it"],
+            icon: <StickyNote className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              embedConfig.sticky?.onPickerRequest?.({
+                embedType: "sticky",
+                mode: "embed",
+                insertEmbed: (attrs) =>
+                  insertDocEmbed({
+                    editor,
+                    range,
+                    embedType: "sticky",
+                    attrs: {
+                      entityId: attrs.entityId,
+                      projectId: attrs.projectId,
+                      workspaceSlug: attrs.workspaceSlug,
+                      title: attrs.title,
+                      snapshot: attrs.snapshot,
+                    },
+                  }),
+              });
+            },
+          });
+        }
+        if (embedConfig?.taskView?.onPickerRequest) {
+          workItems.push({
+            commandKey: "external-embed",
+            key: "embed-task-view",
+            title: "Task view",
+            description: "Embed a saved task view",
+            searchTerms: ["task view", "view", "issues", "tasks", "filter", "list"],
+            icon: <ListChecks className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              embedConfig.taskView?.onPickerRequest?.({
+                embedType: "task_view",
+                mode: "embed",
+                insertEmbed: (attrs) =>
+                  insertDocEmbed({
+                    editor,
+                    range,
+                    embedType: "task_view",
+                    attrs: {
+                      entityId: attrs.entityId,
+                      projectId: attrs.projectId,
+                      workspaceSlug: attrs.workspaceSlug,
+                      title: attrs.title,
+                      snapshot: attrs.snapshot,
+                    },
+                  }),
+              });
             },
           });
         }

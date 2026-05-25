@@ -6,6 +6,27 @@
 
 export type TAvatarSize = "sm" | "md" | "base" | "lg" | number;
 
+const AVATAR_PLACEHOLDER_PATHS = [
+  "/avatar-placeholders/renaissance-headshot-01.jpg",
+  "/avatar-placeholders/renaissance-headshot-02.jpg",
+  "/avatar-placeholders/renaissance-headshot-03.jpg",
+  "/avatar-placeholders/renaissance-headshot-04.jpg",
+  "/avatar-placeholders/renaissance-headshot-05.jpg",
+  "/avatar-placeholders/renaissance-headshot-06.jpg",
+  "/avatar-placeholders/renaissance-headshot-07.jpg",
+  "/avatar-placeholders/renaissance-headshot-08.jpg",
+  "/avatar-placeholders/renaissance-headshot-09.jpg",
+  "/avatar-placeholders/renaissance-headshot-10.jpg",
+] as const;
+
+export const getAvatarPlaceholderSrc = (seed = "avatar") => {
+  let hash = 0;
+
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+
+  return AVATAR_PLACEHOLDER_PATHS[hash % AVATAR_PLACEHOLDER_PATHS.length];
+};
+
 /**
  * Get the size details based on the size prop
  * @param size The size of the avatar

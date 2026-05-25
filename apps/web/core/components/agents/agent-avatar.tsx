@@ -56,7 +56,13 @@ export function AgentAvatar({ seed, name, src, size = "base", showBadge = true, 
   // wrapper unsized for those.
   const isNumericSize = typeof size === "number";
   const fallbackNamedSizeClass =
-    size === "sm" ? "h-5 w-5 text-11" : size === "md" ? "h-6 w-6 text-12" : size === "lg" ? "h-10 w-10 text-16" : "h-8 w-8 text-14";
+    size === "sm"
+      ? "h-5 w-5 text-11"
+      : size === "md"
+        ? "h-6 w-6 text-12"
+        : size === "lg"
+          ? "h-10 w-10 text-16"
+          : "h-8 w-8 text-14";
   const badgeSize = isNumericSize
     ? size >= 36
       ? "size-4"

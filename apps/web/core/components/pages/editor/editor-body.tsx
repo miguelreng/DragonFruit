@@ -37,6 +37,7 @@ import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser } from "@/hooks/store/user";
 import { usePageFilters } from "@/hooks/use-page-filters";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
+import { useDocEmbed } from "@/plane-web/hooks/use-doc-embed";
 import { useIssueEmbed } from "@/plane-web/hooks/use-issue-embed";
 // plane web imports
 import type { TCustomEventHandlers } from "@/hooks/use-realtime-page-events";
@@ -136,7 +137,24 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     workspaceSlug,
     onInsertGeneratedContent: insertGeneratedSpec,
   });
-  const embedConfig = useMemo(() => ({ issue: issueEmbedProps }), [issueEmbedProps]);
+  const {
+    whiteboardEmbedProps,
+    stickyEmbedProps,
+    taskViewEmbedProps,
+    renderPicker: renderDocEmbedPicker,
+  } = useDocEmbed({
+    projectId,
+    workspaceSlug,
+  });
+  const embedConfig = useMemo(
+    () => ({
+      issue: issueEmbedProps,
+      whiteboard: whiteboardEmbedProps,
+      sticky: stickyEmbedProps,
+      taskView: taskViewEmbedProps,
+    }),
+    [issueEmbedProps, stickyEmbedProps, taskViewEmbedProps, whiteboardEmbedProps]
+  );
   // block-level comments — a single floating popover handles both
   // "create a new thread" and "view + reply to an existing thread".
   // We track the marked span (anchor) + its blockId; setting either
@@ -409,6 +427,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             isFetchingFallbackBinary={isFetchingFallbackBinary}
           />
           {renderWorkItemPicker()}
+          {renderDocEmbedPicker()}
           {renderTranscriptModal()}
           {/* One floating widget for both "add comment" and "view
               thread / reply". Anchored to the marked span via Popper. */}

@@ -6,6 +6,9 @@
 
 export type TEmbedConfig = {
   issue?: TIssueEmbedConfig;
+  whiteboard?: TDocEmbedConfig<"whiteboard">;
+  sticky?: TDocEmbedConfig<"sticky">;
+  taskView?: TDocEmbedConfig<"task_view">;
 };
 
 export type TReadOnlyEmbedConfig = TEmbedConfig;
@@ -17,6 +20,25 @@ export type TWorkItemEmbedInsertAttrs = {
 };
 
 export type TWorkItemPickerMode = "embed" | "create";
+
+export type TDocEmbedType = "whiteboard" | "sticky" | "task_view";
+
+export type TDocEmbedInsertAttrs = {
+  embedType: TDocEmbedType;
+  entityId: string;
+  workspaceSlug: string;
+  projectId?: string;
+  title?: string;
+  snapshot?: unknown;
+};
+
+export type TDocEmbedPickerMode = "embed" | "create";
+
+export type TDocEmbedPickerRequest<T extends TDocEmbedType = TDocEmbedType> = {
+  embedType: T;
+  mode: TDocEmbedPickerMode;
+  insertEmbed: (attrs: TDocEmbedInsertAttrs) => void;
+};
 
 export type TWorkItemPickerRequest = {
   mode: TWorkItemPickerMode;
@@ -40,4 +62,18 @@ export type TIssueEmbedConfig = {
   projectId?: string;
   // Creates a work item from a title in the doc's project. Resolves null on failure.
   onConvertToTask?: (params: { title: string; description?: string }) => Promise<TWorkItemEmbedInsertAttrs | null>;
+};
+
+export type TDocEmbedConfig<T extends TDocEmbedType = TDocEmbedType> = {
+  widgetCallback: (args: {
+    embedType: T;
+    entityId: string;
+    projectId: string | undefined;
+    workspaceSlug: string | undefined;
+    title: string | undefined;
+    snapshot: unknown;
+  }) => React.ReactNode;
+  onPickerRequest?: (request: TDocEmbedPickerRequest<T>) => void;
+  workspaceSlug?: string;
+  projectId?: string;
 };

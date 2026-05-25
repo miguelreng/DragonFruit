@@ -242,6 +242,10 @@ def _looks_like_document_request(text: str) -> bool:
     return bool(_DOCUMENT_CREATION_RE.search(text or ""))
 
 
+def _should_use_agent_tools(tool_mode: str | None) -> bool:
+    return (tool_mode or "").strip().lower() != "none"
+
+
 def _normalise_document_subject(text: str) -> str:
     """Best-effort cleanup of conversational doc requests into a topic."""
     cleaned = " ".join((text or "").split()).strip(" .?!")
@@ -933,6 +937,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         content = (request.data.get("content") or "").strip()
         raw_attachments = request.data.get("attachments") or []
         project_id = (request.data.get("project_id") or "").strip() or None
+        use_agent_tools = _should_use_agent_tools(request.data.get("tool_mode"))
         # Empty content is only allowed when there's at least one
         # attachment — the LLM gets enough to work with from "what's
         # this CSV?" without any typed message.
@@ -991,7 +996,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 status=status.HTTP_200_OK,
             )
 
-        is_document_request = _looks_like_document_request(content)
+        is_document_request = use_agent_tools and _looks_like_document_request(content)
         document_subject = _normalise_document_subject(content) if is_document_request else ""
         document_title = _title_from_subject(document_subject) if document_subject else ""
         research_results = _search_web(document_subject or content) if is_document_request else []
@@ -1042,6 +1047,12 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 ]
             )
             system = f"{system}\n\n" + "\n".join(interpreted)
+        elif not use_agent_tools:
+            system = (
+                f"{system}\n\n"
+                "For this request, tool calls are unavailable. Answer directly in plain text. "
+                "Do not claim to have searched the workspace, searched the web, or created anything."
+            )
 
         try:
             provider = LLMProvider.from_agent(agent)
@@ -1090,28 +1101,30 @@ class AgentChatMessageEndpoint(BaseAPIView):
         # any multimodal serialisation cost for the common case.
         user_prompt = _build_user_prompt(content, attachments)
 
-        tools = [
-            _make_web_search_tool(),
-            _make_search_workspace_tool(
-                workspace=session.workspace,
-                user=request.user,
-                project_id=project_id,
-            ),
-            _make_create_document_tool(
-                workspace=session.workspace,
-                user=request.user,
-                project_id=project_id,
-            ),
-            _make_create_task_tool(
-                workspace=session.workspace,
-                user=request.user,
-                project_id=project_id,
-            ),
-            _make_create_sticky_tool(
-                workspace=session.workspace,
-                user=request.user,
-            ),
-        ]
+        tools = []
+        if use_agent_tools:
+            tools = [
+                _make_web_search_tool(),
+                _make_search_workspace_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
+                _make_create_document_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
+                _make_create_task_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
+                _make_create_sticky_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                ),
+            ]
 
         try:
             result = provider.run(

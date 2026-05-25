@@ -10,6 +10,7 @@ from plane.app.views.agent.chat import (
     _looks_like_document_request,
     _make_create_document_tool,
     _normalise_document_subject,
+    _should_use_agent_tools,
     _title_from_subject,
 )
 from plane.db.models import Agent, Page, Project, ProjectPage, WorkspaceMember
@@ -120,3 +121,16 @@ class TestAgentAPI:
     )
     def test_chat_document_request_detector_requires_explicit_creation(self, prompt, expected):
         assert _looks_like_document_request(prompt) is expected
+
+    @pytest.mark.parametrize(
+        ("tool_mode", "expected"),
+        [
+            ("none", False),
+            ("NONE", False),
+            ("", True),
+            (None, True),
+            ("auto", True),
+        ],
+    )
+    def test_chat_tool_mode_can_disable_agent_tools(self, tool_mode, expected):
+        assert _should_use_agent_tools(tool_mode) is expected

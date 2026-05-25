@@ -26,7 +26,25 @@ import { useProject } from "@/hooks/store/use-project";
 import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 
-export const PagesListHeader = observer(function PagesListHeader() {
+type Props = {
+  contentType?: TPageType;
+};
+
+const PAGE_CONTENT_META: Record<TPageType, { addLabel: string; breadcrumbLabel: string; menuLabel: string }> = {
+  doc: {
+    addLabel: "Add page",
+    breadcrumbLabel: "Pages",
+    menuLabel: "Doc",
+  },
+  whiteboard: {
+    addLabel: "Add whiteboard",
+    breadcrumbLabel: "Whiteboards",
+    menuLabel: "Whiteboard",
+  },
+};
+
+export const PagesListHeader = observer(function PagesListHeader(props: Props) {
+  const { contentType = "doc" } = props;
   // states
   const [isCreatingPage, setIsCreatingPage] = useState(false);
   // router
@@ -34,11 +52,14 @@ export const PagesListHeader = observer(function PagesListHeader() {
   const { workspaceSlug, projectId } = useParams();
   const searchParams = useSearchParams();
   const pageType = searchParams.get("type");
+  const contentMeta = PAGE_CONTENT_META[contentType];
+  const HeaderIcon = contentType === "whiteboard" ? PenTool : PageIcon;
+  const MenuIcon = contentType === "whiteboard" ? PenTool : FileText;
   // store hooks
   const { currentProjectDetails, loader } = useProject();
   const { canCurrentUserCreatePage, createPage } = usePageStore(EPageStoreType.PROJECT);
   // handle page create
-  const handleCreatePage = async (kind: TPageType = "doc") => {
+  const handleCreatePage = async (kind: TPageType = contentType) => {
     setIsCreatingPage(true);
 
     const payload: Partial<TPage> = {
@@ -77,9 +98,11 @@ export const PagesListHeader = observer(function PagesListHeader() {
           <Breadcrumbs.Item
             component={
               <BreadcrumbLink
-                label="Pages"
-                href={`/${workspaceSlug}/projects/${currentProjectDetails?.id}/pages/`}
-                icon={<PageIcon className="h-4 w-4 text-tertiary" />}
+                label={contentMeta.breadcrumbLabel}
+                href={`/${workspaceSlug}/projects/${currentProjectDetails?.id}/${
+                  contentType === "whiteboard" ? "whiteboards" : "pages"
+                }/`}
+                icon={<HeaderIcon className="h-4 w-4 text-tertiary" />}
                 isLast
               />
             }
@@ -94,14 +117,14 @@ export const PagesListHeader = observer(function PagesListHeader() {
               <Button
                 variant="primary"
                 size="lg"
-                onClick={() => handleCreatePage("doc")}
+                onClick={() => handleCreatePage(contentType)}
                 loading={isCreatingPage}
                 className="rounded-r-none bg-[#e548a5] hover:bg-[#d93d9a] active:bg-[#c9368e]"
               >
-                {isCreatingPage ? "Adding" : "Add page"}
+                {isCreatingPage ? "Adding" : contentMeta.addLabel}
               </Button>
               <Menu.Button
-                aria-label="Add page menu"
+                aria-label={`Add ${contentMeta.menuLabel.toLowerCase()} menu`}
                 className="flex items-center rounded-r-md bg-[#e548a5] px-1.5 text-white hover:bg-[#d93d9a] active:bg-[#c9368e]"
               >
                 <ChevronDown className="size-4" />
@@ -111,19 +134,10 @@ export const PagesListHeader = observer(function PagesListHeader() {
               <Menu.Item>
                 <button
                   type="button"
-                  onClick={() => handleCreatePage("doc")}
+                  onClick={() => handleCreatePage(contentType)}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-12 hover:bg-layer-1-hover"
                 >
-                  <FileText className="size-4" /> Doc
-                </button>
-              </Menu.Item>
-              <Menu.Item>
-                <button
-                  type="button"
-                  onClick={() => handleCreatePage("whiteboard")}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-12 hover:bg-layer-1-hover"
-                >
-                  <PenTool className="size-4" /> Whiteboard
+                  <MenuIcon className="size-4" /> {contentMeta.menuLabel}
                 </button>
               </Menu.Item>
             </Menu.Items>

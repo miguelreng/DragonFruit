@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable no-await-in-loop, react/no-array-index-key */
+
 import { observer } from "mobx-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getRandomLabelColor } from "@plane/constants";
@@ -57,7 +59,12 @@ type Props = {
   onClose: () => void;
 };
 
-export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, source = "csv", isOpen, onClose }: Props) {
+export const CsvImportModal = observer(function CsvImportModal({
+  workspaceSlug,
+  source = "csv",
+  isOpen,
+  onClose,
+}: Props) {
   const { t } = useTranslation();
   const { workspaceProjectIds, getProjectById } = useProject();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,7 +91,15 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
       setProjectId("");
       setFile(null);
       setParsed(null);
-      setMapping({ name: null, description: null, priority: null, status: null, due_date: null, labels: null, assignee: null });
+      setMapping({
+        name: null,
+        description: null,
+        priority: null,
+        status: null,
+        due_date: null,
+        labels: null,
+        assignee: null,
+      });
       setDetectedSource("csv");
       setDelimiter(",");
       setZipCsvCount(0);
@@ -131,7 +146,15 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
   const handleClearFile = () => {
     setFile(null);
     setParsed(null);
-    setMapping({ name: null, description: null, priority: null, status: null, due_date: null, labels: null, assignee: null });
+    setMapping({
+      name: null,
+      description: null,
+      priority: null,
+      status: null,
+      due_date: null,
+      labels: null,
+      assignee: null,
+    });
     setDetectedSource("csv");
     setDelimiter(",");
     setZipCsvCount(0);
@@ -218,11 +241,17 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
       const targetDate = mapping.due_date !== null ? parseDueDate(row[mapping.due_date]) : undefined;
       const { stateId, labelIds } = await ensureStateAndLabels(projectId, row);
       const assigneeRaw =
-        mapping.assignee !== null && row[mapping.assignee]?.trim() ? `\n\nImported assignee: ${row[mapping.assignee].trim()}` : "";
+        mapping.assignee !== null && row[mapping.assignee]?.trim()
+          ? `\n\nImported assignee: ${row[mapping.assignee].trim()}`
+          : "";
       try {
         await issueService.createIssue(workspaceSlug, projectId, {
           name,
-          description_html: description ? `<p>${escapeHtml(description + assigneeRaw)}</p>` : assigneeRaw ? `<p>${escapeHtml(assigneeRaw.trim())}</p>` : undefined,
+          description_html: description
+            ? `<p>${escapeHtml(description + assigneeRaw)}</p>`
+            : assigneeRaw
+              ? `<p>${escapeHtml(assigneeRaw.trim())}</p>`
+              : undefined,
           priority,
           state_id: stateId,
           label_ids: labelIds,
@@ -291,11 +320,14 @@ export const CsvImportModal = observer(function CsvImportModal({ workspaceSlug, 
           </h3>
           <p className="mt-1 text-13 text-tertiary">{t("workspace_settings.settings.imports.csv_modal.file_hint")}</p>
           <p className="mt-1 text-11 text-tertiary">
-            Source: <span className="text-secondary">{source === "csv" ? "Auto detect" : source === "notion" ? "Notion" : "ClickUp"}</span>
+            Source:{" "}
+            <span className="text-secondary">
+              {source === "csv" ? "Auto detect" : source === "notion" ? "Notion" : "ClickUp"}
+            </span>
             {parsed && (
               <>
-                {" · "}Detected: <span className="text-secondary capitalize">{detectedSource}</span>{" · "}Delimiter:{" "}
-                <span className="text-secondary">{delimiter === "\t" ? "tab" : delimiter}</span>
+                {" · "}Detected: <span className="text-secondary capitalize">{detectedSource}</span>
+                {" · "}Delimiter: <span className="text-secondary">{delimiter === "\t" ? "tab" : delimiter}</span>
                 {zipCsvCount > 0 && (
                   <>
                     {" · "}ZIP CSV files: <span className="text-secondary">{zipCsvCount}</span>

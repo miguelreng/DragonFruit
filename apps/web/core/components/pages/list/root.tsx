@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // types
-import type { TPageNavigationTabs } from "@plane/types";
+import type { TPageNavigationTabs, TPageType } from "@plane/types";
 // components
 import { ListLayout } from "@/components/core/list";
 // plane web hooks
@@ -16,16 +16,17 @@ import { usePageStore } from "@/plane-web/hooks/store";
 import { PageListBlock } from "./block";
 
 type TPagesListRoot = {
+  contentType?: TPageType;
   pageType: TPageNavigationTabs;
   storeType: EPageStoreType;
 };
 
 export const PagesListRoot = observer(function PagesListRoot(props: TPagesListRoot) {
-  const { pageType, storeType } = props;
+  const { contentType, pageType, storeType } = props;
   // store hooks
   const { getCurrentProjectFilteredPageIdsByTab } = usePageStore(storeType);
   // derived values
-  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType);
+  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType, contentType);
 
   if (!filteredPageIds) return <></>;
   return (

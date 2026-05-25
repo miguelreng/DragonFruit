@@ -47,6 +47,7 @@ export enum CORE_EXTENSIONS {
   UNDERLINE = "underline",
   UTILITY = "utility",
   WORK_ITEM_EMBED = "issue-embed-component",
+  DOC_EMBED = "doc-embed-component",
   EMOJI = "emoji",
   UNIQUE_ID = "uniqueID",
   BLOCK_COMMENT = "blockComment",
@@ -75,4 +76,5 @@ export const BLOCK_NODE_TYPES = [
   CORE_EXTENSIONS.CUSTOM_IMAGE,
   CORE_EXTENSIONS.CALLOUT,
   CORE_EXTENSIONS.WORK_ITEM_EMBED,
+  CORE_EXTENSIONS.DOC_EMBED,
 ];

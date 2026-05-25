@@ -32,6 +32,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 logger = logging.getLogger(__name__)
 
 
+OPENAI_COMPATIBLE_PROVIDER_PREFIXES = {"hermes", "openclaw"}
+
+
 class LLMConfigError(ValueError):
     """Raised when an agent is missing credentials needed to make a call.
 
@@ -147,6 +150,16 @@ class LLMProvider:
             api_base_url=(agent.api_base_url or "").strip() or None,
         )
 
+    def _litellm_model(self) -> str:
+        provider, separator, model = self.model.partition("/")
+        if (
+            separator
+            and provider.lower() in OPENAI_COMPATIBLE_PROVIDER_PREFIXES
+            and self.api_base_url
+        ):
+            return f"openai/{model}"
+        return self.model
+
     # ----------------------------------------------------------------- #
     # Single-shot chat (no tool use)                                    #
     # ----------------------------------------------------------------- #
@@ -227,7 +240,7 @@ class LLMProvider:
 
             try:
                 completion = litellm.completion(
-                    model=self.model,
+                    model=self._litellm_model(),
                     api_key=self.api_key,
                     api_base=self.api_base_url,
                     messages=messages,

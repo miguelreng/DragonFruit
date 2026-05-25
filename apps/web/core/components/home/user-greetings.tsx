@@ -47,7 +47,7 @@ export function UserGreetingsView(props: IUserGreetingsView) {
 
   return (
     <div className="my-6 flex flex-col items-center">
-      <h2 className="text-center text-24 font-medium" style={{ fontFamily: "Newsreader, serif" }}>
+      <h2 className="text-center text-24 font-medium">
         {t("good")} {t(greeting)}
       </h2>
       <h5 className="flex items-center gap-2 font-medium text-placeholder">
