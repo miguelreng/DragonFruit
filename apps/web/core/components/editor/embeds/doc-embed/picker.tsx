@@ -63,6 +63,9 @@ export function DocEmbedPicker(props: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const copy = TYPE_COPY[embedType];
   const Icon = copy.Icon;
+  const trimmedQuery = query.trim();
+  const needsProject = embedType === "whiteboard" || embedType === "task_view";
+  const isMissingContext = !workspaceSlug || (needsProject && !projectId);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -76,12 +79,11 @@ export function DocEmbedPicker(props: Props) {
   }, [isOpen, embedType, mode]);
 
   useEffect(() => {
-    if (!isOpen || mode !== "embed" || !workspaceSlug) return;
-    if ((embedType === "whiteboard" || embedType === "task_view") && !projectId) return;
+    if (!isOpen || mode !== "embed" || isMissingContext) return;
     setIsSearching(true);
     const handle = window.setTimeout(async () => {
       try {
-        const trimmed = query.trim().toLowerCase();
+        const trimmed = trimmedQuery.toLowerCase();
         if (embedType === "whiteboard") {
           const pages = await pageService.fetchAll(workspaceSlug, projectId!, "whiteboard");
           setResults(
@@ -97,7 +99,7 @@ export function DocEmbedPicker(props: Props) {
               }))
           );
         } else if (embedType === "sticky") {
-          const response = await stickyService.getStickies(workspaceSlug, "", query.trim() || undefined, 8);
+          const response = await stickyService.getStickies(workspaceSlug, "", trimmedQuery || undefined, 8);
           setResults(
             response.results.map((sticky: TSticky) => ({
               type: "sticky",
@@ -130,13 +132,13 @@ export function DocEmbedPicker(props: Props) {
       }
     }, 200);
     return () => window.clearTimeout(handle);
-  }, [copy.plural, embedType, isOpen, mode, projectId, query, workspaceSlug]);
+  }, [copy.plural, embedType, isMissingContext, isOpen, mode, projectId, trimmedQuery, workspaceSlug]);
 
   const canCreate = useMemo(() => {
-    if (!workspaceSlug || query.trim().length === 0 || isCreating) return false;
-    if (embedType === "whiteboard" || embedType === "task_view") return Boolean(projectId);
+    if (isMissingContext || trimmedQuery.length === 0 || isCreating) return false;
+    if (needsProject) return Boolean(projectId);
     return true;
-  }, [embedType, isCreating, projectId, query, workspaceSlug]);
+  }, [isCreating, isMissingContext, needsProject, projectId, trimmedQuery]);
 
   const handlePick = (source: TDocEmbedSource) => {
     if (!workspaceSlug) return;
@@ -153,7 +155,7 @@ export function DocEmbedPicker(props: Props) {
 
   const handleCreate = async () => {
     if (!workspaceSlug || !canCreate) return;
-    const title = query.trim();
+    const title = trimmedQuery;
     setIsCreating(true);
     setError(null);
     try {
@@ -185,7 +187,7 @@ export function DocEmbedPicker(props: Props) {
     <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
       <div className="flex flex-col">
         <div className="flex items-center gap-2 border-b border-subtle px-4 py-3">
-          {mode === "embed" ? <Search className="size-4 text-tertiary" /> : <Plus className="size-4 text-tertiary" />}
+          <Search className="size-4 text-tertiary" />
           <input
             ref={inputRef}
             value={query}
@@ -193,7 +195,7 @@ export function DocEmbedPicker(props: Props) {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                if (mode === "create" && canCreate) void handleCreate();
+                if (canCreate) void handleCreate();
               }
             }}
             placeholder={mode === "embed" ? copy.placeholder : copy.createPlaceholder}
@@ -202,65 +204,47 @@ export function DocEmbedPicker(props: Props) {
           {(isSearching || isCreating) && <Loader2 className="size-4 animate-spin text-tertiary" />}
         </div>
         {error && <div className="text-error px-4 py-2 text-12">{error}</div>}
-        {mode === "embed" ? (
-          <>
-            <div className="max-h-80 overflow-y-auto py-1">
-              {results.length === 0 && !isSearching && (
-                <div className="px-4 py-3 text-13 text-tertiary">
-                  {query.trim() ? `No ${copy.plural} match "${query}".` : `Start typing to search ${copy.plural}.`}
-                </div>
-              )}
-              {results.map((source) => (
-                <button
-                  key={`${source.type}-${source.id}`}
-                  type="button"
-                  onClick={() => handlePick(source)}
-                  className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-layer-2"
-                >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded border border-subtle bg-layer-1 text-tertiary">
-                    <Icon className="size-3.5" />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-14 text-primary">{source.title}</span>
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-subtle px-4 py-3">
-              <p className="text-12 text-tertiary">
-                {query.trim() ? `Create "${query.trim()}" as a new ${copy.label}.` : `Create a new ${copy.label}.`}
-              </p>
+        <div className="max-h-80 overflow-y-auto py-1">
+          {mode === "embed" &&
+            results.map((source) => (
               <button
+                key={`${source.type}-${source.id}`}
                 type="button"
-                disabled={!canCreate}
-                onClick={() => void handleCreate()}
-                className={cn(
-                  "rounded-md border border-subtle bg-surface-2 px-3 py-1.5 text-13 font-medium text-primary transition-colors hover:bg-layer-2",
-                  !canCreate && "cursor-not-allowed opacity-50"
-                )}
+                onClick={() => handlePick(source)}
+                className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-layer-2"
               >
-                Create
+                <span className="flex size-7 shrink-0 items-center justify-center rounded border border-subtle bg-layer-1 text-tertiary">
+                  <Icon className="size-3.5" />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-14 text-primary">{source.title}</span>
               </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <p className="text-12 text-tertiary">
-              {canCreate
-                ? `A new ${copy.label} will be created and embedded here.`
-                : "Open a project page to create this embed."}
-            </p>
+            ))}
+
+          {trimmedQuery && (
             <button
               type="button"
               disabled={!canCreate}
               onClick={() => void handleCreate()}
               className={cn(
-                "text-on-accent-primary rounded-md bg-accent-primary px-3 py-1.5 text-13 font-medium transition-opacity",
+                "flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-layer-2",
                 !canCreate && "cursor-not-allowed opacity-50"
               )}
             >
-              {isCreating ? "Creating…" : `Create ${copy.label}`}
+              <span className="flex size-7 shrink-0 items-center justify-center rounded border border-subtle bg-layer-1 text-tertiary">
+                <Plus className="size-3.5" />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-14 text-primary">
+                {isCreating ? "Creating..." : `Create "${trimmedQuery}"`}
+              </span>
             </button>
-          </div>
-        )}
+          )}
+
+          {!isSearching && !trimmedQuery && results.length === 0 && (
+            <div className="px-4 py-3 text-13 text-tertiary">
+              {isMissingContext ? "Open a project page to add this block." : `No ${copy.plural} yet.`}
+            </div>
+          )}
+        </div>
       </div>
     </ModalCore>
   );

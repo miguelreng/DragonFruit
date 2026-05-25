@@ -478,7 +478,7 @@ export const getSlashCommandFilteredSections =
             key: "embed-whiteboard",
             title: "Whiteboard",
             description: "Embed a whiteboard canvas",
-            searchTerms: ["whiteboard", "canvas", "draw", "diagram", "sketch"],
+            searchTerms: ["whiteboard", "whiteboards", "canvas", "draw", "diagram", "sketch"],
             icon: <PenTool className="size-3.5" />,
             command: ({ editor, range }: CommandProps) => {
               embedConfig.whiteboard?.onPickerRequest?.({
@@ -507,7 +507,7 @@ export const getSlashCommandFilteredSections =
             key: "embed-sticky",
             title: "Sticky",
             description: "Embed a sticky note",
-            searchTerms: ["sticky", "note", "memo", "post-it"],
+            searchTerms: ["sticky", "stickies", "note", "notes", "memo", "post-it"],
             icon: <StickyNote className="size-3.5" />,
             command: ({ editor, range }: CommandProps) => {
               embedConfig.sticky?.onPickerRequest?.({
@@ -536,7 +536,7 @@ export const getSlashCommandFilteredSections =
             key: "embed-task-view",
             title: "Task view",
             description: "Embed a saved task view",
-            searchTerms: ["task view", "view", "issues", "tasks", "filter", "list"],
+            searchTerms: ["task view", "task views", "view", "views", "issues", "tasks", "filter", "list"],
             icon: <ListChecks className="size-3.5" />,
             command: ({ editor, range }: CommandProps) => {
               embedConfig.taskView?.onPickerRequest?.({
