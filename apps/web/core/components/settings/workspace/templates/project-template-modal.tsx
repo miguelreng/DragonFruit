@@ -166,7 +166,7 @@ export function ProjectTemplateModal(props: Props) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Engineering sprint"
-                className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
+                className="rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
               />
             </Field>
 
@@ -176,7 +176,7 @@ export function ProjectTemplateModal(props: Props) {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="One-line summary"
-                className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
+                className="rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
               />
             </Field>
 
@@ -186,7 +186,7 @@ export function ProjectTemplateModal(props: Props) {
                 onChange={(e) => setProjectDescription(e.target.value)}
                 rows={3}
                 placeholder="What new projects from this template should read like."
-                className="min-h-[72px] resize-y rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
+                className="min-h-[72px] resize-y rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-strong"
               />
             </Field>
 
@@ -219,7 +219,7 @@ export function ProjectTemplateModal(props: Props) {
                 {initialTasks.map((row) => (
                   <li
                     key={row._key}
-                    className="flex items-center gap-2 rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5"
+                    className="flex items-center gap-2 rounded-lg border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5"
                   >
                     <input
                       type="text"

@@ -43,18 +43,18 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
     >
       <Menu.Item
         as="div"
-        className={cn("px-2 py-2", {
+        className={cn("px-2 py-1.5", {
           "bg-layer-transparent-active": workspace.id === activeWorkspace?.id,
           "hover:bg-layer-transparent-hover": workspace.id !== activeWorkspace?.id,
         })}
       >
-        <div className="flex items-center justify-between gap-1 rounded-sm p-1 text-13 text-primary">
-          <div className="relative flex min-w-0 flex-1 items-center justify-start gap-2.5">
+        <div className="flex items-center justify-between gap-1 rounded-lg text-13 text-primary">
+          <div className="relative flex min-w-0 flex-1 items-center justify-start gap-2">
             <WorkspaceLogo
               logo={workspace?.logo_url}
               name={workspace?.name}
               workspaceId={workspace?.id}
-              classNames="size-8 rounded-md border border-subtle"
+              classNames="size-7 rounded-md border border-subtle"
             />
             <div className="min-w-0 flex-1">
               <div
@@ -62,9 +62,9 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
               >
                 {workspace.name}
               </div>
-              <div className="flex w-fit gap-2 text-13 text-tertiary capitalize">
+              <div className="flex w-fit gap-1.5 text-12 text-tertiary capitalize">
                 <span>{getUserRole(workspace.role)?.toLowerCase() || "guest"}</span>
-                <div className="m-auto h-1 w-1 rounded-full bg-layer-1/50" />
+                <div className="m-auto h-0.5 w-0.5 rounded-full bg-layer-1/50" />
                 <span className="capitalize">{t("member", { count: workspace.total_members || 0 })}</span>
               </div>
             </div>

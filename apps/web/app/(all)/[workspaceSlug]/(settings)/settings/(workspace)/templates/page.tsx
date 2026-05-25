@@ -191,7 +191,7 @@ function TemplatesSettingsPage() {
                         value={draft.name}
                         onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
                         placeholder={t("workspace_settings.settings.templates.name_placeholder")}
-                        className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
+                        className="rounded-lg border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
                         // eslint-disable-next-line jsx-a11y/no-autofocus
                         autoFocus
                       />
@@ -207,7 +207,7 @@ function TemplatesSettingsPage() {
                         value={draft.description}
                         onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
                         placeholder={t("workspace_settings.settings.templates.description_placeholder")}
-                        className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
+                        className="rounded-lg border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
                       />
                     ) : (
                       <span className="truncate text-12 text-secondary">{template.description || "—"}</span>

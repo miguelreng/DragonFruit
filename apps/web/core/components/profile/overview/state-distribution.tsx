@@ -27,7 +27,7 @@ export function ProfileStateDistribution({ stateDistribution, userProfile }: Pro
   return (
     <section className="flex flex-col space-y-3">
       <h3 className="text-13 font-medium text-tertiary">{t("profile.stats.state_distribution.title")}</h3>
-      <div className="flex h-full flex-col rounded-lg border-[0.5px] border-subtle bg-surface-1 p-5">
+      <div className="flex h-full flex-col rounded-lg border-[0.5px] border-subtle bg-surface-2 p-5">
         {hasData ? (
           <div className="grid h-[280px] w-full grid-cols-1 items-center gap-6 md:grid-cols-[1fr_1fr]">
             <PieChart

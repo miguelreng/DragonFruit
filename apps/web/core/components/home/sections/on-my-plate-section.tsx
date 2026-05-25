@@ -8,9 +8,9 @@ import Link from "next/link";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { PriorityIcon, StateGroupIcon } from "@plane/propel/icons";
+import { PriorityIcon, StateGroupIcon, YourWorkIcon } from "@plane/propel/icons";
 import type { TBaseIssue, TIssuesResponse } from "@plane/types";
-import { ChevronRight, ListTodo } from "@/components/icons/lucide-shim";
+import { ChevronRight } from "@/components/icons/lucide-shim";
 import { useUser } from "@/hooks/store/user";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
@@ -46,7 +46,7 @@ export const OnMyPlateSection = observer(function OnMyPlateSection() {
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
-          <ListTodo className="size-4 text-tertiary" />
+          <YourWorkIcon className="size-4 text-tertiary" />
           <h3 className="text-14 font-semibold text-secondary">What's on my plate</h3>
           {typeof data?.total_count === "number" && data.total_count > 0 && (
             <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">

@@ -138,7 +138,7 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
           {oldPasswordRequired && (
             <div className="flex flex-col gap-y-2">
               <h4 className="text-13">{t("auth.common.password.current_password.label")}</h4>
-              <div className="relative flex items-center rounded-md">
+              <div className="relative flex items-center rounded-lg">
                 <Controller
                   control={control}
                   name="old_password"
@@ -178,7 +178,7 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
           <div className="grid gap-x-4 gap-y-7 sm:grid-cols-2">
             <div className="flex flex-col gap-y-2">
               <h4 className="text-13">{t("auth.common.password.new_password.label")}</h4>
-              <div className="relative flex items-center rounded-md">
+              <div className="relative flex items-center rounded-lg">
                 <Controller
                   control={control}
                   name="new_password"
@@ -224,7 +224,7 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
             </div>
             <div className="flex flex-col gap-y-2">
               <h4 className="text-13">{t("auth.common.password.confirm_password.label")}</h4>
-              <div className="relative flex items-center rounded-md">
+              <div className="relative flex items-center rounded-lg">
                 <Controller
                   control={control}
                   name="confirm_password"
