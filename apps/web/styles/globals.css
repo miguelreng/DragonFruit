@@ -13,6 +13,25 @@
  * recursively without trying to interpret the literal `(` / `[`. */
 @source "../app";
 
+html {
+  min-height: 100%;
+  background: var(--background-color-canvas);
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100%;
+  background: var(--background-color-canvas);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.desktop-app-container,
+.app-container {
+  box-sizing: border-box;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
 /* Figtree — self-hosted variable font served from /public/fonts.
  * Bypasses @fontsource so the URL is a simple, stable /fonts/ path
  * (no node_modules + literal-space path quirks). */

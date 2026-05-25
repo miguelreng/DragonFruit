@@ -1,13 +1,32 @@
 {
   "name": "Dragon Fruit",
   "short_name": "Dragon Fruit",
-  "description": "Beautiful project management & docs. Plan issues, cycles, and product modules.",
-  "start_url": ".",
+  "description": "Project management, issues, docs, and workspace planning.",
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#8A0052",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "categories": ["productivity", "business"],
   "icons": [
-    { "src": "/plane-logos/plane-mobile-pwa.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/plane-logos/plane-mobile-pwa.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-348x348.png",
+      "sizes": "348x348",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }

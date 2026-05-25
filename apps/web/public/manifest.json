@@ -1,6 +1,16 @@
 {
   "name": "Dragon Fruit",
   "short_name": "Dragon Fruit",
+  "description": "Project management, issues, docs, and workspace planning.",
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "portrait",
+  "theme_color": "#FFFFFF",
+  "background_color": "#FFFFFF",
+  "categories": ["productivity", "business"],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -18,10 +28,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "theme_color": "#FFFFFF",
-  "background_color": "#FFFFFF",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }

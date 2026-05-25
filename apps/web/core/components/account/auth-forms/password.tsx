@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
@@ -53,7 +53,6 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   // ref
   const formRef = useRef<HTMLFormElement>(null);
   // states
-  const [csrfPromise, setCsrfPromise] = useState<Promise<{ csrf_token: string }> | undefined>(undefined);
   const [passwordFormData, setPasswordFormData] = useState<TPasswordFormValues>({ ...defaultValues, email });
   const [showPassword, setShowPassword] = useState({
     password: false,
@@ -69,13 +68,6 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   const handleFormChange = (key: keyof TPasswordFormValues, value: string) =>
     setPasswordFormData((prev) => ({ ...prev, [key]: value }));
-
-  useEffect(() => {
-    if (csrfPromise === undefined) {
-      const promise = authService.requestCSRFToken();
-      setCsrfPromise(promise);
-    }
-  }, [csrfPromise]);
 
   const redirectToUniqueCodeSignIn = async () => {
     handleAuthStep(EAuthSteps.UNIQUE_CODE);
@@ -119,7 +111,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
 
   const handleCSRFToken = async () => {
     if (!formRef || !formRef.current) return;
-    const token = await csrfPromise;
+    const token = await authService.requestCSRFToken();
     if (!token?.csrf_token) return;
     const csrfElement = formRef.current.querySelector("input[name=csrfmiddlewaretoken]");
     csrfElement?.setAttribute("value", token?.csrf_token);
