@@ -81,7 +81,7 @@ export function StickyInput(props: TProps) {
               handleSubmit(handleFormSubmit)();
             }}
             placeholder="Title"
-            className="content-title-font w-full border-0 bg-transparent px-4 pt-6 pb-0 text-20 font-medium text-primary placeholder:text-primary/40 focus:outline-none"
+            className="w-full border-0 bg-transparent px-4 pt-6 pb-0 font-['Newsreader'] text-20 font-medium text-primary placeholder:text-primary/40 focus:outline-none"
             maxLength={100}
           />
         )}
@@ -106,7 +106,7 @@ export function StickyInput(props: TProps) {
               return "Click to type here";
             }}
             containerClassName={cn(
-              "sticky-title-editor vertical-scrollbar scrollbar-sm max-h-[540px] min-h-[256px] w-full overflow-y-scroll px-4 pt-1 pb-4 text-14",
+              "sticky-title-editor vertical-scrollbar scrollbar-sm max-h-[540px] min-h-[256px] w-full overflow-y-scroll px-4 pt-1 pb-4 text-13",
               {
                 "max-h-[588px]": isStickiesPage,
               }
