@@ -22,7 +22,7 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { LinkIcon, ArchiveIcon, ChevronRightIcon } from "@plane/propel/icons";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton, getIconButtonStyling } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@plane/ui";
@@ -84,7 +84,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const isProjectListOpen = getIsProjectListOpen(projectId);
   const [instruction, setInstruction] = useState<"DRAG_OVER" | "DRAG_BELOW" | undefined>(undefined);
   // refs
-  const actionSectionRef = useRef<HTMLButtonElement | null>(null);
+  const actionSectionRef = useRef<HTMLElement | null>(null);
   const projectRef = useRef<HTMLDivElement | null>(null);
   const dragHandleRef = useRef<HTMLButtonElement | null>(null);
   // router
@@ -420,21 +420,16 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                 <CustomMenu
                   openOnHover
                   customButton={
-                    <IconButton
-                      ref={actionSectionRef}
-                      variant="ghost"
-                      size="sm"
-                      icon={MoreHorizontal}
-                      onClick={() => setIsMenuActive(!isMenuActive)}
-                      className="text-placeholder"
-                    />
+                    <span ref={actionSectionRef} className="grid place-items-center">
+                      <MoreHorizontal className="size-3.5" />
+                    </span>
                   }
                   className={cn("flex-shrink-0", {
                     "pointer-events-auto opacity-100": isAccordionMode || isMenuActive,
                     "pointer-events-none opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100":
                       !isAccordionMode && !isMenuActive,
                   })}
-                  customButtonClassName="grid place-items-center"
+                  customButtonClassName={cn(getIconButtonStyling("ghost", "sm"), "text-placeholder")}
                   placement="bottom-start"
                   ariaLabel={t("aria_labels.projects_sidebar.toggle_quick_actions_menu")}
                   useCaptureForOutsideClick

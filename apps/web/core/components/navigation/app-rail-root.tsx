@@ -25,10 +25,11 @@ import {
   PanelLeft,
   PanelRight,
 } from "@/components/icons/lucide-shim";
-import { ChevronRightIcon, PlusIcon } from "@plane/propel/icons";
+import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@plane/propel/icons";
 import { Logo } from "@plane/propel/emoji-icon-picker";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { CustomMenu } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { cn, copyTextToClipboard } from "@plane/utils";
 import { orderBy } from "lodash-es";
 import { NotificationsBell } from "@/plane-web/components/navigations/notifications-bell";
 // components
@@ -48,7 +49,8 @@ import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 import { AppSidebarItemsRoot } from "./items-root";
 import { generateFavoriteItemLink } from "@/components/workspace/sidebar/favorites/favorite-items/common";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
-import type { IFavorite, EIssueLayoutTypes, TLogoProps } from "@plane/types";
+import type { IFavorite, EIssueLayoutTypes, TLogoProps, TPartialProject } from "@plane/types";
+import { DeleteProjectModal } from "@/components/project/delete-project-modal";
 
 type TCompactRailItem = {
   id: string;
@@ -61,6 +63,7 @@ type TCompactRailItem = {
 type TProjectRailItem = TCompactRailItem & {
   pagesHref: string;
   tasksHref: string;
+  project: TPartialProject;
 };
 
 const MAX_COMPACT_RAIL_ITEMS = 3;
@@ -296,113 +299,201 @@ const RailCategory = (props: {
   );
 };
 
-const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string }) => {
-  const { item, pathname } = props;
+const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; workspaceSlug: string }) => {
+  const { item, pathname, workspaceSlug } = props;
   const [isOpen, setIsOpen] = useState(item.isActive);
+  const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
+  const { updateProject } = useProject();
+  const { allowPermissions } = useUserPermissions();
   const isTasksActive = isRouteMatch(item.tasksHref, pathname);
   const isPagesActive = isRouteMatch(item.pagesHref, pathname);
   const shouldHighlightProject = item.isActive && !isTasksActive && !isPagesActive;
+  const isProjectAdmin = allowPermissions(
+    [EUserPermissions.ADMIN],
+    EUserPermissionsLevel.PROJECT,
+    workspaceSlug,
+    item.id
+  );
+
+  const handleCopyProjectId = async () => {
+    try {
+      await copyTextToClipboard(item.id);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Project ID copied",
+        message: item.id,
+      });
+    } catch (_err) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't copy project ID",
+        message: "Try again in a moment.",
+      });
+    }
+  };
+
+  const handleRenameProject = async () => {
+    const nextName = window.prompt("Rename project", item.label)?.trim();
+    if (!nextName || nextName === item.label) return;
+
+    try {
+      await updateProject(workspaceSlug, item.id, { name: nextName });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Project renamed",
+        message: nextName,
+      });
+    } catch (_err) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't rename project",
+        message: "Try again in a moment.",
+      });
+    }
+  };
 
   useEffect(() => {
     if (item.isActive) setIsOpen(true);
   }, [item.isActive]);
 
   return (
-    <div className="flex w-full flex-col">
-      <div
-        className={cn(
-          "group/project flex w-full items-center gap-1 rounded-md px-2 py-1 text-secondary hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
-          {
-            [EXPANDED_ICON_ACTIVE]: shouldHighlightProject,
-          }
-        )}
-      >
-        <AppSidebarTooltip tooltipContent={item.label}>
-          <button
-            type="button"
-            onClick={() => setIsOpen((open) => !open)}
-            aria-label={item.label}
-            aria-expanded={isOpen}
-            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-          >
-            <span
-              className={cn(EXPANDED_RAIL_ICON_CLASS, {
-                [RAIL_ICON_ACTIVE]: shouldHighlightProject,
-                [RAIL_ICON_INACTIVE]: !shouldHighlightProject,
-              })}
+    <>
+      <DeleteProjectModal
+        project={item.project}
+        isOpen={isDeleteProjectModalOpen}
+        onClose={() => setIsDeleteProjectModalOpen(false)}
+      />
+      <div className="flex w-full flex-col">
+        <div
+          className={cn(
+            "group/project flex w-full items-center gap-1 rounded-md px-2 py-1 text-secondary hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
+            {
+              [EXPANDED_ICON_ACTIVE]: shouldHighlightProject,
+            }
+          )}
+        >
+          <AppSidebarTooltip tooltipContent={item.label}>
+            <button
+              type="button"
+              onClick={() => setIsOpen((open) => !open)}
+              aria-label={item.label}
+              aria-expanded={isOpen}
+              className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
             >
-              {item.icon}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-13 font-medium">{item.label}</span>
-          </button>
-        </AppSidebarTooltip>
-        <AppSidebarTooltip tooltipContent={isOpen ? "Collapse project" : "Expand project"}>
-          <button
-            type="button"
-            onClick={() => setIsOpen((open) => !open)}
-            className={cn(
-              "grid size-5 flex-shrink-0 place-items-center rounded-md text-icon-tertiary opacity-0 group-hover/project:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
-              {
-                "opacity-100": isOpen,
-              }
-            )}
-            aria-label={isOpen ? "Collapse project" : "Expand project"}
-            aria-expanded={isOpen}
-          >
-            <ChevronRightIcon
-              className={cn("size-4 text-current transition-transform", {
-                "rotate-90": isOpen,
-              })}
-            />
-          </button>
-        </AppSidebarTooltip>
-      </div>
-      {isOpen && (
-        <div className="relative mt-0.5 mb-1 ml-4 flex flex-col gap-0.5 pl-3">
-          <div className={RAIL_TREE_LINE_CLASS} />
-          <AppSidebarTooltip tooltipContent={`${item.label} Tasks`}>
-            <Link
-              href={item.tasksHref}
-              aria-label={`${item.label} Tasks`}
-              className={cn(
-                "flex items-center gap-1.5 rounded-md px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
-                {
-                  "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isTasksActive,
-                }
-              )}
-            >
-              <ListTodo className={RAIL_INLINE_ICON_CLASS} />
-              <span className="truncate">Tasks</span>
-            </Link>
+              <span
+                className={cn(EXPANDED_RAIL_ICON_CLASS, {
+                  [RAIL_ICON_ACTIVE]: shouldHighlightProject,
+                  [RAIL_ICON_INACTIVE]: !shouldHighlightProject,
+                })}
+              >
+                {item.icon}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-13 font-medium">{item.label}</span>
+            </button>
           </AppSidebarTooltip>
-          <AppSidebarTooltip tooltipContent={`${item.label} Pages`}>
-            <Link
-              href={item.pagesHref}
-              aria-label={`${item.label} Pages`}
+          <CustomMenu
+            customButton={
+              <span className="grid place-items-center">
+                <MoreHorizontal className="size-4 text-current" />
+              </span>
+            }
+            className="flex-shrink-0"
+            customButtonClassName="grid size-5 flex-shrink-0 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90"
+            placement="bottom-start"
+            ariaLabel="Project actions"
+            closeOnSelect
+          >
+            <CustomMenu.MenuItem onClick={() => void handleCopyProjectId()}>
+              <span className="flex items-center justify-start gap-2">
+                <CopyIcon className="h-3.5 w-3.5 stroke-[1.5]" />
+                <span>Copy project ID</span>
+              </span>
+            </CustomMenu.MenuItem>
+            {isProjectAdmin && (
+              <CustomMenu.MenuItem onClick={() => void handleRenameProject()}>
+                <span className="flex items-center justify-start gap-2">
+                  <EditIcon className="h-3.5 w-3.5 stroke-[1.5]" />
+                  <span>Rename</span>
+                </span>
+              </CustomMenu.MenuItem>
+            )}
+            {isProjectAdmin && (
+              <CustomMenu.MenuItem onClick={() => setIsDeleteProjectModalOpen(true)}>
+                <span className="flex items-center justify-start gap-2 text-danger-primary">
+                  <TrashIcon className="h-3.5 w-3.5 stroke-[1.5]" />
+                  <span>Delete</span>
+                </span>
+              </CustomMenu.MenuItem>
+            )}
+          </CustomMenu>
+          <AppSidebarTooltip tooltipContent={isOpen ? "Collapse project" : "Expand project"}>
+            <button
+              type="button"
+              onClick={() => setIsOpen((open) => !open)}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
+                "grid size-5 flex-shrink-0 place-items-center rounded-md text-icon-tertiary opacity-0 group-hover/project:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                 {
-                  "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isPagesActive,
+                  "opacity-100": isOpen,
                 }
               )}
+              aria-label={isOpen ? "Collapse project" : "Expand project"}
+              aria-expanded={isOpen}
             >
-              <FileText className={RAIL_INLINE_ICON_CLASS} />
-              <span className="truncate">Pages</span>
-            </Link>
+              <ChevronRightIcon
+                className={cn("size-4 text-current transition-transform", {
+                  "rotate-90": isOpen,
+                })}
+              />
+            </button>
           </AppSidebarTooltip>
         </div>
-      )}
-    </div>
+        {isOpen && (
+          <div className="relative mt-0.5 mb-1 ml-4 flex flex-col gap-0.5 pl-3">
+            <div className={RAIL_TREE_LINE_CLASS} />
+            <AppSidebarTooltip tooltipContent={`${item.label} Tasks`}>
+              <Link
+                href={item.tasksHref}
+                aria-label={`${item.label} Tasks`}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
+                  {
+                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isTasksActive,
+                  }
+                )}
+              >
+                <ListTodo className={RAIL_INLINE_ICON_CLASS} />
+                <span className="truncate">Tasks</span>
+              </Link>
+            </AppSidebarTooltip>
+            <AppSidebarTooltip tooltipContent={`${item.label} Pages`}>
+              <Link
+                href={item.pagesHref}
+                aria-label={`${item.label} Pages`}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
+                  {
+                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isPagesActive,
+                  }
+                )}
+              >
+                <FileText className={RAIL_INLINE_ICON_CLASS} />
+                <span className="truncate">Pages</span>
+              </Link>
+            </AppSidebarTooltip>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
-const ProjectRailTree = (props: { projects: TProjectRailItem[]; pathname: string }) => {
-  const { projects, pathname } = props;
+const ProjectRailTree = (props: { projects: TProjectRailItem[]; pathname: string; workspaceSlug: string }) => {
+  const { projects, pathname, workspaceSlug } = props;
 
   return (
     <div className="flex w-full flex-col gap-0.5">
       {projects.map((project) => (
-        <ProjectRailTreeItem key={project.id} item={project} pathname={pathname} />
+        <ProjectRailTreeItem key={project.id} item={project} pathname={pathname} workspaceSlug={workspaceSlug} />
       ))}
     </div>
   );
@@ -447,6 +538,7 @@ export const AppRailRoot = observer(() => {
         href: tasksHref,
         tasksHref,
         pagesHref,
+        project,
         label: project.name,
         icon: <Logo logo={project.logo_props} size={RAIL_LOGO_ICON_SIZE} type="material" />,
         isActive: pathname.includes(`/${slug}/projects/${project.id}`),
@@ -591,7 +683,7 @@ export const AppRailRoot = observer(() => {
               }
             >
               {isRailExpanded ? (
-                <ProjectRailTree projects={projects} pathname={pathname} />
+                <ProjectRailTree projects={projects} pathname={pathname} workspaceSlug={slug} />
               ) : (
                 <CompactRailItemGroup
                   primaryItems={projects.slice(0, MAX_COMPACT_RAIL_ITEMS)}
