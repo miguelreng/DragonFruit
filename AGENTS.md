@@ -1,5 +1,14 @@
 # Agent Development Guide
 
+## Git Workflow
+
+- Start each new chat/task on its own branch before making edits.
+- If the current branch is `main`, create a branch named `codex/<short-task-name>` from the current `main`.
+- If the current branch is already a task branch, continue on it only when the new request clearly belongs to the same task; otherwise switch back to `main` and create a new task branch.
+- Before committing or merging, run `git status --short --branch` and make sure the branch and staged files match the current task.
+- Merge task branches back into `main` only after the user asks to commit/merge or confirms the work is complete.
+- When finishing a completed task, commit the task branch, merge it into `main`, delete the merged local task branch, and leave the worktree clean.
+
 ## Commands
 
 - `pnpm dev` - Start all dev servers (web:3000, admin:3001)
