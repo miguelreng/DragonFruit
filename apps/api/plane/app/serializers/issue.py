@@ -43,11 +43,115 @@ from plane.db.models import (
     ProjectMember,
     EstimatePoint,
     WorkItemTemplate,
+    ProjectCustomField,
 )
 from plane.utils.content_validator import (
     validate_html_content,
     validate_binary_data,
 )
+
+CUSTOM_FIELD_TYPES_REQUIRING_OPTIONS = {"select", "multi_select"}
+
+
+def _normalize_select_options(config):
+    options = config.get("options") if isinstance(config, dict) else []
+    if not isinstance(options, list):
+        return []
+    normalized = []
+    for option in options:
+        if isinstance(option, str):
+            value = option.strip()
+            if value:
+                normalized.append(value)
+    return normalized
+
+
+def _validate_custom_field_values(custom_field_values, project_id):
+    if custom_field_values is None:
+        return {}
+    if not isinstance(custom_field_values, dict):
+        raise serializers.ValidationError({"custom_field_values": "Must be an object keyed by custom field id."})
+
+    field_ids = list(custom_field_values.keys())
+    if len(field_ids) == 0:
+        return {}
+
+    fields = ProjectCustomField.objects.filter(project_id=project_id, id__in=field_ids, deleted_at__isnull=True)
+    field_map = {str(field.id): field for field in fields}
+
+    invalid_ids = [field_id for field_id in field_ids if field_id not in field_map]
+    if invalid_ids:
+        raise serializers.ValidationError(
+            {"custom_field_values": f"Unknown project custom field ids: {', '.join(invalid_ids)}"}
+        )
+
+    normalized_values = {}
+    for field_id, raw_value in custom_field_values.items():
+        custom_field = field_map[field_id]
+        field_type = custom_field.field_type
+
+        if raw_value is None:
+            normalized_values[field_id] = None
+            continue
+
+        if field_type == "text":
+            if not isinstance(raw_value, str):
+                raise serializers.ValidationError({f"custom_field_values.{field_id}": "Expected a text value."})
+            normalized_values[field_id] = raw_value
+            continue
+
+        if field_type == "number":
+            if isinstance(raw_value, bool):
+                raise serializers.ValidationError({f"custom_field_values.{field_id}": "Expected a number value."})
+            if not isinstance(raw_value, (int, float)):
+                raise serializers.ValidationError({f"custom_field_values.{field_id}": "Expected a number value."})
+            normalized_values[field_id] = raw_value
+            continue
+
+        if field_type == "boolean":
+            if not isinstance(raw_value, bool):
+                raise serializers.ValidationError({f"custom_field_values.{field_id}": "Expected a boolean value."})
+            normalized_values[field_id] = raw_value
+            continue
+
+        if field_type == "date":
+            if not isinstance(raw_value, str):
+                raise serializers.ValidationError({f"custom_field_values.{field_id}": "Expected an ISO date string."})
+            normalized_values[field_id] = raw_value
+            continue
+
+        if field_type in CUSTOM_FIELD_TYPES_REQUIRING_OPTIONS:
+            options = _normalize_select_options(custom_field.config)
+            if field_type == "select":
+                if not isinstance(raw_value, str):
+                    raise serializers.ValidationError(
+                        {f"custom_field_values.{field_id}": "Expected a single option string."}
+                    )
+                if options and raw_value not in options:
+                    raise serializers.ValidationError(
+                        {f"custom_field_values.{field_id}": f"Value must be one of: {', '.join(options)}"}
+                    )
+                normalized_values[field_id] = raw_value
+                continue
+
+            if not isinstance(raw_value, list) or any(not isinstance(item, str) for item in raw_value):
+                raise serializers.ValidationError(
+                    {f"custom_field_values.{field_id}": "Expected an array of option strings."}
+                )
+            if options:
+                invalid_values = [item for item in raw_value if item not in options]
+                if invalid_values:
+                    raise serializers.ValidationError(
+                        {
+                            f"custom_field_values.{field_id}": f"Values must be one of: {', '.join(options)}. Invalid: {', '.join(invalid_values)}"
+                        }
+                    )
+            normalized_values[field_id] = raw_value
+            continue
+
+        raise serializers.ValidationError({f"custom_field_values.{field_id}": "Unsupported custom field type."})
+
+    return normalized_values
 
 
 class IssueFlatSerializer(BaseSerializer):
@@ -193,6 +297,10 @@ class IssueCreateSerializer(BaseSerializer):
             ).exists()
         ):
             raise serializers.ValidationError("Estimate point is not valid please pass a valid estimate_point_id")
+
+        attrs["custom_field_values"] = _validate_custom_field_values(
+            attrs.get("custom_field_values"), self.context.get("project_id")
+        )
 
         return attrs
 
@@ -356,6 +464,13 @@ class ProjectUserPropertySerializer(BaseSerializer):
         model = ProjectUserProperty
         fields = "__all__"
         read_only_fields = ["user", "workspace", "project"]
+
+
+class ProjectCustomFieldSerializer(BaseSerializer):
+    class Meta:
+        model = ProjectCustomField
+        fields = "__all__"
+        read_only_fields = ["workspace", "project", "created_by", "updated_by", "created_at", "updated_at"]
 
 
 class LabelSerializer(BaseSerializer):
@@ -804,6 +919,7 @@ class IssueSerializer(DynamicBaseSerializer):
             "link_count",
             "is_draft",
             "archived_at",
+            "custom_field_values",
         ]
         read_only_fields = fields
 
@@ -854,6 +970,7 @@ class IssueListDetailSerializer(serializers.Serializer):
             "updated_by": instance.updated_by_id,
             "is_draft": instance.is_draft,
             "archived_at": instance.archived_at,
+            "custom_field_values": instance.custom_field_values,
             # Computed fields
             "cycle_id": instance.cycle_id,
             "module_ids": self.get_module_ids(instance),

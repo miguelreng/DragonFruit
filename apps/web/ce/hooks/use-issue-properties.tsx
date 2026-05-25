@@ -5,6 +5,7 @@
  */
 
 import type { TIssueServiceType } from "@plane/types";
+import { useProjectCustomFields } from "@/hooks/use-project-custom-fields";
 
 export const useWorkItemProperties = (
   projectId: string | null | undefined,
@@ -12,5 +13,6 @@ export const useWorkItemProperties = (
   workItemId: string | null | undefined,
   _issueServiceType: TIssueServiceType
 ) => {
+  useProjectCustomFields(workspaceSlug ?? undefined, projectId ?? undefined);
   if (!projectId || !workspaceSlug || !workItemId) return;
 };
