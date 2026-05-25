@@ -31,6 +31,25 @@ function getNativeLoginApiBaseUrl() {
   return configuredApiBaseUrl || origin;
 }
 
+function extractApiToken(url: string) {
+  try {
+    return new URL(url).searchParams.get("api_token") || "";
+  } catch {
+    return "";
+  }
+}
+
+function extractApiTokenFromHtml(html: string) {
+  const decodedHtml = html
+    .replaceAll("&amp;", "&")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#x27;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">");
+  const callbackMatch = decodedHtml.match(/https:\/\/[^"'<>\s]+\.chromiumapp\.org\/[^"'<>\s]*api_token=[^"'<>\s]+/);
+  return callbackMatch ? extractApiToken(callbackMatch[0]) : "";
+}
+
 export default function NativeLoginPage() {
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -66,11 +85,14 @@ export default function NativeLoginPage() {
           headers: { Accept: "application/json" },
         });
         if (!response.ok) throw new Error(`Token handoff failed: ${response.status}`);
-        if (!response.headers.get("content-type")?.includes("application/json")) {
-          throw new Error("Token handoff did not return JSON.");
+        let apiToken = "";
+        if (response.headers.get("content-type")?.includes("application/json")) {
+          const data = await response.json();
+          apiToken = data?.api_token || (data?.callback ? extractApiToken(data.callback) : "");
+        } else {
+          apiToken = extractApiToken(response.url) || extractApiTokenFromHtml(await response.text());
         }
-        const data = await response.json();
-        if (!data?.api_token) throw new Error("Token handoff did not return an API token.");
+        if (!apiToken) throw new Error("Token handoff did not return an API token.");
 
         const chromeRuntime = (
           window as unknown as {
@@ -92,7 +114,7 @@ export default function NativeLoginPage() {
           extensionId,
           {
             type: "DRAGONFRUIT_NATIVE_TOKEN",
-            apiToken: data.api_token,
+            apiToken,
             appUrl: apiBaseUrl,
           },
           (reply) => {
