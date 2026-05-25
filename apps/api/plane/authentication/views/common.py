@@ -43,10 +43,15 @@ class NativeLoginStartEndpoint(APIView):
         if request.user.is_authenticated:
             separator = "&" if "?" in callback else "?"
             token = create_native_api_token(request.user)
+            if request.GET.get("format") == "json" or "application/json" in request.headers.get("Accept", ""):
+                return Response(
+                    {"api_token": token, "callback": f"{callback}{separator}api_token={quote(token)}"},
+                    status=status.HTTP_200_OK,
+                )
             return native_handoff_response(f"{callback}{separator}api_token={quote(token)}")
 
         app_host = base_host(request=request, is_app=True).rstrip("/")
-        native_login_path = f"/native-login?{urlencode({'callback': callback})}"
+        native_login_path = f"/auth/native/start/?{urlencode({'callback': callback})}"
         return HttpResponseRedirect(f"{app_host}/login?{urlencode({'next_path': native_login_path})}")
 
 
