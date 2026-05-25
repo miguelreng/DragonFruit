@@ -1925,29 +1925,30 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             let speechAuth = SFSpeechRecognizer.authorizationStatus() == .authorized
                 ? SFSpeechRecognizerAuthorizationStatus.authorized
                 : await Self.requestSpeechAuthorization()
-            let canPreviewTranscript = speechAuth == .authorized && recognizer?.isAvailable == true
-            let micGranted = await Self.requestMicrophonePermission()
-            guard micGranted else {
-                statusMessage = "Microphone permission denied."
+            guard speechAuth == .authorized else {
+                statusMessage = "Allow Speech Recognition to capture meeting text."
+                return
+            }
+            guard let recognizer, recognizer.isAvailable else {
+                statusMessage = "Speech recognition is unavailable right now."
                 return
             }
             Self.requestSystemAudioPermissionIfNeeded()
             guard Self.hasSystemAudioPermission() else {
-                statusMessage = "Allow Screen & System Audio Recording to capture meeting audio."
+                statusMessage = "Allow Screen & System Audio Recording to capture meeting text."
                 openPrivacySettings(anchor: "Privacy_ScreenCapture")
                 return
             }
 
             recognitionTask?.cancel()
             recognitionTask = nil
-            recognitionRequest = canPreviewTranscript ? SFSpeechAudioBufferRecognitionRequest() : nil
+            recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             recognitionRequest?.shouldReportPartialResults = true
             let previewRequest = recognitionRequest
             let appendQueue = speechAppendQueue
             let recordingId = UUID().uuidString
             let tempDirectory = FileManager.default.temporaryDirectory
             let systemAudioURL = tempDirectory.appendingPathComponent("dragonfruit-meeting-system-\(recordingId).m4a")
-            let micAudioURL = tempDirectory.appendingPathComponent("dragonfruit-meeting-mic-\(recordingId).wav")
             await systemAudioCapture.stop()
             try await systemAudioCapture.start(
                 recordingTo: systemAudioURL,
@@ -1969,46 +1970,14 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             meetingNotesTranscript = ""
             meetingStartPrompt = nil
             recordingMeeting = meeting
-            let node = audioEngine.inputNode
-            let format = try inputTapFormat(for: node)
-            let micFile = try AVAudioFile(
-                forWriting: micAudioURL,
-                settings: format.settings,
-                commonFormat: format.commonFormat,
-                interleaved: format.isInterleaved
-            )
-            meetingMicAudioFile = micFile
-            meetingMicAudioURL = micAudioURL
+            meetingMicAudioFile = nil
+            meetingMicAudioURL = nil
             meetingSystemAudioURL = systemAudioURL
-            removeInputTapIfNeeded()
-            node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-                do {
-                    try micFile.write(from: buffer)
-                } catch {
-                    Task { @MainActor [weak self] in
-                        guard let self, self.isMeetingRecording else { return }
-                        self.statusMessage = "Microphone recording failed: \(error.localizedDescription)"
-                    }
-                }
-                if let previewRequest {
-                    appendQueue.async {
-                        previewRequest.append(buffer)
-                    }
-                }
-                let level = Self.normalizedAudioLevel(from: buffer)
-                Task { @MainActor [weak self] in
-                    self?.updateAudioLevel(level)
-                }
-            }
-            isInputTapInstalled = true
-
-            audioEngine.prepare()
-            try audioEngine.start()
             isMeetingRecording = true
             meetingState = "Recording"
-            statusMessage = "Recording meeting notes with microphone and system audio..."
+            statusMessage = "Capturing meeting text locally. Audio will be deleted after transcription."
 
-            if let recognizer, let request = previewRequest, canPreviewTranscript {
+            if let request = previewRequest {
                 recognitionTask = Self.startRecognitionTask(recognizer: recognizer, request: request) { [weak self] result, error in
                     if let result {
                         let transcript = result.bestTranscription.formattedString
@@ -2035,18 +2004,31 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         isMeetingRecording = false
         meetingState = "Saving"
 
-        let notes = meetingNotesTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
-        let micAudioURL = meetingMicAudioURL
+        var transcript = meetingNotesTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
         let systemAudioURL = meetingSystemAudioURL
-        let hasAudio = [micAudioURL, systemAudioURL].contains { url in
-            guard let url else { return false }
-            return FileManager.default.fileExists(atPath: url.path)
+        if let systemAudioURL, FileManager.default.fileExists(atPath: systemAudioURL.path) {
+            statusMessage = "Transcribing meeting text locally with Whisper.cpp..."
+            do {
+                let whisperTranscript = try await transcribeWithWhisperCPP(audioURL: systemAudioURL)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !whisperTranscript.isEmpty {
+                    transcript = whisperTranscript
+                    meetingNotesTranscript = whisperTranscript
+                }
+            } catch {
+                if transcript.isEmpty {
+                    meetingState = "Summary"
+                    statusMessage = "Whisper.cpp transcription failed: \(error.localizedDescription)"
+                    try? FileManager.default.removeItem(at: systemAudioURL)
+                    meetingSystemAudioURL = nil
+                    return
+                }
+                statusMessage = "Whisper.cpp failed; saving live transcript."
+            }
         }
-        if hasAudio {
-            statusMessage = "Transcribing meeting audio..."
-        } else if notes.isEmpty {
+        if transcript.isEmpty {
             meetingState = "Summary"
-            statusMessage = "Recording stopped. No transcript captured."
+            statusMessage = "Recording stopped. No meeting text captured."
             return
         }
 
@@ -2060,12 +2042,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 return
             }
             let targetMeeting = recordingMeeting ?? meeting
+            let notes = formattedMeetingNotes(from: transcript, meeting: targetMeeting)
             let draft = try await client.createMeetingNotesDraft(
                 workspaceSlug: workspace.slug,
                 meeting: targetMeeting,
                 notes: notes,
-                micAudioURL: micAudioURL,
-                systemAudioURL: systemAudioURL
+                micAudioURL: nil,
+                systemAudioURL: nil
             )
             lastMeetingNotesURL = draft.url.flatMap(URL.init(string:))
             lastSavedMeetingTitle = targetMeeting.title
@@ -2076,14 +2059,168 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             meetingState = "Summary"
             statusMessage = "Could not save meeting notes: \(error.localizedDescription)"
         }
-        if let micAudioURL {
-            try? FileManager.default.removeItem(at: micAudioURL)
-        }
         if let systemAudioURL {
             try? FileManager.default.removeItem(at: systemAudioURL)
         }
         meetingMicAudioURL = nil
         meetingSystemAudioURL = nil
+    }
+
+    private func formattedMeetingNotes(from transcript: String, meeting: MeetingInfo) -> String {
+        let trimmedTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        let actionItems = extractActionItems(from: trimmedTranscript)
+        let actionText = actionItems.isEmpty
+            ? "- No explicit action items detected."
+            : actionItems.map { "- \($0)" }.joined(separator: "\n")
+
+        return """
+        Meeting: \(meeting.title)
+
+        Action items:
+        \(actionText)
+
+        Transcript:
+        \(trimmedTranscript)
+        """
+    }
+
+    private func extractActionItems(from transcript: String) -> [String] {
+        let separators = CharacterSet(charactersIn: ".!?\n")
+        let candidates = transcript
+            .components(separatedBy: separators)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.count >= 8 }
+
+        let actionMarkers = [
+            "action item",
+            "todo",
+            "to do",
+            "follow up",
+            "need to",
+            "needs to",
+            "we should",
+            "we need",
+            "we will",
+            "we'll",
+            "i will",
+            "i'll",
+            "let's",
+            "please",
+            "can you",
+            "could you",
+        ]
+
+        var seen = Set<String>()
+        var items: [String] = []
+        for candidate in candidates {
+            let normalized = candidate.lowercased()
+            guard actionMarkers.contains(where: { normalized.contains($0) }) else { continue }
+            guard !seen.contains(normalized) else { continue }
+            seen.insert(normalized)
+            items.append(candidate)
+            if items.count == 12 { break }
+        }
+        return items
+    }
+
+    private func transcribeWithWhisperCPP(audioURL: URL) async throws -> String {
+        let binaryURL = try whisperCPPBinaryURL()
+        let modelURL = try whisperCPPModelURL()
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let wavURL = tempDirectory.appendingPathComponent("dragonfruit-whisper-\(UUID().uuidString).wav")
+        let outputPrefix = tempDirectory
+            .appendingPathComponent("dragonfruit-whisper-output-\(UUID().uuidString)")
+            .path
+        let outputURL = URL(fileURLWithPath: "\(outputPrefix).txt")
+
+        defer {
+            try? FileManager.default.removeItem(at: wavURL)
+            try? FileManager.default.removeItem(at: outputURL)
+        }
+
+        try await runProcess(
+            executableURL: URL(fileURLWithPath: "/usr/bin/afconvert"),
+            arguments: ["-f", "WAVE", "-d", "LEI16@16000", audioURL.path, wavURL.path]
+        )
+        try await runProcess(
+            executableURL: binaryURL,
+            arguments: [
+                "-m", modelURL.path,
+                "-f", wavURL.path,
+                "-otxt",
+                "-of", outputPrefix,
+                "-nt",
+            ]
+        )
+
+        return try String(contentsOf: outputURL, encoding: .utf8)
+    }
+
+    private func whisperCPPBinaryURL() throws -> URL {
+        let defaults = UserDefaults.standard
+        let candidates = [
+            defaults.string(forKey: "df_whisper_cpp_binary"),
+            ProcessInfo.processInfo.environment["WHISPER_CPP_BINARY"],
+            "\(NSHomeDirectory())/whisper.cpp/build/bin/whisper-cli",
+            "\(NSHomeDirectory())/Code/whisper.cpp/build/bin/whisper-cli",
+            "/opt/homebrew/bin/whisper-cli",
+            "/usr/local/bin/whisper-cli",
+        ].compactMap { $0 }.filter { !$0.isEmpty }
+
+        for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
+            return URL(fileURLWithPath: path)
+        }
+        throw NSError(
+            domain: "DragonFruitNative",
+            code: 3001,
+            userInfo: [NSLocalizedDescriptionKey: "whisper.cpp binary not found. Set df_whisper_cpp_binary or WHISPER_CPP_BINARY."]
+        )
+    }
+
+    private func whisperCPPModelURL() throws -> URL {
+        let defaults = UserDefaults.standard
+        let candidates = [
+            defaults.string(forKey: "df_whisper_cpp_model"),
+            ProcessInfo.processInfo.environment["WHISPER_CPP_MODEL"],
+            "\(NSHomeDirectory())/Library/Application Support/DragonFruit/Whisper/ggml-base.en.bin",
+            "\(NSHomeDirectory())/Library/Application Support/Screen Studio/models/ggml-base.bin",
+            "\(NSHomeDirectory())/Library/Application Support/Screen Studio/models/ggml-small.bin",
+            "\(NSHomeDirectory())/whisper.cpp/models/ggml-base.en.bin",
+            "\(NSHomeDirectory())/Code/whisper.cpp/models/ggml-base.en.bin",
+            "\(NSHomeDirectory())/whisper.cpp/models/ggml-small.en.bin",
+            "\(NSHomeDirectory())/Code/whisper.cpp/models/ggml-small.en.bin",
+        ].compactMap { $0 }.filter { !$0.isEmpty }
+
+        for path in candidates where FileManager.default.fileExists(atPath: path) {
+            return URL(fileURLWithPath: path)
+        }
+        throw NSError(
+            domain: "DragonFruitNative",
+            code: 3002,
+            userInfo: [NSLocalizedDescriptionKey: "Whisper model not found. Set df_whisper_cpp_model or WHISPER_CPP_MODEL."]
+        )
+    }
+
+    private func runProcess(executableURL: URL, arguments: [String]) async throws {
+        try await Task.detached(priority: .userInitiated) {
+            let process = Process()
+            process.executableURL = executableURL
+            process.arguments = arguments
+            let errorPipe = Pipe()
+            process.standardError = errorPipe
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                let errorText = String(data: errorData, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                throw NSError(
+                    domain: "DragonFruitNative",
+                    code: Int(process.terminationStatus),
+                    userInfo: [NSLocalizedDescriptionKey: errorText?.isEmpty == false ? errorText! : "Process failed."]
+                )
+            }
+        }.value
     }
 
     private func stopMeetingAudioCapture() async {
@@ -3186,4 +3323,5 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
         agentResponseDismissTask = dismissTask
     }
+
 }
