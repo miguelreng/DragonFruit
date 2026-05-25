@@ -293,10 +293,11 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
         // Pass full state to parent
         onCollaborationStateChange?.(state);
 
-        // Map collaboration stage to UI syncing status
-        // Stage → UI mapping: disconnected → error | synced → synced | all others → syncing
+        // Map collaboration stage to UI syncing status.
+        // Keep disconnected in "syncing" mode so fallback autosave doesn't get
+        // stuck showing a permanent error badge when websocket sync is unavailable.
         if (state.stage.kind === "disconnected") {
-          setSyncingStatus("error");
+          setSyncingStatus("syncing");
         } else if (state.stage.kind === "synced") {
           setSyncingStatus("synced");
         } else {

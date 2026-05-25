@@ -451,7 +451,7 @@ body {
   font-size: clamp(2rem, 4vw, 2.75rem);
   line-height: 1.15;
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: -0.025em;
 }
 
 .published-doc {
@@ -483,7 +483,7 @@ body {
 .published-doc :where(h1, h2, h3, .editor-heading-block:is(h1, h2, h3)) {
   font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
   font-weight: 500 !important;
-  letter-spacing: 0;
+  letter-spacing: -0.025em;
   color: var(--text-color-primary);
 }
 

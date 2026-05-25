@@ -5,16 +5,26 @@
  */
 
 import { observer } from "mobx-react";
-import { Link } from "react-router";
+import type { ReactNode } from "react";
 import useSWR from "swr";
-import { Loader2 } from "@/components/icons/lucide-shim";
 import { PublicPageService } from "@/services/page/public-page.service";
-import dragonMark from "@/app/assets/branding/dragon.svg?url";
+import dragonFruitLogo from "@/app/assets/plane-logos/logo-black.svg?url";
 import { renderFormattedDate } from "@plane/utils";
 import { PublicDocContent } from "@/components/pages/published/public-doc-content";
 import type { Route } from "./+types/page";
 
 const publicPageService = new PublicPageService();
+
+const PublicPageShell = ({ children }: { children: ReactNode }) => (
+  <div className="bg-custom-background-100 min-h-screen text-primary">
+    <div className="mx-auto flex min-h-screen w-full max-w-[1040px] flex-col px-5 sm:px-8">
+      <main className="flex-1 py-10 sm:py-14">{children}</main>
+      <footer className="flex justify-center py-8">
+        <img src={dragonFruitLogo} alt="Dragon Fruit" className="h-7 w-auto opacity-35" />
+      </footer>
+    </div>
+  </div>
+);
 
 function PublishedPage({ params }: Route.ComponentProps) {
   const { workspaceSlug, pageSlug } = params;
@@ -26,54 +36,31 @@ function PublishedPage({ params }: Route.ComponentProps) {
   );
 
   if (isLoading) {
-    return (
-      <div className="bg-custom-background-100 grid min-h-screen place-items-center">
-        <div className="flex items-center gap-2 text-13 text-tertiary">
-          <Loader2 className="size-4 animate-spin" />
-          <span>Loading published page</span>
-        </div>
-      </div>
-    );
+    return <PublicPageShell>{null}</PublicPageShell>;
   }
 
   if (error || !data) {
     return (
-      <div className="bg-custom-background-100 grid min-h-screen place-items-center px-4">
-        <div className="w-full max-w-md text-center">
+      <PublicPageShell>
+        <div className="mx-auto w-full max-w-md px-4 text-center">
           <h1 className="text-22 font-semibold text-primary">Page not found</h1>
           <p className="mt-2 text-14 leading-6 text-secondary">
             This published page doesn&apos;t exist, is private, or was removed.
           </p>
         </div>
-      </div>
+      </PublicPageShell>
     );
   }
 
   return (
-    <div className="bg-custom-background-100 min-h-screen text-primary">
-      <header className="bg-custom-background-100/85 sticky top-0 z-10 border-b border-subtle/70 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-[1040px] items-center justify-between gap-4 px-5 py-3 sm:px-8">
-          <Link to="/" className="flex items-center gap-2 text-13 font-medium text-secondary hover:text-primary">
-            <img src={dragonMark} alt="" className="size-5 opacity-80" aria-hidden />
-            <span>DragonFruit</span>
-          </Link>
-          {data.project_id && (
-            <Link
-              to={`/${workspaceSlug}/projects/${data.project_id}/pages/${data.id}`}
-              className="rounded-sm border border-subtle bg-surface-1 px-2.5 py-1.5 text-12 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
-            >
-              Open in app
-            </Link>
-          )}
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-[1040px] px-5 py-10 sm:px-8 sm:py-14">
+    <PublicPageShell>
+      <div className="mx-auto w-full max-w-[680px]">
         {data.page_type !== "doc" ? (
-          <div className="mx-auto max-w-[680px] rounded-md border border-subtle bg-surface-1 p-5 text-14 text-secondary">
+          <div className="rounded-md border border-subtle bg-surface-1 p-5 text-14 text-secondary">
             This published page type is not supported in public view yet.
           </div>
         ) : (
-          <div className="mx-auto max-w-[680px]">
+          <div>
             <div className="mb-10">
               <p className="tracking-normal text-12 font-medium text-tertiary">Published document</p>
               <h1 className="published-doc-title mt-2 text-primary">{data.name || "Untitled"}</h1>
@@ -84,8 +71,8 @@ function PublishedPage({ params }: Route.ComponentProps) {
             <PublicDocContent html={data.description_html || "<p></p>"} embeds={data.embeds ?? []} />
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </PublicPageShell>
   );
 }
 

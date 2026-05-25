@@ -29,7 +29,7 @@ export const PageEditorTitle = observer(function PageEditorTitle(props: Props) {
   // page filters
   const { fontSize } = usePageFilters();
   // ui
-  const titleFontClassName = cn("font-bold tracking-[-2%]", {
+  const titleFontClassName = cn("tracking-normal font-bold", {
     "text-[1.6rem] leading-[1.9rem]": fontSize === "small-font",
     "text-[2rem] leading-[2.375rem]": fontSize === "large-font",
   });
@@ -64,7 +64,6 @@ export const PageEditorTitle = observer(function PageEditorTitle(props: Props) {
             maxLength={255}
             onFocus={() => setIsLengthVisible(true)}
             onBlur={() => setIsLengthVisible(false)}
-            autoFocus
           />
           <div
             className={cn(
