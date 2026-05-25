@@ -43,6 +43,8 @@ class ProjectBookmark(ProjectBaseModel):
             ]
             if largest is not None:
                 self.sort_order = largest + 10000
+        if self.created_by_id or self.updated_by_id:
+            kwargs.setdefault("disable_auto_set_user", True)
         self.full_clean()
         super().save(*args, **kwargs)
 
