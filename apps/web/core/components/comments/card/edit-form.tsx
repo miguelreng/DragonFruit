@@ -7,6 +7,8 @@
 import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
 import { useForm } from "react-hook-form";
+import { HardDrive } from "@/components/icons/lucide-shim";
+import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
 import type { EditorRefApi } from "@plane/editor";
 import { CheckIcon, CloseIcon } from "@plane/propel/icons";
 // plane imports
@@ -67,6 +69,26 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
     readOnlyEditorRef?.setEditorValue(formData?.comment_html ?? "<p></p>");
   };
 
+  const handleAttachDriveFile = async () => {
+    const pickedFile = await pickGoogleDriveFile();
+    if (!pickedFile) return;
+    editorRef.current?.setEditorValueAtCursorPosition({
+      type: "paragraph",
+      content: [
+        {
+          type: "text",
+          text: pickedFile.name,
+          marks: [
+            {
+              type: "link",
+              attrs: { href: pickedFile.web_view_link, target: "_blank" },
+            },
+          ],
+        },
+      ],
+    });
+  };
+
   useEffect(() => {
     if (isEditing) {
       setFocus("comment_html");
@@ -74,12 +96,13 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
   }, [isEditing, setFocus]);
 
   return (
-    <form className="flex flex-col gap-2">
-      <div
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !isEmpty) handleSubmit(onEnter)(e);
-        }}
-      >
+    <form
+      className="flex flex-col gap-2"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !isEmpty) handleSubmit(onEnter)(e);
+      }}
+    >
+      <div>
         <LiteTextEditor
           editable
           workspaceId={workspaceId}
@@ -111,6 +134,14 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
         />
       </div>
       <div className="flex gap-2 self-end">
+        <button
+          type="button"
+          onClick={handleAttachDriveFile}
+          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-12 text-secondary hover:bg-surface-2"
+        >
+          <HardDrive className="size-3.5" />
+          Google Drive
+        </button>
         {!isEmpty && (
           <button
             type="button"

@@ -5,7 +5,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ListChecks, Loader2, PenTool, Plus, Search, StickyNote } from "@/components/icons/lucide-shim";
+import { HardDrive, ListChecks, Loader2, PenTool, Plus, Search, StickyNote } from "@/components/icons/lucide-shim";
+import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
 import type { TDocEmbedInsertAttrs, TDocEmbedPickerMode, TDocEmbedType } from "@plane/editor";
 import type { IProjectView, TSticky } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
@@ -52,6 +53,13 @@ const TYPE_COPY = {
     createPlaceholder: "Title of the new task view…",
     Icon: ListChecks,
   },
+  google_drive: {
+    label: "Google Drive file",
+    plural: "Google Drive files",
+    placeholder: "Choose a Google Drive file...",
+    createPlaceholder: "Choose a Google Drive file...",
+    Icon: HardDrive,
+  },
 };
 
 export function DocEmbedPicker(props: Props) {
@@ -80,7 +88,36 @@ export function DocEmbedPicker(props: Props) {
   }, [isOpen, embedType, mode]);
 
   useEffect(() => {
-    if (!isOpen || mode !== "embed" || isMissingContext) return;
+    if (!isOpen || embedType !== "google_drive") return;
+    let cancelled = false;
+    const pick = async () => {
+      const file = await pickGoogleDriveFile();
+      if (cancelled) return;
+      if (file && workspaceSlug) {
+        onInsert({
+          embedType: "google_drive",
+          entityId: file.file_id,
+          projectId,
+          workspaceSlug,
+          title: file.name,
+          snapshot: {
+            url: file.web_view_link,
+            mimeType: file.mime_type,
+            iconUrl: file.icon_link,
+            thumbnailUrl: file.thumbnail_link,
+          },
+        });
+      }
+      onClose();
+    };
+    void pick();
+    return () => {
+      cancelled = true;
+    };
+  }, [embedType, isOpen, onClose, onInsert, projectId, workspaceSlug]);
+
+  useEffect(() => {
+    if (!isOpen || mode !== "embed" || isMissingContext || embedType === "google_drive") return;
     setIsSearching(true);
     const handle = window.setTimeout(async () => {
       try {
@@ -151,7 +188,7 @@ export function DocEmbedPicker(props: Props) {
     onInsert({
       embedType,
       entityId: source.id,
-      projectId: source.type === "sticky" ? projectId : source.projectId,
+      projectId: source.type === "whiteboard" || source.type === "task_view" ? source.projectId : projectId,
       workspaceSlug,
       title: source.title,
       snapshot: source.type === "whiteboard" ? source.page.description_json : undefined,
@@ -191,67 +228,74 @@ export function DocEmbedPicker(props: Props) {
 
   return (
     <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2 border-b border-subtle px-4 py-3">
-          <Search className="size-4 text-tertiary" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                if (canCreate) void handleCreate();
-              }
-            }}
-            placeholder={mode === "embed" ? copy.placeholder : copy.createPlaceholder}
-            className="w-full bg-transparent text-14 text-primary outline-none placeholder:text-placeholder"
-          />
-          {(isSearching || isCreating) && <Loader2 className="size-4 animate-spin text-tertiary" />}
+      {embedType === "google_drive" ? (
+        <div className="flex items-center gap-3 px-4 py-5 text-14 text-secondary">
+          <Loader2 className="size-4 animate-spin text-tertiary" />
+          Opening Google Drive...
         </div>
-        {error && <div className="text-error px-4 py-2 text-12">{error}</div>}
-        <div className="max-h-80 overflow-y-auto py-1">
-          {mode === "embed" &&
-            results.map((source) => (
+      ) : (
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 border-b border-subtle px-4 py-3">
+            <Search className="size-4 text-tertiary" />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (canCreate) void handleCreate();
+                }
+              }}
+              placeholder={mode === "embed" ? copy.placeholder : copy.createPlaceholder}
+              className="w-full bg-transparent text-14 text-primary outline-none placeholder:text-placeholder"
+            />
+            {(isSearching || isCreating) && <Loader2 className="size-4 animate-spin text-tertiary" />}
+          </div>
+          {error && <div className="text-error px-4 py-2 text-12">{error}</div>}
+          <div className="max-h-80 overflow-y-auto py-1">
+            {mode === "embed" &&
+              results.map((source) => (
+                <button
+                  key={`${source.type}-${source.id}`}
+                  type="button"
+                  onClick={() => handlePick(source)}
+                  className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-layer-2"
+                >
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded border border-subtle bg-layer-1 text-tertiary">
+                    <Icon className="size-3.5" />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-14 text-primary">{source.title}</span>
+                </button>
+              ))}
+
+            {trimmedQuery && (
               <button
-                key={`${source.type}-${source.id}`}
                 type="button"
-                onClick={() => handlePick(source)}
-                className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-layer-2"
+                disabled={!canCreate}
+                onClick={() => void handleCreate()}
+                className={cn(
+                  "flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-layer-2",
+                  !canCreate && "cursor-not-allowed opacity-50"
+                )}
               >
                 <span className="flex size-7 shrink-0 items-center justify-center rounded border border-subtle bg-layer-1 text-tertiary">
-                  <Icon className="size-3.5" />
+                  <Plus className="size-3.5" />
                 </span>
-                <span className="min-w-0 flex-1 truncate text-14 text-primary">{source.title}</span>
+                <span className="min-w-0 flex-1 truncate text-14 text-primary">
+                  {isCreating ? "Creating..." : `Create "${trimmedQuery}"`}
+                </span>
               </button>
-            ))}
+            )}
 
-          {trimmedQuery && (
-            <button
-              type="button"
-              disabled={!canCreate}
-              onClick={() => void handleCreate()}
-              className={cn(
-                "flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-layer-2",
-                !canCreate && "cursor-not-allowed opacity-50"
-              )}
-            >
-              <span className="flex size-7 shrink-0 items-center justify-center rounded border border-subtle bg-layer-1 text-tertiary">
-                <Plus className="size-3.5" />
-              </span>
-              <span className="min-w-0 flex-1 truncate text-14 text-primary">
-                {isCreating ? "Creating..." : `Create "${trimmedQuery}"`}
-              </span>
-            </button>
-          )}
-
-          {!isSearching && !trimmedQuery && results.length === 0 && (
-            <div className="px-4 py-3 text-13 text-tertiary">
-              {isMissingContext ? "Open a project page to add this block." : `No ${copy.plural} yet.`}
-            </div>
-          )}
+            {!isSearching && !trimmedQuery && results.length === 0 && (
+              <div className="px-4 py-3 text-13 text-tertiary">
+                {isMissingContext ? "Open a project page to add this block." : `No ${copy.plural} yet.`}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </ModalCore>
   );
 }

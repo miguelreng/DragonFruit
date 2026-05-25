@@ -91,7 +91,7 @@ const insertDocEmbed = ({
   embedType,
   attrs,
 }: CommandProps & {
-  embedType: "whiteboard" | "sticky" | "task_view";
+  embedType: "whiteboard" | "sticky" | "task_view" | "google_drive";
   attrs: {
     entityId: string;
     projectId?: string;
@@ -547,6 +547,35 @@ export const getSlashCommandFilteredSections =
                     editor,
                     range,
                     embedType: "task_view",
+                    attrs: {
+                      entityId: attrs.entityId,
+                      projectId: attrs.projectId,
+                      workspaceSlug: attrs.workspaceSlug,
+                      title: attrs.title,
+                      snapshot: attrs.snapshot,
+                    },
+                  }),
+              });
+            },
+          });
+        }
+        if (embedConfig?.googleDrive?.onPickerRequest) {
+          workItems.push({
+            commandKey: "external-embed",
+            key: "embed-google-drive",
+            title: "Google Drive file",
+            description: "Embed a Google Drive file",
+            searchTerms: ["google drive", "drive", "doc", "docs", "sheet", "slide", "file"],
+            icon: <LinkIcon className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              embedConfig.googleDrive?.onPickerRequest?.({
+                embedType: "google_drive",
+                mode: "embed",
+                insertEmbed: (attrs) =>
+                  insertDocEmbed({
+                    editor,
+                    range,
+                    embedType: "google_drive",
                     attrs: {
                       entityId: attrs.entityId,
                       projectId: attrs.projectId,

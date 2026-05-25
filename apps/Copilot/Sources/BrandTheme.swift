@@ -164,3 +164,24 @@ struct DragonFruitPrimaryButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.99 : 1)
     }
 }
+
+struct DragonFruitSecondaryButtonStyle: ButtonStyle {
+    var theme: CopilotThemeTokens = .light
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.custom("Figtree", size: 14).weight(.medium))
+            .foregroundStyle(theme.textPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(theme.layer1.opacity(configuration.isPressed ? 0.72 : 1))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(theme.borderStrong, lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.99 : 1)
+    }
+}

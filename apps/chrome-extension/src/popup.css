@@ -1,0 +1,336 @@
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@font-face {
+  font-family: Figtree;
+  src: url("./fonts/Figtree-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+:root {
+  --canvas: #f3f3f4;
+  --surface: rgba(255, 255, 255, 0.97);
+  --layer-1: #f7f7f8;
+  --layer-2: #ffffff;
+  --border: rgba(0, 0, 0, 0.06);
+  --border-strong: rgba(0, 0, 0, 0.1);
+  --text-primary: #262629;
+  --text-secondary: #707077;
+  --text-tertiary: #8c8c96;
+  --accent: #e64aa2;
+  --accent-strong: #d93791;
+  --danger: #f24d61;
+  --success: #2d8b6f;
+}
+
+body {
+  width: 360px;
+  margin: 0;
+  color: var(--text-primary);
+  background: var(--canvas);
+  font:
+    13px/1.35 Figtree,
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+main {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1px 6px;
+}
+
+.brand-logo {
+  width: 92px;
+  height: auto;
+  display: block;
+  opacity: 0.78;
+}
+
+.app-header span {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 0.75px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.section-label {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.action-card {
+  gap: 8px;
+}
+
+.login-card p,
+.settings-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.action-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.action-copy strong {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.action-copy span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.settings-card {
+  gap: 8px;
+}
+
+.settings-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 27px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.setting-row > span {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setting-value {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.status {
+  max-width: 230px;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status[data-state="success"] {
+  color: var(--success);
+}
+
+.status[data-state="error"] {
+  color: var(--danger);
+}
+
+.status[data-state="loading"] {
+  color: var(--accent);
+}
+
+select,
+button {
+  border: 0;
+  color: var(--text-primary);
+  font: inherit;
+}
+
+select {
+  width: auto;
+  min-width: 0;
+  outline: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+select:focus {
+  box-shadow: 0 0 0 3px rgba(232, 77, 159, 0.12);
+}
+
+button {
+  cursor: pointer;
+  font-weight: 500;
+  transition:
+    background 0.14s ease,
+    transform 0.14s ease;
+}
+
+button:active {
+  transform: scale(0.99);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.secondary {
+  width: 100%;
+  background: var(--layer-1);
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.secondary:hover {
+  background: #efeff1;
+}
+
+.primary {
+  justify-self: start;
+  background: var(--accent);
+  color: #fcfbfc;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.primary:hover {
+  background: var(--accent-strong);
+}
+
+footer {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 17px;
+  padding: 0 1px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dragon-button {
+  min-height: auto;
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+
+.secondary.dragon-button {
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.auth-pill {
+  width: auto;
+  min-width: 112px;
+  max-width: 180px;
+  flex: 0 1 auto;
+  overflow: hidden;
+  padding: 5px 9px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-pill[data-connected="true"] {
+  color: var(--success);
+}
+
+.picker-pill {
+  max-width: 180px;
+  flex: 0 1 auto;
+  padding: 5px 28px 5px 9px;
+  border-radius: 6px;
+  background: var(--layer-1);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+select.picker-pill {
+  min-width: 150px;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%),
+    linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 50%,
+    calc(100% - 10px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #252423;
+    --surface: rgba(45, 44, 43, 0.97);
+    --layer-1: #343331;
+    --layer-2: #3c3b39;
+    --border: rgba(255, 255, 255, 0.045);
+    --border-strong: rgba(255, 255, 255, 0.08);
+    --text-primary: #ecebea;
+    --text-secondary: #d8d6d5;
+    --text-tertiary: #c3c1bf;
+    --accent: #ed5eb3;
+    --accent-strong: #f276c0;
+  }
+
+  .secondary:hover {
+    background: #3c3b39;
+  }
+
+  .brand-logo {
+    filter: brightness(0) invert(1);
+    opacity: 0.88;
+  }
+}

@@ -14,6 +14,16 @@ import { EIssueServiceType } from "@plane/types";
 import { APIService } from "@/services/api.service";
 import { FileUploadService } from "@/services/file-upload.service";
 
+export type TGoogleDriveAttachmentPayload = {
+  file_id: string;
+  name: string;
+  mime_type?: string;
+  web_view_link: string;
+  icon_link?: string;
+  thumbnail_link?: string;
+  size?: number;
+};
+
 export class IssueAttachmentService extends APIService {
   private fileUploadService: FileUploadService;
   private serviceType: TIssueServiceType;
@@ -71,6 +81,22 @@ export class IssueAttachmentService extends APIService {
   async getIssueAttachments(workspaceSlug: string, projectId: string, issueId: string): Promise<TIssueAttachment[]> {
     return this.get(
       `/api/assets/v2/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/attachments/`
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async createGoogleDriveAttachment(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    payload: TGoogleDriveAttachmentPayload
+  ): Promise<TIssueAttachment> {
+    return this.post(
+      `/api/assets/v2/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/attachments/google-drive/`,
+      payload
     )
       .then((response) => response?.data)
       .catch((error) => {

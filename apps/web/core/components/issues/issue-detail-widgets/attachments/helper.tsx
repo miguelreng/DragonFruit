@@ -12,9 +12,11 @@ import { EIssueServiceType } from "@plane/types";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // types
 import type { TAttachmentUploadStatus } from "@/store/issue/issue-details/attachment.store";
+import type { TGoogleDriveAttachmentPayload } from "@/services/issue";
 
 export type TAttachmentOperations = {
   create: (file: File) => Promise<void>;
+  createGoogleDrive: (payload: TGoogleDriveAttachmentPayload) => Promise<void>;
   remove: (attachmentId: string) => Promise<void>;
 };
 
@@ -34,7 +36,12 @@ export const useAttachmentOperations = (
   issueServiceType: TIssueServiceType = EIssueServiceType.ISSUES
 ): TAttachmentHelpers => {
   const {
-    attachment: { createAttachment, removeAttachment, getAttachmentsUploadStatusByIssueId },
+    attachment: {
+      createAttachment,
+      createGoogleDriveAttachment,
+      removeAttachment,
+      getAttachmentsUploadStatusByIssueId,
+    },
   } = useIssueDetail(issueServiceType);
 
   const attachmentOperations: TAttachmentOperations = useMemo(
@@ -51,6 +58,23 @@ export const useAttachmentOperations = (
           error: {
             title: "Attachment not uploaded",
             message: () => "The attachment could not be uploaded",
+          },
+        });
+
+        await attachmentUploadPromise;
+      },
+      createGoogleDrive: async (payload) => {
+        if (!workspaceSlug || !projectId || !issueId) throw new Error("Missing required fields");
+        const attachmentUploadPromise = createGoogleDriveAttachment(workspaceSlug, projectId, issueId, payload);
+        setPromiseToast(attachmentUploadPromise, {
+          loading: "Attaching Google Drive file...",
+          success: {
+            title: "Drive file attached",
+            message: () => "The Google Drive file has been attached",
+          },
+          error: {
+            title: "Drive file not attached",
+            message: () => "The Google Drive file could not be attached",
           },
         });
 
@@ -74,7 +98,7 @@ export const useAttachmentOperations = (
         }
       },
     }),
-    [workspaceSlug, projectId, issueId, createAttachment, removeAttachment]
+    [workspaceSlug, projectId, issueId, createAttachment, createGoogleDriveAttachment, removeAttachment]
   );
   const attachmentsUploadStatus = getAttachmentsUploadStatusByIssueId(issueId);
 

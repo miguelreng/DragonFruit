@@ -18,7 +18,6 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // assets
-import WorkSpaceNotAvailable from "@/app/assets/workspace/workspace-not-available.png?url";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 // constants
@@ -32,6 +31,7 @@ import {
   WORKSPACE_STATES,
   WORKSPACE_SIDEBAR_PREFERENCES,
   WORKSPACE_PROJECT_NAVIGATION_PREFERENCES,
+  USER_WORKSPACES_LIST,
 } from "@/constants/fetch-keys";
 // hooks
 import { useAgent } from "@/hooks/store/use-agent";
@@ -60,7 +60,13 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
     workspace: { fetchWorkspaceMembers },
   } = useMember();
   const agentStore = useAgent();
-  const { workspaces, fetchSidebarNavigationPreferences, fetchProjectNavigationPreferences } = useWorkspace();
+  const {
+    loader: workspaceListLoader,
+    workspaces,
+    fetchWorkspaces,
+    fetchSidebarNavigationPreferences,
+    fetchProjectNavigationPreferences,
+  } = useWorkspace();
   const { isMobile } = usePlatformOS();
   const { loader, workspaceInfoBySlug, fetchUserWorkspaceInfo, fetchUserProjectPermissions, allowPermissions } =
     useUserPermissions();
@@ -74,6 +80,13 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
   const currentWorkspace =
     (allWorkspaces && allWorkspaces.find((workspace) => workspace?.slug === workspaceSlug)) || undefined;
   const currentWorkspaceInfo = workspaceSlug && workspaceInfoBySlug(workspaceSlug.toString());
+  const shouldRefreshWorkspaces = Boolean(workspaceSlug && allWorkspaces && currentWorkspace === undefined);
+
+  const { isLoading: isWorkspaceRefreshLoading, isValidating: isWorkspaceRefreshValidating } = useSWR(
+    shouldRefreshWorkspaces ? `${USER_WORKSPACES_LIST}_${workspaceSlug.toString()}` : null,
+    shouldRefreshWorkspaces ? () => fetchWorkspaces() : null,
+    { revalidateIfStale: true, revalidateOnFocus: false, shouldRetryOnError: false }
+  );
 
   // fetching user workspace information
   useSWR(
@@ -150,7 +163,14 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
   };
 
   // if list of workspaces are not there then we have to render the spinner
-  if (isParentLoading || allWorkspaces === undefined || loader) {
+  if (
+    isParentLoading ||
+    allWorkspaces === undefined ||
+    loader ||
+    workspaceListLoader ||
+    isWorkspaceRefreshLoading ||
+    isWorkspaceRefreshValidating
+  ) {
     return (
       <div className="grid h-full place-items-center rounded-lg border border-subtle p-4">
         <div className="flex flex-col items-center gap-3 text-center">
@@ -185,7 +205,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
           <div className="relative flex h-full w-full flex-grow flex-col items-center justify-center space-y-3">
             <div className="relative flex-shrink-0">
               <img
-                src={WorkSpaceNotAvailable}
+                src="/empty-state/renaissance-sketch/invalid-link.png"
                 className="h-[220px] object-contain object-center"
                 alt="DragonFruit logo"
               />
