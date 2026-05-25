@@ -8,6 +8,29 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { API_BASE_URL } from "@plane/constants";
 
+const PRODUCTION_API_BASE_URL = "https://api.dragonfruit.sh";
+
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+function getNativeLoginApiBaseUrl() {
+  const configuredApiBaseUrl = trimTrailingSlash(API_BASE_URL);
+  if (configuredApiBaseUrl) {
+    try {
+      const configuredApiOrigin = new URL(configuredApiBaseUrl, window.location.origin).origin;
+      if (configuredApiOrigin !== window.location.origin) return configuredApiBaseUrl;
+    } catch {
+      return configuredApiBaseUrl;
+    }
+  }
+
+  const { hostname, origin } = window.location;
+  if (hostname === "app.dragonfruit.sh" || hostname.endsWith(".vercel.app")) return PRODUCTION_API_BASE_URL;
+
+  return configuredApiBaseUrl || origin;
+}
+
 export default function NativeLoginPage() {
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -26,14 +49,16 @@ export default function NativeLoginPage() {
         const isChromeExtensionCallback =
           callbackUrl.protocol === "https:" && callbackUrl.hostname.endsWith(".chromiumapp.org") && extensionId;
 
+        const apiBaseUrl = getNativeLoginApiBaseUrl();
+
         if (!isChromeExtensionCallback) {
-          const url = new URL(`${API_BASE_URL}/auth/native/start/`);
+          const url = new URL(`${apiBaseUrl}/auth/native/start/`);
           url.searchParams.set("callback", callback);
           window.location.assign(url.toString());
           return;
         }
 
-        const url = new URL(`${API_BASE_URL}/auth/native/start/`);
+        const url = new URL(`${apiBaseUrl}/auth/native/start/`);
         url.searchParams.set("format", "json");
         url.searchParams.set("callback", callback);
         const response = await fetch(url.toString(), {
@@ -41,6 +66,9 @@ export default function NativeLoginPage() {
           headers: { Accept: "application/json" },
         });
         if (!response.ok) throw new Error(`Token handoff failed: ${response.status}`);
+        if (!response.headers.get("content-type")?.includes("application/json")) {
+          throw new Error("Token handoff did not return JSON.");
+        }
         const data = await response.json();
         if (!data?.api_token) throw new Error("Token handoff did not return an API token.");
 
@@ -65,7 +93,7 @@ export default function NativeLoginPage() {
           {
             type: "DRAGONFRUIT_NATIVE_TOKEN",
             apiToken: data.api_token,
-            appUrl: API_BASE_URL,
+            appUrl: apiBaseUrl,
           },
           (reply) => {
             const lastError = chromeRuntime.lastError;
