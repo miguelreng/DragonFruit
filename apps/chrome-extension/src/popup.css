@@ -3,25 +3,23 @@
 }
 
 :root {
-  --canvas: #f3f4f4;
+  --canvas: #f3f3f4;
   --surface: rgba(255, 255, 255, 0.97);
-  --surface-2: #fbfbfb;
   --layer-1: #f7f7f8;
   --layer-2: #ffffff;
-  --border: rgba(0, 0, 0, 0.055);
+  --border: rgba(0, 0, 0, 0.06);
   --border-strong: rgba(0, 0, 0, 0.1);
   --text-primary: #262629;
   --text-secondary: #707077;
   --text-tertiary: #8c8c96;
-  --accent: #e84d9f;
+  --accent: #e64aa2;
   --accent-strong: #d93791;
-  --accent-subtle: #feeefa;
   --danger: #f24d61;
   --success: #2d8b6f;
 }
 
 body {
-  width: 336px;
+  width: 360px;
   margin: 0;
   color: var(--text-primary);
   background: var(--canvas);
@@ -36,86 +34,99 @@ body {
 
 main {
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: 12px;
+  padding: 13px 12px 12px;
 }
 
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 2px 4px;
+  padding: 0 1px 6px;
 }
 
-.brand-lockup {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.brand-mark {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 1px solid rgba(232, 77, 159, 0.22);
-  border-radius: 999px;
-  color: var(--accent);
-  background: var(--accent-subtle);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-.app-header strong {
+.brand-logo {
+  width: 92px;
+  height: auto;
   display: block;
-  font-size: 15px;
-  font-weight: 720;
-  letter-spacing: 0;
 }
 
 .app-header span {
   color: var(--text-tertiary);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.header-pill {
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--layer-1);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .card {
   display: grid;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 14px;
+  gap: 12px;
+  padding: 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
   background: var(--surface);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42);
 }
 
-.section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.section-label {
   color: var(--text-tertiary);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
+.action-card {
+  gap: 10px;
+}
+
+.action-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.action-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.action-copy span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.settings-card {
+  gap: 11px;
+}
+
+.settings-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-tertiary);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.setting-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 1fr) minmax(0, 198px);
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 720;
+}
+
 .status {
-  max-width: 170px;
+  max-width: 230px;
   overflow: hidden;
   color: var(--text-tertiary);
-  text-align: right;
   text-overflow: ellipsis;
-  text-transform: none;
   white-space: nowrap;
 }
 
@@ -131,21 +142,13 @@ main {
   color: var(--accent);
 }
 
-label {
-  display: grid;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 650;
-}
-
 input,
 select,
 button {
-  min-height: 36px;
-  border-radius: 10px;
-  border: 1px solid var(--border-strong);
-  background: var(--layer-2);
+  min-height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--layer-1);
   color: var(--text-primary);
   font: inherit;
 }
@@ -153,23 +156,25 @@ button {
 input,
 select {
   width: 100%;
-  padding: 0 10px;
+  min-width: 0;
+  padding: 0 9px;
   outline: none;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
 }
 
 input:focus,
 select:focus {
-  border-color: rgba(232, 77, 159, 0.45);
   box-shadow: 0 0 0 3px rgba(232, 77, 159, 0.12);
 }
 
 button {
   cursor: pointer;
-  padding: 0 12px;
+  padding: 0 10px;
   font-weight: 700;
   transition:
     background 0.14s ease,
-    border-color 0.14s ease,
     transform 0.14s ease;
 }
 
@@ -183,7 +188,10 @@ button:disabled {
 }
 
 .secondary {
+  width: 100%;
   background: var(--layer-1);
+  color: var(--text-secondary);
+  text-align: left;
 }
 
 .secondary:hover {
@@ -191,37 +199,32 @@ button:disabled {
 }
 
 .primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  border-color: var(--accent);
+  justify-self: start;
+  min-height: 34px;
   background: var(--accent);
-  color: #fbfbfb;
+  color: #fcfbfc;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .primary:hover {
-  border-color: var(--accent-strong);
   background: var(--accent-strong);
 }
 
-.button-icon {
-  display: grid;
-  width: 19px;
-  height: 19px;
-  place-items: center;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+footer {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 17px;
+  padding: 0 1px;
+  color: var(--text-tertiary);
   font-size: 11px;
-  line-height: 1;
+  font-weight: 700;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --canvas: #252423;
     --surface: rgba(45, 44, 43, 0.97);
-    --surface-2: #343331;
     --layer-1: #343331;
     --layer-2: #3c3b39;
     --border: rgba(255, 255, 255, 0.045);
@@ -231,10 +234,14 @@ button:disabled {
     --text-tertiary: #c3c1bf;
     --accent: #ed5eb3;
     --accent-strong: #f276c0;
-    --accent-subtle: #421a33;
   }
 
   .secondary:hover {
     background: #3c3b39;
+  }
+
+  .brand-logo {
+    filter: brightness(0) invert(1);
+    opacity: 0.88;
   }
 }

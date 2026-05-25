@@ -9,40 +9,44 @@
   <body>
     <main>
       <header class="app-header">
-        <div class="brand-lockup">
-          <span class="brand-mark" aria-hidden="true">D</span>
-          <div>
-            <strong>DragonFruit</strong>
-            <span>Bookmarks</span>
-          </div>
-        </div>
-        <span class="header-pill">Chrome</span>
+        <img class="brand-logo" src="./logo.svg" alt="DragonFruit" />
+        <span>Bookmarks</span>
       </header>
 
-      <section class="card">
-        <div class="section-heading">
-          <span>Destination</span>
-          <span id="status" class="status">Not configured</span>
+      <section class="card action-card">
+        <span class="section-label">Bookmark</span>
+        <div class="action-copy">
+          <strong>Save the current Chrome page.</strong>
+          <span>Right-click pages, links, and images for more save actions.</span>
         </div>
-        <label>
+        <button id="save-page" type="button" class="primary">Save current page</button>
+      </section>
+
+      <section class="card settings-card">
+        <div class="settings-title">
+          <span class="section-label">Settings</span>
+          <span aria-hidden="true">⌃</span>
+        </div>
+
+        <label class="setting-row">
           <span>App URL</span>
           <input id="app-url" type="url" placeholder="http://localhost:3000" />
         </label>
-        <label>
-          <span>Workspace slug</span>
+        <label class="setting-row">
+          <span>Workspace</span>
           <input id="workspace-slug" type="text" placeholder="workspace" />
         </label>
-        <button id="load-projects" type="button" class="secondary">Load writable projects</button>
-        <label>
+        <label class="setting-row">
           <span>Project</span>
           <select id="project-id"></select>
         </label>
+
+        <button id="load-projects" type="button" class="secondary">Load writable projects</button>
       </section>
 
-      <button id="save-page" type="button" class="primary">
-        <span class="button-icon" aria-hidden="true">⌘</span>
-        Save current page
-      </button>
+      <footer>
+        <span id="status" class="status">Not configured</span>
+      </footer>
     </main>
     <script src="./popup.js" type="module"></script>
   </body>
