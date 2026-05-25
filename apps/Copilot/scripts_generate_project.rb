@@ -69,6 +69,8 @@ File.write(plist_path, <<~PLIST)
   <string>13.0</string>
   <key>NSMicrophoneUsageDescription</key>
   <string>DragonFruit Copilot uses the microphone when you start voice capture, so it can answer questions, create workspace items, or type dictation.</string>
+  <key>NSAudioCaptureUsageDescription</key>
+  <string>DragonFruit Copilot captures system audio when you start meeting notes, so remote speakers in calls can be transcribed.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
   <string>DragonFruit Copilot transcribes your voice when you use Copilot voice or dictation.</string>
   <key>LSApplicationCategoryType</key>

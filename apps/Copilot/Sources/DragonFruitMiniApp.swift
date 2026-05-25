@@ -46,6 +46,7 @@ final class VoiceToastController: ObservableObject {
         case listening
         case processing
         case agentResponse
+        case meetingPrompt(String)
         case error
         case result(UUID)
     }
@@ -98,6 +99,14 @@ final class VoiceToastController: ObservableObject {
             }
             .store(in: &cancellables)
 
+        store.$meetingStartPrompt
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak store] _ in
+                guard let self, let store else { return }
+                self.update(for: store)
+            }
+            .store(in: &cancellables)
+
         store.$copilotTheme
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak store] _ in
@@ -115,6 +124,8 @@ final class VoiceToastController: ObservableObject {
             nextKind = .error
         } else if store.isListening {
             nextKind = .listening
+        } else if let prompt = store.meetingStartPrompt, !store.isMeetingRecording {
+            nextKind = .meetingPrompt(prompt.id)
         } else if store.isVoiceActionProcessing || store.isAgentResponding {
             nextKind = .processing
         } else if !store.lastAgentTextResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -143,6 +154,12 @@ final class VoiceToastController: ObservableObject {
             showProcessingToast(for: store)
         case .agentResponse:
             showAgentResponseToast(for: store)
+        case let .meetingPrompt(meetingId):
+            guard store.meetingStartPrompt?.id == meetingId else {
+                hideToast()
+                return
+            }
+            showMeetingPromptToast(for: store)
         case let .result(resultId):
             guard let result = store.lastVoiceActionResult, result.id == resultId else {
                 hideToast()
@@ -152,6 +169,27 @@ final class VoiceToastController: ObservableObject {
         case .none:
             hideToast()
         }
+    }
+
+    private func showMeetingPromptToast(for store: MeetingStore) {
+        let kind = ToastKind.meetingPrompt(store.meetingStartPrompt?.id ?? "")
+        let size = NSSize(width: 340, height: 118)
+        let panel = panel ?? makePanel(size: size)
+        self.panel = panel
+        hideTask?.cancel()
+        closeTask?.cancel()
+        panel.ignoresMouseEvents = false
+        let shouldReveal = prepare(panel: panel, for: kind)
+        if currentKind != kind {
+            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
+                MeetingStartToast(store: store) { [weak self] in
+                    self?.dismissCurrentToast()
+                }
+            })
+            currentKind = kind
+        }
+        position(panel: panel, size: size)
+        if shouldReveal { reveal(panel: panel) }
     }
 
     private func showProcessingToast(for store: MeetingStore) {
@@ -330,6 +368,75 @@ final class VoiceToastController: ObservableObject {
             y: screenFrame.maxY - size.height - 8
         )
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
+    }
+}
+
+struct MeetingStartToast: View {
+    @ObservedObject var store: MeetingStore
+    let onClose: () -> Void
+
+    private var theme: CopilotThemeTokens {
+        store.copilotTheme.tokens
+    }
+
+    private var meetingTitle: String {
+        store.meetingStartPrompt?.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? store.meetingStartPrompt?.title ?? "Meeting"
+            : "Meeting"
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "waveform.badge.mic")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(theme.accent)
+                .frame(width: 32, height: 32)
+                .background(theme.accentSubtle, in: Circle())
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Meeting starting")
+                    .font(.custom("Figtree", size: 11).weight(.semibold))
+                    .foregroundStyle(theme.accent)
+                Text(meetingTitle)
+                    .font(.custom("Figtree", size: 13).weight(.semibold))
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    store.startPromptedMeetingNotes()
+                    onClose()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "record.circle")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("Start notes")
+                            .font(.custom("Figtree", size: 11).weight(.semibold))
+                    }
+                    .foregroundStyle(theme.textOnAccent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(theme.accent, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(width: 340, height: 118)
+        .background(toastBackground(theme: theme, cornerRadius: 14))
+        .overlay(alignment: .topTrailing) {
+            ToastCloseButton(theme: theme) {
+                store.dismissMeetingStartPrompt()
+                onClose()
+            }
+            .padding(7)
+        }
+        .overlay(toastBorder(theme: theme, cornerRadius: 14))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .compositingGroup()
+        .shadow(color: theme.shadow, radius: 12, y: 6)
     }
 }
 
