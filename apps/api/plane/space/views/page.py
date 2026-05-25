@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .base import BaseAPIView
-from plane.db.models import DeployBoard, Issue, IssueView, Page, Sticky
+from plane.db.models import DeployBoard, Issue, IssueView, Page, Project, Sticky
 from plane.utils.issue_filters import issue_filters
 
 
@@ -163,5 +163,51 @@ class PublicPageBySlugEndpoint(BaseAPIView):
                 "updated_at": page.updated_at,
                 "public_slug": page.view_props.get("public_slug") if isinstance(page.view_props, dict) else None,
             },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PublicProjectPagesEndpoint(BaseAPIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, workspace_slug, project_id):
+        project_exists = Project.objects.filter(
+            id=project_id,
+            workspace__slug=workspace_slug,
+            archived_at__isnull=True,
+        ).exists()
+
+        if not project_exists:
+            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        pages = (
+            Page.objects.filter(
+                workspace__slug=workspace_slug,
+                projects__id=project_id,
+                access=Page.PUBLIC_ACCESS,
+                page_type=Page.PAGE_TYPE_DOC,
+                archived_at__isnull=True,
+            )
+            .distinct()
+            .order_by("-created_at")
+        )
+
+        return Response(
+            [
+                {
+                    "id": str(page.id),
+                    "workspace_slug": workspace_slug,
+                    "project_id": str(project_id),
+                    "name": page.name,
+                    "page_type": page.page_type,
+                    "description_html": page.description_html,
+                    "description_stripped": page.description_stripped,
+                    "logo_props": page.logo_props,
+                    "created_at": page.created_at,
+                    "updated_at": page.updated_at,
+                    "public_slug": page.view_props.get("public_slug") if isinstance(page.view_props, dict) else None,
+                }
+                for page in pages
+            ],
             status=status.HTTP_200_OK,
         )
