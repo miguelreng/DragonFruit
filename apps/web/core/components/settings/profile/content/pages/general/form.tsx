@@ -230,7 +230,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
                       ref={ref}
                       hasError={Boolean(errors.first_name)}
                       placeholder="Enter your first name"
-                      className={`w-full rounded-md ${errors.first_name ? "border-danger-strong" : ""}`}
+                      className={`w-full rounded-lg ${errors.first_name ? "border-danger-strong" : ""}`}
                       maxLength={50}
                       autoComplete="on"
                     />
@@ -256,7 +256,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
                       ref={ref}
                       hasError={Boolean(errors.last_name)}
                       placeholder="Enter your last name"
-                      className="w-full rounded-md"
+                      className="w-full rounded-lg"
                       maxLength={50}
                       autoComplete="on"
                     />
@@ -315,7 +315,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
                       ref={ref}
                       hasError={Boolean(errors.email)}
                       placeholder="Enter your email"
-                      className={`w-full cursor-not-allowed rounded-md !bg-surface-2 ${
+                      className={`w-full cursor-not-allowed rounded-lg !bg-surface-2 ${
                         errors.email ? "border-danger-strong" : ""
                       }`}
                       autoComplete="on"

@@ -29,7 +29,7 @@ export function ProfileWorkload({ stateDistribution }: Props) {
           const color = STATE_GROUPS[group.state_group]?.color;
           const label = STATE_LABEL_OVERRIDES[group.state_group] ?? STATE_GROUPS[group.state_group]?.label;
           return (
-            <div key={group.state_group} className="flex flex-col gap-2 bg-surface-1 px-5 py-4">
+            <div key={group.state_group} className="flex flex-col gap-2 bg-surface-2 px-5 py-4">
               <div className="flex items-center gap-2 text-13 text-tertiary">
                 <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
                 <span className="truncate">{label}</span>

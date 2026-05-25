@@ -5,7 +5,14 @@
  */
 
 import * as React from "react";
-import { AlertCircle, Ban, SignalHigh, SignalLow, SignalMedium } from "lucide-react";
+import {
+  AlertCircleIcon,
+  ArrowDown02Icon,
+  ArrowRight02Icon,
+  ArrowUp02Icon,
+  MinusSignIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { cn } from "../utils";
 
 export type TIssuePriorities = "urgent" | "high" | "medium" | "low" | "none";
@@ -20,24 +27,27 @@ interface IPriorityIcon {
 
 export function PriorityIcon(props: IPriorityIcon) {
   const { priority, className = "", containerClassName = "", size = 14, withContainer = false } = props;
+  const resolvedPriority = priority ?? "none";
 
   const priorityClasses = {
-    urgent: "bg-layer-2 text-priority-urgent border-priority-urgent",
-    high: "bg-layer-2 text-priority-high border-priority-high",
-    medium: "bg-layer-2 text-priority-medium border-priority-medium",
-    low: "bg-layer-2 text-priority-low border-priority-low",
-    none: "bg-layer-2 text-priority-none border-priority-none",
+    urgent:
+      "bg-[color-mix(in_srgb,var(--priority-urgent)_12%,var(--bg-layer-3))] text-[color-mix(in_srgb,var(--priority-urgent)_84%,black)]",
+    high: "bg-[color-mix(in_srgb,var(--priority-high)_14%,var(--bg-layer-3))] text-[color-mix(in_srgb,var(--priority-high)_82%,black)]",
+    medium:
+      "bg-[color-mix(in_srgb,var(--priority-medium)_16%,var(--bg-layer-3))] text-[color-mix(in_srgb,var(--priority-medium)_78%,black)]",
+    low: "bg-[color-mix(in_srgb,var(--priority-low)_14%,var(--bg-layer-3))] text-[color-mix(in_srgb,var(--priority-low)_82%,black)]",
+    none: "bg-layer-3 text-placeholder",
   };
 
   // get priority icon
-  const icons = {
-    urgent: AlertCircle,
-    high: SignalHigh,
-    medium: SignalMedium,
-    low: SignalLow,
-    none: Ban,
+  const icons: Record<TIssuePriorities, IconSvgElement> = {
+    urgent: AlertCircleIcon,
+    high: ArrowUp02Icon,
+    medium: ArrowRight02Icon,
+    low: ArrowDown02Icon,
+    none: MinusSignIcon,
   };
-  const Icon = icons[priority ?? "none"];
+  const Icon = icons[resolvedPriority];
 
   if (!Icon) return null;
 
@@ -46,34 +56,33 @@ export function PriorityIcon(props: IPriorityIcon) {
       {withContainer ? (
         <div
           className={cn(
-            "flex flex-shrink-0 items-center justify-center rounded-sm border p-0.5",
-            priorityClasses[priority ?? "none"],
+            "flex size-5 flex-shrink-0 items-center justify-center rounded-lg",
+            priorityClasses[resolvedPriority],
             containerClassName
           )}
         >
-          <Icon
+          <HugeiconsIcon
+            icon={Icon}
             size={size}
-            className={cn(
-              {
-                "translate-x-[0.0625rem]": priority === "high",
-                "translate-x-0.5": priority === "medium",
-                "translate-x-1": priority === "low",
-              },
-              className
-            )}
+            color="currentColor"
+            strokeWidth={1.5}
+            className={cn("stroke-2", className)}
           />
         </div>
       ) : (
-        <Icon
+        <HugeiconsIcon
+          icon={Icon}
           size={size}
+          color="currentColor"
+          strokeWidth={1.5}
           className={cn(
             "flex-shrink-0",
             {
-              "text-priority-urgent": priority === "urgent",
-              "text-priority-high": priority === "high",
-              "text-priority-medium": priority === "medium",
-              "text-priority-low": priority === "low",
-              "text-priority-none": priority === "none",
+              "text-[color-mix(in_srgb,var(--priority-urgent)_84%,black)]": resolvedPriority === "urgent",
+              "text-[color-mix(in_srgb,var(--priority-high)_82%,black)]": resolvedPriority === "high",
+              "text-[color-mix(in_srgb,var(--priority-medium)_78%,black)]": resolvedPriority === "medium",
+              "text-[color-mix(in_srgb,var(--priority-low)_82%,black)]": resolvedPriority === "low",
+              "text-placeholder": resolvedPriority === "none",
             },
             className
           )}

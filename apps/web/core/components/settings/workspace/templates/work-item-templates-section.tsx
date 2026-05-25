@@ -183,7 +183,7 @@ export function WorkItemTemplatesSection({ workspaceSlug, canEdit }: Props) {
                     value={draft.name}
                     onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="Template name"
-                    className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
+                    className="rounded-lg border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
                     // Focus follows the click into rename — same pattern as
                     // the page-templates section above.
                     // eslint-disable-next-line jsx-a11y/no-autofocus
@@ -198,7 +198,7 @@ export function WorkItemTemplatesSection({ workspaceSlug, canEdit }: Props) {
                     value={draft.description}
                     onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
                     placeholder="What this template is for"
-                    className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
+                    className="rounded-lg border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary outline-none"
                   />
                 ) : (
                   <span className="truncate text-12 text-secondary">{template.description || "—"}</span>

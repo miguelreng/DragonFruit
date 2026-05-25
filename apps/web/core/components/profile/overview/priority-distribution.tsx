@@ -31,7 +31,7 @@ export function ProfilePriorityDistribution({ userProfile }: Props) {
   return (
     <section className="flex flex-col space-y-3">
       <h3 className="text-13 font-medium text-tertiary">{t("profile.stats.priority_distribution.title")}</h3>
-      <div className="flex h-full flex-col rounded-lg border-[0.5px] border-subtle bg-surface-1 p-5">
+      <div className="flex h-full flex-col rounded-lg border-[0.5px] border-subtle bg-surface-2 p-5">
         {userProfile ? (
           hasData ? (
             <BarChart

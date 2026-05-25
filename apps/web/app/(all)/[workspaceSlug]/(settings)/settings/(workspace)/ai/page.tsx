@@ -37,9 +37,9 @@ type FormState = {
 };
 
 const SELECT_CLASSNAME =
-  "rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary min-w-[220px]";
+  "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary min-w-[220px]";
 const INPUT_CLASSNAME =
-  "rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder min-w-[220px]";
+  "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder min-w-[220px]";
 
 function AISettingsPage() {
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();

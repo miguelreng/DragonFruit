@@ -79,6 +79,7 @@ function CustomSelect(props: ICustomSelectProps) {
         className={cn("relative flex-shrink-0 text-left", className)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
+        role="presentation"
       >
         <>
           {customButton ? (
@@ -100,7 +101,7 @@ function CustomSelect(props: ICustomSelectProps) {
                 ref={setReferenceElement}
                 type="button"
                 className={cn(
-                  "flex w-full items-center justify-between gap-1 rounded border border-strong",
+                  "flex w-full items-center justify-between gap-1 rounded-lg border border-strong",
                   {
                     "px-3 py-2 text-13": input,
                     "px-2 py-1 text-11": !input,
@@ -166,7 +167,7 @@ function Option(props: ICustomSelectItemProps) {
       value={value}
       className={({ active }) =>
         cn(
-          "flex cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none",
+          "flex cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 text-secondary select-none",
           {
             "bg-layer-transparent-hover": active,
           },

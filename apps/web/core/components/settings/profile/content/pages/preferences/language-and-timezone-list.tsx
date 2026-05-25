@@ -84,7 +84,7 @@ export const ProfileSettingsLanguageAndTimezonePreferencesList = observer(
               label={profile?.language ? getLanguageLabel(profile?.language) : "Select a language"}
               onChange={handleLanguageChange}
               buttonClassName="border border-subtle-1"
-              className="rounded-md"
+              className="rounded-lg"
               input
               placement="bottom-end"
             >

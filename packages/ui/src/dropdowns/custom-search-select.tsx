@@ -74,7 +74,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
 
   const closeDropdown = () => {
     setIsOpen(false);
-    onClose && onClose();
+    onClose?.();
   };
 
   const handleKeyDown = useDropdownKeyDown(openDropdown, closeDropdown, isOpen);
@@ -92,6 +92,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
       tabIndex={tabIndex}
       className={cn("relative flex-shrink-0 text-left", className)}
       onKeyDown={handleKeyDown}
+      role="presentation"
       {...comboboxProps}
     >
       {({ open }: { open: boolean }) => {
@@ -123,7 +124,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                   ref={setReferenceElement}
                   type="button"
                   className={cn(
-                    "flex w-full items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong",
+                    "flex w-full items-center justify-between gap-1 rounded-lg border-[0.5px] border-strong",
                     {
                       "px-3 py-2 text-13": input,
                       "px-2 py-1 text-11": !input,
@@ -153,7 +154,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                     style={styles.popper}
                     {...attributes.popper}
                   >
-                    <div className="mx-2 flex items-center gap-1.5 rounded-sm border border-subtle px-2">
+                    <div className="mx-2 flex items-center gap-1.5 rounded-lg border border-subtle px-2">
                       <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
                       <Combobox.Input
                         className="w-full bg-transparent py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
@@ -181,7 +182,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                               value={option.value}
                               className={({ active }) =>
                                 cn(
-                                  "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none",
+                                  "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 select-none",
                                   {
                                     "bg-layer-transparent-hover": active,
                                     "cursor-not-allowed text-placeholder opacity-60": option.disabled,
