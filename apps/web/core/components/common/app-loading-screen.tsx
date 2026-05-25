@@ -147,11 +147,9 @@ export function AppLoadingScreen() {
       {/* Card */}
       <div className="relative z-10 flex h-full w-full items-center justify-center px-6">
         <div
-          className="df-loading-card flex w-72 flex-col items-center gap-5 rounded-md px-10 py-9 text-center shadow-[0_30px_90px_-20px_rgba(0,0,0,0.65),0_2px_0_rgba(255,250,235,0.6)_inset]"
+          className="df-loading-card flex w-72 flex-col items-center gap-5 rounded-lg bg-white px-10 py-9 text-center shadow-[0_30px_90px_-20px_rgba(0,0,0,0.65),0_2px_0_rgba(255,255,255,0.75)_inset]"
           style={{
-            backgroundColor: "#F6EFDD",
-            backgroundImage: "linear-gradient(180deg, rgba(255,251,238,0.7) 0%, rgba(238,224,194,0) 70%)",
-            border: "1px solid rgba(80, 58, 28, 0.22)",
+            border: "1px solid rgba(17, 24, 39, 0.12)",
           }}
         >
           <img src={LogoBlack} alt="DragonFruit" className="h-8 w-auto opacity-80" draggable={false} />

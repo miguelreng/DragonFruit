@@ -71,9 +71,9 @@ function StoreWrapper(props: TStoreWrapper) {
 
     // Apply theme from server profile (one-time only). Fall back to "light"
     // for any legacy values (system, custom, *-contrast) that aren't part of
-    // the active two-option set.
+    // the active preset set.
     const stored = userProfile?.theme?.theme;
-    const next = stored === "dark" ? "dark" : "light";
+    const next = stored === "dark" || stored === "sepia" ? stored : "light";
     setTheme(next);
 
     // Mark as initialized - prevents future syncs from server

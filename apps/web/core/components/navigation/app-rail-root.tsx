@@ -174,7 +174,7 @@ const CompactRailOverflowMenu = (props: {
   items: TCompactRailItem[];
   routerPush: (href: string) => void;
   isCompact?: boolean;
-  panelDataTheme?: "dark" | "light";
+  panelDataTheme?: "dark" | "light" | "sepia";
 }) => {
   const { items, routerPush, isCompact = true, panelDataTheme } = props;
   if (items.length === 0) return null;
@@ -230,7 +230,7 @@ const CompactRailItemGroup = (props: {
   overflowItems: TCompactRailItem[];
   onNavigate: (href: string) => void;
   isCompact: boolean;
-  panelDataTheme?: "dark" | "light";
+  panelDataTheme?: "dark" | "light" | "sepia";
 }) => {
   const { primaryItems, overflowItems, onNavigate, isCompact, panelDataTheme } = props;
   const LinkComponent = isCompact ? CompactRailLink : ExpandedCompactRailLink;

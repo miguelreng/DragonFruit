@@ -7,6 +7,7 @@
 import { useCallback } from "react";
 import { useTheme } from "next-themes";
 import { Calendar, Earth, Languages, Palette } from "@/components/icons/lucide-shim";
+import { THEME_OPTIONS } from "@plane/constants";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
@@ -118,6 +119,22 @@ export const usePowerKPreferencesCommands = (): TPowerKCommandConfig[] => {
       isVisible: () => true,
       closeOnSelect: true,
     },
+    ...THEME_OPTIONS.map(
+      (themeOption): TPowerKCommandConfig => ({
+        id: `set_interface_theme_${themeOption.value}`,
+        group: "preferences",
+        type: "action",
+        i18n_title: `set_theme_to_${themeOption.value}`,
+        icon: Palette,
+        action: () => {
+          void handleUpdateTheme(themeOption.value);
+        },
+        keywords: ["theme", "appearance", themeOption.value, themeOption.i18n_label],
+        isEnabled: () => true,
+        isVisible: () => true,
+        closeOnSelect: true,
+      })
+    ),
     {
       id: "update_timezone",
       group: "preferences",

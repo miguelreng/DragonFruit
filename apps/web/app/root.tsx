@@ -86,7 +86,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <body suppressHydrationWarning>
         <div id="context-menu-portal" />
         <div id="editor-portal" />
-        <ThemeProvider themes={["light", "dark"]} defaultTheme="light">
+        <ThemeProvider themes={["light", "dark", "sepia"]} defaultTheme="light">
           {children}
         </ThemeProvider>
         <Scripts />
