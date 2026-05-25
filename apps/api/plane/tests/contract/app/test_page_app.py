@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import patch
 from rest_framework import status
 
-from plane.db.models import Project
+from plane.db.models import Page, Project, ProjectPage
 
 
 @pytest.mark.contract
@@ -60,3 +60,57 @@ class TestPageAPIGet:
 
         assert mixed_response.status_code == status.HTTP_200_OK
         assert {page["page_type"] for page in mixed_response.data} == {"doc", "whiteboard"}
+
+
+@pytest.mark.contract
+class TestPublicProjectPagesAPI:
+    def get_public_pages_url(self, workspace_slug: str, project_id: str) -> str:
+        return f"/api/public/workspaces/{workspace_slug}/projects/{project_id}/pages/"
+
+    @pytest.mark.django_db
+    def test_list_public_project_doc_pages_for_essays(self, api_client, workspace, create_user):
+        project = Project.objects.create(name="Essays", identifier="ESSAY", workspace=workspace)
+        other_project = Project.objects.create(name="Other", identifier="OTHER", workspace=workspace)
+
+        public_page = Page.objects.create(
+            name="Agentic Workflows",
+            workspace=workspace,
+            owned_by=create_user,
+            access=Page.PUBLIC_ACCESS,
+            page_type=Page.PAGE_TYPE_DOC,
+            description_html="<p>Useful workflow notes.</p>",
+            view_props={"public_slug": "agentic-workflows"},
+        )
+        private_page = Page.objects.create(
+            name="Private Draft",
+            workspace=workspace,
+            owned_by=create_user,
+            access=Page.PRIVATE_ACCESS,
+            page_type=Page.PAGE_TYPE_DOC,
+            description_html="<p>Not ready.</p>",
+        )
+        whiteboard_page = Page.objects.create(
+            name="Sketch",
+            workspace=workspace,
+            owned_by=create_user,
+            access=Page.PUBLIC_ACCESS,
+            page_type=Page.PAGE_TYPE_WHITEBOARD,
+        )
+        other_project_page = Page.objects.create(
+            name="Other Public Doc",
+            workspace=workspace,
+            owned_by=create_user,
+            access=Page.PUBLIC_ACCESS,
+            page_type=Page.PAGE_TYPE_DOC,
+        )
+
+        for page in [public_page, private_page, whiteboard_page]:
+            ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+        ProjectPage.objects.create(project=other_project, page=other_project_page, workspace=workspace)
+
+        response = api_client.get(self.get_public_pages_url(workspace.slug, str(project.id)))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [page["name"] for page in response.data] == ["Agentic Workflows"]
+        assert response.data[0]["public_slug"] == "agentic-workflows"
+        assert response.data[0]["description_stripped"] == "Useful workflow notes."

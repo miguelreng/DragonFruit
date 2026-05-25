@@ -1,0 +1,21 @@
+{
+  "name": "landing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --host 0.0.0.0 --port 3003",
+    "build": "astro build",
+    "preview": "astro preview --host 0.0.0.0 --port 3003",
+    "check:format": "oxfmt --check .",
+    "fix:format": "oxfmt ."
+  },
+  "dependencies": {
+    "@astrojs/rss": "catalog:",
+    "@astrojs/sitemap": "catalog:",
+    "astro": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

@@ -17,7 +17,7 @@ import { Copy, RefreshCw } from "@/components/icons/lucide-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspace } from "@plane/types";
 import { CustomSelect, Input } from "@plane/ui";
-import { cn, copyUrlToClipboard, validateSlug, validateWorkspaceName } from "@plane/utils";
+import { cn, copyTextToClipboard, copyUrlToClipboard, validateSlug, validateWorkspaceName } from "@plane/utils";
 // components
 import { WorkspaceImageUploadModal } from "@/components/core/modals/workspace-image-upload-modal";
 import { TimezoneSelect } from "@/components/global/timezone-select";
@@ -50,6 +50,33 @@ const getUpdatedWorkspacePath = (pathname: string, previousSlug: string, nextSlu
   }
 
   return `/${nextSlug}`;
+};
+
+const WorkspaceIdentifierRow = (props: {
+  label: string;
+  value: string;
+  onCopy: (label: string, value: string) => void;
+}) => {
+  const { label, value, onCopy } = props;
+
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-subtle bg-layer-2 px-3 py-2">
+      <div className="min-w-0">
+        <div className="tracking-normal text-11 font-medium text-tertiary uppercase">{label}</div>
+        <div className="font-mono mt-0.5 truncate text-12 text-secondary">{value}</div>
+      </div>
+      <Tooltip tooltipContent={`Copy workspace ${label.toLowerCase()}`} position="top">
+        <button
+          type="button"
+          onClick={() => onCopy(label, value)}
+          className="grid size-7 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-secondary"
+          aria-label={`Copy workspace ${label.toLowerCase()}`}
+        >
+          <Copy className="size-3.5" />
+        </button>
+      </Tooltip>
+    </div>
+  );
 };
 
 export const WorkspaceDetails = observer(function WorkspaceDetails() {
@@ -175,6 +202,23 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
       });
   };
 
+  const handleCopyWorkspaceIdentifier = (label: string, value: string) => {
+    void copyTextToClipboard(value)
+      .then(() => {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: `Workspace ${label.toLowerCase()} copied to the clipboard.`,
+        });
+        return undefined;
+      })
+      .catch(() => {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: `Could not copy workspace ${label.toLowerCase()}.`,
+        });
+      });
+  };
+
   useEffect(() => {
     if (currentWorkspace) reset({ ...currentWorkspace });
   }, [currentWorkspace, reset]);
@@ -250,6 +294,18 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+        <div className="flex flex-col gap-3">
+          <div>
+            <h4 className="text-body-sm-medium text-secondary">Workspace identifiers</h4>
+            <p className="mt-1 text-body-xs-regular text-tertiary">
+              Use these values for integrations, publishing, and build-time configuration.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <WorkspaceIdentifierRow label="ID" value={currentWorkspace.id} onCopy={handleCopyWorkspaceIdentifier} />
+            <WorkspaceIdentifierRow label="Slug" value={currentWorkspace.slug} onCopy={handleCopyWorkspaceIdentifier} />
           </div>
         </div>
         <div className="flex flex-col gap-7">
