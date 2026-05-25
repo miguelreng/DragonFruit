@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import {
@@ -21,12 +22,17 @@ import {
   X,
 } from "@/components/icons/lucide-shim";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
+import { Breadcrumbs, Header } from "@plane/ui";
 import { cn } from "@plane/utils";
+import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
+import { AppHeader } from "@/components/core/app-header";
+import { ContentWrapper } from "@/components/core/content-wrapper";
 import { useBookmark } from "@/hooks/store/use-bookmark";
-import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
+import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
 
 type Props = {
   workspaceSlug: string;
@@ -264,7 +270,6 @@ function BookmarkCard(props: {
 export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const { workspaceSlug, projectId, mode } = props;
   const bookmarkStore = useBookmark();
-  const { getPartialProjectById } = useProject();
   const { allowPermissions } = useUserPermissions();
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("");
@@ -281,7 +286,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     mode === "project" && projectId
       ? bookmarkStore.projectBookmarks(projectId)
       : bookmarkStore.workspaceBookmarks(workspaceSlug);
-  const tags = useMemo(() => [...new Set(bookmarks.flatMap((bookmark) => bookmark.tags))].sort(), [bookmarks]);
+  const tags = useMemo(() => sortBy([...new Set(bookmarks.flatMap((bookmark) => bookmark.tags))]), [bookmarks]);
   const filteredBookmarks = bookmarks.filter((bookmark) => {
     const haystack = [
       bookmark.title,
@@ -332,7 +337,6 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     }
   };
 
-  const projectName = projectId ? getPartialProjectById(projectId)?.name : undefined;
   const canCreateBookmark =
     mode === "project" &&
     !!projectId &&
@@ -343,121 +347,146 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       projectId
     );
 
-  return (
-    <div className="h-full overflow-y-auto bg-surface-1">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-18 font-semibold text-primary">Bookmarks</h1>
-            {mode === "project" && projectName && <p className="mt-1 truncate text-13 text-tertiary">{projectName}</p>}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex h-9 min-w-0 items-center gap-2 rounded-md border border-subtle bg-surface-1 px-3">
-              <Search className="size-4 flex-shrink-0 text-icon-tertiary" />
-              <input
-                className="h-full w-48 min-w-0 bg-transparent text-13 text-primary outline-none"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search"
+  const header = (
+    <Header>
+      <Header.LeftItem>
+        <Breadcrumbs>
+          {mode === "project" && projectId && (
+            <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug} projectId={projectId} />
+          )}
+          <Breadcrumbs.Item
+            component={
+              <BreadcrumbLink
+                label="Bookmarks"
+                href={
+                  mode === "project" && projectId
+                    ? `/${workspaceSlug}/projects/${projectId}/bookmarks`
+                    : `/${workspaceSlug}/bookmarks`
+                }
+                icon={<Star className="h-4 w-4 text-tertiary" />}
+                isLast
               />
-            </div>
-            {canCreateBookmark && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setDraft(EMPTY_DRAFT);
-                  setShowForm((value) => !value);
-                }}
-                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90"
-              >
-                <Plus className="size-4" />
-                Add link
-              </button>
-            )}
-          </div>
+            }
+            isLast
+          />
+        </Breadcrumbs>
+      </Header.LeftItem>
+      <Header.RightItem className="flex-wrap">
+        <div className="flex h-8 min-w-0 items-center gap-2 rounded-md border border-subtle bg-surface-1 px-3">
+          <Search className="size-3.5 flex-shrink-0 text-icon-tertiary" />
+          <input
+            className="h-full w-44 min-w-0 bg-transparent text-13 text-primary outline-none"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search"
+          />
         </div>
-        {tags.length > 0 && (
-          <div className="flex gap-1 overflow-x-auto pb-1">
-            <button
-              type="button"
-              onClick={() => setActiveTag("")}
-              className={cn("h-7 rounded-md px-2 text-12 font-medium", {
-                "bg-accent-subtle text-accent-primary": !activeTag,
-                "bg-layer-1 text-tertiary hover:text-secondary": activeTag,
-              })}
-            >
-              All
-            </button>
-            {tags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => setActiveTag(tag)}
-                className={cn("h-7 rounded-md px-2 text-12 font-medium", {
-                  "bg-accent-subtle text-accent-primary": activeTag === tag,
-                  "bg-layer-1 text-tertiary hover:text-secondary": activeTag !== tag,
-                })}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        )}
-        {showForm && canCreateBookmark && (
-          <BookmarkForm
-            draft={draft}
-            setDraft={setDraft}
-            onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowForm(false);
+        {canCreateBookmark && (
+          <Button
+            variant="primary"
+            size="lg"
+            className="items-center gap-1"
+            onClick={() => {
               setEditingId(null);
               setDraft(EMPTY_DRAFT);
+              setShowForm((value) => !value);
             }}
-            submitLabel={editingId ? "Save" : "Add link"}
-          />
+          >
+            <Plus className="size-4" />
+            Add link
+          </Button>
         )}
-        {filteredBookmarks.length === 0 ? (
-          <div className="flex min-h-[22rem] flex-col items-center justify-center rounded-lg border border-dashed border-subtle bg-layer-1 px-4 text-center">
-            <div className="grid size-12 place-items-center rounded-lg bg-surface-1 text-icon-tertiary">
-              <LinkIcon className="size-6" />
+      </Header.RightItem>
+    </Header>
+  );
+
+  return (
+    <>
+      <AppHeader header={header} />
+      <ContentWrapper>
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6">
+          {tags.length > 0 && (
+            <div className="flex gap-1 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setActiveTag("")}
+                className={cn("h-7 rounded-md px-2 text-12 font-medium", {
+                  "bg-accent-subtle text-accent-primary": !activeTag,
+                  "bg-layer-1 text-tertiary hover:text-secondary": activeTag,
+                })}
+              >
+                All
+              </button>
+              {tags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setActiveTag(tag)}
+                  className={cn("h-7 rounded-md px-2 text-12 font-medium", {
+                    "bg-accent-subtle text-accent-primary": activeTag === tag,
+                    "bg-layer-1 text-tertiary hover:text-secondary": activeTag !== tag,
+                  })}
+                >
+                  {tag}
+                </button>
+              ))}
             </div>
-            <h2 className="text-15 mt-4 font-semibold text-primary">No bookmarks yet</h2>
-            {canCreateBookmark && (
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(true)}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90"
-                >
-                  <Plus className="size-4" />
-                  Add link
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-subtle bg-surface-1 px-3 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
-                >
-                  <Sparkles className="size-4" />
-                  Ask Copilot
-                </button>
+          )}
+          {showForm && canCreateBookmark && (
+            <BookmarkForm
+              draft={draft}
+              setDraft={setDraft}
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingId(null);
+                setDraft(EMPTY_DRAFT);
+              }}
+              submitLabel={editingId ? "Save" : "Add link"}
+            />
+          )}
+          {filteredBookmarks.length === 0 ? (
+            <div className="flex min-h-[22rem] flex-col items-center justify-center rounded-lg border border-dashed border-subtle bg-layer-1 px-4 text-center">
+              <div className="grid size-12 place-items-center rounded-lg bg-surface-1 text-icon-tertiary">
+                <LinkIcon className="size-6" />
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4 [&>*]:mb-4">
-            {filteredBookmarks.map((bookmark) => (
-              <BookmarkCard
-                key={bookmark.id}
-                bookmark={bookmark}
-                workspaceSlug={workspaceSlug}
-                showProject={mode === "workspace"}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+              <h2 className="text-15 mt-4 font-semibold text-primary">No bookmarks yet</h2>
+              {canCreateBookmark && (
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(true)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-md bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90"
+                  >
+                    <Plus className="size-4" />
+                    Add link
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-md border border-subtle bg-surface-1 px-3 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
+                  >
+                    <Sparkles className="size-4" />
+                    Ask Copilot
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4 [&>*]:mb-4">
+              {filteredBookmarks.map((bookmark) => (
+                <BookmarkCard
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  workspaceSlug={workspaceSlug}
+                  showProject={mode === "workspace"}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </ContentWrapper>
+    </>
   );
 });
