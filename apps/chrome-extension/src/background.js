@@ -64,6 +64,13 @@ async function respond(promise, sendResponse) {
 async function signIn(appUrlValue) {
   const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
   const callbackUrl = chrome.identity.getRedirectURL("auth/login-callback");
+  const sessionToken = await fetchNativeTokenFromSession(appUrl, callbackUrl);
+  if (sessionToken) {
+    await chrome.storage.sync.set({ appUrl, apiToken: sessionToken, authStatus: "connected", authError: "" });
+    const user = await fetchCurrentUser(appUrl, sessionToken);
+    return { ok: true, user };
+  }
+
   const loginUrl = `${appUrl}/auth/native/start/?callback=${encodeURIComponent(callbackUrl)}`;
   const redirectUrl = await launchAuthFlow({
     url: loginUrl,
@@ -74,6 +81,36 @@ async function signIn(appUrlValue) {
   await chrome.storage.sync.set({ appUrl, apiToken: token, authStatus: "connected", authError: "" });
   const user = await fetchCurrentUser(appUrl, token);
   return { ok: true, user };
+}
+
+async function fetchNativeTokenFromSession(appUrl, callbackUrl) {
+  const response = await fetch(`${appUrl}/auth/native/start/?callback=${encodeURIComponent(callbackUrl)}`, {
+    credentials: "include",
+  }).catch(() => null);
+  if (!response) return "";
+
+  const tokenFromUrl = extractApiToken(response.url);
+  if (tokenFromUrl) return tokenFromUrl;
+
+  const html = await response.text().catch(() => "");
+  if (!html) return "";
+
+  const decodedHtml = html
+    .replaceAll("&amp;", "&")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#x27;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">");
+  const callbackMatch = decodedHtml.match(/https:\/\/[^"'<>\s]+\.chromiumapp\.org\/[^"'<>\s]*api_token=[^"'<>\s]+/);
+  return callbackMatch ? extractApiToken(callbackMatch[0]) : "";
+}
+
+function extractApiToken(url) {
+  try {
+    return new URL(url).searchParams.get("api_token") || "";
+  } catch {
+    return "";
+  }
 }
 
 async function startSignIn(appUrlValue) {
