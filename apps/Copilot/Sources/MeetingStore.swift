@@ -5,6 +5,7 @@ import AVFoundation
 import Carbon
 import Foundation
 import os
+import ScreenCaptureKit
 import Speech
 import SwiftUI
 import UserNotifications
@@ -104,6 +105,125 @@ struct VoiceActionResult: Identifiable {
     let title: String
     let detail: String
     let resourceURL: URL?
+}
+
+private final class SystemAudioCapture: NSObject, SCStreamOutput, SCStreamDelegate {
+    private let sampleQueue = DispatchQueue(label: "sh.dragonfruit.copilot.system-audio")
+    private var stream: SCStream?
+    private var assetWriter: AVAssetWriter?
+    private var assetWriterInput: AVAssetWriterInput?
+    private var didStartWriting = false
+    private var onAudioSampleBuffer: ((CMSampleBuffer) -> Void)?
+    private var onError: ((Error) -> Void)?
+
+    func start(
+        recordingTo fileURL: URL? = nil,
+        onAudioSampleBuffer: @escaping (CMSampleBuffer) -> Void,
+        onError: @escaping (Error) -> Void
+    ) async throws {
+        self.onAudioSampleBuffer = onAudioSampleBuffer
+        self.onError = onError
+        if let fileURL {
+            try? FileManager.default.removeItem(at: fileURL)
+            let writer = try AVAssetWriter(outputURL: fileURL, fileType: .m4a)
+            let input = AVAssetWriterInput(
+                mediaType: .audio,
+                outputSettings: [
+                    AVFormatIDKey: kAudioFormatMPEG4AAC,
+                    AVSampleRateKey: 48_000,
+                    AVNumberOfChannelsKey: 2,
+                    AVEncoderBitRateKey: 128_000,
+                ]
+            )
+            input.expectsMediaDataInRealTime = true
+            guard writer.canAdd(input) else {
+                throw NSError(
+                    domain: "DragonFruitNative",
+                    code: 1302,
+                    userInfo: [NSLocalizedDescriptionKey: "System audio recorder is unavailable."]
+                )
+            }
+            writer.add(input)
+            assetWriter = writer
+            assetWriterInput = input
+            didStartWriting = false
+        }
+
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        guard let display = content.displays.first else {
+            throw NSError(
+                domain: "DragonFruitNative",
+                code: 1301,
+                userInfo: [NSLocalizedDescriptionKey: "No display available for system audio capture."]
+            )
+        }
+
+        let configuration = SCStreamConfiguration()
+        configuration.capturesAudio = true
+        configuration.excludesCurrentProcessAudio = true
+        configuration.sampleRate = 48_000
+        configuration.channelCount = 2
+        configuration.width = 2
+        configuration.height = 2
+        configuration.minimumFrameInterval = CMTime(value: 1, timescale: 1)
+        configuration.queueDepth = 1
+        configuration.showsCursor = false
+
+        let stream = SCStream(
+            filter: SCContentFilter(display: display, excludingWindows: []),
+            configuration: configuration,
+            delegate: self
+        )
+        try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
+        self.stream = stream
+        try await stream.startCapture()
+    }
+
+    func stop() async {
+        let activeStream = stream
+        let writer = assetWriter
+        let input = assetWriterInput
+        stream = nil
+        assetWriter = nil
+        assetWriterInput = nil
+        didStartWriting = false
+        onAudioSampleBuffer = nil
+        onError = nil
+        try? await activeStream?.stopCapture()
+        await withCheckedContinuation { continuation in
+            sampleQueue.async {
+                guard let writer, writer.status == .writing else {
+                    continuation.resume()
+                    return
+                }
+                input?.markAsFinished()
+                writer.finishWriting {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of outputType: SCStreamOutputType) {
+        guard outputType == .audio, sampleBuffer.isValid else { return }
+        appendToRecording(sampleBuffer)
+        onAudioSampleBuffer?(sampleBuffer)
+    }
+
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        onError?(error)
+    }
+
+    private func appendToRecording(_ sampleBuffer: CMSampleBuffer) {
+        guard let writer = assetWriter, let input = assetWriterInput else { return }
+        if !didStartWriting {
+            guard writer.startWriting() else { return }
+            writer.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
+            didStartWriting = true
+        }
+        guard writer.status == .writing, input.isReadyForMoreMediaData else { return }
+        input.append(sampleBuffer)
+    }
 }
 
 struct VoiceCursorContext {
@@ -511,6 +631,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var isListening = false
     @Published var audioLevel: CGFloat = 0
     @Published var isMeetingRecording = false
+    @Published var meetingStartPrompt: MeetingInfo?
     @Published var meetingNotesTranscript = ""
     @Published var lastMeetingNotesURL: URL?
     @Published var lastSavedMeetingTitle = ""
@@ -541,8 +662,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var meetingRefreshTask: Task<Void, Never>?
     private var apiToken: String = ""
     private let audioEngine = AVAudioEngine()
+    private let speechAppendQueue = DispatchQueue(label: "sh.dragonfruit.copilot.speech-audio")
+    private let systemAudioCapture = SystemAudioCapture()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var meetingMicAudioFile: AVAudioFile?
+    private var meetingMicAudioURL: URL?
+    private var meetingSystemAudioURL: URL?
     private var isInputTapInstalled = false
     private var recordingMeeting: MeetingInfo?
     private var notifiedMeetingIds: Set<String> = []
@@ -627,6 +753,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         [
             PermissionStatus(id: "login", name: "DragonFruit", state: isAuthenticated ? "Connected" : "Sign in"),
             PermissionStatus(id: "mic", name: "Microphone", state: microphonePermissionLabel),
+            PermissionStatus(id: "system-audio", name: "System audio", state: systemAudioPermissionLabel),
             PermissionStatus(id: "speech", name: "Copilot voice", state: speechPermissionLabel),
             PermissionStatus(id: "accessibility", name: "Cursor context & dictation", state: accessibilityPermissionLabel),
         ]
@@ -647,6 +774,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     var needsPermissionOnboarding: Bool {
         AVCaptureDevice.authorizationStatus(for: .audio) != .authorized ||
             SFSpeechRecognizer.authorizationStatus() != .authorized ||
+            !Self.hasSystemAudioPermission() ||
             !AXIsProcessTrusted()
     }
 
@@ -680,6 +808,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         AXIsProcessTrusted() ? "Allowed" : "Needed"
     }
 
+    private var systemAudioPermissionLabel: String {
+        Self.hasSystemAudioPermission() ? "Allowed" : "Needed"
+    }
+
     private var speechRecognizer: SFSpeechRecognizer? {
         SFSpeechRecognizer(locale: speechLanguage.locale)
     }
@@ -696,6 +828,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         Task { @MainActor in
             _ = await Self.requestSpeechAuthorization()
             _ = await Self.requestMicrophonePermission()
+            Self.requestSystemAudioPermissionIfNeeded()
             refreshPermissionStatuses()
         }
     }
@@ -705,6 +838,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         Task { @MainActor in
             _ = await Self.requestSpeechAuthorization()
             _ = await Self.requestMicrophonePermission()
+            Self.requestSystemAudioPermissionIfNeeded()
             refreshPermissionStatuses()
         }
     }
@@ -714,6 +848,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         Task { @MainActor in
             _ = await Self.requestSpeechAuthorization()
             _ = await Self.requestMicrophonePermission()
+            Self.requestSystemAudioPermissionIfNeeded()
             refreshPermissionStatuses()
             if !AXIsProcessTrusted() {
                 openPrivacySettings(anchor: "Privacy_Accessibility")
@@ -742,6 +877,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 if SFSpeechRecognizer.authorizationStatus() != .authorized {
                     openPrivacySettings(anchor: "Privacy_SpeechRecognition")
                 }
+            }
+        case "system-audio":
+            Self.requestSystemAudioPermissionIfNeeded()
+            refreshPermissionStatuses()
+            refreshPermissionStatusesAfterSystemPrompt()
+            if !Self.hasSystemAudioPermission() {
+                openPrivacySettings(anchor: "Privacy_ScreenCapture")
             }
         case "accessibility":
             openAccessibilitySettings()
@@ -830,6 +972,15 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             }
             Task { await startMeetingRecording() }
         }
+    }
+
+    func startPromptedMeetingNotes() {
+        meetingStartPrompt = nil
+        toggleRecording()
+    }
+
+    func dismissMeetingStartPrompt() {
+        meetingStartPrompt = nil
     }
 
     func openJoinLink() {
@@ -1220,6 +1371,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let secondsUntilStart = meeting.startAt.timeIntervalSinceNow
         guard secondsUntilStart >= 0, secondsUntilStart <= Double(max(1, autoStartMinutesBefore) * 60) else { return }
         notifiedMeetingIds.insert(meeting.id)
+        if meetingNotesEnabled {
+            meetingStartPrompt = meeting
+        }
         deliverNotification(title: "Meeting starting", body: meeting.title)
     }
 
@@ -1314,6 +1468,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         needsCalendarReconnect = false
         meeting = .empty
         meetings = []
+        meetingStartPrompt = nil
         hasMeetingsToday = false
         meetingRefreshTask?.cancel()
         UserDefaults.standard.removeObject(forKey: "df_api_token")
@@ -1659,6 +1814,15 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
+    nonisolated private static func hasSystemAudioPermission() -> Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
+    nonisolated private static func requestSystemAudioPermissionIfNeeded() {
+        guard !CGPreflightScreenCaptureAccess() else { return }
+        _ = CGRequestScreenCaptureAccess()
+    }
+
     nonisolated private static func copyAXStringAttribute(_ attribute: String, from element: AXUIElement) -> String? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
@@ -1752,40 +1916,85 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             statusMessage = "Connect Google Calendar and choose a meeting first."
             return
         }
-        guard let recognizer = speechRecognizer, recognizer.isAvailable else {
-            statusMessage = "Speech recognizer unavailable."
-            return
-        }
-
         if isListening {
             stopVoiceCapture()
         }
 
         do {
-            let speechAuth = await Self.requestSpeechAuthorization()
-            guard speechAuth == .authorized else {
-                statusMessage = "Speech permission denied."
-                return
-            }
+            let recognizer = speechRecognizer
+            let speechAuth = SFSpeechRecognizer.authorizationStatus() == .authorized
+                ? SFSpeechRecognizerAuthorizationStatus.authorized
+                : await Self.requestSpeechAuthorization()
+            let canPreviewTranscript = speechAuth == .authorized && recognizer?.isAvailable == true
             let micGranted = await Self.requestMicrophonePermission()
             guard micGranted else {
                 statusMessage = "Microphone permission denied."
                 return
             }
+            Self.requestSystemAudioPermissionIfNeeded()
+            guard Self.hasSystemAudioPermission() else {
+                statusMessage = "Allow Screen & System Audio Recording to capture meeting audio."
+                openPrivacySettings(anchor: "Privacy_ScreenCapture")
+                return
+            }
 
             recognitionTask?.cancel()
             recognitionTask = nil
-            recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-            guard let request = recognitionRequest else { return }
-            request.shouldReportPartialResults = true
+            recognitionRequest = canPreviewTranscript ? SFSpeechAudioBufferRecognitionRequest() : nil
+            recognitionRequest?.shouldReportPartialResults = true
+            let previewRequest = recognitionRequest
+            let appendQueue = speechAppendQueue
+            let recordingId = UUID().uuidString
+            let tempDirectory = FileManager.default.temporaryDirectory
+            let systemAudioURL = tempDirectory.appendingPathComponent("dragonfruit-meeting-system-\(recordingId).m4a")
+            let micAudioURL = tempDirectory.appendingPathComponent("dragonfruit-meeting-mic-\(recordingId).wav")
+            await systemAudioCapture.stop()
+            try await systemAudioCapture.start(
+                recordingTo: systemAudioURL,
+                onAudioSampleBuffer: { sampleBuffer in
+                    if let request = previewRequest {
+                        appendQueue.async {
+                            request.appendAudioSampleBuffer(sampleBuffer)
+                        }
+                    }
+                },
+                onError: { [weak self] error in
+                    Task { @MainActor in
+                        guard let self, self.isMeetingRecording else { return }
+                        self.statusMessage = "System audio capture stopped: \(error.localizedDescription)"
+                    }
+                }
+            )
 
             meetingNotesTranscript = ""
+            meetingStartPrompt = nil
             recordingMeeting = meeting
             let node = audioEngine.inputNode
             let format = try inputTapFormat(for: node)
+            let micFile = try AVAudioFile(
+                forWriting: micAudioURL,
+                settings: format.settings,
+                commonFormat: format.commonFormat,
+                interleaved: format.isInterleaved
+            )
+            meetingMicAudioFile = micFile
+            meetingMicAudioURL = micAudioURL
+            meetingSystemAudioURL = systemAudioURL
             removeInputTapIfNeeded()
             node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-                request.append(buffer)
+                do {
+                    try micFile.write(from: buffer)
+                } catch {
+                    Task { @MainActor [weak self] in
+                        guard let self, self.isMeetingRecording else { return }
+                        self.statusMessage = "Microphone recording failed: \(error.localizedDescription)"
+                    }
+                }
+                if let previewRequest {
+                    appendQueue.async {
+                        previewRequest.append(buffer)
+                    }
+                }
                 let level = Self.normalizedAudioLevel(from: buffer)
                 Task { @MainActor [weak self] in
                     self?.updateAudioLevel(level)
@@ -1797,19 +2006,21 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             try audioEngine.start()
             isMeetingRecording = true
             meetingState = "Recording"
-            statusMessage = "Recording meeting notes..."
+            statusMessage = "Recording meeting notes with microphone and system audio..."
 
-            recognitionTask = Self.startRecognitionTask(recognizer: recognizer, request: request) { [weak self] result, error in
-                if let result {
-                    let transcript = result.bestTranscription.formattedString
-                    Task { @MainActor in
-                        self?.meetingNotesTranscript = transcript
+            if let recognizer, let request = previewRequest, canPreviewTranscript {
+                recognitionTask = Self.startRecognitionTask(recognizer: recognizer, request: request) { [weak self] result, error in
+                    if let result {
+                        let transcript = result.bestTranscription.formattedString
+                        Task { @MainActor in
+                            self?.meetingNotesTranscript = transcript
+                        }
                     }
-                }
-                if error != nil {
-                    Task { @MainActor in
-                        guard let self, self.isMeetingRecording else { return }
-                        await self.stopMeetingRecordingAndSave()
+                    if error != nil {
+                        Task { @MainActor in
+                            guard let self, self.isMeetingRecording else { return }
+                            self.meetingNotesTranscript = ""
+                        }
                     }
                 }
             }
@@ -1820,12 +2031,20 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func stopMeetingRecordingAndSave() async {
-        stopAudioCapture()
+        await stopMeetingAudioCapture()
         isMeetingRecording = false
         meetingState = "Saving"
 
         let notes = meetingNotesTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !notes.isEmpty else {
+        let micAudioURL = meetingMicAudioURL
+        let systemAudioURL = meetingSystemAudioURL
+        let hasAudio = [micAudioURL, systemAudioURL].contains { url in
+            guard let url else { return false }
+            return FileManager.default.fileExists(atPath: url.path)
+        }
+        if hasAudio {
+            statusMessage = "Transcribing meeting audio..."
+        } else if notes.isEmpty {
             meetingState = "Summary"
             statusMessage = "Recording stopped. No transcript captured."
             return
@@ -1844,24 +2063,53 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             let draft = try await client.createMeetingNotesDraft(
                 workspaceSlug: workspace.slug,
                 meeting: targetMeeting,
-                notes: notes
+                notes: notes,
+                micAudioURL: micAudioURL,
+                systemAudioURL: systemAudioURL
             )
             lastMeetingNotesURL = draft.url.flatMap(URL.init(string:))
             lastSavedMeetingTitle = targetMeeting.title
             meetingState = "Notes ready"
-            statusMessage = "Meeting notes saved to Drafts."
+            statusMessage = "Meeting notes saved to Docs."
             notifyMeetingNotesSaved(title: targetMeeting.title)
         } catch {
             meetingState = "Summary"
             statusMessage = "Could not save meeting notes: \(error.localizedDescription)"
         }
+        if let micAudioURL {
+            try? FileManager.default.removeItem(at: micAudioURL)
+        }
+        if let systemAudioURL {
+            try? FileManager.default.removeItem(at: systemAudioURL)
+        }
+        meetingMicAudioURL = nil
+        meetingSystemAudioURL = nil
+    }
+
+    private func stopMeetingAudioCapture() async {
+        audioEngine.stop()
+        removeInputTapIfNeeded()
+        await systemAudioCapture.stop()
+        meetingMicAudioFile = nil
+        audioLevel = 0
+        let request = recognitionRequest
+        speechAppendQueue.async {
+            request?.endAudio()
+        }
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        recognitionRequest = nil
     }
 
     private func stopAudioCapture() {
         audioEngine.stop()
         removeInputTapIfNeeded()
+        Task { await systemAudioCapture.stop() }
         audioLevel = 0
-        recognitionRequest?.endAudio()
+        let request = recognitionRequest
+        speechAppendQueue.async {
+            request?.endAudio()
+        }
         recognitionTask?.cancel()
         recognitionTask = nil
         recognitionRequest = nil
@@ -1948,6 +2196,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             guard let request = recognitionRequest else { return }
             request.shouldReportPartialResults = true
+            let appendQueue = speechAppendQueue
 
             voiceCaptureMode = mode
             lastTranscript = ""
@@ -1961,7 +2210,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             let format = try inputTapFormat(for: node)
             removeInputTapIfNeeded()
             node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-                request.append(buffer)
+                appendQueue.async {
+                    request.append(buffer)
+                }
                 let level = Self.normalizedAudioLevel(from: buffer)
                 Task { @MainActor [weak self] in
                     self?.updateAudioLevel(level)

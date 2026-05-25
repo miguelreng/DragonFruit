@@ -218,6 +218,8 @@ struct MeetingPopoverView: View {
         switch permission.id {
         case "mic":
             return "mic.fill"
+        case "system-audio":
+            return "speaker.wave.2.fill"
         case "speech":
             return "waveform"
         case "accessibility":
@@ -231,6 +233,8 @@ struct MeetingPopoverView: View {
         switch permission.id {
         case "mic":
             return "Microphone"
+        case "system-audio":
+            return "System audio"
         case "speech":
             return "Speech recognition"
         case "accessibility":
@@ -244,6 +248,8 @@ struct MeetingPopoverView: View {
         switch permission.id {
         case "mic":
             return "Used when you start voice or dictation."
+        case "system-audio":
+            return "Lets meeting notes capture the people speaking in Meet, Zoom, and Teams."
         case "speech":
             return "Lets Copilot transcribe your voice."
         case "accessibility":
@@ -255,6 +261,8 @@ struct MeetingPopoverView: View {
 
     private func onboardingButtonTitle(for permission: PermissionStatus) -> String {
         switch permission.id {
+        case "system-audio":
+            return "Allow"
         case "accessibility":
             return "Open Settings"
         default:
@@ -547,6 +555,17 @@ struct MeetingPopoverView: View {
                             }
                             .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
                         }
+                        if store.isMeetingRecording {
+                            Button("Stop notes") {
+                                store.toggleRecording()
+                            }
+                            .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+                        } else {
+                            Button("Start notes") {
+                                store.toggleRecording()
+                            }
+                            .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
+                        }
                         if !store.meeting.calendarDisplayName.isEmpty {
                             Text(store.meeting.calendarDisplayName)
                                 .font(.custom("Figtree", size: 10).weight(.medium))
@@ -554,6 +573,12 @@ struct MeetingPopoverView: View {
                                 .lineLimit(1)
                         }
                         Spacer()
+                    }
+                    if store.lastMeetingNotesURL != nil {
+                        Button("Open notes") {
+                            store.openMeetingNotes()
+                        }
+                        .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
                     }
                 }
             } else {
