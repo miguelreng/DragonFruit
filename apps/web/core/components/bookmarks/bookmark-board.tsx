@@ -7,7 +7,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { Copy, ExternalLink, FileText, Link as LinkIcon, Pencil, Plus, Search, Sparkles, Star, Trash, X } from "@/components/icons/lucide-shim";
+import {
+  Copy,
+  ExternalLink,
+  FileText,
+  Link as LinkIcon,
+  Pencil,
+  Plus,
+  Search,
+  Sparkles,
+  Star,
+  Trash,
+  X,
+} from "@/components/icons/lucide-shim";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
@@ -99,26 +111,26 @@ function BookmarkForm(props: {
     <div className="rounded-lg border border-subtle bg-layer-1 p-3">
       <div className="grid gap-2 md:grid-cols-[1.2fr_1.8fr]">
         <input
-          className="h-9 rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none focus:border-accent-primary"
+          className="focus:border-accent-primary h-9 rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
           placeholder="Title"
           value={draft.title}
           onChange={(event) => setDraft({ ...draft, title: event.target.value })}
         />
         <input
-          className="h-9 rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none focus:border-accent-primary"
+          className="focus:border-accent-primary h-9 rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
           placeholder="https://..."
           value={draft.url}
           onChange={(event) => setDraft({ ...draft, url: event.target.value })}
         />
       </div>
       <textarea
-        className="mt-2 min-h-20 w-full resize-y rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none focus:border-accent-primary"
+        className="focus:border-accent-primary mt-2 min-h-20 w-full resize-y rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none"
         placeholder="Note"
         value={draft.description}
         onChange={(event) => setDraft({ ...draft, description: event.target.value })}
       />
       <input
-        className="mt-2 h-9 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none focus:border-accent-primary"
+        className="focus:border-accent-primary mt-2 h-9 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
         placeholder="Tags, separated by commas"
         value={draft.tags}
         onChange={(event) => setDraft({ ...draft, tags: event.target.value })}
@@ -158,7 +170,7 @@ function BookmarkCard(props: {
   const imageUrl = typeof bookmark.metadata?.image_url === "string" ? bookmark.metadata.image_url : "";
   const faviconUrl = typeof bookmark.metadata?.favicon_url === "string" ? bookmark.metadata.favicon_url : "";
   const cardBody = (
-    <div className="break-inside-avoid overflow-hidden rounded-lg border border-subtle bg-surface-1 shadow-sm transition hover:border-strong hover:shadow-raised-200">
+    <div className="shadow-sm break-inside-avoid overflow-hidden rounded-lg border border-subtle bg-surface-1 transition hover:border-strong hover:shadow-raised-200">
       {imageUrl ? (
         <img src={imageUrl} alt="" className="h-auto max-h-72 w-full object-cover" />
       ) : (
@@ -172,9 +184,15 @@ function BookmarkCard(props: {
             <h3 className="line-clamp-2 text-14 font-semibold text-primary">{bookmark.title}</h3>
             <p className="mt-1 truncate text-12 text-tertiary">{bookmarkSource(bookmark)}</p>
           </div>
-          {isExternal ? <ExternalLink className="size-4 flex-shrink-0 text-icon-tertiary" /> : <Star className="size-4 flex-shrink-0 text-icon-tertiary" />}
+          {isExternal ? (
+            <ExternalLink className="size-4 flex-shrink-0 text-icon-tertiary" />
+          ) : (
+            <Star className="size-4 flex-shrink-0 text-icon-tertiary" />
+          )}
         </div>
-        {bookmark.description && <p className="line-clamp-4 text-13 leading-5 text-secondary">{bookmark.description}</p>}
+        {bookmark.description && (
+          <p className="line-clamp-4 text-13 leading-5 text-secondary">{bookmark.description}</p>
+        )}
         {showProject && bookmark.project_name && (
           <span className="inline-flex max-w-full rounded-md bg-layer-1 px-2 py-1 text-11 font-medium text-secondary">
             <span className="truncate">{bookmark.project_name}</span>
@@ -214,7 +232,7 @@ function BookmarkCard(props: {
           </button>
           <button
             type="button"
-            className="grid size-7 place-items-center rounded-md text-icon-tertiary hover:bg-red-500/10 hover:text-red-500"
+            className="hover:bg-red-500/10 hover:text-red-500 grid size-7 place-items-center rounded-md text-icon-tertiary"
             onClick={(event) => {
               event.preventDefault();
               onDelete(bookmark);
@@ -259,10 +277,19 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     if (mode === "workspace") void bookmarkStore.fetchWorkspaceBookmarks(workspaceSlug);
   }, [bookmarkStore, mode, projectId, workspaceSlug]);
 
-  const bookmarks = mode === "project" && projectId ? bookmarkStore.projectBookmarks(projectId) : bookmarkStore.workspaceBookmarks(workspaceSlug);
-  const tags = useMemo(() => [...new Set(bookmarks.flatMap((bookmark) => bookmark.tags))].toSorted(), [bookmarks]);
+  const bookmarks =
+    mode === "project" && projectId
+      ? bookmarkStore.projectBookmarks(projectId)
+      : bookmarkStore.workspaceBookmarks(workspaceSlug);
+  const tags = useMemo(() => [...new Set(bookmarks.flatMap((bookmark) => bookmark.tags))].sort(), [bookmarks]);
   const filteredBookmarks = bookmarks.filter((bookmark) => {
-    const haystack = [bookmark.title, bookmark.description, bookmark.url, bookmark.project_name, bookmark.tags.join(" ")]
+    const haystack = [
+      bookmark.title,
+      bookmark.description,
+      bookmark.url,
+      bookmark.project_name,
+      bookmark.tags.join(" "),
+    ]
       .join(" ")
       .toLowerCase();
     return (!query || haystack.includes(query.toLowerCase())) && (!activeTag || bookmark.tags.includes(activeTag));
@@ -309,7 +336,12 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const canCreateBookmark =
     mode === "project" &&
     !!projectId &&
-    allowPermissions([EUserPermissions.ADMIN, EUserPermissions.MEMBER], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId);
+    allowPermissions(
+      [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
+      EUserPermissionsLevel.PROJECT,
+      workspaceSlug,
+      projectId
+    );
 
   return (
     <div className="h-full overflow-y-auto bg-surface-1">
@@ -390,7 +422,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
             <div className="grid size-12 place-items-center rounded-lg bg-surface-1 text-icon-tertiary">
               <LinkIcon className="size-6" />
             </div>
-            <h2 className="mt-4 text-15 font-semibold text-primary">No bookmarks yet</h2>
+            <h2 className="text-15 mt-4 font-semibold text-primary">No bookmarks yet</h2>
             {canCreateBookmark && (
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 <button
