@@ -86,7 +86,7 @@ export function FavoriteFolder(props: Props) {
             render: ({ container }) => {
               const root = createRoot(container);
               root.render(
-                <div className="flex gap-1 rounded-sm bg-surface-1 p-1 pr-2 text-13">
+                <div className="flex gap-1 rounded-lg bg-surface-1 p-1 pr-2 text-13">
                   <div className="grid size-5 flex-shrink-0 place-items-center">
                     <FavoriteFolderIcon />
                   </div>
@@ -105,7 +105,7 @@ export function FavoriteFolder(props: Props) {
       dropTargetForElements({
         element,
         canDrop: ({ source }) => getCanDrop(source, favorite, false),
-        getData: ({ input, element }) => {
+        getData: ({ input, element: targetElement }) => {
           const blockedStates: InstructionType[] = [];
           if (!isLastChild) {
             blockedStates.push("reorder-below");
@@ -113,7 +113,7 @@ export function FavoriteFolder(props: Props) {
 
           return attachInstruction(initialData, {
             input,
-            element,
+            element: targetElement,
             currentLevel: 0,
             indentPerLevel: 0,
             mode: isLastChild ? "last-in-group" : "standard",
@@ -121,8 +121,8 @@ export function FavoriteFolder(props: Props) {
           });
         },
         onDrag: ({ source, self, location }) => {
-          const instruction = getInstructionFromPayload(self, source, location);
-          setInstruction(instruction);
+          const nextInstruction = getInstructionFromPayload(self, source, location);
+          setInstruction(nextInstruction);
         },
         onDragLeave: () => {
           setInstruction(undefined);
@@ -160,7 +160,7 @@ export function FavoriteFolder(props: Props) {
             <DropIndicator isVisible={instruction === "reorder-above"} />
             <div
               className={cn(
-                "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary hover:bg-layer-1-hover",
+                "group/project-item relative flex w-full items-center rounded-lg px-2 py-1.5 text-primary hover:bg-layer-1-hover",
                 {
                   "bg-surface-2": isMenuActive,
                 }
