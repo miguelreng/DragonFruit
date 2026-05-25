@@ -16,8 +16,8 @@ import type { Route } from "./+types/page";
 const publicPageService = new PublicPageService();
 
 const PublicPageShell = ({ children }: { children: ReactNode }) => (
-  <div className="bg-custom-background-100 min-h-screen text-primary">
-    <div className="mx-auto flex min-h-screen w-full max-w-[1040px] flex-col px-5 sm:px-8">
+  <div className="bg-custom-background-100 min-h-full text-primary">
+    <div className="mx-auto flex min-h-full w-full max-w-[1040px] flex-col px-5 sm:px-8">
       <main className="flex-1 py-10 sm:py-14">{children}</main>
       <footer className="flex justify-center py-8">
         <img src={dragonFruitLogo} alt="Dragon Fruit" className="h-7 w-auto opacity-35" />

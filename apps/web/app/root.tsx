@@ -132,12 +132,13 @@ export const meta: Route.MetaFunction = () => [
 
 export default function Root() {
   const { pathname } = useLocation();
-  const isPublicLegalRoute = pathname === "/google-oauth" || pathname.startsWith("/legal/");
+  const isPublicRoute =
+    pathname === "/google-oauth" || pathname.startsWith("/legal/") || pathname.startsWith("/published/");
 
-  if (isPublicLegalRoute) {
+  if (isPublicRoute) {
     return (
       <div className={cn("relative flex h-screen w-full flex-col overflow-hidden bg-canvas", "desktop-app-container")}>
-        <main className="relative h-full w-full overflow-hidden">
+        <main className="relative h-full w-full overflow-y-auto">
           <Outlet />
         </main>
       </div>
