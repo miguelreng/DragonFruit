@@ -3,8 +3,10 @@
 # See the LICENSE file for details.
 
 import pytest
+from django.db import DatabaseError
 from rest_framework import status
 
+from plane.app.serializers import ProjectBookmarkSerializer
 from plane.db.models import Project, ProjectBookmark, ProjectMember
 
 
@@ -64,3 +66,31 @@ class TestProjectBookmarkAPI:
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_project_bookmark_create_handles_missing_project(self, session_client, workspace):
+        response = session_client.post(
+            f"/api/workspaces/{workspace.slug}/projects/00000000-0000-0000-0000-000000000000/bookmarks/",
+            {"title": "Design reference", "url": "https://example.com/reference"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_project_bookmark_create_handles_storage_errors(self, monkeypatch, session_client, workspace, create_user):
+        project = Project.objects.create(name="Research", identifier="RES", workspace=workspace, created_by=create_user)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20)
+
+        def raise_database_error(*args, **kwargs):
+            raise DatabaseError("project_bookmarks is unavailable")
+
+        monkeypatch.setattr(ProjectBookmarkSerializer, "save", raise_database_error)
+
+        response = session_client.post(
+            f"/api/workspaces/{workspace.slug}/projects/{project.id}/bookmarks/",
+            {"title": "Design reference", "url": "https://example.com/reference"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE

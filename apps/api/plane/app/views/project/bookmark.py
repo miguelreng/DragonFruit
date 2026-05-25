@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import DatabaseError
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
@@ -10,6 +12,7 @@ from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import ProjectBookmarkSerializer
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.db.models import Project, ProjectBookmark, ProjectMember, WorkspaceMember
+from plane.utils.exception_logger import log_exception
 
 
 class ProjectBookmarkViewSet(BaseViewSet):
@@ -58,10 +61,23 @@ class ProjectBookmarkViewSet(BaseViewSet):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="PROJECT")
     def create(self, request, slug, project_id):
-        project = Project.objects.get(pk=project_id, workspace__slug=slug)
+        project = Project.objects.filter(pk=project_id, workspace__slug=slug).first()
+        if project is None:
+            return Response({"error": "The selected project does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ProjectBookmarkSerializer(data=request.data)
         if serializer.is_valid():
-            bookmark = serializer.save(project=project, workspace=project.workspace, created_by=request.user)
+            try:
+                bookmark = serializer.save(project=project, workspace=project.workspace, created_by=request.user)
+            except DjangoValidationError as exc:
+                error = exc.message_dict if hasattr(exc, "message_dict") else exc.messages
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+            except DatabaseError as exc:
+                log_exception(exc)
+                return Response(
+                    {"error": "Bookmark storage is not ready. Run API database migrations and try again."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
             return Response(ProjectBookmarkSerializer(bookmark).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -326,8 +326,27 @@ async function saveBookmark(payload) {
       body: JSON.stringify(payload),
     }
   );
-  if (!response.ok) throw new Error(`Bookmark failed: ${response.status}`);
+  if (!response.ok) throw new Error(await bookmarkErrorMessage(response));
   return response.json();
+}
+
+async function bookmarkErrorMessage(response) {
+  const fallback = `Bookmark failed: ${response.status}`;
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const data = await response.json().catch(() => null);
+    const detail = data?.error || data?.detail || data?.message;
+    if (detail) return `${fallback} - ${formatErrorDetail(detail)}`;
+  }
+
+  const text = await response.text().catch(() => "");
+  return text ? `${fallback} - ${text.slice(0, 200)}` : fallback;
+}
+
+function formatErrorDetail(detail) {
+  if (Array.isArray(detail)) return detail.join(", ");
+  if (typeof detail === "object") return Object.values(detail).flat().join(", ");
+  return String(detail);
 }
 
 async function openSettings() {
