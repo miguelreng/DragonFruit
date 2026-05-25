@@ -164,11 +164,11 @@ main {
 }
 
 .status {
-  max-width: 230px;
-  overflow: hidden;
+  max-width: 100%;
   color: var(--text-tertiary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  text-align: right;
+  white-space: normal;
 }
 
 .status[data-state="success"] {
