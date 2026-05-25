@@ -29,6 +29,9 @@
       "js": ["src/content.js"]
     }
   ],
+  "externally_connectable": {
+    "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://*.dragonfruit.sh/*"]
+  },
   "host_permissions": ["<all_urls>"],
   "permissions": ["activeTab", "contextMenus", "identity", "scripting", "storage", "tabs"]
 }

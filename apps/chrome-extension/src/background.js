@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-const DEFAULT_APP_URL = "http://localhost:3000";
+const DEFAULT_APP_URL = "https://api.dragonfruit.sh";
 
 const MENU_SAVE_PAGE = "dragonfruit-save-page";
 const MENU_SAVE_LINK = "dragonfruit-save-link";
@@ -53,6 +53,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return false;
 });
 
+chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
+  if (message?.type !== "DRAGONFRUIT_NATIVE_TOKEN") return false;
+  void respond(completeExternalSignIn(message), sendResponse);
+  return true;
+});
+
 async function respond(promise, sendResponse) {
   try {
     sendResponse(await promise);
@@ -71,6 +77,14 @@ async function signIn(appUrlValue) {
     return { ok: true, user };
   }
 
+  if (isLocalAppUrl(appUrl)) {
+    await chrome.tabs.create({
+      url: `${appUrl}/native-login?callback=${encodeURIComponent(callbackUrl)}`,
+      active: true,
+    });
+    return { ok: true, pending: true };
+  }
+
   const loginUrl = `${appUrl}/auth/native/start/?callback=${encodeURIComponent(callbackUrl)}`;
   const redirectUrl = await launchAuthFlow({
     url: loginUrl,
@@ -83,11 +97,27 @@ async function signIn(appUrlValue) {
   return { ok: true, user };
 }
 
+async function completeExternalSignIn(message) {
+  const appUrl = normalizeAppUrl(message.appUrl || DEFAULT_APP_URL);
+  const token = String(message.apiToken || "");
+  if (!token) return { ok: false, error: "Missing DragonFruit API token." };
+  await chrome.storage.sync.set({ appUrl, apiToken: token, authStatus: "connected", authError: "" });
+  const user = await fetchCurrentUser(appUrl, token);
+  return { ok: true, user };
+}
+
 async function fetchNativeTokenFromSession(appUrl, callbackUrl) {
-  const response = await fetch(`${appUrl}/auth/native/start/?callback=${encodeURIComponent(callbackUrl)}`, {
+  const response = await fetch(`${appUrl}/auth/native/start/?format=json&callback=${encodeURIComponent(callbackUrl)}`, {
     credentials: "include",
+    headers: { Accept: "application/json" },
   }).catch(() => null);
   if (!response) return "";
+
+  if (response.ok && response.headers.get("content-type")?.includes("application/json")) {
+    const data = await response.json().catch(() => null);
+    if (data?.api_token) return data.api_token;
+    if (data?.callback) return extractApiToken(data.callback);
+  }
 
   const tokenFromUrl = extractApiToken(response.url);
   if (tokenFromUrl) return tokenFromUrl;
@@ -110,6 +140,15 @@ function extractApiToken(url) {
     return new URL(url).searchParams.get("api_token") || "";
   } catch {
     return "";
+  }
+}
+
+function isLocalAppUrl(appUrl) {
+  try {
+    const url = new URL(appUrl);
+    return url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  } catch {
+    return false;
   }
 }
 
@@ -327,7 +366,8 @@ function authorizedHeaders(apiToken) {
 }
 
 function normalizeAppUrl(value) {
-  return String(value || DEFAULT_APP_URL).replace(/\/+$/, "");
+  const url = String(value || DEFAULT_APP_URL).replace(/\/+$/, "");
+  return isLocalAppUrl(url) ? DEFAULT_APP_URL : url;
 }
 
 function domainFromUrl(url) {

@@ -19,9 +19,67 @@ export default function NativeLoginPage() {
       return;
     }
 
-    const url = new URL(`${API_BASE_URL}/auth/native/start/`);
-    url.searchParams.set("callback", callback);
-    window.location.assign(url.toString());
+    (async () => {
+      try {
+        const callbackUrl = new URL(callback);
+        const extensionId = callbackUrl.hostname.split(".")[0];
+        const isChromeExtensionCallback =
+          callbackUrl.protocol === "https:" && callbackUrl.hostname.endsWith(".chromiumapp.org") && extensionId;
+
+        if (!isChromeExtensionCallback) {
+          const url = new URL(`${API_BASE_URL}/auth/native/start/`);
+          url.searchParams.set("callback", callback);
+          window.location.assign(url.toString());
+          return;
+        }
+
+        const url = new URL(`${API_BASE_URL}/auth/native/start/`);
+        url.searchParams.set("format", "json");
+        url.searchParams.set("callback", callback);
+        const response = await fetch(url.toString(), {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) throw new Error(`Token handoff failed: ${response.status}`);
+        const data = await response.json();
+        if (!data?.api_token) throw new Error("Token handoff did not return an API token.");
+
+        const chromeRuntime = (
+          window as unknown as {
+            chrome?: {
+              runtime?: {
+                lastError?: { message?: string };
+                sendMessage: (
+                  extensionId: string,
+                  message: Record<string, unknown>,
+                  callback: (reply?: { ok?: boolean; error?: string }) => void
+                ) => void;
+              };
+            };
+          }
+        ).chrome?.runtime;
+        if (!chromeRuntime?.sendMessage) throw new Error("Chrome extension messaging is unavailable.");
+
+        chromeRuntime.sendMessage(
+          extensionId,
+          {
+            type: "DRAGONFRUIT_NATIVE_TOKEN",
+            apiToken: data.api_token,
+            appUrl: API_BASE_URL,
+          },
+          (reply) => {
+            const lastError = chromeRuntime.lastError;
+            if (lastError || !reply?.ok) {
+              setError(lastError?.message || reply?.error || "Could not send token to the extension.");
+              return;
+            }
+            window.close();
+          }
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not connect the Chrome extension.");
+      }
+    })();
   }, [searchParams]);
 
   return (
