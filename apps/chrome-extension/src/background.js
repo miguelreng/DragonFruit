@@ -1,10 +1,12 @@
 // @ts-nocheck
 
-const DEFAULT_APP_URL = "https://api.dragonfruit.sh";
+const DEFAULT_API_URL = "https://api.dragonfruit.sh";
+const DEFAULT_WEB_URL = "https://app.dragonfruit.sh";
 
 const MENU_SAVE_PAGE = "dragonfruit-save-page";
 const MENU_SAVE_LINK = "dragonfruit-save-link";
 const MENU_SAVE_IMAGE = "dragonfruit-save-image";
+const MENU_SETTINGS = "dragonfruit-settings";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -21,6 +23,11 @@ chrome.runtime.onInstalled.addListener(() => {
     id: MENU_SAVE_IMAGE,
     title: "Save image to DragonFruit",
     contexts: ["image"],
+  });
+  chrome.contextMenus.create({
+    id: MENU_SETTINGS,
+    title: "DragonFruit settings",
+    contexts: ["action"],
   });
 });
 
@@ -67,80 +74,22 @@ async function respond(promise, sendResponse) {
   }
 }
 
-async function signIn(appUrlValue) {
-  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
-  const callbackUrl = chrome.identity.getRedirectURL("auth/login-callback");
-  const sessionToken = await fetchNativeTokenFromSession(appUrl, callbackUrl);
-  if (sessionToken) {
-    await chrome.storage.sync.set({ appUrl, apiToken: sessionToken, authStatus: "connected", authError: "" });
-    const user = await fetchCurrentUser(appUrl, sessionToken);
-    return { ok: true, user };
-  }
-
-  if (isLocalAppUrl(appUrl)) {
-    await chrome.tabs.create({
-      url: `${appUrl}/native-login?callback=${encodeURIComponent(callbackUrl)}`,
-      active: true,
-    });
-    return { ok: true, pending: true };
-  }
-
-  const loginUrl = `${appUrl}/auth/native/start/?callback=${encodeURIComponent(callbackUrl)}`;
-  const redirectUrl = await launchAuthFlow({
-    url: loginUrl,
-    interactive: true,
+async function signIn() {
+  const callbackUrl = `https://${chrome.runtime.id}.chromiumapp.org/auth/login-callback`;
+  await chrome.tabs.create({
+    url: `${DEFAULT_WEB_URL}/native-login?callback=${encodeURIComponent(callbackUrl)}`,
+    active: true,
   });
-  const token = new URL(redirectUrl).searchParams.get("api_token");
-  if (!token) return { ok: false, error: "Login callback missing API token." };
-  await chrome.storage.sync.set({ appUrl, apiToken: token, authStatus: "connected", authError: "" });
-  const user = await fetchCurrentUser(appUrl, token);
-  return { ok: true, user };
+  return { ok: true, pending: true };
 }
 
 async function completeExternalSignIn(message) {
-  const appUrl = normalizeAppUrl(message.appUrl || DEFAULT_APP_URL);
+  const appUrl = normalizeAppUrl(message.appUrl || DEFAULT_API_URL);
   const token = String(message.apiToken || "");
   if (!token) return { ok: false, error: "Missing DragonFruit API token." };
   await chrome.storage.sync.set({ appUrl, apiToken: token, authStatus: "connected", authError: "" });
   const user = await fetchCurrentUser(appUrl, token);
   return { ok: true, user };
-}
-
-async function fetchNativeTokenFromSession(appUrl, callbackUrl) {
-  const response = await fetch(`${appUrl}/auth/native/start/?format=json&callback=${encodeURIComponent(callbackUrl)}`, {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-  }).catch(() => null);
-  if (!response) return "";
-
-  if (response.ok && response.headers.get("content-type")?.includes("application/json")) {
-    const data = await response.json().catch(() => null);
-    if (data?.api_token) return data.api_token;
-    if (data?.callback) return extractApiToken(data.callback);
-  }
-
-  const tokenFromUrl = extractApiToken(response.url);
-  if (tokenFromUrl) return tokenFromUrl;
-
-  const html = await response.text().catch(() => "");
-  if (!html) return "";
-
-  const decodedHtml = html
-    .replaceAll("&amp;", "&")
-    .replaceAll("&quot;", '"')
-    .replaceAll("&#x27;", "'")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">");
-  const callbackMatch = decodedHtml.match(/https:\/\/[^"'<>\s]+\.chromiumapp\.org\/[^"'<>\s]*api_token=[^"'<>\s]+/);
-  return callbackMatch ? extractApiToken(callbackMatch[0]) : "";
-}
-
-function extractApiToken(url) {
-  try {
-    return new URL(url).searchParams.get("api_token") || "";
-  } catch {
-    return "";
-  }
 }
 
 function isLocalAppUrl(appUrl) {
@@ -153,10 +102,10 @@ function isLocalAppUrl(appUrl) {
 }
 
 async function startSignIn(appUrlValue) {
-  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
+  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_API_URL);
   await chrome.storage.sync.set({ appUrl, authStatus: "pending", authError: "" });
   try {
-    await signIn(appUrl);
+    await signIn();
   } catch (error) {
     await chrome.storage.sync.set({
       authStatus: "error",
@@ -165,30 +114,21 @@ async function startSignIn(appUrlValue) {
   }
 }
 
-async function launchAuthFlow(details) {
-  return new Promise((resolve, reject) => {
-    chrome.identity.launchWebAuthFlow(details, (redirectUrl) => {
-      const error = chrome.runtime.lastError;
-      if (error) {
-        reject(new Error(error.message));
-        return;
-      }
-      if (!redirectUrl) {
-        reject(new Error("DragonFruit login did not return a callback URL."));
-        return;
-      }
-      resolve(redirectUrl);
-    });
-  });
-}
-
 async function signOut() {
-  await chrome.storage.sync.remove(["apiToken", "projects", "projectId", "authStatus", "authError"]);
+  await chrome.storage.sync.remove([
+    "apiToken",
+    "workspaces",
+    "workspaceSlug",
+    "projects",
+    "projectId",
+    "authStatus",
+    "authError",
+  ]);
   return { ok: true };
 }
 
 async function getAuthState(appUrlValue) {
-  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
+  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_API_URL);
   const { apiToken, authStatus, authError } = await chrome.storage.sync.get(["apiToken", "authStatus", "authError"]);
   if (!apiToken) {
     return {
@@ -217,7 +157,7 @@ async function fetchCurrentUser(appUrl, apiToken) {
 }
 
 async function loadProjects(appUrlValue, workspaceSlugValue) {
-  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
+  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_API_URL);
   const workspaceSlug = String(workspaceSlugValue || "").trim();
   const { apiToken } = await chrome.storage.sync.get(["apiToken"]);
   if (!apiToken) return { ok: false, error: "Sign in first." };
@@ -230,6 +170,11 @@ async function loadProjects(appUrlValue, workspaceSlugValue) {
 }
 
 async function handleContextMenu(info, tab) {
+  if (info.menuItemId === MENU_SETTINGS) {
+    await openSettings();
+    return;
+  }
+
   if (!tab?.id) return;
   if (info.menuItemId === MENU_SAVE_IMAGE && info.srcUrl) {
     await saveBookmark({
@@ -292,7 +237,7 @@ async function saveBookmark(payload) {
     throw new Error("Connect your DragonFruit account first.");
   }
   if (!settings.workspaceSlug || !settings.projectId) {
-    await chrome.runtime.openOptionsPage?.();
+    await openSettings();
     throw new Error("Choose a workspace and project in the extension popup first.");
   }
   const response = await fetch(
@@ -309,6 +254,15 @@ async function saveBookmark(payload) {
   );
   if (!response.ok) throw new Error(`Bookmark failed: ${response.status}`);
   return response.json();
+}
+
+async function openSettings() {
+  await chrome.storage.session?.set({ popupView: "settings" });
+  if (chrome.action.openPopup) {
+    await chrome.action.openPopup();
+    return;
+  }
+  await chrome.tabs.create({ url: chrome.runtime.getURL("src/popup.html?view=settings"), active: true });
 }
 
 async function captureTweetScreenshot(tabId) {
@@ -354,7 +308,7 @@ async function blobToDataUrl(blob) {
 async function getSettings() {
   const stored = await chrome.storage.sync.get(["appUrl", "workspaceSlug", "projectId", "apiToken"]);
   return {
-    appUrl: normalizeAppUrl(stored.appUrl || DEFAULT_APP_URL),
+    appUrl: normalizeAppUrl(stored.appUrl || DEFAULT_API_URL),
     workspaceSlug: stored.workspaceSlug || "",
     projectId: stored.projectId || "",
     apiToken: stored.apiToken || "",
@@ -366,8 +320,8 @@ function authorizedHeaders(apiToken) {
 }
 
 function normalizeAppUrl(value) {
-  const url = String(value || DEFAULT_APP_URL).replace(/\/+$/, "");
-  return isLocalAppUrl(url) ? DEFAULT_APP_URL : url;
+  const url = String(value || DEFAULT_API_URL).replace(/\/+$/, "");
+  return isLocalAppUrl(url) ? DEFAULT_API_URL : url;
 }
 
 function domainFromUrl(url) {

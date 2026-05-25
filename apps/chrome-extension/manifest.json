@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "DragonFruit Bookmarks",
   "description": "Save pages, images, and tweets to DragonFruit bookmarks.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "icons": {
     "16": "src/icons/icon-16.png",
     "32": "src/icons/icon-32.png",
@@ -33,5 +33,5 @@
     "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://*.dragonfruit.sh/*"]
   },
   "host_permissions": ["<all_urls>"],
-  "permissions": ["activeTab", "contextMenus", "identity", "scripting", "storage", "tabs"]
+  "permissions": ["activeTab", "contextMenus", "scripting", "storage", "tabs"]
 }

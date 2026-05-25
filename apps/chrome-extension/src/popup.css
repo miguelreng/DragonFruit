@@ -2,6 +2,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 @font-face {
   font-family: Figtree;
   src: url("./fonts/Figtree-Variable.ttf") format("truetype");
@@ -71,7 +75,7 @@ main {
   gap: 8px;
   padding: 10px;
   border: 0.75px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--surface);
 }
 
@@ -85,6 +89,14 @@ main {
 
 .action-card {
   gap: 8px;
+}
+
+.login-card p,
+.settings-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .action-copy {
@@ -135,6 +147,22 @@ main {
   white-space: nowrap;
 }
 
+.setting-value {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
 .status {
   max-width: 230px;
   overflow: hidden;
@@ -155,7 +183,6 @@ main {
   color: var(--accent);
 }
 
-input,
 select,
 button {
   border: 0;
@@ -163,7 +190,6 @@ button {
   font: inherit;
 }
 
-input,
 select {
   width: auto;
   min-width: 0;
@@ -172,7 +198,6 @@ select {
   font-weight: 600;
 }
 
-input:focus,
 select:focus {
   box-shadow: 0 0 0 3px rgba(232, 77, 159, 0.12);
 }
@@ -268,10 +293,6 @@ footer {
   background: var(--layer-1);
   color: var(--text-primary);
   text-align: left;
-}
-
-input.picker-pill {
-  min-width: 130px;
 }
 
 select.picker-pill {
