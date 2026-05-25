@@ -168,6 +168,7 @@ from .issue.template import (
     WorkItemTemplateInstantiateEndpoint,
     WorkItemTemplateListEndpoint,
 )
+from .issue.custom_field import ProjectCustomFieldEndpoint
 
 from .module.base import (
     ModuleViewSet,

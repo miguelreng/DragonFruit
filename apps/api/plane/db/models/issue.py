@@ -180,6 +180,7 @@ class Issue(ChangeTrackerMixin, ProjectBaseModel):
         null=True,
         blank=True,
     )
+    custom_field_values = models.JSONField(default=dict, blank=True)
 
     issue_objects = IssueManager()
 
