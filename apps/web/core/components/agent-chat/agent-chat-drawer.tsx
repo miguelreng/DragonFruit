@@ -53,6 +53,7 @@ function ensureHljsRegistered() {
   _hljsRegistered = true;
 }
 // plane imports
+import type { EditorRefApi } from "@plane/editor";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Avatar, CustomMenu } from "@plane/ui";
@@ -73,6 +74,7 @@ import {
 } from "@/components/icons/lucide-shim";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // services
 import { AgentChatService } from "@/services/agent-chat.service";
 import type {
@@ -106,10 +108,12 @@ type View = "chat" | "history";
  * always-visible sidebar that eats half the drawer width.
  */
 export const AgentChatDrawer = observer(function AgentChatDrawer() {
-  const { workspaceSlug: rawSlug, projectId: rawProjectId } = useParams();
+  const { workspaceSlug: rawSlug, projectId: rawProjectId, pageId: rawPageId } = useParams();
   const workspaceSlug = rawSlug?.toString();
   const projectId = rawProjectId?.toString();
+  const pageId = rawPageId?.toString();
   const { toggleAgentChat } = useAppTheme();
+  const projectPages = usePageStore(EPageStoreType.PROJECT);
   const onClose = () => toggleAgentChat(false);
 
   // Agents in this workspace, used for the new-chat picker and to look
@@ -181,6 +185,8 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
     () => (activeSession ? (agents ?? []).find((a) => a.id === activeSession.agent) : undefined),
     [agents, activeSession]
   );
+  const activePage = pageId ? projectPages.getPageById(pageId) : undefined;
+  const activePageEditorRef = activePage?.editor.editorRef ?? null;
 
   return (
     // In-flow column. The parent (WorkspaceContentWrapper) already
@@ -202,6 +208,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
           agent={activeAgent}
           agents={agents ?? []}
           sessions={sessions}
+          activePageEditorRef={activePageEditorRef}
           onClose={onClose}
           onOpenHistory={() => setView("history")}
           onStartSession={handleStartSession}
@@ -238,6 +245,7 @@ function ChatView(props: {
   agent: TAgent | undefined;
   agents: TAgent[];
   sessions: TAgentChatSession[];
+  activePageEditorRef: EditorRefApi | null;
   onClose: () => void;
   onOpenHistory: () => void;
   onStartSession: (agentId: string) => Promise<void>;
@@ -249,6 +257,7 @@ function ChatView(props: {
     sessionId,
     agent,
     agents,
+    activePageEditorRef,
     onClose,
     onOpenHistory,
     onStartSession,
@@ -280,6 +289,7 @@ function ChatView(props: {
           sessionId={sessionId}
           projectId={projectId}
           agent={agent}
+          activePageEditorRef={activePageEditorRef}
           onSentRefreshSessions={onSentRefreshSessions}
         />
       ) : (
@@ -493,9 +503,10 @@ function ChatThread(props: {
   sessionId: string;
   projectId: string | undefined;
   agent: TAgent | undefined;
+  activePageEditorRef: EditorRefApi | null;
   onSentRefreshSessions: () => void;
 }) {
-  const { workspaceSlug, sessionId, projectId, agent, onSentRefreshSessions } = props;
+  const { workspaceSlug, sessionId, projectId, agent, activePageEditorRef, onSentRefreshSessions } = props;
   const { data, mutate } = useSWR(
     `agent-chat/${workspaceSlug}/${sessionId}`,
     () => chatService.getSession(workspaceSlug, sessionId),
@@ -598,6 +609,8 @@ function ChatThread(props: {
       return;
     }
 
+    const shouldWriteIntoEditor = Boolean(activePageEditorRef && !hasFiles && isEditorWritingRequest(trimmed));
+
     const optimistic: TAgentChatMessage = {
       id: `local-${Date.now()}`,
       session: sessionId,
@@ -628,7 +641,20 @@ function ChatThread(props: {
     setDraft("");
     setPendingFiles([]);
     try {
-      await chatService.sendMessage(workspaceSlug, sessionId, trimmed, attachments, { project_id: projectId });
+      const response = await chatService.sendMessage(workspaceSlug, sessionId, trimmed, attachments, {
+        project_id: projectId,
+        tool_mode: shouldWriteIntoEditor ? "none" : "auto",
+      });
+      const generatedContent = response.assistant_message.content?.trim();
+      if (shouldWriteIntoEditor && generatedContent && !response.assistant_message.error_message) {
+        activePageEditorRef?.setEditorValueAtCursorPosition(markdownToEditorHtml(generatedContent));
+        activePageEditorRef?.scrollToNodeViaDOMCoordinates({ behavior: "smooth" });
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Added to page",
+          message: `${agent?.name ?? "The agent"} wrote it into the editor.`,
+        });
+      }
       await mutate();
       onSentRefreshSessions();
     } catch (err) {
@@ -638,7 +664,18 @@ function ChatThread(props: {
     } finally {
       setSending(false);
     }
-  }, [draft, pendingFiles, sending, sessionId, workspaceSlug, projectId, mutate, onSentRefreshSessions]);
+  }, [
+    activePageEditorRef,
+    agent?.name,
+    draft,
+    pendingFiles,
+    sending,
+    sessionId,
+    workspaceSlug,
+    projectId,
+    mutate,
+    onSentRefreshSessions,
+  ]);
 
   const isEmpty = messages.length === 0;
 
@@ -780,6 +817,66 @@ function ChatThread(props: {
       </div>
     </>
   );
+}
+
+function isEditorWritingRequest(text: string): boolean {
+  if (/\b(create|make|add)\b.{0,80}\b(page|doc|document|task|work item|sticky|note)\b/i.test(text)) return false;
+  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into)\b/i.test(
+    text
+  );
+}
+
+function markdownToEditorHtml(markdownSource: string): string {
+  const blocks = parseMarkdownBlocks(markdownSource);
+  if (blocks.length === 0) return `<p>${escapeHtml(markdownSource)}</p>`;
+  return blocks.map(editorHtmlFromBlock).join("");
+}
+
+function editorHtmlFromBlock(block: Block): string {
+  switch (block.kind) {
+    case "h": {
+      const level = Math.min(block.level, 3);
+      return `<h${level}>${inlineMarkdownToHtml(block.text)}</h${level}>`;
+    }
+    case "ul":
+      return `<ul>${block.items.map((item) => `<li><p>${inlineMarkdownToHtml(item)}</p></li>`).join("")}</ul>`;
+    case "ol":
+      return `<ol>${block.items.map((item) => `<li><p>${inlineMarkdownToHtml(item)}</p></li>`).join("")}</ol>`;
+    case "quote":
+      return `<blockquote>${inlineMarkdownToHtml(block.text)}</blockquote>`;
+    case "code":
+      return `<pre><code>${escapeHtml(block.content)}</code></pre>`;
+    case "table":
+      return [
+        "<table><tbody>",
+        `<tr>${block.headers.map((cell) => `<th>${inlineMarkdownToHtml(cell)}</th>`).join("")}</tr>`,
+        ...block.rows.map((row) => `<tr>${row.map((cell) => `<td>${inlineMarkdownToHtml(cell)}</td>`).join("")}</tr>`),
+        "</tbody></table>",
+      ].join("");
+    case "hr":
+      return "<hr />";
+    case "p":
+      return `<p>${inlineMarkdownToHtml(block.text)}</p>`;
+  }
+}
+
+function inlineMarkdownToHtml(text: string): string {
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.+?)__/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*(?!\s)(.+?)(?<!\s)\*/g, "$1<em>$2</em>")
+    .replace(/(^|[^_])_(?!\s)(.+?)(?<!\s)_/g, "$1<em>$2</em>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>');
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ------------------------------------------------------------------ //
