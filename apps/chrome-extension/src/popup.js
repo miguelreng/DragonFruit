@@ -21,11 +21,13 @@ async function init() {
   appUrlInput.addEventListener("change", persistSettings);
   workspaceInput.addEventListener("change", persistSettings);
   projectSelect.addEventListener("change", persistSettings);
+  setStatus(projectSelect.value ? "Ready" : "Not configured", projectSelect.value ? "success" : "");
 }
 
 async function loadProjects() {
   await persistSettings();
-  setStatus("Loading...");
+  setStatus("Loading...", "loading");
+  loadProjectsButton.disabled = true;
   const appUrl = normalizeAppUrl(appUrlInput.value);
   const workspaceSlug = workspaceInput.value.trim();
   try {
@@ -36,17 +38,22 @@ async function loadProjects() {
     const data = await response.json();
     renderProjects(data.projects || [], data.default_project_id || "");
     await persistSettings();
-    setStatus("Ready");
+    setStatus("Ready", "success");
   } catch {
-    setStatus("Open DragonFruit and sign in first");
+    setStatus("Sign in first", "error");
+  } finally {
+    loadProjectsButton.disabled = false;
   }
 }
 
 async function saveActivePage() {
   await persistSettings();
-  setStatus("Saving...");
+  setStatus("Saving...", "loading");
+  savePageButton.disabled = true;
   chrome.runtime.sendMessage({ type: "SAVE_ACTIVE_TAB" }, (response) => {
-    setStatus(response?.ok ? "Saved" : response?.error || "Could not save");
+    const ok = Boolean(response?.ok);
+    setStatus(ok ? "Saved" : response?.error || "Could not save", ok ? "success" : "error");
+    savePageButton.disabled = false;
   });
 }
 
@@ -81,8 +88,9 @@ function renderProjects(projects, selectedProjectId) {
   projectSelect.value = selectedProjectId || projects[0].id;
 }
 
-function setStatus(text) {
+function setStatus(text, state = "") {
   statusEl.textContent = text;
+  statusEl.dataset.state = state;
 }
 
 function normalizeAppUrl(value) {
