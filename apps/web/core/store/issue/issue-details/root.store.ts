@@ -64,6 +64,11 @@ export type TIssueCrudOperationState = {
   existing: TIssueCrudState;
 };
 
+export type TInlineSubIssueCreateRequest = {
+  parentIssueId: string;
+  requestId: number;
+};
+
 export interface IIssueDetail
   extends
     IIssueStoreActions,
@@ -81,6 +86,7 @@ export interface IIssueDetail
   relationKey: TIssueRelationTypes | null;
   issueLinkData: TIssueLink | null;
   issueCrudOperationState: TIssueCrudOperationState;
+  inlineSubIssueCreateRequest: TInlineSubIssueCreateRequest | null;
   openWidgets: TWorkItemWidgets[];
   lastWidgetAction: TWorkItemWidgets | null;
   isCreateIssueModalOpen: boolean;
@@ -112,6 +118,7 @@ export interface IIssueDetail
   toggleOpenWidget: (state: TWorkItemWidgets) => void;
   setRelationKey: (relationKey: TIssueRelationTypes | null) => void;
   setIssueCrudOperationState: (state: TIssueCrudOperationState) => void;
+  requestInlineSubIssueCreate: (parentIssueId: string) => void;
   // store
   rootIssueStore: IIssueRootStore;
   issue: IIssueStore;
@@ -143,6 +150,7 @@ export abstract class IssueDetail implements IIssueDetail {
       issue: undefined,
     },
   };
+  inlineSubIssueCreateRequest: TInlineSubIssueCreateRequest | null = null;
   openWidgets: TWorkItemWidgets[] = ["sub-work-items", "links", "attachments"];
   lastWidgetAction: TWorkItemWidgets | null = null;
   isCreateIssueModalOpen: boolean = false;
@@ -175,6 +183,7 @@ export abstract class IssueDetail implements IIssueDetail {
       relationKey: observable,
       issueLinkData: observable,
       issueCrudOperationState: observable,
+      inlineSubIssueCreateRequest: observable.ref,
       isCreateIssueModalOpen: observable,
       isIssueLinkModalOpen: observable.ref,
       isParentIssueModalOpen: observable.ref,
@@ -204,6 +213,7 @@ export abstract class IssueDetail implements IIssueDetail {
       toggleOpenWidget: action,
       setRelationKey: action,
       setIssueCrudOperationState: action,
+      requestInlineSubIssueCreate: action,
     });
 
     // store
@@ -245,6 +255,14 @@ export abstract class IssueDetail implements IIssueDetail {
   // actions
   setRelationKey = (relationKey: TIssueRelationTypes | null) => (this.relationKey = relationKey);
   setIssueCrudOperationState = (state: TIssueCrudOperationState) => (this.issueCrudOperationState = state);
+  requestInlineSubIssueCreate = (parentIssueId: string) => {
+    this.inlineSubIssueCreateRequest = {
+      parentIssueId,
+      requestId: (this.inlineSubIssueCreateRequest?.requestId ?? 0) + 1,
+    };
+    if (!this.openWidgets.includes("sub-work-items")) this.openWidgets = ["sub-work-items", ...this.openWidgets];
+    if (this.lastWidgetAction) this.lastWidgetAction = null;
+  };
   setPeekIssue = (peekIssue: TPeekIssue | undefined) => (this.peekIssue = peekIssue);
   toggleCreateIssueModal = (value: boolean) => (this.isCreateIssueModalOpen = value);
   toggleIssueLinkModal = (value: boolean) => (this.isIssueLinkModalOpen = value);

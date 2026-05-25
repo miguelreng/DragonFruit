@@ -25,7 +25,9 @@ import type { MemberDropdownProps } from "./types";
 
 type TMemberDropdownBaseProps = {
   getUserDetails: (userId: string) => IUserLite | undefined;
+  avatarSize?: "sm" | "md" | "base" | "lg" | number;
   icon?: LucideIcon;
+  iconClassName?: string;
   memberIds?: string[];
   onClose?: () => void;
   onDropdownOpen?: () => void;
@@ -45,8 +47,10 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
     dropdownArrow = false,
     dropdownArrowClassName = "",
     getUserDetails,
+    avatarSize,
     hideIcon = false,
     icon,
+    iconClassName,
     memberIds,
     multiple,
     onChange,
@@ -149,7 +153,14 @@ export const MemberDropdownBase = observer(function MemberDropdownBase(props: TM
             renderToolTipByDefault={renderByDefault}
           >
             {!hideIcon && (
-              <ButtonAvatars showTooltip={showTooltip} userIds={value} icon={icon} getUserDetails={getUserDetails} />
+              <ButtonAvatars
+                showTooltip={showTooltip}
+                userIds={value}
+                icon={icon}
+                iconClassName={iconClassName}
+                size={avatarSize}
+                getUserDetails={getUserDetails}
+              />
             )}
             {BUTTON_VARIANTS_WITH_TEXT.includes(buttonVariant) && (
               <span className="flex-grow truncate text-left text-body-xs-medium leading-5">

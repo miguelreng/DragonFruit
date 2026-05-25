@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { WorkItemsIcon } from "@plane/propel/icons";
+import { ListChecks as WorkItemsIcon } from "@/components/icons/lucide-shim";
 import { EInboxIssueSource } from "@plane/types";
 // hooks
 import { capitalizeFirstLetter } from "@plane/utils";

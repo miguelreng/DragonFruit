@@ -260,7 +260,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
                     ref={ref}
                     hasError={Boolean(errors.name)}
                     placeholder={t("workspace_settings.settings.general.name")}
-                    className="w-full rounded-md"
+                    className="w-full rounded-lg"
                     disabled={!isAdmin}
                   />
                 )}
@@ -282,7 +282,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
                       ORGANIZATION_SIZE.find((c) => c === value) ??
                       t("workspace_settings.settings.general.errors.company_size.select_a_range")
                     }
-                    buttonClassName="border border-subtle bg-layer-2 !shadow-none !rounded-md"
+                    buttonClassName="border border-subtle bg-layer-2 !shadow-none !rounded-lg"
                     input
                     disabled={!isAdmin}
                   >
@@ -297,7 +297,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
             </div>
             <div className="flex flex-col gap-2">
               <h4 className="text-body-sm-medium text-tertiary">{t("workspace_settings.settings.general.url")}</h4>
-              <div className="flex w-full items-center rounded-md border border-subtle bg-layer-2 px-3">
+              <div className="flex w-full items-center rounded-lg border border-subtle bg-layer-2 px-3">
                 <span className="text-12 whitespace-nowrap text-secondary">{workspaceHost}/</span>
                 <Controller
                   control={control}
@@ -319,7 +319,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
                       onChange={(e) => onChange(e.target.value.toLowerCase())}
                       ref={ref}
                       hasError={Boolean(errors.slug)}
-                      className="block w-full rounded-md border-none bg-transparent !px-0 py-2 text-12"
+                      className="block w-full rounded-lg border-none bg-transparent !px-0 py-2 text-12"
                       disabled={!isAdmin}
                     />
                   )}
@@ -336,7 +336,13 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
                 control={control}
                 render={({ field: { value, onChange } }) => (
                   <>
-                    <TimezoneSelect value={value} onChange={onChange} disabled={!isAdmin} />
+                    <TimezoneSelect
+                      value={value}
+                      onChange={onChange}
+                      buttonClassName="!rounded-lg"
+                      className="rounded-lg"
+                      disabled={!isAdmin}
+                    />
                   </>
                 )}
               />

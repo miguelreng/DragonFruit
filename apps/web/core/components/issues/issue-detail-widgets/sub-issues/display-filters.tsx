@@ -51,7 +51,7 @@ export const SubIssueDisplayFilters = observer(function SubIssueDisplayFilters(p
           menuButton={
             <div
               className={cn(
-                "relative rounded-sm p-1 transition-all duration-200",
+                "relative rounded-lg p-1 transition-all duration-200",
                 isFilterApplied && "bg-accent-primary/20"
               )}
             >

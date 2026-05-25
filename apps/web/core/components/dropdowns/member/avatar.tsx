@@ -18,6 +18,7 @@ type AvatarProps = {
   showTooltip: boolean;
   userIds: string | string[] | null;
   icon?: LucideIcon;
+  iconClassName?: string;
   size?: "sm" | "md" | "base" | "lg" | number;
   /**
    * Optional override so the dropdown wrapper can resolve identifiers the
@@ -27,7 +28,7 @@ type AvatarProps = {
 };
 
 export const ButtonAvatars = observer(function ButtonAvatars(props: AvatarProps) {
-  const { showTooltip, userIds, icon: Icon, size = "md", getUserDetails: getUserDetailsProp } = props;
+  const { showTooltip, userIds, icon: Icon, iconClassName, size = "md", getUserDetails: getUserDetailsProp } = props;
   // store hooks
   const { getUserDetails: getMemberDetails } = useMember();
   const getUserDetails = getUserDetailsProp ?? getMemberDetails;
@@ -59,8 +60,8 @@ export const ButtonAvatars = observer(function ButtonAvatars(props: AvatarProps)
   }
 
   return Icon ? (
-    <Icon className="h-3 w-3 flex-shrink-0" />
+    <Icon className={cn("h-3 w-3 flex-shrink-0", iconClassName)} />
   ) : (
-    <MembersPropertyIcon className={cn("mx-[4px] h-3 w-3 flex-shrink-0")} />
+    <MembersPropertyIcon className={cn("mx-[4px] h-3 w-3 flex-shrink-0", iconClassName)} />
   );
 });

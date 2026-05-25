@@ -8,10 +8,13 @@
 import type { SyntheticEvent } from "react";
 import { useMemo } from "react";
 import { observer } from "mobx-react";
+import {
+  Calendar as StartDatePropertyIcon,
+  CalendarCheck as DueDatePropertyIcon,
+} from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
-import { StartDatePropertyIcon, DueDatePropertyIcon } from "@plane/propel/icons";
 import type { IIssueDisplayProperties, TIssue } from "@plane/types";
-import { getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
+import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
 import { DateRangeDropdown } from "@/components/dropdowns/date-range";
@@ -104,7 +107,7 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
             disabled={!canEdit}
             buttonVariant="transparent-without-text"
             buttonClassName="hover:bg-transparent px-0"
-            iconSize="size-5"
+            iconSize="size-4"
             showTooltip
           />
         </div>
@@ -122,6 +125,7 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
             }
             disabled={!canEdit}
             buttonVariant="border-without-text"
+            buttonClassName="px-0 hover:bg-transparent [&>span]:size-4"
             showTooltip
           />
         </div>
@@ -172,8 +176,9 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
             onChange={handleStartDate}
             maxDate={maxDate}
             placeholder={t("common.order_by.start_date")}
-            icon={<StartDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
+            icon={<StartDatePropertyIcon className="size-4 flex-shrink-0" />}
             buttonVariant={issue.start_date ? "border-with-text" : "border-without-text"}
+            buttonClassName="px-0 hover:bg-transparent"
             optionsClassName="z-30"
             disabled={!canEdit}
             showTooltip
@@ -193,9 +198,9 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
             onChange={handleTargetDate}
             minDate={minDate}
             placeholder={t("common.order_by.due_date")}
-            icon={<DueDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
+            icon={<DueDatePropertyIcon className="size-4 flex-shrink-0" />}
             buttonVariant={issue.target_date ? "border-with-text" : "border-without-text"}
-            buttonClassName={shouldHighlight ? "text-danger-primary" : ""}
+            buttonClassName={cn("px-0 hover:bg-transparent", shouldHighlight ? "text-danger-primary" : "")}
             clearIconClassName="text-primary"
             optionsClassName="z-30"
             disabled={!canEdit}
@@ -219,7 +224,9 @@ export const SubIssuesListItemProperties = observer(function SubIssuesListItemPr
             multiple
             includeAgents
             buttonVariant={(issue?.assignee_ids || []).length > 0 ? "transparent-without-text" : "border-without-text"}
-            buttonClassName={(issue?.assignee_ids || []).length > 0 ? "hover:bg-transparent px-0" : ""}
+            buttonClassName="px-0 hover:bg-transparent"
+            avatarSize={16}
+            iconClassName="size-4"
           />
         </div>
       </WithDisplayPropertiesHOC>

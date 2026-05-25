@@ -6,8 +6,13 @@
 
 import { observer } from "mobx-react";
 
+import {
+  Copy as CopyIcon,
+  Edit as EditIcon,
+  Link as LinkIcon,
+  Trash as TrashIcon,
+} from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
-import { LinkIcon, CopyIcon, EditIcon, TrashIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssueServiceType } from "@plane/types";

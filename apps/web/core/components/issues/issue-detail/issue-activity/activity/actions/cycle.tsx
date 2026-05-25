@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // hooks
-import { CycleIcon } from "@plane/propel/icons";
+import { RefreshCw as CycleIcon } from "@/components/icons/lucide-shim";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // components
 import { IssueActivityBlockComponent } from "./";

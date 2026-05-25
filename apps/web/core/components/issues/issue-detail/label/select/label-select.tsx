@@ -7,13 +7,12 @@
 import { Fragment, useState } from "react";
 import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
-import { Loader } from "@/components/icons/lucide-shim";
+import { Check as CheckIcon, Loader, Plus as PlusIcon, Search as SearchIcon } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 // plane imports
 import { EUserPermissionsLevel, getRandomLabelColor } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { CheckIcon, SearchIcon, PlusIcon } from "@plane/propel/icons";
 import type { IIssueLabel } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 // helpers
@@ -141,13 +140,13 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
 
         <Combobox.Options className="fixed z-10">
           <div
-            className={`z-10 my-1 w-48 rounded-sm border border-strong bg-surface-1 py-2.5 text-11 whitespace-nowrap shadow-raised-200 focus:outline-none`}
+            className={`z-10 my-1 w-48 rounded-lg border border-strong bg-surface-1 py-2.5 text-11 whitespace-nowrap shadow-raised-200 focus:outline-none`}
             ref={setPopperElement}
             style={styles.popper}
             {...attributes.popper}
           >
             <div className="px-2">
-              <div className="flex w-full items-center justify-start rounded-sm border border-subtle bg-surface-2 px-2">
+              <div className="flex w-full items-center justify-start rounded-lg border border-subtle bg-surface-2 px-2">
                 <SearchIcon className="h-3.5 w-3.5 text-tertiary" />
                 <Combobox.Input
                   className="w-full bg-transparent px-2 py-1 text-11 text-secondary placeholder:text-placeholder focus:outline-none"
@@ -169,7 +168,7 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: IIssue
                     key={option.value}
                     value={option.value}
                     className={({ selected }) =>
-                      `flex cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none hover:bg-layer-1 ${
+                      `flex cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 select-none hover:bg-layer-1 ${
                         selected ? "text-primary" : "text-secondary"
                       }`
                     }

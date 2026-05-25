@@ -634,7 +634,7 @@ export const AppRailRoot = observer(() => {
           <AppSidebarItem
             variant="button"
             item={{
-              label: "Get Copilot",
+              label: "Get Copilot Mac App",
               icon: <Download />,
               isInline: isRailExpanded,
               showLabel: showRailLabels,

@@ -5,9 +5,8 @@
  */
 
 import { observer } from "mobx-react";
-import { Link as Loader } from "@/components/icons/lucide-shim";
+import { ChevronRight, Edit, Link, Loader2 as Loader, MoreHorizontal, Trash, X } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
-import { LinkIcon, EditIcon, TrashIcon, CloseIcon, ChevronRightIcon } from "@plane/propel/icons";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssue, TIssueServiceType, TSubIssueOperations } from "@plane/types";
@@ -121,7 +120,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
               {subIssueCount > 0 && !isCurrentIssueRoot && (
                 <>
                   {subIssueHelpers.preview_loader.includes(issue.id) ? (
-                    <div className="flex h-full w-full cursor-not-allowed items-center justify-center rounded-xs bg-layer-1 transition-all">
+                    <div className="flex h-full w-full cursor-not-allowed items-center justify-center rounded-lg bg-layer-1 transition-all">
                       <Loader width={14} strokeWidth={2} className="animate-spin" />
                     </div>
                   ) : (
@@ -138,7 +137,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
                         setSubIssueHelpers(parentIssueId, "issue_visibility", issueId);
                       }}
                     >
-                      <ChevronRightIcon
+                      <ChevronRight
                         className={cn("size-3.5 transition-all", {
                           "rotate-90": subIssueHelpers.issue_visibility.includes(issue.id),
                         })}
@@ -189,7 +188,11 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
             </div>
 
             <div className="flex-shrink-0 text-13">
-              <CustomMenu placement="bottom-end" ellipsis>
+              <CustomMenu
+                placement="bottom-end"
+                customButton={<MoreHorizontal className="size-5" />}
+                customButtonClassName="relative grid size-7 place-items-center rounded-md p-1 text-secondary outline-none hover:bg-layer-transparent-hover hover:text-primary"
+              >
                 {canEdit && (
                   <CustomMenu.MenuItem
                     onClick={() => {
@@ -198,7 +201,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <EditIcon className="h-3.5 w-3.5" strokeWidth={2} />
+                      <Edit className="h-3.5 w-3.5" strokeWidth={2} />
                       <span>{t("issue.edit")}</span>
                     </div>
                   </CustomMenu.MenuItem>
@@ -210,7 +213,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    <LinkIcon className="h-3.5 w-3.5" strokeWidth={2} />
+                    <Link className="h-3.5 w-3.5" strokeWidth={2} />
                     <span>{t("issue.copy_link")}</span>
                   </div>
                 </CustomMenu.MenuItem>
@@ -223,7 +226,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <CloseIcon className="h-3.5 w-3.5" strokeWidth={2} />
+                      <X className="h-3.5 w-3.5" strokeWidth={2} />
                       {issueServiceType === EIssueServiceType.ISSUES
                         ? t("issue.remove.parent.label")
                         : t("issue.remove.label")}
@@ -239,7 +242,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <TrashIcon className="h-3.5 w-3.5" strokeWidth={2} />
+                      <Trash className="h-3.5 w-3.5" strokeWidth={2} />
                       <span>{t("issue.delete.label")}</span>
                     </div>
                   </CustomMenu.MenuItem>

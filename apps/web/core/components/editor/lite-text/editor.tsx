@@ -167,7 +167,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   return (
     <div
       className={cn(
-        "relative rounded-sm border border-subtle",
+        "relative rounded-lg border border-subtle",
         {
           "p-3": editable && !isLiteVariant,
         },
