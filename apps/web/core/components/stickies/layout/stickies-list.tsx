@@ -55,9 +55,9 @@ const handleStickyLayout = () => {
 const getStickyColumnCount = (width: number | null): number => {
   if (width === null) return 3;
   if (width < 640) return 1;
-  if (width < 1024) return 2;
-  if (width < 1440) return 3;
-  return 4;
+  if (width < 768) return 2;
+  if (width < 1024) return 3;
+  return 5;
 };
 
 export const StickiesList = observer(function StickiesList(props: TProps) {
@@ -76,7 +76,7 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   const { stickyOperations } = useStickyOperations({ workspaceSlug: workspaceSlug?.toString() });
   // derived values
   const workspaceStickyIds = getWorkspaceStickyIds(workspaceSlug?.toString());
-  const itemWidth = `100%`;
+  const itemWidth = columnCount === 1 ? "100%" : "92%";
   const totalRows = Math.ceil(workspaceStickyIds.length / columnCount);
   const isStickiesPage = pathname?.includes("stickies");
   const hasGuestLevelPermissions = allowPermissions(

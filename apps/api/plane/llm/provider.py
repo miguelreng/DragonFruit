@@ -128,20 +128,17 @@ class LLMProvider:
 
         if not agent.provider_model:
             raise LLMConfigError(
-                f"agent '{agent.name}' has no provider_model configured; "
-                "set one in Workspace Settings → Agents"
+                f"agent '{agent.name}' has no provider_model configured; set one in Workspace Settings → Agents"
             )
         if not agent.api_key_encrypted:
             raise LLMConfigError(
-                f"agent '{agent.name}' has no API key configured; add a "
-                "BYOK key in Workspace Settings → Agents"
+                f"agent '{agent.name}' has no API key configured; add a BYOK key in Workspace Settings → Agents"
             )
 
         plaintext_key = decrypt_data(agent.api_key_encrypted) or ""
         if not plaintext_key:
             raise LLMConfigError(
-                f"agent '{agent.name}' has an encrypted key on file that "
-                "decrypts to empty; rotate the key"
+                f"agent '{agent.name}' has an encrypted key on file that decrypts to empty; rotate the key"
             )
 
         return cls(
@@ -152,11 +149,7 @@ class LLMProvider:
 
     def _litellm_model(self) -> str:
         provider, separator, model = self.model.partition("/")
-        if (
-            separator
-            and provider.lower() in OPENAI_COMPATIBLE_PROVIDER_PREFIXES
-            and self.api_base_url
-        ):
+        if separator and provider.lower() in OPENAI_COMPATIBLE_PROVIDER_PREFIXES and self.api_base_url:
             return f"openai/{model}"
         return self.model
 
@@ -248,7 +241,7 @@ class LLMProvider:
                     # Don't surface tool_choice='auto' explicitly — LiteLLM
                     # picks the right default per provider.
                 )
-            except Exception as exc:  # noqa: BLE001 — surface any provider error
+            except Exception:  # noqa: BLE001 — surface any provider error
                 logger.exception("llm call failed model=%s", self.model)
                 result.stopped_reason = "error"
                 # Re-raise so the dispatcher logs it on the AgentRun row;
@@ -267,18 +260,11 @@ class LLMProvider:
             # Append assistant turn to history regardless of whether it
             # used tools or just produced text.
             assistant_entry: Dict[str, Any] = {"role": "assistant", "content": assistant_content}
+            provider_specific_fields = _read_field(message, "provider_specific_fields")
+            if provider_specific_fields:
+                assistant_entry["provider_specific_fields"] = provider_specific_fields
             if tool_calls:
-                assistant_entry["tool_calls"] = [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
-                        },
-                    }
-                    for tc in tool_calls
-                ]
+                assistant_entry["tool_calls"] = [_serialise_tool_call_for_history(tc) for tc in tool_calls]
             messages.append(assistant_entry)
 
             if not tool_calls:
@@ -311,24 +297,28 @@ class LLMProvider:
                         logger.exception("tool '%s' raised", tool_name)
                         tool_output = f"tool_error: {exc.__class__.__name__}: {exc}"
 
-                result.tool_calls.append({
-                    "name": tool_name,
-                    "arguments": args,
-                    "result": tool_output[:4000],  # cap to avoid runaway logs
-                    "iteration": iteration + 1,
-                })
+                result.tool_calls.append(
+                    {
+                        "name": tool_name,
+                        "arguments": args,
+                        "result": tool_output[:4000],  # cap to avoid runaway logs
+                        "iteration": iteration + 1,
+                    }
+                )
                 if on_tool_call is not None:
                     try:
                         on_tool_call(result.tool_calls[-1])
                     except Exception:  # noqa: BLE001
                         logger.exception("on_tool_call callback failed")
 
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc.id,
-                    "name": tool_name,
-                    "content": tool_output,
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "name": tool_name,
+                        "content": tool_output,
+                    }
+                )
 
         # Fell off the loop without a terminating text message.
         result.stopped_reason = "max_iterations"
@@ -357,6 +347,43 @@ def _serialise_tools_for_litellm(tools: Iterable[LLMTool]) -> List[Dict[str, Any
         }
         for t in tools
     ]
+
+
+def _read_field(value: Any, field_name: str, default: Any = None) -> Any:
+    """Read a field from LiteLLM objects that may be dicts or pydantic-ish models."""
+    if isinstance(value, dict):
+        return value.get(field_name, default)
+    return getattr(value, field_name, default)
+
+
+def _serialise_tool_call_for_history(tool_call: Any) -> Dict[str, Any]:
+    """Preserve provider-specific metadata when replaying tool calls.
+
+    Gemini 3 function-calling responses include thought signatures in
+    `provider_specific_fields`; LiteLLM needs those fields in the next
+    request when it converts the OpenAI-style history back to Gemini parts.
+    """
+    function = _read_field(tool_call, "function")
+    function_entry: Dict[str, Any] = {
+        "name": _read_field(function, "name"),
+        "arguments": _read_field(function, "arguments"),
+    }
+
+    function_provider_specific_fields = _read_field(function, "provider_specific_fields")
+    if function_provider_specific_fields:
+        function_entry["provider_specific_fields"] = function_provider_specific_fields
+
+    entry: Dict[str, Any] = {
+        "id": _read_field(tool_call, "id"),
+        "type": _read_field(tool_call, "type", "function") or "function",
+        "function": function_entry,
+    }
+
+    provider_specific_fields = _read_field(tool_call, "provider_specific_fields")
+    if provider_specific_fields:
+        entry["provider_specific_fields"] = provider_specific_fields
+
+    return entry
 
 
 def _accumulate_usage(result: LLMRunResult, completion: Any) -> None:
