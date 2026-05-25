@@ -35,7 +35,7 @@ body {
 main {
   display: grid;
   gap: 12px;
-  padding: 13px 12px 12px;
+  padding: 12px;
 }
 
 .app-header {
@@ -49,36 +49,34 @@ main {
   width: 92px;
   height: auto;
   display: block;
+  opacity: 0.78;
 }
 
 .app-header span {
   color: var(--text-tertiary);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .card {
   display: grid;
-  gap: 12px;
-  padding: 12px 10px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  gap: 8px;
+  padding: 10px;
+  border: 0.75px solid var(--border);
+  border-radius: 12px;
   background: var(--surface);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.42);
 }
 
 .section-label {
   color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .action-card {
-  gap: 10px;
+  gap: 8px;
 }
 
 .action-copy {
@@ -87,19 +85,19 @@ main {
 }
 
 .action-copy strong {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 500;
   letter-spacing: 0;
 }
 
 .action-copy span {
   color: var(--text-secondary);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .settings-card {
-  gap: 11px;
+  gap: 8px;
 }
 
 .settings-title {
@@ -107,19 +105,26 @@ main {
   align-items: center;
   justify-content: space-between;
   color: var(--text-tertiary);
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .setting-row {
-  display: grid;
-  grid-template-columns: minmax(84px, 1fr) minmax(0, 198px);
+  display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 36px;
+  min-height: 27px;
   color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 720;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.setting-row > span {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status {
@@ -145,23 +150,18 @@ main {
 input,
 select,
 button {
-  min-height: 34px;
   border: 0;
-  border-radius: 9px;
-  background: var(--layer-1);
   color: var(--text-primary);
   font: inherit;
 }
 
 input,
 select {
-  width: 100%;
+  width: auto;
   min-width: 0;
-  padding: 0 9px;
   outline: none;
   font-size: 12px;
-  font-weight: 700;
-  text-align: right;
+  font-weight: 600;
 }
 
 input:focus,
@@ -171,8 +171,7 @@ select:focus {
 
 button {
   cursor: pointer;
-  padding: 0 10px;
-  font-weight: 700;
+  font-weight: 500;
   transition:
     background 0.14s ease,
     transform 0.14s ease;
@@ -200,11 +199,10 @@ button:disabled {
 
 .primary {
   justify-self: start;
-  min-height: 34px;
   background: var(--accent);
   color: #fcfbfc;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .primary:hover {
@@ -218,7 +216,49 @@ footer {
   padding: 0 1px;
   color: var(--text-tertiary);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
+}
+
+.dragon-button {
+  min-height: auto;
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+
+.secondary.dragon-button {
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.picker-pill {
+  max-width: 180px;
+  flex: 0 1 auto;
+  padding: 5px 28px 5px 9px;
+  border-radius: 6px;
+  background: var(--layer-1);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+input.picker-pill {
+  min-width: 130px;
+}
+
+select.picker-pill {
+  min-width: 150px;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%),
+    linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 50%,
+    calc(100% - 10px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
 }
 
 @media (prefers-color-scheme: dark) {
