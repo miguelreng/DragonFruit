@@ -14,6 +14,7 @@ import { TranslationProvider } from "@plane/i18n";
 import { Toast } from "@plane/propel/toast";
 // helpers
 import { resolveGeneralTheme } from "@plane/utils";
+import { MobileAppInstallPrompt } from "@/components/pwa/mobile-app-install-prompt";
 // mobx store provider
 import { StoreProvider } from "@/lib/store-context";
 
@@ -30,6 +31,8 @@ const InstanceWrapper = lazy(function InstanceWrapper() {
   return import("@/lib/wrappers/instance-wrapper");
 });
 
+const PHOSPHOR_ICON_CONTEXT_VALUE = { weight: "regular", size: "1em" } as const;
+
 export interface IAppProvider {
   children: React.ReactNode;
 }
@@ -40,12 +43,13 @@ export function AppProvider(props: IAppProvider) {
   const { resolvedTheme } = useTheme();
 
   return (
-    <IconContext.Provider value={{ weight: "regular", size: "1em" }}>
+    <IconContext.Provider value={PHOSPHOR_ICON_CONTEXT_VALUE}>
       <StoreProvider>
         <>
           <AppProgressBar />
           <TranslationProvider>
             <Toast theme={resolveGeneralTheme(resolvedTheme)} />
+            <MobileAppInstallPrompt />
             <StoreWrapper>
               <InstanceWrapper>
                 <Suspense>

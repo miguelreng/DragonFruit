@@ -35,8 +35,7 @@ export const meta = () => [
   },
   {
     name: "viewport",
-    content:
-      "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+    content: "width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover",
   },
   { property: "og:title", content: "DragonFruit — Beautiful project management & docs" },
   {
@@ -62,7 +61,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#fff" />
         <link rel="icon" type="image/png" sizes="32x32" href={favicon32} />
         <link rel="icon" type="image/png" sizes="16x16" href={favicon16} />
-        <link rel="manifest" href="/site.webmanifest.json" />
         <link rel="shortcut icon" href={faviconIco} />
         {/* Meta info for PWA */}
         <meta name="application-name" content="DragonFruit" />
