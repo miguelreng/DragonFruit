@@ -18,6 +18,13 @@ const GOOGLE_API_SCRIPT_ID = "dragonfruit-google-api";
 const GOOGLE_GSI_SCRIPT_ID = "dragonfruit-google-gsi";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 
+export const isGoogleDrivePickerConfigured = () => {
+  const apiKey = import.meta.env.VITE_GOOGLE_DRIVE_API_KEY;
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || import.meta.env.VITE_GOOGLE_DRIVE_CLIENT_ID;
+
+  return !!apiKey && !!clientId;
+};
+
 const loadScript = (id: string, src: string) =>
   new Promise<void>((resolve, reject) => {
     const existing = document.getElementById(id);
@@ -34,43 +41,11 @@ const loadScript = (id: string, src: string) =>
     document.head.appendChild(script);
   });
 
-const extractDriveFileId = (url: string) => {
-  const patterns = [
-    /\/file\/d\/([^/?#]+)/,
-    /\/document\/d\/([^/?#]+)/,
-    /\/spreadsheets\/d\/([^/?#]+)/,
-    /\/presentation\/d\/([^/?#]+)/,
-    /[?&]id=([^&#]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match?.[1]) return match[1];
-  }
-  return "";
-};
-
-const manualDriveFile = (): TGoogleDrivePickedFile | null => {
-  const url = window.prompt("Paste a Google Drive file URL");
-  if (!url) return null;
-  const fileId = extractDriveFileId(url);
-  if (!fileId) {
-    window.alert("That does not look like a Google Drive file URL.");
-    return null;
-  }
-  const name = window.prompt("File name", "Google Drive file") || "Google Drive file";
-  return {
-    file_id: fileId,
-    name,
-    web_view_link: url,
-    mime_type: "application/vnd.google-apps.unknown",
-  };
-};
-
 export async function pickGoogleDriveFile(): Promise<TGoogleDrivePickedFile | null> {
   const apiKey = import.meta.env.VITE_GOOGLE_DRIVE_API_KEY;
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || import.meta.env.VITE_GOOGLE_DRIVE_CLIENT_ID;
 
-  if (!apiKey || !clientId) return manualDriveFile();
+  if (!apiKey || !clientId) return null;
 
   try {
     await Promise.all([
@@ -78,12 +53,12 @@ export async function pickGoogleDriveFile(): Promise<TGoogleDrivePickedFile | nu
       loadScript(GOOGLE_GSI_SCRIPT_ID, "https://accounts.google.com/gsi/client"),
     ]);
   } catch {
-    return manualDriveFile();
+    return null;
   }
 
   const googleApi = (window as any).gapi;
   const google = (window as any).google;
-  if (!googleApi || !google?.accounts?.oauth2) return manualDriveFile();
+  if (!googleApi || !google?.accounts?.oauth2) return null;
 
   await new Promise<void>((resolve) => googleApi.load("picker", resolve));
 
