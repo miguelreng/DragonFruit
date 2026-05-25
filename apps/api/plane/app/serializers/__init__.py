@@ -59,6 +59,7 @@ from .issue import (
     IssueActivitySerializer,
     IssueCommentSerializer,
     ProjectUserPropertySerializer,
+    ProjectCustomFieldSerializer,
     IssueAssigneeSerializer,
     LabelSerializer,
     IssueSerializer,

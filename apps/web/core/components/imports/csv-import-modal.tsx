@@ -14,8 +14,10 @@ import { Button } from "@plane/propel/button";
 import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { CustomSearchSelect, CustomSelect, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-import type { IIssueLabel, IState } from "@plane/types";
-import { FileText, UploadCloud, X } from "@/components/icons/lucide-shim";
+import type { IIssueLabel, IProjectCustomField, IState } from "@plane/types";
+import { FileText, Plus, UploadCloud, X, Trash2 } from "@/components/icons/lucide-shim";
+import { CreateUpdateCustomFieldModal } from "@/components/custom-fields";
+import { useProjectCustomFields } from "@/hooks/use-project-custom-fields";
 import { useProject } from "@/hooks/store/use-project";
 import { IssueLabelService } from "@/services/issue";
 import { IssueService } from "@/services/issue/issue.service";
@@ -52,12 +54,20 @@ const FIELD_LABELS: Record<CsvFieldKey, string> = {
   assignee: "Assignee",
 };
 
+type TCustomMapping = {
+  id: string;
+  fieldId: string | null;
+  columnIndex: number | null;
+};
+
 type Props = {
   workspaceSlug: string;
   source?: TImportSource;
   isOpen: boolean;
   onClose: () => void;
 };
+
+const CREATE_FIELD_OPTION = "__create_custom_field__";
 
 export const CsvImportModal = observer(function CsvImportModal({
   workspaceSlug,
@@ -70,6 +80,7 @@ export const CsvImportModal = observer(function CsvImportModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [projectId, setProjectId] = useState<string>("");
+  const { customFields, refetchCustomFields } = useProjectCustomFields(workspaceSlug, projectId || undefined);
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<ParsedCsv | null>(null);
   const [mapping, setMapping] = useState<CsvMapping>({
@@ -80,6 +91,11 @@ export const CsvImportModal = observer(function CsvImportModal({
     due_date: null,
     labels: null,
     assignee: null,
+  });
+  const [customMappings, setCustomMappings] = useState<TCustomMapping[]>([]);
+  const [createModalState, setCreateModalState] = useState<{ open: boolean; mappingId: string | null }>({
+    open: false,
+    mappingId: null,
   });
   const [detectedSource, setDetectedSource] = useState<TImportSource>("csv");
   const [delimiter, setDelimiter] = useState<"," | ";" | "\t">(",");
@@ -100,6 +116,8 @@ export const CsvImportModal = observer(function CsvImportModal({
         labels: null,
         assignee: null,
       });
+      setCustomMappings([]);
+      setCreateModalState({ open: false, mappingId: null });
       setDetectedSource("csv");
       setDelimiter(",");
       setZipCsvCount(0);
@@ -155,6 +173,7 @@ export const CsvImportModal = observer(function CsvImportModal({
       labels: null,
       assignee: null,
     });
+    setCustomMappings([]);
     setDetectedSource("csv");
     setDelimiter(",");
     setZipCsvCount(0);
@@ -207,6 +226,20 @@ export const CsvImportModal = observer(function CsvImportModal({
     return { stateId, labelIds };
   };
 
+  const addCustomMapping = () => {
+    setCustomMappings((prev) => [...prev, { id: crypto.randomUUID(), fieldId: null, columnIndex: null }]);
+  };
+
+  const updateCustomMapping = (id: string, updates: Partial<TCustomMapping>) => {
+    setCustomMappings((prev) =>
+      prev.map((mappingRow) => (mappingRow.id === id ? { ...mappingRow, ...updates } : mappingRow))
+    );
+  };
+
+  const removeCustomMapping = (id: string) => {
+    setCustomMappings((prev) => prev.filter((mappingRow) => mappingRow.id !== id));
+  };
+
   const handleSubmit = async () => {
     if (!projectId) {
       setToast({ type: TOAST_TYPE.ERROR, title: t("workspace_settings.settings.imports.csv_modal.error_no_project") });
@@ -226,9 +259,9 @@ export const CsvImportModal = observer(function CsvImportModal({
     let ok = 0;
     let failed = 0;
 
-    // Sequential creation keeps load gentle on the API and gives us a clean
-    // progress count. For very large CSVs we'd want chunked parallel writes
-    // or a dedicated backend endpoint, but that's not v1.
+    const customFieldById = new Map(customFields.map((field) => [field.id, field] as const));
+    const validCustomMappings = customMappings.filter((row) => row.fieldId && row.columnIndex !== null);
+
     for (const row of parsed.rows) {
       const name = (row[mapping.name] ?? "").trim();
       if (!name) {
@@ -244,6 +277,20 @@ export const CsvImportModal = observer(function CsvImportModal({
         mapping.assignee !== null && row[mapping.assignee]?.trim()
           ? `\n\nImported assignee: ${row[mapping.assignee].trim()}`
           : "";
+
+      const customFieldValues: Record<string, unknown> = {};
+      try {
+        for (const mappingRow of validCustomMappings) {
+          const field = customFieldById.get(mappingRow.fieldId!);
+          if (!field) continue;
+          const rawValue = row[mappingRow.columnIndex!] ?? "";
+          customFieldValues[field.id] = parseCustomFieldValueForImport(field, rawValue);
+        }
+      } catch {
+        failed++;
+        continue;
+      }
+
       try {
         await issueService.createIssue(workspaceSlug, projectId, {
           name,
@@ -256,6 +303,7 @@ export const CsvImportModal = observer(function CsvImportModal({
           state_id: stateId,
           label_ids: labelIds,
           target_date: targetDate,
+          custom_field_values: customFieldValues,
         });
         ok++;
       } catch {
@@ -305,6 +353,11 @@ export const CsvImportModal = observer(function CsvImportModal({
 
   const selectedProject = projectId ? getProjectById(projectId) : null;
   const previewRows = parsed?.rows.slice(0, 5) ?? [];
+  const activeCreateMapping = customMappings.find((row) => row.id === createModalState.mappingId);
+  const defaultFieldName =
+    parsed && activeCreateMapping?.columnIndex !== null && activeCreateMapping?.columnIndex !== undefined
+      ? parsed.headers[activeCreateMapping.columnIndex] || ""
+      : "";
 
   return (
     <ModalCore
@@ -346,7 +399,10 @@ export const CsvImportModal = observer(function CsvImportModal({
             </label>
             <CustomSearchSelect
               value={projectId}
-              onChange={(val: string) => setProjectId(val)}
+              onChange={(val: string) => {
+                setProjectId(val);
+                setCustomMappings([]);
+              }}
               options={projectOptions}
               input
               label={
@@ -459,6 +515,126 @@ export const CsvImportModal = observer(function CsvImportModal({
                 })}
               </div>
 
+              <div className="mt-5">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-12 font-medium text-secondary">
+                    {t("workspace_settings.settings.imports.csv_modal.custom_mapping_title")}
+                  </p>
+                  <Button type="button" variant="secondary" size="sm" onClick={addCustomMapping} disabled={!projectId}>
+                    <Plus className="mr-1 size-3.5" />
+                    {t("workspace_settings.settings.imports.csv_modal.custom_mapping_add")}
+                  </Button>
+                </div>
+                {customMappings.length === 0 ? (
+                  <p className="text-11 text-tertiary">
+                    {t("workspace_settings.settings.imports.csv_modal.custom_mapping_empty")}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {customMappings.map((mappingRow) => {
+                      const selectedField = customFields.find((field) => field.id === mappingRow.fieldId);
+                      const selectedColumnLabel =
+                        mappingRow.columnIndex !== null
+                          ? parsed.headers[mappingRow.columnIndex] || `Column ${mappingRow.columnIndex + 1}`
+                          : t("workspace_settings.settings.imports.csv_modal.custom_mapping_pick_column");
+
+                      return (
+                        <div
+                          key={mappingRow.id}
+                          className="grid grid-cols-1 items-end gap-2 md:grid-cols-[1fr_1fr_auto]"
+                        >
+                          <div className="flex flex-col">
+                            <span className="mb-1 text-11 font-medium text-secondary">
+                              {t("workspace_settings.settings.imports.csv_modal.custom_mapping_field_label")}
+                            </span>
+                            <CustomSelect
+                              value={mappingRow.fieldId ?? ""}
+                              onChange={(val: string) => {
+                                if (val === CREATE_FIELD_OPTION) {
+                                  setCreateModalState({ open: true, mappingId: mappingRow.id });
+                                  return;
+                                }
+                                updateCustomMapping(mappingRow.id, { fieldId: val || null });
+                              }}
+                              input
+                              label={
+                                selectedField?.name ? (
+                                  selectedField.name
+                                ) : (
+                                  <span className="text-tertiary">
+                                    {t("workspace_settings.settings.imports.csv_modal.custom_mapping_pick_field")}
+                                  </span>
+                                )
+                              }
+                              buttonClassName="w-full"
+                              optionsClassName="w-[var(--reference-width)] min-w-0"
+                            >
+                              <CustomSelect.Option value="">
+                                <span className="text-tertiary">
+                                  {t("workspace_settings.settings.imports.csv_modal.custom_mapping_pick_field")}
+                                </span>
+                              </CustomSelect.Option>
+                              {customFields.map((field) => (
+                                <CustomSelect.Option key={field.id} value={field.id}>
+                                  {field.name}
+                                </CustomSelect.Option>
+                              ))}
+                              <CustomSelect.Option value={CREATE_FIELD_OPTION}>
+                                <span className="text-primary">
+                                  {t("workspace_settings.settings.imports.csv_modal.custom_mapping_create_field")}
+                                </span>
+                              </CustomSelect.Option>
+                            </CustomSelect>
+                          </div>
+
+                          <div className="flex flex-col">
+                            <span className="mb-1 text-11 font-medium text-secondary">
+                              {t("workspace_settings.settings.imports.csv_modal.custom_mapping_column_label")}
+                            </span>
+                            <CustomSelect
+                              value={mappingRow.columnIndex === null ? "" : String(mappingRow.columnIndex)}
+                              onChange={(val: string) =>
+                                updateCustomMapping(mappingRow.id, { columnIndex: val === "" ? null : Number(val) })
+                              }
+                              input
+                              label={
+                                mappingRow.columnIndex === null ? (
+                                  <span className="text-tertiary">{selectedColumnLabel}</span>
+                                ) : (
+                                  selectedColumnLabel
+                                )
+                              }
+                              buttonClassName="w-full"
+                              optionsClassName="w-[var(--reference-width)] min-w-0"
+                            >
+                              <CustomSelect.Option value="">
+                                <span className="text-tertiary">
+                                  {t("workspace_settings.settings.imports.csv_modal.custom_mapping_pick_column")}
+                                </span>
+                              </CustomSelect.Option>
+                              {parsed.headers.map((header, index) => (
+                                <CustomSelect.Option key={index} value={String(index)}>
+                                  {header || `Column ${index + 1}`}
+                                </CustomSelect.Option>
+                              ))}
+                            </CustomSelect>
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => removeCustomMapping(mappingRow.id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div className="mt-4">
                 <p className="mb-2 text-11 text-tertiary">
                   {t("workspace_settings.settings.imports.csv_modal.preview_label", {
@@ -497,7 +673,7 @@ export const CsvImportModal = observer(function CsvImportModal({
 
         <div className="flex items-center justify-end gap-2 border-t-[0.5px] border-subtle px-5 py-4">
           <Button variant="secondary" size="lg" type="button" onClick={onClose} disabled={submitting}>
-            Cancel
+            {t("workspace_settings.settings.imports.csv_modal.cancel")}
           </Button>
           <Button
             variant="primary"
@@ -513,9 +689,63 @@ export const CsvImportModal = observer(function CsvImportModal({
           </Button>
         </div>
       </div>
+
+      {!!projectId && (
+        <CreateUpdateCustomFieldModal
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          isOpen={createModalState.open}
+          defaultName={defaultFieldName}
+          onClose={() => setCreateModalState({ open: false, mappingId: null })}
+          onSaved={async (field) => {
+            await refetchCustomFields();
+            if (createModalState.mappingId) {
+              updateCustomMapping(createModalState.mappingId, { fieldId: field.id });
+            }
+          }}
+        />
+      )}
     </ModalCore>
   );
 });
+
+function parseCustomFieldValueForImport(customField: IProjectCustomField, rawValue: string) {
+  const trimmed = rawValue?.trim?.() ?? "";
+  if (!trimmed) return null;
+
+  if (customField.field_type === "text") return trimmed;
+  if (customField.field_type === "number") {
+    const parsed = Number(trimmed);
+    if (Number.isNaN(parsed)) throw new Error("Invalid number custom field value");
+    return parsed;
+  }
+  if (customField.field_type === "date") {
+    const parsed = parseDueDate(trimmed);
+    if (!parsed) throw new Error("Invalid date custom field value");
+    return parsed;
+  }
+  if (customField.field_type === "boolean") {
+    const lowered = trimmed.toLowerCase();
+    if (["true", "yes", "1"].includes(lowered)) return true;
+    if (["false", "no", "0"].includes(lowered)) return false;
+    throw new Error("Invalid boolean custom field value");
+  }
+  if (customField.field_type === "select") {
+    const options = customField.config?.options ?? [];
+    if (options.length > 0 && !options.includes(trimmed)) throw new Error("Invalid select custom field value");
+    return trimmed;
+  }
+  if (customField.field_type === "multi_select") {
+    const values = parseLabels(trimmed);
+    const options = customField.config?.options ?? [];
+    if (options.length > 0 && values.some((value) => !options.includes(value))) {
+      throw new Error("Invalid multi select custom field values");
+    }
+    return values;
+  }
+
+  return trimmed;
+}
 
 function escapeHtml(s: string) {
   return s

@@ -199,6 +199,7 @@ class IssueListEndpoint(BaseAPIView):
                 "link_count",
                 "is_draft",
                 "archived_at",
+                "custom_field_values",
                 "deleted_at",
             )
             datetime_fields = ["created_at", "updated_at"]
@@ -484,6 +485,7 @@ class IssueViewSet(BaseViewSet):
                     "link_count",
                     "is_draft",
                     "archived_at",
+                    "custom_field_values",
                     "deleted_at",
                 )
                 .first()
@@ -929,6 +931,7 @@ class IssuePaginatedViewSet(BaseViewSet):
             "link_count",
             "attachment_count",
             "sub_issues_count",
+            "custom_field_values",
         ]
 
         if str(is_description_required).lower() == "true":
