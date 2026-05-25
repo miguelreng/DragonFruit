@@ -89,7 +89,7 @@ function CardSpinner() {
 
 export function AppLoadingScreen() {
   // capture once at mount: if a previous instance just unmounted, skip the entrance animation
-  const [skipAnim] = useState(() => lastUnmountAt !== 0 && Date.now() - lastUnmountAt < REPLAY_GAP_MS);
+  const [skipAnim, setSkipAnim] = useState(false);
   // Intent depends on sessionStorage which doesn't exist during SSR, so the first
   // client render must match the server (always "cold-boot"). We resolve the real
   // intent in an effect — a brief swap is invisible inside the fade-in animation.
@@ -97,6 +97,7 @@ export function AppLoadingScreen() {
   const painting = INTENTS[intent];
 
   useEffect(() => {
+    setSkipAnim(lastUnmountAt !== 0 && Date.now() - lastUnmountAt < REPLAY_GAP_MS);
     const resolved = resolveIntent();
     if (resolved !== intent) setIntent(resolved);
     return () => {
