@@ -35,6 +35,7 @@ from plane.app.views import (
     WorkItemTemplateDetailEndpoint,
     WorkItemTemplateInstantiateEndpoint,
     WorkItemTemplateListEndpoint,
+    ProjectCustomFieldEndpoint,
 )
 
 urlpatterns = [
@@ -303,6 +304,16 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/meta/",
         IssueMetaEndpoint.as_view(),
         name="issue-meta",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/custom-fields/",
+        ProjectCustomFieldEndpoint.as_view(),
+        name="project-custom-fields",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/custom-fields/<uuid:field_id>/",
+        ProjectCustomFieldEndpoint.as_view(),
+        name="project-custom-field",
     ),
     path(
         "workspaces/<str:slug>/work-items/<str:project_identifier>-<str:issue_identifier>/",
