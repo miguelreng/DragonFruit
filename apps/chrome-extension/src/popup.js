@@ -124,13 +124,29 @@ async function toggleAuth() {
 
 function startAuthPolling() {
   if (authPollTimer) return;
-  authPollTimer = setInterval(() => refreshAuthState(), 1200);
+  authPollTimer = setInterval(pollPendingSignIn, 1200);
 }
 
 function stopAuthPolling() {
   if (!authPollTimer) return;
   clearInterval(authPollTimer);
   authPollTimer = null;
+}
+
+async function pollPendingSignIn() {
+  chrome.runtime.sendMessage({ type: "COMPLETE_PENDING_SIGN_IN", appUrl: DEFAULT_API_URL }, async (response) => {
+    if (chrome.runtime.lastError) {
+      await refreshAuthState();
+      return;
+    }
+    if (response?.ok) {
+      await refreshAuthState();
+      return;
+    }
+    if (!response?.pending && response?.error) {
+      setStatus(response.error, "error");
+    }
+  });
 }
 
 async function ensureBookmarkContext() {
