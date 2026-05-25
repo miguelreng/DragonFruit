@@ -10,6 +10,7 @@ import { ExternalLink, ListChecks, Loader2, PenTool, StickyNote } from "@/compon
 import type { IProjectView, TPage, TSticky } from "@plane/types";
 import { EViewAccess } from "@plane/types";
 import { cn } from "@plane/utils";
+import { STICKY_COLORS_LIST } from "@/components/editor/sticky-editor/color-palette";
 import { ProjectPageService } from "@/services/page";
 import { StickyService } from "@/services/sticky.service";
 import { ViewService } from "@/services/view.service";
@@ -104,6 +105,19 @@ export function DocEmbedCard(props: Props) {
     return <EmbedFallback>Embedded {meta.label.toLowerCase()} is unavailable</EmbedFallback>;
 
   const isLoading = state.status === "idle" || state.status === "loading";
+  if (embedType === "sticky") {
+    const sticky = state.status === "ready" ? state.sticky : undefined;
+    return (
+      <StickyEmbedCard
+        href={meta.href}
+        isLoading={isLoading}
+        title={sticky?.name || title || "Untitled sticky"}
+        description={sticky?.description_html}
+        backgroundColorKey={sticky?.background_color}
+      />
+    );
+  }
+
   const Icon = meta.Icon;
   const shell = (
     <div
@@ -129,6 +143,47 @@ export function DocEmbedCard(props: Props) {
 
   return meta.href ? (
     <Link to={meta.href} className="block no-underline">
+      {shell}
+    </Link>
+  ) : (
+    shell
+  );
+}
+
+function StickyEmbedCard({
+  backgroundColorKey,
+  description,
+  href,
+  isLoading,
+  title,
+}: {
+  backgroundColorKey?: string | null;
+  description?: string;
+  href?: string;
+  isLoading: boolean;
+  title: string;
+}) {
+  const backgroundColor =
+    STICKY_COLORS_LIST.find((color) => color.key === backgroundColorKey)?.backgroundColor ||
+    STICKY_COLORS_LIST[0].backgroundColor;
+  const body = stripHtml(description);
+
+  const shell = (
+    <div
+      className="not-prose group/sticky shadow-sm hover:shadow-md relative flex min-h-[180px] w-full max-w-md flex-col overflow-hidden rounded-sm px-4 pt-5 pb-4 ring-1 ring-black/5 transition-[box-shadow,transform,filter] duration-200 ease-out hover:-translate-y-0.5"
+      style={{ backgroundColor }}
+    >
+      <div className="content-title-font line-clamp-2 text-20 font-medium text-primary">
+        {isLoading ? "Loading sticky..." : title}
+      </div>
+      <div className="mt-3 line-clamp-6 text-14 leading-6 whitespace-pre-wrap text-primary">
+        {isLoading ? "" : body || "Click to type here"}
+      </div>
+    </div>
+  );
+
+  return href ? (
+    <Link to={href} className="inline-block max-w-full no-underline">
       {shell}
     </Link>
   ) : (

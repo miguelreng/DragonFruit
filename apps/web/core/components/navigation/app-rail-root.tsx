@@ -5,7 +5,7 @@
  */
 
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -303,6 +303,10 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string }
   const isPagesActive = isRouteMatch(item.pagesHref, pathname);
   const shouldHighlightProject = item.isActive && !isTasksActive && !isPagesActive;
 
+  useEffect(() => {
+    if (item.isActive) setIsOpen(true);
+  }, [item.isActive]);
+
   return (
     <div className="flex w-full flex-col">
       <div
@@ -314,7 +318,13 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string }
         )}
       >
         <AppSidebarTooltip tooltipContent={item.label}>
-          <Link href={item.href} aria-label={item.label} className="flex min-w-0 flex-1 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setIsOpen((open) => !open)}
+            aria-label={item.label}
+            aria-expanded={isOpen}
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+          >
             <span
               className={cn(EXPANDED_RAIL_ICON_CLASS, {
                 [RAIL_ICON_ACTIVE]: shouldHighlightProject,
@@ -324,7 +334,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string }
               {item.icon}
             </span>
             <span className="min-w-0 flex-1 truncate text-13 font-medium">{item.label}</span>
-          </Link>
+          </button>
         </AppSidebarTooltip>
         <AppSidebarTooltip tooltipContent={isOpen ? "Collapse project" : "Expand project"}>
           <button

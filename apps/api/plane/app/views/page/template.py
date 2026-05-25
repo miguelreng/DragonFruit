@@ -95,7 +95,7 @@ class PageTemplateInstantiateEndpoint(BaseAPIView):
 
         name = request.data.get("name") or template.name
         logo_props = request.data.get("logo_props") or template.logo_props or {}
-        access = request.data.get("access", Page.PUBLIC_ACCESS)
+        access = request.data.get("access", Page.PRIVATE_ACCESS)
 
         page = Page.objects.create(
             workspace_id=project.workspace_id,

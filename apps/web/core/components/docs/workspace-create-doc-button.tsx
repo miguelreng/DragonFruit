@@ -24,6 +24,8 @@ import { ProjectPageService } from "@/services/page/project-page.service";
 const pageService = new ProjectPageService();
 const PAGE_READY_RETRY_DELAYS_MS = [150, 300, 500, 800, 1200];
 
+const wait = (delay: number) => new Promise((resolve) => setTimeout(resolve, delay));
+
 const TYPE_META: Record<TPageType, { label: string; Icon: typeof FileText }> = {
   doc: { label: "Doc", Icon: FileText },
   whiteboard: { label: "Whiteboard", Icon: PenTool },
@@ -81,25 +83,29 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
   const hasEligibleProjects = eligibleProjects.length > 0;
   const meta = TYPE_META[currentType];
 
+  const waitForCreatedPage = async (projectId: string, pageId: string, retryDelays = PAGE_READY_RETRY_DELAYS_MS) => {
+    try {
+      await pageService.fetchById(workspaceSlug, projectId, pageId, false);
+    } catch {
+      const [delay, ...remainingDelays] = retryDelays;
+      if (delay === undefined) return;
+      await wait(delay);
+      await waitForCreatedPage(projectId, pageId, remainingDelays);
+    }
+  };
+
   const handleCreate = async (projectId: string) => {
     if (isCreating) return;
     setSubmittingProjectId(projectId);
     const payload: Partial<TPage> = {
-      access: EPageAccess.PUBLIC,
+      access: currentType === "doc" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
       page_type: currentType,
     };
     try {
       const page = await pageService.create(workspaceSlug, projectId, payload);
       if (page?.id) {
         // Avoid opening the editor before the new page is queryable.
-        for (const delay of PAGE_READY_RETRY_DELAYS_MS) {
-          try {
-            await pageService.fetchById(workspaceSlug, projectId, page.id, false);
-            break;
-          } catch {
-            await new Promise((resolve) => setTimeout(resolve, delay));
-          }
-        }
+        await waitForCreatedPage(projectId, page.id);
         navigate(`/${workspaceSlug}/projects/${projectId}/pages/${page.id}`);
       }
     } catch (err: any) {

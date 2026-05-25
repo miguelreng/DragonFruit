@@ -18,6 +18,7 @@ import type { TDocEmbedSource } from "./types";
 const pageService = new ProjectPageService();
 const stickyService = new StickyService();
 const viewService = new ViewService();
+const EMBED_PICKER_RESULT_LIMIT = 8;
 
 type Props = {
   isOpen: boolean;
@@ -99,7 +100,12 @@ export function DocEmbedPicker(props: Props) {
               }))
           );
         } else if (embedType === "sticky") {
-          const response = await stickyService.getStickies(workspaceSlug, "", trimmedQuery || undefined, 8);
+          const response = await stickyService.getStickies(
+            workspaceSlug,
+            `${EMBED_PICKER_RESULT_LIMIT}:0:0`,
+            trimmedQuery || undefined,
+            EMBED_PICKER_RESULT_LIMIT
+          );
           setResults(
             response.results.map((sticky: TSticky) => ({
               type: "sticky",

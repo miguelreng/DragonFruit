@@ -14,10 +14,11 @@ import { cn } from "@plane/utils";
 type Props = {
   searchQuery: string;
   updateSearchQuery: (val: string) => void;
+  placeholder?: string;
 };
 
 export function PageSearchInput(props: Props) {
-  const { searchQuery, updateSearchQuery } = props;
+  const { searchQuery, updateSearchQuery, placeholder = "Search pages" } = props;
   // states
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   // refs
@@ -64,7 +65,7 @@ export function PageSearchInput(props: Props) {
         <input
           ref={inputRef}
           className="ml-2 w-full max-w-[234px] border-none bg-transparent text-13 text-primary placeholder:text-placeholder focus:outline-none"
-          placeholder="Search pages"
+          placeholder={placeholder}
           value={searchQuery}
           onChange={(e) => updateSearchQuery(e.target.value)}
           onKeyDown={handleInputKeyDown}

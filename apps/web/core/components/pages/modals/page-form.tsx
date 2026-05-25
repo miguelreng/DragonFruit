@@ -97,7 +97,7 @@ export function PageForm(props: Props) {
               customButton={
                 <div className="flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
                   <span className="truncate">
-                    {templates.find((t) => t.id === selectedTemplateId)?.name ?? "Blank page"}
+                    {templates.find((template) => template.id === selectedTemplateId)?.name ?? "Blank page"}
                   </span>
                   <ChevronDown className="size-3.5 text-tertiary" />
                 </div>
@@ -178,7 +178,6 @@ export function PageForm(props: Props) {
               className="w-full resize-none text-14"
               tabIndex={getIndex("name")}
               required
-              autoFocus
             />
             {isTitleLengthMoreThan255Character && (
               <span className="text-11 text-danger-primary">
@@ -192,7 +191,7 @@ export function PageForm(props: Props) {
         <div className="flex items-center gap-2">
           <AccessField
             onChange={(access) => handleFormData("access", access)}
-            value={formData?.access ?? EPageAccess.PUBLIC}
+            value={formData?.access ?? EPageAccess.PRIVATE}
             accessSpecifiers={PAGE_ACCESS_SPECIFIERS}
             isMobile={isMobile}
           />

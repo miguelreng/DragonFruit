@@ -136,7 +136,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     this.color = page?.color || undefined;
     this.label_ids = page?.label_ids || undefined;
     this.owned_by = page?.owned_by || undefined;
-    this.access = page?.access || EPageAccess.PUBLIC;
+    this.access = page?.access || EPageAccess.PRIVATE;
     this.is_favorite = page?.is_favorite || false;
     this.is_locked = page?.is_locked || false;
     this.archived_at = page?.archived_at || undefined;
@@ -527,7 +527,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
    */
   updateViewProps = async (next: Record<string, unknown>) => {
     const previous = this.view_props ? { ...this.view_props } : undefined;
-    const merged: Record<string, unknown> = { ...(this.view_props ?? {}), ...next };
+    const merged: Record<string, unknown> = { ...this.view_props, ...next };
     // Drop keys explicitly set to undefined so the JSON stays clean.
     Object.keys(merged).forEach((k) => {
       if (merged[k] === undefined) delete merged[k];

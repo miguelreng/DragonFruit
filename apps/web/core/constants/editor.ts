@@ -228,7 +228,7 @@ export const EDITOR_FONT_STYLES: {
 
 const EDITOR_PDF_FONT_FAMILY_STYLES: Styles = {
   "*:not(.courier, .courier-bold)": {
-    fontFamily: "Figtree",
+    fontFamily: "Inter",
   },
   ".courier": {
     fontFamily: "Courier",
