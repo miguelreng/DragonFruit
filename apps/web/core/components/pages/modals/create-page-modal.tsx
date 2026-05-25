@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 // constants
-import type { EPageAccess } from "@plane/constants";
+import { EPageAccess } from "@plane/constants";
 import type { TPage, TPageTemplate } from "@plane/types";
 // ui
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
@@ -49,7 +49,7 @@ const getDefaultPageFormState = (pageAccess?: EPageAccess): Partial<TPage> => {
   return {
     id: undefined,
     name: "",
-    access: pageAccess,
+    access: pageAccess ?? EPageAccess.PRIVATE,
     logo_props: {
       in_use: "emoji",
       emoji: {
@@ -99,7 +99,7 @@ export function CreatePageModal(props: Props) {
 
   // update page access in form data when page access from the store changes
   useEffect(() => {
-    setPageFormData((prev) => ({ ...prev, access: pageAccess }));
+    setPageFormData((prev) => ({ ...prev, access: pageAccess ?? EPageAccess.PRIVATE }));
   }, [pageAccess]);
 
   // Load templates when the modal opens so the picker is populated. Errors are

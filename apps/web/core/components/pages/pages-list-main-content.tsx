@@ -62,7 +62,8 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
     setIsCreatingPage(true);
 
     const payload: Partial<TPage> = {
-      access: pageType === "private" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
+      access:
+        contentType === "doc" ? EPageAccess.PRIVATE : pageType === "private" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
       page_type: contentType,
     };
 
