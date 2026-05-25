@@ -55,6 +55,7 @@ final class VoiceToastController: ObservableObject {
     private var closeTask: Task<Void, Never>?
     private var hiddenResultId: UUID?
     private var currentKind: ToastKind = .none
+    private var dismissedKind: ToastKind?
     private var cancellables: Set<AnyCancellable> = []
     private weak var store: MeetingStore?
 
@@ -109,17 +110,46 @@ final class VoiceToastController: ObservableObject {
     }
 
     private func update(for store: MeetingStore) {
+        let nextKind: ToastKind
         if isErrorStatus(store.statusMessage) {
-            showStatusToast(for: store)
+            nextKind = .error
         } else if store.isListening {
-            showToast(for: store)
+            nextKind = .listening
         } else if store.isVoiceActionProcessing || store.isAgentResponding {
-            showProcessingToast(for: store)
+            nextKind = .processing
         } else if !store.lastAgentTextResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            showAgentResponseToast(for: store)
+            nextKind = .agentResponse
         } else if let result = store.lastVoiceActionResult, result.id != hiddenResultId {
-            showResultToast(result, theme: store.copilotTheme.tokens)
+            nextKind = .result(result.id)
         } else {
+            dismissedKind = nil
+            hideToast()
+            return
+        }
+
+        if dismissedKind == nextKind {
+            hideToast()
+            return
+        }
+
+        dismissedKind = nil
+
+        switch nextKind {
+        case .error:
+            showStatusToast(for: store)
+        case .listening:
+            showToast(for: store)
+        case .processing:
+            showProcessingToast(for: store)
+        case .agentResponse:
+            showAgentResponseToast(for: store)
+        case let .result(resultId):
+            guard let result = store.lastVoiceActionResult, result.id == resultId else {
+                hideToast()
+                return
+            }
+            showResultToast(result, theme: store.copilotTheme.tokens)
+        case .none:
             hideToast()
         }
     }
@@ -131,11 +161,13 @@ final class VoiceToastController: ObservableObject {
         self.panel = panel
         hideTask?.cancel()
         closeTask?.cancel()
-        panel.ignoresMouseEvents = true
+        panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
             panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
-                VoiceProcessingToast(store: store)
+                VoiceProcessingToast(store: store) { [weak self] in
+                    self?.dismissCurrentToast()
+                }
             })
             currentKind = kind
         }
@@ -150,11 +182,13 @@ final class VoiceToastController: ObservableObject {
         self.panel = panel
         hideTask?.cancel()
         closeTask?.cancel()
-        panel.ignoresMouseEvents = true
+        panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
             panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
-                VoiceRecordingToast(store: store)
+                VoiceRecordingToast(store: store) { [weak self] in
+                    self?.dismissCurrentToast()
+                }
             })
             currentKind = kind
         }
@@ -168,11 +202,13 @@ final class VoiceToastController: ObservableObject {
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         closeTask?.cancel()
-        panel.ignoresMouseEvents = true
+        panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
             panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
-                VoiceAgentResponseToast(store: store)
+                VoiceAgentResponseToast(store: store) { [weak self] in
+                    self?.dismissCurrentToast()
+                }
             })
             currentKind = kind
         }
@@ -187,11 +223,13 @@ final class VoiceToastController: ObservableObject {
         self.panel = panel
         hideTask?.cancel()
         closeTask?.cancel()
-        panel.ignoresMouseEvents = true
+        panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
             panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: true) {
-                VoiceStatusToast(store: store)
+                VoiceStatusToast(store: store) { [weak self] in
+                    self?.dismissCurrentToast()
+                }
             })
             currentKind = kind
         }
@@ -209,7 +247,9 @@ final class VoiceToastController: ObservableObject {
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
             panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
-                VoiceCreatedToast(result: result, theme: theme)
+                VoiceCreatedToast(result: result, theme: theme) { [weak self] in
+                    self?.dismissCurrentToast()
+                }
             })
             currentKind = kind
         }
@@ -223,6 +263,15 @@ final class VoiceToastController: ObservableObject {
             self.hiddenResultId = result.id
             self.hideToast()
         }
+    }
+
+    private func dismissCurrentToast() {
+        let kind = currentKind
+        dismissedKind = kind
+        if case let .result(resultId) = kind {
+            hiddenResultId = resultId
+        }
+        hideToast()
     }
 
     private func hideToast() {
@@ -286,6 +335,7 @@ final class VoiceToastController: ObservableObject {
 
 struct VoiceProcessingToast: View {
     @ObservedObject var store: MeetingStore
+    let onClose: () -> Void
 
     private var theme: CopilotThemeTokens {
         store.copilotTheme.tokens
@@ -325,6 +375,10 @@ struct VoiceProcessingToast: View {
             DragonThinkingWatermark(size: 68)
                 .padding(.trailing, -6)
         }
+        .overlay(alignment: .topTrailing) {
+            ToastCloseButton(theme: theme, action: onClose)
+                .padding(7)
+        }
         .overlay(toastBorder(theme: theme, cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .compositingGroup()
@@ -334,6 +388,7 @@ struct VoiceProcessingToast: View {
 
 struct VoiceAgentResponseToast: View {
     @ObservedObject var store: MeetingStore
+    let onClose: () -> Void
 
     private var theme: CopilotThemeTokens {
         store.copilotTheme.tokens
@@ -375,6 +430,10 @@ struct VoiceAgentResponseToast: View {
         .overlay(alignment: .trailing) {
             DragonToastWatermark(theme: theme, size: 86)
                 .padding(.trailing, -8)
+        }
+        .overlay(alignment: .topTrailing) {
+            ToastCloseButton(theme: theme, action: onClose)
+                .padding(7)
         }
         .overlay(toastBorder(theme: theme, cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -476,6 +535,7 @@ struct DragonThinkingWatermark: View {
 
 struct VoiceRecordingToast: View {
     @ObservedObject var store: MeetingStore
+    let onClose: () -> Void
 
     private var theme: CopilotThemeTokens {
         store.copilotTheme.tokens
@@ -511,6 +571,10 @@ struct VoiceRecordingToast: View {
         .padding(.vertical, 10)
         .frame(width: 300, height: 78)
         .background(toastBackground(theme: theme, cornerRadius: 14))
+        .overlay(alignment: .topTrailing) {
+            ToastCloseButton(theme: theme, action: onClose)
+                .padding(7)
+        }
         .overlay(toastBorder(theme: theme, cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .compositingGroup()
@@ -520,6 +584,7 @@ struct VoiceRecordingToast: View {
 
 struct VoiceStatusToast: View {
     @ObservedObject var store: MeetingStore
+    let onClose: () -> Void
 
     private var theme: CopilotThemeTokens {
         store.copilotTheme.tokens
@@ -549,6 +614,10 @@ struct VoiceStatusToast: View {
             DragonToastWatermark(theme: theme, size: 68)
                 .padding(.trailing, -6)
         }
+        .overlay(alignment: .topTrailing) {
+            ToastCloseButton(theme: theme, action: onClose)
+                .padding(7)
+        }
         .overlay(toastBorder(theme: theme, cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .compositingGroup()
@@ -559,6 +628,7 @@ struct VoiceStatusToast: View {
 struct VoiceCreatedToast: View {
     let result: VoiceActionResult
     let theme: CopilotThemeTokens
+    let onClose: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -603,6 +673,10 @@ struct VoiceCreatedToast: View {
         .padding(.vertical, 10)
         .frame(width: 320, height: 104)
         .background(toastBackground(theme: theme, cornerRadius: 14))
+        .overlay(alignment: .topTrailing) {
+            ToastCloseButton(theme: theme, action: onClose)
+                .padding(7)
+        }
         .overlay(toastBorder(theme: theme, cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .compositingGroup()
@@ -622,6 +696,25 @@ struct VoiceCreatedToast: View {
         case .agent:
             return "message.fill"
         }
+    }
+}
+
+struct ToastCloseButton: View {
+    let theme: CopilotThemeTokens
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(isHovered ? theme.textPrimary : theme.textTertiary)
+                .frame(width: 20, height: 20)
+                .background(isHovered ? theme.layer2 : theme.layer1.opacity(0.86), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Close toast")
+        .onHover { isHovered = $0 }
     }
 }
 
