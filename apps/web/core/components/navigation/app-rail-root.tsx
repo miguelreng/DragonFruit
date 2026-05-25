@@ -16,6 +16,7 @@ import {
   Download,
   FileText,
   Folder,
+  Settings,
   Layers,
   ListTodo,
   Star,
@@ -362,6 +363,8 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
   const [isRenameProjectModalOpen, setIsRenameProjectModalOpen] = useState(false);
   const [isRenameSubmitting, setIsRenameSubmitting] = useState(false);
   const { updateProject } = useProject();
+  const router = useRouter();
+  const { t } = useTranslation();
   const { allowPermissions } = useUserPermissions();
   const isTasksActive = isRouteMatch(item.tasksHref, pathname);
   const isPagesActive = isRouteMatch(item.pagesHref, pathname);
@@ -475,6 +478,16 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
               <span className="flex items-center justify-start gap-2">
                 <CopyIcon className="h-3.5 w-3.5 stroke-[1.5]" />
                 <span>Copy project ID</span>
+              </span>
+            </CustomMenu.MenuItem>
+            <CustomMenu.MenuItem
+              onClick={() => {
+                router.push(`/${workspaceSlug}/settings/projects/${item.id}`);
+              }}
+            >
+              <span className="flex items-center justify-start gap-2">
+                <Settings className="h-3.5 w-3.5 stroke-[1.5]" />
+                <span>{t("settings")}</span>
               </span>
             </CustomMenu.MenuItem>
             {isProjectAdmin && (
