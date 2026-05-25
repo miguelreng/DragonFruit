@@ -127,8 +127,28 @@ function calendarAccountLabel(account: TCalendarAccount) {
   return account.account_email || "Google Calendar";
 }
 
+function stableHash(value: string): string {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function toSafeScheduleXIdPart(value: string): string {
+  const cleaned = value
+    .replace(/[^A-Za-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return cleaned || "id";
+}
+
+function toSafeScheduleXId(prefix: string, rawValue: string): string {
+  return `${prefix}-${toSafeScheduleXIdPart(rawValue)}-${stableHash(rawValue)}`;
+}
+
 function googleCalendarSourceId(accountId: string, calendarId: string) {
-  return `google-${accountId}-${encodeURIComponent(calendarId)}`;
+  return toSafeScheduleXId(`google-${accountId}`, calendarId);
 }
 
 function loadCalendarPrefs(): TCalendarPrefs {
@@ -174,7 +194,7 @@ function googleEventToScheduleXEvent(e: TCalendarEventWithSource) {
   const end = toTemporal(e.end, e.all_day);
   if (!start || !end) return null;
   return {
-    id: `gcal-${e.sourceId}-${e.id}`,
+    id: toSafeScheduleXId(`gcal-${e.sourceId}`, e.id),
     title: e.title,
     start,
     end,
