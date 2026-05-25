@@ -13,16 +13,23 @@
         <span>Bookmarks</span>
       </header>
 
-      <section class="card action-card">
+      <section id="login-view" class="card login-card">
+        <span class="section-label">Login to DragonFruit</span>
+        <button id="auth-action" type="button" class="primary dragon-button">Continue with DragonFruit</button>
+        <p>Sign in on the web to connect bookmarks. You’ll return here automatically.</p>
+      </section>
+
+      <section id="bookmark-view" class="card action-card" hidden>
         <span class="section-label">Bookmark</span>
         <div class="action-copy">
           <strong>Save the current Chrome page.</strong>
-          <span>Right-click pages, links, and images for more save actions.</span>
+          <span>Click the DragonFruit icon on any page to save it. Right-click pages, links, and images for more save actions.</span>
         </div>
         <button id="save-page" type="button" class="primary dragon-button">Save current page</button>
+        <p class="settings-hint">Right-click the extension icon for settings.</p>
       </section>
 
-      <section class="card settings-card">
+      <section id="settings-view" class="card settings-card" hidden>
         <div class="settings-title">
           <span class="section-label">Settings</span>
           <span aria-hidden="true">⌃</span>
@@ -30,22 +37,21 @@
 
         <div class="setting-row">
           <span>Account</span>
-          <button id="auth-action" type="button" class="secondary auth-pill">Connect</button>
+          <strong id="account-label" class="setting-value">Connected</strong>
         </div>
         <label class="setting-row">
-          <span>API URL</span>
-          <input id="app-url" class="picker-pill" type="url" placeholder="https://api.dragonfruit.sh" />
-        </label>
-        <label class="setting-row">
           <span>Workspace</span>
-          <input id="workspace-slug" class="picker-pill" type="text" placeholder="workspace" />
+          <select id="workspace-slug" class="picker-pill"></select>
         </label>
         <label class="setting-row">
           <span>Project</span>
           <select id="project-id" class="picker-pill"></select>
         </label>
 
-        <button id="load-projects" type="button" class="secondary dragon-button">Load writable projects</button>
+        <div class="settings-actions">
+          <button id="refresh-settings" type="button" class="secondary dragon-button">Refresh projects</button>
+          <button id="sign-out" type="button" class="secondary dragon-button">Log out</button>
+        </div>
       </section>
 
       <footer>
