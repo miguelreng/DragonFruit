@@ -14,7 +14,7 @@ import { observer } from "mobx-react";
 import { useParams, useRouter } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
-import { Briefcase, FileText, Settings, Share2, LogOut, MoreHorizontal } from "@/components/icons/lucide-shim";
+import { Briefcase, Copy, FileText, Settings, Share2, LogOut, MoreHorizontal } from "@/components/icons/lucide-shim";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
@@ -26,7 +26,7 @@ import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { CustomMenu, DropIndicator, DragHandle, ControlLink } from "@plane/ui";
-import { cn } from "@plane/utils";
+import { cn, copyTextToClipboard } from "@plane/utils";
 // components
 import { DEFAULT_TAB_KEY, getTabUrl } from "@/components/navigation/tab-navigation-utils";
 import { useTabPreferences } from "@/components/navigation/use-tab-preferences";
@@ -150,6 +150,23 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
 
   const handleLeaveProject = () => {
     setLeaveProjectModal(true);
+  };
+
+  const handleCopyProjectId = async () => {
+    try {
+      await copyTextToClipboard(projectId);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Project ID copied",
+        message: projectId,
+      });
+    } catch (_err) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't copy project ID",
+        message: "Try again in a moment.",
+      });
+    }
   };
 
   const pageNavigationItem = navigationItems.find((item) => item.key === "pages");
@@ -483,6 +500,12 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                     <span className="flex items-center justify-start gap-2">
                       <LinkIcon className="h-3.5 w-3.5 stroke-[1.5]" />
                       <span>{t("copy_link")}</span>
+                    </span>
+                  </CustomMenu.MenuItem>
+                  <CustomMenu.MenuItem onClick={() => void handleCopyProjectId()}>
+                    <span className="flex items-center justify-start gap-2">
+                      <Copy className="h-3.5 w-3.5 stroke-[1.5]" />
+                      <span>Copy project ID</span>
                     </span>
                   </CustomMenu.MenuItem>
                   {isAuthorized && (
