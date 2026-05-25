@@ -41,6 +41,7 @@ export const SubIssuesCollapsible = observer(function SubIssuesCollapsible(props
           disabled={disabled}
           projectId={projectId}
           workspaceSlug={workspaceSlug}
+          issueServiceType={issueServiceType}
         />
       }
       buttonClassName="w-full"

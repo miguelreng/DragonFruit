@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { PriorityPropertyIcon } from "@plane/propel/icons";
+import { BarChart4 as PriorityPropertyIcon } from "@/components/icons/lucide-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // components

@@ -24,7 +24,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { SubIssueDisplayFilters } from "./display-filters";
 import { SubIssueFilters } from "./filters";
-import { SubIssuesActionButton } from "./quick-action-button";
+import { AddExistingSubIssueButton } from "./quick-action-button";
 
 type TSubWorkItemTitleActionsProps = {
   disabled: boolean;
@@ -111,7 +111,7 @@ export const SubWorkItemTitleActions = observer(function SubWorkItemTitleActions
         availableFilters={SUB_WORK_ITEM_AVAILABLE_FILTERS_FOR_WORK_ITEM_PAGE}
       />
       {!disabled && (
-        <SubIssuesActionButton issueId={parentId} disabled={disabled} issueServiceType={issueServiceType} />
+        <AddExistingSubIssueButton issueId={parentId} disabled={disabled} issueServiceType={issueServiceType} />
       )}
     </div>
   );

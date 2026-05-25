@@ -128,7 +128,7 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
         issueOperations={issueOperations}
         disabled={disabled || isArchived}
         value={issue.name}
-        className="content-title-font"
+        className="issue-detail-title"
         containerClassName="-ml-3"
       />
 

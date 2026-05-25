@@ -190,7 +190,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
     // surface family inside the app frame.
     <aside
       className={cn(
-        "t-panel-slide flex h-full w-[420px] max-w-[95vw] flex-col overflow-hidden rounded-md border-[0.5px] border-subtle bg-surface-1"
+        "t-panel-slide flex h-full w-full flex-col overflow-hidden rounded-md border-[0.5px] border-subtle bg-surface-1"
       )}
       data-open="true"
     >

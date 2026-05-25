@@ -5,22 +5,21 @@
  */
 
 import { observer } from "mobx-react";
+import {
+  BarChart4 as PriorityPropertyIcon,
+  Calendar as StartDatePropertyIcon,
+  CalendarCheck as DueDatePropertyIcon,
+  CircleDot as StatePropertyIcon,
+  Component as ModuleIcon,
+  GitBranch as ParentPropertyIcon,
+  Hash as EstimatePropertyIcon,
+  RefreshCw as CycleIcon,
+  Tag as LabelPropertyIcon,
+  UserCircle as UserCirclePropertyIcon,
+  Users as MembersPropertyIcon,
+} from "@/components/icons/lucide-shim";
 // i18n
 import { useTranslation } from "@plane/i18n";
-// ui
-import {
-  CycleIcon,
-  StatePropertyIcon,
-  ModuleIcon,
-  MembersPropertyIcon,
-  PriorityPropertyIcon,
-  StartDatePropertyIcon,
-  DueDatePropertyIcon,
-  LabelPropertyIcon,
-  UserCirclePropertyIcon,
-  EstimatePropertyIcon,
-  ParentPropertyIcon,
-} from "@plane/propel/icons";
 import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
 // components
 import { DateDropdown } from "@/components/dropdowns/date";

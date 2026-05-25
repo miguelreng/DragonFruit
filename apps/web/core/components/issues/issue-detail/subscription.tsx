@@ -84,7 +84,7 @@ export const IssueSubscription = observer(function IssueSubscription(props: TIss
       <Button
         prependIcon={isSubscribed ? <BellOff /> : <Bell className="h-3 w-3" />}
         variant="secondary"
-        className="hover:!bg-accent-primary/20"
+        className="hover:!bg-layer-2"
         onClick={handleSubscription}
         disabled={!isEditable || loading}
         size="lg"

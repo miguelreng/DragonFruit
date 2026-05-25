@@ -8,7 +8,7 @@ import React, { useCallback, useState } from "react";
 import { observer } from "mobx-react";
 import type { FileRejection } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
-import { PlusIcon } from "@plane/propel/icons";
+import { Plus as PlusIcon } from "@/components/icons/lucide-shim";
 // plane imports
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssueServiceType } from "@plane/types";

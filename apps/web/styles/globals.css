@@ -415,6 +415,14 @@
 }
 
 /* Page-level reading modes */
+.issue-detail-title {
+  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  font-size: 1.5rem !important;
+  line-height: 1.25 !important;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
 .published-doc-title {
   font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
   font-size: clamp(2rem, 4vw, 2.75rem);

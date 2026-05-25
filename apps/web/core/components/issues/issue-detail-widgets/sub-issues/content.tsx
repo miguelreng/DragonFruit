@@ -59,7 +59,8 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
     },
   });
   // store hooks
-  const { toggleCreateIssueModal, toggleDeleteIssueModal } = useIssueDetail(issueServiceType);
+  const { inlineSubIssueCreateRequest, toggleCreateIssueModal, toggleDeleteIssueModal } =
+    useIssueDetail(issueServiceType);
 
   // helpers
   const subIssueOperations = useSubIssueOperations(issueServiceType);
@@ -136,6 +137,11 @@ export const SubIssuesCollapsibleContent = observer(function SubIssuesCollapsibl
           projectId={projectId}
           parentIssueId={parentIssueId}
           subIssueOperations={subIssueOperations}
+          activationRequestId={
+            inlineSubIssueCreateRequest?.parentIssueId === parentIssueId
+              ? inlineSubIssueCreateRequest.requestId
+              : undefined
+          }
         />
       )}
 

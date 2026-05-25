@@ -19,7 +19,7 @@ export function FilterHeader({ title, isPreviewEnabled, handleIsPreviewEnabled }
       <div className="flex-grow truncate text-caption-sm-medium text-placeholder">{title}</div>
       <button
         type="button"
-        className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-sm hover:bg-layer-transparent-hover"
+        className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-lg hover:bg-layer-transparent-hover"
         onClick={handleIsPreviewEnabled}
       >
         {isPreviewEnabled ? <ChevronUpIcon height={14} width={14} /> : <ChevronDownIcon height={14} width={14} />}

@@ -100,7 +100,7 @@ export function FiltersDropdown(props: Props) {
             {/** translate-y-0 is a hack to create new stacking context. Required for safari  */}
             <Popover.Panel className="fixed z-10 translate-y-0">
               <div
-                className="my-1 overflow-hidden rounded-sm border border-subtle bg-surface-1 shadow-raised-100"
+                className="my-1 overflow-hidden rounded-lg border border-subtle bg-surface-1 shadow-raised-100"
                 ref={setPopperElement}
                 style={styles.popper}
                 {...attributes.popper}

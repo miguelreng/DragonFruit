@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // hooks
-import { ModuleIcon } from "@plane/propel/icons";
+import { Component as ModuleIcon } from "@/components/icons/lucide-shim";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // components
 import { IssueActivityBlockComponent } from "./";

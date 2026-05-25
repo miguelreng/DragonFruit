@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { LabelPropertyIcon } from "@plane/propel/icons";
+import { Tag as LabelPropertyIcon } from "@/components/icons/lucide-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useLabel } from "@/hooks/store/use-label";

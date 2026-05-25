@@ -22,6 +22,7 @@ type Props = {
   projectId: string;
   parentIssueId: string;
   subIssueOperations: TSubIssueOperations;
+  activationRequestId?: number;
 };
 
 /**
@@ -29,21 +30,15 @@ type Props = {
  *
  * Replaces the full create-issue modal for the common case where you just
  * want to jot down "do X, do Y, do Z" under a parent task and move on. The
- * modal is still reachable via the "Create new" item in the +-button's
- * dropdown menu when the user actually wants to set assignee / labels /
- * dates at creation time.
- *
  * UX:
- *   - Idle: a single-line button "+ Add subtask"
- *   - Active: autofocused text input; Enter creates and *keeps focus* so
- *     the user can rip through several subtasks in a row; Esc cancels;
- *     blur with an empty value collapses back to the button.
+ *   - Always visible: a single-line input; Enter creates and *keeps focus*
+ *     so the user can rip through several subtasks in a row; Esc clears.
  *   - While the network round-trip is in flight the input stays editable
  *     but a small spinner replaces the plus icon — submitting again would
  *     be ignored.
  */
 export const InlineCreateSubIssue = observer(function InlineCreateSubIssue(props: Props) {
-  const { workspaceSlug, projectId, parentIssueId, subIssueOperations } = props;
+  const { workspaceSlug, projectId, parentIssueId, subIssueOperations, activationRequestId } = props;
   // i18n
   const { t } = useTranslation();
   // store
@@ -51,21 +46,14 @@ export const InlineCreateSubIssue = observer(function InlineCreateSubIssue(props
     issues: { createIssue },
   } = useIssues(EIssuesStoreType.PROJECT);
   // state
-  const [isActive, setIsActive] = useState(false);
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Autofocus when we flip to active so the user can start typing
-  // immediately without an extra click.
   useEffect(() => {
-    if (isActive) inputRef.current?.focus();
-  }, [isActive]);
-
-  const close = () => {
-    setIsActive(false);
-    setName("");
-  };
+    if (activationRequestId === undefined) return;
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }, [activationRequestId]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -103,34 +91,14 @@ export const InlineCreateSubIssue = observer(function InlineCreateSubIssue(props
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      close();
+      setName("");
     }
   };
-
-  const handleBlur = () => {
-    // Don't tear down the input mid-submit — the user is still waiting on
-    // their last Enter. We'll naturally re-focus when the promise resolves.
-    if (isSubmitting) return;
-    if (!name.trim()) close();
-  };
-
-  if (!isActive) {
-    return (
-      <button
-        type="button"
-        onClick={() => setIsActive(true)}
-        className="text-sm mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-tertiary transition-colors hover:bg-surface-2 hover:text-secondary"
-      >
-        <Plus className="size-3.5 flex-shrink-0" />
-        <span>{t("sub_work_item.add.inline") || "Add subtask"}</span>
-      </button>
-    );
-  }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="focus-within:border-primary mt-1 flex w-full items-center gap-2 rounded-md border border-strong bg-surface-1 px-2 py-1.5"
+      className="focus-within:border-primary mt-2 flex w-full items-center gap-2 rounded-lg border border-strong bg-surface-1 px-2 py-2"
     >
       {isSubmitting ? (
         <Loader2 className="size-3.5 flex-shrink-0 animate-spin text-tertiary" />
@@ -143,9 +111,8 @@ export const InlineCreateSubIssue = observer(function InlineCreateSubIssue(props
         value={name}
         onChange={(event) => setName(event.target.value)}
         onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
         placeholder={t("sub_work_item.add.placeholder")}
-        className="text-sm flex-1 bg-transparent text-primary placeholder:text-tertiary focus:outline-none"
+        className="flex-1 rounded-lg bg-transparent text-body-xs-regular text-primary placeholder:text-tertiary focus:outline-none"
         // Bound long names server-side; for the inline path keep it loose
         // and let validation surface as a toast.
         maxLength={255}

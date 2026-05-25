@@ -1,9 +1,11 @@
 import type { TDropdownProps } from "../types";
 
 export type MemberDropdownProps = TDropdownProps & {
+  avatarSize?: "sm" | "md" | "base" | "lg" | number;
   button?: React.ReactNode;
   dropdownArrow?: boolean;
   dropdownArrowClassName?: string;
+  iconClassName?: string;
   placeholder?: string;
   tooltipContent?: string;
   onClose?: () => void;

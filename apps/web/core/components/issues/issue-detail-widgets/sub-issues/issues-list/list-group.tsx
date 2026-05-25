@@ -6,9 +6,8 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import { CircleDashed } from "@/components/icons/lucide-shim";
+import { ChevronRight, CircleDashed } from "@/components/icons/lucide-shim";
 import { ALL_ISSUES } from "@plane/constants";
-import { ChevronRightIcon } from "@plane/propel/icons";
 import type { IGroupByColumn, TIssue, TIssueServiceType, TSubIssueOperations } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { Collapsible } from "@plane/ui";
@@ -65,7 +64,7 @@ export const SubIssuesListGroup = observer(function SubIssuesListGroup(props: TS
         title={
           !isAllIssues && (
             <div className="flex items-center gap-2 p-3">
-              <ChevronRightIcon
+              <ChevronRight
                 className={cn("size-3.5 text-placeholder transition-all", {
                   "rotate-90": isCollapsibleOpen,
                 })}

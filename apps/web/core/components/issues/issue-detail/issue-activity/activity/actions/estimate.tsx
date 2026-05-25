@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { EstimatePropertyIcon } from "@plane/propel/icons";
+import { Hash as EstimatePropertyIcon } from "@/components/icons/lucide-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 // components

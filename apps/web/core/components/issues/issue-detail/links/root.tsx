@@ -6,7 +6,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { PlusIcon } from "@plane/propel/icons";
+import { Plus as PlusIcon } from "@/components/icons/lucide-shim";
 // plane imports
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssueLink } from "@plane/types";

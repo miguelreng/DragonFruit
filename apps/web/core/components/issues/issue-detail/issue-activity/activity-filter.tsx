@@ -5,12 +5,11 @@
  */
 
 import { observer } from "mobx-react";
-import { ListFilter } from "@/components/icons/lucide-shim";
+import { Check, ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
 import type { TActivityFilters, TActivityFilterOption } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { IconButton } from "@plane/propel/icon-button";
-import { CheckIcon } from "@plane/propel/icons";
 import { PopoverMenu } from "@plane/ui";
 // helper
 import { cn } from "@plane/utils";
@@ -57,7 +56,7 @@ export const ActivityFilter = observer(function ActivityFilter(props: TActivityF
               }
             )}
           >
-            {item.isSelected && <CheckIcon className="h-2.5 w-2.5" />}
+            {item.isSelected && <Check className="h-2.5 w-2.5" />}
           </div>
           <div className={cn("whitespace-nowrap", item.isSelected ? "text-primary" : "text-secondary")}>
             {t(item.labelTranslationKey)}
