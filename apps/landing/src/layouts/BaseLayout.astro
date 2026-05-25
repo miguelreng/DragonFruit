@@ -1,0 +1,39 @@
+---
+import "../styles/global.css";
+
+type Props = {
+  title?: string;
+  description?: string;
+  canonicalPath?: string;
+  bodyClass?: string;
+  ogType?: "website" | "article";
+};
+
+const {
+  title = "DragonFruit",
+  description = "DragonFruit: a workspace for the new generalists.",
+  canonicalPath = Astro.url.pathname,
+  bodyClass = "",
+  ogType = "website",
+} = Astro.props;
+const canonicalUrl = new URL(canonicalPath, Astro.site ?? Astro.url.origin).toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta name="twitter:card" content="summary" />
+    <title>{title}</title>
+  </head>
+  <body class={bodyClass}>
+    <slot />
+  </body>
+</html>
