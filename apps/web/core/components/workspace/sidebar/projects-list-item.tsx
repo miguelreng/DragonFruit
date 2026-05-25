@@ -355,6 +355,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               {
                 "bg-surface-2": isMenuActive,
                 "bg-layer-transparent-active": shouldHighlightProject,
+                "pr-14": isAccordionMode,
               }
             )}
             id={`${project?.id}`}
@@ -385,12 +386,12 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
               </Tooltip>
             )}
             <>
-              <ControlLink href={defaultTabUrl} className="flex flex-grow truncate" onClick={handleItemClick}>
+              <ControlLink href={defaultTabUrl} className="flex min-w-0 flex-grow truncate" onClick={handleItemClick}>
                 {isAccordionMode ? (
                   <Disclosure.Button
                     as="button"
                     type="button"
-                    className={cn("flex w-full flex-grow items-center gap-1.5 text-left select-none", {})}
+                    className={cn("flex w-full min-w-0 flex-grow items-center gap-1.5 text-left select-none", {})}
                     aria-label={
                       isProjectListOpen
                         ? t("aria_labels.projects_sidebar.close_project_menu")
@@ -403,7 +404,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                     <p className="truncate text-13 font-medium text-secondary">{project.name}</p>
                   </Disclosure.Button>
                 ) : (
-                  <div className="flex w-full flex-grow items-center gap-1.5 text-left select-none">
+                  <div className="flex w-full min-w-0 flex-grow items-center gap-1.5 text-left select-none">
                     <div className="grid size-4 flex-shrink-0 place-items-center">
                       <Logo logo={project.logo_props} size={16} />
                     </div>
@@ -411,7 +412,11 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   </div>
                 )}
               </ControlLink>
-              <div className="flex items-center gap-1">
+              <div
+                className={cn("flex flex-shrink-0 items-center gap-1", {
+                  "absolute top-1/2 right-1 -translate-y-1/2": isAccordionMode,
+                })}
+              >
                 <CustomMenu
                   openOnHover
                   customButton={
@@ -548,9 +553,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                     size="sm"
                     icon={ChevronRightIcon}
                     onClick={() => setIsProjectListOpen(!isProjectListOpen)}
-                    className={cn("hidden text-placeholder group-hover/project-item:inline-flex", {
-                      "inline-flex": isMenuActive,
-                    })}
+                    className="text-placeholder"
                     iconClassName={cn("transition-transform", {
                       "rotate-90": isProjectListOpen,
                     })}
