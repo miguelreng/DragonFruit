@@ -52,6 +52,19 @@ const getUpdatedWorkspacePath = (pathname: string, previousSlug: string, nextSlu
   return `/${nextSlug}`;
 };
 
+const getWorkspaceUpdateErrorMessage = (err: unknown) => {
+  if (typeof err === "string") return err;
+  if (!err || typeof err !== "object") return "Could not update workspace. Please try again.";
+
+  const error = err as { slug?: string | string[]; error?: string | string[]; detail?: string | string[] };
+  const message = error.slug ?? error.error ?? error.detail;
+
+  if (Array.isArray(message)) return message.join(" ");
+  if (typeof message === "string") return message;
+
+  return "Could not update workspace. Please try again.";
+};
+
 const WorkspaceIdentifierRow = (props: {
   label: string;
   value: string;
@@ -94,6 +107,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
     handleSubmit,
     control,
     reset,
+    setError,
     setValue,
     watch,
     formState: { errors },
@@ -135,6 +149,15 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
       });
     } catch (err: unknown) {
       console.error(err);
+      const message = getWorkspaceUpdateErrorMessage(err);
+      if (err && typeof err === "object" && "slug" in err) {
+        setError("slug", { type: "server", message });
+      }
+      setToast({
+        title: "Error!",
+        type: TOAST_TYPE.ERROR,
+        message,
+      });
     } finally {
       setTimeout(() => {
         setIsLoading(false);
