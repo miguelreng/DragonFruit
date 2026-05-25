@@ -44,6 +44,7 @@ import {
   CancelCircleIcon,
   ChartBarLineIcon,
   ChartLineData01Icon,
+  CheckListIcon,
   CheckmarkCircle01Icon,
   CheckmarkSquare01Icon,
   Circle as CircleSvg,
@@ -139,7 +140,6 @@ import {
   StickyNote01Icon,
   Tag01Icon,
   TableIcon as HugeTableIcon,
-  TaskDone01Icon,
   TextAlignCenterIcon,
   TextAlignLeftIcon,
   TextAlignRightIcon,
@@ -313,7 +313,7 @@ export const Link2Off = LinkBreak;
 export const Link2Icon = Link;
 export const List = huge(ListViewIcon);
 export const ListIcon = List;
-export const ListChecks = huge(TaskDone01Icon);
+export const ListChecks = huge(CheckListIcon);
 export const ListTodo = ListChecks;
 export const ListNumbers = huge(ListViewIcon);
 export const ListOrdered = ListNumbers;

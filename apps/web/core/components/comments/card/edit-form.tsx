@@ -7,8 +7,6 @@
 import { useEffect, useRef } from "react";
 import { observer } from "mobx-react";
 import { useForm } from "react-hook-form";
-import { HardDrive } from "@/components/icons/lucide-shim";
-import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
 import type { EditorRefApi } from "@plane/editor";
 import { CheckIcon, CloseIcon } from "@plane/propel/icons";
 // plane imports
@@ -16,6 +14,7 @@ import type { TCommentsOperations, TIssueComment } from "@plane/types";
 import { cn, isCommentEmpty } from "@plane/utils";
 // components
 import { LiteTextEditor } from "@/components/editor/lite-text";
+import { CommentAttachmentMenu } from "../attachment-menu";
 
 type Props = {
   activityOperations: TCommentsOperations;
@@ -69,26 +68,6 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
     readOnlyEditorRef?.setEditorValue(formData?.comment_html ?? "<p></p>");
   };
 
-  const handleAttachDriveFile = async () => {
-    const pickedFile = await pickGoogleDriveFile();
-    if (!pickedFile) return;
-    editorRef.current?.setEditorValueAtCursorPosition({
-      type: "paragraph",
-      content: [
-        {
-          type: "text",
-          text: pickedFile.name,
-          marks: [
-            {
-              type: "link",
-              attrs: { href: pickedFile.web_view_link, target: "_blank" },
-            },
-          ],
-        },
-      ],
-    });
-  };
-
   useEffect(() => {
     if (isEditing) {
       setFocus("comment_html");
@@ -133,42 +112,37 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
           }}
         />
       </div>
-      <div className="flex gap-2 self-end">
-        <button
-          type="button"
-          onClick={handleAttachDriveFile}
-          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-12 text-secondary hover:bg-surface-2"
-        >
-          <HardDrive className="size-3.5" />
-          Google Drive
-        </button>
-        {!isEmpty && (
+      <div className="flex w-full items-center justify-between gap-2">
+        <CommentAttachmentMenu activityOperations={activityOperations} commentId={comment.id} editorRef={editorRef} />
+        <div className="flex items-center gap-2">
+          {!isEmpty && (
+            <button
+              type="button"
+              onClick={handleSubmit(onEnter)}
+              disabled={isDisabled}
+              className={cn(
+                "group grid size-7 place-items-center rounded-lg border border-success-subtle bg-success-subtle shadow-raised-100 duration-300",
+                isDisabled ? "" : "hover:bg-success-subtle-1"
+              )}
+            >
+              <CheckIcon className="size-4 text-success-primary" />
+            </button>
+          )}
           <button
             type="button"
-            onClick={handleSubmit(onEnter)}
-            disabled={isDisabled}
+            disabled={isSubmitting}
             className={cn(
-              "group grid size-7 place-items-center rounded-lg border border-success-subtle bg-success-subtle shadow-raised-100 duration-300",
-              isDisabled ? "" : "hover:bg-success-subtle-1"
+              "group grid size-7 place-items-center rounded-lg border border-danger-subtle bg-danger-subtle shadow-raised-100 duration-300",
+              isSubmitting ? "" : "hover:bg-danger-subtle-hover"
             )}
+            onClick={() => {
+              setIsEditing(false);
+              editorRef.current?.setEditorValue(comment.comment_html ?? "<p></p>");
+            }}
           >
-            <CheckIcon className="size-4 text-success-primary" />
+            <CloseIcon className="size-4 text-danger-primary" />
           </button>
-        )}
-        <button
-          type="button"
-          disabled={isSubmitting}
-          className={cn(
-            "group grid size-7 place-items-center rounded-lg border border-danger-subtle bg-danger-subtle shadow-raised-100 duration-300",
-            isSubmitting ? "" : "hover:bg-danger-subtle-hover"
-          )}
-          onClick={() => {
-            setIsEditing(false);
-            editorRef.current?.setEditorValue(comment.comment_html ?? "<p></p>");
-          }}
-        >
-          <CloseIcon className="size-4 text-danger-primary" />
-        </button>
+        </div>
       </div>
     </form>
   );

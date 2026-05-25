@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => {
     dotenv.config({ path: path.resolve(__dirname, ".env") });
   }
 
+  const devApiProxyTarget = process.env.VITE_DEV_API_PROXY_TARGET || "https://api.dragonfruit.sh";
+
   // Expose only vars starting with VITE_
   const viteEnv = Object.keys(process.env)
     .filter((k) => k.startsWith("VITE_"))
@@ -37,12 +39,13 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: "127.0.0.1",
-      // Proxy backend routes to the Django API container so the browser sees same-origin
-      // requests and CORS isn't required in dev. Matches the routes in apps/api/plane/urls.py.
+      // Proxy backend routes so the browser sees same-origin requests and CORS
+      // isn't required in dev. Cookie domains are stripped so hosted API auth can
+      // still work through localhost.
       proxy: {
-        "/api": { target: "http://localhost:8000", changeOrigin: true },
-        "/auth": { target: "http://localhost:8000", changeOrigin: true },
-        "/spaces": { target: "http://localhost:8000", changeOrigin: true },
+        "/api": { target: devApiProxyTarget, changeOrigin: true, cookieDomainRewrite: "" },
+        "/auth": { target: devApiProxyTarget, changeOrigin: true, cookieDomainRewrite: "" },
+        "/spaces": { target: devApiProxyTarget, changeOrigin: true, cookieDomainRewrite: "" },
       },
     },
     // No SSR-specific overrides needed; alias resolves to ESM build

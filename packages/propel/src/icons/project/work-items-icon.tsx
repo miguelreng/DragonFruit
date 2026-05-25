@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { TaskDone01Icon } from "@hugeicons/core-free-icons";
+import { CheckListIcon } from "@hugeicons/core-free-icons";
 
 import { hugeIcon } from "../_hugeicons-shim";
 
-export const WorkItemsIcon = hugeIcon(TaskDone01Icon);
+export const WorkItemsIcon = hugeIcon(CheckListIcon);
