@@ -41,9 +41,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   if (message?.type === "SIGN_IN") {
-    void startSignIn(message.appUrl);
-    sendResponse({ ok: true, pending: true });
-    return false;
+    void respond(startSignIn(message.appUrl), sendResponse);
+    return true;
   }
   if (message?.type === "SIGN_OUT") {
     void respond(signOut(), sendResponse);
@@ -51,6 +50,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message?.type === "GET_AUTH_STATE") {
     void respond(getAuthState(message.appUrl), sendResponse);
+    return true;
+  }
+  if (message?.type === "COMPLETE_PENDING_SIGN_IN") {
+    void respond(completePendingSignIn(message.appUrl), sendResponse);
     return true;
   }
   if (message?.type === "LOAD_PROJECTS") {
@@ -76,10 +79,20 @@ async function respond(promise, sendResponse) {
 
 async function signIn() {
   const callbackUrl = `https://${chrome.runtime.id}.chromiumapp.org/auth/login-callback`;
-  await chrome.tabs.create({
+  const sessionToken = await fetchNativeTokenFromSession(DEFAULT_API_URL, callbackUrl);
+  if (sessionToken) {
+    await persistToken(DEFAULT_API_URL, sessionToken);
+    return { ok: true, pending: false };
+  }
+
+  const loginWindow = await chrome.windows.create({
     url: `${DEFAULT_WEB_URL}/native-login?callback=${encodeURIComponent(callbackUrl)}`,
-    active: true,
+    focused: true,
+    height: 820,
+    type: "normal",
+    width: 1120,
   });
+  if (!loginWindow?.id) throw new Error("DragonFruit login window could not be opened.");
   return { ok: true, pending: true };
 }
 
@@ -87,9 +100,60 @@ async function completeExternalSignIn(message) {
   const appUrl = normalizeAppUrl(message.appUrl || DEFAULT_API_URL);
   const token = String(message.apiToken || "");
   if (!token) return { ok: false, error: "Missing DragonFruit API token." };
-  await chrome.storage.sync.set({ appUrl, apiToken: token, authStatus: "connected", authError: "" });
+  await persistToken(appUrl, token);
   const user = await fetchCurrentUser(appUrl, token);
   return { ok: true, user };
+}
+
+async function completePendingSignIn(appUrlValue) {
+  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_API_URL);
+  const callbackUrl = `https://${chrome.runtime.id}.chromiumapp.org/auth/login-callback`;
+  const token = await fetchNativeTokenFromSession(appUrl, callbackUrl);
+  if (!token) return { ok: false, pending: true };
+  await persistToken(appUrl, token);
+  const user = await fetchCurrentUser(appUrl, token);
+  return { ok: true, user };
+}
+
+async function fetchNativeTokenFromSession(appUrl, callbackUrl) {
+  const response = await fetch(`${appUrl}/auth/native/start/?format=json&callback=${encodeURIComponent(callbackUrl)}`, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  }).catch(() => null);
+  if (!response) return "";
+
+  if (response.ok && response.headers.get("content-type")?.includes("application/json")) {
+    const data = await response.json().catch(() => null);
+    if (data?.api_token) return data.api_token;
+    if (data?.callback) return extractApiToken(data.callback);
+  }
+
+  const tokenFromUrl = extractApiToken(response.url);
+  if (tokenFromUrl) return tokenFromUrl;
+
+  const html = await response.text().catch(() => "");
+  if (!html) return "";
+
+  const decodedHtml = html
+    .replaceAll("&amp;", "&")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#x27;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">");
+  const callbackMatch = decodedHtml.match(/https:\/\/[^"'<>\s]+\.chromiumapp\.org\/[^"'<>\s]*api_token=[^"'<>\s]+/);
+  return callbackMatch ? extractApiToken(callbackMatch[0]) : "";
+}
+
+function extractApiToken(url) {
+  try {
+    return new URL(url).searchParams.get("api_token") || "";
+  } catch {
+    return "";
+  }
+}
+
+async function persistToken(appUrl, token) {
+  await chrome.storage.sync.set({ appUrl, apiToken: token, authStatus: "connected", authError: "" });
 }
 
 function isLocalAppUrl(appUrl) {
@@ -105,12 +169,14 @@ async function startSignIn(appUrlValue) {
   const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_API_URL);
   await chrome.storage.sync.set({ appUrl, authStatus: "pending", authError: "" });
   try {
-    await signIn();
+    return await signIn();
   } catch (error) {
+    const message = error?.message || "DragonFruit login failed.";
     await chrome.storage.sync.set({
       authStatus: "error",
-      authError: error?.message || "DragonFruit login failed.",
+      authError: message,
     });
+    return { ok: false, error: message };
   }
 }
 
