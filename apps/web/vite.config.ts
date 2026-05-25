@@ -2,6 +2,7 @@ import path from "node:path";
 import * as dotenv from "dotenv";
 import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig } from "vite";
+import type { ProxyOptions } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig(({ mode }) => {
@@ -10,6 +11,18 @@ export default defineConfig(({ mode }) => {
   }
 
   const devApiProxyTarget = process.env.VITE_DEV_API_PROXY_TARGET || "https://api.dragonfruit.sh";
+  const devApiProxyOrigin = new URL(devApiProxyTarget).origin;
+  const configureDevApiProxy: NonNullable<ProxyOptions["configure"]> = (proxy) => {
+    proxy.on("proxyReq", (proxyReq) => proxyReq.setHeader("origin", devApiProxyOrigin));
+    proxy.on("proxyRes", (proxyRes) => {
+      const setCookieHeader = proxyRes.headers["set-cookie"];
+      if (!setCookieHeader) return;
+
+      proxyRes.headers["set-cookie"] = setCookieHeader.map((cookie) =>
+        cookie.replace(/;\s*Secure/gi, "").replace(/;\s*SameSite=None/gi, "; SameSite=Lax")
+      );
+    });
+  };
 
   // Expose only vars starting with VITE_
   const viteEnv = Object.keys(process.env)
@@ -43,9 +56,24 @@ export default defineConfig(({ mode }) => {
       // isn't required in dev. Cookie domains are stripped so hosted API auth can
       // still work through localhost.
       proxy: {
-        "/api": { target: devApiProxyTarget, changeOrigin: true, cookieDomainRewrite: "" },
-        "/auth": { target: devApiProxyTarget, changeOrigin: true, cookieDomainRewrite: "" },
-        "/spaces": { target: devApiProxyTarget, changeOrigin: true, cookieDomainRewrite: "" },
+        "/api": {
+          target: devApiProxyTarget,
+          changeOrigin: true,
+          cookieDomainRewrite: "",
+          configure: configureDevApiProxy,
+        },
+        "/auth": {
+          target: devApiProxyTarget,
+          changeOrigin: true,
+          cookieDomainRewrite: "",
+          configure: configureDevApiProxy,
+        },
+        "/spaces": {
+          target: devApiProxyTarget,
+          changeOrigin: true,
+          cookieDomainRewrite: "",
+          configure: configureDevApiProxy,
+        },
       },
     },
     // No SSR-specific overrides needed; alias resolves to ESM build
