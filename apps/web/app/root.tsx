@@ -25,6 +25,7 @@ import type { Route } from "./+types/root";
 // local
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 // fonts – side-effect imports
 // Figtree is self-hosted from /public/fonts via @font-face in globals.css.
 // Material Symbols: only the Latin subset at weight 400 ships — the icon
@@ -156,7 +157,7 @@ export default function Root() {
 }
 
 export function HydrateFallback() {
-  return null;
+  return <AppLoadingScreen />;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
