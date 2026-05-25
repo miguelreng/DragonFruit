@@ -46,6 +46,7 @@ final class VoiceToastController: ObservableObject {
         case listening
         case processing
         case agentResponse
+        case permissions(String, Int)
         case meetingPrompt(String)
         case error
         case result(UUID)
@@ -107,6 +108,23 @@ final class VoiceToastController: ObservableObject {
             }
             .store(in: &cancellables)
 
+        store.$permissionsRefreshCounter
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak store] _ in
+                guard let self, let store else { return }
+                self.update(for: store)
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak store] _ in
+                guard let self, let store else { return }
+                store.refreshPermissionStatuses()
+                self.update(for: store)
+            }
+            .store(in: &cancellables)
+
         store.$copilotTheme
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak store] _ in
@@ -124,6 +142,8 @@ final class VoiceToastController: ObservableObject {
             nextKind = .error
         } else if store.isListening {
             nextKind = .listening
+        } else if let permission = store.currentMissingCopilotPermission, store.needsPermissionOnboarding {
+            nextKind = .permissions(permission.id, store.completedCopilotPermissionCount)
         } else if let prompt = store.meetingStartPrompt, !store.isMeetingRecording {
             nextKind = .meetingPrompt(prompt.id)
         } else if store.isVoiceActionProcessing || store.isAgentResponding {
@@ -154,6 +174,12 @@ final class VoiceToastController: ObservableObject {
             showProcessingToast(for: store)
         case .agentResponse:
             showAgentResponseToast(for: store)
+        case let .permissions(permissionId, _):
+            guard store.currentMissingCopilotPermission?.id == permissionId else {
+                hideToast()
+                return
+            }
+            showPermissionsToast(for: store)
         case let .meetingPrompt(meetingId):
             guard store.meetingStartPrompt?.id == meetingId else {
                 hideToast()
@@ -169,6 +195,29 @@ final class VoiceToastController: ObservableObject {
         case .none:
             hideToast()
         }
+    }
+
+    private func showPermissionsToast(for store: MeetingStore) {
+        guard let permission = store.currentMissingCopilotPermission else {
+            hideToast()
+            return
+        }
+        let kind = ToastKind.permissions(permission.id, store.completedCopilotPermissionCount)
+        let size = NSSize(width: 340, height: 152)
+        let panel = panel ?? makePanel(size: size)
+        self.panel = panel
+        hideTask?.cancel()
+        closeTask?.cancel()
+        panel.ignoresMouseEvents = false
+        let shouldReveal = prepare(panel: panel, for: kind)
+        if currentKind != kind {
+            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
+                PermissionOnboardingToast(store: store)
+            })
+            currentKind = kind
+        }
+        position(panel: panel, size: size)
+        if shouldReveal { reveal(panel: panel) }
     }
 
     private func showMeetingPromptToast(for store: MeetingStore) {
@@ -437,6 +486,138 @@ struct MeetingStartToast: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .compositingGroup()
         .shadow(color: theme.shadow, radius: 12, y: 6)
+    }
+}
+
+struct PermissionOnboardingToast: View {
+    @ObservedObject var store: MeetingStore
+
+    private var theme: CopilotThemeTokens {
+        store.copilotTheme.tokens
+    }
+
+    private var permission: PermissionStatus? {
+        store.currentMissingCopilotPermission
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 11) {
+                Image(systemName: iconName)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(theme.accent)
+                    .frame(width: 30, height: 30)
+                    .background(theme.accentSubtle, in: Circle())
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Set up Copilot")
+                        .font(.custom("Figtree", size: 11).weight(.semibold))
+                        .foregroundStyle(theme.accent)
+                    Text(title)
+                        .font(.custom("Figtree", size: 13).weight(.semibold))
+                        .foregroundStyle(theme.textPrimary)
+                    Text(detail)
+                        .font(.custom("Figtree", size: 11).weight(.medium))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 6) {
+                ForEach(store.copilotPermissionStatuses.indices, id: \.self) { index in
+                    Capsule()
+                        .fill(index < store.completedCopilotPermissionCount ? theme.accent : theme.borderStrong)
+                        .frame(width: 18, height: 4)
+                }
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 8) {
+                Button(buttonTitle) {
+                    if let permission {
+                        store.handlePermissionAction(permission)
+                    }
+                }
+                .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
+
+                Button {
+                    store.refreshPermissionStatuses()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(theme.textSecondary)
+                        .frame(width: 28, height: 28)
+                        .background(theme.layer1, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Refresh permissions")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(width: 340, height: 152)
+        .background(toastBackground(theme: theme, cornerRadius: 14))
+        .overlay(toastBorder(theme: theme, cornerRadius: 14))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .compositingGroup()
+        .shadow(color: theme.shadow, radius: 12, y: 6)
+    }
+
+    private var iconName: String {
+        switch permission?.id {
+        case "mic":
+            return "mic.fill"
+        case "system-audio":
+            return "speaker.wave.2.fill"
+        case "speech":
+            return "waveform"
+        case "accessibility":
+            return "cursorarrow.motionlines"
+        default:
+            return "checkmark.circle.fill"
+        }
+    }
+
+    private var title: String {
+        switch permission?.id {
+        case "mic":
+            return "Allow microphone"
+        case "system-audio":
+            return "Allow system audio"
+        case "speech":
+            return "Allow speech recognition"
+        case "accessibility":
+            return "Allow Accessibility"
+        default:
+            return "Finish setup"
+        }
+    }
+
+    private var detail: String {
+        switch permission?.id {
+        case "mic":
+            return "Keep this open while macOS asks for microphone access."
+        case "system-audio":
+            return "Required to hear people speaking in Meet, Zoom, and Teams."
+        case "speech":
+            return "Used for live voice preview and dictation commands."
+        case "accessibility":
+            return "System Settings will open. Turn on DragonFruit Copilot, then come back."
+        default:
+            return "Copilot will continue once permissions are ready."
+        }
+    }
+
+    private var buttonTitle: String {
+        switch permission?.id {
+        case "accessibility":
+            return "Open Settings"
+        default:
+            return "Allow"
+        }
     }
 }
 

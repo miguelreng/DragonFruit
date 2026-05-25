@@ -654,7 +654,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             UserDefaults.standard.set(selectedAgentId, forKey: "df_selected_agent_id")
         }
     }
-    @Published private var permissionsRefreshCounter = 0
+    @Published private(set) var permissionsRefreshCounter = 0
 
     private var oauthSession: ASWebAuthenticationSession?
     private var loginPollTask: Task<Void, Never>?
