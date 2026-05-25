@@ -19,15 +19,15 @@ body {
 }
 
 .content-title-font {
-  @apply font-title;
-  letter-spacing: -0.015em;
+  @apply font-body;
+  letter-spacing: 0;
 }
 
 .sticky-title-editor .ProseMirror h1.editor-heading-block,
 .sticky-title-editor .ProseMirror h2.editor-heading-block,
 .sticky-title-editor .ProseMirror h3.editor-heading-block {
-  font-family: var(--font-title);
-  letter-spacing: -0.015em;
+  font-family: var(--font-body);
+  letter-spacing: 0;
 }
 
 /* transitions-dev — installed once for shared app motion. */

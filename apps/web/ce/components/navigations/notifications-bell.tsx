@@ -11,8 +11,9 @@ import { cn } from "@plane/utils";
 // plane imports
 import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
 import { Popover } from "@plane/propel/popover";
+import { Spinner } from "@plane/ui";
 // icons
-import { Bell } from "@/components/icons/lucide-shim";
+import { Bell, CheckCheck } from "@/components/icons/lucide-shim";
 // components
 import { AppSidebarTooltip } from "@/components/sidebar/sidebar-item";
 import { NotificationItem } from "@/components/workspace-notifications/sidebar/notification-card/item";
@@ -33,8 +34,14 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
   const surfaceTheme = useTopBarTheme();
   // store hooks
   const { currentWorkspace } = useWorkspace();
-  const { unreadNotificationsCount, getNotifications, getUnreadNotificationsCount, notificationIdsByWorkspaceId } =
-    useWorkspaceNotifications();
+  const {
+    loader,
+    unreadNotificationsCount,
+    getNotifications,
+    getUnreadNotificationsCount,
+    markAllNotificationsAsRead,
+    notificationIdsByWorkspaceId,
+  } = useWorkspaceNotifications();
 
   // unread count for the badge
   useSWR(slug ? "WORKSPACE_UNREAD_NOTIFICATION_COUNT" : null, slug ? () => getUnreadNotificationsCount(slug) : null);
@@ -52,6 +59,17 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
     ? unreadNotificationsCount.mention_unread_notifications_count
     : unreadNotificationsCount.total_unread_notifications_count;
   const notificationIds = currentWorkspace ? notificationIdsByWorkspaceId(currentWorkspace.id) : undefined;
+  const isMarkingAllAsRead = loader === ENotificationLoader.MARK_ALL_AS_READY;
+
+  const handleMarkAllAsRead = async () => {
+    if (!slug || loader) return;
+
+    try {
+      await markAllNotificationsAsRead(slug);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <Popover>
@@ -101,7 +119,20 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
       >
         <div className="flex items-center justify-between border-b border-subtle px-3 py-2">
           <h3 className="text-13 font-semibold text-secondary">Notifications</h3>
-          {totalUnread > 0 && <span className="text-11 font-medium text-tertiary">{totalUnread} unread</span>}
+          {totalUnread > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-11 font-medium text-tertiary">{totalUnread} unread</span>
+              <button
+                type="button"
+                className="flex h-6 items-center gap-1 rounded-md px-1.5 text-11 font-medium text-accent-primary transition-colors hover:bg-layer-2 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isMarkingAllAsRead}
+                onClick={handleMarkAllAsRead}
+              >
+                {isMarkingAllAsRead ? <Spinner className="size-3" /> : <CheckCheck className="size-3" />}
+                <span>Mark all read</span>
+              </button>
+            </div>
+          )}
         </div>
         <div className="max-h-[480px] overflow-y-auto">
           {!notificationIds || notificationIds.length === 0 ? (

@@ -4,12 +4,13 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect, useState } from "react";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
 // helpers
 import { cn } from "../utils";
 import type { TAvatarSize } from "./helper";
-import { getBorderRadius, getSizeInfo, isAValidNumber } from "./helper";
+import { getAvatarPlaceholderSrc, getBorderRadius, getSizeInfo, isAValidNumber } from "./helper";
 
 type Props = {
   /**
@@ -70,6 +71,13 @@ export function Avatar(props: Props) {
 
   // get size details based on the size prop
   const sizeInfo = getSizeInfo(size);
+  const [hasImageError, setHasImageError] = useState(false);
+  useEffect(() => setHasImageError(false), [src]);
+
+  const shouldUsePortraitPlaceholder = !fallbackText && !fallbackBackgroundColor && !fallbackTextColor;
+  const fallbackSrc = shouldUsePortraitPlaceholder ? getAvatarPlaceholderSrc(name) : undefined;
+  const imageSrc = src && !hasImageError ? src : fallbackSrc;
+  const fallbackLetter = name?.[0]?.toUpperCase() ?? fallbackText ?? "?";
 
   return (
     <Tooltip tooltipContent={fallbackText ?? name ?? "?"} disabled={!showTooltip}>
@@ -87,8 +95,13 @@ export function Avatar(props: Props) {
         }
         tabIndex={-1}
       >
-        {src ? (
-          <img src={src} className={cn("h-full w-full", getBorderRadius(shape), className)} alt={name} />
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            className={cn("h-full w-full object-cover", getBorderRadius(shape), className)}
+            alt={name}
+            onError={() => setHasImageError(true)}
+          />
         ) : (
           <div
             className={cn(
@@ -102,7 +115,7 @@ export function Avatar(props: Props) {
               color: fallbackTextColor ?? "#ffffff",
             }}
           >
-            {name?.[0]?.toUpperCase() ?? fallbackText ?? "?"}
+            {fallbackLetter}
           </div>
         )}
       </div>

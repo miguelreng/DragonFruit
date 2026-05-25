@@ -6,7 +6,7 @@
 
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import type { AnyExtension } from "@tiptap/core";
-import { SlashCommands, WorkItemEmbedExtension } from "@/extensions";
+import { DocEmbedExtension, SlashCommands, WorkItemEmbedExtension } from "@/extensions";
 // types
 import type { IEditorProps, TUserDetails } from "@/types";
 
@@ -36,6 +36,22 @@ const extensionRegistry: TDocumentEditorAdditionalExtensionsRegistry[] = [
       WorkItemEmbedExtension({
         // Guarded by isEnabled — widgetCallback is guaranteed defined here.
         widgetCallback: embedConfig!.issue!.widgetCallback,
+      }),
+  },
+  {
+    isEnabled: ({ embedConfig }) =>
+      Boolean(
+        embedConfig?.whiteboard?.widgetCallback ||
+        embedConfig?.sticky?.widgetCallback ||
+        embedConfig?.taskView?.widgetCallback
+      ),
+    getExtension: ({ embedConfig }) =>
+      DocEmbedExtension({
+        configs: {
+          whiteboard: embedConfig?.whiteboard,
+          sticky: embedConfig?.sticky,
+          task_view: embedConfig?.taskView,
+        },
       }),
   },
 ];

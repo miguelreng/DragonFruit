@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import type { TPageFilterProps, TPageNavigationTabs } from "@plane/types";
+import type { TPageFilterProps, TPageNavigationTabs, TPageType } from "@plane/types";
 import { Header, EHeaderVariant } from "@plane/ui";
 import { calculateTotalFilters } from "@plane/utils";
 // components
@@ -27,6 +27,7 @@ import { PageSearchInput } from "../list/search-input";
 import { PageTabNavigation } from "../list/tab-navigation";
 
 type Props = {
+  contentType?: TPageType;
   pageType: TPageNavigationTabs;
   projectId: string;
   storeType: EPageStoreType;
@@ -34,7 +35,7 @@ type Props = {
 };
 
 export const PagesListHeaderRoot = observer(function PagesListHeaderRoot(props: Props) {
-  const { pageType, projectId, storeType, workspaceSlug } = props;
+  const { contentType, pageType, projectId, storeType, workspaceSlug } = props;
   const { t } = useTranslation();
   // store hooks
   const { filters, updateFilters, clearAllFilters } = usePageStore(storeType);
@@ -63,7 +64,12 @@ export const PagesListHeaderRoot = observer(function PagesListHeaderRoot(props: 
     <>
       <Header variant={EHeaderVariant.SECONDARY}>
         <Header.LeftItem>
-          <PageTabNavigation workspaceSlug={workspaceSlug} projectId={projectId} pageType={pageType} />
+          <PageTabNavigation
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            pageType={pageType}
+            basePath={contentType === "whiteboard" ? "whiteboards" : "pages"}
+          />
         </Header.LeftItem>
         <Header.RightItem className="items-center">
           <PageSearchInput

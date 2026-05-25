@@ -26,7 +26,6 @@ type TAuthHeader = {
 };
 
 const keywordStyle: React.CSSProperties = {
-  fontFamily: "Newsreader, serif",
   fontStyle: "italic",
   fontWeight: 400,
 };

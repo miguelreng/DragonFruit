@@ -88,7 +88,7 @@ export const NotificationsRoot = observer(function NotificationsRoot({ workspace
     <div className={cn("h-full w-full overflow-hidden", isWorkItem && "overflow-y-auto")}>
       {!currentSelectedNotificationId ? (
         <div className="flex size-full items-center justify-center">
-          <EmptyStateCompact assetKey="unknown" assetClassName="size-20" />
+          <EmptyStateCompact assetKey="inbox" assetClassName="size-20" />
         </div>
       ) : (
         <>

@@ -242,6 +242,13 @@ export const coreRoutes: RouteConfigEntry[] = [
             ":workspaceSlug/projects/:projectId/bookmarks",
             "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/bookmarks/page.tsx"
           ),
+          // Whiteboards List
+          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/whiteboards/(list)/layout.tsx", [
+            route(
+              ":workspaceSlug/projects/:projectId/whiteboards",
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/whiteboards/(list)/page.tsx"
+            ),
+          ]),
           // Intake list
           layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/intake/layout.tsx", [
             route(

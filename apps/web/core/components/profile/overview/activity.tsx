@@ -76,7 +76,7 @@ export const ProfileActivity = observer(function ProfileActivity() {
             </ul>
           ) : (
             <div className="p-6">
-              <EmptyStateCompact title={t("no_data_yet")} assetKey="unknown" assetClassName="size-20" />
+              <EmptyStateCompact title={t("no_data_yet")} assetKey="work-item" assetClassName="size-20" />
             </div>
           )
         ) : (

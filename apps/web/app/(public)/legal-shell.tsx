@@ -38,7 +38,7 @@ export function LegalShell(props: LegalShellProps) {
       <section className="mx-auto w-full max-w-4xl px-6 pt-6 pb-16">
         <div className="border-b border-[#dedde4] pb-10">
           {props.eyebrow && <div className="text-sm font-semibold text-[#b0007a]">{props.eyebrow}</div>}
-          <h1 className="text-5xl tracking-normal md:text-6xl mt-3 max-w-3xl font-[Newsreader] leading-[1.02] font-medium text-[#20202d]">
+          <h1 className="text-5xl tracking-normal md:text-6xl mt-3 max-w-3xl leading-[1.02] font-medium text-[#20202d]">
             {props.title}
           </h1>
           <p className="text-base mt-5 max-w-2xl leading-7 text-[#666574]">{props.description}</p>

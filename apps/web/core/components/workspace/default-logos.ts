@@ -7,10 +7,16 @@
 import { getFileURL } from "@plane/utils";
 
 export const DEFAULT_WORKSPACE_LOGOS = [
-  "/workspace-defaults/colosseum-1.jpg",
-  "/workspace-defaults/colosseum-2.jpg",
-  "/workspace-defaults/colosseum-3.jpg",
-  "/workspace-defaults/colosseum-4.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-01.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-02.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-03.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-04.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-05.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-06.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-07.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-08.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-09.jpg",
+  "/workspace-defaults/renaissance-dragon-headshot-10.jpg",
 ] as const;
 
 const DEFAULT_LOGO_PREFIX = "/workspace-defaults/";

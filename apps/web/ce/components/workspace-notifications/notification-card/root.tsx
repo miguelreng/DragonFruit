@@ -35,7 +35,7 @@ export const NotificationCardListRoot = observer(function NotificationCardListRo
 
   if (!workspaceSlug || !workspaceId || !notificationIds) return <></>;
   return (
-    <div>
+    <div className="overflow-hidden rounded-lg">
       {notificationIds.map((notificationId: string) => (
         <NotificationItem key={notificationId} workspaceSlug={workspaceSlug} notificationId={notificationId} />
       ))}
@@ -48,11 +48,15 @@ export const NotificationCardListRoot = observer(function NotificationCardListRo
               <div className="text-accent-secondary">{t("loading")}...</div>
             </div>
           ) : (
-            <div className="flex items-center justify-center py-4 text-13 font-medium" onClick={getNextNotifications}>
-              <div className="cursor-pointer text-accent-secondary transition-all hover:text-accent-primary">
+            <button
+              type="button"
+              className="flex w-full items-center justify-center py-4 text-13 font-medium"
+              onClick={getNextNotifications}
+            >
+              <span className="cursor-pointer text-accent-secondary transition-all hover:text-accent-primary">
                 {t("load_more")}
-              </div>
-            </div>
+              </span>
+            </button>
           )}
         </>
       )}

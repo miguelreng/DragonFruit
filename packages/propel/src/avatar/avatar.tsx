@@ -10,6 +10,27 @@ import { cn } from "../utils/classname";
 
 export type TAvatarSize = "sm" | "md" | "base" | "lg" | number;
 
+const AVATAR_PLACEHOLDER_PATHS = [
+  "/avatar-placeholders/renaissance-headshot-01.jpg",
+  "/avatar-placeholders/renaissance-headshot-02.jpg",
+  "/avatar-placeholders/renaissance-headshot-03.jpg",
+  "/avatar-placeholders/renaissance-headshot-04.jpg",
+  "/avatar-placeholders/renaissance-headshot-05.jpg",
+  "/avatar-placeholders/renaissance-headshot-06.jpg",
+  "/avatar-placeholders/renaissance-headshot-07.jpg",
+  "/avatar-placeholders/renaissance-headshot-08.jpg",
+  "/avatar-placeholders/renaissance-headshot-09.jpg",
+  "/avatar-placeholders/renaissance-headshot-10.jpg",
+] as const;
+
+const getAvatarPlaceholderSrc = (seed = "avatar") => {
+  let hash = 0;
+
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+
+  return AVATAR_PLACEHOLDER_PATHS[hash % AVATAR_PLACEHOLDER_PATHS.length];
+};
+
 type Props = {
   name?: string; //The name of the avatar which will be displayed on the tooltip
   fallbackBackgroundColor?: string; //The background color if the avatar image fails to load
@@ -101,6 +122,9 @@ export function Avatar(props: Props) {
   const sizeInfo = getSizeInfo(size);
 
   const fallbackLetter = name?.[0]?.toUpperCase() ?? fallbackText ?? "?";
+  const shouldUsePortraitPlaceholder = !fallbackText && !fallbackBackgroundColor && !fallbackTextColor;
+  const fallbackSrc = shouldUsePortraitPlaceholder ? getAvatarPlaceholderSrc(name) : undefined;
+
   return (
     <div
       className={cn("grid place-items-center overflow-hidden", getBorderRadius(shape), {
@@ -109,7 +133,7 @@ export function Avatar(props: Props) {
       tabIndex={-1}
     >
       <AvatarPrimitive.Root className={cn("h-full w-full", getBorderRadius(shape), className)}>
-        <AvatarPrimitive.Image src={src} width="48" height="48" />
+        <AvatarPrimitive.Image src={src || fallbackSrc} width="48" height="48" className="h-full w-full object-cover" />
         <AvatarPrimitive.Fallback
           className={cn(sizeInfo.fontSize, "grid h-full w-full place-items-center", getBorderRadius(shape), className)}
           style={{
@@ -117,7 +141,11 @@ export function Avatar(props: Props) {
             color: fallbackTextColor ?? "var(--text-color-on-color)",
           }}
         >
-          {fallbackLetter}
+          {fallbackSrc ? (
+            <img src={fallbackSrc} className={cn("h-full w-full object-cover", getBorderRadius(shape))} alt={name} />
+          ) : (
+            fallbackLetter
+          )}
         </AvatarPrimitive.Fallback>
       </AvatarPrimitive.Root>
     </div>

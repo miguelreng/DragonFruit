@@ -14,6 +14,7 @@ type TPageTabNavigation = {
   workspaceSlug: string;
   projectId: string;
   pageType: TPageNavigationTabs;
+  basePath?: string;
 };
 
 // pages tab options
@@ -33,7 +34,7 @@ const pageTabs: { key: TPageNavigationTabs; label: string }[] = [
 ];
 
 export function PageTabNavigation(props: TPageTabNavigation) {
-  const { workspaceSlug, projectId, pageType } = props;
+  const { workspaceSlug, projectId, pageType, basePath = "pages" } = props;
 
   const handleTabClick = (e: React.MouseEvent<HTMLAnchorElement>, tabKey: TPageNavigationTabs) => {
     if (tabKey === pageType) e.preventDefault();
@@ -44,7 +45,7 @@ export function PageTabNavigation(props: TPageTabNavigation) {
       {pageTabs.map((tab) => (
         <Link
           key={tab.key}
-          href={`/${workspaceSlug}/projects/${projectId}/pages?type=${tab.key}`}
+          href={`/${workspaceSlug}/projects/${projectId}/${basePath}?type=${tab.key}`}
           onClick={(e) => handleTabClick(e, tab.key)}
           className="flex h-full flex-col"
         >

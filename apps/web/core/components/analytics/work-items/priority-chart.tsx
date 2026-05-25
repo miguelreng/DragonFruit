@@ -238,7 +238,7 @@ const PriorityChart = observer(function PriorityChart(props: Props) {
         </>
       ) : (
         <EmptyStateCompact
-          assetKey="unknown"
+          assetKey="priority"
           assetClassName="size-20"
           rootClassName="border border-subtle px-5 py-10 md:py-20 md:px-20"
           title={t("workspace_empty_state.analytics_work_items.title")}

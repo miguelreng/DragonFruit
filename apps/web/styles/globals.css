@@ -52,8 +52,15 @@
 .sticky-title-editor .ProseMirror h1.editor-heading-block,
 .sticky-title-editor .ProseMirror h2.editor-heading-block,
 .sticky-title-editor .ProseMirror h3.editor-heading-block {
-  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
-  letter-spacing: -0.015em;
+  font-family:
+    "Figtree Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  letter-spacing: 0;
 }
 
 /* stickies and editor colors */
@@ -408,6 +415,133 @@
 }
 
 /* Page-level reading modes */
+.published-doc-title {
+  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.published-doc {
+  --tw-prose-body: var(--text-color-primary);
+  --tw-prose-headings: var(--text-color-primary);
+  --tw-prose-links: var(--text-color-accent-primary);
+  --tw-prose-bold: var(--text-color-primary);
+  --tw-prose-counters: var(--text-color-tertiary);
+  --tw-prose-bullets: var(--text-color-tertiary);
+  --tw-prose-hr: var(--border-color-subtle);
+  --tw-prose-quotes: var(--text-color-primary);
+  --tw-prose-quote-borders: var(--border-color-subtle);
+  --tw-prose-code: var(--text-color-primary);
+  --tw-prose-th-borders: var(--border-color-subtle);
+  --tw-prose-td-borders: var(--border-color-subtle);
+  font-family:
+    "Figtree Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-color-primary);
+}
+
+.published-doc :where(h1, h2, h3, .editor-heading-block:is(h1, h2, h3)) {
+  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  font-weight: 500 !important;
+  letter-spacing: 0;
+  color: var(--text-color-primary);
+}
+
+.published-doc :where(h1, h1.editor-heading-block) {
+  margin: 0;
+  padding-top: 1.375rem;
+  padding-bottom: 0.25rem;
+  font-size: 1.875rem !important;
+  line-height: 2.25rem !important;
+}
+
+.published-doc :where(h2, h2.editor-heading-block) {
+  margin: 0;
+  padding-top: 1.25rem;
+  padding-bottom: 0.25rem;
+  font-size: 1.4375rem !important;
+  line-height: 1.85rem !important;
+}
+
+.published-doc :where(h3, h3.editor-heading-block) {
+  margin: 0;
+  padding-top: 1rem;
+  padding-bottom: 0.125rem;
+  font-size: 1.1875rem !important;
+  line-height: 1.65rem !important;
+}
+
+.published-doc :where(h4, h5, h6, h4.editor-heading-block, h5.editor-heading-block, h6.editor-heading-block) {
+  font-family:
+    "Figtree Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-weight: 600 !important;
+  letter-spacing: 0;
+  color: var(--text-color-primary);
+}
+
+.published-doc :where(p, p.editor-paragraph-block) {
+  margin: 0;
+  padding-top: 0.125rem;
+  padding-bottom: 0.25rem;
+  font-size: 0.9375rem !important;
+  line-height: 1.55 !important;
+  color: var(--text-color-primary);
+}
+
+.published-doc :where(ul, ol) {
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.published-doc :where(blockquote) {
+  margin: 1.25rem 0;
+  border-left: 2px solid var(--border-color-subtle);
+  padding-left: 1.25rem;
+  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  font-size: 1.0625rem;
+  font-style: italic;
+  color: color-mix(in srgb, var(--text-color-primary) 82%, transparent);
+}
+
+.published-doc :where(pre) {
+  border: 1px solid color-mix(in srgb, var(--text-color-primary) 7%, transparent);
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--text-color-primary) 4%, transparent);
+  padding: 1rem 1.15rem;
+}
+
+.published-doc :where(code) {
+  border-radius: 4px;
+  background-color: color-mix(in srgb, var(--background-color-accent-primary) 8%, transparent);
+  padding: 0.12em 0.35em;
+  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+}
+
+.published-doc :where(img) {
+  border-radius: 8px;
+}
+
+.published-doc :where(div[data-type="horizontalRule"] > div) {
+  border-color: color-mix(in srgb, var(--text-color-primary) 12%, transparent) !important;
+  border-bottom-width: 1px !important;
+}
+
 .page-focus-mode .page-header-container {
   padding-top: 20px;
 }
@@ -418,7 +552,14 @@
 
 .page-drop-cap .ProseMirror > p:first-of-type::first-letter {
   float: left;
-  font-family: "Newsreader Variable", ui-serif, Georgia, serif;
+  font-family:
+    "Figtree Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 3.2rem;
   line-height: 0.95;
   margin-right: 0.35rem;

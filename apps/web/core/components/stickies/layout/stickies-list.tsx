@@ -5,10 +5,12 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import type {
   DropTargetRecord,
   DragLocationHistory,
 } from "@atlaskit/pragmatic-drag-and-drop/dist/types/internal-types";
+import { autoScrollForElements } from "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element";
 import type { ElementDragPayload } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
@@ -46,8 +48,21 @@ type TProps = TStickiesLayout & {
   columnCount: number;
 };
 
+const handleStickyLayout = () => {
+  // CSS grid layout reflows automatically; no manual trigger needed.
+};
+
+const getStickyColumnCount = (width: number | null): number => {
+  if (width === null) return 3;
+  if (width < 640) return 1;
+  if (width < 1024) return 2;
+  if (width < 1440) return 3;
+  return 4;
+};
+
 export const StickiesList = observer(function StickiesList(props: TProps) {
   const { workspaceSlug, intersectionElement, columnCount } = props;
+  const listRef = useRef<HTMLDivElement>(null);
   // navigation
   const pathname = usePathname();
   // theme hook
@@ -71,9 +86,17 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   const stickiesResolvedPath = resolvedTheme === "light" ? lightStickiesAsset : darkStickiesAsset;
   const stickiesSearchResolvedPath = resolvedTheme === "light" ? lightStickiesSearchAsset : darkStickiesSearchAsset;
 
-  const handleLayout = () => {
-    // CSS grid layout reflows automatically; no manual trigger needed.
-  };
+  useEffect(() => {
+    const listElement = listRef.current;
+    if (!listElement) return;
+
+    return combine(
+      autoScrollForElements({
+        element: listElement,
+        canScroll: ({ source }) => source.data?.type === "sticky",
+      })
+    );
+  }, []);
 
   // Function to determine if an item is in first or last row
   const getRowPositions = (index: number) => {
@@ -144,6 +167,7 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
 
   return (
     <div
+      ref={listRef}
       className="transition-opacity duration-300 ease-in-out"
       style={{
         display: "grid",
@@ -163,7 +187,7 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
             isLastChild={index === workspaceStickyIds.length - 1}
             isInFirstRow={isInFirstRow}
             isInLastRow={isInLastRow}
-            handleLayout={handleLayout}
+            handleLayout={handleStickyLayout}
           />
         );
       })}
@@ -193,15 +217,7 @@ export function StickiesLayout(props: TStickiesLayout) {
     return () => resizeObserver.disconnect();
   }, []);
 
-  const getColumnCount = (width: number | null): number => {
-    if (width === null) return 3;
-
-    if (width < 640) return 1;
-    if (width < 1024) return 2;
-    if (width < 1440) return 3;
-    return 4;
-  };
-  const columnCount = getColumnCount(containerWidth);
+  const columnCount = getStickyColumnCount(containerWidth);
 
   return (
     <div ref={ref} className="size-full">

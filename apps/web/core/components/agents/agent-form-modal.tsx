@@ -48,6 +48,18 @@ const PROVIDER_OPTIONS = [
     models: ["anthropic/claude-3.7-sonnet", "openai/gpt-4o", "google/gemini-2.0-flash-001"],
     defaultBaseUrl: "https://openrouter.ai/api/v1",
   },
+  {
+    value: "hermes",
+    label: "Hermes",
+    models: ["hermes", "hermes-3", "hermes-2-pro"],
+    defaultBaseUrl: "",
+  },
+  {
+    value: "openclaw",
+    label: "OpenClaw",
+    models: ["openclaw", "openclaw-coder", "openclaw-reasoner"],
+    defaultBaseUrl: "",
+  },
 ] as const;
 
 const PROVIDER_DEFAULT_BASE_URL: Record<string, string> = {
@@ -143,6 +155,26 @@ type TProviderOption = {
   defaultBaseUrl: string;
 };
 
+const mergeProviderOptions = (providers: TProviderOption[]) => {
+  const optionsByValue = new Map<string, TProviderOption>();
+  for (const provider of PROVIDER_OPTIONS) {
+    optionsByValue.set(provider.value, {
+      value: provider.value,
+      label: provider.label,
+      models: [...provider.models],
+      defaultBaseUrl: provider.defaultBaseUrl,
+    });
+  }
+  for (const provider of providers) {
+    const fallback = optionsByValue.get(provider.value);
+    optionsByValue.set(provider.value, {
+      ...provider,
+      defaultBaseUrl: provider.defaultBaseUrl || fallback?.defaultBaseUrl || "",
+    });
+  }
+  return [...optionsByValue.values()];
+};
+
 export function AgentFormModal(props: IAgentFormModalProps) {
   const { isOpen, onClose, mode, workspaceSlug } = props;
   const { t } = useTranslation();
@@ -180,7 +212,7 @@ export function AgentFormModal(props: IAgentFormModalProps) {
           models: provider.models || [],
           defaultBaseUrl: PROVIDER_DEFAULT_BASE_URL[value] ?? "",
         }));
-        if (options.length > 0) setProviderOptions(options);
+        if (options.length > 0) setProviderOptions(mergeProviderOptions(options));
       } catch {
         // Keep local defaults on fetch failures.
       }
