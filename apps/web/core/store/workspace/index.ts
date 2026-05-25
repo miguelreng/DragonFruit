@@ -215,8 +215,11 @@ export abstract class BaseWorkspaceRootStore implements IWorkspaceRootStore {
     await this.workspaceService.updateWorkspace(workspaceSlug, data).then((res) => {
       if (res && res.id) {
         runInAction(() => {
-          Object.keys(data).forEach((key) => {
-            set(this.workspaces, [res.id, key], data[key as keyof IWorkspace]);
+          const currentWorkspace = this.workspaces[res.id] ?? {};
+          set(this.workspaces, res.id, {
+            ...currentWorkspace,
+            ...data,
+            ...res,
           });
         });
       }
