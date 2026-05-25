@@ -64,7 +64,7 @@ async function signIn(appUrlValue) {
   const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
   const callbackUrl = chrome.identity.getRedirectURL("auth/login-callback");
   const loginUrl = `${appUrl}/auth/native/start/?callback=${encodeURIComponent(callbackUrl)}`;
-  const redirectUrl = await chrome.identity.launchWebAuthFlow({
+  const redirectUrl = await launchAuthFlow({
     url: loginUrl,
     interactive: true,
   });
@@ -73,6 +73,23 @@ async function signIn(appUrlValue) {
   await chrome.storage.sync.set({ appUrl, apiToken: token });
   const user = await fetchCurrentUser(appUrl, token);
   return { ok: true, user };
+}
+
+async function launchAuthFlow(details) {
+  return new Promise((resolve, reject) => {
+    chrome.identity.launchWebAuthFlow(details, (redirectUrl) => {
+      const error = chrome.runtime.lastError;
+      if (error) {
+        reject(new Error(error.message));
+        return;
+      }
+      if (!redirectUrl) {
+        reject(new Error("DragonFruit login did not return a callback URL."));
+        return;
+      }
+      resolve(redirectUrl);
+    });
+  });
 }
 
 async function signOut() {

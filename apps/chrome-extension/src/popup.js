@@ -34,6 +34,10 @@ async function init() {
 
 async function refreshAuthState() {
   chrome.runtime.sendMessage({ type: "GET_AUTH_STATE", appUrl: normalizeAppUrl(appUrlInput.value) }, (response) => {
+    if (chrome.runtime.lastError) {
+      setStatus(chrome.runtime.lastError.message || "Could not check account", "error");
+      return;
+    }
     isAuthenticated = Boolean(response?.authenticated);
     const label = response?.user?.display_name || response?.user?.email || "Connected";
     authActionButton.textContent = isAuthenticated ? label : "Connect";
@@ -47,6 +51,11 @@ async function toggleAuth() {
   await persistSettings();
   if (isAuthenticated) {
     chrome.runtime.sendMessage({ type: "SIGN_OUT" }, (response) => {
+      if (chrome.runtime.lastError) {
+        authActionButton.disabled = false;
+        setStatus(chrome.runtime.lastError.message || "Could not sign out", "error");
+        return;
+      }
       isAuthenticated = false;
       authActionButton.disabled = false;
       authActionButton.textContent = "Connect";
@@ -60,6 +69,10 @@ async function toggleAuth() {
   setStatus("Opening sign in...", "loading");
   chrome.runtime.sendMessage({ type: "SIGN_IN", appUrl: normalizeAppUrl(appUrlInput.value) }, (response) => {
     authActionButton.disabled = false;
+    if (chrome.runtime.lastError) {
+      setStatus(chrome.runtime.lastError.message || "Could not connect", "error");
+      return;
+    }
     if (!response?.ok) {
       setStatus(response?.error || "Could not connect", "error");
       return;
@@ -79,6 +92,11 @@ async function loadProjects() {
   const appUrl = normalizeAppUrl(appUrlInput.value);
   const workspaceSlug = workspaceInput.value.trim();
   chrome.runtime.sendMessage({ type: "LOAD_PROJECTS", appUrl, workspaceSlug }, async (response) => {
+    if (chrome.runtime.lastError) {
+      setStatus(chrome.runtime.lastError.message || "Could not load projects", "error");
+      loadProjectsButton.disabled = false;
+      return;
+    }
     if (!response?.ok) {
       setStatus(response?.error || "Could not load projects", "error");
       loadProjectsButton.disabled = false;
@@ -97,6 +115,11 @@ async function saveActivePage() {
   setStatus("Saving...", "loading");
   savePageButton.disabled = true;
   chrome.runtime.sendMessage({ type: "SAVE_ACTIVE_TAB" }, (response) => {
+    if (chrome.runtime.lastError) {
+      setStatus(chrome.runtime.lastError.message || "Could not save", "error");
+      savePageButton.disabled = false;
+      return;
+    }
     const ok = Boolean(response?.ok);
     setStatus(ok ? "Saved" : response?.error || "Could not save", ok ? "success" : "error");
     savePageButton.disabled = false;
