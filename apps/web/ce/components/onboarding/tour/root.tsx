@@ -96,7 +96,7 @@ const TOUR_STEPS: {
     key: "inbox",
     title: "Capture with inbox",
     description:
-      "Inbox helps you collect new requests quickly, triage them with your team, and convert them into planned work items.",
+      "Inbox helps you collect new requests quickly, triage them with your team, and convert them into planned tasks.",
     image: NotificationTour,
     prevStep: "pages",
     nextStep: "analytics",

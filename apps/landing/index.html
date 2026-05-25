@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="DragonFruit: a workspace for the new generalists." />
+    <meta property="og:title" content="DragonFruit" />
+    <meta property="og:description" content="A workspace for the new generalists." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <title>DragonFruit</title>
+    <style>
+      @font-face {
+        font-family: "Figtree";
+        src: url("./fonts/Figtree-Variable.woff2") format("woff2");
+        font-weight: 300 900;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: "Newsreader";
+        src: url("./fonts/Newsreader-Variable.ttf") format("truetype");
+        font-weight: 200 900;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      :root {
+        --bg: #fff;
+        --text: #111;
+        --muted: #575757;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Newsreader",
+          Georgia,
+          serif;
+        letter-spacing: 0;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.86fr);
+        gap: clamp(32px, 5vw, 64px);
+        align-items: center;
+        width: min(100%, 1200px);
+        min-height: 100svh;
+        margin: 0 auto;
+        padding: clamp(28px, 5vw, 56px) clamp(20px, 4vw, 40px);
+      }
+
+      .copy {
+        min-width: 0;
+      }
+
+      header {
+        margin-bottom: clamp(28px, 4vw, 36px);
+      }
+
+      .topbar {
+        margin-bottom: 12px;
+      }
+
+      .brand {
+        display: block;
+        width: clamp(132px, 14vw, 150px);
+        height: auto;
+      }
+
+      h1 {
+        margin: 0;
+        font-family:
+          "Figtree",
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+        font-size: clamp(34px, 5.2vw, 48px);
+        font-weight: 400;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .imprenta-illustration {
+        display: block;
+        width: min(100%, 540px);
+        height: auto;
+        margin: 0;
+        opacity: 0.92;
+      }
+
+      .content {
+        display: block;
+      }
+
+      section {
+        margin-bottom: clamp(28px, 4vw, 36px);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-family:
+          "Figtree",
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+        font-size: 15px;
+        font-weight: 400;
+        line-height: 1.4;
+      }
+
+      p,
+      li,
+      footer {
+        font-size: 14px;
+        line-height: 1.48;
+      }
+
+      p {
+        margin: 0 0 10px;
+      }
+
+      p:last-child {
+        margin-bottom: 0;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      li {
+        margin-bottom: 7px;
+      }
+
+      li:last-child {
+        margin-bottom: 0;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      p,
+      li {
+        color: var(--text);
+      }
+
+      h2 {
+        color: var(--muted);
+      }
+
+      footer {
+        font-family:
+          "Figtree",
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+        padding-bottom: 0;
+      }
+
+      @media (min-width: 900px) {
+        p,
+        li {
+          font-size: 14px;
+          line-height: 1.46;
+        }
+      }
+
+      @media (max-width: 920px) {
+        main {
+          grid-template-columns: 1fr;
+          align-items: start;
+          width: min(100%, 720px);
+          min-height: auto;
+        }
+
+        .imprenta-illustration {
+          width: min(100%, 520px);
+          margin: 0 auto 0 0;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .imprenta-illustration {
+          width: min(100%, 380px);
+        }
+
+        footer {
+          padding-bottom: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="copy">
+        <header>
+          <div class="topbar">
+            <img class="brand" src="./assets/logo.svg" alt="DragonFruit" width="184" height="41" />
+          </div>
+          <h1>A workspace for the new generalists.</h1>
+        </header>
+
+        <div class="content">
+          <section aria-labelledby="imprenta-title">
+            <h2 id="imprenta-title">The imprenta thing</h2>
+            <p>
+              Before the printing press, knowledge moved slowly. It lived in rooms, guilds, monasteries, families, and
+              professions you were usually born near before you ever got to choose them.
+            </p>
+            <p>
+              Then books started moving. Not all at once, and not equally, but enough. A person could read outside their
+              assigned lane. A carpenter could become an astronomer. A clerk could become a political thinker. A curious
+              person could become harder to contain.
+            </p>
+            <p>
+              AI feels like another one of those openings. It does not make craft cheap. It makes more doors reachable. The
+              person who can think clearly, ask well, and keep going can cross disciplines without waiting for a whole
+              institution to give permission.
+            </p>
+            <p>DragonFruit is for that person.</p>
+          </section>
+
+          <section aria-labelledby="manifesto-title">
+            <h2 id="manifesto-title">Manifesto</h2>
+            <ul>
+              <li>Work should begin as thinking, not as tickets.</li>
+              <li>Documents and tasks belong in the same room.</li>
+              <li>A project should hold the plan, the document, the task, the cycle, and the thread between them.</li>
+              <li>Copilot, agents, and dictation should extend a thought without taking it away from its author.</li>
+              <li>The best builders are allowed to be writers, researchers, designers, operators, and engineers.</li>
+              <li>AI is useful when it helps you make the next honest thing.</li>
+              <li>A workspace should be quiet enough for a thought to survive.</li>
+              <li>The future belongs to people who can move between fields and still finish.</li>
+            </ul>
+          </section>
+        </div>
+
+        <footer>
+          <a href="https://app.dragonfruit.sh">Open the app</a>
+        </footer>
+      </div>
+
+      <img
+        class="imprenta-illustration"
+        src="./assets/imprenta.png"
+        alt="Renaissance-style sketch of several people gathered around a desk with a scroll"
+        width="768"
+        height="466"
+      />
+    </main>
+  </body>
+</html>
