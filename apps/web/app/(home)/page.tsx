@@ -7,11 +7,19 @@
 import React from "react";
 import { ArrowRight, Check, FileText, GitBranch, ListChecks, Sparkle } from "@phosphor-icons/react";
 // components
+import { AuthBase } from "@/components/auth-screens/auth-base";
 import { PageHead } from "@/components/core/page-title";
+// helpers
+import { EAuthModes, EPageTypes } from "@/helpers/authentication.helper";
+// layouts
+import DefaultLayout from "@/layouts/default-layout";
+// wrappers
+import { AuthenticationWrapper } from "@/lib/wrappers/authentication-wrapper";
 // assets
 import dragonMark from "@/app/assets/branding/dragon.svg?url";
 
 const APP_URL = "https://app.dragonfruit.sh";
+const APP_HOSTNAME = "app.dragonfruit.sh";
 
 const navGroups = [
   {
@@ -116,6 +124,21 @@ const capabilities = [
 ];
 
 function HomePage() {
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+
+  if (hostname === APP_HOSTNAME) {
+    return (
+      <>
+        <PageHead title="Sign in to Dragon Fruit" />
+        <DefaultLayout>
+          <AuthenticationWrapper pageType={EPageTypes.NON_AUTHENTICATED}>
+            <AuthBase authType={EAuthModes.SIGN_IN} />
+          </AuthenticationWrapper>
+        </DefaultLayout>
+      </>
+    );
+  }
+
   return (
     <>
       <PageHead title="Dragon Fruit - The workspace for the new generalists" />
