@@ -12,18 +12,12 @@ import { useTranslation } from "@plane/i18n";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
-import { LockIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
-import { EFileAssetType } from "@plane/types";
 import type { IProject, IWorkspace } from "@plane/types";
 import { CustomSelect, Input, TextArea } from "@plane/ui";
 import { renderFormattedDate } from "@plane/utils";
-import { CoverImage } from "@/components/common/cover-image";
-import { ImagePickerPopover } from "@/components/core/image-picker-popover";
 import { TimezoneSelect } from "@/components/global";
-// helpers
-import { handleCoverImageChange } from "@/helpers/cover-image.helper";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -53,7 +47,6 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
   // form info
   const {
     handleSubmit,
-    watch,
     control,
     setValue,
     setError,
@@ -66,10 +59,6 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
       workspace: (project.workspace as IWorkspace).id,
     },
   });
-  // derived values
-  const currentNetwork = NETWORK_CHOICES.find((n) => n.key === project?.network);
-  const coverImage = watch("cover_image_url");
-
   useEffect(() => {
     if (project && projectId !== getValues("id")) {
       reset({
@@ -90,55 +79,54 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
 
   const handleUpdateChange = async (payload: Partial<IProject>) => {
     if (!workspaceSlug || !project) return;
-    return updateProject(workspaceSlug.toString(), project.id, payload)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: t("toast.success"),
-          message: t("project_settings.general.toast.success"),
-        });
-      })
-      .catch((err) => {
-        try {
-          // Handle the new error format where codes are nested in arrays under field names
-          const errorData = err ?? {};
+    try {
+      await updateProject(workspaceSlug.toString(), project.id, payload);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("toast.success"),
+        message: t("project_settings.general.toast.success"),
+      });
+    } catch (err) {
+      try {
+        // Handle the new error format where codes are nested in arrays under field names
+        const errorData = (err ?? {}) as Record<string, string[] | undefined>;
 
-          const nameError = errorData.name?.includes("PROJECT_NAME_ALREADY_EXIST");
-          const identifierError = errorData?.identifier?.includes("PROJECT_IDENTIFIER_ALREADY_EXIST");
+        const nameError = errorData.name?.includes("PROJECT_NAME_ALREADY_EXIST");
+        const identifierError = errorData?.identifier?.includes("PROJECT_IDENTIFIER_ALREADY_EXIST");
 
-          if (nameError || identifierError) {
-            if (nameError) {
-              setToast({
-                type: TOAST_TYPE.ERROR,
-                title: t("toast.error"),
-                message: t("project_name_already_taken"),
-              });
-            }
-
-            if (identifierError) {
-              setToast({
-                type: TOAST_TYPE.ERROR,
-                title: t("toast.error"),
-                message: t("project_identifier_already_taken"),
-              });
-            }
-          } else {
+        if (nameError || identifierError) {
+          if (nameError) {
             setToast({
               type: TOAST_TYPE.ERROR,
               title: t("toast.error"),
-              message: t("something_went_wrong"),
+              message: t("project_name_already_taken"),
             });
           }
-        } catch (error) {
-          // Fallback error handling if the error processing fails
-          console.error("Error processing API error:", error);
+
+          if (identifierError) {
+            setToast({
+              type: TOAST_TYPE.ERROR,
+              title: t("toast.error"),
+              message: t("project_identifier_already_taken"),
+            });
+          }
+        } else {
           setToast({
             type: TOAST_TYPE.ERROR,
             title: t("toast.error"),
             message: t("something_went_wrong"),
           });
         }
-      });
+      } catch (error) {
+        // Fallback error handling if the error processing fails
+        console.error("Error processing API error:", error);
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: t("toast.error"),
+          message: t("something_went_wrong"),
+        });
+      }
+    }
   };
 
   const onSubmit = async (formData: IProject) => {
@@ -154,37 +142,11 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
       timezone: formData.timezone,
     };
 
-    // Handle cover image changes
-    try {
-      const coverImagePayload = await handleCoverImageChange(project.cover_image_url, formData.cover_image_url, {
-        workspaceSlug: workspaceSlug.toString(),
-        entityIdentifier: project.id,
-        entityType: EFileAssetType.PROJECT_COVER,
-        isUserAsset: false,
-      });
-
-      if (coverImagePayload) {
-        Object.assign(payload, coverImagePayload);
-      }
-    } catch (error) {
-      console.error("Error handling cover image:", error);
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("toast.error"),
-        message: error instanceof Error ? error.message : "Failed to process cover image",
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    if (project.identifier !== formData.identifier)
-      await projectService
-        .checkProjectIdentifierAvailability(workspaceSlug, payload.identifier ?? "")
-        .then(async (res) => {
-          if (res.exists) setError("identifier", { message: t("common.identifier_already_exists") });
-          else await handleUpdateChange(payload);
-        });
-    else await handleUpdateChange(payload);
+    if (project.identifier !== formData.identifier) {
+      const res = await projectService.checkProjectIdentifierAvailability(workspaceSlug, payload.identifier ?? "");
+      if (res.exists) setError("identifier", { message: t("common.identifier_already_exists") });
+      else await handleUpdateChange(payload);
+    } else await handleUpdateChange(payload);
     setTimeout(() => {
       setIsLoading(false);
     }, 300);
@@ -192,11 +154,10 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="relative h-44 w-full">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <CoverImage src={coverImage} alt="Project cover image" className="h-44 w-full rounded-md" />
-        <div className="absolute bottom-4 z-5 flex w-full items-end justify-between gap-3 px-4">
-          <div className="flex flex-grow gap-3 truncate">
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-1">
+          <h4 className="text-13">{t("icon_and_name")}</h4>
+          <div className="flex items-stretch gap-3">
             <Controller
               control={control}
               name="logo_props"
@@ -207,8 +168,8 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                   isOpen={isOpen}
                   handleToggle={(val: boolean) => setIsOpen(val)}
                   className="flex items-center justify-center"
-                  buttonClassName="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-lg bg-white/10"
-                  label={<Logo logo={value} size={28} />}
+                  buttonClassName="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-md border border-subtle bg-layer-2"
+                  label={<Logo logo={value} size={20} />}
                   // TODO: fix types
                   onChange={(val: any) => {
                     let logoValue = {};
@@ -233,65 +194,32 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                 />
               )}
             />
-            <div className="flex flex-col gap-1 truncate text-on-color">
-              <span className="truncate text-16 font-semibold">{watch("name")}</span>
-              <span className="flex items-center gap-2 text-13">
-                <span>{watch("identifier")} .</span>
-                <span className="flex items-center gap-1.5">
-                  {project.network === 0 && <LockIcon className="h-2.5 w-2.5 text-on-color" />}
-                  {currentNetwork && t(currentNetwork?.i18n_label)}
-                </span>
-              </span>
-            </div>
+            <Controller
+              control={control}
+              name="name"
+              rules={{
+                required: t("name_is_required"),
+                maxLength: {
+                  value: 255,
+                  message: "Project name should be less than 255 characters",
+                },
+              }}
+              render={({ field: { value, onChange, ref } }) => (
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  ref={ref}
+                  value={value}
+                  onChange={onChange}
+                  hasError={Boolean(errors.name)}
+                  className="rounded-md !p-3 font-medium"
+                  placeholder={t("common.project_name")}
+                  disabled={!isAdmin}
+                />
+              )}
+            />
           </div>
-          <div className="flex flex-shrink-0 justify-center">
-            <div>
-              <Controller
-                control={control}
-                name="cover_image_url"
-                render={({ field: { value, onChange } }) => (
-                  <ImagePickerPopover
-                    label={t("change_cover")}
-                    control={control}
-                    onChange={onChange}
-                    value={value ?? null}
-                    disabled={!isAdmin}
-                    projectId={project.id}
-                  />
-                )}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="mt-8 flex flex-col gap-8">
-        <div className="flex flex-col gap-1">
-          <h4 className="text-13">{t("common.project_name")}</h4>
-          <Controller
-            control={control}
-            name="name"
-            rules={{
-              required: t("name_is_required"),
-              maxLength: {
-                value: 255,
-                message: "Project name should be less than 255 characters",
-              },
-            }}
-            render={({ field: { value, onChange, ref } }) => (
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                ref={ref}
-                value={value}
-                onChange={onChange}
-                hasError={Boolean(errors.name)}
-                className="rounded-md !p-3 font-medium"
-                placeholder={t("common.project_name")}
-                disabled={!isAdmin}
-              />
-            )}
-          />
           <span className="text-11 text-danger-primary">{errors?.name?.message}</span>
         </div>
         <div className="flex flex-col gap-1">
@@ -410,12 +338,12 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
               name="timezone"
               control={control}
               rules={{ required: t("project_settings.general.please_select_a_timezone") }}
-              render={({ field: { value, onChange } }) => (
+              render={({ field: { value: timezone, onChange } }) => (
                 <>
                   <TimezoneSelect
-                    value={value}
-                    onChange={(value: string) => {
-                      onChange(value);
+                    value={timezone}
+                    onChange={(nextTimezone: string) => {
+                      onChange(nextTimezone);
                     }}
                     error={Boolean(errors.timezone)}
                     buttonClassName="!border-subtle !shadow-none font-medium rounded-md"
