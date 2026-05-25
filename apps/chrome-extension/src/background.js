@@ -101,7 +101,7 @@ async function completeExternalSignIn(message) {
   const token = String(message.apiToken || "");
   if (!token) return { ok: false, error: "Missing DragonFruit API token." };
   await persistToken(appUrl, token);
-  const user = await fetchCurrentUser(appUrl, token);
+  const user = await fetchCurrentUser(appUrl, token).catch(() => null);
   return { ok: true, user };
 }
 
@@ -111,7 +111,7 @@ async function completePendingSignIn(appUrlValue) {
   const token = await fetchNativeTokenFromSession(appUrl, callbackUrl);
   if (!token) return { ok: false, pending: true };
   await persistToken(appUrl, token);
-  const user = await fetchCurrentUser(appUrl, token);
+  const user = await fetchCurrentUser(appUrl, token).catch(() => null);
   return { ok: true, user };
 }
 
@@ -208,7 +208,15 @@ async function getAuthState(appUrlValue) {
     const user = await fetchCurrentUser(appUrl, apiToken);
     await chrome.storage.sync.set({ authStatus: "connected", authError: "" });
     return { ok: true, authenticated: true, user };
-  } catch {
+  } catch (error) {
+    if (authStatus === "connected") {
+      return {
+        ok: true,
+        authenticated: true,
+        user: null,
+        warning: error?.message || "Could not refresh DragonFruit account.",
+      };
+    }
     await chrome.storage.sync.remove(["apiToken"]);
     return { ok: true, authenticated: false, error: "Saved DragonFruit session expired." };
   }

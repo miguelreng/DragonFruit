@@ -83,6 +83,7 @@ async function refreshAuthState({ preferredView = "bookmark" } = {}) {
     stopAuthPolling();
     await ensureBookmarkContext();
     updateAccountLabel();
+    if (response?.warning) setStatus(response.warning, "");
     if (preferredView === "settings") showSettings();
     else showBookmark();
   });
