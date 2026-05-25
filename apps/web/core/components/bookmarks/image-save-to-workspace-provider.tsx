@@ -39,8 +39,14 @@ const normalizeImageUrl = (src: string) => {
 const imageTitle = (imageUrl: string, imageAlt: string) => {
   if (imageAlt.trim()) return imageAlt.trim();
   try {
-    const pathParts = new URL(imageUrl).pathname.split("/").toReversed();
-    const fileName = pathParts.find((part) => part.length > 0);
+    const pathParts = new URL(imageUrl).pathname.split("/");
+    let fileName = "";
+    for (let index = pathParts.length - 1; index >= 0; index -= 1) {
+      if (pathParts[index]) {
+        fileName = pathParts[index];
+        break;
+      }
+    }
     return fileName ? decodeURIComponent(fileName).replace(/[-_]+/g, " ") : "Saved image";
   } catch {
     return "Saved image";
