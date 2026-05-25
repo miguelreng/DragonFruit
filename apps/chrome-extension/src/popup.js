@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-const DEFAULT_APP_URL = "http://localhost:3000";
+const DEFAULT_APP_URL = "https://api.dragonfruit.sh";
 
 const appUrlInput = document.querySelector("#app-url");
 const workspaceInput = document.querySelector("#workspace-slug");
@@ -17,7 +17,10 @@ init();
 
 async function init() {
   const stored = await chrome.storage.sync.get(["appUrl", "workspaceSlug", "projectId", "projects"]);
-  appUrlInput.value = stored.appUrl || DEFAULT_APP_URL;
+  appUrlInput.value = normalizeAppUrl(stored.appUrl || DEFAULT_APP_URL);
+  if (stored.appUrl !== appUrlInput.value) {
+    await chrome.storage.sync.set({ appUrl: appUrlInput.value });
+  }
   workspaceInput.value = stored.workspaceSlug || "";
   renderProjects(stored.projects || [], stored.projectId || "");
   authActionButton.addEventListener("click", toggleAuth);
@@ -189,5 +192,15 @@ function setStatus(text, state = "") {
 }
 
 function normalizeAppUrl(value) {
-  return String(value || DEFAULT_APP_URL).replace(/\/+$/, "");
+  const url = String(value || DEFAULT_APP_URL).replace(/\/+$/, "");
+  return isLocalAppUrl(url) ? DEFAULT_APP_URL : url;
+}
+
+function isLocalAppUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  } catch {
+    return false;
+  }
 }
