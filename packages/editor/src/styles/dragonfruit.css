@@ -86,11 +86,11 @@
 .editor-container.dragonfruit .ProseMirror h3.editor-heading-block {
   font-family: var(--font-style-display);
   font-weight: 500 !important;
-  letter-spacing: -0.018em;
+  letter-spacing: 0;
 }
 
 .editor-container.dragonfruit .ProseMirror h1.editor-heading-block {
-  letter-spacing: -0.022em;
+  letter-spacing: 0;
 }
 
 .editor-container.dragonfruit .ProseMirror h4.editor-heading-block,
@@ -98,14 +98,14 @@
 .editor-container.dragonfruit .ProseMirror h6.editor-heading-block {
   font-family: var(--font-style-display-sans);
   font-weight: 600 !important;
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
 }
 
 /* Title editor — the giant page title at the top of a doc */
 .editor-container.dragonfruit.page-title-editor .ProseMirror {
   font-family: var(--font-style-display);
   font-weight: 500;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   font-size: clamp(2rem, 4vw, 2.75rem);
   line-height: 1.15;
 }
