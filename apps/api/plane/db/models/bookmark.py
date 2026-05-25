@@ -36,6 +36,8 @@ class ProjectBookmark(ProjectBaseModel):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
+            if self.updated_by_id is None and self.created_by_id:
+                self.updated_by = self.created_by
             largest = ProjectBookmark.objects.filter(project=self.project).aggregate(largest=models.Max("sort_order"))[
                 "largest"
             ]
