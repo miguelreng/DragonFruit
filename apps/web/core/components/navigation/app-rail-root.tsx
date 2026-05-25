@@ -5,7 +5,7 @@
  */
 
 "use client";
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -27,8 +27,9 @@ import {
 } from "@/components/icons/lucide-shim";
 import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@plane/propel/icons";
 import { Logo } from "@plane/propel/emoji-icon-picker";
+import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CustomMenu } from "@plane/ui";
+import { CustomMenu, EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
 import { cn, copyTextToClipboard } from "@plane/utils";
 import { orderBy } from "lodash-es";
 import { NotificationsBell } from "@/plane-web/components/navigations/notifications-bell";
@@ -299,10 +300,67 @@ const RailCategory = (props: {
   );
 };
 
+const RenameProjectModal = (props: {
+  isOpen: boolean;
+  projectName: string;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (name: string) => Promise<void>;
+}) => {
+  const { isOpen, projectName, isSubmitting, onClose, onSubmit } = props;
+  const [name, setName] = useState(projectName);
+
+  useEffect(() => {
+    if (isOpen) setName(projectName);
+  }, [isOpen, projectName]);
+
+  const trimmedName = name.trim();
+  const canSubmit = trimmedName.length > 0 && trimmedName !== projectName && !isSubmitting;
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canSubmit) return;
+    await onSubmit(trimmedName);
+  };
+
+  return (
+    <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.CENTER} width={EModalWidth.MD}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-5">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-16 font-medium text-primary">Rename project</h3>
+          <p className="text-13 text-secondary">Update the project name shown in the sidebar.</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="rename-project-name" className="text-13 font-medium text-secondary">
+            Project name
+          </label>
+          <Input
+            id="rename-project-name"
+            name="projectName"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="off"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" size="lg" onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary" size="lg" disabled={!canSubmit} loading={isSubmitting}>
+            {isSubmitting ? "Renaming" : "Rename"}
+          </Button>
+        </div>
+      </form>
+    </ModalCore>
+  );
+};
+
 const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; workspaceSlug: string }) => {
   const { item, pathname, workspaceSlug } = props;
   const [isOpen, setIsOpen] = useState(item.isActive);
   const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
+  const [isRenameProjectModalOpen, setIsRenameProjectModalOpen] = useState(false);
+  const [isRenameSubmitting, setIsRenameSubmitting] = useState(false);
   const { updateProject } = useProject();
   const { allowPermissions } = useUserPermissions();
   const isTasksActive = isRouteMatch(item.tasksHref, pathname);
@@ -332,12 +390,13 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
     }
   };
 
-  const handleRenameProject = async () => {
-    const nextName = window.prompt("Rename project", item.label)?.trim();
+  const handleRenameProject = async (nextName: string) => {
     if (!nextName || nextName === item.label) return;
 
     try {
+      setIsRenameSubmitting(true);
       await updateProject(workspaceSlug, item.id, { name: nextName });
+      setIsRenameProjectModalOpen(false);
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Project renamed",
@@ -349,6 +408,8 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
         title: "Couldn't rename project",
         message: "Try again in a moment.",
       });
+    } finally {
+      setIsRenameSubmitting(false);
     }
   };
 
@@ -362,6 +423,13 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
         project={item.project}
         isOpen={isDeleteProjectModalOpen}
         onClose={() => setIsDeleteProjectModalOpen(false)}
+      />
+      <RenameProjectModal
+        isOpen={isRenameProjectModalOpen}
+        projectName={item.label}
+        isSubmitting={isRenameSubmitting}
+        onClose={() => setIsRenameProjectModalOpen(false)}
+        onSubmit={handleRenameProject}
       />
       <div className="flex w-full flex-col">
         <div
@@ -410,7 +478,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
               </span>
             </CustomMenu.MenuItem>
             {isProjectAdmin && (
-              <CustomMenu.MenuItem onClick={() => void handleRenameProject()}>
+              <CustomMenu.MenuItem onClick={() => setIsRenameProjectModalOpen(true)}>
                 <span className="flex items-center justify-start gap-2">
                   <EditIcon className="h-3.5 w-3.5 stroke-[1.5]" />
                   <span>Rename</span>

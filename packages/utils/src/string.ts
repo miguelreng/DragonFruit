@@ -56,7 +56,7 @@ export const truncateText = (str: string, length: number) => {
 export const createSimilarString = (str: string) => {
   const shuffled = str
     .split("")
-    .sort(() => Math.random() - 0.5)
+    .toSorted(() => Math.random() - 0.5)
     .join("");
 
   return shuffled;
@@ -153,7 +153,7 @@ export const checkEmailValidity = (email: string): boolean => {
   if (!email) return false;
 
   const isEmailValid =
-    /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
       email
     );
 
@@ -236,7 +236,7 @@ export const isCommentEmpty = (comment: Content | undefined): boolean => {
 
   // Handle JSONContent[] (array)
   if (Array.isArray(comment)) {
-    return comment.length === 0 || comment.every(isJSONContentEmpty);
+    return comment.every(isJSONContentEmpty);
   }
 
   // Handle JSONContent (object)
@@ -359,11 +359,9 @@ const fallbackCopyTextToClipboard = (text: string) => {
     // FIXME: Even though we are using this as a fallback, execCommand is deprecated 👎. We should find a better way to do this.
     // https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand
     document.execCommand("copy");
-  } catch (_err) {
-    // catch fallback error
+  } finally {
+    document.body.removeChild(textArea);
   }
-
-  document.body.removeChild(textArea);
 };
 
 /**
@@ -378,7 +376,12 @@ export const copyTextToClipboard = async (text: string): Promise<void> => {
     fallbackCopyTextToClipboard(text);
     return;
   }
-  await navigator.clipboard.writeText(text);
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_err) {
+    fallbackCopyTextToClipboard(text);
+  }
 };
 
 /**
