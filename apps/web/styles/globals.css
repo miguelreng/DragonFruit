@@ -423,6 +423,10 @@
   letter-spacing: 0;
 }
 
+.font-newsreader {
+  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+}
+
 .published-doc-title {
   font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
   font-size: clamp(2rem, 4vw, 2.75rem);

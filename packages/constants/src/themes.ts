@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-export const THEMES = ["light", "dark"];
+export const THEMES = ["light", "dark", "sepia"];
 
 export interface I_THEME_OPTION {
   key: string;
@@ -39,6 +39,17 @@ export const THEME_OPTIONS: I_THEME_OPTION[] = [
       border: "#2E3234",
       color1: "#191B1B",
       color2: "#F0F0F2",
+    },
+  },
+  {
+    key: "sepia",
+    value: "sepia",
+    i18n_label: "Sepia",
+    type: "light",
+    icon: {
+      border: "#D7C7AA",
+      color1: "#F8F1E3",
+      color2: "#6E5740",
     },
   },
 ];

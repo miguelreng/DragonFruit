@@ -19,7 +19,8 @@
 }
 
 /* text background colors */
-[data-theme*="light"] {
+[data-theme*="light"],
+[data-theme*="sepia"] {
   --editor-colors-gray-background: #d6d6d8;
   --editor-colors-peach-background: #ffd5d7;
   --editor-colors-pink-background: #fdd4e3;

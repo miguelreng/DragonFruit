@@ -60,7 +60,7 @@ export interface ICustomMenuDropdownProps extends IDropdownProps {
   openOnHover?: boolean;
   ariaLabel?: string;
   /** When set, applies `data-theme` to the panel's outer div so its tokens (bg, border, text) flip independently of the page theme. */
-  panelDataTheme?: "dark" | "light";
+  panelDataTheme?: "dark" | "light" | "sepia";
 }
 
 export interface ICustomSelectProps extends IDropdownProps {

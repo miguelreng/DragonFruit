@@ -563,6 +563,7 @@ export const Circle = huge(CircleSvg);
 export const EyeIcon = Eye;
 export const GithubIcon = GithubLogo;
 export const GripVertical = huge(Drag04Icon);
+export const HardDrive = huge(Folder02Icon);
 export const Home = House;
 export const Hotel = Buildings;
 export const LockIcon = Lock;

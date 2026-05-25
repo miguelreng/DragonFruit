@@ -24,4 +24,8 @@
  */
 
 export const resolveGeneralTheme = (resolvedTheme: string | undefined) =>
-  resolvedTheme?.includes("light") ? "light" : resolvedTheme?.includes("dark") ? "dark" : "system";
+  resolvedTheme?.includes("light") || resolvedTheme?.includes("sepia")
+    ? "light"
+    : resolvedTheme?.includes("dark")
+      ? "dark"
+      : "system";

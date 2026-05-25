@@ -268,7 +268,8 @@
   }
 
   [data-theme="light"],
-  [data-theme="light-contrast"] {
+  [data-theme="light-contrast"],
+  [data-theme="sepia"] {
     /* Neutral colors */
     --neutral-white: oklch(1 0 0);
     --neutral-100: oklch(0.9848 0.0003 230.66);
@@ -515,5 +516,37 @@
     --txt-plans-brand-color: var(--neutral-100);
     --bg-plans-brand-subtle: var(--brand-200);
     --bg-plans-brand-solid: var(--brand-1200);
+  }
+
+  [data-theme="sepia"] {
+    /* Warm paper neutrals. Sepia keeps the light theme hierarchy while shifting
+     * canvas, layers, borders, and text toward a calmer reading palette. */
+    --neutral-white: oklch(0.991 0.016 83);
+    --neutral-100: oklch(0.972 0.019 82);
+    --neutral-200: oklch(0.949 0.022 82);
+    --neutral-300: oklch(0.922 0.025 81);
+    --neutral-400: oklch(0.887 0.028 79);
+    --neutral-500: oklch(0.846 0.03 77);
+    --neutral-600: oklch(0.79 0.032 74);
+    --neutral-700: oklch(0.71 0.032 70);
+    --neutral-800: oklch(0.61 0.03 64);
+    --neutral-900: oklch(0.53 0.027 58);
+    --neutral-1000: oklch(0.45 0.023 54);
+    --neutral-1100: oklch(0.35 0.019 50);
+    --neutral-1200: oklch(0.24 0.015 46);
+    --neutral-black: oklch(0.16 0.012 44);
+
+    --brand-100: oklch(0.968 0.023 14);
+    --brand-200: oklch(0.939 0.045 14);
+    --brand-300: oklch(0.895 0.075 14);
+    --brand-400: oklch(0.82 0.12 14);
+    --brand-500: oklch(0.72 0.17 14);
+    --brand-600: oklch(0.62 0.2 14);
+    --brand-700: oklch(0.54 0.205 14);
+    --brand-900: oklch(0.38 0.16 14);
+    --brand-1000: oklch(0.31 0.13 14);
+    --brand-1100: oklch(0.25 0.1 14);
+    --brand-1200: oklch(0.2 0.075 14);
+    --brand-default: oklch(0.49 0.19 14);
   }
 }

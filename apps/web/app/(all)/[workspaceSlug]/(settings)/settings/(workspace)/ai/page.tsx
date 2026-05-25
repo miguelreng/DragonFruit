@@ -242,7 +242,8 @@ function AISettingsPage() {
                   {config?.has_workspace_override && (
                     <Button
                       variant="secondary"
-                      size="sm"
+                      size="xl"
+                      className="!h-9 px-3"
                       disabled={!canEdit || saving}
                       onClick={() => void handleClear()}
                     >
@@ -251,7 +252,8 @@ function AISettingsPage() {
                   )}
                   <Button
                     variant="primary"
-                    size="sm"
+                    size="xl"
+                    className="!h-9 px-4"
                     disabled={!canEdit || !canSubmit}
                     onClick={() => void handleSave()}
                   >

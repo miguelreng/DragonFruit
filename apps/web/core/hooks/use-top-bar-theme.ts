@@ -6,9 +6,10 @@
 
 import { useTheme } from "next-themes";
 
-export const useTopBarTheme = (): "dark" | "light" => {
+export const useTopBarTheme = (): "dark" | "light" | "sepia" => {
   const { resolvedTheme, theme } = useTheme();
   const activeTheme = resolvedTheme ?? theme;
 
+  if (activeTheme === "sepia") return "sepia";
   return activeTheme === "dark" ? "dark" : "light";
 };

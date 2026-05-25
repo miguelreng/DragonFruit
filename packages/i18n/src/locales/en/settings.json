@@ -142,6 +142,9 @@
       "dark": {
         "label": "Dark"
       },
+      "sepia": {
+        "label": "Sepia"
+      },
       "light_contrast": {
         "label": "Light high contrast"
       },

@@ -37,11 +37,20 @@ export function CommandRenderer(props: Props) {
     {} as Record<TPowerKCommandGroup, TPowerKCommandConfig[]>
   );
 
-  const sortedGroups = Object.keys(commandsByGroup).sort((a, b) => {
-    const aPriority = POWER_K_GROUP_PRIORITY[a as TPowerKCommandGroup];
-    const bPriority = POWER_K_GROUP_PRIORITY[b as TPowerKCommandGroup];
-    return aPriority - bPriority;
-  }) as TPowerKCommandGroup[];
+  const sortedGroups = Object.keys(commandsByGroup).reduce<string[]>((groups, group) => {
+    const groupPriority = POWER_K_GROUP_PRIORITY[group as TPowerKCommandGroup];
+    const insertionIndex = groups.findIndex(
+      (existingGroup) => POWER_K_GROUP_PRIORITY[existingGroup as TPowerKCommandGroup] > groupPriority
+    );
+
+    if (insertionIndex === -1) {
+      groups.push(group);
+    } else {
+      groups.splice(insertionIndex, 0, group);
+    }
+
+    return groups;
+  }, []) as TPowerKCommandGroup[];
 
   return (
     <>
@@ -62,6 +71,7 @@ export function CommandRenderer(props: Props) {
                 icon={command.icon}
                 iconNode={command.iconNode}
                 label={t(command.i18n_title)}
+                value={[t(command.i18n_title), ...(command.keywords ?? [])].join(" ")}
                 keySequence={command.keySequence}
                 shortcut={command.shortcut || command.modifierShortcut}
                 onSelect={() => onCommandSelect(command)}
