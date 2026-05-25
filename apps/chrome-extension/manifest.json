@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "DragonFruit Bookmarks",
+  "description": "Save pages, images, and tweets to DragonFruit bookmarks.",
+  "version": "0.1.0",
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "Save to DragonFruit"
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["src/content.js"]
+    }
+  ],
+  "host_permissions": ["<all_urls>"],
+  "permissions": ["activeTab", "contextMenus", "cookies", "scripting", "storage", "tabs"]
+}

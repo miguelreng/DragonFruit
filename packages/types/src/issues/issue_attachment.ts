@@ -11,8 +11,16 @@ export type TIssueAttachment = {
   attributes: {
     name: string;
     size: number;
+    type?: string;
+    provider?: "google_drive" | string;
+    webViewLink?: string;
+    web_view_link?: string;
+    iconLink?: string;
+    thumbnailLink?: string;
   };
   asset_url: string;
+  external_id?: string | null;
+  external_source?: string | null;
   issue_id: string;
   // required
   updated_at: string;

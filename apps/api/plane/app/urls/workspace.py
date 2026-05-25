@@ -38,6 +38,7 @@ from plane.app.views import (
     WorkspaceStickyViewSet,
     WorkspaceUserPreferenceViewSet,
     WorkspaceProjectBookmarkViewSet,
+    BookmarkExtensionContextEndpoint,
 )
 
 
@@ -262,6 +263,11 @@ urlpatterns = [
         "workspaces/<str:slug>/bookmarks/",
         WorkspaceProjectBookmarkViewSet.as_view({"get": "list"}),
         name="workspace-bookmarks",
+    ),
+    path(
+        "workspaces/<str:slug>/bookmark-extension/context/",
+        BookmarkExtensionContextEndpoint.as_view(),
+        name="bookmark-extension-context",
     ),
     # User Preference
     path(

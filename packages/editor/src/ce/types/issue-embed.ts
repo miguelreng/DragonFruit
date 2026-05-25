@@ -9,6 +9,7 @@ export type TEmbedConfig = {
   whiteboard?: TDocEmbedConfig<"whiteboard">;
   sticky?: TDocEmbedConfig<"sticky">;
   taskView?: TDocEmbedConfig<"task_view">;
+  googleDrive?: TDocEmbedConfig<"google_drive">;
 };
 
 export type TReadOnlyEmbedConfig = TEmbedConfig;
@@ -21,7 +22,7 @@ export type TWorkItemEmbedInsertAttrs = {
 
 export type TWorkItemPickerMode = "embed" | "create";
 
-export type TDocEmbedType = "whiteboard" | "sticky" | "task_view";
+export type TDocEmbedType = "whiteboard" | "sticky" | "task_view" | "google_drive";
 
 export type TDocEmbedInsertAttrs = {
   embedType: TDocEmbedType;
