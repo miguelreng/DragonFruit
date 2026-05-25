@@ -8,27 +8,41 @@
   </head>
   <body>
     <main>
-      <header>
-        <strong>DragonFruit</strong>
-        <span>Bookmarks</span>
+      <header class="app-header">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <div>
+            <strong>DragonFruit</strong>
+            <span>Bookmarks</span>
+          </div>
+        </div>
+        <span class="header-pill">Chrome</span>
       </header>
-      <label>
-        App URL
-        <input id="app-url" type="url" placeholder="http://localhost:3000" />
-      </label>
-      <label>
-        Workspace slug
-        <input id="workspace-slug" type="text" placeholder="workspace" />
-      </label>
-      <div class="row">
-        <button id="load-projects" type="button">Load projects</button>
-        <span id="status"></span>
-      </div>
-      <label>
-        Project
-        <select id="project-id"></select>
-      </label>
-      <button id="save-page" type="button" class="primary">Save current page</button>
+
+      <section class="card">
+        <div class="section-heading">
+          <span>Destination</span>
+          <span id="status" class="status">Not configured</span>
+        </div>
+        <label>
+          <span>App URL</span>
+          <input id="app-url" type="url" placeholder="http://localhost:3000" />
+        </label>
+        <label>
+          <span>Workspace slug</span>
+          <input id="workspace-slug" type="text" placeholder="workspace" />
+        </label>
+        <button id="load-projects" type="button" class="secondary">Load writable projects</button>
+        <label>
+          <span>Project</span>
+          <select id="project-id"></select>
+        </label>
+      </section>
+
+      <button id="save-page" type="button" class="primary">
+        <span class="button-icon" aria-hidden="true">⌘</span>
+        Save current page
+      </button>
     </main>
     <script src="./popup.js" type="module"></script>
   </body>
