@@ -424,12 +424,11 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                       className="text-placeholder"
                     />
                   }
-                  className={cn(
-                    "pointer-events-none flex-shrink-0 opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100",
-                    {
-                      "pointer-events-auto opacity-100": isMenuActive,
-                    }
-                  )}
+                  className={cn("flex-shrink-0", {
+                    "pointer-events-auto opacity-100": isAccordionMode || isMenuActive,
+                    "pointer-events-none opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100":
+                      !isAccordionMode && !isMenuActive,
+                  })}
                   customButtonClassName="grid place-items-center"
                   placement="bottom-start"
                   ariaLabel={t("aria_labels.projects_sidebar.toggle_quick_actions_menu")}
