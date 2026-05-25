@@ -14,7 +14,14 @@ def is_native_callback(next_path: str | None) -> bool:
     if not next_path:
         return False
     parsed = urlparse(str(next_path))
-    return parsed.scheme in ALLOWED_NATIVE_REDIRECT_SCHEMES and parsed.path.startswith("/")
+    if parsed.scheme in ALLOWED_NATIVE_REDIRECT_SCHEMES and parsed.path.startswith("/"):
+        return True
+    return (
+        parsed.scheme == "https"
+        and bool(parsed.hostname)
+        and parsed.hostname.endswith(".chromiumapp.org")
+        and parsed.path.startswith("/")
+    )
 
 
 def create_native_api_token(user) -> str:

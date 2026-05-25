@@ -29,10 +29,90 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== "SAVE_ACTIVE_TAB") return false;
-  void saveActiveTab().then(sendResponse);
-  return true;
+  if (message?.type === "SAVE_ACTIVE_TAB") {
+    void respond(saveActiveTab(), sendResponse);
+    return true;
+  }
+  if (message?.type === "SIGN_IN") {
+    void respond(signIn(message.appUrl), sendResponse);
+    return true;
+  }
+  if (message?.type === "SIGN_OUT") {
+    void respond(signOut(), sendResponse);
+    return true;
+  }
+  if (message?.type === "GET_AUTH_STATE") {
+    void respond(getAuthState(message.appUrl), sendResponse);
+    return true;
+  }
+  if (message?.type === "LOAD_PROJECTS") {
+    void respond(loadProjects(message.appUrl, message.workspaceSlug), sendResponse);
+    return true;
+  }
+  return false;
 });
+
+async function respond(promise, sendResponse) {
+  try {
+    sendResponse(await promise);
+  } catch (error) {
+    sendResponse({ ok: false, error: error?.message || "DragonFruit request failed." });
+  }
+}
+
+async function signIn(appUrlValue) {
+  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
+  const callbackUrl = chrome.identity.getRedirectURL("auth/login-callback");
+  const loginUrl = `${appUrl}/auth/native/start/?callback=${encodeURIComponent(callbackUrl)}`;
+  const redirectUrl = await chrome.identity.launchWebAuthFlow({
+    url: loginUrl,
+    interactive: true,
+  });
+  const token = new URL(redirectUrl).searchParams.get("api_token");
+  if (!token) return { ok: false, error: "Login callback missing API token." };
+  await chrome.storage.sync.set({ appUrl, apiToken: token });
+  const user = await fetchCurrentUser(appUrl, token);
+  return { ok: true, user };
+}
+
+async function signOut() {
+  await chrome.storage.sync.remove(["apiToken", "projects", "projectId"]);
+  return { ok: true };
+}
+
+async function getAuthState(appUrlValue) {
+  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
+  const { apiToken } = await chrome.storage.sync.get(["apiToken"]);
+  if (!apiToken) return { ok: true, authenticated: false };
+  try {
+    const user = await fetchCurrentUser(appUrl, apiToken);
+    return { ok: true, authenticated: true, user };
+  } catch {
+    await chrome.storage.sync.remove(["apiToken"]);
+    return { ok: true, authenticated: false };
+  }
+}
+
+async function fetchCurrentUser(appUrl, apiToken) {
+  const response = await fetch(`${appUrl}/api/users/me/`, {
+    headers: authorizedHeaders(apiToken),
+  });
+  if (!response.ok) throw new Error(`User lookup failed: ${response.status}`);
+  return response.json();
+}
+
+async function loadProjects(appUrlValue, workspaceSlugValue) {
+  const appUrl = normalizeAppUrl(appUrlValue || DEFAULT_APP_URL);
+  const workspaceSlug = String(workspaceSlugValue || "").trim();
+  const { apiToken } = await chrome.storage.sync.get(["apiToken"]);
+  if (!apiToken) return { ok: false, error: "Sign in first." };
+  if (!workspaceSlug) return { ok: false, error: "Enter workspace slug." };
+  const response = await fetch(`${appUrl}/api/workspaces/${workspaceSlug}/bookmark-extension/context/`, {
+    headers: authorizedHeaders(apiToken),
+  });
+  if (!response.ok) return { ok: false, error: `Could not load projects: ${response.status}` };
+  return { ok: true, data: await response.json() };
+}
 
 async function handleContextMenu(info, tab) {
   if (!tab?.id) return;
@@ -93,19 +173,21 @@ async function saveUrlBookmark(url, tab) {
 
 async function saveBookmark(payload) {
   const settings = await getSettings();
+  if (!settings.apiToken) {
+    throw new Error("Connect your DragonFruit account first.");
+  }
   if (!settings.workspaceSlug || !settings.projectId) {
     await chrome.runtime.openOptionsPage?.();
     throw new Error("Choose a workspace and project in the extension popup first.");
   }
-  const csrfToken = await getCsrfToken(settings.appUrl);
   const response = await fetch(
     `${settings.appUrl}/api/workspaces/${settings.workspaceSlug}/projects/${settings.projectId}/bookmarks/`,
     {
       method: "POST",
-      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+        ...authorizedHeaders(settings.apiToken),
+        "X-DragonFruit-Source": "chrome-extension",
       },
       body: JSON.stringify(payload),
     }
@@ -155,17 +237,17 @@ async function blobToDataUrl(blob) {
 }
 
 async function getSettings() {
-  const stored = await chrome.storage.sync.get(["appUrl", "workspaceSlug", "projectId"]);
+  const stored = await chrome.storage.sync.get(["appUrl", "workspaceSlug", "projectId", "apiToken"]);
   return {
     appUrl: normalizeAppUrl(stored.appUrl || DEFAULT_APP_URL),
     workspaceSlug: stored.workspaceSlug || "",
     projectId: stored.projectId || "",
+    apiToken: stored.apiToken || "",
   };
 }
 
-async function getCsrfToken(appUrl) {
-  const cookies = await chrome.cookies?.get?.({ url: appUrl, name: "csrftoken" });
-  return cookies?.value || "";
+function authorizedHeaders(apiToken) {
+  return apiToken ? { "X-Api-Key": apiToken } : {};
 }
 
 function normalizeAppUrl(value) {
