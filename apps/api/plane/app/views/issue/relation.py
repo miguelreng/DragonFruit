@@ -20,7 +20,7 @@ from rest_framework import status
 # Module imports
 from .. import BaseViewSet
 from plane.app.serializers import IssueRelationSerializer, RelatedIssueSerializer
-from plane.app.permissions import ProjectEntityPermission
+from plane.app.permissions import ProjectEntityPermission, WorkspaceEntityPermission
 from plane.db.models import (
     Project,
     IssueRelation,
@@ -38,6 +38,14 @@ class IssueRelationViewSet(BaseViewSet):
     serializer_class = IssueRelationSerializer
     model = IssueRelation
     permission_classes = [ProjectEntityPermission]
+
+    def get_permissions(self):
+        if self.action == "list_custom_labels":
+            self.permission_classes = [WorkspaceEntityPermission]
+        else:
+            self.permission_classes = [ProjectEntityPermission]
+
+        return super(IssueRelationViewSet, self).get_permissions()
 
     def list(self, request, slug, project_id, issue_id):
         issue_relations = (
