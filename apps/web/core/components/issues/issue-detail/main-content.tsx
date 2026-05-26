@@ -80,10 +80,16 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
   );
 
   useEffect(() => {
+    let submitResetTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (isSubmitting === "submitted") {
       setShowAlert(false);
-      setTimeout(async () => setIsSubmitting("saved"), 2000);
+      submitResetTimer = setTimeout(async () => setIsSubmitting("saved"), 2000);
     } else if (isSubmitting === "submitting") setShowAlert(true);
+
+    return () => {
+      if (submitResetTimer) clearTimeout(submitResetTimer);
+    };
   }, [isSubmitting, setShowAlert, setIsSubmitting]);
 
   if (!issue || !issue.project_id) return <></>;

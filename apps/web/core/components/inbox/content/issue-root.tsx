@@ -64,14 +64,20 @@ export const InboxIssueMainContent = observer(function InboxIssueMainContent(pro
   const { setShowAlert } = useReloadConfirmations(isSubmitting === "submitting");
 
   useEffect(() => {
+    let submitResetTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (isSubmitting === "submitted") {
       setShowAlert(false);
-      setTimeout(async () => {
+      submitResetTimer = setTimeout(async () => {
         setIsSubmitting("saved");
       }, 3000);
     } else if (isSubmitting === "submitting") {
       setShowAlert(true);
     }
+
+    return () => {
+      if (submitResetTimer) clearTimeout(submitResetTimer);
+    };
   }, [isSubmitting, setShowAlert, setIsSubmitting]);
 
   // derived values

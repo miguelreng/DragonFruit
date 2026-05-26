@@ -174,19 +174,19 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
 
   const redirectToIssueDetail = () => router.push(`${workItemLink}#sub-issues`);
 
-  if (!displayProperties || !issue.project_id) return null;
-
-  // date range is enabled only when both dates are available and both dates are enabled
-  const isDateRangeEnabled: boolean = Boolean(
-    issue.start_date && issue.target_date && displayProperties.start_date && displayProperties.due_date
-  );
-
   // Memoized per (label_ids, labelMap); without this every row rebuilt the
   // array on every render, returning a fresh ref and re-rendering the labels
   // dropdown for every row on any list update.
   const defaultLabelOptions = useMemo(
     () => issue?.label_ids?.map((id) => labelMap[id]) || [],
     [issue?.label_ids, labelMap]
+  );
+
+  if (!displayProperties || !issue.project_id) return null;
+
+  // date range is enabled only when both dates are available and both dates are enabled
+  const isDateRangeEnabled: boolean = Boolean(
+    issue.start_date && issue.target_date && displayProperties.start_date && displayProperties.due_date
   );
 
   const minDate = getDate(issue.start_date);

@@ -224,6 +224,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
         <img
           ref={setImageRef}
           src={src}
+          alt="Fullscreen image"
           className="read-only-image rounded-lg"
           style={{
             width: `${widthInNumber * initialMagnification}px`,

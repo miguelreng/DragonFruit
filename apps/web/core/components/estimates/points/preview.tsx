@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { GripVertical } from "@/components/icons/lucide-shim";
 // plane imports
@@ -54,11 +54,6 @@ export const EstimatePointItemPreview = observer(function EstimatePointItemPrevi
   // ref
   const EstimatePointValueRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!estimatePointEditToggle && !estimatePointDeleteToggle)
-      EstimatePointValueRef?.current?.addEventListener("dblclick", () => setEstimatePointEditToggle(true));
-  }, [estimatePointDeleteToggle, estimatePointEditToggle]);
-
   return (
     <div>
       {!estimatePointEditToggle && !estimatePointDeleteToggle && (
@@ -66,7 +61,11 @@ export const EstimatePointItemPreview = observer(function EstimatePointItemPrevi
           <div className="relative flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded-xs transition-colors hover:bg-layer-1">
             <GripVertical size={14} className="text-secondary" />
           </div>
-          <div ref={EstimatePointValueRef} className="w-full py-2 text-13">
+          <div
+            ref={EstimatePointValueRef}
+            className="w-full py-2 text-13"
+            onDoubleClick={() => setEstimatePointEditToggle(true)}
+          >
             {estimatePoint?.value ? (
               `${estimateType === EEstimateSystem.TIME ? convertMinutesToHoursMinutesString(Number(estimatePoint?.value)) : estimatePoint?.value}`
             ) : (
