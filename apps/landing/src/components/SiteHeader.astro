@@ -10,11 +10,10 @@ const { showEssaysLink = true } = Astro.props;
   <a class="brand-link" href="/" aria-label="DragonFruit home">
     <img class="brand" src="/assets/logo.svg" alt="DragonFruit" width="184" height="41" />
   </a>
-  {
-    showEssaysLink && (
-      <div>
-        <a class="nav-link" href="/essays">essays</a>
-      </div>
-    )
-  }
+  <nav class="top-nav" aria-label="Primary">
+    {showEssaysLink && <a class="nav-link" href="/essays">Essays</a>}
+    <a class="nav-link" href="#about">About Us</a>
+    <a class="nav-link" href="https://x.com/dragonfruitsh" target="_blank" rel="noreferrer">X</a>
+    <a class="nav-link" href="https://github.com/dragonfruit-sh" target="_blank" rel="noreferrer">GitHub</a>
+  </nav>
 </div>

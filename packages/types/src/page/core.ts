@@ -72,7 +72,7 @@ export type TPageTemplateDetail = TPageTemplate & {
 };
 
 // page filters
-export type TPageNavigationTabs = "public" | "private" | "archived";
+export type TPageNavigationTabs = "all" | "public" | "private" | "archived";
 
 export type TPageFiltersSortKey = "name" | "created_at" | "updated_at" | "opened_at";
 
