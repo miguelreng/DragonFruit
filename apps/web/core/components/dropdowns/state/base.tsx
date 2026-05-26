@@ -241,8 +241,8 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
                 filteredOptions.length > 0 ? (
                   filteredOptions.map((option) => (
                     <StateOption
-                      {...props}
                       key={option.value}
+                      {...props}
                       option={option}
                       selectedValue={value}
                       className="flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 select-none"
