@@ -312,7 +312,7 @@ async function handleActionClick(tab) {
   try {
     const authState = await getAuthState(DEFAULT_API_URL);
     if (!authState.authenticated) {
-      await showTabToast(tab.id, authState.error || "Connect your DragonFruit account first.", "error");
+      await openExtensionView("login", tab.id);
       await updateActionIconForTab(tab.id, tab.url);
       return;
     }
@@ -320,7 +320,11 @@ async function handleActionClick(tab) {
     await showTabToast(tab.id, "Saved to DragonFruit", "success");
   } catch (error) {
     const message = String(error?.message || "Could not save to DragonFruit.");
-    if (isPermissionError(message)) {
+    if (isAuthenticationError(message)) {
+      await openExtensionView("login", tab.id);
+    } else if (isConfigurationError(message)) {
+      await openExtensionView("settings", tab.id);
+    } else if (isPermissionError(message)) {
       await showTabToast(tab.id, "No write access for selected project. Choose another project.", "error");
     } else {
       await showTabToast(tab.id, message, "error");
@@ -456,8 +460,43 @@ function formatErrorDetail(detail) {
 
 async function openSettings(reason = "") {
   if (reason !== "context-menu") return;
-  await chrome.storage.session?.set({ popupView: "settings" });
-  await chrome.tabs.create({ url: chrome.runtime.getURL("src/popup.html?view=settings"), active: true });
+  await openExtensionView("settings");
+}
+
+async function openExtensionView(view = "bookmark", tabId = null) {
+  const normalizedView = view === "login" || view === "settings" ? view : "bookmark";
+  const popupPath = `src/popup.html?view=${normalizedView}`;
+  await chrome.storage.session?.set({ popupView: normalizedView });
+  if (chrome.action?.openPopup) {
+    try {
+      if (tabId) await chrome.action.setPopup({ tabId, popup: popupPath });
+      await chrome.action.openPopup();
+      if (tabId) {
+        setTimeout(() => {
+          void chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
+        }, 1000);
+      }
+      return;
+    } catch {
+      if (tabId) await chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
+      // Fall back to a dedicated extension tab when Chrome cannot open the popup.
+    }
+  }
+  await chrome.tabs.create({
+    url: chrome.runtime.getURL(popupPath),
+    active: true,
+  });
+}
+
+function isAuthenticationError(message) {
+  return String(message || "")
+    .toLowerCase()
+    .includes("connect your dragonfruit account");
+}
+
+function isConfigurationError(message) {
+  const normalized = String(message || "").toLowerCase();
+  return normalized.includes("choose a workspace") || normalized.includes("select workspace");
 }
 
 async function showTabToast(tabId, message, state = "success") {
@@ -468,62 +507,100 @@ async function showTabToast(tabId, message, state = "success") {
       args: [String(message || ""), state],
       func: (toastMessage, toastState) => {
         const TOAST_ID = "dragonfruit-extension-toast";
-        const STYLE_ID = "dragonfruit-extension-toast-style";
         if (!toastMessage) return;
 
-        if (!document.getElementById(STYLE_ID)) {
-          const style = document.createElement("style");
-          style.id = STYLE_ID;
-          style.textContent = `
-            #${TOAST_ID} {
+        let host = document.getElementById(TOAST_ID);
+        if (!host) {
+          host = document.createElement("div");
+          host.id = TOAST_ID;
+          document.documentElement.append(host);
+          host.attachShadow({ mode: "open" });
+        } else if (!host.shadowRoot) {
+          host.textContent = "";
+          host.attachShadow({ mode: "open" });
+        }
+
+        const root = host.shadowRoot;
+        if (!root) return;
+        root.innerHTML = `
+          <style>
+            :host {
+              all: initial;
               position: fixed;
               right: 18px;
               top: 18px;
               z-index: 2147483647;
-              max-width: 320px;
+              width: min(340px, calc(100vw - 36px));
+              color-scheme: light;
+              pointer-events: none;
+            }
+            .toast {
+              box-sizing: border-box;
+              display: flex;
+              width: 100%;
+              align-items: flex-start;
+              gap: 10px;
               border: 1px solid rgba(31, 37, 51, 0.12);
               border-radius: 8px;
-              padding: 12px 36px 12px 14px;
               background: #ffffff;
-              color: #1f2533;
-              font: 500 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              padding: 14px 16px;
               box-shadow: 0 10px 10px -5px rgba(41, 47, 61, 0.04), 0 10px 40px -5px rgba(41, 47, 61, 0.04);
               transform: translateY(-8px);
               opacity: 0;
               transition: opacity 0.18s ease, transform 0.18s ease;
-              pointer-events: none;
+              pointer-events: auto;
             }
-            #${TOAST_ID}::before {
-              content: "";
-              display: inline-block;
-              width: 16px;
-              height: 16px;
-              margin-right: 10px;
-              border-radius: 999px;
-              vertical-align: -3px;
-              background: #1f9d74;
-            }
-            #${TOAST_ID}[data-state="error"]::before { background: #d93f53; }
-            #${TOAST_ID}[data-visible="true"] {
+            .toast[data-visible="true"] {
               opacity: 1;
               transform: translateY(0);
             }
-          `;
-          document.documentElement.append(style);
-        }
+            .icon {
+              box-sizing: border-box;
+              display: grid;
+              flex: 0 0 auto;
+              place-items: center;
+              width: 16px;
+              height: 16px;
+              margin-top: 2px;
+              border-radius: 999px;
+              background: #1f9d74;
+            }
+            .icon[data-state="error"] {
+              background: #d93f53;
+            }
+            .content {
+              box-sizing: border-box;
+              display: flex;
+              min-width: 0;
+              flex: 1 1 auto;
+              flex-direction: column;
+              gap: 8px;
+            }
+            .message {
+              margin: 0;
+              color: #1f2533;
+              font: 500 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              letter-spacing: 0;
+            }
+          </style>
+          <div class="toast" data-visible="false">
+            <span class="icon" data-state="${toastState === "error" ? "error" : "success"}" aria-hidden="true"></span>
+            <div class="content">
+              <p class="message"></p>
+            </div>
+          </div>
+        `;
 
-        let toast = document.getElementById(TOAST_ID);
-        if (!toast) {
-          toast = document.createElement("div");
-          toast.id = TOAST_ID;
-          document.body.append(toast);
-        }
+        const toast = root.querySelector(".toast");
+        const messageElement = root.querySelector(".message");
+        if (!toast || !messageElement) return;
+        messageElement.textContent = toastMessage;
 
-        toast.textContent = toastMessage;
-        toast.dataset.state = toastState === "error" ? "error" : "success";
-        toast.dataset.visible = "true";
+        requestAnimationFrame(() => {
+          toast.dataset.visible = "true";
+        });
         window.setTimeout(() => {
-          const latestToast = document.getElementById(TOAST_ID);
+          const latestToast = host.shadowRoot?.querySelector(".toast");
           if (!latestToast) return;
           latestToast.dataset.visible = "false";
         }, 1700);

@@ -34,10 +34,11 @@ async function init() {
 
 async function takePopupView() {
   const params = new URLSearchParams(window.location.search);
+  if (params.get("view") === "login") return "login";
   if (params.get("view") === "settings") return "settings";
   const data = await chrome.storage.session?.get(["popupView"]);
   await chrome.storage.session?.remove(["popupView"]);
-  return data?.popupView === "settings" ? "settings" : "bookmark";
+  return data?.popupView === "login" || data?.popupView === "settings" ? data.popupView : "bookmark";
 }
 
 async function refreshAuthState({ preferredView = "bookmark" } = {}) {
