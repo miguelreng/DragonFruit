@@ -108,9 +108,9 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         sortOrder: 4,
       },
       {
-        i18n_key: "sidebar.pages",
+        i18n_key: "sidebar.docs",
         key: "pages",
-        name: "Pages",
+        name: "Docs",
         href: `/${workspaceSlug}/projects/${projectId}/pages`,
         icon: PageIcon,
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],

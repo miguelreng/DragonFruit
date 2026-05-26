@@ -487,6 +487,10 @@ body {
   color: var(--text-color-primary);
 }
 
+.published-doc :where([data-public-doc-heading="true"]) {
+  scroll-margin-top: 5rem;
+}
+
 .published-doc :where(h1, h1.editor-heading-block) {
   margin: 0;
   padding-top: 1.375rem;

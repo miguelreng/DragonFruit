@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { Check, Copy, Globe, Loader2, LockKeyhole, Pencil } from "@/components/icons/lucide-shim";
 import { EPageAccess } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { copyTextToClipboard } from "@plane/utils";
@@ -138,7 +137,11 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
       {showPublishPanel && publicUrl && (
         <div className="shadow-lg absolute top-full right-0 z-50 mt-2 w-80 rounded-lg border border-subtle-1 bg-surface-1 p-2">
           <div className="mb-1 flex items-center gap-1.5 text-11 font-medium text-secondary">
-            {isCopied ? <Check className="size-3.5 text-success-primary" /> : <Globe className="size-3.5" />}
+            {isCopied ? (
+              <HeroCheckCircleIcon className="size-4 text-success-primary" />
+            ) : (
+              <HeroGlobeAltIcon className="size-4" />
+            )}
             {isCopied ? "Copied public URL" : "Published URL"}
           </div>
           <div className="flex items-center gap-2">
@@ -151,7 +154,11 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
               className="flex size-8 flex-shrink-0 items-center justify-center rounded-sm border border-subtle-1 bg-surface-2 text-secondary hover:bg-layer-2"
               aria-label="Copy published URL"
             >
-              {isCopied ? <Check className="size-3.5 text-success-primary" /> : <Copy className="size-3.5" />}
+              {isCopied ? (
+                <HeroCheckCircleIcon className="size-4 text-success-primary" />
+              ) : (
+                <HeroClipboardDocumentIcon className="size-4" />
+              )}
             </button>
           </div>
           {page.access === EPageAccess.PUBLIC && (
@@ -161,7 +168,7 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
                 onClick={() => void handleEditPublicUrl()}
                 className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2"
               >
-                <Pencil className="size-3.5" />
+                <HeroPencilSquareIcon className="size-4" />
                 Edit public URL
               </button>
               <button
@@ -171,9 +178,9 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
                 className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
               >
                 {isUpdatingPrivacy ? (
-                  <Loader2 className="size-3.5 animate-spin" />
+                  <HeroArrowPathIcon className="size-4 animate-spin" />
                 ) : (
-                  <LockKeyhole className="size-3.5" />
+                  <HeroLockClosedIcon className="size-4" />
                 )}
                 Make private
               </button>
@@ -187,9 +194,85 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
         disabled={isPublishing}
         className="flex h-7 items-center gap-1.5 rounded-md border border-subtle-1 bg-surface-1 px-2.5 text-12 font-medium text-secondary transition-colors hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
       >
-        {isPublishing ? <Loader2 className="size-3.5 animate-spin" /> : <Globe className="size-3.5" />}
+        {isPublishing ? <HeroArrowPathIcon className="size-4 animate-spin" /> : <HeroGlobeAltIcon className="size-4" />}
         {page.access === EPageAccess.PUBLIC ? "Published" : "Publish"}
       </button>
     </div>
   );
 });
+
+type THeroIconProps = {
+  className?: string;
+};
+
+function HeroGlobeAltIcon({ className }: THeroIconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 21a9 9 0 1 0 0-18m0 18a9 9 0 1 1 0-18m0 18c2.071 0 3.75-4.03 3.75-9S14.071 3 12 3m0 18c-2.071 0-3.75-4.03-3.75-9S9.929 3 12 3m-8.4 6h16.8M3.6 15h16.8"
+      />
+    </svg>
+  );
+}
+
+function HeroClipboardDocumentIcon({ className }: THeroIconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75A1.125 1.125 0 0 1 3.75 20.625V7.875c0-.621.504-1.125 1.125-1.125H6.75m6-4.5H9.375c-.621 0-1.125.504-1.125 1.125v13.5c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V7.125L15.375 2.25H12.75Zm0 0v4.5h4.5"
+      />
+    </svg>
+  );
+}
+
+function HeroCheckCircleIcon({ className }: THeroIconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+      />
+    </svg>
+  );
+}
+
+function HeroPencilSquareIcon({ className }: THeroIconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+      />
+    </svg>
+  );
+}
+
+function HeroLockClosedIcon({ className }: THeroIconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5A2.25 2.25 0 0 0 19.5 19.5v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+      />
+    </svg>
+  );
+}
+
+function HeroArrowPathIcon({ className }: THeroIconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+      />
+    </svg>
+  );
+}

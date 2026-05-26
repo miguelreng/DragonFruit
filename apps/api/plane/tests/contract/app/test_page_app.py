@@ -114,3 +114,4 @@ class TestPublicProjectPagesAPI:
         assert [page["name"] for page in response.data] == ["Agentic Workflows"]
         assert response.data[0]["public_slug"] == "agentic-workflows"
         assert response.data[0]["description_stripped"] == "Useful workflow notes."
+        assert response.data[0]["owned_by"]["display_name"] == create_user.display_name
