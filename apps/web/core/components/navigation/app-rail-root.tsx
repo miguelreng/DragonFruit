@@ -558,7 +558,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
                 )}
               >
                 <FileText className={RAIL_INLINE_ICON_CLASS} />
-                <span className="truncate">Pages</span>
+                <span className="truncate">Docs</span>
               </Link>
             </AppSidebarTooltip>
           </div>
@@ -796,7 +796,7 @@ export const AppRailRoot = observer(() => {
           <AppSidebarItem
             variant="button"
             item={{
-              label: "Ask Copilot",
+              label: "Ask Pilot",
               icon: <Sparkles />,
               isActive: agentChatOpen,
               onClick: () => toggleAgentChat(),
