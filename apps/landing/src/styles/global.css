@@ -78,7 +78,7 @@ footer {
 
 .top-nav {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
   gap: 12px;
   margin-left: auto;
@@ -86,14 +86,14 @@ footer {
 
 .home-main {
   display: grid;
-  grid-template-columns: minmax(0, 520px) minmax(260px, 0.72fr);
-  gap: clamp(24px, 4vw, 48px);
+  grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+  gap: clamp(48px, 5vw, 76px);
   align-items: center;
-  width: min(100%, 1200px);
+  width: min(100%, 1600px);
   min-height: 100vh;
   min-height: 100svh;
   margin: 0 auto;
-  padding: var(--page-pad-y) var(--page-pad-x) var(--page-pad-bottom);
+  padding: 24px;
 }
 
 .home-copy {
@@ -101,17 +101,23 @@ footer {
   max-width: 520px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  align-self: stretch;
+  min-height: 100%;
+  justify-content: space-between;
+  gap: clamp(20px, 3vw, 30px);
 }
 
-.home-header {
-  margin-bottom: clamp(20px, 3vw, 28px);
+.home-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .topbar {
-  margin-bottom: 18px;
+  margin-bottom: clamp(26px, 3.6vw, 36px);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 14px;
   width: 100%;
 }
@@ -128,15 +134,13 @@ h1 {
 .home-illustration {
   display: block;
   justify-self: end;
-  align-self: center;
-  width: min(100%, 820px);
+  align-self: start;
+  width: min(100%, 980px);
   max-width: 100%;
   height: auto;
-  margin: 0;
+  margin: clamp(124px, 12vh, 156px) 0 0;
   opacity: 0.92;
   object-fit: contain;
-  transform: scale(1.2);
-  transform-origin: center right;
 }
 
 @media (max-width: 860px) {
@@ -157,6 +161,14 @@ h1 {
 
   .home-copy {
     max-width: 100%;
+    min-height: auto;
+    justify-content: flex-start;
+    gap: 0;
+  }
+
+  .home-content {
+    flex: 0 1 auto;
+    margin-top: 10px;
   }
 }
 
@@ -210,6 +222,11 @@ li:last-child {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(15px, 1.25vw, 18px);
+  line-height: 1.2;
+  font-weight: 500;
+  margin-top: 18px;
 }
 
 .cta-row a {
@@ -380,7 +397,7 @@ li:last-child {
   }
 
   .home-header {
-    margin-bottom: 18px;
+    margin-bottom: 22px;
   }
 
   h1 {
