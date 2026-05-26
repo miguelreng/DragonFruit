@@ -23,13 +23,16 @@ export const AppliedPriorityFilters = observer(function AppliedPriorityFilters(p
   return (
     <>
       {values.map((priority) => (
-        <div key={priority} className="flex items-center gap-1 rounded-sm bg-layer-1 p-1 text-11">
-          <PriorityIcon priority={priority as TIssuePriorities} className={`h-3 w-3`} />
+        <div
+          key={priority}
+          className="shadow-sm flex items-center gap-1.5 rounded-md border border-strong bg-layer-2 px-1.5 py-1 text-11 font-medium text-primary"
+        >
+          <PriorityIcon priority={priority as TIssuePriorities} className="h-3.5 w-3.5" />
           {priority}
           {editable && (
             <button
               type="button"
-              className="grid place-items-center text-tertiary hover:text-secondary"
+              className="grid place-items-center text-secondary transition-colors hover:text-primary"
               onClick={() => handleRemove(priority)}
             >
               <CloseIcon height={10} width={10} strokeWidth={2} />
