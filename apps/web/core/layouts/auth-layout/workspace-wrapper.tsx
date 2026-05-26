@@ -20,6 +20,7 @@ import { cn } from "@plane/utils";
 // assets
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
+import { CursorBuddyDocToastListener } from "@/components/agent/cursor-buddy-doc-toast-listener";
 // constants
 import {
   WORKSPACE_AGENTS,
@@ -275,5 +276,10 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <CursorBuddyDocToastListener workspaceSlug={workspaceSlug?.toString()} />
+      {children}
+    </>
+  );
 });
