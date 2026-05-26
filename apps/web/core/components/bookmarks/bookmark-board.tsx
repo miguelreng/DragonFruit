@@ -105,6 +105,13 @@ const bookmarkHref = (workspaceSlug: string, bookmark: TProjectBookmark) =>
 const bookmarkSource = (bookmark: TProjectBookmark) =>
   bookmark.metadata?.site_name || domainFromUrl(bookmark.url) || bookmark.entity_type || "DragonFruit";
 
+const bookmarkPreviewImage = (bookmark: TProjectBookmark) => {
+  const metadata = bookmark.metadata ?? {};
+  if (typeof metadata.image_url === "string" && metadata.image_url) return metadata.image_url;
+  if (typeof metadata.og_image_url === "string" && metadata.og_image_url) return metadata.og_image_url;
+  return "";
+};
+
 const toPayload = (draft: BookmarkDraft): TProjectBookmarkCreatePayload => ({
   title: draft.title.trim() || domainFromUrl(draft.url) || "Untitled bookmark",
   url: draft.url.trim(),
@@ -214,7 +221,7 @@ function BookmarkCard(props: {
   const { bookmark, workspaceSlug, showProject, onEdit, onDelete } = props;
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
-  const imageUrl = typeof bookmark.metadata?.image_url === "string" ? bookmark.metadata.image_url : "";
+  const imageUrl = bookmarkPreviewImage(bookmark);
   const faviconUrl = typeof bookmark.metadata?.favicon_url === "string" ? bookmark.metadata.favicon_url : "";
   const cardBody = (
     <div className="group flex h-[260px] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 transition-colors hover:border-strong">

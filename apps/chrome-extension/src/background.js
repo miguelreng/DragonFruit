@@ -336,12 +336,19 @@ async function handleActionClick(tab) {
 
 async function saveUrlBookmark(url, tab) {
   const isTweet = /https?:\/\/(x|twitter)\.com\/[^/]+\/status\/\d+/i.test(url);
+  const pageMetadata =
+    tab?.id && tab.url && sameUrl(tab.url, url) ? await extractPageMetadata(tab.id, url).catch(() => ({})) : {};
   const metadata = {
-    source_url: url,
+    source_url: pageMetadata.url || url,
     source_app: "DragonFruit Chrome Extension",
-    favicon_url: tab?.favIconUrl || "",
-    site_name: isTweet ? "Tweet" : domainFromUrl(url),
+    favicon_url: pageMetadata.favicon_url || tab?.favIconUrl || "",
+    site_name: isTweet ? "Tweet" : pageMetadata.site_name || domainFromUrl(url),
   };
+  if (pageMetadata.image_url) metadata.image_url = pageMetadata.image_url;
+  if (pageMetadata.title) metadata.og_title = pageMetadata.title;
+  if (pageMetadata.description) metadata.og_description = pageMetadata.description;
+  if (pageMetadata.url) metadata.og_url = pageMetadata.url;
+
   const tags = isTweet ? ["tweet"] : [];
 
   if (isTweet && tab?.id && tab.url && sameUrl(tab.url, url)) {
@@ -353,9 +360,9 @@ async function saveUrlBookmark(url, tab) {
   }
 
   await saveBookmark({
-    title: tab?.title || titleFromUrl(url, "Saved bookmark"),
+    title: pageMetadata.title || tab?.title || titleFromUrl(url, "Saved bookmark"),
     url,
-    description: "",
+    description: pageMetadata.description || "",
     tags,
     metadata,
   });
@@ -363,6 +370,77 @@ async function saveUrlBookmark(url, tab) {
   if (tab?.id && tab.url && getSavedPageUrlKey(tab.url) === getSavedPageUrlKey(url)) {
     await markPageUrlSaved(url, tab.id);
   }
+}
+
+async function extractPageMetadata(tabId, fallbackUrl) {
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    args: [fallbackUrl],
+    func: (pageUrl) => {
+      // oxlint-disable-next-line unicorn/consistent-function-scoping -- This helper is serialized into the page.
+      const content = (...selectors) => {
+        for (const selector of selectors) {
+          const element = document.querySelector(selector);
+          const value = element?.getAttribute("content") || element?.getAttribute("href") || "";
+          if (value.trim()) return value.trim();
+        }
+        return "";
+      };
+      const absoluteUrl = (value) => {
+        if (!value) return "";
+        try {
+          return new URL(value, document.baseURI || pageUrl).href;
+        } catch {
+          return value;
+        }
+      };
+      const siteName = content('meta[property="og:site_name"]', 'meta[name="application-name"]');
+      const title = content('meta[property="og:title"]', 'meta[name="twitter:title"]') || document.title || "";
+      const description =
+        content('meta[property="og:description"]', 'meta[name="twitter:description"]', 'meta[name="description"]') ||
+        "";
+      const imageUrl = content(
+        'meta[property="og:image:secure_url"]',
+        'meta[property="og:image:url"]',
+        'meta[property="og:image"]',
+        'meta[name="twitter:image"]',
+        'meta[name="twitter:image:src"]'
+      );
+      const canonicalUrl = content('meta[property="og:url"]', 'link[rel="canonical"]');
+      const faviconUrl = content(
+        'link[rel="apple-touch-icon"]',
+        'link[rel="icon"]',
+        'link[rel="shortcut icon"]',
+        'link[rel="mask-icon"]'
+      );
+
+      return {
+        title,
+        description,
+        image_url: absoluteUrl(imageUrl),
+        favicon_url: absoluteUrl(faviconUrl),
+        site_name: siteName,
+        url: absoluteUrl(canonicalUrl),
+      };
+    },
+  });
+  return normalizePageMetadata(result?.result);
+}
+
+function normalizePageMetadata(value) {
+  if (!value || typeof value !== "object") return {};
+  return {
+    title: stringValue(value.title),
+    description: stringValue(value.description),
+    image_url: stringValue(value.image_url),
+    favicon_url: stringValue(value.favicon_url),
+    site_name: stringValue(value.site_name),
+    url: stringValue(value.url),
+  };
+}
+
+function stringValue(value) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 async function saveBookmark(payload) {
