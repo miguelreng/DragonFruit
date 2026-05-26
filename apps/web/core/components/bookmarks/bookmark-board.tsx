@@ -77,6 +77,8 @@ const domainFromUrl = (url: string) => {
   }
 };
 
+const isTweetUrl = (url: string) => /https?:\/\/(x|twitter)\.com\/[^/]+\/status\/\d+/i.test(url);
+
 const internalBookmarkHref = (workspaceSlug: string, bookmark: TProjectBookmark) => {
   const projectId = bookmark.project_id;
   const entityId = bookmark.entity_identifier;
@@ -110,6 +112,37 @@ const bookmarkPreviewImage = (bookmark: TProjectBookmark) => {
   if (typeof metadata.image_url === "string" && metadata.image_url) return metadata.image_url;
   if (typeof metadata.og_image_url === "string" && metadata.og_image_url) return metadata.og_image_url;
   return "";
+};
+
+const bookmarkHasTwitterScreenshot = (bookmark: TProjectBookmark, imageUrl: string) =>
+  Boolean(imageUrl) && isTweetUrl(bookmark.url) && bookmark.metadata?.screenshot_source === "chrome_extension";
+
+const openImageUrl = async (imageUrl: string) => {
+  if (!imageUrl) return;
+
+  if (!imageUrl.startsWith("data:")) {
+    window.open(imageUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  const imageWindow = window.open("about:blank", "_blank");
+  if (!imageWindow) {
+    setToast({ type: TOAST_TYPE.ERROR, title: "Screenshot could not be opened" });
+    return;
+  }
+
+  imageWindow.opener = null;
+
+  try {
+    const response = await fetch(imageUrl);
+    const imageBlob = await response.blob();
+    const objectUrl = URL.createObjectURL(imageBlob);
+    imageWindow.location.href = objectUrl;
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  } catch {
+    imageWindow.close();
+    setToast({ type: TOAST_TYPE.ERROR, title: "Screenshot could not be opened" });
+  }
 };
 
 const toPayload = (draft: BookmarkDraft): TProjectBookmarkCreatePayload => ({
@@ -222,6 +255,7 @@ function BookmarkCard(props: {
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
   const imageUrl = bookmarkPreviewImage(bookmark);
+  const hasTwitterScreenshot = bookmarkHasTwitterScreenshot(bookmark, imageUrl);
   const faviconUrl = typeof bookmark.metadata?.favicon_url === "string" ? bookmark.metadata.favicon_url : "";
   const cardBody = (
     <div className="group flex h-[260px] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 transition-colors hover:border-strong">
@@ -252,7 +286,23 @@ function BookmarkCard(props: {
       </div>
       <div className="relative flex-1 overflow-hidden rounded-md border border-subtle/60 bg-layer-1">
         {imageUrl ? (
-          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+          <>
+            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+            {hasTwitterScreenshot && (
+              <button
+                type="button"
+                className="shadow-sm absolute top-2 right-2 grid size-7 place-items-center rounded-md border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void openImageUrl(imageUrl);
+                }}
+                aria-label="Open Twitter screenshot"
+              >
+                <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              </button>
+            )}
+          </>
         ) : bookmark.description ? (
           <p
             className="px-3 pt-3 pb-6 text-12 leading-relaxed text-secondary"
