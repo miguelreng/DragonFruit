@@ -7,6 +7,8 @@ const MENU_SAVE_PAGE = "dragonfruit-save-page";
 const MENU_SAVE_LINK = "dragonfruit-save-link";
 const MENU_SAVE_IMAGE = "dragonfruit-save-image";
 const MENU_SETTINGS = "dragonfruit-settings";
+const SAVED_PAGE_URLS_KEY = "savedPageUrls";
+const MAX_SAVED_PAGE_URLS = 500;
 const ACTION_ICON_IDLE = {
   16: "src/icons/action/icon-idle-16.png",
   32: "src/icons/action/icon-idle-32.png",
@@ -49,6 +51,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 chrome.action.onClicked.addListener((tab) => {
   void handleActionClick(tab);
+});
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  void updateActionIconForTab(tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url || changeInfo.status === "complete") {
+    void updateActionIconForTab(tabId, tab?.url || changeInfo.url);
+  }
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -301,6 +313,7 @@ async function handleActionClick(tab) {
     const authState = await getAuthState(DEFAULT_API_URL);
     if (!authState.authenticated) {
       await showTabToast(tab.id, authState.error || "Connect your DragonFruit account first.", "error");
+      await updateActionIconForTab(tab.id, tab.url);
       return;
     }
     await saveUrlBookmark(tab.url, tab);
@@ -312,9 +325,7 @@ async function handleActionClick(tab) {
     } else {
       await showTabToast(tab.id, message, "error");
     }
-  } finally {
-    await delay(850);
-    await setActionIcon("idle", tab.id);
+    await updateActionIconForTab(tab.id, tab.url);
   }
 }
 
@@ -343,6 +354,10 @@ async function saveUrlBookmark(url, tab) {
     tags,
     metadata,
   });
+
+  if (tab?.id && tab.url && getSavedPageUrlKey(tab.url) === getSavedPageUrlKey(url)) {
+    await markPageUrlSaved(url, tab.id);
+  }
 }
 
 async function saveBookmark(payload) {
@@ -521,8 +536,45 @@ async function setActionIcon(state, tabId) {
   }
 }
 
-function delay(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+async function updateActionIconForTab(tabId, urlValue) {
+  if (!tabId) return;
+  const url = urlValue || (await getTabUrl(tabId));
+  const urlKey = getSavedPageUrlKey(url);
+  if (!urlKey) {
+    await setActionIcon("idle", tabId);
+    return;
+  }
+
+  const savedUrlKeys = await getSavedPageUrlKeys();
+  await setActionIcon(savedUrlKeys.has(urlKey) ? "active" : "idle", tabId);
+}
+
+async function markPageUrlSaved(url, tabId) {
+  const urlKey = getSavedPageUrlKey(url);
+  if (!urlKey) return;
+
+  const savedUrlKeys = await getSavedPageUrlKeys();
+  const nextSavedUrls = [urlKey, ...[...savedUrlKeys].filter((savedUrlKey) => savedUrlKey !== urlKey)].slice(
+    0,
+    MAX_SAVED_PAGE_URLS
+  );
+  await chrome.storage.local.set({ [SAVED_PAGE_URLS_KEY]: nextSavedUrls });
+  await setActionIcon("active", tabId);
+}
+
+async function getSavedPageUrlKeys() {
+  const stored = await chrome.storage.local.get([SAVED_PAGE_URLS_KEY]);
+  const savedUrls = Array.isArray(stored[SAVED_PAGE_URLS_KEY]) ? stored[SAVED_PAGE_URLS_KEY] : [];
+  return new Set(savedUrls.filter(Boolean));
+}
+
+async function getTabUrl(tabId) {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    return tab?.url || "";
+  } catch {
+    return "";
+  }
 }
 
 async function captureTweetScreenshot(tabId) {
@@ -616,6 +668,17 @@ function sameUrl(a, b) {
     return first.origin === second.origin && first.pathname === second.pathname;
   } catch {
     return a === b;
+  }
+}
+
+function getSavedPageUrlKey(url) {
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) return "";
+    parsed.hash = "";
+    return parsed.href;
+  } catch {
+    return "";
   }
 }
 
