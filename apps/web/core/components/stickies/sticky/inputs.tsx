@@ -12,9 +12,8 @@ import type { EditorRefApi } from "@plane/editor";
 import type { TSticky } from "@plane/types";
 import { cn, isCommentEmpty } from "@plane/utils";
 import { StickyEditor } from "@/components/editor/sticky-editor";
-import { TagIcon } from "@/components/icons/lucide-shim";
 // hooks
-import { parseTagsInput } from "@/helpers/tags";
+import { normalizeTags, parseTagsInput } from "@/helpers/tags";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 
 // const StickyEditor = dynamic(() => import("../../editor/sticky-editor").then((mod) => mod.StickyEditor), {
@@ -62,11 +61,14 @@ export function StickyInput(props: TProps) {
     [handleUpdate]
   );
 
-  const handleTagsSubmit = useCallback(async () => {
-    await handleChange({
-      tags: parseTagsInput(tagsInput),
-    });
-  }, [handleChange, tagsInput]);
+  const handleTagsSubmit = useCallback(
+    async (value = tagsInput) => {
+      await handleChange({
+        tags: parseTagsInput(value),
+      });
+    },
+    [handleChange, tagsInput]
+  );
 
   const resizeTitleTextarea = useCallback((element: HTMLTextAreaElement | null) => {
     if (!element) return;
@@ -117,23 +119,6 @@ export function StickyInput(props: TProps) {
           />
         )}
       />
-      <div className="flex items-center gap-2 px-4 pt-1 pb-2">
-        <TagIcon className="size-3.5 text-primary/60" />
-        <input
-          type="text"
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          onBlur={() => void handleTagsSubmit()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void handleTagsSubmit();
-            }
-          }}
-          placeholder="Add tags (comma separated)"
-          className="h-7 w-full rounded-sm border border-black/10 bg-white/30 px-2 text-11 text-primary outline-none placeholder:text-primary/55"
-        />
-      </div>
       <Controller
         name="description_html"
         control={control}
@@ -165,6 +150,10 @@ export function StickyInput(props: TProps) {
             parentClassName="border-none p-0"
             handleDelete={handleDelete}
             handleColorChange={handleChange}
+            tags={normalizeTags(stickyData?.tags)}
+            tagsInput={tagsInput}
+            onTagsInputChange={setTagsInput}
+            onTagsSubmit={handleTagsSubmit}
             ref={editorRef}
           />
         )}
