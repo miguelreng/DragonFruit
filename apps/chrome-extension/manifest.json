@@ -28,6 +28,12 @@
       "js": ["src/content.js"]
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/fonts/Newsreader-Variable.ttf"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "externally_connectable": {
     "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://*.dragonfruit.sh/*"]
   },
