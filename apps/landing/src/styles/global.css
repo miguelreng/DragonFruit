@@ -150,25 +150,39 @@ h1 {
   }
 
   .home-illustration {
-    order: -1;
+    order: 3;
     justify-self: stretch;
     width: 100%;
     max-width: none;
     height: auto;
     max-height: none;
-    margin: 0 0 16px;
+    margin: 10px 0 16px;
   }
 
   .home-copy {
+    display: contents;
     max-width: 100%;
     min-height: auto;
     justify-content: flex-start;
     gap: 0;
   }
 
+  .home-header {
+    order: 1;
+  }
+
+  .home-intro {
+    order: 2;
+  }
+
   .home-content {
+    order: 4;
     flex: 0 1 auto;
     margin-top: 10px;
+  }
+
+  .site-footer {
+    order: 5;
   }
 }
 
