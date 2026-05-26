@@ -82,6 +82,22 @@ body {
   letter-spacing: 0;
 }
 
+.sticky-title-editor ul[data-type="taskList"] li > label input[type="checkbox"] {
+  border-color: color-mix(in srgb, var(--text-color-primary) 42%, transparent) !important;
+  background-color: color-mix(in srgb, var(--background-color-surface-1) 28%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-color-primary) 10%, transparent);
+}
+
+.sticky-title-editor ul[data-type="taskList"] li > label input[type="checkbox"]:hover {
+  background-color: color-mix(in srgb, var(--text-color-primary) 12%, transparent);
+}
+
+.sticky-title-editor ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  border-color: var(--border-color-accent-strong) !important;
+  background-color: var(--background-color-accent-primary) !important;
+  box-shadow: none;
+}
+
 /* stickies and editor colors */
 :root {
   /* text colors */

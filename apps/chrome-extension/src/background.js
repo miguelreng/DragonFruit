@@ -21,6 +21,7 @@ const ACTION_ICON_ACTIVE = {
   48: "src/icons/action/icon-active-48.png",
   128: "src/icons/action/icon-active-128.png",
 };
+const actionIconImageDataCache = {};
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -43,6 +44,11 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "DragonFruit settings",
     contexts: ["action"],
   });
+  void updateActiveTabActionIcon();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  void updateActiveTabActionIcon();
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -583,12 +589,25 @@ async function showTabToast(tabId, message, state = "success") {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
-      args: [String(message || ""), state],
-      func: (toastMessage, toastState) => {
+      args: [String(message || ""), state, chrome.runtime.getURL("src/fonts/Newsreader-Variable.ttf")],
+      func: (toastMessage, toastState, fontUrl) => {
         const TOAST_ID = "dragonfruit-extension-toast";
         if (!toastMessage) return;
         const normalizedState = toastState === "error" || toastState === "loading" ? toastState : "success";
         const toastToken = String(Date.now());
+        const iconMarkup = {
+          success: `
+            <svg class="status-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20 6.5 9.5 17 4 11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          `,
+          loading: "",
+          error: `
+            <svg class="status-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+          `,
+        }[normalizedState];
 
         let host = document.getElementById(TOAST_ID);
         if (!host) {
@@ -606,13 +625,30 @@ async function showTabToast(tabId, message, state = "success") {
         host.dataset.toastToken = toastToken;
         root.innerHTML = `
           <style>
+            @font-face {
+              font-family: Newsreader;
+              src: url("${fontUrl}") format("truetype");
+              font-style: normal;
+              font-weight: 300 800;
+              font-display: swap;
+            }
             :host {
               all: initial;
+              --bg-surface-1: oklch(1 0 0);
+              --bg-success-subtle: oklch(0.9819 0.0181 155.83);
+              --bg-accent-subtle: oklch(0.9847 0.0092 347.17);
+              --bg-danger-subtle: oklch(0.9705 0.0129 17.38);
+              --border-strong: oklch(0.8925 0.0024 230.7);
+              --txt-primary: oklch(0.2378 0.0029 230.83);
+              --txt-icon-success-primary: oklch(0.4468 0.1187 151.4);
+              --txt-icon-accent-primary: oklch(0.4901 0.2056 347.17);
+              --txt-icon-danger-primary: oklch(0.4446 0.1774 26.79);
+              --shadow-raised-200: 0px 1px 2px -1px #292f3d0f, 0px 1px 3px 0px #292f3d0d;
               position: fixed;
               right: 18px;
               top: 18px;
               z-index: 2147483647;
-              width: min(340px, calc(100vw - 36px));
+              width: min(320px, calc(100vw - 36px));
               color-scheme: light;
               pointer-events: none;
             }
@@ -620,16 +656,17 @@ async function showTabToast(tabId, message, state = "success") {
               box-sizing: border-box;
               display: flex;
               width: 100%;
-              align-items: flex-start;
+              min-height: 52px;
+              align-items: center;
               gap: 10px;
-              border: 1px solid rgba(31, 37, 51, 0.12);
-              border-radius: 8px;
-              background: #ffffff;
-              padding: 14px 16px;
-              box-shadow: 0 10px 10px -5px rgba(41, 47, 61, 0.04), 0 10px 40px -5px rgba(41, 47, 61, 0.04);
+              border: 0.5px solid var(--border-strong);
+              border-radius: 18px;
+              background: var(--bg-surface-1);
+              padding: 10px 12px;
+              box-shadow: var(--shadow-raised-200);
               transform: translateY(-8px);
               opacity: 0;
-              transition: opacity 0.18s ease, transform 0.18s ease;
+              transition: opacity 0.16s ease, transform 0.16s ease;
               pointer-events: auto;
             }
             .toast[data-visible="true"] {
@@ -641,28 +678,29 @@ async function showTabToast(tabId, message, state = "success") {
               display: grid;
               flex: 0 0 auto;
               place-items: center;
-              width: 16px;
-              height: 16px;
-              margin-top: 2px;
+              width: 24px;
+              height: 24px;
               border-radius: 999px;
-              background: #1f9d74;
+              background: var(--bg-success-subtle);
+              color: var(--txt-icon-success-primary);
             }
             .icon[data-state="error"] {
-              background: #d93f53;
+              background: var(--bg-danger-subtle);
+              color: var(--txt-icon-danger-primary);
             }
             .icon[data-state="loading"] {
-              background: #e64aa2;
-              animation: dragonfruit-toast-pulse 0.9s ease-in-out infinite;
+              display: none;
             }
-            @keyframes dragonfruit-toast-pulse {
-              0%, 100% {
-                transform: scale(0.82);
-                opacity: 0.68;
-              }
-              50% {
-                transform: scale(1);
-                opacity: 1;
-              }
+            .status-icon {
+              width: 15px;
+              height: 15px;
+            }
+            .status-icon.is-loading {
+              animation: dragonfruit-toast-spin 0.9s linear infinite;
+              transform-origin: center;
+            }
+            @keyframes dragonfruit-toast-spin {
+              to { transform: rotate(360deg); }
             }
             .content {
               box-sizing: border-box;
@@ -674,13 +712,17 @@ async function showTabToast(tabId, message, state = "success") {
             }
             .message {
               margin: 0;
-              color: #1f2533;
-              font: 500 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              color: var(--txt-primary);
+              font: 400 16px/1.2 Newsreader, ui-serif, Georgia, serif;
               letter-spacing: 0;
             }
           </style>
           <div class="toast" data-visible="false">
-            <span class="icon" data-state="${normalizedState}" aria-hidden="true"></span>
+            ${
+              normalizedState === "loading"
+                ? ""
+                : `<span class="icon" data-state="${normalizedState}" aria-hidden="true">${iconMarkup}</span>`
+            }
             <div class="content">
               <p class="message"></p>
             </div>
@@ -711,42 +753,128 @@ async function showTabToast(tabId, message, state = "success") {
 
 async function setActionIcon(state, tabId) {
   const path = state === "active" ? ACTION_ICON_ACTIVE : ACTION_ICON_IDLE;
-  try {
-    if (tabId) {
-      await chrome.action.setIcon({ tabId, path });
-      if (await isActiveTab(tabId)) await chrome.action.setIcon({ path });
-      return;
-    }
-    await chrome.action.setIcon({ path });
-  } catch {
-    // Ignore icon update failures to keep save flow resilient.
+  const iconDetails = await getActionIconDetails(state, path);
+  const shouldSetGlobalIcon = !tabId || (await isActiveTab(tabId));
+
+  if (tabId) {
+    await chrome.action.setIcon({ tabId, ...iconDetails }).catch(() => {});
   }
+  if (shouldSetGlobalIcon) {
+    await chrome.action.setIcon(iconDetails).catch(() => {});
+  }
+}
+
+async function getActionIconDetails(state, path) {
+  const imageData = await getActionIconImageData(state, path).catch(() => null);
+  return imageData ? { imageData } : { path };
+}
+
+async function getActionIconImageData(state, path) {
+  if (actionIconImageDataCache[state]) return actionIconImageDataCache[state];
+
+  const entries = await Promise.all(
+    Object.entries(path).map(async ([size, iconPath]) => {
+      const response = await fetch(chrome.runtime.getURL(iconPath));
+      if (!response.ok) throw new Error(`Icon fetch failed: ${iconPath}`);
+
+      const bitmap = await createImageBitmap(await response.blob());
+      const canvas = new OffscreenCanvas(Number(size), Number(size));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error(`Icon canvas unavailable: ${iconPath}`);
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return [size, context.getImageData(0, 0, canvas.width, canvas.height)];
+    })
+  );
+
+  actionIconImageDataCache[state] = Object.fromEntries(entries);
+  return actionIconImageDataCache[state];
 }
 
 async function updateActionIconForTab(tabId, urlValue) {
   if (!tabId) return;
   const url = urlValue || (await getTabUrl(tabId));
-  const urlKey = getSavedPageUrlKey(url);
-  if (!urlKey) {
+  const urlKeys = getSavedPageUrlKeysForUrl(url);
+  if (urlKeys.length === 0) {
     await setActionIcon("idle", tabId);
     return;
   }
 
   const savedUrlKeys = await getSavedPageUrlKeys();
-  await setActionIcon(savedUrlKeys.has(urlKey) ? "active" : "idle", tabId);
+  if (urlKeys.some((urlKey) => savedUrlKeys.has(urlKey))) {
+    await setActionIcon("active", tabId);
+    return;
+  }
+
+  const isBookmarked = await isPageUrlBookmarked(url);
+  const currentUrlKeys = getSavedPageUrlKeysForUrl(await getTabUrl(tabId));
+  if (!urlKeys.some((urlKey) => currentUrlKeys.includes(urlKey))) return;
+
+  if (isBookmarked) {
+    await cacheSavedPageUrlKeys(urlKeys);
+    await setActionIcon("active", tabId);
+    return;
+  }
+
+  await setActionIcon("idle", tabId);
+}
+
+async function updateActiveTabActionIcon() {
+  const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => []);
+  if (activeTab?.id) await updateActionIconForTab(activeTab.id, activeTab.url || "");
 }
 
 async function markPageUrlSaved(url, tabId) {
-  const urlKey = getSavedPageUrlKey(url);
-  if (!urlKey) return;
+  const urlKeys = getSavedPageUrlKeysForUrl(url);
+  if (urlKeys.length === 0) return;
+
+  await cacheSavedPageUrlKeys(urlKeys);
+  await setActionIcon("active", tabId);
+}
+
+async function cacheSavedPageUrlKeys(urlKeys) {
+  const nextUrlKeys = urlKeys.filter(Boolean);
+  if (nextUrlKeys.length === 0) return;
 
   const savedUrlKeys = await getSavedPageUrlKeys();
-  const nextSavedUrls = [urlKey, ...[...savedUrlKeys].filter((savedUrlKey) => savedUrlKey !== urlKey)].slice(
-    0,
-    MAX_SAVED_PAGE_URLS
-  );
+  const nextSavedUrls = [
+    ...nextUrlKeys,
+    ...[...savedUrlKeys].filter((savedUrlKey) => !nextUrlKeys.includes(savedUrlKey)),
+  ].slice(0, MAX_SAVED_PAGE_URLS);
   await chrome.storage.local.set({ [SAVED_PAGE_URLS_KEY]: nextSavedUrls });
-  await setActionIcon("active", tabId);
+}
+
+async function isPageUrlBookmarked(url) {
+  const settings = await getSettings();
+  if (!settings.apiToken || !settings.workspaceSlug) return false;
+
+  const urlKeys = getSavedPageUrlKeysForUrl(url);
+  const lookupQueries = getBookmarkLookupQueries(url);
+
+  const lookupResults = await Promise.all(
+    lookupQueries.map(async (lookupQuery) => {
+      const response = await fetch(
+        `${settings.appUrl}/api/workspaces/${settings.workspaceSlug}/bookmarks/?query=${encodeURIComponent(lookupQuery)}`,
+        {
+          headers: authorizedHeaders(settings.apiToken),
+        }
+      ).catch(() => null);
+      if (!response?.ok) return [];
+
+      const data = await response.json().catch(() => null);
+      return Array.isArray(data?.results) ? data.results : [];
+    })
+  );
+
+  return lookupResults.flat().some((bookmark) => {
+    const bookmarkUrlKeys = new Set([
+      ...getSavedPageUrlKeysForUrl(bookmark?.url || ""),
+      ...getSavedPageUrlKeysForUrl(bookmark?.metadata?.source_url || ""),
+      ...getSavedPageUrlKeysForUrl(bookmark?.metadata?.og_url || ""),
+    ]);
+    return urlKeys.some((urlKey) => bookmarkUrlKeys.has(urlKey));
+  });
 }
 
 async function getSavedPageUrlKeys() {
@@ -876,6 +1004,39 @@ function getSavedPageUrlKey(url) {
   } catch {
     return "";
   }
+}
+
+function getSavedPageUrlKeysForUrl(url) {
+  const fullKey = getSavedPageUrlKey(url);
+  if (!fullKey) return [];
+
+  try {
+    const parsed = new URL(fullKey);
+    const keys = new Set([parsed.href]);
+
+    const withoutSearch = new URL(parsed.href);
+    withoutSearch.search = "";
+    keys.add(withoutSearch.href);
+
+    if (withoutSearch.pathname !== "/") {
+      const withoutTrailingSlash = new URL(withoutSearch.href);
+      withoutTrailingSlash.pathname = withoutTrailingSlash.pathname.replace(/\/+$/, "");
+      keys.add(withoutTrailingSlash.href);
+
+      const withTrailingSlash = new URL(withoutTrailingSlash.href);
+      withTrailingSlash.pathname = `${withTrailingSlash.pathname}/`;
+      keys.add(withTrailingSlash.href);
+    }
+
+    return [...keys].filter(Boolean);
+  } catch {
+    return [fullKey];
+  }
+}
+
+function getBookmarkLookupQueries(url) {
+  const urlKeys = getSavedPageUrlKeysForUrl(url);
+  return [...new Set(urlKeys.map((urlKey) => urlKey.replace(/^https?:\/\//, "")).filter(Boolean))];
 }
 
 function isPermissionError(message) {
