@@ -70,6 +70,13 @@ export const PageLockControl = observer(function PageLockControl({ page }: Props
 
     // Update the previous locked state
     prevLockedRef.current = is_locked;
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [is_locked]);
 
   if (!canCurrentUserLockPage) return null;

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CloudOff, Dot } from "@/components/icons/lucide-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { Badge } from "@plane/propel/badge";
@@ -14,23 +14,29 @@ type Props = {
 };
 
 export function PageSyncingBadge({ syncStatus }: Props) {
-  const [prevSyncStatus, setPrevSyncStatus] = useState<"syncing" | "synced" | "error" | null>(null);
+  const prevSyncStatusRef = useRef<"syncing" | "synced" | "error" | null>(null);
   const [isVisible, setIsVisible] = useState(syncStatus !== "synced");
 
   useEffect(() => {
+    let hideBadgeTimer: ReturnType<typeof setTimeout> | undefined;
+
     // Only handle transitions when there's a change
-    if (prevSyncStatus !== syncStatus) {
+    if (prevSyncStatusRef.current !== syncStatus) {
       if (syncStatus === "synced") {
         // Delay hiding to allow exit animation to complete
-        setTimeout(() => {
+        hideBadgeTimer = setTimeout(() => {
           setIsVisible(false);
         }, 300); // match animation duration
       } else {
         setIsVisible(true);
       }
-      setPrevSyncStatus(syncStatus);
+      prevSyncStatusRef.current = syncStatus;
     }
-  }, [syncStatus, prevSyncStatus]);
+
+    return () => {
+      if (hideBadgeTimer) clearTimeout(hideBadgeTimer);
+    };
+  }, [syncStatus]);
 
   if (!isVisible || syncStatus === "synced") return null;
 
