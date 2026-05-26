@@ -125,6 +125,8 @@ struct APIClient {
     var apiToken: String?
     private let session: URLSession
     private static let logger = Logger(subsystem: "sh.dragonfruit.copilot", category: "api")
+    private static let defaultTimeout: TimeInterval = 12
+    private static let calendarReadTimeout: TimeInterval = 25
 
     init(baseURL: URL, apiToken: String?) {
         self.baseURL = baseURL
@@ -132,7 +134,7 @@ struct APIClient {
         let configuration = URLSessionConfiguration.default
         configuration.httpCookieStorage = HTTPCookieStorage.shared
         configuration.httpCookieAcceptPolicy = .always
-        configuration.timeoutIntervalForRequest = 12
+        configuration.timeoutIntervalForRequest = Self.defaultTimeout
         configuration.timeoutIntervalForResource = 90
         configuration.waitsForConnectivity = false
         session = URLSession(configuration: configuration)
@@ -141,7 +143,7 @@ struct APIClient {
     private func authorizedRequest(url: URL, method: String = "GET") -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.timeoutInterval = 12
+        request.timeoutInterval = Self.defaultTimeout
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
@@ -187,8 +189,9 @@ struct APIClient {
 
     func listCalendarAccounts() async throws -> [CalendarAccount] {
         let url = baseURL.appending(path: "api/users/me/calendar-accounts/")
-        let request = authorizedRequest(url: url)
-        let (data, response) = try await send(request, endpoint: "GET calendar-accounts")
+        var request = authorizedRequest(url: url)
+        request.timeoutInterval = Self.calendarReadTimeout
+        let (data, response) = try await send(request, endpoint: "GET calendar-accounts", retryOnTimeout: true)
         try ensureStatus(response, allowed: [200])
         return try JSONDecoder().decode([CalendarAccount].self, from: data)
     }
@@ -254,8 +257,9 @@ struct APIClient {
         guard let url = components?.url else {
             throw NSError(domain: "DragonFruitNative", code: 1005, userInfo: [NSLocalizedDescriptionKey: "Invalid meetings URL"])
         }
-        let request = authorizedRequest(url: url)
-        let (data, response) = try await send(request, endpoint: "GET upcoming meetings")
+        var request = authorizedRequest(url: url)
+        request.timeoutInterval = Self.calendarReadTimeout
+        let (data, response) = try await send(request, endpoint: "GET upcoming meetings", retryOnTimeout: true)
         try ensureStatus(response, allowed: [200])
 
         struct EventsResponse: Codable {
@@ -473,25 +477,38 @@ struct APIClient {
         return try JSONDecoder().decode(AgentChatMessageEnvelope.self, from: data)
     }
 
-    private func send(_ request: URLRequest, endpoint: String) async throws -> (Data, URLResponse) {
-        let startedAt = Date()
-        do {
-            let result = try await session.data(for: request)
-            let elapsed = Date().timeIntervalSince(startedAt)
-            Self.logger.info("DragonFruit API \(endpoint, privacy: .public) completed in \(elapsed, privacy: .public)s")
-            return result
-        } catch {
-            let elapsed = Date().timeIntervalSince(startedAt)
-            Self.logger.error("DragonFruit API \(endpoint, privacy: .public) failed in \(elapsed, privacy: .public)s: \(error.localizedDescription, privacy: .public)")
-            if let urlError = error as? URLError, urlError.code == .timedOut {
-                throw NSError(
-                    domain: "DragonFruitNative",
-                    code: urlError.errorCode,
-                    userInfo: [NSLocalizedDescriptionKey: "\(endpoint) timed out. Please try again."]
-                )
+    private func send(_ request: URLRequest, endpoint: String, retryOnTimeout: Bool = false) async throws -> (Data, URLResponse) {
+        let maxAttempts = retryOnTimeout ? 2 : 1
+        for attempt in 1...maxAttempts {
+            let startedAt = Date()
+            do {
+                let result = try await session.data(for: request)
+                let elapsed = Date().timeIntervalSince(startedAt)
+                Self.logger.info("DragonFruit API \(endpoint, privacy: .public) completed in \(elapsed, privacy: .public)s (attempt \(attempt, privacy: .public)/\(maxAttempts, privacy: .public))")
+                return result
+            } catch {
+                let elapsed = Date().timeIntervalSince(startedAt)
+                Self.logger.error("DragonFruit API \(endpoint, privacy: .public) failed in \(elapsed, privacy: .public)s (attempt \(attempt, privacy: .public)/\(maxAttempts, privacy: .public)): \(error.localizedDescription, privacy: .public)")
+                let isTimedOut = (error as? URLError)?.code == .timedOut
+                if retryOnTimeout, isTimedOut, attempt < maxAttempts {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    continue
+                }
+                if isTimedOut {
+                    throw NSError(
+                        domain: "DragonFruitNative",
+                        code: (error as? URLError)?.errorCode ?? 408,
+                        userInfo: [NSLocalizedDescriptionKey: "\(endpoint) timed out. Please try again."]
+                    )
+                }
+                throw error
             }
-            throw error
         }
+        throw NSError(
+            domain: "DragonFruitNative",
+            code: 999,
+            userInfo: [NSLocalizedDescriptionKey: "\(endpoint) failed unexpectedly."]
+        )
     }
 
     private func ensureStatus(_ response: URLResponse, allowed: Set<Int>) throws {
@@ -499,7 +516,16 @@ struct APIClient {
             throw NSError(domain: "DragonFruitNative", code: 900, userInfo: [NSLocalizedDescriptionKey: "Non-HTTP response"])
         }
         guard allowed.contains(http.statusCode) else {
-            throw NSError(domain: "DragonFruitNative", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: "Request failed with status \(http.statusCode)"])
+            let message: String
+            switch http.statusCode {
+            case 401:
+                message = "Session expired. Please sign in again."
+            case 502, 503, 504:
+                message = "Calendar service is temporarily unavailable (\(http.statusCode)). Please try again."
+            default:
+                message = "Request failed with status \(http.statusCode)"
+            }
+            throw NSError(domain: "DragonFruitNative", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: message])
         }
     }
 
