@@ -71,7 +71,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
                   aria-label="Ask Copilot"
                   aria-keyshortcuts="Meta+Shift+A Control+Shift+A"
                   onClick={openAgentChat}
-                  className="size-10 rounded-full border-strong bg-layer-2 text-accent-primary shadow-raised-300 hover:bg-layer-2-hover hover:text-accent-secondary"
+                  className="size-10 rounded-lg border-strong bg-layer-2 text-accent-primary shadow-raised-300 hover:bg-layer-2-hover hover:text-accent-secondary"
                   iconClassName="size-4"
                 />
               </Tooltip>
