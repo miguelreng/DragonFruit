@@ -73,6 +73,58 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
   const projectDetail = (issue && issue.project_id && project.getProjectById(issue.project_id)) || undefined;
   const projectId = issue?.project_id;
 
+  // Inline-edit state for the custom_label chip. Editing starts when the
+  // user clicks the chip (or the hover-only "add label" affordance for
+  // unlabeled relations). ENTER/blur saves; ESC cancels.
+  const [isEditingLabel, setIsEditingLabel] = useState(false);
+  const [labelDraft, setLabelDraft] = useState("");
+  const labelInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditingLabel) {
+      labelInputRef.current?.focus();
+      labelInputRef.current?.select();
+    }
+  }, [isEditingLabel]);
+
+  const handleStartLabelEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled || !issue) return;
+    setLabelDraft(issue.custom_label ?? "");
+    setIsEditingLabel(true);
+  };
+
+  const handleSaveLabel = async () => {
+    if (!isEditingLabel || !issue || !projectId) return;
+    const trimmed = labelDraft.trim();
+    const current = issue.custom_label ?? "";
+    setIsEditingLabel(false);
+    // No-op if unchanged — saves a wasted network round-trip.
+    if (trimmed === current) return;
+    try {
+      await updateRelationCustomLabel(workspaceSlug, projectId, issueId, relationIssueId, trimmed);
+    } catch (error) {
+      console.error("Failed to update relation label:", error);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: "Couldn't save the relation label. Please try again.",
+      });
+    }
+  };
+
+  const handleLabelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveLabel();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setIsEditingLabel(false);
+    }
+  };
+
   if (!issue || !projectId) return <></>;
 
   const workItemLink = generateWorkItemLink({
@@ -121,58 +173,6 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
     e.preventDefault();
     e.stopPropagation();
     removeRelation(workspaceSlug, projectId, issueId, relationKey, relationIssueId);
-  };
-
-  // Inline-edit state for the custom_label chip. Editing starts when the
-  // user clicks the chip (or the hover-only "add label" affordance for
-  // unlabeled relations). ENTER/blur saves; ESC cancels.
-  const [isEditingLabel, setIsEditingLabel] = useState(false);
-  const [labelDraft, setLabelDraft] = useState("");
-  const labelInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditingLabel) {
-      labelInputRef.current?.focus();
-      labelInputRef.current?.select();
-    }
-  }, [isEditingLabel]);
-
-  const handleStartLabelEdit = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (disabled) return;
-    setLabelDraft(issue.custom_label ?? "");
-    setIsEditingLabel(true);
-  };
-
-  const handleSaveLabel = async () => {
-    if (!isEditingLabel) return;
-    const trimmed = labelDraft.trim();
-    const current = issue.custom_label ?? "";
-    setIsEditingLabel(false);
-    // No-op if unchanged — saves a wasted network round-trip.
-    if (trimmed === current) return;
-    try {
-      await updateRelationCustomLabel(workspaceSlug, projectId, issueId, relationIssueId, trimmed);
-    } catch (error) {
-      console.error("Failed to update relation label:", error);
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: t("toast.error"),
-        message: "Couldn't save the relation label. Please try again.",
-      });
-    }
-  };
-
-  const handleLabelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    e.stopPropagation();
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSaveLabel();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setIsEditingLabel(false);
-    }
   };
 
   return (
