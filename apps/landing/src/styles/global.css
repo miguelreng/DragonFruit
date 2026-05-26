@@ -117,7 +117,7 @@ footer {
 .topbar {
   margin-bottom: clamp(26px, 3.6vw, 36px);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 14px;
   width: 100%;
 }

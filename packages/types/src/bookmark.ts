@@ -14,6 +14,7 @@ export type TProjectBookmarkMetadata = {
   og_url?: string;
   source_app?: string;
   captured_text?: string;
+  screenshot_source?: string;
   [key: string]: unknown;
 };
 

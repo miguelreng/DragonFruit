@@ -26,7 +26,7 @@ import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs, EModalWidth, Header, ModalCore } from "@plane/ui";
 import { cn, renderFormattedDate } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { AppHeader } from "@/components/core/app-header";
@@ -77,6 +77,8 @@ const domainFromUrl = (url: string) => {
   }
 };
 
+const isTweetUrl = (url: string) => /https?:\/\/(x|twitter)\.com\/[^/]+\/status\/\d+/i.test(url);
+
 const internalBookmarkHref = (workspaceSlug: string, bookmark: TProjectBookmark) => {
   const projectId = bookmark.project_id;
   const entityId = bookmark.entity_identifier;
@@ -112,6 +114,37 @@ const bookmarkPreviewImage = (bookmark: TProjectBookmark) => {
   return "";
 };
 
+const bookmarkHasTwitterScreenshot = (bookmark: TProjectBookmark, imageUrl: string) =>
+  Boolean(imageUrl) && isTweetUrl(bookmark.url) && bookmark.metadata?.screenshot_source === "chrome_extension";
+
+const openImageUrl = async (imageUrl: string) => {
+  if (!imageUrl) return;
+
+  if (!imageUrl.startsWith("data:")) {
+    window.open(imageUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  const imageWindow = window.open("about:blank", "_blank");
+  if (!imageWindow) {
+    setToast({ type: TOAST_TYPE.ERROR, title: "Screenshot could not be opened" });
+    return;
+  }
+
+  imageWindow.opener = null;
+
+  try {
+    const response = await fetch(imageUrl);
+    const imageBlob = await response.blob();
+    const objectUrl = URL.createObjectURL(imageBlob);
+    imageWindow.location.href = objectUrl;
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  } catch {
+    imageWindow.close();
+    setToast({ type: TOAST_TYPE.ERROR, title: "Screenshot could not be opened" });
+  }
+};
+
 const toPayload = (draft: BookmarkDraft): TProjectBookmarkCreatePayload => ({
   title: draft.title.trim() || domainFromUrl(draft.url) || "Untitled bookmark",
   url: draft.url.trim(),
@@ -126,7 +159,7 @@ function BookmarkForm(props: {
   projectOptions: { id: string; name: string }[];
   selectedProjectId: string;
   setSelectedProjectId: (projectId: string) => void;
-  onSubmit: () => void;
+  onSubmit: () => void | Promise<void>;
   onCancel: () => void;
   submitLabel: string;
   showProjectSelect: boolean;
@@ -145,12 +178,18 @@ function BookmarkForm(props: {
     isEditing,
   } = props;
   return (
-    <div className="rounded-lg border border-subtle bg-layer-1 p-3">
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void onSubmit();
+      }}
+    >
       {showProjectSelect && (
-        <label className="mb-2 block">
-          <span className="sr-only">Project</span>
+        <label className="block">
+          <span className="mb-1.5 block text-11 font-medium text-secondary">Project</span>
           <select
-            className="focus:border-accent-primary h-9 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none disabled:cursor-not-allowed disabled:text-tertiary"
+            className="focus:border-accent-primary h-10 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none disabled:cursor-not-allowed disabled:text-tertiary"
             value={selectedProjectId}
             disabled={isEditing}
             onChange={(event) => setSelectedProjectId(event.target.value)}
@@ -163,33 +202,45 @@ function BookmarkForm(props: {
           </select>
         </label>
       )}
-      <div className="grid gap-2 md:grid-cols-[1.2fr_1.8fr]">
-        <input
-          className="focus:border-accent-primary h-9 rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
-          placeholder="Title"
-          value={draft.title}
-          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-        />
-        <input
-          className="focus:border-accent-primary h-9 rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
-          placeholder="https://..."
-          value={draft.url}
-          onChange={(event) => setDraft({ ...draft, url: event.target.value })}
-        />
+      <div className="grid gap-3 md:grid-cols-[1.2fr_1.8fr]">
+        <label className="block">
+          <span className="mb-1.5 block text-11 font-medium text-secondary">Title</span>
+          <input
+            className="focus:border-accent-primary h-10 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
+            placeholder="Bookmark title"
+            value={draft.title}
+            onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-11 font-medium text-secondary">URL</span>
+          <input
+            className="focus:border-accent-primary h-10 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
+            placeholder="https://..."
+            value={draft.url}
+            onChange={(event) => setDraft({ ...draft, url: event.target.value })}
+          />
+        </label>
       </div>
-      <textarea
-        className="focus:border-accent-primary mt-2 min-h-20 w-full resize-y rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none"
-        placeholder="Note"
-        value={draft.description}
-        onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-      />
-      <input
-        className="focus:border-accent-primary mt-2 h-9 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
-        placeholder="Tags, separated by commas"
-        value={draft.tags}
-        onChange={(event) => setDraft({ ...draft, tags: event.target.value })}
-      />
-      <div className="mt-3 flex justify-end gap-2">
+      <label className="block">
+        <span className="mb-1.5 block text-11 font-medium text-secondary">Note</span>
+        <textarea
+          className="focus:border-accent-primary min-h-28 w-full resize-y rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none"
+          placeholder="Add context"
+          value={draft.description}
+          onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-11 font-medium text-secondary">Tags</span>
+        <input
+          className="focus:border-accent-primary h-10 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
+          placeholder="Tags, separated by commas"
+          value={draft.tags}
+          onChange={(event) => setDraft({ ...draft, tags: event.target.value })}
+        />
+      </label>
+      <div className="flex justify-end gap-2 border-t border-subtle pt-4">
         <button
           type="button"
           onClick={onCancel}
@@ -199,15 +250,55 @@ function BookmarkForm(props: {
           Cancel
         </button>
         <button
-          type="button"
-          onClick={onSubmit}
+          type="submit"
           className="inline-flex h-8 items-center gap-1 rounded-md bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90"
         >
           <HugeiconsIcon icon={PlusSignIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           {submitLabel}
         </button>
       </div>
-    </div>
+    </form>
+  );
+}
+
+function BookmarkFormModal(props: {
+  isOpen: boolean;
+  title: string;
+  draft: BookmarkDraft;
+  setDraft: (draft: BookmarkDraft) => void;
+  projectOptions: { id: string; name: string }[];
+  selectedProjectId: string;
+  setSelectedProjectId: (projectId: string) => void;
+  onSubmit: () => void | Promise<void>;
+  onCancel: () => void;
+  submitLabel: string;
+  showProjectSelect: boolean;
+  isEditing: boolean;
+}) {
+  const { isOpen, title, onCancel, ...formProps } = props;
+
+  return (
+    <ModalCore isOpen={isOpen} handleClose={onCancel} width={EModalWidth.XXXL}>
+      <div className="flex flex-col">
+        <div className="flex items-start justify-between gap-4 border-b border-subtle px-5 py-4">
+          <div>
+            <h2 className="text-16 font-semibold text-primary">{title}</h2>
+            <p className="mt-1 text-12 text-tertiary">Save a link with project, notes, and tags.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="grid size-7 shrink-0 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
+            aria-label="Close bookmark modal"
+          >
+            <HugeiconsIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="px-5 py-4">
+          <BookmarkForm onCancel={onCancel} {...formProps} />
+        </div>
+      </div>
+    </ModalCore>
   );
 }
 
@@ -222,6 +313,7 @@ function BookmarkCard(props: {
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
   const imageUrl = bookmarkPreviewImage(bookmark);
+  const hasTwitterScreenshot = bookmarkHasTwitterScreenshot(bookmark, imageUrl);
   const faviconUrl = typeof bookmark.metadata?.favicon_url === "string" ? bookmark.metadata.favicon_url : "";
   const cardBody = (
     <div className="group flex h-[260px] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 transition-colors hover:border-strong">
@@ -252,7 +344,23 @@ function BookmarkCard(props: {
       </div>
       <div className="relative flex-1 overflow-hidden rounded-md border border-subtle/60 bg-layer-1">
         {imageUrl ? (
-          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+          <>
+            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+            {hasTwitterScreenshot && (
+              <button
+                type="button"
+                className="shadow-sm absolute top-2 right-2 grid size-7 place-items-center rounded-md border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void openImageUrl(imageUrl);
+                }}
+                aria-label="Open Twitter screenshot"
+              >
+                <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              </button>
+            )}
+          </>
         ) : bookmark.description ? (
           <p
             className="px-3 pt-3 pb-6 text-12 leading-relaxed text-secondary"
@@ -587,7 +695,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const [query, setQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [showForm, setShowForm] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [draft, setDraft] = useState<BookmarkDraft>(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
@@ -671,12 +779,12 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   );
 
   useEffect(() => {
-    if (!showForm || editingId) return;
+    if (!isFormModalOpen || editingId) return;
     if (selectedProjectId && writableProjectIds.includes(selectedProjectId)) return;
     setSelectedProjectId(
       projectId && writableProjectIds.includes(projectId) ? projectId : (writableProjectIds[0] ?? "")
     );
-  }, [editingId, projectId, selectedProjectId, showForm, writableProjectIds]);
+  }, [editingId, isFormModalOpen, projectId, selectedProjectId, writableProjectIds]);
 
   const handleSubmit = async () => {
     const targetProjectId = editingId
@@ -693,7 +801,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       }
       setDraft(EMPTY_DRAFT);
       setEditingId(null);
-      setShowForm(false);
+      setIsFormModalOpen(false);
     } catch {
       setToast({ type: TOAST_TYPE.ERROR, title: "Bookmark could not be saved" });
     }
@@ -708,7 +816,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       description: bookmark.description,
       tags: bookmark.tags.join(", "),
     });
-    setShowForm(true);
+    setIsFormModalOpen(true);
   };
 
   const handleDelete = async (bookmark: TProjectBookmark) => {
@@ -784,7 +892,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
               setSelectedProjectId(
                 projectId && writableProjectIds.includes(projectId) ? projectId : (writableProjectIds[0] ?? "")
               );
-              setShowForm((value) => !value);
+              setIsFormModalOpen(true);
             }}
           >
             New bookmark
@@ -797,27 +905,27 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   return (
     <>
       <AppHeader header={header} />
+      {canCreateBookmark && (
+        <BookmarkFormModal
+          isOpen={isFormModalOpen}
+          title={editingId ? "Edit bookmark" : "New bookmark"}
+          draft={draft}
+          setDraft={setDraft}
+          projectOptions={writableProjects}
+          selectedProjectId={selectedProjectId}
+          setSelectedProjectId={setSelectedProjectId}
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            setIsFormModalOpen(false);
+            setEditingId(null);
+            setDraft(EMPTY_DRAFT);
+          }}
+          submitLabel={editingId ? "Save" : "Add bookmark"}
+          showProjectSelect={mode === "workspace"}
+          isEditing={!!editingId}
+        />
+      )}
       <div className="relative flex h-full w-full flex-col overflow-hidden">
-        <div className="flex flex-shrink-0 flex-col gap-4 px-5 pt-5">
-          {showForm && canCreateBookmark && (
-            <BookmarkForm
-              draft={draft}
-              setDraft={setDraft}
-              projectOptions={writableProjects}
-              selectedProjectId={selectedProjectId}
-              setSelectedProjectId={setSelectedProjectId}
-              onSubmit={handleSubmit}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingId(null);
-                setDraft(EMPTY_DRAFT);
-              }}
-              submitLabel={editingId ? "Save" : "Add bookmark"}
-              showProjectSelect={mode === "workspace"}
-              isEditing={!!editingId}
-            />
-          )}
-        </div>
         {filteredBookmarks.length === 0 ? (
           <EmptyStateDetailed
             assetKey={hasFilters ? "search" : "page"}
@@ -841,7 +949,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                             ? projectId
                             : (writableProjectIds[0] ?? "")
                         );
-                        setShowForm(true);
+                        setIsFormModalOpen(true);
                       },
                     },
                   ]

@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Palette } from "@/components/icons/lucide-shim";
+import { Palette, TagIcon } from "@/components/icons/lucide-shim";
 // editor
 import type { EditorRefApi } from "@plane/editor";
 // ui
@@ -25,12 +25,25 @@ type Props = {
   editorRef: EditorRefApi | null;
   handleColorChange: (data: Partial<TSticky>) => Promise<void>;
   handleDelete: () => void;
+  tags?: string[];
+  tagsInput?: string;
+  onTagsInputChange?: (value: string) => void;
+  onTagsSubmit?: (value?: string) => Promise<void>;
 };
 
 const toolbarItems = TOOLBAR_ITEMS.sticky;
 
 export function StickyEditorToolbar(props: Props) {
-  const { executeCommand, editorRef, handleColorChange, handleDelete } = props;
+  const {
+    executeCommand,
+    editorRef,
+    handleColorChange,
+    handleDelete,
+    tags = [],
+    tagsInput = "",
+    onTagsInputChange,
+    onTagsSubmit,
+  } = props;
 
   // State to manage active states of toolbar items
   const [activeStates, setActiveStates] = useState<Record<string, boolean>>({});
@@ -65,7 +78,7 @@ export function StickyEditorToolbar(props: Props) {
 
   return (
     <div className="flex h-full w-full justify-between">
-      <div className="my-auto flex gap-4" ref={colorPaletteRef}>
+      <div className="my-auto flex min-w-0 flex-1 items-center gap-4" ref={colorPaletteRef}>
         {/* color palette */}
         {showColorPalette && <ColorPalette handleUpdate={handleColorChange} />}
         <Tooltip
@@ -115,6 +128,31 @@ export function StickyEditorToolbar(props: Props) {
               </div>
             ))}
           </div>
+        </div>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Tooltip
+            tooltipContent={
+              <p className="flex flex-col gap-1 text-center text-11">
+                <span className="font-medium">Tags</span>
+              </p>
+            }
+          >
+            <TagIcon className="size-4 shrink-0 text-primary/50" />
+          </Tooltip>
+          <input
+            type="text"
+            value={tagsInput}
+            onChange={(event) => onTagsInputChange?.(event.target.value)}
+            onBlur={() => void onTagsSubmit?.()}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void onTagsSubmit?.();
+              }
+            }}
+            placeholder={tags.length > 0 ? "Tag" : "Add tag"}
+            className="h-6 max-w-28 min-w-0 rounded-full border border-black/10 bg-black/10 px-2 text-10 text-primary/80 outline-none placeholder:text-primary/45"
+          />
         </div>
       </div>
       {/* delete action */}

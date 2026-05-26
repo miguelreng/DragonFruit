@@ -40,6 +40,14 @@ interface StickyEditorWrapperProps extends Omit<
   parentClassName?: string;
   handleColorChange: (data: Partial<TSticky>) => Promise<void>;
   handleDelete: () => void;
+  tags?: string[];
+  tagsInput?: string;
+  onTagsInputChange?: (value: string) => void;
+  onTagsSubmit?: (value?: string) => Promise<void>;
+}
+
+function isMutableRefObject<T>(forwardedRef: React.ForwardedRef<T>): forwardedRef is React.MutableRefObject<T | null> {
+  return !!forwardedRef && typeof forwardedRef === "object" && "current" in forwardedRef;
 }
 
 export const StickyEditor = React.forwardRef(function StickyEditor(
@@ -58,6 +66,10 @@ export const StickyEditor = React.forwardRef(function StickyEditor(
     parentClassName = "",
     uploadFile,
     duplicateFile,
+    tags = [],
+    tagsInput = "",
+    onTagsInputChange,
+    onTagsSubmit,
     ...rest
   } = props;
   // states
@@ -74,9 +86,6 @@ export const StickyEditor = React.forwardRef(function StickyEditor(
   });
   // editor config
   const { getEditorFileHandlers } = useEditorConfig();
-  function isMutableRefObject<T>(ref: React.ForwardedRef<T>): ref is React.MutableRefObject<T | null> {
-    return !!ref && typeof ref === "object" && "current" in ref;
-  }
   // derived values
   const editorRef = isMutableRefObject<EditorRefApi>(ref) ? ref.current : null;
 
@@ -125,6 +134,10 @@ export const StickyEditor = React.forwardRef(function StickyEditor(
             handleDelete={handleDelete}
             handleColorChange={handleColorChange}
             editorRef={editorRef}
+            tags={tags}
+            tagsInput={tagsInput}
+            onTagsInputChange={onTagsInputChange}
+            onTagsSubmit={onTagsSubmit}
           />
         </div>
       )}
