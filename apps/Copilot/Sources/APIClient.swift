@@ -447,7 +447,9 @@ struct APIClient {
         content: String,
         projectId: String? = nil,
         toolMode: String? = nil,
-        attachments: [AgentChatAttachmentPayload] = []
+        attachments: [AgentChatAttachmentPayload] = [],
+        contextNote: String? = nil,
+        forceDocumentTool: Bool = false
     ) async throws -> AgentChatMessageEnvelope {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agent-chats/sessions/\(sessionId)/messages/")
         var request = URLRequest(url: url)
@@ -466,6 +468,12 @@ struct APIClient {
         }
         if !attachments.isEmpty {
             body["attachments"] = attachments.map(\.jsonObject)
+        }
+        if let contextNote, !contextNote.isEmpty {
+            body["context_note"] = contextNote
+        }
+        if forceDocumentTool {
+            body["force_document_tool"] = true
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await send(request, endpoint: "POST agent message")

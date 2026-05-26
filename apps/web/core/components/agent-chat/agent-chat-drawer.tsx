@@ -950,6 +950,7 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
   const isUser = message.role === "user";
 
   if (isUser) {
+    const visibleContent = stripCopilotContextForDisplay(message.content ?? "");
     const attachments = message.attachments ?? [];
     // User turns are right-aligned soft pills — no avatar needed,
     // the position alone signals authorship. Attachments render above
@@ -967,9 +968,9 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
               ))}
             </ul>
           )}
-          {message.content && (
+          {visibleContent && (
             <div className="rounded-2xl rounded-br-md bg-layer-2 px-3.5 py-2 text-13 whitespace-pre-wrap text-primary">
-              {message.content}
+              {visibleContent}
             </div>
           )}
         </div>
@@ -1004,6 +1005,13 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
       </div>
     </li>
   );
+}
+
+function stripCopilotContextForDisplay(content: string): string {
+  if (!content.includes("Copilot context:")) return content;
+  const legacyContextBlock =
+    /(?:\r?\n){2}Copilot context:\n[\s\S]*?Resolve words like "this", "that", "look at this", "translate this", or "summarize this" against the selected text, focused text, hovered UI element, URL, visual attachment, and frontmost app context above\. If selected text is present, treat it as the primary object of the request\./g;
+  return content.replace(legacyContextBlock, "").trim();
 }
 
 // Markdown-with-chat-styling. We don't reuse `MarkdownRenderer` from

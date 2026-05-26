@@ -92,6 +92,14 @@ class TestAgentAPI:
         assert subject == "benefits of meditation"
         assert _title_from_subject(subject) == "Benefits of Meditation"
 
+    def test_chat_document_subject_cleanup_handles_spanish_phrasing(self):
+        subject = _normalise_document_subject(
+            "Crea un documento sobre los beneficios de votar informado por favor"
+        )
+
+        assert subject == "los beneficios de votar informado"
+        assert _title_from_subject(subject) == "Los Beneficios De Votar Informado"
+
     def test_chat_fallback_document_writes_body_and_sources(self):
         html = _build_fallback_document_html(
             title="Benefits of Meditation",
@@ -114,7 +122,9 @@ class TestAgentAPI:
         [
             ("create a document about launch plan", True),
             ("draft a page for onboarding", True),
+            ("crea un documento sobre plan de lanzamiento", True),
             ("what document explains onboarding?", False),
+            ("que documento explica onboarding?", False),
             ("get the launch notes from Project X", False),
             ("show me the page about pricing", False),
         ],
