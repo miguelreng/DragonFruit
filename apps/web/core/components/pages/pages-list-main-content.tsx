@@ -112,25 +112,7 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
         />
       );
     }
-    if (pageType === "public")
-      return (
-        <EmptyStateDetailed
-          assetKey={isWhiteboard ? "whiteboard" : "page"}
-          title={emptyStateTitle}
-          description={emptyStateDescription}
-          actions={[
-            {
-              label: emptyStateActionLabel,
-              onClick: () => {
-                handleCreatePage();
-              },
-              variant: "primary",
-              disabled: !canPerformEmptyStateActions || isCreatingPage,
-            },
-          ]}
-        />
-      );
-    if (pageType === "private")
+    if (pageType !== "archived")
       return (
         <EmptyStateDetailed
           assetKey={isWhiteboard ? "whiteboard" : "page"}
