@@ -134,11 +134,10 @@ h1 {
 .home-illustration {
   display: block;
   justify-self: end;
-  align-self: start;
+  align-self: center;
   width: min(100%, 980px);
   max-width: 100%;
   height: auto;
-  margin: clamp(124px, 12vh, 156px) 0 0;
   opacity: 0.92;
   object-fit: contain;
   transform: scale(1.2);
@@ -440,6 +439,10 @@ li:last-child {
     overflow: hidden;
   }
 
+  .home-page h1 {
+    font-size: 23px;
+  }
+
   .home-page p,
   .home-page li {
     font-size: 15px;
@@ -456,8 +459,8 @@ li:last-child {
     margin-bottom: 22px;
   }
 
-  h1 {
-    font-size: 32px;
+  .home-page h1 {
+    font-size: 23px;
   }
 
   .home-section {
