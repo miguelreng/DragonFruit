@@ -424,10 +424,10 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                       <MoreHorizontal className="size-3.5" />
                     </span>
                   }
-                  className={cn("flex-shrink-0", {
-                    "pointer-events-auto opacity-100": isAccordionMode || isMenuActive,
+                  className={cn("flex-shrink-0 transition-opacity", {
+                    "pointer-events-auto opacity-100": isMobile || isMenuActive,
                     "pointer-events-none opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100":
-                      !isAccordionMode && !isMenuActive,
+                      !isMobile && !isMenuActive,
                   })}
                   customButtonClassName={cn(getIconButtonStyling("ghost", "sm"), "text-placeholder")}
                   placement="bottom-start"
