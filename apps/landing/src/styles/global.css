@@ -73,12 +73,12 @@ footer {
   margin-top: 0;
   font-size: 13px;
   line-height: 1.2;
-  color: #b26a98;
+  color: var(--content);
 }
 
 .top-nav {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   flex-wrap: wrap;
   gap: 12px;
   margin-left: auto;
@@ -111,7 +111,7 @@ footer {
 .topbar {
   margin-bottom: 18px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 14px;
   width: 100%;
 }
@@ -135,6 +135,8 @@ h1 {
   margin: 0;
   opacity: 0.92;
   object-fit: contain;
+  transform: scale(1.2);
+  transform-origin: center right;
 }
 
 @media (max-width: 860px) {
@@ -211,7 +213,7 @@ li:last-child {
 }
 
 .cta-row a {
-  color: var(--pink-bright);
+  color: var(--content);
 }
 
 .site-footer {
@@ -409,6 +411,7 @@ li:last-child {
     height: auto;
     max-height: none;
     margin: 0 auto 0 0;
+    transform: none;
   }
 }
 
