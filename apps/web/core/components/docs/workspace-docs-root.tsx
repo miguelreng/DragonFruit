@@ -10,7 +10,7 @@ import { observer } from "mobx-react";
 import { Link } from "react-router";
 import useSWR from "swr";
 import { ListBullets, SquaresFour } from "@phosphor-icons/react";
-import { ListFilter } from "@/components/icons/lucide-shim";
+import { ListFilter, PaintBoard } from "@/components/icons/lucide-shim";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@plane/propel/icons";
@@ -213,6 +213,7 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
   const primaryProjectId = projectIds[0];
   const itemLink =
     primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : "#";
+  const FallbackIcon = page.page_type === "whiteboard" ? PaintBoard : PageIcon;
   const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
 
   return (
@@ -221,7 +222,7 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
         page.logo_props?.in_use ? (
           <Logo logo={page.logo_props} size={16} type="lucide" />
         ) : (
-          <PageIcon className="h-4 w-4 text-tertiary" />
+          <FallbackIcon className="h-4 w-4 text-tertiary" />
         )
       }
       title={getPageName(page.name)}
@@ -234,7 +235,10 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
           {tags.length > 0 && (
             <div className="flex max-w-[220px] items-center gap-1 overflow-hidden">
               {tags.slice(0, 2).map((tag) => (
-                <span key={tag} className="truncate rounded-sm border border-subtle px-1.5 py-0.5 text-10 text-secondary">
+                <span
+                  key={tag}
+                  className="truncate rounded-sm border border-subtle px-1.5 py-0.5 text-10 text-secondary"
+                >
                   {tag}
                 </span>
               ))}
@@ -271,6 +275,7 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
   const itemLink =
     primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : null;
+  const FallbackIcon = page.page_type === "whiteboard" ? PaintBoard : PageIcon;
   const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
 
   const card = (
@@ -285,7 +290,7 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
           {page.logo_props?.in_use ? (
             <Logo logo={page.logo_props} size={18} type="lucide" />
           ) : (
-            <PageIcon className="size-4 text-tertiary" />
+            <FallbackIcon className="size-4 text-tertiary" />
           )}
         </span>
         <h3 className="line-clamp-2 flex-1 text-13 leading-tight font-semibold text-primary">
@@ -295,7 +300,10 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
       {tags.length > 0 && (
         <div className="flex min-h-5 items-center gap-1 overflow-hidden">
           {tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="max-w-[90px] truncate rounded-sm border border-subtle px-1.5 py-0.5 text-10 text-secondary">
+            <span
+              key={tag}
+              className="max-w-[90px] truncate rounded-sm border border-subtle px-1.5 py-0.5 text-10 text-secondary"
+            >
               {tag}
             </span>
           ))}
@@ -318,7 +326,7 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
             {page.logo_props?.in_use ? (
               <Logo logo={page.logo_props} size={40} type="lucide" />
             ) : (
-              <PageIcon className="size-8" />
+              <FallbackIcon className="size-8" />
             )}
           </div>
         )}
