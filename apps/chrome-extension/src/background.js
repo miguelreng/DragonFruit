@@ -478,21 +478,32 @@ async function showTabToast(tabId, message, state = "success") {
             #${TOAST_ID} {
               position: fixed;
               right: 18px;
-              bottom: 18px;
+              top: 18px;
               z-index: 2147483647;
               max-width: 320px;
-              border-radius: 12px;
-              padding: 10px 14px;
-              color: #ffffff;
-              font: 600 13px/1.25 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
-              box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
-              transform: translateY(8px);
+              border: 1px solid rgba(31, 37, 51, 0.12);
+              border-radius: 8px;
+              padding: 12px 36px 12px 14px;
+              background: #ffffff;
+              color: #1f2533;
+              font: 500 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              box-shadow: 0 10px 10px -5px rgba(41, 47, 61, 0.04), 0 10px 40px -5px rgba(41, 47, 61, 0.04);
+              transform: translateY(-8px);
               opacity: 0;
               transition: opacity 0.18s ease, transform 0.18s ease;
               pointer-events: none;
             }
-            #${TOAST_ID}[data-state="success"] { background: #1f9d74; }
-            #${TOAST_ID}[data-state="error"] { background: #d93f53; }
+            #${TOAST_ID}::before {
+              content: "";
+              display: inline-block;
+              width: 16px;
+              height: 16px;
+              margin-right: 10px;
+              border-radius: 999px;
+              vertical-align: -3px;
+              background: #1f9d74;
+            }
+            #${TOAST_ID}[data-state="error"]::before { background: #d93f53; }
             #${TOAST_ID}[data-visible="true"] {
               opacity: 1;
               transform: translateY(0);
@@ -528,6 +539,7 @@ async function setActionIcon(state, tabId) {
   try {
     if (tabId) {
       await chrome.action.setIcon({ tabId, path });
+      if (await isActiveTab(tabId)) await chrome.action.setIcon({ path });
       return;
     }
     await chrome.action.setIcon({ path });
@@ -574,6 +586,15 @@ async function getTabUrl(tabId) {
     return tab?.url || "";
   } catch {
     return "";
+  }
+}
+
+async function isActiveTab(tabId) {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    return activeTab?.id === tabId;
+  } catch {
+    return false;
   }
 }
 
