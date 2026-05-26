@@ -17,6 +17,7 @@ import { cn } from "@plane/utils";
 import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";
 import favicon32 from "@/app/assets/favicon/favicon-32x32.png?url";
 import faviconIco from "@/app/assets/favicon/favicon.ico?url";
+import faviconSvg from "@/app/assets/favicon/app.svg?url";
 import icon180 from "@/app/assets/icons/icon-180x180.png?url";
 import icon512 from "@/app/assets/icons/icon-512x512.png?url";
 import ogImage from "@/app/assets/og-image.png?url";
@@ -40,6 +41,7 @@ import "@fontsource/ibm-plex-mono";
 const APP_TITLE = "DragonFruit — Beautiful project management & docs";
 
 export const links: LinksFunction = () => [
+  { rel: "icon", type: "image/svg+xml", href: faviconSvg },
   { rel: "icon", type: "image/png", sizes: "32x32", href: favicon32 },
   { rel: "icon", type: "image/png", sizes: "16x16", href: favicon16 },
   { rel: "shortcut icon", href: faviconIco },
