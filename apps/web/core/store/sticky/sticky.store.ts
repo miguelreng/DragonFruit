@@ -197,7 +197,8 @@ export class StickyStore implements IStickyStore {
       runInAction(() => {
         Object.keys(updates).forEach((key) => {
           const currentStickyKey = key as keyof TSticky;
-          set(this.stickies[id], key, updates[currentStickyKey] || undefined);
+          const value = updates[currentStickyKey];
+          set(this.stickies[id], key, value === undefined ? undefined : value);
         });
       });
       this.recentStickyId = id;

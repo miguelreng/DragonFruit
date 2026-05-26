@@ -10,6 +10,9 @@ from plane.utils.content_validator import validate_html_content, validate_binary
 
 
 class StickySerializer(BaseSerializer):
+    MAX_TAGS = 8
+    MAX_TAG_LENGTH = 24
+
     class Meta:
         model = Sticky
         fields = "__all__"
@@ -30,5 +33,29 @@ class StickySerializer(BaseSerializer):
             is_valid, error_msg = validate_binary_data(data["description_binary"])
             if not is_valid:
                 raise serializers.ValidationError({"description_binary": "Invalid binary data"})
+
+        if "tags" in data:
+            tags = data.get("tags", [])
+            if tags is None:
+                data["tags"] = []
+            elif not isinstance(tags, list):
+                raise serializers.ValidationError({"tags": "Tags must be a list of strings"})
+            else:
+                sanitized_tags = []
+                seen = set()
+                for tag in tags:
+                    if not isinstance(tag, str):
+                        raise serializers.ValidationError({"tags": "Each tag must be a string"})
+                    cleaned_tag = " ".join(tag.strip().split())[: self.MAX_TAG_LENGTH]
+                    if not cleaned_tag:
+                        continue
+                    lowered = cleaned_tag.lower()
+                    if lowered in seen:
+                        continue
+                    seen.add(lowered)
+                    sanitized_tags.append(cleaned_tag)
+                    if len(sanitized_tags) >= self.MAX_TAGS:
+                        break
+                data["tags"] = sanitized_tags
 
         return data

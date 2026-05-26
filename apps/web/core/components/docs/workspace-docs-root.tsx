@@ -26,6 +26,7 @@ import { PageSearchInput } from "@/components/pages/list/search-input";
 import { useProject } from "@/hooks/store/use-project";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import useLocalStorage from "@/hooks/use-local-storage";
+import { normalizeTags } from "@/helpers/tags";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
 
@@ -212,6 +213,7 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
   const primaryProjectId = projectIds[0];
   const itemLink =
     primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : "#";
+  const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
 
   return (
     <ListItem
@@ -229,6 +231,16 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
       disableLink={!primaryProjectId}
       actionableItems={
         <div className="flex items-center gap-3 text-13 text-tertiary">
+          {tags.length > 0 && (
+            <div className="flex max-w-[220px] items-center gap-1 overflow-hidden">
+              {tags.slice(0, 2).map((tag) => (
+                <span key={tag} className="truncate rounded-sm border border-subtle px-1.5 py-0.5 text-10 text-secondary">
+                  {tag}
+                </span>
+              ))}
+              {tags.length > 2 && <span className="text-11">+{tags.length - 2}</span>}
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             {projectIds.slice(0, 3).map((id) => {
               const project = getProjectById(id);
@@ -259,6 +271,7 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
   const itemLink =
     primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : null;
+  const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
 
   const card = (
     <div
@@ -279,6 +292,16 @@ function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
           {getPageName(page.name)}
         </h3>
       </div>
+      {tags.length > 0 && (
+        <div className="flex min-h-5 items-center gap-1 overflow-hidden">
+          {tags.slice(0, 3).map((tag) => (
+            <span key={tag} className="max-w-[90px] truncate rounded-sm border border-subtle px-1.5 py-0.5 text-10 text-secondary">
+              {tag}
+            </span>
+          ))}
+          {tags.length > 3 && <span className="text-11 text-tertiary">+{tags.length - 3}</span>}
+        </div>
+      )}
       <div className="relative flex-1 overflow-hidden rounded-md border border-subtle/60">
         {page.description_snippet ? (
           <p
