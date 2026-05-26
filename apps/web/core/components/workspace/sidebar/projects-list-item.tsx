@@ -171,20 +171,6 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
 
   const pageNavigationItem = navigationItems.find((item) => item.key === "pages");
 
-  const handleProjectHover = () => {
-    const menuButton = actionSectionRef.current;
-    if (!menuButton) return;
-
-    menuButton.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
-  };
-
-  const handleProjectLeave = () => {
-    const menuButton = actionSectionRef.current;
-    if (!menuButton) return;
-
-    menuButton.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
-  };
-
   const projectLogoProps = project?.logo_props;
   const projectName = project?.name;
 
@@ -348,8 +334,6 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
         >
           <DropIndicator classNames="absolute top-0" isVisible={instruction === "DRAG_OVER"} />
           <div
-            onMouseEnter={handleProjectHover}
-            onMouseLeave={handleProjectLeave}
             className={cn(
               "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary hover:bg-layer-transparent-hover",
               {
@@ -418,17 +402,18 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                 })}
               >
                 <CustomMenu
-                  openOnHover
                   customButton={
                     <span ref={actionSectionRef} className="grid place-items-center">
                       <MoreHorizontal className="size-3.5" />
                     </span>
                   }
-                  className={cn("flex-shrink-0 transition-opacity", {
-                    "pointer-events-auto opacity-100": isMobile || isMenuActive,
-                    "pointer-events-none opacity-0 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100":
-                      !isMobile && !isMenuActive,
-                  })}
+                  menuButtonOnClick={() => setIsMenuActive((isActive) => !isActive)}
+                  className={cn(
+                    "pointer-events-none flex-shrink-0 opacity-0 transition-opacity group-focus-within/project-item:pointer-events-auto group-focus-within/project-item:opacity-100 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100",
+                    {
+                      "pointer-events-auto opacity-100": isMobile || isMenuActive,
+                    }
+                  )}
                   customButtonClassName={cn(getIconButtonStyling("ghost", "sm"), "text-placeholder")}
                   placement="bottom-start"
                   ariaLabel={t("aria_labels.projects_sidebar.toggle_quick_actions_menu")}
