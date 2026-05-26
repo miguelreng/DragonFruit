@@ -7,6 +7,18 @@ const MENU_SAVE_PAGE = "dragonfruit-save-page";
 const MENU_SAVE_LINK = "dragonfruit-save-link";
 const MENU_SAVE_IMAGE = "dragonfruit-save-image";
 const MENU_SETTINGS = "dragonfruit-settings";
+const ACTION_ICON_IDLE = {
+  16: "src/icons/action/icon-idle-16.png",
+  32: "src/icons/action/icon-idle-32.png",
+  48: "src/icons/action/icon-idle-48.png",
+  128: "src/icons/action/icon-idle-128.png",
+};
+const ACTION_ICON_ACTIVE = {
+  16: "src/icons/action/icon-active-16.png",
+  32: "src/icons/action/icon-active-32.png",
+  48: "src/icons/action/icon-active-48.png",
+  128: "src/icons/action/icon-active-128.png",
+};
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -33,6 +45,10 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   void handleContextMenu(info, tab);
+});
+
+chrome.action.onClicked.addListener((tab) => {
+  void handleActionClick(tab);
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -245,7 +261,7 @@ async function loadProjects(appUrlValue, workspaceSlugValue) {
 
 async function handleContextMenu(info, tab) {
   if (info.menuItemId === MENU_SETTINGS) {
-    await openSettings();
+    await openSettings("context-menu");
     return;
   }
 
@@ -276,6 +292,30 @@ async function saveActiveTab() {
   if (!tab?.url) return { ok: false, error: "No active tab URL." };
   await saveUrlBookmark(tab.url, tab);
   return { ok: true };
+}
+
+async function handleActionClick(tab) {
+  if (!tab?.id || !tab?.url) return;
+  await setActionIcon("active", tab.id);
+  try {
+    const authState = await getAuthState(DEFAULT_API_URL);
+    if (!authState.authenticated) {
+      await showTabToast(tab.id, authState.error || "Connect your DragonFruit account first.", "error");
+      return;
+    }
+    await saveUrlBookmark(tab.url, tab);
+    await showTabToast(tab.id, "Saved to DragonFruit", "success");
+  } catch (error) {
+    const message = String(error?.message || "Could not save to DragonFruit.");
+    if (isPermissionError(message)) {
+      await showTabToast(tab.id, "No write access for selected project. Choose another project.", "error");
+    } else {
+      await showTabToast(tab.id, message, "error");
+    }
+  } finally {
+    await delay(850);
+    await setActionIcon("idle", tab.id);
+  }
 }
 
 async function saveUrlBookmark(url, tab) {
@@ -311,7 +351,6 @@ async function saveBookmark(payload) {
     throw new Error("Connect your DragonFruit account first.");
   }
   if (!settings.workspaceSlug || !settings.projectId) {
-    await openSettings();
     throw new Error("Choose a workspace and project in the extension popup first.");
   }
 
@@ -321,7 +360,7 @@ async function saveBookmark(payload) {
     ...(user?.id ? { updated_by: user.id } : {}),
   };
 
-  const response = await fetch(
+  let response = await fetch(
     `${settings.appUrl}/api/workspaces/${settings.workspaceSlug}/projects/${settings.projectId}/bookmarks/`,
     {
       method: "POST",
@@ -333,8 +372,52 @@ async function saveBookmark(payload) {
       body: JSON.stringify(payloadWithAudit),
     }
   );
+
+  if (response.status === 403) {
+    const recoveredSettings = await recoverWritableProject(settings);
+    if (recoveredSettings) {
+      response = await fetch(
+        `${recoveredSettings.appUrl}/api/workspaces/${recoveredSettings.workspaceSlug}/projects/${recoveredSettings.projectId}/bookmarks/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authorizedHeaders(recoveredSettings.apiToken),
+            "X-DragonFruit-Source": "chrome-extension",
+          },
+          body: JSON.stringify(payloadWithAudit),
+        }
+      );
+    }
+  }
+
   if (!response.ok) throw new Error(await bookmarkErrorMessage(response));
   return response.json();
+}
+
+async function recoverWritableProject(settings) {
+  if (!settings.workspaceSlug) return null;
+  const loaded = await loadProjects(settings.appUrl, settings.workspaceSlug);
+  if (!loaded?.ok) return null;
+
+  const projects = loaded.data?.projects || [];
+  if (!projects.length) return null;
+
+  const defaultProjectId = String(loaded.data?.default_project_id || "");
+  const fallbackProjectId = String(projects[0]?.id || "");
+  const projectId = defaultProjectId || fallbackProjectId;
+  if (!projectId) return null;
+
+  await chrome.storage.sync.set({
+    projects,
+    projectId,
+    workspaceSlug: settings.workspaceSlug,
+  });
+
+  return {
+    ...settings,
+    projectId,
+  };
 }
 
 async function bookmarkErrorMessage(response) {
@@ -356,13 +439,90 @@ function formatErrorDetail(detail) {
   return String(detail);
 }
 
-async function openSettings() {
+async function openSettings(reason = "") {
+  if (reason !== "context-menu") return;
   await chrome.storage.session?.set({ popupView: "settings" });
-  if (chrome.action.openPopup) {
-    await chrome.action.openPopup();
-    return;
-  }
   await chrome.tabs.create({ url: chrome.runtime.getURL("src/popup.html?view=settings"), active: true });
+}
+
+async function showTabToast(tabId, message, state = "success") {
+  if (!tabId) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      args: [String(message || ""), state],
+      func: (toastMessage, toastState) => {
+        const TOAST_ID = "dragonfruit-extension-toast";
+        const STYLE_ID = "dragonfruit-extension-toast-style";
+        if (!toastMessage) return;
+
+        if (!document.getElementById(STYLE_ID)) {
+          const style = document.createElement("style");
+          style.id = STYLE_ID;
+          style.textContent = `
+            #${TOAST_ID} {
+              position: fixed;
+              right: 18px;
+              bottom: 18px;
+              z-index: 2147483647;
+              max-width: 320px;
+              border-radius: 12px;
+              padding: 10px 14px;
+              color: #ffffff;
+              font: 600 13px/1.25 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+              box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+              transform: translateY(8px);
+              opacity: 0;
+              transition: opacity 0.18s ease, transform 0.18s ease;
+              pointer-events: none;
+            }
+            #${TOAST_ID}[data-state="success"] { background: #1f9d74; }
+            #${TOAST_ID}[data-state="error"] { background: #d93f53; }
+            #${TOAST_ID}[data-visible="true"] {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          `;
+          document.documentElement.append(style);
+        }
+
+        let toast = document.getElementById(TOAST_ID);
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.id = TOAST_ID;
+          document.body.append(toast);
+        }
+
+        toast.textContent = toastMessage;
+        toast.dataset.state = toastState === "error" ? "error" : "success";
+        toast.dataset.visible = "true";
+        window.setTimeout(() => {
+          const latestToast = document.getElementById(TOAST_ID);
+          if (!latestToast) return;
+          latestToast.dataset.visible = "false";
+        }, 1700);
+      },
+    });
+  } catch {
+    // Script injection fails on restricted pages (chrome://, extensions, etc).
+  }
+}
+
+async function setActionIcon(state, tabId) {
+  const path = state === "active" ? ACTION_ICON_ACTIVE : ACTION_ICON_IDLE;
+  try {
+    if (tabId) {
+      await chrome.action.setIcon({ tabId, path });
+      return;
+    }
+    await chrome.action.setIcon({ path });
+  } catch {
+    // Ignore icon update failures to keep save flow resilient.
+  }
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 async function captureTweetScreenshot(tabId) {
@@ -457,4 +617,9 @@ function sameUrl(a, b) {
   } catch {
     return a === b;
   }
+}
+
+function isPermissionError(message) {
+  const normalizedMessage = String(message || "").toLowerCase();
+  return normalizedMessage.includes("403") || normalizedMessage.includes("required permissions");
 }

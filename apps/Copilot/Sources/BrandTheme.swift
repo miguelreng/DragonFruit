@@ -97,11 +97,13 @@ enum BrandTheme {
     static let labelLight = Color(red: 0.38, green: 0.38, blue: 0.45).opacity(0.7)
 
     static var menuBarIcon: NSImage? {
-        guard let path = Bundle.main.path(forResource: "icon-white", ofType: "svg") else { return nil }
+        guard let path = Bundle.main.path(forResource: "app", ofType: "svg")
+            ?? Bundle.main.path(forResource: "icon-white", ofType: "svg")
+        else { return nil }
         let url = URL(fileURLWithPath: path)
         guard let image = NSImage(contentsOf: url) else { return nil }
         image.size = NSSize(width: 16, height: 16)
-        image.isTemplate = true
+        image.isTemplate = false
         return image
     }
 
