@@ -35,6 +35,7 @@ export function StickyInput(props: TProps) {
   const { stickyData, workspaceSlug, handleUpdate, stickyId, handleDelete, handleChange, showToolbar } = props;
   // refs
   const editorRef = useRef<EditorRefApi>(null);
+  const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [tagsInput, setTagsInput] = useState("");
   // navigation
   const pathname = usePathname();
@@ -67,6 +68,12 @@ export function StickyInput(props: TProps) {
     });
   }, [handleChange, tagsInput]);
 
+  const resizeTitleTextarea = useCallback((element: HTMLTextAreaElement | null) => {
+    if (!element) return;
+    element.style.height = "0px";
+    element.style.height = `${element.scrollHeight}px`;
+  }, []);
+
   // reset form values
   useEffect(() => {
     if (!stickyId) return;
@@ -78,21 +85,34 @@ export function StickyInput(props: TProps) {
     setTagsInput((stickyData?.tags ?? []).join(", "));
   }, [stickyData, stickyId, reset]);
 
+  useEffect(() => {
+    resizeTitleTextarea(titleTextareaRef.current);
+  }, [stickyData?.name, stickyId, resizeTitleTextarea]);
+
   return (
     <div className="flex-1">
       <Controller
         name="name"
         control={control}
-        render={({ field: { value, onChange } }) => (
-          <input
-            type="text"
+        render={({ field: { value, onChange, ref } }) => (
+          <textarea
+            rows={1}
             value={value ?? ""}
             onChange={(e) => {
               onChange(e.target.value);
+              resizeTitleTextarea(e.target);
               handleSubmit(handleFormSubmit)();
             }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.preventDefault();
+            }}
+            ref={(element) => {
+              ref(element);
+              titleTextareaRef.current = element;
+              resizeTitleTextarea(element);
+            }}
             placeholder="Title"
-            className="w-full border-0 bg-transparent px-4 pt-6 pb-0 font-['Newsreader'] text-20 font-medium text-primary placeholder:text-primary/40 focus:outline-none"
+            className="w-full resize-none overflow-hidden border-0 bg-transparent px-4 pt-6 pb-0 font-['Newsreader'] text-20 leading-tight font-medium wrap-anywhere whitespace-pre-wrap text-primary placeholder:text-primary/40 focus:outline-none"
             maxLength={100}
           />
         )}
@@ -111,7 +131,7 @@ export function StickyInput(props: TProps) {
             }
           }}
           placeholder="Add tags (comma separated)"
-          className="h-7 w-full rounded-sm border border-black/10 bg-white/30 px-2 text-11 text-primary placeholder:text-primary/55 outline-none"
+          className="h-7 w-full rounded-sm border border-black/10 bg-white/30 px-2 text-11 text-primary outline-none placeholder:text-primary/55"
         />
       </div>
       <Controller
