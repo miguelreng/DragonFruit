@@ -12,7 +12,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       </header>
 
       <div>
-        <section class="home-section">
+        <section class="home-section" id="about">
           <p>
             Before the printing press, knowledge moved slowly. It lived in rooms, guilds, monasteries, families, and
             professions you were usually born near before you ever got to choose them.
@@ -43,17 +43,22 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         </section>
       </div>
 
-      <footer>
+      <footer class="site-footer">
         <span class="cta-row"><span aria-hidden="true">→</span><a href="https://app.dragonfruit.sh">Start now for free</a></span>
+        <div class="legal-row">
+          <a href="https://app.dragonfruit.sh/legal/privacy">Privacy Policy</a>
+          <a href="https://app.dragonfruit.sh/legal/terms">Terms and Conditions</a>
+          <span>© {new Date().getFullYear()} DragonFruit</span>
+        </div>
       </footer>
     </div>
 
     <img
       class="home-illustration"
       src="/assets/imprenta.png"
-      alt="Renaissance-style sketch of a printing workshop with several people gathered around papers and a press"
-      width="1774"
-      height="3548"
+      alt="Renaissance-style sketch of a small coworking meeting with a few people using laptops and a phone"
+      width="1536"
+      height="1024"
     />
   </main>
 </BaseLayout>
