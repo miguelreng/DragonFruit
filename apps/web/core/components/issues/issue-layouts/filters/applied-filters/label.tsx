@@ -29,9 +29,12 @@ export const AppliedLabelsFilters = observer(function AppliedLabelsFilters(props
         if (!labelDetails) return null;
 
         return (
-          <div key={labelId} className="flex items-center gap-1 rounded-sm bg-layer-1 p-1 text-11">
+          <div
+            key={labelId}
+            className="shadow-sm flex items-center gap-1.5 rounded-md border border-strong bg-layer-2 px-1.5 py-1 text-11 font-medium text-primary"
+          >
             <span
-              className="h-1.5 w-1.5 rounded-full"
+              className="h-2 w-2 rounded-full"
               style={{
                 backgroundColor: labelDetails.color,
               }}
@@ -40,7 +43,7 @@ export const AppliedLabelsFilters = observer(function AppliedLabelsFilters(props
             {editable && (
               <button
                 type="button"
-                className="grid place-items-center text-tertiary hover:text-secondary"
+                className="grid place-items-center text-secondary transition-colors hover:text-primary"
                 onClick={() => handleRemove(labelId)}
               >
                 <CloseIcon height={10} width={10} strokeWidth={2} />

@@ -56,7 +56,7 @@ function ensureHljsRegistered() {
 import type { EditorRefApi } from "@plane/editor";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Avatar, CustomMenu } from "@plane/ui";
+import { Avatar, CustomMenu, Spinner } from "@plane/ui";
 import { calculateTimeAgo, cn, getFileURL } from "@plane/utils";
 // components
 import {
@@ -64,7 +64,6 @@ import {
   FileText,
   History,
   Image as ImageIconBase,
-  Loader2,
   Paperclip,
   Plus,
   Send,
@@ -650,7 +649,7 @@ function ChatThread(props: {
         activePageEditorRef?.setEditorValueAtCursorPosition(markdownToEditorHtml(generatedContent));
         activePageEditorRef?.scrollToNodeViaDOMCoordinates({ behavior: "smooth" });
         setToast({
-          type: TOAST_TYPE.SUCCESS,
+          type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
           title: "Added to page",
           message: `${agent?.name ?? "The agent"} wrote it into the editor.`,
         });
@@ -713,7 +712,7 @@ function ChatThread(props: {
                   className="shrink-0"
                 />
                 <span className="flex items-center gap-1 text-12 text-tertiary">
-                  <Loader2 className="size-3 animate-spin" />
+                  <Spinner height="12px" width="12px" />
                   Thinking…
                 </span>
               </li>
@@ -806,7 +805,11 @@ function ChatThread(props: {
               )}
               aria-label="Send message"
             >
-              {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+              {sending ? (
+                <Spinner height="14px" width="14px" className="fill-white text-white/35" />
+              ) : (
+                <Send className="size-3.5" />
+              )}
             </button>
           </div>
         </div>

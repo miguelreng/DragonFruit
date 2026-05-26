@@ -2222,32 +2222,34 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func stopMeetingAudioCapture() async {
-        audioEngine.stop()
-        removeInputTapIfNeeded()
+        stopMicrophoneCapture()
         await systemAudioCapture.stop()
         meetingMicAudioFile = nil
-        audioLevel = 0
-        let request = recognitionRequest
-        speechAppendQueue.async {
-            request?.endAudio()
-        }
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        recognitionRequest = nil
+        stopSpeechRecognitionPipeline()
     }
 
     private func stopAudioCapture() {
+        stopMicrophoneCapture()
+        Task { await systemAudioCapture.stop() }
+        stopSpeechRecognitionPipeline()
+    }
+
+    private func stopMicrophoneCapture() {
         audioEngine.stop()
         removeInputTapIfNeeded()
-        Task { await systemAudioCapture.stop() }
+        audioEngine.reset()
         audioLevel = 0
+    }
+
+    private func stopSpeechRecognitionPipeline() {
         let request = recognitionRequest
+        recognitionRequest = nil
         speechAppendQueue.async {
             request?.endAudio()
         }
+        recognitionTask?.finish()
         recognitionTask?.cancel()
         recognitionTask = nil
-        recognitionRequest = nil
     }
 
     private func removeInputTapIfNeeded() {
@@ -2359,6 +2361,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             try audioEngine.start()
             isListening = true
             statusMessage = statusMessageForListening(mode: mode)
+            if let requiredHeldHotKeyID, !heldHotKeyIds.contains(requiredHeldHotKeyID) {
+                stopVoiceCapture()
+                statusMessage = "Dictation cancelled."
+                return
+            }
 
             recognitionTask = Self.startRecognitionTask(recognizer: recognizer, request: request) { [weak self] result, error in
                 if let result {
@@ -2392,10 +2399,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func stopVoiceCapture() {
-        guard isListening else { return }
+        let wasListening = isListening
         isListening = false
         audioLevel = 0
         stopAudioCapture()
+        guard wasListening else { return }
         voiceTranscriptFlushTask?.cancel()
         voiceTranscriptFlushTask = nil
         if !pendingVoiceTranscript.isEmpty {

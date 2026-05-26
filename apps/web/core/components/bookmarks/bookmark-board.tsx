@@ -5,13 +5,22 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bookmark } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ListBullets, SquaresFour } from "@phosphor-icons/react";
+import {
+  Bookmark as BookmarkIcon,
+  CancelCircleIcon,
+  Copy01Icon,
+  Delete02Icon,
+  FilterIcon,
+  GridIcon,
+  LinkSquare01Icon,
+  ListViewIcon,
+  PencilEdit02Icon,
+  PlusSignIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { Copy, ExternalLink, ListFilter, Pencil, Plus, Trash, X } from "@/components/icons/lucide-shim";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Button } from "@plane/propel/button";
@@ -96,6 +105,13 @@ const bookmarkHref = (workspaceSlug: string, bookmark: TProjectBookmark) =>
 const bookmarkSource = (bookmark: TProjectBookmark) =>
   bookmark.metadata?.site_name || domainFromUrl(bookmark.url) || bookmark.entity_type || "DragonFruit";
 
+const bookmarkPreviewImage = (bookmark: TProjectBookmark) => {
+  const metadata = bookmark.metadata ?? {};
+  if (typeof metadata.image_url === "string" && metadata.image_url) return metadata.image_url;
+  if (typeof metadata.og_image_url === "string" && metadata.og_image_url) return metadata.og_image_url;
+  return "";
+};
+
 const toPayload = (draft: BookmarkDraft): TProjectBookmarkCreatePayload => ({
   title: draft.title.trim() || domainFromUrl(draft.url) || "Untitled bookmark",
   url: draft.url.trim(),
@@ -179,7 +195,7 @@ function BookmarkForm(props: {
           onClick={onCancel}
           className="inline-flex h-8 items-center gap-1 rounded-md px-3 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
         >
-          <X className="size-3.5" />
+          <HugeiconsIcon icon={CancelCircleIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           Cancel
         </button>
         <button
@@ -187,7 +203,7 @@ function BookmarkForm(props: {
           onClick={onSubmit}
           className="inline-flex h-8 items-center gap-1 rounded-md bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90"
         >
-          <Plus className="size-3.5" />
+          <HugeiconsIcon icon={PlusSignIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           {submitLabel}
         </button>
       </div>
@@ -205,18 +221,28 @@ function BookmarkCard(props: {
   const { bookmark, workspaceSlug, showProject, onEdit, onDelete } = props;
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
-  const imageUrl = typeof bookmark.metadata?.image_url === "string" ? bookmark.metadata.image_url : "";
+  const imageUrl = bookmarkPreviewImage(bookmark);
   const faviconUrl = typeof bookmark.metadata?.favicon_url === "string" ? bookmark.metadata.favicon_url : "";
   const cardBody = (
     <div className="group flex h-[260px] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 transition-colors hover:border-strong">
       <div className="flex items-start gap-2.5">
         <span className="grid size-5 shrink-0 place-items-center">
           {isExternal ? (
-            <ExternalLink className="size-4 text-tertiary" />
+            <HugeiconsIcon
+              icon={LinkSquare01Icon}
+              className="size-4 text-tertiary"
+              color="currentColor"
+              strokeWidth={1.5}
+            />
           ) : faviconUrl ? (
             <img src={faviconUrl} alt="" className="size-4 rounded" />
           ) : (
-            <HugeiconsIcon icon={Bookmark} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
+            <HugeiconsIcon
+              icon={BookmarkIcon}
+              className="size-4 text-tertiary"
+              color="currentColor"
+              strokeWidth={1.5}
+            />
           )}
         </span>
         <div className="min-w-0 flex-1">
@@ -239,7 +265,7 @@ function BookmarkCard(props: {
           </p>
         ) : (
           <div className="absolute inset-0 grid place-items-center text-tertiary/60">
-            <HugeiconsIcon icon={Bookmark} className="size-8" color="currentColor" strokeWidth={1.5} />
+            <HugeiconsIcon icon={BookmarkIcon} className="size-8" color="currentColor" strokeWidth={1.5} />
           </div>
         )}
       </div>
@@ -267,7 +293,7 @@ function BookmarkCard(props: {
           }}
           aria-label="Copy bookmark link"
         >
-          <Copy className="size-3.5" />
+          <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
         </button>
         <button
           type="button"
@@ -278,7 +304,7 @@ function BookmarkCard(props: {
           }}
           aria-label="Edit bookmark"
         >
-          <Pencil className="size-3.5" />
+          <HugeiconsIcon icon={PencilEdit02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
         </button>
         <button
           type="button"
@@ -289,7 +315,7 @@ function BookmarkCard(props: {
           }}
           aria-label="Delete bookmark"
         >
-          <Trash className="size-3.5" />
+          <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
         </button>
       </div>
     </div>
@@ -348,9 +374,14 @@ function BookmarkListItem(props: {
       parentRef={parentRef}
       prependTitleElement={
         isExternal ? (
-          <ExternalLink className="size-4 text-tertiary" />
+          <HugeiconsIcon
+            icon={LinkSquare01Icon}
+            className="size-4 text-tertiary"
+            color="currentColor"
+            strokeWidth={1.5}
+          />
         ) : (
-          <HugeiconsIcon icon={Bookmark} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
+          <HugeiconsIcon icon={BookmarkIcon} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
         )
       }
       actionableItems={
@@ -375,7 +406,7 @@ function BookmarkListItem(props: {
             onClick={() => void navigator.clipboard?.writeText(href)}
             aria-label="Copy bookmark link"
           >
-            <Copy className="size-3.5" />
+            <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
           <button
             type="button"
@@ -383,7 +414,7 @@ function BookmarkListItem(props: {
             onClick={() => onEdit(bookmark)}
             aria-label="Edit bookmark"
           >
-            <Pencil className="size-3.5" />
+            <HugeiconsIcon icon={PencilEdit02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
           <button
             type="button"
@@ -391,7 +422,7 @@ function BookmarkListItem(props: {
             onClick={() => onDelete(bookmark)}
             aria-label="Delete bookmark"
           >
-            <Trash className="size-3.5" />
+            <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
         </div>
       }
@@ -405,14 +436,14 @@ type ViewModeToggleProps = {
 };
 
 function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
-  const options: Array<{ value: ViewMode; Icon: typeof ListBullets; label: string }> = [
-    { value: "list", Icon: ListBullets, label: "List view" },
-    { value: "grid", Icon: SquaresFour, label: "Grid view" },
+  const options: Array<{ value: ViewMode; icon: IconSvgElement; label: string }> = [
+    { value: "list", icon: ListViewIcon, label: "List view" },
+    { value: "grid", icon: GridIcon, label: "Grid view" },
   ];
 
   return (
     <div className="flex items-center gap-0.5 rounded-md border border-subtle p-0.5">
-      {options.map(({ value, Icon, label }) => {
+      {options.map(({ value, icon, label }) => {
         const isActive = mode === value;
         return (
           <button
@@ -426,7 +457,7 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
               { "bg-layer-1 text-primary": isActive }
             )}
           >
-            <Icon className="size-3.5" />
+            <HugeiconsIcon icon={icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
         );
       })}
@@ -709,7 +740,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                   }
                   icon={
                     <HugeiconsIcon
-                      icon={Bookmark}
+                      icon={BookmarkIcon}
                       className="size-4 text-secondary"
                       color="currentColor"
                       strokeWidth={1.5}
@@ -727,7 +758,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
         <ViewModeToggle mode={viewMode} onChange={setViewMode} />
         <PageSearchInput searchQuery={query} updateSearchQuery={setQuery} placeholder="Search bookmarks" />
         <FiltersDropdown
-          icon={<ListFilter className="h-3 w-3" />}
+          icon={<HugeiconsIcon icon={FilterIcon} className="h-3 w-3" color="currentColor" strokeWidth={1.5} />}
           title="Filters"
           placement="bottom-end"
           isFiltersApplied={selectedProjectIds.length > 0 || selectedTags.length > 0}

@@ -8,6 +8,13 @@ import { useMemo } from "react";
 import { ListChecks, PenTool, StickyNote } from "@/components/icons/lucide-shim";
 import type { TPublicDocEmbed } from "@/services/page/public-page.service";
 
+export type TPublicDocHeading = {
+  id: string;
+  level: 1 | 2 | 3;
+  text: string;
+  sequence: number;
+};
+
 type Props = {
   html: string;
   embeds: TPublicDocEmbed[];
@@ -37,6 +44,96 @@ export function PublicDocContent({ html, embeds }: Props) {
       )}
     </>
   );
+}
+
+export function PublicDocIndex({ headings }: { headings: TPublicDocHeading[] }) {
+  if (headings.length === 0) return null;
+
+  return (
+    <div className="absolute top-[190px] right-0 z-[5] hidden h-full lg:block">
+      <div className="sticky top-24">
+        <div className="group/public-doc-toc relative px-page-x">
+          <div className="max-h-[50vh] overflow-hidden text-left" aria-hidden="true">
+            <PublicDocOutlineBars headings={headings} />
+          </div>
+          <div className="vertical-scrollbar pointer-events-none absolute top-0 right-0 scrollbar-sm max-h-[70vh] w-56 translate-x-1/2 overflow-y-scroll rounded-lg bg-surface-2 p-4 whitespace-nowrap opacity-0 transition-all duration-300 group-hover/public-doc-toc:pointer-events-auto group-hover/public-doc-toc:-translate-x-1/4 group-hover/public-doc-toc:opacity-100">
+            <div className="flex flex-col items-start gap-y-1">
+              {headings.map((heading) => (
+                <button
+                  key={heading.id}
+                  type="button"
+                  onClick={() => handleHeadingClick(heading)}
+                  className={getPublicDocHeadingClassName(heading.level)}
+                >
+                  {heading.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function handleHeadingClick(heading: TPublicDocHeading) {
+  document.getElementById(heading.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function PublicDocOutlineBars({ headings }: { headings: TPublicDocHeading[] }) {
+  return (
+    <div className="mt-2 flex h-full flex-col items-start gap-y-2">
+      {headings.map((heading) => (
+        <div
+          key={heading.id}
+          className="h-0.5 flex-shrink-0 self-end rounded-xs bg-layer-3"
+          style={{
+            width: heading.level === 1 ? "20px" : heading.level === 2 ? "18px" : "14px",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function getPublicDocHeadingClassName(level: TPublicDocHeading["level"]) {
+  const common =
+    "flex-shrink-0 w-full py-1 text-left font-medium text-tertiary hover:text-accent-primary truncate transition-colors";
+  if (level === 1) return `${common} pl-1 text-13`;
+  if (level === 2) return `${common} pl-2 text-11`;
+  return `${common} pl-4 text-11`;
+}
+
+export function getPublicDocHeadings(html: string): TPublicDocHeading[] {
+  if (typeof window === "undefined") return [];
+
+  const template = document.createElement("template");
+  template.innerHTML = html || "<p></p>";
+
+  return Array.from(template.content.querySelectorAll("h1, h2, h3")).map((heading, index) => ({
+    id: getPublicDocHeadingId(index),
+    level: Number(heading.tagName.slice(1)) as TPublicDocHeading["level"],
+    text: heading.textContent?.trim() || "Untitled section",
+    sequence: index,
+  }));
+}
+
+export function addPublicDocHeadingIds(html: string): string {
+  if (typeof window === "undefined") return html;
+
+  const template = document.createElement("template");
+  template.innerHTML = html || "<p></p>";
+
+  Array.from(template.content.querySelectorAll("h1, h2, h3")).forEach((heading, index) => {
+    heading.id = heading.id || getPublicDocHeadingId(index);
+    heading.setAttribute("data-public-doc-heading", "true");
+  });
+
+  return template.innerHTML;
+}
+
+function getPublicDocHeadingId(index: number) {
+  return `public-doc-heading-${index}`;
 }
 
 function splitHtmlByDocEmbeds(html: string, embeds: TPublicDocEmbed[]) {

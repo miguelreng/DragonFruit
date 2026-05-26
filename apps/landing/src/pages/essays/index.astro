@@ -11,31 +11,41 @@ const essays = await getEssays();
   description="Essays from DragonFruit on productivity, generalists, and agentic workflows."
   canonicalPath="/essays"
 >
-  <main class="essay-shell">
-    <header class="essay-top">
-      <SiteHeader showEssaysLink={false} />
-      <a class="nav-link" href="https://app.dragonfruit.sh">start now</a>
-    </header>
+  <main class="essay-shell essay-index-main">
+    <div class="essay-index-copy">
+      <header class="essay-top">
+        <SiteHeader showEssaysLink={false} />
+        <a class="nav-link" href="https://app.dragonfruit.sh">start now</a>
+      </header>
 
-    <section class="essay-index-title" aria-labelledby="essays-title">
-      <p class="eyebrow meta">DragonFruit essays</p>
-      <h1 id="essays-title">Productivity, generalists, and agentic workflows.</h1>
-    </section>
+      <section class="essay-index-title" aria-labelledby="essays-title">
+        <p class="eyebrow meta">DragonFruit essays</p>
+        <h1 id="essays-title">Productivity, generalists, and agentic workflows.</h1>
+      </section>
 
-    {
-      essays.length > 0 ? (
-        <div class="essay-list">
-          {essays.map((essay) => (
-            <a class="essay-list-item" href={`/essays/${getEssaySlug(essay)}`}>
-              <div class="meta">{formatEssayDate(essay.created_at)}</div>
-              <h2>{essay.name || "Untitled"}</h2>
-              <p>{getEssayDescription(essay)}</p>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <p class="empty-essays">No public essays are configured yet.</p>
-      )
-    }
+      {
+        essays.length > 0 ? (
+          <div class="essay-list">
+            {essays.map((essay) => (
+              <a class="essay-list-item" href={`/essays/${getEssaySlug(essay)}`}>
+                <div class="meta">{formatEssayDate(essay.created_at)}</div>
+                <h2>{essay.name || "Untitled"}</h2>
+                <p>{getEssayDescription(essay)}</p>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p class="empty-essays">No public essays are configured yet.</p>
+        )
+      }
+    </div>
+
+    <img
+      class="essay-illustration"
+      src="/assets/imprenta.png"
+      alt="Renaissance-style sketch of a small coworking meeting with a few people using laptops and a phone"
+      width="1536"
+      height="1024"
+    />
   </main>
 </BaseLayout>

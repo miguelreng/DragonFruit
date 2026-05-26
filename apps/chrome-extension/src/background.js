@@ -7,6 +7,20 @@ const MENU_SAVE_PAGE = "dragonfruit-save-page";
 const MENU_SAVE_LINK = "dragonfruit-save-link";
 const MENU_SAVE_IMAGE = "dragonfruit-save-image";
 const MENU_SETTINGS = "dragonfruit-settings";
+const SAVED_PAGE_URLS_KEY = "savedPageUrls";
+const MAX_SAVED_PAGE_URLS = 500;
+const ACTION_ICON_IDLE = {
+  16: "src/icons/action/icon-idle-16.png",
+  32: "src/icons/action/icon-idle-32.png",
+  48: "src/icons/action/icon-idle-48.png",
+  128: "src/icons/action/icon-idle-128.png",
+};
+const ACTION_ICON_ACTIVE = {
+  16: "src/icons/action/icon-active-16.png",
+  32: "src/icons/action/icon-active-32.png",
+  48: "src/icons/action/icon-active-48.png",
+  128: "src/icons/action/icon-active-128.png",
+};
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -33,6 +47,20 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   void handleContextMenu(info, tab);
+});
+
+chrome.action.onClicked.addListener((tab) => {
+  void handleActionClick(tab);
+});
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  void updateActionIconForTab(tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url || changeInfo.status === "complete") {
+    void updateActionIconForTab(tabId, tab?.url || changeInfo.url);
+  }
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -245,7 +273,7 @@ async function loadProjects(appUrlValue, workspaceSlugValue) {
 
 async function handleContextMenu(info, tab) {
   if (info.menuItemId === MENU_SETTINGS) {
-    await openSettings();
+    await openSettings("context-menu");
     return;
   }
 
@@ -278,14 +306,49 @@ async function saveActiveTab() {
   return { ok: true };
 }
 
+async function handleActionClick(tab) {
+  if (!tab?.id || !tab?.url) return;
+  await setActionIcon("active", tab.id);
+  try {
+    const authState = await getAuthState(DEFAULT_API_URL);
+    if (!authState.authenticated) {
+      await openExtensionView("login", tab.id);
+      await updateActionIconForTab(tab.id, tab.url);
+      return;
+    }
+    await showTabToast(tab.id, "Saving to DragonFruit...", "loading");
+    await saveUrlBookmark(tab.url, tab);
+    await showTabToast(tab.id, "Saved to DragonFruit", "success");
+  } catch (error) {
+    const message = String(error?.message || "Could not save to DragonFruit.");
+    if (isAuthenticationError(message)) {
+      await openExtensionView("login", tab.id);
+    } else if (isConfigurationError(message)) {
+      await openExtensionView("settings", tab.id);
+    } else if (isPermissionError(message)) {
+      await showTabToast(tab.id, "No write access for selected project. Choose another project.", "error");
+    } else {
+      await showTabToast(tab.id, message, "error");
+    }
+    await updateActionIconForTab(tab.id, tab.url);
+  }
+}
+
 async function saveUrlBookmark(url, tab) {
   const isTweet = /https?:\/\/(x|twitter)\.com\/[^/]+\/status\/\d+/i.test(url);
+  const pageMetadata =
+    tab?.id && tab.url && sameUrl(tab.url, url) ? await extractPageMetadata(tab.id, url).catch(() => ({})) : {};
   const metadata = {
-    source_url: url,
+    source_url: pageMetadata.url || url,
     source_app: "DragonFruit Chrome Extension",
-    favicon_url: tab?.favIconUrl || "",
-    site_name: isTweet ? "Tweet" : domainFromUrl(url),
+    favicon_url: pageMetadata.favicon_url || tab?.favIconUrl || "",
+    site_name: isTweet ? "Tweet" : pageMetadata.site_name || domainFromUrl(url),
   };
+  if (pageMetadata.image_url) metadata.image_url = pageMetadata.image_url;
+  if (pageMetadata.title) metadata.og_title = pageMetadata.title;
+  if (pageMetadata.description) metadata.og_description = pageMetadata.description;
+  if (pageMetadata.url) metadata.og_url = pageMetadata.url;
+
   const tags = isTweet ? ["tweet"] : [];
 
   if (isTweet && tab?.id && tab.url && sameUrl(tab.url, url)) {
@@ -297,12 +360,87 @@ async function saveUrlBookmark(url, tab) {
   }
 
   await saveBookmark({
-    title: tab?.title || titleFromUrl(url, "Saved bookmark"),
+    title: pageMetadata.title || tab?.title || titleFromUrl(url, "Saved bookmark"),
     url,
-    description: "",
+    description: pageMetadata.description || "",
     tags,
     metadata,
   });
+
+  if (tab?.id && tab.url && getSavedPageUrlKey(tab.url) === getSavedPageUrlKey(url)) {
+    await markPageUrlSaved(url, tab.id);
+  }
+}
+
+async function extractPageMetadata(tabId, fallbackUrl) {
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    args: [fallbackUrl],
+    func: (pageUrl) => {
+      // oxlint-disable-next-line unicorn/consistent-function-scoping -- This helper is serialized into the page.
+      const content = (...selectors) => {
+        for (const selector of selectors) {
+          const element = document.querySelector(selector);
+          const value = element?.getAttribute("content") || element?.getAttribute("href") || "";
+          if (value.trim()) return value.trim();
+        }
+        return "";
+      };
+      const absoluteUrl = (value) => {
+        if (!value) return "";
+        try {
+          return new URL(value, document.baseURI || pageUrl).href;
+        } catch {
+          return value;
+        }
+      };
+      const siteName = content('meta[property="og:site_name"]', 'meta[name="application-name"]');
+      const title = content('meta[property="og:title"]', 'meta[name="twitter:title"]') || document.title || "";
+      const description =
+        content('meta[property="og:description"]', 'meta[name="twitter:description"]', 'meta[name="description"]') ||
+        "";
+      const imageUrl = content(
+        'meta[property="og:image:secure_url"]',
+        'meta[property="og:image:url"]',
+        'meta[property="og:image"]',
+        'meta[name="twitter:image"]',
+        'meta[name="twitter:image:src"]'
+      );
+      const canonicalUrl = content('meta[property="og:url"]', 'link[rel="canonical"]');
+      const faviconUrl = content(
+        'link[rel="apple-touch-icon"]',
+        'link[rel="icon"]',
+        'link[rel="shortcut icon"]',
+        'link[rel="mask-icon"]'
+      );
+
+      return {
+        title,
+        description,
+        image_url: absoluteUrl(imageUrl),
+        favicon_url: absoluteUrl(faviconUrl),
+        site_name: siteName,
+        url: absoluteUrl(canonicalUrl),
+      };
+    },
+  });
+  return normalizePageMetadata(result?.result);
+}
+
+function normalizePageMetadata(value) {
+  if (!value || typeof value !== "object") return {};
+  return {
+    title: stringValue(value.title),
+    description: stringValue(value.description),
+    image_url: stringValue(value.image_url),
+    favicon_url: stringValue(value.favicon_url),
+    site_name: stringValue(value.site_name),
+    url: stringValue(value.url),
+  };
+}
+
+function stringValue(value) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 async function saveBookmark(payload) {
@@ -311,7 +449,6 @@ async function saveBookmark(payload) {
     throw new Error("Connect your DragonFruit account first.");
   }
   if (!settings.workspaceSlug || !settings.projectId) {
-    await openSettings();
     throw new Error("Choose a workspace and project in the extension popup first.");
   }
 
@@ -321,7 +458,7 @@ async function saveBookmark(payload) {
     ...(user?.id ? { updated_by: user.id } : {}),
   };
 
-  const response = await fetch(
+  let response = await fetch(
     `${settings.appUrl}/api/workspaces/${settings.workspaceSlug}/projects/${settings.projectId}/bookmarks/`,
     {
       method: "POST",
@@ -333,8 +470,52 @@ async function saveBookmark(payload) {
       body: JSON.stringify(payloadWithAudit),
     }
   );
+
+  if (response.status === 403) {
+    const recoveredSettings = await recoverWritableProject(settings);
+    if (recoveredSettings) {
+      response = await fetch(
+        `${recoveredSettings.appUrl}/api/workspaces/${recoveredSettings.workspaceSlug}/projects/${recoveredSettings.projectId}/bookmarks/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authorizedHeaders(recoveredSettings.apiToken),
+            "X-DragonFruit-Source": "chrome-extension",
+          },
+          body: JSON.stringify(payloadWithAudit),
+        }
+      );
+    }
+  }
+
   if (!response.ok) throw new Error(await bookmarkErrorMessage(response));
   return response.json();
+}
+
+async function recoverWritableProject(settings) {
+  if (!settings.workspaceSlug) return null;
+  const loaded = await loadProjects(settings.appUrl, settings.workspaceSlug);
+  if (!loaded?.ok) return null;
+
+  const projects = loaded.data?.projects || [];
+  if (!projects.length) return null;
+
+  const defaultProjectId = String(loaded.data?.default_project_id || "");
+  const fallbackProjectId = String(projects[0]?.id || "");
+  const projectId = defaultProjectId || fallbackProjectId;
+  if (!projectId) return null;
+
+  await chrome.storage.sync.set({
+    projects,
+    projectId,
+    workspaceSlug: settings.workspaceSlug,
+  });
+
+  return {
+    ...settings,
+    projectId,
+  };
 }
 
 async function bookmarkErrorMessage(response) {
@@ -356,13 +537,240 @@ function formatErrorDetail(detail) {
   return String(detail);
 }
 
-async function openSettings() {
-  await chrome.storage.session?.set({ popupView: "settings" });
-  if (chrome.action.openPopup) {
-    await chrome.action.openPopup();
+async function openSettings(reason = "") {
+  if (reason !== "context-menu") return;
+  await openExtensionView("settings");
+}
+
+async function openExtensionView(view = "bookmark", tabId = null) {
+  const normalizedView = view === "login" || view === "settings" ? view : "bookmark";
+  const popupPath = `src/popup.html?view=${normalizedView}`;
+  await chrome.storage.session?.set({ popupView: normalizedView });
+  if (chrome.action?.openPopup) {
+    try {
+      if (tabId) await chrome.action.setPopup({ tabId, popup: popupPath });
+      await chrome.action.openPopup();
+      if (tabId) {
+        setTimeout(() => {
+          void chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
+        }, 1000);
+      }
+      return;
+    } catch {
+      if (tabId) await chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
+      // Fall back to a dedicated extension tab when Chrome cannot open the popup.
+    }
+  }
+  await chrome.tabs.create({
+    url: chrome.runtime.getURL(popupPath),
+    active: true,
+  });
+}
+
+function isAuthenticationError(message) {
+  return String(message || "")
+    .toLowerCase()
+    .includes("connect your dragonfruit account");
+}
+
+function isConfigurationError(message) {
+  const normalized = String(message || "").toLowerCase();
+  return normalized.includes("choose a workspace") || normalized.includes("select workspace");
+}
+
+async function showTabToast(tabId, message, state = "success") {
+  if (!tabId) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      args: [String(message || ""), state],
+      func: (toastMessage, toastState) => {
+        const TOAST_ID = "dragonfruit-extension-toast";
+        if (!toastMessage) return;
+        const normalizedState = toastState === "error" || toastState === "loading" ? toastState : "success";
+        const toastToken = String(Date.now());
+
+        let host = document.getElementById(TOAST_ID);
+        if (!host) {
+          host = document.createElement("div");
+          host.id = TOAST_ID;
+          document.documentElement.append(host);
+          host.attachShadow({ mode: "open" });
+        } else if (!host.shadowRoot) {
+          host.textContent = "";
+          host.attachShadow({ mode: "open" });
+        }
+
+        const root = host.shadowRoot;
+        if (!root) return;
+        host.dataset.toastToken = toastToken;
+        root.innerHTML = `
+          <style>
+            :host {
+              all: initial;
+              position: fixed;
+              right: 18px;
+              top: 18px;
+              z-index: 2147483647;
+              width: min(340px, calc(100vw - 36px));
+              color-scheme: light;
+              pointer-events: none;
+            }
+            .toast {
+              box-sizing: border-box;
+              display: flex;
+              width: 100%;
+              align-items: flex-start;
+              gap: 10px;
+              border: 1px solid rgba(31, 37, 51, 0.12);
+              border-radius: 8px;
+              background: #ffffff;
+              padding: 14px 16px;
+              box-shadow: 0 10px 10px -5px rgba(41, 47, 61, 0.04), 0 10px 40px -5px rgba(41, 47, 61, 0.04);
+              transform: translateY(-8px);
+              opacity: 0;
+              transition: opacity 0.18s ease, transform 0.18s ease;
+              pointer-events: auto;
+            }
+            .toast[data-visible="true"] {
+              opacity: 1;
+              transform: translateY(0);
+            }
+            .icon {
+              box-sizing: border-box;
+              display: grid;
+              flex: 0 0 auto;
+              place-items: center;
+              width: 16px;
+              height: 16px;
+              margin-top: 2px;
+              border-radius: 999px;
+              background: #1f9d74;
+            }
+            .icon[data-state="error"] {
+              background: #d93f53;
+            }
+            .icon[data-state="loading"] {
+              background: #e64aa2;
+              animation: dragonfruit-toast-pulse 0.9s ease-in-out infinite;
+            }
+            @keyframes dragonfruit-toast-pulse {
+              0%, 100% {
+                transform: scale(0.82);
+                opacity: 0.68;
+              }
+              50% {
+                transform: scale(1);
+                opacity: 1;
+              }
+            }
+            .content {
+              box-sizing: border-box;
+              display: flex;
+              min-width: 0;
+              flex: 1 1 auto;
+              flex-direction: column;
+              gap: 8px;
+            }
+            .message {
+              margin: 0;
+              color: #1f2533;
+              font: 500 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              letter-spacing: 0;
+            }
+          </style>
+          <div class="toast" data-visible="false">
+            <span class="icon" data-state="${normalizedState}" aria-hidden="true"></span>
+            <div class="content">
+              <p class="message"></p>
+            </div>
+          </div>
+        `;
+
+        const toast = root.querySelector(".toast");
+        const messageElement = root.querySelector(".message");
+        if (!toast || !messageElement) return;
+        messageElement.textContent = toastMessage;
+
+        requestAnimationFrame(() => {
+          toast.dataset.visible = "true";
+        });
+        if (normalizedState === "loading") return;
+        window.setTimeout(() => {
+          if (host.dataset.toastToken !== toastToken) return;
+          const latestToast = host.shadowRoot?.querySelector(".toast");
+          if (!latestToast) return;
+          latestToast.dataset.visible = "false";
+        }, 1700);
+      },
+    });
+  } catch {
+    // Script injection fails on restricted pages (chrome://, extensions, etc).
+  }
+}
+
+async function setActionIcon(state, tabId) {
+  const path = state === "active" ? ACTION_ICON_ACTIVE : ACTION_ICON_IDLE;
+  try {
+    if (tabId) {
+      await chrome.action.setIcon({ tabId, path });
+      if (await isActiveTab(tabId)) await chrome.action.setIcon({ path });
+      return;
+    }
+    await chrome.action.setIcon({ path });
+  } catch {
+    // Ignore icon update failures to keep save flow resilient.
+  }
+}
+
+async function updateActionIconForTab(tabId, urlValue) {
+  if (!tabId) return;
+  const url = urlValue || (await getTabUrl(tabId));
+  const urlKey = getSavedPageUrlKey(url);
+  if (!urlKey) {
+    await setActionIcon("idle", tabId);
     return;
   }
-  await chrome.tabs.create({ url: chrome.runtime.getURL("src/popup.html?view=settings"), active: true });
+
+  const savedUrlKeys = await getSavedPageUrlKeys();
+  await setActionIcon(savedUrlKeys.has(urlKey) ? "active" : "idle", tabId);
+}
+
+async function markPageUrlSaved(url, tabId) {
+  const urlKey = getSavedPageUrlKey(url);
+  if (!urlKey) return;
+
+  const savedUrlKeys = await getSavedPageUrlKeys();
+  const nextSavedUrls = [urlKey, ...[...savedUrlKeys].filter((savedUrlKey) => savedUrlKey !== urlKey)].slice(
+    0,
+    MAX_SAVED_PAGE_URLS
+  );
+  await chrome.storage.local.set({ [SAVED_PAGE_URLS_KEY]: nextSavedUrls });
+  await setActionIcon("active", tabId);
+}
+
+async function getSavedPageUrlKeys() {
+  const stored = await chrome.storage.local.get([SAVED_PAGE_URLS_KEY]);
+  const savedUrls = Array.isArray(stored[SAVED_PAGE_URLS_KEY]) ? stored[SAVED_PAGE_URLS_KEY] : [];
+  return new Set(savedUrls.filter(Boolean));
+}
+
+async function getTabUrl(tabId) {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    return tab?.url || "";
+  } catch {
+    return "";
+  }
+}
+
+async function isActiveTab(tabId) {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    return activeTab?.id === tabId;
+  } catch {
+    return false;
+  }
 }
 
 async function captureTweetScreenshot(tabId) {
@@ -457,4 +865,20 @@ function sameUrl(a, b) {
   } catch {
     return a === b;
   }
+}
+
+function getSavedPageUrlKey(url) {
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) return "";
+    parsed.hash = "";
+    return parsed.href;
+  } catch {
+    return "";
+  }
+}
+
+function isPermissionError(message) {
+  const normalizedMessage = String(message || "").toLowerCase();
+  return normalizedMessage.includes("403") || normalizedMessage.includes("required permissions");
 }

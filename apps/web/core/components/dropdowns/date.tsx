@@ -167,6 +167,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
   return (
     <ComboDropDown
       as="div"
+      role="group"
       ref={dropdownRef}
       tabIndex={tabIndex}
       className={cn("h-full", className)}
@@ -184,7 +185,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
           <Combobox.Options data-prevent-outside-click static>
             <div
               className={cn(
-                "z-30 my-1 overflow-hidden rounded-md border-[0.5px] border-strong bg-surface-1 shadow-raised-200",
+                "z-30 my-1 overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1 shadow-raised-200",
                 optionsClassName
               )}
               ref={setPopperElement}
@@ -192,7 +193,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
               {...attributes.popper}
             >
               <Calendar
-                className="rounded-md border border-subtle p-3"
+                className="rounded-lg border border-subtle p-3"
                 captionLayout="dropdown"
                 selected={getDate(value)}
                 defaultMonth={getDate(value)}

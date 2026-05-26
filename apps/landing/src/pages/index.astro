@@ -11,27 +11,26 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <h1>A workspace for the new generalists.</h1>
       </header>
 
-      <div>
-        <section class="home-section" aria-labelledby="imprenta-title">
-          <h2 id="imprenta-title">The imprenta thing</h2>
-          <p>
-            Before the printing press, knowledge moved slowly. It lived in rooms, guilds, monasteries, families, and
-            professions you were usually born near before you ever got to choose them.
-          </p>
-          <p>
-            Then books started moving. Not all at once, and not equally, but enough. A person could read outside their
-            assigned lane. A carpenter could become an astronomer. A clerk could become a political thinker. A curious
-            person could become harder to contain.
-          </p>
+      <section class="home-section home-intro" id="about">
+        <p>
+          Before the printing press, knowledge moved slowly. It lived in rooms, guilds, monasteries, families, and
+          professions you were usually born near before you ever got to choose them.
+        </p>
+        <p>
+          Then books started moving. Not all at once, and not equally, but enough. A person could read outside their
+          assigned lane. A carpenter could become an astronomer. A clerk could become a political thinker. A curious
+          person could become harder to contain.
+        </p>
+      </section>
+
+      <div class="home-content">
+        <section class="home-section home-rest" aria-labelledby="manifesto-title">
           <p>
             AI feels like another one of those openings. It does not make craft cheap. It makes more doors reachable. The
             person who can think clearly, ask well, and keep going can cross disciplines without waiting for a whole
             institution to give permission.
           </p>
           <p>DragonFruit is for that person.</p>
-        </section>
-
-        <section class="home-section" aria-labelledby="manifesto-title">
           <h2 id="manifesto-title">Manifesto</h2>
           <ul>
             <li>Work should begin as thinking, not as tickets.</li>
@@ -41,20 +40,25 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <li>A workspace should be quiet enough for a thought to survive.</li>
             <li>The future belongs to people who can move between fields.</li>
           </ul>
+          <span class="cta-row"><span aria-hidden="true">→</span><a href="https://app.dragonfruit.sh">Start now for free</a></span>
         </section>
       </div>
 
-      <footer>
-        <span class="cta-row"><span aria-hidden="true">→</span><a href="https://app.dragonfruit.sh">Start now for free</a></span>
+      <footer class="site-footer">
+        <div class="legal-row">
+          <a href="https://app.dragonfruit.sh/legal/privacy">Privacy Policy</a>
+          <a href="https://app.dragonfruit.sh/legal/terms">Terms and Conditions</a>
+          <span>© {new Date().getFullYear()} DragonFruit</span>
+        </div>
       </footer>
     </div>
 
     <img
       class="home-illustration"
       src="/assets/imprenta.png"
-      alt="Renaissance-style sketch of a printing workshop with several people gathered around papers and a press"
-      width="1774"
-      height="3548"
+      alt="Renaissance-style sketch of a small coworking meeting with a few people using laptops and a phone"
+      width="1536"
+      height="1024"
     />
   </main>
 </BaseLayout>

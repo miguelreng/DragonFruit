@@ -343,11 +343,11 @@ class CalendarAccountCalendarsEndpoint(BaseAPIView):
         except UserCalendarAccount.DoesNotExist:
             return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        access_token = _refresh_if_needed(account)
-        resp = requests.get(
-            f"{GOOGLE_CAL_API}/users/me/calendarList",
+        resp = _google_api_request(
+            account=account,
+            method="GET",
+            url=f"{GOOGLE_CAL_API}/users/me/calendarList",
             params={"maxResults": 250, "minAccessRole": "reader"},
-            headers={"Authorization": f"Bearer {access_token}"},
             timeout=10,
         )
         if resp.status_code != 200:
@@ -485,41 +485,90 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
         return Response(_serialize(account), status=status.HTTP_200_OK)
 
 
-def _refresh_if_needed(account: UserCalendarAccount, client: str | None = "web") -> str:
+def _refresh_if_needed(account: UserCalendarAccount, client: str | None = "web", *, force: bool = False) -> str:
     """Return a fresh access token, refreshing via Google if expired."""
     access_token = decrypt_data(account.access_token_encrypted)
     expires_at = account.token_expires_at
     now = datetime.now(timezone.utc)
-    if expires_at and now < expires_at - timedelta(seconds=30) and access_token:
+    if not force and expires_at and now < expires_at - timedelta(seconds=30) and access_token:
         return access_token
 
     refresh_token = decrypt_data(account.refresh_token_encrypted)
     if not refresh_token:
         return access_token  # best-effort; caller will get 401 and surface it
 
-    client_id, client_secret = _client_credentials(client)
-    if not client_id or not client_secret:
-        return access_token
-    resp = requests.post(
-        GOOGLE_TOKEN_URL,
-        data={
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "refresh_token": refresh_token,
-            "grant_type": "refresh_token",
-        },
-        timeout=10,
-    )
-    if resp.status_code != 200:
+    normalized_client = _normalize_client(client)
+    client_order = [normalized_client]
+    alternate = "native" if normalized_client == "web" else "web"
+    client_order.append(alternate)
+
+    seen: set[tuple[str, str]] = set()
+    credential_candidates: list[tuple[str, str]] = []
+    for candidate_client in client_order:
+        for client_id, client_secret in _client_credential_candidates(candidate_client):
+            key = (client_id, client_secret)
+            if key in seen:
+                continue
+            seen.add(key)
+            credential_candidates.append(key)
+
+    td = None
+    for client_id, client_secret in credential_candidates:
+        resp = requests.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            },
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            continue
+        td = resp.json()
+        break
+
+    if td is None:
         return access_token
 
-    td = resp.json()
     new_access = td.get("access_token", access_token)
     expires_in = int(td.get("expires_in", 3600))
     account.access_token_encrypted = encrypt_data(new_access)
     account.token_expires_at = now + timedelta(seconds=expires_in)
-    account.save(update_fields=["access_token_encrypted", "token_expires_at"])
+    update_fields = ["access_token_encrypted", "token_expires_at"]
+    new_refresh_token = td.get("refresh_token")
+    if new_refresh_token:
+        account.refresh_token_encrypted = encrypt_data(new_refresh_token)
+        update_fields.append("refresh_token_encrypted")
+    account.save(update_fields=update_fields)
     return new_access
+
+
+def _google_api_request(
+    *,
+    account: UserCalendarAccount,
+    method: str,
+    url: str,
+    client: str | None = "web",
+    params: dict | None = None,
+    json: dict | None = None,
+    timeout: int = 10,
+) -> requests.Response:
+    def _send(token: str) -> requests.Response:
+        headers = {"Authorization": f"Bearer {token}"}
+        if json is not None:
+            headers["Content-Type"] = "application/json"
+        return requests.request(method, url, params=params, json=json, headers=headers, timeout=timeout)
+
+    access_token = _refresh_if_needed(account, client=client)
+    response = _send(access_token)
+
+    if response.status_code in {401, 403}:
+        retry_token = _refresh_if_needed(account, client=client, force=True)
+        response = _send(retry_token)
+
+    return response
 
 
 class CalendarAccountEventsEndpoint(BaseAPIView):
@@ -538,9 +587,10 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
         )
         calendar_id = request.query_params.get("calendar_id") or account.primary_calendar_id or "primary"
 
-        access_token = _refresh_if_needed(account)
-        resp = requests.get(
-            _google_calendar_url(calendar_id, "events"),
+        resp = _google_api_request(
+            account=account,
+            method="GET",
+            url=_google_calendar_url(calendar_id, "events"),
             params={
                 "timeMin": time_min,
                 "timeMax": time_max,
@@ -548,7 +598,6 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
                 "orderBy": "startTime",
                 "maxResults": 250,
             },
-            headers={"Authorization": f"Bearer {access_token}"},
             timeout=10,
         )
         if resp.status_code != 200:
@@ -579,11 +628,11 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
         events: list[dict] = []
 
         for account in accounts:
-            access_token = _refresh_if_needed(account)
-            calendars_resp = requests.get(
-                f"{GOOGLE_CAL_API}/users/me/calendarList",
+            calendars_resp = _google_api_request(
+                account=account,
+                method="GET",
+                url=f"{GOOGLE_CAL_API}/users/me/calendarList",
                 params={"maxResults": 250, "minAccessRole": "reader"},
-                headers={"Authorization": f"Bearer {access_token}"},
                 timeout=10,
             )
 
@@ -598,8 +647,10 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
 
             for calendar in calendars:
                 calendar_id = calendar.get("id") or account.primary_calendar_id or "primary"
-                resp = requests.get(
-                    _google_calendar_url(calendar_id, "events"),
+                resp = _google_api_request(
+                    account=account,
+                    method="GET",
+                    url=_google_calendar_url(calendar_id, "events"),
                     params={
                         "timeMin": time_min,
                         "timeMax": time_max,
@@ -607,7 +658,6 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
                         "orderBy": "startTime",
                         "maxResults": 20,
                     },
-                    headers={"Authorization": f"Bearer {access_token}"},
                     timeout=10,
                 )
                 if resp.status_code != 200:
@@ -824,7 +874,6 @@ def _transcribe_meeting_audio(*, request, workspace: Workspace) -> tuple[str, st
 def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue, calendar_id: str | None = None) -> str:
     """Create/update a Google Calendar event for one issue and return event id."""
     calendar_id = calendar_id or account.primary_calendar_id or "primary"
-    access_token = _refresh_if_needed(account)
     start_date = issue.start_date or issue.target_date
     end_date = issue.target_date or issue.start_date or start_date
     if start_date is None:
@@ -839,19 +888,21 @@ def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue
 
     if issue.external_source == "google_calendar" and issue.external_id:
         event_id = issue.external_id.rsplit(":", 1)[-1]
-        resp = requests.patch(
-            _google_calendar_url(calendar_id, f"events/{event_id}"),
+        resp = _google_api_request(
+            account=account,
+            method="PATCH",
+            url=_google_calendar_url(calendar_id, f"events/{event_id}"),
             json=payload,
-            headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
             timeout=10,
         )
         if resp.status_code == 200:
             return event_id
 
-    create_resp = requests.post(
-        _google_calendar_url(calendar_id, "events"),
+    create_resp = _google_api_request(
+        account=account,
+        method="POST",
+        url=_google_calendar_url(calendar_id, "events"),
         json=payload,
-        headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
         timeout=10,
     )
     if create_resp.status_code not in (200, 201):
@@ -949,10 +1000,11 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
         except Project.DoesNotExist:
             return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        access_token = _refresh_if_needed(account)
         calendar_id = request.data.get("calendar_id") or account.primary_calendar_id or "primary"
-        resp = requests.get(
-            _google_calendar_url(calendar_id, "events"),
+        resp = _google_api_request(
+            account=account,
+            method="GET",
+            url=_google_calendar_url(calendar_id, "events"),
             params={
                 "timeMin": time_from,
                 "timeMax": time_to,
@@ -960,7 +1012,6 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
                 "orderBy": "startTime",
                 "maxResults": 250,
             },
-            headers={"Authorization": f"Bearer {access_token}"},
             timeout=10,
         )
         if resp.status_code != 200:

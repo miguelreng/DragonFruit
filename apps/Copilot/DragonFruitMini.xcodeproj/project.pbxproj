@@ -13,6 +13,7 @@
 		111111111111111111111103 /* buddy-completed.svg in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111203 /* buddy-completed.svg */; };
 		111111111111111111111104 /* buddy-x.svg in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111204 /* buddy-x.svg */; };
 		111111111111111111111105 /* dragon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111205 /* dragon.svg */; };
+		AB12CD34EF56AB78CD90EF12 /* app.svg in Resources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF56AB78CD90EF13 /* app.svg */; };
 		3E1A709007F535923319A43A /* MeetingPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B84AE484ECA88FD34BA5FAF /* MeetingPopoverView.swift */; };
 		83B6E3B23A1E4AA807EB8806 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45BE7E39368D6CF23462F3 /* APIClient.swift */; };
 		A0FA574165E93ABF1AA26DF8 /* MeetingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45C192477CB1E48F5FD50A5B /* MeetingStore.swift */; };
@@ -34,6 +35,7 @@
 		111111111111111111111203 /* buddy-completed.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-completed.svg"; path = "Resources/buddy-completed.svg"; sourceTree = "<group>"; };
 		111111111111111111111204 /* buddy-x.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-x.svg"; path = "Resources/buddy-x.svg"; sourceTree = "<group>"; };
 		111111111111111111111205 /* dragon.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "dragon.svg"; path = "Resources/dragon.svg"; sourceTree = "<group>"; };
+		AB12CD34EF56AB78CD90EF13 /* app.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = app.svg; path = Resources/app.svg; sourceTree = "<group>"; };
 		3B84AE484ECA88FD34BA5FAF /* MeetingPopoverView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeetingPopoverView.swift; path = Sources/MeetingPopoverView.swift; sourceTree = "<group>"; };
 		45C192477CB1E48F5FD50A5B /* MeetingStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeetingStore.swift; path = Sources/MeetingStore.swift; sourceTree = "<group>"; };
 		524259350CB3D5744DA747A2 /* DragonFruitMiniApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DragonFruitMiniApp.swift; path = Sources/DragonFruitMiniApp.swift; sourceTree = "<group>"; };
@@ -92,6 +94,7 @@
 		67B2B87F2AC1B41119C79FDF /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				AB12CD34EF56AB78CD90EF13 /* app.svg */,
 				9CD03C888FBE7A8C2B5472C1 /* icon-white.svg */,
 				C22222222222222222222222 /* logo.svg */,
 				111111111111111111111205 /* dragon.svg */,
@@ -180,6 +183,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB12CD34EF56AB78CD90EF12 /* app.svg in Resources */,
 				B6D9E83BBC52544321FF719A /* icon-white.svg in Resources */,
 				111111111111111111111101 /* buddy-idle.svg in Resources */,
 				111111111111111111111102 /* buddy-thinking.svg in Resources */,

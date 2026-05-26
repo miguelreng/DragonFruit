@@ -14,6 +14,15 @@ from plane.db.models import DeployBoard, Issue, IssueView, Page, Project, Sticky
 from plane.utils.issue_filters import issue_filters
 
 
+def _public_page_owner_payload(page):
+    owner = page.owned_by
+    return {
+        "id": str(owner.id),
+        "display_name": owner.display_name,
+        "avatar_url": owner.avatar_url,
+    }
+
+
 def _extract_doc_embed_refs(description_html):
     soup = BeautifulSoup(description_html or "", "html.parser")
     refs = []
@@ -134,6 +143,7 @@ class PublicPageBySlugEndpoint(BaseAPIView):
                 access=Page.PUBLIC_ACCESS,
                 archived_at__isnull=True,
             )
+            .select_related("owned_by")
             .annotate(id_slug=Cast(F("id"), output_field=TextField()))
             .filter(
                 Q(view_props__public_slug=page_slug)
@@ -160,6 +170,7 @@ class PublicPageBySlugEndpoint(BaseAPIView):
                 "description_json": page.description_json,
                 "embeds": [_resolve_public_embed(ref) for ref in _extract_doc_embed_refs(page.description_html)],
                 "logo_props": page.logo_props,
+                "owned_by": _public_page_owner_payload(page),
                 "updated_at": page.updated_at,
                 "public_slug": page.view_props.get("public_slug") if isinstance(page.view_props, dict) else None,
             },
@@ -188,6 +199,7 @@ class PublicProjectPagesEndpoint(BaseAPIView):
                 page_type=Page.PAGE_TYPE_DOC,
                 archived_at__isnull=True,
             )
+            .select_related("owned_by")
             .distinct()
             .order_by("-created_at")
         )
@@ -203,6 +215,7 @@ class PublicProjectPagesEndpoint(BaseAPIView):
                     "description_html": page.description_html,
                     "description_stripped": page.description_stripped,
                     "logo_props": page.logo_props,
+                    "owned_by": _public_page_owner_payload(page),
                     "created_at": page.created_at,
                     "updated_at": page.updated_at,
                     "public_slug": page.view_props.get("public_slug") if isinstance(page.view_props, dict) else None,
