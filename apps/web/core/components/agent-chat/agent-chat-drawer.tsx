@@ -649,7 +649,7 @@ function ChatThread(props: {
         activePageEditorRef?.setEditorValueAtCursorPosition(markdownToEditorHtml(generatedContent));
         activePageEditorRef?.scrollToNodeViaDOMCoordinates({ behavior: "smooth" });
         setToast({
-          type: TOAST_TYPE.SUCCESS,
+          type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
           title: "Added to page",
           message: `${agent?.name ?? "The agent"} wrote it into the editor.`,
         });
