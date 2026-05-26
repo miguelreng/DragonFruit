@@ -316,6 +316,7 @@ async function handleActionClick(tab) {
       await updateActionIconForTab(tab.id, tab.url);
       return;
     }
+    await showTabToast(tab.id, "Saving to DragonFruit...", "loading");
     await saveUrlBookmark(tab.url, tab);
     await showTabToast(tab.id, "Saved to DragonFruit", "success");
   } catch (error) {
@@ -508,6 +509,8 @@ async function showTabToast(tabId, message, state = "success") {
       func: (toastMessage, toastState) => {
         const TOAST_ID = "dragonfruit-extension-toast";
         if (!toastMessage) return;
+        const normalizedState = toastState === "error" || toastState === "loading" ? toastState : "success";
+        const toastToken = String(Date.now());
 
         let host = document.getElementById(TOAST_ID);
         if (!host) {
@@ -522,6 +525,7 @@ async function showTabToast(tabId, message, state = "success") {
 
         const root = host.shadowRoot;
         if (!root) return;
+        host.dataset.toastToken = toastToken;
         root.innerHTML = `
           <style>
             :host {
@@ -568,6 +572,20 @@ async function showTabToast(tabId, message, state = "success") {
             .icon[data-state="error"] {
               background: #d93f53;
             }
+            .icon[data-state="loading"] {
+              background: #e64aa2;
+              animation: dragonfruit-toast-pulse 0.9s ease-in-out infinite;
+            }
+            @keyframes dragonfruit-toast-pulse {
+              0%, 100% {
+                transform: scale(0.82);
+                opacity: 0.68;
+              }
+              50% {
+                transform: scale(1);
+                opacity: 1;
+              }
+            }
             .content {
               box-sizing: border-box;
               display: flex;
@@ -584,7 +602,7 @@ async function showTabToast(tabId, message, state = "success") {
             }
           </style>
           <div class="toast" data-visible="false">
-            <span class="icon" data-state="${toastState === "error" ? "error" : "success"}" aria-hidden="true"></span>
+            <span class="icon" data-state="${normalizedState}" aria-hidden="true"></span>
             <div class="content">
               <p class="message"></p>
             </div>
@@ -599,7 +617,9 @@ async function showTabToast(tabId, message, state = "success") {
         requestAnimationFrame(() => {
           toast.dataset.visible = "true";
         });
+        if (normalizedState === "loading") return;
         window.setTimeout(() => {
+          if (host.dataset.toastToken !== toastToken) return;
           const latestToast = host.shadowRoot?.querySelector(".toast");
           if (!latestToast) return;
           latestToast.dataset.visible = "false";
