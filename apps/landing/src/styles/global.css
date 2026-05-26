@@ -437,6 +437,10 @@ li:last-child {
     overflow: hidden;
   }
 
+  .home-page h1 {
+    font-size: 23px;
+  }
+
   .home-page p,
   .home-page li {
     font-size: 15px;
@@ -453,8 +457,8 @@ li:last-child {
     margin-bottom: 22px;
   }
 
-  h1 {
-    font-size: 32px;
+  .home-page h1 {
+    font-size: 23px;
   }
 
   .home-section {
