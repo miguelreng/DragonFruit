@@ -119,6 +119,23 @@ h1 {
   object-fit: contain;
 }
 
+@media (max-width: 860px) {
+  .home-main {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .home-illustration {
+    width: min(100%, 720px);
+    height: auto;
+    max-height: none;
+  }
+
+  .home-copy {
+    max-width: 100%;
+  }
+}
+
 .home-section {
   margin-bottom: clamp(18px, 2.6vw, 24px);
 }

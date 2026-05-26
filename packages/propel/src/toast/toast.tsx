@@ -6,7 +6,7 @@
 
 import * as React from "react";
 import { Toast as BaseToast } from "@base-ui-components/react/toast";
-import { AlertTriangle, CheckIcon, InfoIcon, XIcon } from "lucide-react";
+import { AlertTriangle, CheckIcon, InfoIcon, Sparkles, XIcon } from "lucide-react";
 import { CloseIcon } from "../icons/actions/close-icon";
 // spinner
 import { CircularBarSpinner } from "../spinners/circular-bar-spinner";
@@ -14,6 +14,7 @@ import { cn } from "../utils/classname";
 
 export enum TOAST_TYPE {
   SUCCESS = "success",
+  CURSOR_BUDDY_SUCCESS = "cursor-buddy-success",
   ERROR = "error",
   INFO = "info",
   WARNING = "warning",
@@ -70,6 +71,20 @@ export function Toast(props: ToastProps) {
 const TOAST_DATA = {
   [TOAST_TYPE.SUCCESS]: {
     icon: <CheckIcon width={14} height={14} className="text-on-color" />,
+    iconBgClassName: "bg-success-primary",
+    backgroundColorClassName: "!bg-surface-1",
+    borderColorClassName: "border-subtle",
+  },
+  [TOAST_TYPE.CURSOR_BUDDY_SUCCESS]: {
+    icon: (
+      <span className="relative grid size-3.5 place-items-center">
+        <span
+          aria-hidden
+          className="bg-on-color/35 absolute size-3 animate-ping rounded-full [animation-duration:1.8s]"
+        />
+        <Sparkles width={14} height={14} className="relative text-on-color" />
+      </span>
+    ),
     iconBgClassName: "bg-success-primary",
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
