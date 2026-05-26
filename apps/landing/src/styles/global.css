@@ -140,7 +140,6 @@ h1 {
   height: auto;
   opacity: 0.92;
   object-fit: contain;
-  transform: scale(1.2);
   transform-origin: center right;
 }
 
