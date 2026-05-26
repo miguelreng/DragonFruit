@@ -22,5 +22,6 @@ const config: StorybookConfig = {
     name: getAbsolutePath("@storybook/react-vite"),
     options: {},
   },
+  staticDirs: [{ from: "../../../branding", to: "/branding" }],
 };
 export default config;

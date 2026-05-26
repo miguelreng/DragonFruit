@@ -19,6 +19,7 @@ import { cn } from "@plane/utils";
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useSticky } from "@/hooks/use-stickies";
+import { normalizeTags } from "@/helpers/tags";
 // components
 import { STICKY_COLORS_LIST } from "../editor/sticky-editor/color-palette";
 import { AllStickiesModal } from "./modal";
@@ -41,6 +42,7 @@ export const StickyActionBar = observer(function StickyActionBar() {
   const recentStickyBackgroundColor = recentStickyId
     ? STICKY_COLORS_LIST.find((c) => c.key === stickies[recentStickyId].background_color)?.backgroundColor
     : STICKY_COLORS_LIST[0].backgroundColor;
+  const recentStickyTags = recentStickyId ? normalizeTags(stickies[recentStickyId]?.tags) : [];
 
   useSWR(
     workspaceSlug ? `WORKSPACE_STICKIES_RECENT_${workspaceSlug}` : null,
@@ -91,13 +93,20 @@ export const StickyActionBar = observer(function StickyActionBar() {
             position="left"
             disabled={showRecentSticky}
           >
-            <button
-              className="btn btn--icon shadow-sm flex h-10 w-10 items-center justify-center rounded-md bg-surface-1"
-              onClick={() => setShowRecentSticky(true)}
-              style={{ color: recentStickyBackgroundColor }}
-            >
-              <StickyNoteIcon className={cn("size-5 rotate-90")} color={recentStickyBackgroundColor} />
-            </button>
+            <div className="relative">
+              <button
+                className="btn btn--icon shadow-sm flex h-10 w-10 items-center justify-center rounded-md bg-surface-1"
+                onClick={() => setShowRecentSticky(true)}
+                style={{ color: recentStickyBackgroundColor }}
+              >
+                <StickyNoteIcon className={cn("size-5 rotate-90")} color={recentStickyBackgroundColor} />
+              </button>
+              {recentStickyTags.length > 0 && (
+                <span className="pointer-events-none absolute top-1/2 left-full ml-1 -translate-y-1/2 truncate rounded-sm border border-subtle bg-layer-1 px-1.5 py-0.5 text-10 text-secondary">
+                  {recentStickyTags[0]}
+                </span>
+              )}
+            </div>
           </Tooltip>
         )}
         <Tooltip tooltipContent="Add sticky" isMobile={false} position="left">

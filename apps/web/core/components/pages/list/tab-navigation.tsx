@@ -17,24 +17,27 @@ type TPageTabNavigation = {
   basePath?: string;
 };
 
-// pages tab options
-const pageTabs: { key: TPageNavigationTabs; label: string }[] = [
-  {
-    key: "public",
-    label: "Public",
-  },
-  {
-    key: "private",
-    label: "Private",
-  },
-  {
-    key: "archived",
-    label: "Archived",
-  },
-];
-
 export function PageTabNavigation(props: TPageTabNavigation) {
   const { workspaceSlug, projectId, pageType, basePath = "pages" } = props;
+  const primaryLabel = basePath === "whiteboards" ? "All whiteboards" : "All docs";
+  const pageTabs: { key: TPageNavigationTabs; label: string }[] = [
+    {
+      key: "all",
+      label: primaryLabel,
+    },
+    {
+      key: "public",
+      label: "Public",
+    },
+    {
+      key: "private",
+      label: "Private",
+    },
+    {
+      key: "archived",
+      label: "Archived",
+    },
+  ];
 
   const handleTabClick = (e: React.MouseEvent<HTMLAnchorElement>, tabKey: TPageNavigationTabs) => {
     if (tabKey === pageType) e.preventDefault();

@@ -6,8 +6,12 @@
 
 export type TProjectBookmarkMetadata = {
   image_url?: string;
+  og_image_url?: string;
   favicon_url?: string;
   site_name?: string;
+  og_title?: string;
+  og_description?: string;
+  og_url?: string;
   source_app?: string;
   captured_text?: string;
   [key: string]: unknown;

@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from django.urls import reverse
 from rest_framework import status
 
 from plane.db.models import UserCalendarAccount
+from plane.license.utils.encryption import decrypt_data, encrypt_data
 
 
 class MockResponse:
@@ -114,3 +117,122 @@ class TestCalendarAppEndpoint:
             "https://app.dragonfruit.sh/calendar/oauth/callback",
             "dragonfruitmini://calendar/oauth/callback",
         ]
+
+    @pytest.mark.django_db
+    def test_events_refresh_tries_alternate_client_credentials(self, session_client, create_user, monkeypatch):
+        account = UserCalendarAccount.objects.create(
+            user=create_user,
+            provider=UserCalendarAccount.PROVIDER_GOOGLE,
+            account_email="test@plane.so",
+            primary_calendar_id="primary",
+            access_token_encrypted=encrypt_data("expired-access-token"),
+            refresh_token_encrypted=encrypt_data("existing-refresh-token"),
+            token_expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+            is_active=True,
+        )
+
+        refresh_attempts = []
+        event_auth_headers = []
+
+        def mock_client_credential_candidates(client):
+            if client == "web":
+                return [("web-id", "web-secret")]
+            if client == "native":
+                return [("native-id", "native-secret")]
+            return []
+
+        def mock_post(url, data, timeout):
+            refresh_attempts.append(data)
+            if data["client_id"] == "web-id":
+                return MockResponse({"error": "invalid_grant"}, status.HTTP_400_BAD_REQUEST)
+            return MockResponse(
+                {
+                    "access_token": "new-access-token",
+                    "refresh_token": "rotated-refresh-token",
+                    "expires_in": 3600,
+                }
+            )
+
+        def mock_request(method, url, params=None, json=None, headers=None, timeout=10):
+            event_auth_headers.append(headers.get("Authorization", ""))
+            return MockResponse({"items": []})
+
+        monkeypatch.setattr(
+            "plane.app.views.calendar.base._client_credential_candidates",
+            mock_client_credential_candidates,
+        )
+        monkeypatch.setattr("plane.app.views.calendar.base.requests.post", mock_post)
+        monkeypatch.setattr("plane.app.views.calendar.base.requests.request", mock_request)
+
+        response = session_client.get(
+            reverse("calendar-accounts-events", kwargs={"account_id": account.id}),
+            {"from": "2026-05-01T00:00:00Z", "to": "2026-05-31T00:00:00Z"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"events": []}
+        assert [attempt["client_id"] for attempt in refresh_attempts] == ["web-id", "native-id"]
+        assert event_auth_headers == ["Bearer new-access-token"]
+
+        account.refresh_from_db()
+        assert decrypt_data(account.access_token_encrypted) == "new-access-token"
+        assert decrypt_data(account.refresh_token_encrypted) == "rotated-refresh-token"
+
+    @pytest.mark.django_db
+    def test_events_force_refreshes_and_retries_after_google_401(self, session_client, create_user, monkeypatch):
+        account = UserCalendarAccount.objects.create(
+            user=create_user,
+            provider=UserCalendarAccount.PROVIDER_GOOGLE,
+            account_email="test@plane.so",
+            primary_calendar_id="primary",
+            access_token_encrypted=encrypt_data("stale-access-token"),
+            refresh_token_encrypted=encrypt_data("existing-refresh-token"),
+            token_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            is_active=True,
+        )
+
+        refresh_attempts = []
+        event_auth_headers = []
+
+        def mock_client_credential_candidates(client):
+            if client == "web":
+                return [("web-id", "web-secret")]
+            return []
+
+        def mock_post(url, data, timeout):
+            refresh_attempts.append(data)
+            return MockResponse(
+                {
+                    "access_token": "fresh-access-token",
+                    "refresh_token": "rotated-refresh-token",
+                    "expires_in": 3600,
+                }
+            )
+
+        def mock_request(method, url, params=None, json=None, headers=None, timeout=10):
+            authorization = headers.get("Authorization", "")
+            event_auth_headers.append(authorization)
+            if authorization == "Bearer stale-access-token":
+                return MockResponse({"error": "invalid_token"}, status.HTTP_401_UNAUTHORIZED)
+            return MockResponse({"items": []})
+
+        monkeypatch.setattr(
+            "plane.app.views.calendar.base._client_credential_candidates",
+            mock_client_credential_candidates,
+        )
+        monkeypatch.setattr("plane.app.views.calendar.base.requests.post", mock_post)
+        monkeypatch.setattr("plane.app.views.calendar.base.requests.request", mock_request)
+
+        response = session_client.get(
+            reverse("calendar-accounts-events", kwargs={"account_id": account.id}),
+            {"from": "2026-05-01T00:00:00Z", "to": "2026-05-31T00:00:00Z"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"events": []}
+        assert event_auth_headers == ["Bearer stale-access-token", "Bearer fresh-access-token"]
+        assert [attempt["client_id"] for attempt in refresh_attempts] == ["web-id"]
+
+        account.refresh_from_db()
+        assert decrypt_data(account.access_token_encrypted) == "fresh-access-token"
+        assert decrypt_data(account.refresh_token_encrypted) == "rotated-refresh-token"

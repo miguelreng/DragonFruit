@@ -33,11 +33,11 @@ const keywordStyle: React.CSSProperties = {
 const AuthLegend = (
   <span>
     Where{" "}
-    <span className="text-[1.18em]" style={keywordStyle}>
+    <span className="font-newsreader text-[1.18em]" style={keywordStyle}>
       ideas
     </span>{" "}
     become{" "}
-    <span className="text-[1.18em]" style={keywordStyle}>
+    <span className="font-newsreader text-[1.18em]" style={keywordStyle}>
       work
     </span>
     .

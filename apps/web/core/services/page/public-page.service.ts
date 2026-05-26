@@ -17,6 +17,11 @@ export type TPublicPageResponse = {
   description_json: Record<string, unknown> | null;
   embeds?: TPublicDocEmbed[];
   logo_props: Record<string, unknown> | null;
+  owned_by?: {
+    id: string;
+    display_name: string;
+    avatar_url: string;
+  };
   updated_at: string;
   public_slug: string | null;
 };

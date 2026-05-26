@@ -29,9 +29,11 @@ import { EPageStoreType } from "@/plane-web/hooks/store";
 import type { Route } from "./+types/page";
 
 const getPageType = (pageType?: string | null): TPageNavigationTabs => {
+  if (pageType === "all") return "all";
   if (pageType === "private") return "private";
   if (pageType === "archived") return "archived";
-  return "public";
+  if (pageType === "public") return "public";
+  return "all";
 };
 
 function ProjectWhiteboardsPage({ params }: Route.ComponentProps) {

@@ -63,7 +63,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
         selection_text: detailRef.current.selectionText || detailRef.current.paragraphText || null,
       });
       setToast({
-        type: TOAST_TYPE.SUCCESS,
+        type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
         title: "Sent to your agent",
         message: "The agent will write back to this page when it's done.",
       });
@@ -99,7 +99,8 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
       className="pointer-events-none fixed inset-x-0 bottom-10 z-[100] flex justify-center"
     >
       <div
-        onClick={(e) => e.stopPropagation()}
+        role="presentation"
+        onMouseDown={(e) => e.stopPropagation()}
         className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto w-full max-w-xl rounded-xl border border-subtle-1 bg-canvas p-4 shadow-raised-200 duration-150"
       >
         <div className="mb-3 flex items-center justify-between">
