@@ -1,0 +1,54 @@
+.sbdocs.sbdocs-wrapper,
+.sbdocs.sbdocs-content {
+  background: var(--bg-canvas);
+  color: var(--txt-primary);
+}
+
+.sbdocs.sbdocs-content {
+  max-width: 980px;
+}
+
+.sbdocs-title,
+.sbdocs-h1,
+.sbdocs-h2,
+.sbdocs-h3,
+.sbdocs-p,
+.sbdocs-li,
+.sbdocs-table,
+.sbdocs-a {
+  font-family: var(--font-body);
+}
+
+.sbdocs-title,
+.sbdocs-h1,
+.sbdocs-h2,
+.sbdocs-h3 {
+  color: var(--txt-primary);
+  letter-spacing: 0;
+}
+
+.sbdocs-p,
+.sbdocs-li {
+  color: var(--txt-secondary);
+}
+
+.sbdocs-a {
+  color: var(--txt-link-primary);
+}
+
+.docs-story,
+.sbdocs-preview,
+.docblock-argstable,
+.docblock-source {
+  border-color: var(--border-subtle) !important;
+  border-radius: 6px !important;
+}
+
+.docs-story {
+  background: var(--bg-surface-1);
+}
+
+.docblock-argstable,
+.docblock-source {
+  background: var(--bg-surface-1) !important;
+}
