@@ -137,25 +137,24 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
       key={id}
       className={cn(
         // Base layout and positioning
-        "group flex items-center border shadow-raised-200",
-        "w-[340px] max-w-[calc(100vw-2rem)] rounded-lg",
-        "absolute right-3 bottom-3 z-[calc(1000-var(--toast-index))]",
-        "ease-&lsqb;cubic-bezier(0.22,1,0.36,1)&rsqb; transition-[opacity,transform] duration-500 select-none",
+        "group flex w-[350px] max-w-[calc(100vw-2rem)] items-start rounded-lg border border-subtle-1 shadow-overlay-100",
+        "absolute top-3 right-3 z-[calc(1000-var(--toast-index))]",
+        "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] select-none",
 
         // Default transform with stacking and scaling
-        "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)+calc(min(var(--toast-index),10)*-10px)))_scale(calc(max(0,1-(var(--toast-index)*0.1))))]",
+        "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)+calc(min(var(--toast-index),10)*10px)))_scale(calc(max(0,1-(var(--toast-index)*0.1))))]",
 
         // Pseudo-element for gap spacing
-        "after:absolute after:bottom-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
+        "after:absolute after:top-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
 
         // State-based opacity
         "data-[ending-style]:opacity-0 data-[limited]:opacity-0",
 
         // Starting animation
-        "data-[starting-style]:[transform:translateY(150%)]",
+        "data-[starting-style]:[transform:translateY(-150%)]",
 
         // Expanded state transform
-        "data-[expanded]:[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y)))]",
+        "data-[expanded]:[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-offset-y)+calc(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y)))]",
 
         // Swipe direction endings - consolidated
         "data-[ending-style]:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
@@ -164,7 +163,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         "data-[ending-style]:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
 
         // Default ending transform for non-limited toasts
-        "data-[ending-style]:[&:not([data-limited])]:[transform:translateY(150%)]",
+        "data-[ending-style]:[&:not([data-limited])]:[transform:translateY(-150%)]",
 
         data.backgroundColorClassName,
         data.borderColorClassName
@@ -172,23 +171,23 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
       style={{
         ["--gap" as string]: "1rem",
         ["--offset-y" as string]:
-          "calc(var(--toast-offset-y) * -1 + (var(--toast-index) * var(--gap) * -1) + var(--toast-swipe-movement-y))",
+          "calc(var(--toast-offset-y) + (var(--toast-index) * var(--gap)) + var(--toast-swipe-movement-y))",
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
         e.preventDefault();
       }}
     >
-      <BaseToast.Close className="absolute top-3 right-3 cursor-pointer text-icon-secondary hover:text-icon-tertiary">
+      <BaseToast.Close className="absolute top-1 right-1 cursor-pointer text-icon-tertiary hover:text-icon-secondary">
         <CloseIcon strokeWidth={1.5} width={14} height={14} />
       </BaseToast.Close>
-      <div className="flex w-full items-start gap-2.5 p-3.5 pr-9">
-        <div className="py-0.5">
+      <div className="flex w-full items-start gap-3 p-4 pr-9">
+        <div className="py-1">
           {data.icon && (
             <div
               className={cn(
                 "flex flex-shrink-0 items-center justify-center rounded-full",
-                "size-5",
+                "size-4",
                 data.iconBgClassName
               )}
             >
@@ -197,11 +196,11 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <BaseToast.Title className="text-13 leading-5 font-medium text-primary">
+          <BaseToast.Title className="text-body-sm-medium text-primary">
             {toastData.type === TOAST_TYPE.LOADING ? (toastData.title ?? "Loading...") : toastData.title}
           </BaseToast.Title>
           {toastData.type !== TOAST_TYPE.LOADING && toastData.message && (
-            <BaseToast.Description className="text-12 leading-4 text-tertiary">
+            <BaseToast.Description className="text-body-xs-regular text-tertiary">
               {toastData.message}
             </BaseToast.Description>
           )}
