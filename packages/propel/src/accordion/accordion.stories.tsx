@@ -33,10 +33,10 @@ export const Default: Story = {
     return (
       <Accordion.Root className="w-96">
         <Accordion.Item value="item-1">
-          <Accordion.Trigger>What is Plane?</Accordion.Trigger>
+          <Accordion.Trigger>What is DragonFruit?</Accordion.Trigger>
           <Accordion.Content>
-            Plane is an open-source project management tool designed for developers and teams to plan, track, and manage
-            their work efficiently.
+            DragonFruit is an open-source workspace for managing projects, writing beautiful docs, and turning decisions
+            into clear tasks.
           </Accordion.Content>
         </Accordion.Item>
         <Accordion.Item value="item-2">
@@ -49,8 +49,8 @@ export const Default: Story = {
         <Accordion.Item value="item-3">
           <Accordion.Trigger>Is it free to use?</Accordion.Trigger>
           <Accordion.Content>
-            Plane offers both free and paid plans. The free plan includes essential features for small teams, while paid
-            plans unlock advanced functionality.
+            DragonFruit is open-source and self-hostable. Teams can use the core workspace freely and customize the
+            system around their own workflows.
           </Accordion.Content>
         </Accordion.Item>
       </Accordion.Root>
