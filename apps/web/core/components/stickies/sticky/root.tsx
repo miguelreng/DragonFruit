@@ -7,7 +7,7 @@
 import { useCallback, useMemo, useState, type Ref } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
-import { Minimize2 } from "@/components/icons/lucide-shim";
+import { Minimize2, TagIcon } from "@/components/icons/lucide-shim";
 // plane types
 import type { TSticky } from "@plane/types";
 // plane utils
@@ -20,6 +20,7 @@ import { StickyDeleteModal } from "../delete-modal";
 import { StickyInput } from "./inputs";
 import { StickyItemDragHandle } from "./sticky-item-drag-handle";
 import { getRandomStickyColor, useStickyOperations } from "./use-operations";
+import { normalizeTags } from "@/helpers/tags";
 
 type TProps = {
   onClose?: () => void;
@@ -59,6 +60,7 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
   const backgroundColor =
     STICKY_COLORS_LIST.find((c) => c.key === stickyData?.background_color)?.backgroundColor ||
     STICKY_COLORS_LIST[0].backgroundColor;
+  const stickyTags = normalizeTags(stickyData?.tags);
 
   const handleChange = useCallback(
     async (payload: Partial<TSticky>) => {
@@ -116,6 +118,17 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
           >
             <Minimize2 className="size-4" />
           </button>
+        )}
+        {stickyTags.length > 0 && (
+          <div className="mx-4 mb-1 flex min-h-5 items-center gap-1 overflow-hidden">
+            <TagIcon className="size-3.5 shrink-0 text-primary/65" />
+            {stickyTags.slice(0, 3).map((tag) => (
+              <span key={tag} className="max-w-24 truncate rounded-sm border border-black/10 bg-white/35 px-1.5 py-0.5 text-10 text-primary/85">
+                {tag}
+              </span>
+            ))}
+            {stickyTags.length > 3 && <span className="text-10 text-primary/70">+{stickyTags.length - 3}</span>}
+          </div>
         )}
         {/* inputs */}
         <div className="-mt-2">

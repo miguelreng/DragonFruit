@@ -24,6 +24,7 @@ class Sticky(BaseModel):
     logo_props = models.JSONField(default=dict)
     color = models.CharField(max_length=255, blank=True, null=True)
     background_color = models.CharField(max_length=255, blank=True, null=True)
+    tags = models.JSONField(default=list, blank=True)
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="stickies")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="stickies")
