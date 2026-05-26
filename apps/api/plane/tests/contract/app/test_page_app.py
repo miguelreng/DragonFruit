@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import patch
 from rest_framework import status
 
-from plane.db.models import Page, Project, ProjectPage
+from plane.db.models import Page, Project, ProjectMember, ProjectPage
 
 
 @pytest.mark.contract
@@ -16,9 +16,7 @@ class TestPageAPIPost:
 
     @pytest.mark.django_db
     @patch("plane.app.views.page.base.page_transaction.delay", side_effect=Exception("broker unavailable"))
-    def test_create_page_succeeds_when_page_transaction_dispatch_fails(
-        self, _mock_page_tx, session_client, workspace
-    ):
+    def test_create_page_succeeds_when_page_transaction_dispatch_fails(self, _mock_page_tx, session_client, workspace):
         project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
         url = self.get_pages_url(workspace.slug, str(project.id))
 
@@ -60,6 +58,68 @@ class TestPageAPIGet:
 
         assert mixed_response.status_code == status.HTTP_200_OK
         assert {page["page_type"] for page in mixed_response.data} == {"doc", "whiteboard"}
+
+
+@pytest.mark.contract
+class TestPageAccessAPI:
+    def get_page_access_url(self, workspace_slug: str, project_id: str, page_id: str) -> str:
+        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/pages/{page_id}/access/"
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.page.base.trigger_landing_deploy.delay")
+    def test_publishing_essay_doc_triggers_landing_deploy(
+        self, mock_trigger_landing_deploy, monkeypatch, session_client, workspace, create_user
+    ):
+        project = Project.objects.create(name="Essays", identifier="ESSAY", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20)
+        page = Page.objects.create(
+            name="Agentic Workflows",
+            workspace=workspace,
+            owned_by=create_user,
+            access=Page.PRIVATE_ACCESS,
+            page_type=Page.PAGE_TYPE_DOC,
+        )
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+
+        monkeypatch.setenv("DRAGONFRUIT_ESSAYS_WORKSPACE_SLUG", workspace.slug)
+        monkeypatch.setenv("DRAGONFRUIT_ESSAYS_PROJECT_ID", str(project.id))
+
+        response = session_client.post(
+            self.get_page_access_url(workspace.slug, str(project.id), str(page.id)),
+            {"access": Page.PUBLIC_ACCESS},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_trigger_landing_deploy.assert_called_once_with(str(page.id), workspace.slug, str(project.id))
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.page.base.trigger_landing_deploy.delay")
+    def test_publishing_non_essay_doc_does_not_trigger_landing_deploy(
+        self, mock_trigger_landing_deploy, monkeypatch, session_client, workspace, create_user
+    ):
+        project = Project.objects.create(name="Product Docs", identifier="DOCS", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20)
+        page = Page.objects.create(
+            name="Internal Spec",
+            workspace=workspace,
+            owned_by=create_user,
+            access=Page.PRIVATE_ACCESS,
+            page_type=Page.PAGE_TYPE_DOC,
+        )
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+
+        monkeypatch.setenv("DRAGONFRUIT_ESSAYS_WORKSPACE_SLUG", workspace.slug)
+        monkeypatch.setenv("DRAGONFRUIT_ESSAYS_PROJECT_ID", "00000000-0000-0000-0000-000000000000")
+
+        response = session_client.post(
+            self.get_page_access_url(workspace.slug, str(project.id), str(page.id)),
+            {"access": Page.PUBLIC_ACCESS},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_trigger_landing_deploy.assert_not_called()
 
 
 @pytest.mark.contract

@@ -4,6 +4,7 @@
 
 # Python imports
 import json
+import os
 from datetime import datetime
 from django.core.serializers.json import DjangoJSONEncoder
 
@@ -54,9 +55,31 @@ from plane.bgtasks.page_transaction_task import page_transaction
 from plane.bgtasks.page_version_task import track_page_version
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.bgtasks.copy_s3_object import copy_s3_objects_of_description_and_assets
+from plane.bgtasks.landing_deploy_task import trigger_landing_deploy
 from plane.app.permissions import ProjectPagePermission
 from plane.utils.exception_logger import log_exception
 from plane.app.buddy_notification import create_cursor_buddy_notification, is_cursor_buddy_request
+
+
+def should_trigger_landing_deploy_on_publish(page, workspace_slug, project_id, next_access):
+    essays_workspace_slug = os.environ.get("DRAGONFRUIT_ESSAYS_WORKSPACE_SLUG")
+    essays_project_id = os.environ.get("DRAGONFRUIT_ESSAYS_PROJECT_ID")
+
+    if not essays_workspace_slug or not essays_project_id:
+        return False
+
+    try:
+        next_access = int(next_access)
+    except (TypeError, ValueError):
+        return False
+
+    return (
+        page.access != Page.PUBLIC_ACCESS
+        and next_access == Page.PUBLIC_ACCESS
+        and page.page_type == Page.PAGE_TYPE_DOC
+        and workspace_slug == essays_workspace_slug
+        and str(project_id) == essays_project_id
+    )
 
 
 def unarchive_archive_page_and_descendants(page_id, archived_at):
@@ -306,8 +329,14 @@ class PageViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        should_trigger_landing_deploy = should_trigger_landing_deploy_on_publish(page, slug, project_id, access)
         page.access = access
         page.save()
+        if should_trigger_landing_deploy:
+            try:
+                trigger_landing_deploy.delay(str(page.id), slug, str(project_id))
+            except Exception as e:
+                log_exception(e)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, slug, project_id):
