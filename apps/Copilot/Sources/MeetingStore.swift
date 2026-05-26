@@ -1777,16 +1777,14 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         return parsed.host ?? (isImage ? "Saved image" : url)
     }
 
-    private func promptWithCursorContext(_ prompt: String) -> String {
+    private func contextNoteForPrompt(_ prompt: String) -> String? {
         var context = pendingCursorContext.promptText.trimmingCharacters(in: .whitespacesAndNewlines)
         if shouldAttachVisualContext(for: prompt), pendingCursorContext.attachments.isEmpty {
             let note = "visual context unavailable: screenshot capture did not return an image."
             context = context.isEmpty ? note : "\(context)\n\(note)"
         }
-        guard !context.isEmpty else { return prompt }
+        guard !context.isEmpty else { return nil }
         return """
-        \(prompt)
-
         Copilot context:
         \(context)
 
@@ -2443,7 +2441,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         if intent.type == .agent {
             isVoiceActionProcessing = true
             Task { @MainActor in
-                await triggerAgentPrompt(promptWithCursorContext(text), toolMode: "none", attachments: attachmentsForPrompt(text))
+                await triggerAgentPrompt(
+                    text,
+                    toolMode: "none",
+                    attachments: attachmentsForPrompt(text),
+                    contextNote: contextNoteForPrompt(text)
+                )
             }
         } else {
             isVoiceActionProcessing = true
@@ -2963,7 +2966,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     return
                 }
                 statusMessage = "Buddy is creating the document..."
-                await triggerAgentPrompt(promptWithCursorContext(intent.rawTranscript), projectId: projectId)
+                await triggerAgentPrompt(
+                    intent.rawTranscript,
+                    projectId: projectId,
+                    contextNote: contextNoteForPrompt(intent.rawTranscript),
+                    forceDocumentTool: true
+                )
             case .sticky:
                 let created = try await client.createSticky(
                     workspaceSlug: routing.workspaceSlug,
@@ -3017,7 +3025,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 )
                 statusMessage = "Bookmark saved: \(created.title)"
             case .agent:
-                await triggerAgentPrompt(promptWithCursorContext(intent.body))
+                await triggerAgentPrompt(
+                    intent.body,
+                    contextNote: contextNoteForPrompt(intent.body)
+                )
             }
         } catch {
             statusMessage = "Could not save voice note: \(error.localizedDescription)"
@@ -3090,7 +3101,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         _ prompt: String,
         projectId: String? = nil,
         toolMode: String? = nil,
-        attachments: [AgentChatAttachmentPayload]? = nil
+        attachments: [AgentChatAttachmentPayload]? = nil,
+        contextNote: String? = nil,
+        forceDocumentTool: Bool = false
     ) async {
         guard isAuthenticated else {
             statusMessage = "Sign in first to launch a DragonFruit agent."
@@ -3126,7 +3139,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 content: prompt,
                 projectId: projectId,
                 toolMode: toolMode,
-                attachments: attachments ?? attachmentsForPrompt(prompt)
+                attachments: attachments ?? attachmentsForPrompt(prompt),
+                contextNote: contextNote ?? contextNoteForPrompt(prompt),
+                forceDocumentTool: forceDocumentTool
             )
 
             if !envelope.assistant_message.error_message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

@@ -69,7 +69,7 @@ _MAX_TEXT_EXCERPT_CHARS = 50_000       # cap CSV / plaintext at ~50KB
 _IMAGE_MIME_PREFIXES = ("image/png", "image/jpeg", "image/gif", "image/webp")
 _TEXT_MIME_TYPES = {"text/csv", "text/plain", "application/csv"}
 _DOCUMENT_CREATION_RE = re.compile(
-    r"\b(create|write|draft|generate|make|prepare)\b.{0,80}\b(document|doc|page)\b",
+    r"\b(create|write|draft|generate|make|prepare|crear|crea|redacta|genera|prepara|escribe)\b.{0,120}\b(document|doc|page|documento|pagina|página)\b",
     re.IGNORECASE,
 )
 
@@ -246,6 +246,16 @@ def _should_use_agent_tools(tool_mode: str | None) -> bool:
     return (tool_mode or "").strip().lower() != "none"
 
 
+def _coerce_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return False
+
+
 def _normalise_document_subject(text: str) -> str:
     """Best-effort cleanup of conversational doc requests into a topic."""
     cleaned = " ".join((text or "").split()).strip(" .?!")
@@ -262,7 +272,8 @@ def _normalise_document_subject(text: str) -> str:
 
     topic_match = re.search(
         r"\b(?:about|on|explaining|that explains|to explain|where(?: it)? (?:displays?|displayed)|"
-        r"display(?:ing|ed)?|shows?|showing)\s+(?:the\s+)?(.+)$",
+        r"display(?:ing|ed)?|shows?|showing|sobre|acerca de|que hable de|que trate de|sobre el tema de)\s+"
+        r"(?:the\s+|el\s+|la\s+|los\s+|las\s+)?(.+)$",
         cleaned,
         re.IGNORECASE,
     )
@@ -270,14 +281,14 @@ def _normalise_document_subject(text: str) -> str:
         cleaned = topic_match.group(1).strip(" .?!")
     else:
         cleaned = re.sub(
-            r"^(?:can you|could you|please)?\s*(?:create|write|draft|generate|make|prepare)\s+"
-            r"(?:a|an|the)?\s*(?:document|doc|page)?\s*(?:that|where|to|about|on)?\s*",
+            r"^(?:can you|could you|please|por favor)?\s*(?:create|write|draft|generate|make|prepare|crear|crea|escribe|redacta|genera|prepara)\s+"
+            r"(?:a|an|the|un|una|el|la)?\s*(?:document|doc|page|documento|pagina|página)?\s*(?:that|where|to|about|on|que|sobre|acerca de)?\s*",
             "",
             cleaned,
             flags=re.IGNORECASE,
         ).strip(" .?!")
 
-    cleaned = re.sub(r"\bplease\b", "", cleaned, flags=re.IGNORECASE).strip(" .?!")
+    cleaned = re.sub(r"\b(?:please|por favor)\b", "", cleaned, flags=re.IGNORECASE).strip(" .?!")
     cleaned = re.sub(r"\bmeditating\b", "meditation", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\bbenefist\b", "benefits", cleaned, flags=re.IGNORECASE)
     return " ".join(cleaned.split())
@@ -937,6 +948,8 @@ class AgentChatMessageEndpoint(BaseAPIView):
         content = (request.data.get("content") or "").strip()
         raw_attachments = request.data.get("attachments") or []
         project_id = (request.data.get("project_id") or "").strip() or None
+        context_note = str(request.data.get("context_note") or "").strip()[:4_000]
+        force_document_tool = _coerce_bool(request.data.get("force_document_tool"))
         use_agent_tools = _should_use_agent_tools(request.data.get("tool_mode"))
         # Empty content is only allowed when there's at least one
         # attachment — the LLM gets enough to work with from "what's
@@ -996,7 +1009,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 status=status.HTTP_200_OK,
             )
 
-        is_document_request = use_agent_tools and _looks_like_document_request(content)
+        is_document_request = use_agent_tools and (force_document_tool or _looks_like_document_request(content))
         document_subject = _normalise_document_subject(content) if is_document_request else ""
         document_title = _title_from_subject(document_subject) if document_subject else ""
         research_results = _search_web(document_subject or content) if is_document_request else []
@@ -1052,6 +1065,13 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 f"{system}\n\n"
                 "For this request, tool calls are unavailable. Answer directly in plain text. "
                 "Do not claim to have searched the workspace, searched the web, or created anything."
+            )
+        if context_note:
+            system = (
+                f"{system}\n\n"
+                "Private Copilot context (do not quote this block unless the user asks):\n"
+                f"{context_note}\n\n"
+                "Use this context only to resolve references like 'this/that' and improve grounding."
             )
 
         try:
