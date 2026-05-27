@@ -1,5 +1,6 @@
 ---
 import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
@@ -7,7 +8,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   <main class="home-main">
     <div class="home-copy">
       <header class="home-header">
-        <SiteHeader aboutHref="#about" />
+        <SiteHeader />
         <h1>A workspace for the new generalists.</h1>
       </header>
 
@@ -44,13 +45,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         </section>
       </div>
 
-      <footer class="site-footer">
-        <div class="legal-row">
-          <a href="https://app.dragonfruit.sh/legal/privacy">Privacy Policy</a>
-          <a href="https://app.dragonfruit.sh/legal/terms">Terms and Conditions</a>
-          <span>© {new Date().getFullYear()} DragonFruit</span>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
 
     <div class="home-illustration-wrap">

@@ -9,7 +9,7 @@ import { LegalShell } from "../../legal-shell";
 export default function PrivacyPolicyPage() {
   return (
     <LegalShell
-      eyebrow="Last updated May 23, 2026"
+      eyebrow="Last updated May 27, 2026"
       title="Privacy Policy"
       description="This policy explains how DragonFruit collects, uses, stores, shares, and protects personal data, including data accessed through Google Sign-In and Google Calendar."
     >
@@ -60,6 +60,22 @@ export default function PrivacyPolicyPage() {
         use Google user data for advertising, and does not use Google user data to train general-purpose AI models.
       </p>
 
+      <h2>BYOK and AI providers</h2>
+      <p>
+        If you connect third-party AI providers using BYOK, DragonFruit may process prompts, outputs, and related
+        metadata to provide the feature. Provider-side processing is governed by the provider's own terms and privacy
+        policies.
+      </p>
+
+      <h2>Open-source license</h2>
+      <p>
+        DragonFruit includes software licensed under AGPL-3.0. Source code for the running version is available at{" "}
+        <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer">
+          github.com/miguelreng/DragonFruit
+        </a>
+        .
+      </p>
+
       <h2>Sharing</h2>
       <p>
         DragonFruit shares personal data only as needed to provide the service, with infrastructure and processing
@@ -79,6 +95,12 @@ export default function PrivacyPolicyPage() {
         DragonFruit keeps personal data while your account is active or as needed to provide the service. You may
         disconnect Google Calendar from DragonFruit settings. You may also request deletion of your account or connected
         Google data by contacting us.
+      </p>
+
+      <h2>Your choices</h2>
+      <p>
+        You can update profile data, disconnect integrations, rotate API keys, and request account deletion. You are
+        responsible for removing any third-party data sources you no longer want connected.
       </p>
 
       <h2>Contact</h2>

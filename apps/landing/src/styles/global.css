@@ -368,6 +368,31 @@ li:last-child {
   margin-bottom: 0;
 }
 
+.about-main .about-title {
+  margin-bottom: clamp(12px, 1.8vw, 20px);
+}
+
+.legal-page .home-header,
+.legal-page .home-section,
+.legal-page .site-footer {
+  max-width: 520px;
+}
+
+.legal-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 24px;
+}
+
+.legal-page .legal-header h1 {
+  margin-bottom: clamp(12px, 1.8vw, 20px);
+}
+
+.legal-page .legal-content p {
+  margin-bottom: clamp(16px, 2vw, 22px);
+}
+
 .about-illustration-wrap {
   position: relative;
   display: block;
@@ -390,15 +415,21 @@ li:last-child {
 .essay-index-main {
   display: grid;
   grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
-  gap: clamp(48px, 5vw, 76px);
+  gap: clamp(8px, 1.8vw, 18px);
   align-items: center;
   width: min(100%, 1600px);
   min-height: 100vh;
   min-height: 100svh;
-  padding: clamp(8px, 1.2vw, 14px) var(--page-pad-x);
+  padding: 24px;
 }
 
 .essay-index-copy {
+  min-width: 0;
+  max-width: 520px;
+}
+
+.essay-index-footer {
+  grid-column: 1;
   min-width: 0;
   max-width: 520px;
 }
@@ -427,6 +458,11 @@ li:last-child {
   max-width: 520px;
 }
 
+.essay-index-footer .site-footer,
+.essay-article-copy .site-footer {
+  margin-top: clamp(24px, 4vw, 36px);
+}
+
 .essay-top {
   display: grid;
   justify-items: center;
@@ -436,7 +472,7 @@ li:last-child {
 
 .essay-index-main .essay-top {
   justify-items: start;
-  margin-bottom: clamp(24px, 4vw, 40px);
+  margin-bottom: clamp(34px, 5.2vw, 54px);
 }
 
 .essay-article-main .essay-top {
@@ -448,6 +484,10 @@ li:last-child {
   margin: 0 0 clamp(34px, 4.8vw, 52px);
   max-width: 620px;
   text-align: left;
+}
+
+.essay-index-title p {
+  color: #666;
 }
 
 .essay-list {
@@ -588,7 +628,7 @@ li:last-child {
 .essay-index-illustration-wrap {
   position: relative;
   display: block;
-  justify-self: end;
+  justify-self: start;
   align-self: start;
   width: min(100%, 980px);
   max-width: 100%;
@@ -599,6 +639,7 @@ li:last-child {
 .essay-index-illustration-wrap .essay-illustration {
   width: 100%;
   margin: 0;
+  transform: translateX(clamp(-180px, -11vw, -80px));
 }
 
 .essay-article-illustration-wrap {
@@ -707,6 +748,11 @@ li:last-child {
     font-size: 23px;
   }
 
+  .about-main h1,
+  .essay-index-main h1 {
+    font-size: 23px;
+  }
+
   .home-page p,
   .home-page li {
     font-size: 15px;
@@ -733,6 +779,11 @@ li:last-child {
   }
 
   .home-page h1 {
+    font-size: 23px;
+  }
+
+  .about-main h1,
+  .essay-index-main h1 {
     font-size: 23px;
   }
 
@@ -765,9 +816,38 @@ li:last-child {
 
   .about-copy,
   .essay-index-copy,
+  .essay-index-footer,
   .essay-article-top,
   .essay-article-copy {
     max-width: 100%;
+  }
+
+  .about-copy {
+    display: contents;
+  }
+
+  .about-topnav {
+    order: 1;
+  }
+
+  .about-illustration-wrap {
+    order: 2;
+  }
+
+  .about-title {
+    order: 3;
+  }
+
+  .about-story {
+    order: 4;
+  }
+
+  .about-copy .site-footer {
+    order: 5;
+  }
+
+  .essay-index-main {
+    gap: clamp(4px, 1.4vw, 10px);
   }
 
   .essay-list-item {
@@ -898,6 +978,12 @@ li:last-child {
 
   .home-copy .site-footer {
     margin-top: 24px;
+  }
+
+  .home-copy .legal-row {
+    flex-wrap: nowrap;
+    gap: 10px;
+    white-space: nowrap;
   }
 
   .home-illustration.is-visible {
