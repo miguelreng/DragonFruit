@@ -1,0 +1,55 @@
+---
+import SiteHeader from "../components/SiteHeader.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="About Us | DragonFruit"
+  description="The short story behind DragonFruit, a workspace for people who think across fields and build with agents."
+  canonicalPath="/about"
+>
+  <main class="essay-shell about-main">
+    <div class="about-copy">
+      <header class="home-header">
+        <SiteHeader />
+        <h1>Why DragonFruit exists.</h1>
+      </header>
+
+      <section class="home-section about-story">
+        <p>
+          DragonFruit started from a simple feeling: modern work has too many rooms. Notes live in one place, tasks in
+          another, context in chat, and the actual thinking gets squeezed between tools.
+        </p>
+        <p>
+          We wanted a workspace for people who move across subjects. Designers who write. Engineers who research.
+          Founders who need to think before they decide. Small teams who want agents to help without turning the work
+          into noise.
+        </p>
+        <p>
+          The app is built around that shape of work. Documents, tasks, and agents should sit close together, so a rough
+          idea can become a plan, a plan can become a draft, and a draft can become something real.
+        </p>
+        <p>DragonFruit is for making the next honest thing with a little more clarity.</p>
+        <span class="cta-row"><span aria-hidden="true">→</span><a href="https://app.dragonfruit.sh">Start now for free</a></span>
+      </section>
+
+      <footer class="site-footer">
+        <div class="legal-row">
+          <a href="https://app.dragonfruit.sh/legal/privacy">Privacy Policy</a>
+          <a href="https://app.dragonfruit.sh/legal/terms">Terms and Conditions</a>
+          <span>© {new Date().getFullYear()} DragonFruit</span>
+        </div>
+      </footer>
+    </div>
+
+    <div class="about-illustration-wrap">
+      <img
+        class="about-illustration"
+        src="/assets/essays-listing-illustration.png"
+        alt="Renaissance-style rose engraving of a writer at a desk with books, notes, and a laptop"
+        width="1536"
+        height="1024"
+      />
+    </div>
+  </main>
+</BaseLayout>

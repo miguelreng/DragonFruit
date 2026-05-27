@@ -1,9 +1,10 @@
 ---
 type Props = {
   showEssaysLink?: boolean;
+  aboutHref?: string;
 };
 
-const { showEssaysLink = true } = Astro.props;
+const { showEssaysLink = true, aboutHref = "/about" } = Astro.props;
 ---
 
 <div class="topbar">
@@ -12,7 +13,7 @@ const { showEssaysLink = true } = Astro.props;
   </a>
   <nav class="top-nav" aria-label="Primary">
     {showEssaysLink && <a class="nav-link" href="/essays">Essays</a>}
-    <a class="nav-link" href="#about">About Us</a>
+    <a class="nav-link" href={aboutHref}>About Us</a>
     <a class="nav-link" href="https://x.com/dragonfruitsh" target="_blank" rel="noreferrer">X</a>
     <a class="nav-link" href="https://github.com/dragonfruit-sh" target="_blank" rel="noreferrer">GitHub</a>
   </nav>

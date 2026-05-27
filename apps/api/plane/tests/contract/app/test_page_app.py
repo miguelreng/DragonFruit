@@ -79,7 +79,13 @@ class TestPublicProjectPagesAPI:
             access=Page.PUBLIC_ACCESS,
             page_type=Page.PAGE_TYPE_DOC,
             description_html="<p>Useful workflow notes.</p>",
-            view_props={"public_slug": "agentic-workflows"},
+            view_props={
+                "public_slug": "agentic-workflows",
+                "essay_illustration": {
+                    "status": "ready",
+                    "image": "https://assets.dragonfruit.sh/essays/agentic-workflows/cover.png",
+                },
+            },
         )
         private_page = Page.objects.create(
             name="Private Draft",
@@ -114,4 +120,5 @@ class TestPublicProjectPagesAPI:
         assert [page["name"] for page in response.data] == ["Agentic Workflows"]
         assert response.data[0]["public_slug"] == "agentic-workflows"
         assert response.data[0]["description_stripped"] == "Useful workflow notes."
+        assert response.data[0]["view_props"]["essay_illustration"]["status"] == "ready"
         assert response.data[0]["owned_by"]["display_name"] == create_user.display_name

@@ -10,6 +10,9 @@ import { useState } from "react";
 import { useTranslation } from "@plane/i18n";
 import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import { ToggleSwitch } from "@plane/ui";
+import { CopyIcon } from "@plane/propel/icons";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { copyTextToClipboard } from "@plane/utils";
 // services
 import type { TAgent } from "@/services/agent.service";
 // local
@@ -88,6 +91,25 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
     }
   };
 
+  const handleCopyId = async () => {
+    if (!agent.id) return;
+
+    try {
+      await copyTextToClipboard(agent.id);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: `${t("success")}!`,
+        message: t("workspace_settings.token_copied"),
+      });
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: `${t("error")}!`,
+        message: t("something_went_wrong_please_try_again"),
+      });
+    }
+  };
+
   const handleTriggerToggle = async (key: TAgentTriggerKey) => {
     if (busyTrigger) return;
     setBusyTrigger(key);
@@ -148,6 +170,16 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
           </div>
         </button>
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCopyId}
+            disabled={busy}
+            className="grid size-7 place-items-center rounded text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary disabled:opacity-50"
+            aria-label="Copy agent ID"
+            title="Copy agent ID"
+          >
+            <CopyIcon className="size-4" />
+          </button>
           <button
             type="button"
             onClick={() => onEdit(agent)}
