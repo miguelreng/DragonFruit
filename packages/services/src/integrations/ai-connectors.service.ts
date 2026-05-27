@@ -36,15 +36,8 @@ export class AIConnectorService extends APIService {
       });
   }
 
-  async update(
-    workspaceSlug: string,
-    connectorId: string,
-    payload: IAIConnectorUpdatePayload
-  ): Promise<IAIConnector> {
-    return this.patch(
-      `/api/workspaces/${workspaceSlug}/integrations/ai-connectors/${connectorId}/`,
-      payload
-    )
+  async update(workspaceSlug: string, connectorId: string, payload: IAIConnectorUpdatePayload): Promise<IAIConnector> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/integrations/ai-connectors/${connectorId}/`, payload)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -84,10 +77,7 @@ export class AIConnectorService extends APIService {
   }
 
   async testConnection(workspaceSlug: string, connectorId: string): Promise<{ ok: boolean }> {
-    return this.post(
-      `/api/workspaces/${workspaceSlug}/integrations/ai-connectors/${connectorId}/test/`,
-      {}
-    )
+    return this.post(`/api/workspaces/${workspaceSlug}/integrations/ai-connectors/${connectorId}/test/`, {})
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

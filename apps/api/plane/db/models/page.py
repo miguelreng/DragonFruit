@@ -205,11 +205,6 @@ def _enqueue_essay_illustration_request(page_id: uuid.UUID) -> None:
     if not _is_in_essays_project(page):
         return
 
-    from plane.db.models import WorkspaceAgentWebhook
-
-    if not WorkspaceAgentWebhook.objects.filter(workspace_id=page.workspace_id, is_enabled=True).exists():
-        return
-
     try:
         from plane.bgtasks.essay_illustration_task import request_essay_illustration
 
