@@ -54,9 +54,9 @@ function WorkspaceInvitationPage() {
       })
       .then(() => {
         if (invitationDetail.email === currentUser?.email) {
-          router.push(`/${invitationDetail.workspace.slug}`);
+          return router.push(`/${invitationDetail.workspace.slug}`);
         } else {
-          router.push("/");
+          return router.push("/");
         }
       })
       .catch((err: unknown) => console.error(err));
@@ -70,7 +70,7 @@ function WorkspaceInvitationPage() {
         token: token,
       })
       .then(() => {
-        router.push("/");
+        return router.push("/");
       })
       .catch((err: unknown) => console.error(err));
   };
@@ -111,11 +111,11 @@ function WorkspaceInvitationPage() {
               ) : (
                 <EmptySpaceItem Icon={Boxes} title="Continue to home" href="/" />
               )}
-              <EmptySpaceItem Icon={Star} title="Star us on GitHub" href="https://github.com/makeplane" />
+              <EmptySpaceItem Icon={Star} title="Star us on GitHub" href="https://github.com/miguelreng/DragonFruit" />
               <EmptySpaceItem
                 Icon={Share2}
                 title="Join our community of active creators"
-                href="https://forum.plane.so"
+                href="https://github.com/miguelreng/DragonFruit/discussions"
               />
             </EmptySpace>
           )

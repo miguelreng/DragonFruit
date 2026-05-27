@@ -1,5 +1,6 @@
 ---
 import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
@@ -10,45 +11,43 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 >
   <main class="essay-shell about-main">
     <div class="about-copy">
-      <header class="home-header">
+      <div class="home-header about-topnav">
         <SiteHeader />
-        <h1>Why DragonFruit exists.</h1>
-      </header>
+      </div>
+      <h1 class="about-title">A personal letter from me.</h1>
 
-      <section class="home-section about-story">
+      <section class="home-section home-intro about-story">
         <p>
-          DragonFruit started from a simple feeling: modern work has too many rooms. Notes live in one place, tasks in
-          another, context in chat, and the actual thinking gets squeezed between tools.
+          Hi, I&apos;m Miguel. I started DragonFruit from a feeling I couldn&apos;t ignore: modern work is scattered across too
+          many rooms. Notes in one app, tasks in another, ideas in chat, and the real thinking lost between tabs.
         </p>
         <p>
-          We wanted a workspace for people who move across subjects. Designers who write. Engineers who research.
-          Founders who need to think before they decide. Small teams who want agents to help without turning the work
-          into noise.
+          I wanted to build a workspace for people who move across disciplines, the same way I do. Designers who write.
+          Engineers who research. Founders who need time to think before they decide. Small teams who want AI to help
+          without creating more noise.
         </p>
         <p>
-          The app is built around that shape of work. Documents, tasks, and agents should sit close together, so a rough
-          idea can become a plan, a plan can become a draft, and a draft can become something real.
+          So I shaped DragonFruit around one simple flow: a thought becomes a note, a note becomes a plan, a plan
+          becomes a draft, and a draft becomes something real. Documents, tasks, and agents should live close enough to
+          support that momentum, not interrupt it.
         </p>
-        <p>DragonFruit is for making the next honest thing with a little more clarity.</p>
-        <span class="cta-row"><span aria-hidden="true">→</span><a href="https://app.dragonfruit.sh">Start now for free</a></span>
+        <p>
+          If you&apos;re building across fields and trying to stay clear in the middle of complexity, this is for you.
+          Thanks for being here.
+        </p>
+        <p>With love, Miguel.</p>
       </section>
 
-      <footer class="site-footer">
-        <div class="legal-row">
-          <a href="https://app.dragonfruit.sh/legal/privacy">Privacy Policy</a>
-          <a href="https://app.dragonfruit.sh/legal/terms">Terms and Conditions</a>
-          <span>© {new Date().getFullYear()} DragonFruit</span>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
 
     <div class="about-illustration-wrap">
       <img
         class="about-illustration"
-        src="/assets/essays-listing-illustration.png"
-        alt="Renaissance-style rose engraving of a writer at a desk with books, notes, and a laptop"
-        width="1536"
-        height="1024"
+        src="/assets/about-dragon-renaissance-illustration.png"
+        alt="Renaissance-style rose-ink engraving illustration of the DragonFruit dragon emblem"
+        width="1555"
+        height="1012"
       />
     </div>
   </main>

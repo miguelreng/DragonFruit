@@ -5,105 +5,246 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DragonFruit Terms of Service</title>
     <style>
-      :root {
-        --bg: #f7f6f8;
-        --text: #232331;
-        --muted: #666574;
-        --line: #dedde4;
-        --accent: #b0007a;
+      @font-face {
+        font-family: "Figtree";
+        src: url("/fonts/Figtree-Variable.woff2") format("woff2");
+        font-weight: 300 900;
+        font-style: normal;
+        font-display: swap;
       }
+
+      @font-face {
+        font-family: "Newsreader";
+        src: url("/fonts/Newsreader-Variable.ttf") format("truetype");
+        font-weight: 200 900;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root {
+        --bg: #fff;
+        --text: #111;
+        --content: #3f3f3f;
+        --muted: #575757;
+        --quiet: #8e8e8e;
+        --pink: #aa0276;
+        --line: #dedbd5;
+      }
+
       * {
         box-sizing: border-box;
       }
+
       body {
         margin: 0;
+        min-height: 100%;
         background: var(--bg);
         color: var(--text);
-        font-family:
-          "Figtree",
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
+        font-family: "Newsreader", Georgia, serif;
       }
-      .wrap {
-        max-width: 900px;
+
+      a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .shell {
+        width: min(100%, 920px);
         margin: 0 auto;
-        padding: 24px;
+        padding: clamp(20px, 3.2vw, 34px) clamp(20px, 4vw, 40px) clamp(26px, 3.2vw, 38px);
       }
-      h1 {
-        margin: 6px 0 14px;
-        font-family:
-          "Figtree",
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
-        font-size: 54px;
-        line-height: 1.02;
-        font-weight: 500;
+
+      .topbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
       }
-      h2 {
-        margin: 24px 0 8px;
-        font-size: 22px;
+
+      .brand {
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 20px;
+        color: var(--text);
+        text-decoration: none;
       }
-      p {
-        color: var(--muted);
-        font-size: 16px;
-        line-height: 1.65;
+
+      .top-nav {
+        margin-left: auto;
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
       }
-      .eyebrow {
-        color: var(--accent);
-        font-weight: 700;
-        font-size: 14px;
+
+      .top-nav a {
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.2;
+        color: var(--content);
       }
+
       .hero {
         border-bottom: 1px solid var(--line);
         padding-bottom: 24px;
       }
-      a {
-        color: var(--accent);
-        text-decoration: none;
+
+      .eyebrow {
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.2;
+        font-weight: 500;
+        color: var(--pink);
       }
-      a:hover {
-        text-decoration: underline;
+
+      h1 {
+        margin: 8px 0 0;
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(28px, 5.5vw, 58px);
+        line-height: 1.03;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 24px 0 8px;
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.35;
+        color: var(--muted);
+      }
+
+      p,
+      li {
+        color: var(--content);
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      p {
+        margin: 0 0 14px;
+      }
+
+      .lede {
+        margin: 14px 0 0;
+        max-width: 74ch;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+
+      .legal {
+        margin-top: 28px;
+      }
+
+      .legal-row {
+        margin-top: 28px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 11px;
+        line-height: 1.2;
+        color: var(--quiet);
+      }
+
+      .legal-row a {
+        color: inherit;
+        text-underline-offset: 2px;
       }
     </style>
   </head>
   <body>
-    <main class="wrap">
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/">DragonFruit</a>
+        <nav class="top-nav" aria-label="Public links">
+          <a href="/google-oauth">OAuth</a>
+          <a href="/legal/privacy">Privacy</a>
+          <a href="/legal/terms">Terms</a>
+          <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer">Source</a>
+        </nav>
+      </header>
+
       <section class="hero">
-        <div class="eyebrow">Last updated May 23, 2026</div>
+        <div class="eyebrow">Last updated May 27, 2026</div>
         <h1>Terms of Service</h1>
-        <p>These terms describe the basic rules for using DragonFruit and its connected services.</p>
+        <p class="lede">These terms describe the basic rules for using DragonFruit and its connected services.</p>
       </section>
 
-      <h2>Using DragonFruit</h2>
-      <p>
-        DragonFruit provides tools for organizing projects, tasks, docs, meeting notes, stickies, calendar context, and
-        agent-assisted work. You are responsible for your account and content.
-      </p>
+      <section class="legal">
+        <h2>Using DragonFruit</h2>
+        <p>
+          DragonFruit provides tools for organizing projects, tasks, docs, meeting notes, stickies, calendar context,
+          and agent-assisted work. You are responsible for your account and content.
+        </p>
 
-      <h2>Accounts and access</h2>
-      <p>
-        You must keep your credentials secure. If you use Google Sign-In or connect Google Calendar, you authorize
-        DragonFruit to access the Google data described in the Privacy Policy.
-      </p>
+        <h2>Accounts and access</h2>
+        <p>
+          You must keep your credentials secure. If you use Google Sign-In or connect Google Calendar, you authorize
+          DragonFruit to access the Google data described in the Privacy Policy.
+        </p>
 
-      <h2>Acceptable use</h2>
-      <p>
-        You may not use DragonFruit to break the law, abuse the service, attempt unauthorized access, or interfere with
-        other users.
-      </p>
+        <h2>Acceptable use</h2>
+        <p>
+          You may not use DragonFruit to break the law, abuse the service, attempt unauthorized access, or interfere
+          with other users.
+        </p>
 
-      <h2>Third-party services</h2>
-      <p>DragonFruit may integrate with third-party services such as Google, each governed by their own terms.</p>
+        <h2>Third-party services</h2>
+        <p>DragonFruit may integrate with third-party services such as Google, each governed by their own terms.</p>
 
-      <h2>Contact</h2>
-      <p>
-        Questions about these terms can be sent to
-        <a href="mailto:miguelreng@gmail.com">miguelreng@gmail.com</a>.
-      </p>
+        <h2>Copilot and BYOK</h2>
+        <p>
+          DragonFruit may provide AI and Copilot features. Where bring-your-own-key (BYOK) is enabled, you are
+          responsible for the API keys and provider accounts you connect, including compliance with provider terms,
+          usage limits, and billing.
+        </p>
+
+        <h2>Paid features</h2>
+        <p>
+          Some DragonFruit features may require a paid plan. Pricing, billing intervals, and feature limits may change
+          as the product evolves. Continued use of paid features after a pricing update means you accept the updated
+          pricing.
+        </p>
+
+        <h2>Service changes</h2>
+        <p>
+          DragonFruit may change, suspend, or discontinue parts of the service as the product evolves. We will try to
+          make reasonable efforts to avoid disrupting active users.
+        </p>
+
+        <h2>Disclaimers</h2>
+        <p>
+          DragonFruit is provided as-is and as available. To the fullest extent permitted by law, DragonFruit disclaims
+          warranties of merchantability, fitness for a particular purpose, and non-infringement.
+        </p>
+
+        <h2>Open-source license</h2>
+        <p>
+          DragonFruit includes software licensed under AGPL-3.0. Source code for the running version is available at
+          <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer"
+            >github.com/miguelreng/DragonFruit</a
+          >.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          Questions about these terms can be sent to
+          <a href="mailto:miguelreng@gmail.com">miguelreng@gmail.com</a>.
+        </p>
+      </section>
+
+      <footer class="legal-row">
+        <a href="/legal/privacy">Privacy Policy</a>
+        <a href="/legal/terms">Terms and Conditions</a>
+        <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer"
+          >Source Code (AGPL-3.0)</a
+        >
+        <span>© 2026 DragonFruit</span>
+      </footer>
     </main>
   </body>
 </html>
