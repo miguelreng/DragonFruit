@@ -23,6 +23,7 @@
 ## Code Style
 
 - **Imports**: Use `workspace:*` for internal packages, `catalog:` for external deps
+- **Icons**: Prefer the Hugeicons-backed set exposed through `@plane/icons`; avoid introducing mixed icon styles in new UI work
 - **TypeScript**: Strict mode enabled, all files must be typed
 - **Formatting**: oxfmt, run `pnpm fix:format`
 - **Linting**: OxLint with shared `.oxlintrc.json` config

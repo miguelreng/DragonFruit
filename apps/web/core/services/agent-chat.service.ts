@@ -15,6 +15,8 @@ export type TAgentChatSession = {
   agent: string;
   agent_name: string;
   agent_avatar_url: string;
+  scope_type: "personal" | "page";
+  page: string | null;
   title: string;
   created_at: string;
   updated_at: string;
@@ -51,6 +53,9 @@ export type TAgentChatAttachmentPayload = {
 export type TAgentChatMessage = {
   id: string;
   session: string;
+  user: string | null;
+  user_display_name: string;
+  user_avatar_url: string;
   role: "user" | "assistant";
   content: string;
   attachments: TAgentChatAttachment[];
@@ -72,15 +77,27 @@ export class AgentChatService extends APIService {
     super(API_BASE_URL);
   }
 
-  async listSessions(workspaceSlug: string): Promise<{ sessions: TAgentChatSession[] }> {
-    return this.get(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/`)
+  async listSessions(
+    workspaceSlug: string,
+    params?: { scope_type?: "personal" | "page"; page_id?: string; project_id?: string }
+  ): Promise<{ sessions: TAgentChatSession[] }> {
+    return this.get(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/`, { params })
       .then((res) => res?.data)
       .catch((error) => {
         throw error?.response?.data;
       });
   }
 
-  async createSession(workspaceSlug: string, data: { agent_id: string; title?: string }): Promise<TAgentChatSession> {
+  async createSession(
+    workspaceSlug: string,
+    data: {
+      agent_id?: string;
+      title?: string;
+      scope_type?: "personal" | "page";
+      page_id?: string;
+      project_id?: string;
+    } = {}
+  ): Promise<TAgentChatSession> {
     return this.post(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/`, data)
       .then((res) => res?.data)
       .catch((error) => {
@@ -90,9 +107,10 @@ export class AgentChatService extends APIService {
 
   async getSession(
     workspaceSlug: string,
-    sessionId: string
+    sessionId: string,
+    params?: { project_id?: string }
   ): Promise<{ session: TAgentChatSession; messages: TAgentChatMessage[] }> {
-    return this.get(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/`)
+    return this.get(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/`, { params })
       .then((res) => res?.data)
       .catch((error) => {
         throw error?.response?.data;
@@ -120,13 +138,14 @@ export class AgentChatService extends APIService {
     sessionId: string,
     content: string,
     attachments?: TAgentChatAttachmentPayload[],
-    context?: { project_id?: string; tool_mode?: "auto" | "none" }
+    context?: { project_id?: string; tool_mode?: "auto" | "none"; context_note?: string }
   ): Promise<TAgentChatPostResponse> {
     return this.post(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/messages/`, {
       content,
       attachments: attachments ?? [],
       project_id: context?.project_id,
       tool_mode: context?.tool_mode,
+      context_note: context?.context_note,
     })
       .then((res) => res?.data)
       .catch((error) => {

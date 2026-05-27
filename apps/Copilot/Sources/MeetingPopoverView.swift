@@ -71,7 +71,7 @@ struct MeetingPopoverView: View {
                     .opacity(store.copilotTheme == .dark ? 0.88 : 0.78)
             }
             Spacer()
-            Text("Copilot")
+            Text("Atlas")
                 .font(.custom("Figtree", size: 10).weight(.medium))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -88,31 +88,15 @@ struct MeetingPopoverView: View {
                 }
             }
 
-            if store.availableAgents.count > 1 {
-                Picker("", selection: $store.selectedAgentId) {
-                    ForEach(store.availableAgents) { agent in
-                        Text(agent.name).tag(agent.id)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
+            Text(selectedAgentName)
                 .font(.custom("Figtree", size: 12).weight(.medium))
-            } else if let agent = store.availableAgents.first {
-                Text(agent.name)
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(theme.textPrimary)
-                    .lineLimit(1)
-            } else {
-                Text("No enabled agent")
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(theme.textSecondary)
-            }
+                .foregroundStyle(theme.textPrimary)
+                .lineLimit(1)
 
-            Button(store.isListening ? "Stop listening" : "Talk to Copilot") {
+            Button(store.isListening ? "Stop listening" : "Talk to Atlas") {
                 store.toggleCopilotVoiceCapture()
             }
             .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
-            .disabled(store.availableAgents.isEmpty && !store.isListening)
 
             if store.isListening {
                 Text(store.lastTranscript.isEmpty ? "Listening..." : store.lastTranscript)
@@ -123,7 +107,7 @@ struct MeetingPopoverView: View {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
-                    Text("Copilot is thinking...")
+                    Text("Atlas is thinking...")
                         .font(.custom("Figtree", size: 11).weight(.medium))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -169,7 +153,7 @@ struct MeetingPopoverView: View {
                         .clipShape(Circle())
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Set up Copilot")
+                        Text("Set up Atlas")
                             .font(.custom("Figtree", size: 15).weight(.semibold))
                             .foregroundStyle(theme.textPrimary)
                         Text(onboardingTitle(for: currentPermission))
@@ -251,11 +235,11 @@ struct MeetingPopoverView: View {
         case "system-audio":
             return "Lets meeting notes capture the people speaking in Meet, Zoom, and Teams."
         case "speech":
-            return "Lets Copilot transcribe your voice."
+            return "Lets Atlas transcribe your voice."
         case "accessibility":
             return "Lets dictation type into the active field."
         default:
-            return "Copilot opens the menu when setup is complete."
+            return "Atlas opens the menu when setup is complete."
         }
     }
 
@@ -319,7 +303,7 @@ struct MeetingPopoverView: View {
                     Text("Checking your DragonFruit session")
                         .font(.custom("Figtree", size: 12).weight(.medium))
                         .foregroundStyle(theme.textPrimary)
-                    Text("One moment while Copilot verifies this Mac.")
+                    Text("One moment while Atlas verifies this Mac.")
                         .font(.custom("Figtree", size: 11).weight(.medium))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -419,7 +403,7 @@ struct MeetingPopoverView: View {
     }
 
     private var cursorBuddyAgentPicker: some View {
-        settingsPickerRow("Agent", selectedValue: selectedAgentName, isEnabled: store.agentsForSelectedWorkspace.count > 1) {
+        settingsPickerRow("Atlas", selectedValue: selectedAgentName, isEnabled: store.agentsForSelectedWorkspace.count > 1) {
             ForEach(store.agentsForSelectedWorkspace) { agent in
                 Button {
                     store.selectedAgentId = agent.id
@@ -495,7 +479,7 @@ struct MeetingPopoverView: View {
     private var selectedAgentName: String {
         store.agentsForSelectedWorkspace.first(where: { $0.id == store.selectedAgentId })?.name
             ?? store.agentsForSelectedWorkspace.first?.name
-            ?? "No agent in workspace"
+            ?? "Atlas"
     }
 
     private func pickerPill(_ label: String) -> some View {

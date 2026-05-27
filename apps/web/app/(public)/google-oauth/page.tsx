@@ -16,7 +16,7 @@ export default function GoogleOAuthPage() {
       <h2>What DragonFruit does</h2>
       <p>
         DragonFruit helps individuals and teams capture ideas, organize projects, track tasks, write docs, and manage
-        meeting follow-ups. The macOS Copilot companion can show upcoming meetings and help users turn voice notes into
+        meeting follow-ups. The macOS Atlas companion can show upcoming meetings and help users turn voice notes into
         tasks, docs, or stickies in their DragonFruit workspace.
       </p>
 

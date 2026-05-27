@@ -247,8 +247,8 @@ export const WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS: Record<string, IWorkspac
   agents: {
     key: "agents",
     labelTranslationKey: "sidebar.agents",
-    // For now this jumps straight into Settings → Agents. When the workspace-
-    // level Agents page (runs feed, multi-agent overview) lands, swap the href
+    // For now this jumps straight into Settings → Atlas. When the workspace-
+    // level Atlas page (runs feed, overview) lands, swap the href
     // to `/agents/` and keep the same `agents` key so personal preferences
     // (pinning, sort order) survive.
     href: `/settings/agents/`,

@@ -61,7 +61,7 @@ export function PowerKAskAISection(props: Props) {
   const hasQuery = searchTerm.trim().length > 0;
 
   return (
-    <Command.Group heading="Ask AI" forceMount>
+    <Command.Group heading="Ask Atlas" forceMount>
       <Command.Item
         value={`ai-ask-trigger ${searchTerm}`}
         forceMount
@@ -78,7 +78,7 @@ export function PowerKAskAISection(props: Props) {
           <span className="truncate">
             {hasQuery ? (
               <>
-                Ask AI: <span className="text-primary">{searchTerm}</span>
+                Ask Atlas: <span className="text-primary">{searchTerm}</span>
               </>
             ) : (
               <span className="text-tertiary">Type a question to ask your configured LLM</span>

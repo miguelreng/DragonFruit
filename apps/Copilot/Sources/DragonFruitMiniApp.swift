@@ -510,7 +510,7 @@ struct PermissionOnboardingToast: View {
                     .background(theme.accentSubtle, in: Circle())
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Set up Copilot")
+                    Text("Set up Atlas")
                         .font(.custom("Figtree", size: 11).weight(.semibold))
                         .foregroundStyle(theme.accent)
                     Text(title)
@@ -605,9 +605,9 @@ struct PermissionOnboardingToast: View {
         case "speech":
             return "Used for live voice preview and dictation commands."
         case "accessibility":
-            return "System Settings will open. Turn on DragonFruit Copilot, then come back."
+            return "System Settings will open. Turn on DragonFruit Atlas, then come back."
         default:
-            return "Copilot will continue once permissions are ready."
+            return "Atlas will continue once permissions are ready."
         }
     }
 

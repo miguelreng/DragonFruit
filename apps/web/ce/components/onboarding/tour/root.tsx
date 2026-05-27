@@ -112,9 +112,9 @@ const TOUR_STEPS: {
   },
   {
     key: "agents",
-    title: "Agents / Ask AI",
+    title: "Atlas",
     description:
-      "Use Agents to brainstorm, summarize context, and generate drafts directly from your workspace without breaking focus.",
+      "Use Atlas to brainstorm, summarize context, and generate drafts directly from your workspace without breaking focus.",
     image: AgentsTour,
     prevStep: "analytics",
     nextStep: "whiteboards",

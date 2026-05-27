@@ -292,7 +292,7 @@ struct RoutingTarget {
 
 struct AgentRoutingTarget {
     let workspaceSlug: String
-    let agentId: String
+    let agentId: String?
     let agentName: String
 }
 
@@ -773,7 +773,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             PermissionStatus(id: "login", name: "DragonFruit", state: isAuthenticated ? "Connected" : "Sign in"),
             PermissionStatus(id: "mic", name: "Microphone", state: microphonePermissionLabel),
             PermissionStatus(id: "system-audio", name: "System audio", state: systemAudioPermissionLabel),
-            PermissionStatus(id: "speech", name: "Copilot voice", state: speechPermissionLabel),
+            PermissionStatus(id: "speech", name: "Atlas voice", state: speechPermissionLabel),
             PermissionStatus(id: "accessibility", name: "Cursor context & dictation", state: accessibilityPermissionLabel),
         ]
     }
@@ -1804,7 +1804,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
         guard !context.isEmpty else { return nil }
         return """
-        Copilot context:
+        Atlas context:
         \(context)
 
         Resolve words like "this", "that", "look at this", "translate this", or "summarize this" against the selected text, focused text, hovered UI element, URL, visual attachment, and frontmost app context above. If selected text is present, treat it as the primary object of the request.
@@ -2451,7 +2451,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         if let transformIntent = transformIntent(from: text) {
             guard let selectedText = pendingCursorContext.primaryText else {
-                statusMessage = "Select text first, then ask Copilot to translate or rewrite it."
+                statusMessage = "Select text first, then ask Atlas to translate or rewrite it."
                 return
             }
             isVoiceActionProcessing = true
@@ -2486,11 +2486,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private func statusMessageForListening(mode: VoiceCaptureMode) -> String {
         switch mode {
         case .copilot:
-            return "Copilot listening... (⌥Space to finish)"
+            return "Atlas listening... (⌥Space to finish)"
         case .dictation:
             return "Dictating... (release ⌥ to stop)"
         case .intent:
-            return "Copilot listening... (⌥Space to finish)"
+            return "Atlas listening... (⌥Space to finish)"
         }
     }
 
@@ -3152,7 +3152,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 let createdSession = try await client.createAgentChatSession(
                     workspaceSlug: agentTarget.workspaceSlug,
                     agentId: agentTarget.agentId,
-                    title: "DragonFruit Orbit Voice"
+                    title: "Atlas Voice"
                 )
                 sessionId = createdSession.id
                 activeAgentSessionByWorkspace[agentTarget.workspaceSlug] = sessionId
@@ -3178,7 +3178,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 isAgentResponding = false
             } else {
                 await streamAgentText(envelope.assistant_message.content)
-                statusMessage = "Copilot replied."
+                statusMessage = "Atlas replied."
                 scheduleAgentResponseDismiss()
             }
         } catch {
@@ -3190,7 +3190,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private func triggerAgentTransform(_ intent: VoiceTransformIntent, selectedText: String) async {
         guard isAuthenticated else {
-            statusMessage = "Sign in first to use Copilot transforms."
+            statusMessage = "Sign in first to use Atlas transforms."
             isVoiceActionProcessing = false
             return
         }
@@ -3209,7 +3209,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 let createdSession = try await client.createAgentChatSession(
                     workspaceSlug: agentTarget.workspaceSlug,
                     agentId: agentTarget.agentId,
-                    title: "DragonFruit Orbit Voice"
+                    title: "Atlas Voice"
                 )
                 sessionId = createdSession.id
                 activeAgentSessionByWorkspace[agentTarget.workspaceSlug] = sessionId
@@ -3236,7 +3236,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
             let transformed = cleanTransformResponse(envelope.assistant_message.content)
             guard !transformed.isEmpty else {
-                statusMessage = "Copilot returned an empty transform. Try again."
+                statusMessage = "Atlas returned an empty transform. Try again."
                 lastAgentTextResponse = ""
                 return
             }
@@ -3300,9 +3300,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private static func userFacingAgentErrorMessage(_ rawMessage: String) -> String {
         let normalized = rawMessage.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if normalized.contains("timed out") || normalized.contains("timeout") {
-            return "Copilot took too long to answer. Try again."
+            return "Atlas took too long to answer. Try again."
         }
-        return "Copilot couldn’t answer that. Try again."
+        return "Atlas couldn’t answer that. Try again."
     }
 
     private func resolveAgentTarget(client: APIClient) async throws -> AgentRoutingTarget {
@@ -3323,10 +3323,26 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             )
         }
 
+        if !selectedWorkspaceSlug.isEmpty {
+            return AgentRoutingTarget(
+                workspaceSlug: selectedWorkspaceSlug,
+                agentId: nil,
+                agentName: "Atlas"
+            )
+        }
+
+        if let workspace = availableWorkspaces.first {
+            return AgentRoutingTarget(
+                workspaceSlug: workspace.slug,
+                agentId: nil,
+                agentName: "Atlas"
+            )
+        }
+
         throw NSError(
             domain: "DragonFruitNative",
             code: 202,
-            userInfo: [NSLocalizedDescriptionKey: "No agent available in the selected workspace."]
+            userInfo: [NSLocalizedDescriptionKey: "No workspace available for Atlas."]
         )
     }
 

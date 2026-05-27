@@ -427,7 +427,7 @@ struct APIClient {
         return try decodeArrayOrResults(data, as: AgentSummary.self)
     }
 
-    func createAgentChatSession(workspaceSlug: String, agentId: String, title: String) async throws -> AgentChatSession {
+    func createAgentChatSession(workspaceSlug: String, agentId: String? = nil, title: String) async throws -> AgentChatSession {
         let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agent-chats/sessions/")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -436,10 +436,11 @@ struct APIClient {
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
-        request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "agent_id": agentId,
-            "title": title,
-        ])
+        var body: [String: Any] = ["title": title]
+        if let agentId, !agentId.isEmpty {
+            body["agent_id"] = agentId
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await send(request, endpoint: "POST agent session")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(AgentChatSession.self, from: data)

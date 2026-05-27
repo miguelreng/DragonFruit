@@ -105,24 +105,24 @@
         "save_error": "Couldn't save. Check the key and provider/model combination."
       },
       "agents": {
-        "title": "Agents",
-        "heading": "Agents",
-        "description": "Bot members of this workspace that can be assigned to tasks. Each agent uses your own LLM key (BYOK).",
-        "add_agent": "Add agent",
+        "title": "Atlas",
+        "heading": "Atlas",
+        "description": "The workspace companion used across docs, chat, and the Mac app. Atlas uses your workspace LLM key (BYOK).",
+        "add_agent": "Add Atlas profile",
         "empty": {
-          "title": "No agents yet",
-          "description": "Create an agent and it'll appear in the assignee picker. Assign it to a task to see it work."
+          "title": "Atlas is not configured yet",
+          "description": "Create the workspace Atlas profile to make it available in docs, chat, and task workflows."
         },
         "badge": {
           "no_key": "No key",
           "paused": "Paused"
         },
-        "delete_confirm": "Delete agent \"{name}\"? This cannot be undone.",
-        "delete_success": "Agent deleted",
-        "delete_error": "Could not delete agent",
-        "update_error": "Could not update agent",
+        "delete_confirm": "Delete Atlas profile \"{name}\"? This cannot be undone.",
+        "delete_success": "Atlas profile deleted",
+        "delete_error": "Could not delete Atlas profile",
+        "update_error": "Could not update Atlas",
         "stopped": {
-          "title": "Agent stopped",
+          "title": "Atlas stopped",
           "cancelled": "{count, plural, one {Cancelled # in-flight run.} other {Cancelled # in-flight runs.}}"
         }
       },
