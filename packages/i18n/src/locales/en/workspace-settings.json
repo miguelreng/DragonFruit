@@ -92,7 +92,7 @@
       "ai": {
         "title": "AI",
         "heading": "AI",
-        "description": "Bring your own LLM key for AI features in this workspace. Overrides the instance-level LLM settings.",
+        "description": "Bring your own LLM key for Atlas and AI features in this workspace. Overrides the instance-level LLM settings.",
         "provider_label": "Provider",
         "model_label": "Model",
         "api_key_label": "API key",
@@ -107,19 +107,19 @@
       "agents": {
         "title": "Atlas",
         "heading": "Atlas",
-        "description": "The workspace companion used across docs, chat, and the Mac app. Atlas uses your workspace LLM key (BYOK).",
-        "add_agent": "Add Atlas profile",
+        "description": "The workspace companion used across docs, chat, tasks, and the Mac app. Model and BYOK settings live in Settings → AI.",
+        "add_agent": "Initialize Atlas",
         "empty": {
           "title": "Atlas is not configured yet",
-          "description": "Create the workspace Atlas profile to make it available in docs, chat, and task workflows."
+          "description": "Initialize the single workspace companion for docs, chat, task workflows, and the Mac app."
         },
         "badge": {
           "no_key": "No key",
           "paused": "Paused"
         },
-        "delete_confirm": "Delete Atlas profile \"{name}\"? This cannot be undone.",
-        "delete_success": "Atlas profile deleted",
-        "delete_error": "Could not delete Atlas profile",
+        "delete_confirm": "Atlas is the workspace companion and cannot be deleted from the product UI.",
+        "delete_success": "Atlas profile updated",
+        "delete_error": "Could not update Atlas",
         "update_error": "Could not update Atlas",
         "stopped": {
           "title": "Atlas stopped",

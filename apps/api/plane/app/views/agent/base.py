@@ -38,6 +38,7 @@ User = get_user_model()
 # state changes or settings access, the human owner has to opt in
 # explicitly per-agent (not in Slice 1).
 _BOT_WORKSPACE_ROLE = 5  # Guest
+_DEFAULT_ASSISTANT_NAME = "Atlas"
 _TOOL_POLICY_VALUES = {"auto", "ask", "never"}
 _AUTOMATION_CONDITION_KEYS = {"project_ids", "priorities", "label_ids", "issue_type_ids"}
 _ISSUE_PRIORITY_VALUES = {"urgent", "high", "medium", "low", "none"}
@@ -128,6 +129,42 @@ def _build_bot_user(workspace_slug: str, agent_name: str) -> "User":
     return user
 
 
+def _get_existing_workspace_companion(workspace: Workspace) -> Agent | None:
+    return (
+        Agent.objects.filter(workspace=workspace, deleted_at__isnull=True)
+        .select_related("bot_user")
+        .order_by("-is_enabled", "created_at")
+        .first()
+    )
+
+
+def _get_workspace_companion(workspace: Workspace) -> Agent:
+    """Return the single user-facing Atlas profile for a workspace.
+
+    Older workspaces can still have multiple historical Agent rows. Product
+    surfaces now resolve to one companion, so we reuse the oldest enabled
+    profile when present and only create a bot for brand-new workspaces.
+    """
+    existing = _get_existing_workspace_companion(workspace)
+    if existing is not None:
+        return existing
+
+    bot_user = _build_bot_user(workspace.slug, _DEFAULT_ASSISTANT_NAME)
+    WorkspaceMember.objects.create(
+        workspace=workspace,
+        member=bot_user,
+        role=_BOT_WORKSPACE_ROLE,
+        is_active=True,
+    )
+    return Agent.objects.create(
+        workspace=workspace,
+        bot_user=bot_user,
+        name=_DEFAULT_ASSISTANT_NAME,
+        description="The default workspace companion.",
+        system_prompt="You are Atlas, a helpful workspace companion for DragonFruit.",
+    )
+
+
 def _normalise_automation_conditions(raw_conditions: dict) -> dict:
     """Allowlist and normalize rule-builder condition payloads."""
     if not isinstance(raw_conditions, dict):
@@ -148,25 +185,20 @@ def _normalise_automation_conditions(raw_conditions: dict) -> dict:
 
 
 class AgentEndpoint(BaseAPIView):
-    """List + create agents in a workspace."""
+    """List + initialize the workspace Atlas profile."""
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug):
-        agents = (
-            Agent.objects.filter(workspace__slug=slug, deleted_at__isnull=True)
-            .select_related("bot_user")
-            .order_by("-created_at")
-        )
-        return Response(AgentSerializer(agents, many=True).data, status=status.HTTP_200_OK)
+        try:
+            workspace = Workspace.objects.get(slug=slug)
+        except Workspace.DoesNotExist:
+            return Response({"error": "workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        agent = _get_existing_workspace_companion(workspace)
+        return Response(AgentSerializer([agent] if agent else [], many=True).data, status=status.HTTP_200_OK)
 
     @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
     def post(self, request, slug):
-        name = (request.data.get("name") or "").strip()
-        if not name:
-            return Response({"error": "name is required"}, status=status.HTTP_400_BAD_REQUEST)
-        if len(name) > 128:
-            return Response({"error": "name must be 128 characters or fewer"}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             workspace = Workspace.objects.get(slug=slug)
         except Workspace.DoesNotExist:
@@ -175,26 +207,21 @@ class AgentEndpoint(BaseAPIView):
         plaintext_key = request.data.get("api_key") or ""
 
         with transaction.atomic():
-            bot_user = _build_bot_user(workspace.slug, name)
-            WorkspaceMember.objects.create(
-                workspace=workspace,
-                member=bot_user,
-                role=_BOT_WORKSPACE_ROLE,
-                is_active=True,
-            )
-            agent = Agent.objects.create(
-                workspace=workspace,
-                bot_user=bot_user,
-                name=name,
-                description=(request.data.get("description") or "").strip(),
-                avatar_url=(request.data.get("avatar_url") or "").strip(),
-                system_prompt=(request.data.get("system_prompt") or "").strip(),
-                provider_model=(request.data.get("provider_model") or "").strip(),
-                api_base_url=(request.data.get("api_base_url") or "").strip(),
-                api_key_encrypted=encrypt_data(plaintext_key) if plaintext_key else "",
-            )
+            locked_workspace = Workspace.objects.select_for_update().get(pk=workspace.pk)
+            created = _get_existing_workspace_companion(locked_workspace) is None
+            agent = _get_workspace_companion(locked_workspace)
+            agent.name = _DEFAULT_ASSISTANT_NAME
+            for field in ("description", "avatar_url", "system_prompt", "provider_model", "api_base_url"):
+                if field in request.data:
+                    setattr(agent, field, (request.data.get(field) or "").strip())
+            if plaintext_key:
+                agent.api_key_encrypted = encrypt_data(plaintext_key)
+            agent.save()
 
-        return Response(AgentSerializer(agent).data, status=status.HTTP_201_CREATED)
+        return Response(
+            AgentSerializer(agent).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class AgentDetailEndpoint(BaseAPIView):
@@ -222,7 +249,6 @@ class AgentDetailEndpoint(BaseAPIView):
 
         # Mutable, non-secret fields. api_key is handled separately below.
         for field in (
-            "name",
             "description",
             "avatar_url",
             "system_prompt",
@@ -236,6 +262,8 @@ class AgentDetailEndpoint(BaseAPIView):
                 if isinstance(value, str):
                     value = value.strip()
                 setattr(agent, field, value)
+        if "name" in request.data:
+            agent.name = _DEFAULT_ASSISTANT_NAME
 
         if "triggers" in request.data and isinstance(request.data["triggers"], dict):
             # Shallow-merge so callers can patch just one flag.
