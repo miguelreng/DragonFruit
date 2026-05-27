@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from plane.app.serializers import PageSerializer
 from plane.db.models import Page, Project, ProjectPage, WorkspaceAgentWebhook
 
 
@@ -188,6 +189,44 @@ def test_public_slug_generation_adds_suffix_for_duplicates(settings, workspace, 
 
     assert page_one.view_props["public_slug"] == "same-title"
     assert page_two.view_props["public_slug"] == "same-title-2"
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_public_doc_create_in_essays_project_enqueues_essay_illustration_task(settings, workspace, create_user):
+    WorkspaceAgentWebhook.objects.create(
+        workspace=workspace,
+        url="https://example.com/agent",
+        secret_encrypted="secret",
+        is_enabled=True,
+    )
+    essay_project = Project.objects.create(
+        name="Essays",
+        identifier="ESSAY",
+        workspace=workspace,
+    )
+    settings.ESSAY_ILLUSTRATION_PROJECT_ID = str(essay_project.id)
+
+    serializer = PageSerializer(
+        data={
+            "name": "Published Essay",
+            "access": Page.PUBLIC_ACCESS,
+            "page_type": Page.PAGE_TYPE_DOC,
+        },
+        context={
+            "project_id": str(essay_project.id),
+            "owned_by_id": create_user.id,
+            "description_json": {},
+            "description_binary": None,
+            "description_html": "<p></p>",
+        },
+    )
+    assert serializer.is_valid(), serializer.errors
+
+    with patch("plane.db.models.page.request_essay_illustration.delay") as mock_delay:
+        serializer.save()
+
+    assert mock_delay.call_count == 1
 
 
 @pytest.mark.unit
