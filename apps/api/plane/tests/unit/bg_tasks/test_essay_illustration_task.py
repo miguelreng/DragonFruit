@@ -9,6 +9,7 @@ import pytest
 
 from plane.bgtasks.essay_illustration_task import (
     ESSAY_ILLUSTRATION_ASPECT_RATIO,
+    ESSAY_ILLUSTRATION_STATUS_FAILED,
     ESSAY_ILLUSTRATION_HEIGHT,
     ESSAY_ILLUSTRATION_STYLE,
     ESSAY_ILLUSTRATION_VIEW_PROPS_KEY,
@@ -104,6 +105,74 @@ def test_request_essay_illustration_skips_when_ready(settings, workspace, create
         request_essay_illustration(str(page.id))
 
     mock_dispatch.assert_not_called()
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_request_essay_illustration_retries_after_dispatch_failure(settings, workspace, create_user):
+    settings.ESSAY_ILLUSTRATION_AGENT_SELECTOR = "agent-1"
+    WorkspaceAgentWebhook.objects.create(
+        workspace=workspace,
+        url="https://example.com/agent",
+        secret_encrypted="secret",
+        is_enabled=True,
+    )
+    essay_project = Project.objects.create(
+        name="Essays",
+        identifier="ESSAY",
+        workspace=workspace,
+    )
+    settings.ESSAY_ILLUSTRATION_PROJECT_ID = str(essay_project.id)
+
+    page = Page.objects.create(
+        name="Published Essay",
+        workspace=workspace,
+        owned_by=create_user,
+        access=Page.PUBLIC_ACCESS,
+        page_type=Page.PAGE_TYPE_DOC,
+        view_props={
+            ESSAY_ILLUSTRATION_VIEW_PROPS_KEY: {
+                "status": ESSAY_ILLUSTRATION_STATUS_FAILED,
+                "message": "No workspace agent webhook configured",
+            },
+        },
+    )
+    ProjectPage.objects.create(project=essay_project, page=page, workspace=workspace)
+
+    with (
+        patch("plane.bgtasks.essay_illustration_task.dispatch_agent_webhook.delay") as mock_dispatch,
+        patch("plane.bgtasks.essay_illustration_task.decrypt_data", return_value="shared-secret"),
+    ):
+        request_essay_illustration(str(page.id))
+
+    mock_dispatch.assert_called_once()
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_request_essay_illustration_marks_failure_when_webhook_missing(settings, workspace, create_user):
+    essay_project = Project.objects.create(
+        name="Essays",
+        identifier="ESSAY",
+        workspace=workspace,
+    )
+    settings.ESSAY_ILLUSTRATION_PROJECT_ID = str(essay_project.id)
+
+    page = Page.objects.create(
+        name="Published Essay",
+        workspace=workspace,
+        owned_by=create_user,
+        access=Page.PUBLIC_ACCESS,
+        page_type=Page.PAGE_TYPE_DOC,
+    )
+    ProjectPage.objects.create(project=essay_project, page=page, workspace=workspace)
+
+    request_essay_illustration(str(page.id))
+
+    page.refresh_from_db()
+    illustration = page.view_props.get(ESSAY_ILLUSTRATION_VIEW_PROPS_KEY)
+    assert illustration["status"] == ESSAY_ILLUSTRATION_STATUS_FAILED
+    assert "workspace agent webhook" in illustration["message"]
 
 
 @pytest.mark.unit

@@ -76,13 +76,7 @@ def test_public_doc_edit_enqueues_landing_redeploy(settings, workspace, create_u
 
 @pytest.mark.unit
 @pytest.mark.django_db
-def test_private_doc_publish_enqueues_essay_illustration_task(settings, workspace, create_user):
-    WorkspaceAgentWebhook.objects.create(
-        workspace=workspace,
-        url="https://example.com/agent",
-        secret_encrypted="secret",
-        is_enabled=True,
-    )
+def test_private_doc_publish_enqueues_essay_illustration_task_without_webhook(settings, workspace, create_user):
     essay_project = Project.objects.create(
         name="Essays",
         identifier="ESSAY",
@@ -103,7 +97,7 @@ def test_private_doc_publish_enqueues_essay_illustration_task(settings, workspac
         page.access = Page.PUBLIC_ACCESS
         page.save(update_fields=["access"])
 
-    assert mock_delay.call_count == 1
+    mock_delay.assert_called_once_with(str(page.id))
 
 
 @pytest.mark.unit

@@ -22,6 +22,10 @@ ESSAY_ILLUSTRATION_VIEW_PROPS_KEY = "essay_illustration"
 ESSAY_ILLUSTRATION_STATUS_PENDING = "dispatched"
 ESSAY_ILLUSTRATION_STATUS_FAILED = "dispatch_failed"
 ESSAY_ILLUSTRATION_STATUS_READY = "ready"
+ESSAY_ILLUSTRATION_FINAL_OR_IN_FLIGHT_STATUSES = {
+    ESSAY_ILLUSTRATION_STATUS_PENDING,
+    ESSAY_ILLUSTRATION_STATUS_READY,
+}
 ESSAY_ILLUSTRATION_WIDTH = 1536
 ESSAY_ILLUSTRATION_HEIGHT = 1024
 ESSAY_ILLUSTRATION_ASPECT_RATIO = "3:2"
@@ -67,7 +71,8 @@ def _get_essay_illustration_meta(view_props: object | None) -> dict:
 
 def _has_essay_illustration_request(view_props: object | None) -> bool:
     meta = _get_essay_illustration_meta(view_props)
-    return bool(meta)
+    status = (meta.get("status") or "").strip().lower()
+    return status in ESSAY_ILLUSTRATION_FINAL_OR_IN_FLIGHT_STATUSES
 
 
 def _has_ready_illustration(view_props: object | None) -> bool:
