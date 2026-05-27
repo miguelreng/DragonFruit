@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     dotenv.config({ path: path.resolve(__dirname, ".env") });
   }
 
-  const devApiProxyTarget = process.env.VITE_DEV_API_PROXY_TARGET || "https://api.dragonfruit.sh";
+  const devApiProxyTarget = process.env.VITE_DEV_API_PROXY_TARGET || "http://127.0.0.1:8000";
   const devApiProxyOrigin = new URL(devApiProxyTarget).origin;
   const configureDevApiProxy: NonNullable<ProxyOptions["configure"]> = (proxy) => {
     proxy.on("proxyReq", (proxyReq) => proxyReq.setHeader("origin", devApiProxyOrigin));

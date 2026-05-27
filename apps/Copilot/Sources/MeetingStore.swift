@@ -574,6 +574,8 @@ enum SpeechLanguage: String, CaseIterable, Identifiable {
 @MainActor
 final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresentationContextProviding {
     private static let logger = Logger(subsystem: "sh.dragonfruit.copilot", category: "store")
+    private static let productionAPIURL = "https://api.dragonfruit.sh"
+    private static let productionAppURL = "https://app.dragonfruit.sh"
 
     private enum AccessibilityResetResult: Sendable {
         case success
@@ -698,8 +700,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         super.init()
         let defaults = UserDefaults.standard
         let savedBaseURL = defaults.string(forKey: "df_base_url")
-        baseURL = savedBaseURL?.contains("localhost") == true ? "https://api.dragonfruit.sh" : (savedBaseURL ?? "https://api.dragonfruit.sh")
-        appURL = defaults.string(forKey: "df_app_url") ?? "https://app.dragonfruit.sh"
+        let savedAppURL = defaults.string(forKey: "df_app_url")
+        baseURL = savedBaseURL ?? Self.productionAPIURL
+        appURL = savedAppURL ?? Self.inferAppURL(from: baseURL) ?? Self.productionAppURL
         apiToken = defaults.string(forKey: "df_api_token") ?? ""
         copilotTheme = CopilotThemeMode(rawValue: defaults.string(forKey: "df_copilot_theme") ?? "") ?? .light
         let savedCursorBuddyOpacity = defaults.object(forKey: "df_cursor_buddy_opacity") as? Double
@@ -715,6 +718,22 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 await restoreSession()
             }
         }
+    }
+
+    private static func inferAppURL(from apiURL: String) -> String? {
+        guard var components = URLComponents(string: apiURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return nil
+        }
+
+        guard let host = components.host?.lowercased() else { return nil }
+        let isLocalHost = host == "localhost" || host == "127.0.0.1" || host == "::1"
+        guard isLocalHost else { return nil }
+
+        if components.port == 8000 {
+            components.port = 3000
+        }
+
+        return components.url?.absoluteString
     }
 
     var countdownLabel: String {
