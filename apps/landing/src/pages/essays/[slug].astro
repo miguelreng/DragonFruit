@@ -1,5 +1,6 @@
 ---
 import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { formatEssayDate, getEssayDescription, getEssayHeroImage, getEssays, getEssaySlug, type Essay } from "../../lib/essays";
 
@@ -37,14 +38,17 @@ const illustrationAlt =
       <img class="essay-illustration essay-article-illustration" src={illustrationSrc} alt={illustrationAlt} width="1536" height="1024" />
     </div>
 
-    <article class="essay-article essay-article-copy">
-      <header>
-        <p class="meta">DragonFruit essay · {formatEssayDate(essay.created_at)}</p>
-        <h1>{essay.name || "Untitled"}</h1>
-      </header>
+    <div class="essay-article-copy">
+      <article class="essay-article">
+        <header>
+          <p class="meta">DragonFruit essay · {formatEssayDate(essay.created_at)}</p>
+          <h1>{essay.name || "Untitled"}</h1>
+        </header>
 
-      <div class="essay-body" set:html={essay.description_html || "<p></p>"} />
-    </article>
+        <div class="essay-body" set:html={essay.description_html || "<p></p>"} />
+      </article>
+      <SiteFooter />
+    </div>
   </main>
 
   <script is:inline>

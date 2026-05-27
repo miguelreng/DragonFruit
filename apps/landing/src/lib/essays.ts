@@ -77,17 +77,30 @@ const extractFirstAttr = (tag: string, attr: string) => {
 
 export const getEssayHeroImage = (essay: Essay): EssayHeroImage | null => {
   if (essay.view_props && typeof essay.view_props === "object") {
-    const illustration = essay.view_props["essay_illustration"];
+    const viewProps = essay.view_props as Record<string, unknown>;
+    const illustration = viewProps["essay_illustration"];
+    const heroCandidates: string[] = [];
+
     if (illustration && typeof illustration === "object") {
-      const rawSrc =
-        (illustration as { src?: string; image?: string; url?: string }).src ||
-        (illustration as { src?: string; image?: string; url?: string }).image ||
-        (illustration as { src?: string; image?: string; url?: string }).url;
-      if (rawSrc) {
-        const src = resolveHeroImageSrc(essay, rawSrc);
-        if (src) {
-          return { src, alt: essay.name ? `Illustration for ${essay.name}` : null };
-        }
+      const data = illustration as { src?: string; image?: string; url?: string; asset_id?: string };
+      if (data.src) heroCandidates.push(data.src);
+      if (data.image) heroCandidates.push(data.image);
+      if (data.url) heroCandidates.push(data.url);
+      if (data.asset_id) heroCandidates.push(data.asset_id);
+    }
+
+    // Support alternate view_props keys that may hold a cover image in some setups.
+    for (const key of ["cover_image", "cover_image_url", "hero_image", "thumbnail", "image"]) {
+      const value = viewProps[key];
+      if (typeof value === "string" && value.trim()) {
+        heroCandidates.push(value);
+      }
+    }
+
+    for (const rawSrc of heroCandidates) {
+      const src = resolveHeroImageSrc(essay, rawSrc);
+      if (src) {
+        return { src, alt: essay.name ? `Illustration for ${essay.name}` : null };
       }
     }
   }

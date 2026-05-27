@@ -5,104 +5,201 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DragonFruit Google OAuth</title>
     <style>
-      :root {
-        --bg: #f7f6f8;
-        --text: #232331;
-        --muted: #666574;
-        --line: #dedde4;
-        --accent: #b0007a;
+      @font-face {
+        font-family: "Figtree";
+        src: url("/fonts/Figtree-Variable.woff2") format("woff2");
+        font-weight: 300 900;
+        font-style: normal;
+        font-display: swap;
       }
+
+      @font-face {
+        font-family: "Newsreader";
+        src: url("/fonts/Newsreader-Variable.ttf") format("truetype");
+        font-weight: 200 900;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root {
+        --bg: #fff;
+        --text: #111;
+        --content: #3f3f3f;
+        --muted: #575757;
+        --quiet: #8e8e8e;
+        --pink: #aa0276;
+        --line: #dedbd5;
+      }
+
       * {
         box-sizing: border-box;
       }
+
       body {
         margin: 0;
+        min-height: 100%;
         background: var(--bg);
         color: var(--text);
-        font-family:
-          "Figtree",
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
+        font-family: "Newsreader", Georgia, serif;
       }
-      .wrap {
-        max-width: 900px;
+
+      a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .shell {
+        width: min(100%, 920px);
         margin: 0 auto;
-        padding: 24px;
+        padding: clamp(20px, 3.2vw, 34px) clamp(20px, 4vw, 40px) clamp(26px, 3.2vw, 38px);
       }
-      h1 {
-        margin: 6px 0 14px;
-        font-family:
-          "Figtree",
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
-        font-size: 54px;
-        line-height: 1.02;
-        font-weight: 500;
-        letter-spacing: 0;
+
+      .topbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
       }
-      h2 {
-        margin: 24px 0 8px;
-        font-size: 22px;
-        line-height: 1.25;
+
+      .brand {
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 20px;
+        color: var(--text);
+        text-decoration: none;
       }
-      p,
-      li {
-        color: var(--muted);
-        font-size: 16px;
-        line-height: 1.65;
+
+      .top-nav {
+        margin-left: auto;
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
       }
-      .eyebrow {
-        color: var(--accent);
-        font-weight: 700;
-        font-size: 14px;
+
+      .top-nav a {
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.2;
+        color: var(--content);
       }
+
       .hero {
         border-bottom: 1px solid var(--line);
         padding-bottom: 24px;
       }
-      nav {
-        margin-top: 14px;
+
+      .eyebrow {
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.2;
+        font-weight: 500;
+        color: var(--pink);
       }
-      a {
-        color: var(--accent);
-        text-decoration: none;
+
+      h1 {
+        margin: 8px 0 0;
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(28px, 5.5vw, 58px);
+        line-height: 1.03;
+        font-weight: 400;
+        letter-spacing: -0.02em;
       }
-      a:hover {
-        text-decoration: underline;
+
+      h2 {
+        margin: 24px 0 8px;
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.35;
+        color: var(--muted);
+      }
+
+      p,
+      li {
+        color: var(--content);
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      p {
+        margin: 0 0 14px;
+      }
+
+      .lede {
+        margin: 14px 0 0;
+        max-width: 74ch;
+        font-size: 17px;
+        line-height: 1.55;
+      }
+
+      .legal {
+        margin-top: 28px;
+      }
+
+      .legal-row {
+        margin-top: 28px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 11px;
+        line-height: 1.2;
+        color: var(--quiet);
+      }
+
+      .legal-row a {
+        color: inherit;
+        text-underline-offset: 2px;
       }
     </style>
   </head>
   <body>
-    <main class="wrap">
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/">DragonFruit</a>
+        <nav class="top-nav" aria-label="Public links">
+          <a href="/google-oauth">OAuth</a>
+          <a href="/legal/privacy">Privacy</a>
+          <a href="/legal/terms">Terms</a>
+          <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer">Source</a>
+        </nav>
+      </header>
+
       <section class="hero">
         <div class="eyebrow">Google OAuth app</div>
         <h1>DragonFruit connects your calendar to your work.</h1>
-        <p>
+        <p class="lede">
           DragonFruit is a workspace for projects, tasks, docs, meeting notes, stickies, and lightweight agents. The
           Google integration helps users bring upcoming meetings into DragonFruit and turn meeting context into
           organized work.
         </p>
-        <nav>
-          <a href="/legal/privacy">Privacy Policy</a> | <a href="/legal/terms">Terms of Service</a> |
-          <a href="/">Sign in</a>
-        </nav>
       </section>
 
-      <h2>How Google is used</h2>
-      <p>
-        Users may sign in with Google and may optionally connect Google Calendar. Calendar access is used to show
-        upcoming meetings, support meeting reminders, and sync calendar-related work into DragonFruit.
-      </p>
+      <section class="legal">
+        <h2>How Google is used</h2>
+        <p>
+          Users may sign in with Google and may optionally connect Google Calendar. Calendar access is used to show
+          upcoming meetings, support meeting reminders, and sync calendar-related work into DragonFruit.
+        </p>
 
-      <h2>Contact</h2>
-      <p>
-        Questions about DragonFruit or its Google integration can be sent to
-        <a href="mailto:miguelreng@gmail.com">miguelreng@gmail.com</a>.
-      </p>
+        <h2>Contact</h2>
+        <p>
+          Questions about DragonFruit or its Google integration can be sent to
+          <a href="mailto:miguelreng@gmail.com">miguelreng@gmail.com</a>.
+        </p>
+      </section>
+
+      <footer class="legal-row">
+        <a href="/legal/privacy">Privacy Policy</a>
+        <a href="/legal/terms">Terms and Conditions</a>
+        <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer"
+          >Source Code (AGPL-3.0)</a
+        >
+        <span>© 2026 DragonFruit</span>
+      </footer>
     </main>
   </body>
 </html>

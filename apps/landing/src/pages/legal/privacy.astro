@@ -1,0 +1,84 @@
+---
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Privacy Policy | DragonFruit"
+  description="How DragonFruit collects, uses, stores, and protects personal data."
+  canonicalPath="/legal/privacy"
+>
+  <main class="essay-shell legal-page">
+    <header class="home-header legal-header">
+      <SiteHeader />
+      <h1>Privacy Policy</h1>
+    </header>
+
+    <section class="home-section home-intro legal-content">
+      <p>
+        Last updated May 27, 2026. This policy explains how DragonFruit collects, uses, stores, shares, and protects
+        personal data, including data accessed through Google Sign-In and Google Calendar.
+      </p>
+
+      <h2>Overview</h2>
+      <p>
+        DragonFruit is a workspace for projects, tasks, docs, meeting notes, stickies, and agent-assisted work. This
+        policy applies to DragonFruit&apos;s web app, API, and companion experiences.
+      </p>
+
+      <h2>Information We Collect</h2>
+      <ul>
+        <li>Account information such as name, email address, profile image, and authentication data.</li>
+        <li>Workspace content such as projects, tasks, docs, comments, settings, and agent activity.</li>
+        <li>Technical information such as device, browser, IP address, logs, and diagnostic events.</li>
+        <li>Voice note content when you choose to record or dictate notes.</li>
+      </ul>
+
+      <h2>Google User Data</h2>
+      <p>
+        If you sign in with Google, DragonFruit may access your Google account identifier, email, name, and profile
+        image for authentication. If you connect Google Calendar, DragonFruit may access event metadata needed to show
+        meetings and organize related work.
+      </p>
+
+      <h2>Google API Services Limited Use</h2>
+      <p>
+        DragonFruit&apos;s use and transfer of information received from Google APIs follows the Google API Services User
+        Data Policy, including Limited Use requirements. DragonFruit does not sell Google user data, does not use it
+        for advertising, and does not use it to train general-purpose AI models.
+      </p>
+
+      <h2>BYOK and AI Providers</h2>
+      <p>
+        If you connect third-party AI providers using BYOK, DragonFruit may process prompts, outputs, and related
+        metadata to provide the feature. Provider-side processing is governed by each provider&apos;s terms and privacy
+        policies.
+      </p>
+
+      <h2>Sharing, Security, and Retention</h2>
+      <p>
+        DragonFruit shares data only as needed to provide the service, maintain security, prevent abuse, and comply
+        with law. We apply reasonable safeguards for data in transit and at rest, and retain data while your account is
+        active or as needed to provide the service.
+      </p>
+
+      <h2>Open-source License</h2>
+      <p>
+        DragonFruit includes software licensed under AGPL-3.0. Source code for the running version is available at
+        <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer">
+          github.com/miguelreng/DragonFruit
+        </a>
+        .
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        For privacy questions or deletion requests, contact
+        <a href="mailto:miguelreng@gmail.com">miguelreng@gmail.com</a>.
+      </p>
+    </section>
+
+    <SiteFooter />
+  </main>
+</BaseLayout>

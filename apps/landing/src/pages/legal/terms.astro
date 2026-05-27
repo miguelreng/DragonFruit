@@ -1,0 +1,78 @@
+---
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Terms and Conditions | DragonFruit"
+  description="Terms for using DragonFruit and its connected services."
+  canonicalPath="/legal/terms"
+>
+  <main class="essay-shell legal-page">
+    <header class="home-header legal-header">
+      <SiteHeader />
+      <h1>Terms and Conditions</h1>
+    </header>
+
+    <section class="home-section home-intro legal-content">
+      <p>Last updated May 27, 2026. These terms describe the basic rules for using DragonFruit and related services.</p>
+
+      <h2>Using DragonFruit</h2>
+      <p>
+        DragonFruit provides tools for organizing projects, tasks, docs, meeting notes, stickies, calendar context, and
+        agent-assisted work. You are responsible for the content you add and for lawful use of the service.
+      </p>
+
+      <h2>Accounts and Access</h2>
+      <p>
+        You must keep your credentials secure. If you use Google Sign-In or connect Google Calendar, you authorize
+        DragonFruit to access the data described in the Privacy Policy for enabled features.
+      </p>
+
+      <h2>Acceptable Use</h2>
+      <p>
+        You may not use DragonFruit to break the law, abuse the service, attempt unauthorized access, interfere with
+        other users, or upload content you do not have the right to use.
+      </p>
+
+      <h2>Third-party Services</h2>
+      <p>DragonFruit may integrate with third-party services such as Google. Those services are governed by their own terms.</p>
+
+      <h2>Copilot and BYOK</h2>
+      <p>
+        DragonFruit may provide AI and Copilot features. Where BYOK is enabled, you are responsible for the provider
+        accounts and API keys you connect, including compliance, billing, and usage limits.
+      </p>
+
+      <h2>Paid Features</h2>
+      <p>
+        Some features may require payment. Pricing, billing intervals, and feature limits may change over time.
+        Continued use of paid features after pricing updates means you accept those updates.
+      </p>
+
+      <h2>Service Changes and Disclaimers</h2>
+      <p>
+        DragonFruit may change, suspend, or discontinue parts of the service. The service is provided as-is and as
+        available, to the fullest extent permitted by law.
+      </p>
+
+      <h2>Open-source License</h2>
+      <p>
+        DragonFruit includes software licensed under AGPL-3.0. Source code for the running version is available at
+        <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer">
+          github.com/miguelreng/DragonFruit
+        </a>
+        .
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about these terms can be sent to
+        <a href="mailto:miguelreng@gmail.com">miguelreng@gmail.com</a>.
+      </p>
+    </section>
+
+    <SiteFooter />
+  </main>
+</BaseLayout>
