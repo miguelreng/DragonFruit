@@ -87,11 +87,11 @@ class LLMRunResult:
 
 
 class LLMProvider:
-    """BYOK adapter for a single agent's model + credentials.
+    """BYOK adapter for Atlas model + credentials.
 
-    Construct via `LLMProvider.from_agent(agent)` so the encrypted key
-    is decrypted in one well-known place. Direct construction is also
-    fine for tests and for non-agent code paths.
+    Construct via `LLMProvider.from_agent(agent)` so legacy per-agent
+    overrides and the workspace Settings → AI config resolve in one
+    well-known place. Direct construction is also fine for tests.
     """
 
     def __init__(
@@ -118,34 +118,41 @@ class LLMProvider:
 
     @classmethod
     def from_agent(cls, agent) -> "LLMProvider":
-        """Build a provider from an `Agent` row, decrypting the key.
+        """Build a provider for Atlas, decrypting the configured BYOK key.
 
-        Raises `LLMConfigError` if the agent has no provider_model or no
-        api_key_encrypted set. Callers (dispatch task) should catch this
-        and mark the AgentRun as failed with a helpful message.
+        Prefer the workspace-level Settings → AI configuration. Legacy rows
+        may still carry per-agent model/key overrides; use those only as a
+        fallback so older workspaces keep working until Settings → AI is set.
         """
         from plane.license.utils.encryption import decrypt_data
 
-        if not agent.provider_model:
-            raise LLMConfigError(
-                f"agent '{agent.name}' has no provider_model configured; set one in Workspace Settings → Agents"
-            )
-        if not agent.api_key_encrypted:
-            raise LLMConfigError(
-                f"agent '{agent.name}' has no API key configured; add a BYOK key in Workspace Settings → Agents"
+        from plane.app.views.external.base import get_llm_config
+
+        api_key, model, provider = get_llm_config(workspace=agent.workspace)
+        if api_key and model:
+            provider_key = (provider or "").strip().lower()
+            model_slug = model.strip()
+            if provider_key and "/" not in model_slug:
+                model_slug = f"{provider_key}/{model_slug}"
+
+            return cls(
+                model=model_slug,
+                api_key=api_key,
+                api_base_url=None,
             )
 
-        plaintext_key = decrypt_data(agent.api_key_encrypted) or ""
-        if not plaintext_key:
-            raise LLMConfigError(
-                f"agent '{agent.name}' has an encrypted key on file that decrypts to empty; rotate the key"
+        if agent.provider_model and agent.api_key_encrypted:
+            plaintext_key = decrypt_data(agent.api_key_encrypted) or ""
+            if not plaintext_key:
+                raise LLMConfigError("Atlas has an encrypted key on file that decrypts to empty; rotate the key")
+
+            return cls(
+                model=agent.provider_model.strip(),
+                api_key=plaintext_key,
+                api_base_url=(agent.api_base_url or "").strip() or None,
             )
 
-        return cls(
-            model=agent.provider_model.strip(),
-            api_key=plaintext_key,
-            api_base_url=(agent.api_base_url or "").strip() or None,
-        )
+        raise LLMConfigError("Atlas needs an LLM provider, model, and API key in Settings → AI.")
 
     def _litellm_model(self) -> str:
         provider, separator, model = self.model.partition("/")

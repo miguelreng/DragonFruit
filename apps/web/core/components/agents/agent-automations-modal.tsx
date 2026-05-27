@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import type { IIssueLabel } from "@plane/types";
 import { Button } from "@plane/propel/button";
@@ -20,7 +20,7 @@ import {
 } from "@/services/agent.service";
 import { IssueLabelService } from "@/services/issue/issue_label.service";
 import { ProjectService } from "@/services/project/project.service";
-import { ArrowRight } from "@/components/icons/lucide-shim";
+import { ArrowRight } from "@plane/icons";
 
 type Props = {
   workspaceSlug: string;
@@ -82,7 +82,12 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
     // oxlint-disable-next-line no-array-sort
     return [...agents].sort((a: TAgent, b: TAgent) => a.name.localeCompare(b.name));
   }, [agents]);
+  const companionAgentId = agents[0]?.id ?? "";
   const selectedAgent = sortedAgents.find((a) => a.id === selectedAgentId);
+  const visibleAutomations = useMemo(
+    () => (automations ?? []).filter((automation) => !companionAgentId || automation.agent === companionAgentId),
+    [automations, companionAgentId]
+  );
   const sortedProjects = useMemo(() => {
     // oxlint-disable-next-line no-array-sort
     return [...(projects ?? [])].sort((a: TPartialProject, b: TPartialProject) => a.name.localeCompare(b.name));
@@ -100,6 +105,12 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
         .filter(Boolean),
     [issueTypeIdsInput]
   );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const atlasId = agents[0]?.id ?? "";
+    setSelectedAgentId((current) => (current && agents.some((agent) => agent.id === current) ? current : atlasId));
+  }, [agents, isOpen]);
 
   const buildConditions = (): TAgentAutomationConditions => {
     const conditions: TAgentAutomationConditions = {};
@@ -137,7 +148,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
     if (!workspaceSlug || !selectedAgentId) return;
     setIsSubmitting(true);
     try {
-      const name = automationName.trim() || `Triage new task with ${selectedAgent?.name ?? "agent"}`;
+      const name = automationName.trim() || `Triage new task with ${selectedAgent?.name ?? "Atlas"}`;
       if (editingAutomationId) {
         await agentService.updateAutomation(workspaceSlug, editingAutomationId, {
           name,
@@ -215,8 +226,8 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
       <div className="bg-custom-background-100 flex h-[78vh] min-h-[620px] flex-col overflow-hidden rounded-lg">
         <div className="border-custom-border-200 flex items-center justify-between border-b px-5 py-4">
           <div>
-            <h3 className="text-lg text-custom-text-100 font-semibold">Automations</h3>
-            <p className="text-sm text-custom-text-300">Build ClickUp-style agent workflows from inside DragonFruit.</p>
+            <h3 className="text-lg text-custom-text-100 font-semibold">Atlas automations</h3>
+            <p className="text-sm text-custom-text-300">Let Atlas react to workspace events from inside DragonFruit.</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -260,13 +271,13 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                 </div>
                 <div className="border-custom-border-200 bg-custom-background-100 rounded-lg border px-4 py-3">
                   <p className="text-xs text-custom-text-300 font-semibold tracking-wide uppercase">Action</p>
-                  <p className="text-base text-custom-text-100 mt-1 font-semibold">Assign to agent</p>
+                  <p className="text-base text-custom-text-100 mt-1 font-semibold">Ask Atlas</p>
                   <p className="text-sm text-custom-text-300 mt-1">Auto-triage and post next steps.</p>
                 </div>
               </div>
               <h4 className="text-sm text-custom-text-100 font-semibold">Suggested</h4>
               <p className="text-sm text-custom-text-300 mt-1">
-                Triage every newly created task with an agent and post first next steps automatically.
+                Triage every newly created task with Atlas and post first next steps automatically.
               </p>
               <div className="mt-3 grid gap-1">
                 <label htmlFor="agent-automation-name" className="text-xs text-custom-text-300 font-medium uppercase">
@@ -276,25 +287,17 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                   id="agent-automation-name"
                   value={automationName}
                   onChange={(e) => setAutomationName(e.target.value)}
-                  placeholder="Triage new task with agent"
+                  placeholder="Triage new task with Atlas"
                   className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2"
                 />
               </div>
               <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-                <label className="flex min-w-[260px] flex-1 flex-col gap-1">
-                  <span className="text-xs text-custom-text-300 font-medium uppercase">Agent</span>
-                  <select
-                    value={selectedAgentId}
-                    onChange={(e) => setSelectedAgentId(e.target.value)}
-                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2"
-                  >
-                    {sortedAgents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
-                        {agent.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="flex min-w-[260px] flex-1 flex-col gap-1">
+                  <span className="text-xs text-custom-text-300 font-medium uppercase">Companion</span>
+                  <div className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2">
+                    {selectedAgent?.name ?? "Atlas"}
+                  </div>
+                </div>
                 <div className="ml-auto flex items-center gap-2">
                   {editingAutomationId && (
                     <Button variant="secondary" size="base" onClick={resetBuilder}>
@@ -387,7 +390,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
           <div className="flex-1 overflow-auto px-5 py-4">
             {isLoading ? (
               <p className="text-sm text-custom-text-300">Loading automations…</p>
-            ) : !automations || automations.length === 0 ? (
+            ) : visibleAutomations.length === 0 ? (
               <div className="border-custom-border-300 rounded-lg border border-dashed p-8 text-center">
                 <p className="text-base text-custom-text-200 font-medium">No automations yet</p>
                 <p className="text-sm text-custom-text-300 mt-1">Create one from the Browse tab.</p>
@@ -406,7 +409,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                     </tr>
                   </thead>
                   <tbody>
-                    {automations.map((automation) => (
+                    {visibleAutomations.map((automation) => (
                       <tr key={automation.id} className="border-custom-border-200 border-t">
                         <td className="text-custom-text-100 px-3 py-2">{automation.name}</td>
                         <td className="text-custom-text-200 px-3 py-2">{automation.trigger_event}</td>

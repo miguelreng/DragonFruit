@@ -12,7 +12,6 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { CustomSelect, EModalPosition, EModalWidth, Input, ModalCore, TextArea } from "@plane/ui";
 // services
 import type { TAgent, TAgentCreatePayload, TAgentUpdatePayload } from "@/services/agent.service";
-import { AIService, type TWorkspaceLLMProvider } from "@/services/ai.service";
 // local
 import { AgentAvatar } from "./agent-avatar";
 
@@ -23,88 +22,35 @@ import { AgentAvatar } from "./agent-avatar";
 const buildGeneratedAvatarUrl = (seed: string) =>
   `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}`;
 
-const PROVIDER_OPTIONS = [
-  {
-    value: "anthropic",
-    label: "Anthropic",
-    models: ["claude-sonnet-4-5", "claude-3-7-sonnet", "claude-3-5-haiku"],
-    defaultBaseUrl: "",
-  },
-  {
-    value: "openai",
-    label: "OpenAI",
-    models: ["gpt-4.1", "gpt-4o", "gpt-4o-mini"],
-    defaultBaseUrl: "",
-  },
-  {
-    value: "google",
-    label: "Google",
-    models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
-    defaultBaseUrl: "",
-  },
-  {
-    value: "openrouter",
-    label: "OpenRouter",
-    models: ["anthropic/claude-3.7-sonnet", "openai/gpt-4o", "google/gemini-2.0-flash-001"],
-    defaultBaseUrl: "https://openrouter.ai/api/v1",
-  },
-  {
-    value: "hermes",
-    label: "Hermes",
-    models: ["hermes", "hermes-3", "hermes-2-pro"],
-    defaultBaseUrl: "",
-  },
-  {
-    value: "openclaw",
-    label: "OpenClaw",
-    models: ["openclaw", "openclaw-coder", "openclaw-reasoner"],
-    defaultBaseUrl: "",
-  },
-] as const;
-
-const PROVIDER_DEFAULT_BASE_URL: Record<string, string> = {
-  openrouter: "https://openrouter.ai/api/v1",
-};
-
 const AGENT_TEMPLATES = [
   {
-    key: "pm",
-    name: "PM Assistant",
-    description: "Triages incoming tasks and asks clarifying questions.",
+    key: "workspace",
+    name: "Workspace companion",
+    description: "Helps across docs, tasks, and team context.",
     prompt:
-      "You are a project-management assistant for this workspace. Triage incoming issues and ask clarifying questions when scope is unclear.",
+      "You are Atlas, a helpful workspace companion for DragonFruit. Use clear reasoning, ask focused questions when context is missing, and help the team move work forward.",
   },
   {
-    key: "support",
-    name: "Support Agent",
-    description: "Drafts customer replies and escalates urgent bugs.",
+    key: "writing",
+    name: "Writing companion",
+    description: "Plans, drafts, rewrites, and sharpens documents.",
     prompt:
-      "You are a customer support assistant. Draft clear, friendly replies, summarize issue impact, and flag urgent incidents for escalation.",
+      "You are Atlas, a writing companion for this workspace. Help people plan documents, improve drafts, summarize context, and keep suggestions concise and useful.",
   },
   {
-    key: "qa",
-    name: "QA Reviewer",
-    description: "Finds gaps, edge-cases, and verification steps.",
-    prompt: "You are a QA reviewer. Propose concise test plans, edge cases, and pass/fail criteria before release.",
+    key: "delivery",
+    name: "Delivery companion",
+    description: "Turns tasks into plans, next actions, and checks.",
+    prompt:
+      "You are Atlas, a delivery companion for this workspace. Help triage tasks, propose practical plans, identify risks, and suggest verification steps.",
   },
 ] as const;
-
-const splitProviderModel = (providerModel: string) => {
-  const [provider, ...rest] = providerModel.split("/");
-  return {
-    provider: provider ?? "",
-    model: rest.join("/"),
-  };
-};
 
 type AgentFormState = {
   name: string;
   description: string;
   avatar_url: string;
   system_prompt: string;
-  provider_model: string;
-  api_base_url: string;
-  api_key: string;
 };
 
 const EMPTY_FORM: AgentFormState = {
@@ -112,9 +58,6 @@ const EMPTY_FORM: AgentFormState = {
   description: "",
   avatar_url: "",
   system_prompt: "",
-  provider_model: "",
-  api_base_url: "",
-  api_key: "",
 };
 
 const formFromAgent = (agent: TAgent): AgentFormState => ({
@@ -122,9 +65,6 @@ const formFromAgent = (agent: TAgent): AgentFormState => ({
   description: agent.description ?? "",
   avatar_url: agent.avatar_url ?? "",
   system_prompt: agent.system_prompt ?? "",
-  provider_model: agent.provider_model ?? "",
-  api_base_url: agent.api_base_url ?? "",
-  api_key: "",
 });
 
 type CommonProps = {
@@ -146,49 +86,13 @@ type EditProps = CommonProps & {
 };
 
 type IAgentFormModalProps = CreateProps | EditProps;
-const aiService = new AIService();
-
-type TProviderOption = {
-  value: string;
-  label: string;
-  models: string[];
-  defaultBaseUrl: string;
-};
-
-const mergeProviderOptions = (providers: TProviderOption[]) => {
-  const optionsByValue = new Map<string, TProviderOption>();
-  for (const provider of PROVIDER_OPTIONS) {
-    optionsByValue.set(provider.value, {
-      value: provider.value,
-      label: provider.label,
-      models: [...provider.models],
-      defaultBaseUrl: provider.defaultBaseUrl,
-    });
-  }
-  for (const provider of providers) {
-    const fallback = optionsByValue.get(provider.value);
-    optionsByValue.set(provider.value, {
-      ...provider,
-      defaultBaseUrl: provider.defaultBaseUrl || fallback?.defaultBaseUrl || "",
-    });
-  }
-  return [...optionsByValue.values()];
-};
 
 export function AgentFormModal(props: IAgentFormModalProps) {
-  const { isOpen, onClose, mode, workspaceSlug } = props;
+  const { isOpen, onClose, mode } = props;
   const { t } = useTranslation();
   const initialForm = mode === "edit" ? formFromAgent(props.agent) : EMPTY_FORM;
   const [form, setForm] = useState<AgentFormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
-  const [providerOptions, setProviderOptions] = useState<TProviderOption[]>(
-    PROVIDER_OPTIONS.map((provider) => ({
-      value: provider.value,
-      label: provider.label,
-      models: [...provider.models],
-      defaultBaseUrl: provider.defaultBaseUrl,
-    }))
-  );
 
   // Re-seed when the modal opens or the target agent changes (edit mode
   // reuses a single modal instance for every row).
@@ -197,31 +101,6 @@ export function AgentFormModal(props: IAgentFormModalProps) {
     setForm(mode === "edit" ? formFromAgent(props.agent) : EMPTY_FORM);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, mode, mode === "edit" ? props.agent.id : null]);
-
-  useEffect(() => {
-    if (!isOpen || !workspaceSlug) return;
-    let cancelled = false;
-    const loadProviders = async () => {
-      try {
-        const config = await aiService.getWorkspaceLLMConfig(workspaceSlug);
-        if (cancelled) return;
-        const providers = config.providers ?? {};
-        const options = Object.entries(providers).map(([value, provider]: [string, TWorkspaceLLMProvider]) => ({
-          value,
-          label: provider.name || value,
-          models: provider.models || [],
-          defaultBaseUrl: PROVIDER_DEFAULT_BASE_URL[value] ?? "",
-        }));
-        if (options.length > 0) setProviderOptions(mergeProviderOptions(options));
-      } catch {
-        // Keep local defaults on fetch failures.
-      }
-    };
-    void loadProviders();
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, workspaceSlug]);
 
   const handleClose = () => {
     if (submitting) return;
@@ -245,37 +124,29 @@ export function AgentFormModal(props: IAgentFormModalProps) {
           description: form.description.trim() || undefined,
           avatar_url: form.avatar_url.trim() || undefined,
           system_prompt: form.system_prompt.trim() || undefined,
-          provider_model: form.provider_model.trim() || undefined,
-          api_base_url: form.api_base_url.trim() || undefined,
-          api_key: form.api_key.trim() || undefined,
         });
-        setToast({ type: TOAST_TYPE.SUCCESS, title: `Agent “${name}” created` });
+        setToast({ type: TOAST_TYPE.SUCCESS, title: "Atlas initialized" });
       } else {
         // Edit mode: send every visible field so clearing one persists.
-        // api_key is the exception — empty means "leave existing key".
         const payload: TAgentUpdatePayload = {
           name,
           description: form.description.trim(),
           avatar_url: form.avatar_url.trim(),
           system_prompt: form.system_prompt.trim(),
-          provider_model: form.provider_model.trim(),
-          api_base_url: form.api_base_url.trim(),
         };
-        const keyInput = form.api_key.trim();
-        if (keyInput) payload.api_key = keyInput;
         await props.onSubmit(props.agent.id, payload);
-        setToast({ type: TOAST_TYPE.SUCCESS, title: `Agent “${name}” updated` });
+        setToast({ type: TOAST_TYPE.SUCCESS, title: "Atlas updated" });
       }
       onClose();
     } catch (err) {
       const message =
         (err as { error?: string } | undefined)?.error ??
         (mode === "create"
-          ? "Failed to create the agent. Check the API server logs."
-          : "Failed to update the agent. Check the API server logs.");
+          ? "Failed to initialize Atlas. Check the API server logs."
+          : "Failed to update Atlas. Check the API server logs.");
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: mode === "create" ? "Could not create agent" : "Could not update agent",
+        title: mode === "create" ? "Could not initialize Atlas" : "Could not update Atlas",
         message,
       });
     } finally {
@@ -286,20 +157,17 @@ export function AgentFormModal(props: IAgentFormModalProps) {
   const labelClass = "block text-13 font-medium text-secondary mb-1";
 
   const isEdit = mode === "edit";
-  const heading = isEdit ? "Configure agent" : "Create an agent";
+  const heading = isEdit ? "Configure Atlas" : "Initialize Atlas";
   const subheading = isEdit
-    ? "Update this agent’s profile and BYOK provider config. Leave the API key blank to keep the one already on file."
-    : "Agents are bot members of this workspace. Assign them to a task and they’ll participate like a teammate.";
-  const submitLabel = isEdit ? (submitting ? "Saving…" : "Save changes") : submitting ? "Creating…" : "Create agent";
-  const apiKeyHelper =
-    isEdit && props.agent.has_api_key
-      ? "A key is on file. Leave blank to keep it, or paste a new one to replace it."
-      : "Stored encrypted, never echoed back.";
-  const parsedProviderModel = splitProviderModel(form.provider_model);
-  const selectedProvider = providerOptions.find((p) => p.value === parsedProviderModel.provider);
-  const selectedProviderLabel = selectedProvider?.label ?? "Custom";
-  const selectedModelLabel = parsedProviderModel.model || "Select model";
-
+    ? "Update the workspace companion's behavior and profile. Model and API key live in Settings -> AI."
+    : "Atlas is the single workspace companion for docs, chat, tasks, and automations.";
+  const submitLabel = isEdit
+    ? submitting
+      ? "Saving…"
+      : "Save Atlas"
+    : submitting
+      ? "Initializing…"
+      : "Initialize Atlas";
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
       <form onSubmit={handleSubmit} className="flex flex-col">
@@ -319,7 +187,8 @@ export function AgentFormModal(props: IAgentFormModalProps) {
               value={form.name}
               maxLength={128}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="PM bot"
+              placeholder="Atlas"
+              disabled={isEdit}
               required
             />
           </div>
@@ -333,7 +202,7 @@ export function AgentFormModal(props: IAgentFormModalProps) {
               className="w-full"
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="Triages incoming tasks and asks clarifying questions"
+              placeholder="The workspace companion for docs, chat, tasks, and automations"
             />
           </div>
 
@@ -361,7 +230,7 @@ export function AgentFormModal(props: IAgentFormModalProps) {
                 />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-11 text-tertiary">
-                    Paste an image URL, or generate a unique bot avatar from this agent’s name.
+                    Paste an image URL, or generate a unique companion avatar from Atlas.
                   </p>
                   <button
                     type="button"
@@ -415,112 +284,16 @@ export function AgentFormModal(props: IAgentFormModalProps) {
               className="min-h-24 w-full resize-y text-13"
               value={form.system_prompt}
               onChange={(e) => setForm((f) => ({ ...f, system_prompt: e.target.value }))}
-              placeholder="You are a project-management assistant for this workspace. Triage incoming issues and ask clarifying questions when scope is unclear."
+              placeholder="You are Atlas, a helpful workspace companion for DragonFruit."
             />
           </div>
 
-          <div className="border-t-[0.5px] border-subtle pt-4">
-            <div className="mb-3 space-y-0.5">
-              <p className="text-13 font-medium text-secondary">BYOK provider config</p>
-              <p className="text-11 text-tertiary">
-                Every agent uses your own LLM key. We don’t store a platform default.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div>
-                <label className={labelClass} htmlFor="agent-provider">
-                  Provider
-                </label>
-                <CustomSelect
-                  value={parsedProviderModel.provider}
-                  onChange={(provider: string) => {
-                    const option = providerOptions.find((item) => item.value === provider);
-                    if (!option) {
-                      setForm((f) => ({ ...f, provider_model: "" }));
-                      return;
-                    }
-                    const nextModel = option.models[0];
-                    setForm((f) => ({
-                      ...f,
-                      provider_model: `${provider}/${nextModel}`,
-                      api_base_url: f.api_base_url || option.defaultBaseUrl,
-                    }));
-                  }}
-                  label={selectedProviderLabel}
-                  input
-                  buttonClassName="w-full border-subtle bg-layer-1 px-3 py-2 text-13 text-secondary"
-                >
-                  {providerOptions.map((provider) => (
-                    <CustomSelect.Option key={provider.value} value={provider.value}>
-                      <span className="text-13 text-primary">{provider.label}</span>
-                    </CustomSelect.Option>
-                  ))}
-                </CustomSelect>
-              </div>
-              <div>
-                <label className={labelClass} htmlFor="agent-model">
-                  Model
-                </label>
-                <CustomSelect
-                  value={parsedProviderModel.model}
-                  onChange={(model: string) => {
-                    const provider = parsedProviderModel.provider || providerOptions[0]?.value || "";
-                    setForm((f) => ({ ...f, provider_model: `${provider}/${model}` }));
-                  }}
-                  label={selectedModelLabel}
-                  input
-                  buttonClassName="w-full border-subtle bg-layer-1 px-3 py-2 text-13 text-secondary"
-                >
-                  {(selectedProvider?.models ?? []).map((model) => (
-                    <CustomSelect.Option key={model} value={model}>
-                      <span className="text-13 text-primary">{model}</span>
-                    </CustomSelect.Option>
-                  ))}
-                </CustomSelect>
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div>
-                <label className={labelClass} htmlFor="agent-provider-model">
-                  Provider/model slug
-                </label>
-                <Input
-                  id="agent-provider-model"
-                  className="w-full"
-                  value={form.provider_model}
-                  onChange={(e) => setForm((f) => ({ ...f, provider_model: e.target.value }))}
-                  placeholder="anthropic/claude-sonnet-4-5"
-                />
-              </div>
-              <div>
-                <label className={labelClass} htmlFor="agent-base-url">
-                  API base URL
-                </label>
-                <Input
-                  id="agent-base-url"
-                  type="url"
-                  className="w-full"
-                  value={form.api_base_url}
-                  onChange={(e) => setForm((f) => ({ ...f, api_base_url: e.target.value }))}
-                  placeholder="https://api.openrouter.ai/v1 (optional)"
-                />
-              </div>
-            </div>
-            <div className="mt-3">
-              <label className={labelClass} htmlFor="agent-api-key">
-                API key
-              </label>
-              <Input
-                id="agent-api-key"
-                type="password"
-                autoComplete="new-password"
-                className="w-full"
-                value={form.api_key}
-                onChange={(e) => setForm((f) => ({ ...f, api_key: e.target.value }))}
-                placeholder={isEdit && props.agent.has_api_key ? "•••••••• (key on file)" : "sk-…"}
-              />
-              <p className="mt-1 text-11 text-tertiary">{apiKeyHelper}</p>
-            </div>
+          <div className="rounded-md border border-subtle bg-layer-2 px-3 py-2.5">
+            <p className="text-13 font-medium text-secondary">Model and API key</p>
+            <p className="mt-0.5 text-11 text-tertiary">
+              Atlas uses the workspace provider configured in Settings -&gt; AI, so collaborators have one clear place
+              to manage BYOK.
+            </p>
           </div>
         </div>
 
