@@ -1,5 +1,6 @@
 ---
 import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import {
   formatEssayDate,
@@ -27,6 +28,7 @@ const essaysSourceError = getEssaysSourceError();
 
       <section class="essay-index-title" aria-labelledby="essays-title">
         <h1 id="essays-title">Essays for the new generalists.</h1>
+        <p>Notes, reflections, and field reports on building across disciplines with clarity and momentum.</p>
       </section>
 
       {
@@ -84,6 +86,10 @@ const essaysSourceError = getEssaysSourceError();
         width="1536"
         height="1024"
       />
+    </div>
+
+    <div class="essay-index-footer">
+      <SiteFooter />
     </div>
   </main>
 </BaseLayout>

@@ -9,7 +9,7 @@ import { LegalShell } from "../../legal-shell";
 export default function TermsPage() {
   return (
     <LegalShell
-      eyebrow="Last updated May 23, 2026"
+      eyebrow="Last updated May 27, 2026"
       title="Terms of Service"
       description="These terms describe the basic rules for using DragonFruit and its connected services."
     >
@@ -44,6 +44,19 @@ export default function TermsPage() {
         by their terms and policies.
       </p>
 
+      <h2>Copilot and BYOK</h2>
+      <p>
+        DragonFruit may provide AI and Copilot features. Where bring-your-own-key (BYOK) is enabled, you are responsible
+        for the API keys and provider accounts you connect, including compliance with provider terms, usage limits, and
+        billing.
+      </p>
+
+      <h2>Paid features</h2>
+      <p>
+        Some DragonFruit features may require a paid plan. Pricing, billing intervals, and feature limits may change as
+        the product evolves. Continued use of paid features after a pricing update means you accept the updated pricing.
+      </p>
+
       <h2>Service changes</h2>
       <p>
         DragonFruit may change, suspend, or discontinue parts of the service as the product evolves. We will try to make
@@ -54,6 +67,15 @@ export default function TermsPage() {
       <p>
         DragonFruit is provided as-is and as available. To the fullest extent permitted by law, DragonFruit disclaims
         warranties of merchantability, fitness for a particular purpose, and non-infringement.
+      </p>
+
+      <h2>Open-source license</h2>
+      <p>
+        DragonFruit includes software licensed under AGPL-3.0. Source code for the running version is available at{" "}
+        <a href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noopener noreferrer">
+          github.com/miguelreng/DragonFruit
+        </a>
+        .
       </p>
 
       <h2>Contact</h2>

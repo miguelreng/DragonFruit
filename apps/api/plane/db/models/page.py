@@ -8,6 +8,7 @@ import logging
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
+from django.utils.text import slugify
 
 # Django imports
 from django.db import models, transaction
@@ -122,8 +123,12 @@ def _is_public_doc_page(page: "Page") -> bool:
     )
 
 
+def _get_configured_essays_project_id() -> str:
+    return (getattr(settings, "ESSAY_ILLUSTRATION_PROJECT_ID", "") or "").strip()
+
+
 def _is_in_essays_project(page: "Page") -> bool:
-    configured_project_id = (getattr(settings, "ESSAY_ILLUSTRATION_PROJECT_ID", "") or "").strip()
+    configured_project_id = _get_configured_essays_project_id()
     if not configured_project_id:
         return False
 
@@ -138,6 +143,54 @@ def _is_in_essays_project(page: "Page") -> bool:
     except Exception:  # noqa: BLE001
         logger.exception("failed to check essay project for page_id=%s", page.id)
         return False
+
+
+def _get_public_slug(view_props: object | None) -> str:
+    if not isinstance(view_props, dict):
+        return ""
+    return str(view_props.get("public_slug") or "").strip()
+
+
+def _build_unique_public_slug(*, page: "Page", base_slug: str) -> str:
+    candidate = base_slug
+    suffix = 2
+    while (
+        Page.objects.filter(
+            workspace_id=page.workspace_id,
+            access=Page.PUBLIC_ACCESS,
+            archived_at__isnull=True,
+            view_props__public_slug=candidate,
+        )
+        .exclude(pk=page.pk)
+        .exists()
+    ):
+        candidate = f"{base_slug}-{suffix}"
+        suffix += 1
+    return candidate
+
+
+def ensure_page_public_slug(page: "Page") -> str | None:
+    if not page or not page.pk:
+        return None
+
+    if not _is_public_doc_page(page):
+        return None
+
+    if not _is_in_essays_project(page):
+        return None
+
+    existing_slug = _get_public_slug(page.view_props)
+    if existing_slug:
+        return existing_slug
+
+    view_props = dict(page.view_props) if isinstance(page.view_props, dict) else {}
+    base_slug = slugify(page.name or "") or f"essay-{str(page.id).split('-')[0]}"
+    unique_slug = _build_unique_public_slug(page=page, base_slug=base_slug)
+    view_props["public_slug"] = unique_slug
+
+    Page.objects.filter(pk=page.pk).update(view_props=view_props)
+    page.view_props = view_props
+    return unique_slug
 
 
 @receiver(pre_save, sender="db.Page")
@@ -191,6 +244,18 @@ def _capture_page_public_doc_state_before_save_for_essay_illustration(sender, in
             instance.pk,
         )
         instance._was_public_doc_page_for_essay_illustration = False
+
+
+@receiver(post_save, sender="db.Page")
+def _ensure_essay_public_slug_for_public_pages(sender, instance, created, **kwargs):
+    update_fields = kwargs.get("update_fields")
+    if not created and update_fields is not None and set(update_fields).isdisjoint(ESSAY_ILLUSTRATION_TRIGGER_FIELDS):
+        return
+
+    try:
+        ensure_page_public_slug(instance)
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to ensure public slug for page_id=%s", instance.id)
 
 
 @receiver(post_save, sender="db.Page")
@@ -263,6 +328,25 @@ def _trigger_essay_illustration_for_first_publish(sender, instance, created, **k
             logger.exception("failed to enqueue essay illustration task for page_id=%s", instance.id)
 
     transaction.on_commit(_enqueue)
+
+
+@receiver(post_save, sender="db.ProjectPage")
+def _ensure_essay_public_slug_on_project_link(sender, instance, created, **kwargs):
+    if not created or instance.deleted_at is not None:
+        return
+
+    configured_project_id = _get_configured_essays_project_id()
+    if not configured_project_id or str(instance.project_id) != configured_project_id:
+        return
+
+    page = Page.objects.filter(pk=instance.page_id).first()
+    if not page:
+        return
+
+    try:
+        ensure_page_public_slug(page)
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to ensure public slug on project link for page_id=%s", instance.page_id)
 
 
 class PageLog(BaseModel):

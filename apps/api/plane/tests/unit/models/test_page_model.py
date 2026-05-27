@@ -107,6 +107,91 @@ def test_private_doc_publish_enqueues_essay_illustration_task(settings, workspac
 
 @pytest.mark.unit
 @pytest.mark.django_db
+def test_private_doc_publish_in_essays_project_sets_public_slug(settings, workspace, create_user):
+    essay_project = Project.objects.create(
+        name="Essays",
+        identifier="ESSAY",
+        workspace=workspace,
+    )
+    settings.ESSAY_ILLUSTRATION_PROJECT_ID = str(essay_project.id)
+
+    page = Page.objects.create(
+        name="Essay Draft",
+        workspace=workspace,
+        owned_by=create_user,
+        access=Page.PRIVATE_ACCESS,
+        page_type=Page.PAGE_TYPE_DOC,
+    )
+    ProjectPage.objects.create(project=essay_project, page=page, workspace=workspace)
+
+    page.access = Page.PUBLIC_ACCESS
+    page.save(update_fields=["access"])
+    page.refresh_from_db()
+
+    assert page.view_props["public_slug"] == "essay-draft"
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_public_doc_project_link_in_essays_project_sets_public_slug(settings, workspace, create_user):
+    essay_project = Project.objects.create(
+        name="Essays",
+        identifier="ESSAY",
+        workspace=workspace,
+    )
+    settings.ESSAY_ILLUSTRATION_PROJECT_ID = str(essay_project.id)
+
+    page = Page.objects.create(
+        name="Public Essay",
+        workspace=workspace,
+        owned_by=create_user,
+        access=Page.PUBLIC_ACCESS,
+        page_type=Page.PAGE_TYPE_DOC,
+    )
+    assert page.view_props.get("public_slug") is None
+
+    ProjectPage.objects.create(project=essay_project, page=page, workspace=workspace)
+    page.refresh_from_db()
+
+    assert page.view_props["public_slug"] == "public-essay"
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_public_slug_generation_adds_suffix_for_duplicates(settings, workspace, create_user):
+    essay_project = Project.objects.create(
+        name="Essays",
+        identifier="ESSAY",
+        workspace=workspace,
+    )
+    settings.ESSAY_ILLUSTRATION_PROJECT_ID = str(essay_project.id)
+
+    page_one = Page.objects.create(
+        name="Same Title",
+        workspace=workspace,
+        owned_by=create_user,
+        access=Page.PUBLIC_ACCESS,
+        page_type=Page.PAGE_TYPE_DOC,
+    )
+    ProjectPage.objects.create(project=essay_project, page=page_one, workspace=workspace)
+    page_one.refresh_from_db()
+
+    page_two = Page.objects.create(
+        name="Same Title",
+        workspace=workspace,
+        owned_by=create_user,
+        access=Page.PUBLIC_ACCESS,
+        page_type=Page.PAGE_TYPE_DOC,
+    )
+    ProjectPage.objects.create(project=essay_project, page=page_two, workspace=workspace)
+    page_two.refresh_from_db()
+
+    assert page_one.view_props["public_slug"] == "same-title"
+    assert page_two.view_props["public_slug"] == "same-title-2"
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
 def test_private_doc_publish_does_not_enqueue_essay_illustration_task_outside_essays_project(
     settings, workspace, create_user
 ):
