@@ -486,6 +486,10 @@ li:last-child {
   text-align: left;
 }
 
+.essay-index-title h1 {
+  margin: 0 0 14px;
+}
+
 .essay-index-title p {
   color: #666;
 }
