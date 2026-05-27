@@ -1237,7 +1237,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private func startPostLoginRefresh() {
         meetingRefreshTask?.cancel()
-        statusMessage = "Signed in. Loading copilot context..."
+        statusMessage = "Signed in. Loading Atlas context..."
         Task { @MainActor [weak self] in
             guard let self else { return }
             await self.refreshCalendarState()
@@ -1280,7 +1280,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             availableAgents = options
             selectDefaultAgentForSelectedWorkspaceIfNeeded()
         } catch {
-            statusMessage = "Could not load agents: \(error.localizedDescription)"
+            statusMessage = "Could not load Atlas: \(error.localizedDescription)"
         }
     }
 
@@ -3133,7 +3133,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         forceDocumentTool: Bool = false
     ) async {
         guard isAuthenticated else {
-            statusMessage = "Sign in first to launch a DragonFruit agent."
+            statusMessage = "Sign in first to launch Atlas."
             isVoiceActionProcessing = false
             return
         }

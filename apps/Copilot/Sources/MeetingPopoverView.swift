@@ -88,7 +88,7 @@ struct MeetingPopoverView: View {
                 }
             }
 
-            Text(selectedAgentName)
+            Text("Atlas")
                 .font(.custom("Figtree", size: 12).weight(.medium))
                 .foregroundStyle(theme.textPrimary)
                 .lineLimit(1)
@@ -135,7 +135,7 @@ struct MeetingPopoverView: View {
                 Task { await store.beginDragonFruitLogin() }
             }
             .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
-            Text("Sign in on the web to sync meetings, voice, and workspace agents. You’ll return here automatically.")
+            Text("Sign in on the web to sync meetings, voice, and Atlas. You’ll return here automatically.")
                 .font(.custom("Figtree", size: 11).weight(.medium))
                 .foregroundStyle(theme.textSecondary)
         }
@@ -341,7 +341,6 @@ struct MeetingPopoverView: View {
                 }
                 if store.voiceActionsEnabled {
                     workspacePicker
-                    cursorBuddyAgentPicker
                 }
                 featureToggle("Dictation", isOn: $store.cursorBuddyEnabled, detail: "Hold ⌥")
                 featureToggle("Meeting notes", isOn: $store.meetingNotesEnabled)
@@ -396,22 +395,6 @@ struct MeetingPopoverView: View {
                         Label(workspace.name, systemImage: "checkmark")
                     } else {
                         Text(workspace.name)
-                    }
-                }
-            }
-        }
-    }
-
-    private var cursorBuddyAgentPicker: some View {
-        settingsPickerRow("Atlas", selectedValue: selectedAgentName, isEnabled: store.agentsForSelectedWorkspace.count > 1) {
-            ForEach(store.agentsForSelectedWorkspace) { agent in
-                Button {
-                    store.selectedAgentId = agent.id
-                } label: {
-                    if store.selectedAgentId == agent.id {
-                        Label(agent.name, systemImage: "checkmark")
-                    } else {
-                        Text(agent.name)
                     }
                 }
             }
@@ -474,12 +457,6 @@ struct MeetingPopoverView: View {
                 pickerPill(selectedValue)
             }
         }
-    }
-
-    private var selectedAgentName: String {
-        store.agentsForSelectedWorkspace.first(where: { $0.id == store.selectedAgentId })?.name
-            ?? store.agentsForSelectedWorkspace.first?.name
-            ?? "Atlas"
     }
 
     private func pickerPill(_ label: String) -> some View {

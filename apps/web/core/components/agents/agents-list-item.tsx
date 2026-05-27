@@ -10,13 +10,10 @@ import { useState } from "react";
 import { useTranslation } from "@plane/i18n";
 import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import { ToggleSwitch } from "@plane/ui";
-import { CopyIcon } from "@plane/propel/icons";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { copyTextToClipboard } from "@plane/utils";
 // services
 import type { TAgent } from "@/services/agent.service";
 // local
-import { ChevronDown, ChevronRight, Settings2, Trash2 } from "@/components/icons/lucide-shim";
+import { ChevronDown, ChevronRight, Settings2 } from "@plane/icons";
 import { AgentAvatar } from "./agent-avatar";
 import { AgentRunsPanel } from "./agent-runs-panel";
 
@@ -25,7 +22,6 @@ export type TAgentTriggerKey = keyof TAgent["triggers"];
 interface IAgentsListItemProps {
   agent: TAgent;
   onToggle: (id: string, next: boolean) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
   onEdit: (agent: TAgent) => void;
   onUpdateTrigger: (id: string, key: TAgentTriggerKey, next: boolean) => Promise<void>;
 }
@@ -42,12 +38,12 @@ const TRIGGER_LABELS: Array<{ key: TAgentTriggerKey; title: string; description:
   {
     key: "assigned",
     title: "When assigned to a task",
-    description: "Reply when this agent is added as an assignee.",
+    description: "Reply when Atlas is added as an assignee.",
   },
   {
     key: "mentioned",
     title: "When @-mentioned",
-    description: "Reply when someone @-mentions this agent in a task description or comment.",
+    description: "Reply when someone @-mentions Atlas in a task description or comment.",
   },
   {
     key: "state_change",
@@ -61,7 +57,7 @@ const TRIGGER_LABELS: Array<{ key: TAgentTriggerKey; title: string; description:
   },
 ];
 
-export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrigger }: IAgentsListItemProps) {
+export function AgentsListItem({ agent, onToggle, onEdit, onUpdateTrigger }: IAgentsListItemProps) {
   const { workspaceSlug } = useParams();
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
@@ -76,37 +72,6 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
       await onToggle(agent.id, !agent.is_enabled);
     } finally {
       setBusy(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (busy) return;
-    const confirmed = window.confirm(t("workspace_settings.settings.agents.delete_confirm", { name: agent.name }));
-    if (!confirmed) return;
-    setBusy(true);
-    try {
-      await onDelete(agent.id);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleCopyId = async () => {
-    if (!agent.id) return;
-
-    try {
-      await copyTextToClipboard(agent.id);
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: `${t("success")}!`,
-        message: t("workspace_settings.token_copied"),
-      });
-    } catch {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: `${t("error")}!`,
-        message: t("something_went_wrong_please_try_again"),
-      });
     }
   };
 
@@ -144,7 +109,7 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
           onClick={() => setExpanded((v) => !v)}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
           aria-expanded={expanded}
-          aria-label={expanded ? "Collapse agent" : "Expand agent"}
+          aria-label={expanded ? "Collapse Atlas profile" : "Expand Atlas profile"}
         >
           <AgentAvatar seed={agent.id} name={agent.name} src={agent.avatar_url} size="lg" />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -172,33 +137,14 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={handleCopyId}
-            disabled={busy}
-            className="grid size-7 place-items-center rounded text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary disabled:opacity-50"
-            aria-label="Copy agent ID"
-            title="Copy agent ID"
-          >
-            <CopyIcon className="size-4" />
-          </button>
-          <button
-            type="button"
             onClick={() => onEdit(agent)}
             disabled={busy}
             className="grid size-7 place-items-center rounded text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary disabled:opacity-50"
-            aria-label="Configure agent"
+            aria-label="Configure Atlas"
           >
             <Settings2 className="size-4" />
           </button>
           <ToggleSwitch value={agent.is_enabled} onChange={handleToggle} disabled={busy} />
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={busy}
-            className="grid size-7 place-items-center rounded text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary disabled:opacity-50"
-            aria-label="Delete agent"
-          >
-            <Trash2 className="size-4" />
-          </button>
         </div>
       </div>
       {expanded && (
@@ -206,7 +152,7 @@ export function AgentsListItem({ agent, onToggle, onDelete, onEdit, onUpdateTrig
           <div className="px-4 py-3">
             <div className="mb-2 flex items-baseline justify-between gap-2">
               <h6 className="text-body-sm-medium">Triggers</h6>
-              <p className="text-caption-sm-regular text-tertiary">What events make {agent.name} reply.</p>
+              <p className="text-caption-sm-regular text-tertiary">What events make Atlas reply.</p>
             </div>
             <ul className="flex flex-col gap-1 rounded-md border border-subtle bg-layer-2">
               {TRIGGER_LABELS.map(({ key, title, description }, idx) => {

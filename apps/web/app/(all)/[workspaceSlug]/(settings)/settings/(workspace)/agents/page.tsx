@@ -34,10 +34,26 @@ import type { Route } from "./+types/page";
 import { AgentsWorkspaceSettingsHeader } from "./header";
 
 const agentService = new AgentService();
+const ATLAS_DEFAULTS = {
+  name: "Atlas",
+  description: "The workspace companion for docs, chat, tasks, and automations.",
+  system_prompt: "You are Atlas, a helpful workspace companion for DragonFruit.",
+};
+
+const normalizeAtlasProfile = (agent: TAgent): TAgent => ({ ...agent, name: ATLAS_DEFAULTS.name });
+
+const getAtlasProfile = (agents: TAgent[]) => {
+  // `toSorted` (ES2023) is not available in this app's TS lib config.
+  // oxlint-disable-next-line no-array-sort
+  const agent = [...agents].sort((a, b) => {
+    if (a.is_enabled !== b.is_enabled) return a.is_enabled ? -1 : 1;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  })[0];
+  return agent ? normalizeAtlasProfile(agent) : undefined;
+};
 
 function AgentsSettingsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAutomationsModal, setShowAutomationsModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<TAgent | null>(null);
   const { t } = useTranslation();
@@ -101,19 +117,6 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!workspaceSlug) return;
-    try {
-      await agentService.destroy(workspaceSlug, id);
-      await mutate();
-      setToast({ type: TOAST_TYPE.SUCCESS, title: t("workspace_settings.settings.agents.delete_success") });
-    } catch (err) {
-      const message =
-        (err as { error?: string } | undefined)?.error ?? t("workspace_settings.settings.agents.delete_error");
-      setToast({ type: TOAST_TYPE.ERROR, title: message });
-    }
-  };
-
   const handleUpdateTrigger = async (id: string, key: keyof TAgent["triggers"], next: boolean) => {
     if (!workspaceSlug) return;
     try {
@@ -137,18 +140,24 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
   const pageTitle = currentWorkspace?.name
     ? `${currentWorkspace.name} - ${t("workspace_settings.settings.agents.title")}`
     : undefined;
+  const atlasAgent = getAtlasProfile(agents);
+  const visibleAgents = atlasAgent ? [atlasAgent] : [];
+
+  const handleInitializeAtlas = async () => {
+    try {
+      const created = await handleCreate(ATLAS_DEFAULTS);
+      setEditingAgent(normalizeAtlasProfile(created));
+    } catch (err) {
+      const message =
+        (err as { error?: string } | undefined)?.error ?? t("workspace_settings.settings.agents.update_error");
+      setToast({ type: TOAST_TYPE.ERROR, title: message });
+    }
+  };
 
   return (
     <SettingsContentWrapper header={<AgentsWorkspaceSettingsHeader />} hugging>
       <PageHead title={pageTitle} />
       <div className="w-full">
-        <AgentFormModal
-          mode="create"
-          workspaceSlug={workspaceSlug}
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreate}
-        />
         {editingAgent && (
           <AgentFormModal
             mode="edit"
@@ -161,7 +170,7 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
         )}
         <AgentAutomationsModal
           workspaceSlug={workspaceSlug}
-          agents={agents}
+          agents={visibleAgents}
           isOpen={showAutomationsModal}
           onClose={() => setShowAutomationsModal(false)}
         />
@@ -170,21 +179,31 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
           description={t("workspace_settings.settings.agents.description")}
           control={
             <div className="flex items-center gap-2">
-              <Button variant="secondary" size="lg" onClick={() => setShowAutomationsModal(true)}>
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => setShowAutomationsModal(true)}
+                disabled={!atlasAgent}
+              >
                 Automations
               </Button>
-              <Button variant="primary" size="lg" onClick={() => setShowCreateModal(true)}>
-                {t("workspace_settings.settings.agents.add_agent")}
-              </Button>
+              {atlasAgent ? (
+                <Button variant="primary" size="lg" onClick={() => setEditingAgent(atlasAgent)}>
+                  Configure Atlas
+                </Button>
+              ) : (
+                <Button variant="primary" size="lg" onClick={handleInitializeAtlas}>
+                  Initialize Atlas
+                </Button>
+              )}
             </div>
           }
         />
-        {agents.length > 0 ? (
+        {atlasAgent ? (
           <div className="mt-4">
             <AgentsList
-              agents={agents}
+              agents={visibleAgents}
               onToggle={handleToggle}
-              onDelete={handleDelete}
               onEdit={setEditingAgent}
               onUpdateTrigger={handleUpdateTrigger}
             />
@@ -198,8 +217,8 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
                 description={t("workspace_settings.settings.agents.empty.description")}
                 actions={[
                   {
-                    label: t("workspace_settings.settings.agents.add_agent"),
-                    onClick: () => setShowCreateModal(true),
+                    label: "Initialize Atlas",
+                    onClick: handleInitializeAtlas,
                   },
                 ]}
                 align="start"
