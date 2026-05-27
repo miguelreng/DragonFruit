@@ -15,19 +15,16 @@ type Props = Pick<IEditorProps, "disabledExtensions" | "flaggedExtensions">;
 /**
  * DragonFruit: `/agent` slash command.
  *
- * The editor doesn't talk to any model directly. It deletes the slash trigger
- * and dispatches a `dragonfruit:agent-invoke` CustomEvent with context about
- * the current paragraph. The web app's AgentDispatchListener catches it,
- * collects a prompt from the user, and POSTs to the workspace's configured
- * agent webhook. Whatever's on the other end is free to write back via the
- * regular Pages/Issues API.
+ * The editor dispatches a `dragonfruit:agent-invoke` CustomEvent with
+ * best-effort context about the current paragraph so the floating Ask AI bar
+ * can pick it up and prefill its working context.
  */
 export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCommandAdditionalOption[] => [
   {
     commandKey: "agent",
     key: "agent",
-    title: "Ask an agent",
-    description: "Hand the current block to your workspace's agent.",
+    title: "Ask AI",
+    description: "Open the writing AI bar with the current block as context.",
     searchTerms: ["ai", "agent", "assistant", "delegate", "draft"],
     icon: <Sparkles className="size-3.5" />,
     section: "general",
