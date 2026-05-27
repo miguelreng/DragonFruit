@@ -5,13 +5,14 @@
  */
 
 import { Combobox } from "@headlessui/react";
-import type { ElementType, KeyboardEventHandler, ReactNode, Ref } from "react";
+import type { AriaRole, ElementType, KeyboardEventHandler, ReactNode, Ref } from "react";
 import React, { Fragment, forwardRef, useEffect, useRef, useState } from "react";
 
 type Props = {
   as?: ElementType | undefined;
   ref?: Ref<HTMLElement> | undefined;
   tabIndex?: number | undefined;
+  role?: AriaRole | undefined;
   className?: string | undefined;
   value?: string | string[] | null;
   onChange?: (value: any) => void;

@@ -19,13 +19,7 @@ import { RelationActionButton } from "./relations";
 import { IssueDetailWidgetButton } from "./widget-button";
 
 const WidgetActionIcon = ({ icon }: { icon: IconSvgElement }) => (
-  <HugeiconsIcon
-    icon={icon}
-    className="size-4 flex-shrink-0"
-    color="currentColor"
-    strokeWidth={1.5}
-    size="1em"
-  />
+  <HugeiconsIcon icon={icon} className="size-4 flex-shrink-0" color="currentColor" strokeWidth={1.5} size="1em" />
 );
 
 type Props = {
