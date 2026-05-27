@@ -172,6 +172,7 @@ class PublicPageBySlugEndpoint(BaseAPIView):
                 "logo_props": page.logo_props,
                 "owned_by": _public_page_owner_payload(page),
                 "updated_at": page.updated_at,
+                "view_props": page.view_props,
                 "public_slug": page.view_props.get("public_slug") if isinstance(page.view_props, dict) else None,
             },
             status=status.HTTP_200_OK,
@@ -218,6 +219,7 @@ class PublicProjectPagesEndpoint(BaseAPIView):
                     "owned_by": _public_page_owner_payload(page),
                     "created_at": page.created_at,
                     "updated_at": page.updated_at,
+                    "view_props": page.view_props,
                     "public_slug": page.view_props.get("public_slug") if isinstance(page.view_props, dict) else None,
                 }
                 for page in pages

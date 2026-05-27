@@ -7,7 +7,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   <main class="home-main">
     <div class="home-copy">
       <header class="home-header">
-        <SiteHeader />
+        <SiteHeader aboutHref="#about" />
         <h1>A workspace for the new generalists.</h1>
       </header>
 
@@ -53,12 +53,46 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       </footer>
     </div>
 
-    <img
-      class="home-illustration"
-      src="/assets/imprenta.png"
-      alt="Renaissance-style sketch of a small coworking meeting with a few people using laptops and a phone"
-      width="1536"
-      height="1024"
-    />
+    <div class="home-illustration-wrap">
+      <video
+        class="home-illustration"
+        data-home-video
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        poster="/assets/imprenta.png"
+        aria-label="Renaissance-style scene of a small coworking meeting with people using laptops and a phone"
+        width="1536"
+        height="1024"
+      >
+        <source media="(max-width: 860px)" src="/assets/hero-video-loop-mobile.mp4" type="video/mp4" />
+        <source media="(min-width: 861px)" src="/assets/hero-video-loop.mp4" type="video/mp4" />
+        <source src="/assets/hero-video-smooth.mp4" type="video/mp4" />
+        <img
+          src="/assets/imprenta.png"
+          alt="Renaissance-style sketch of a small coworking meeting with a few people using laptops and a phone"
+          width="1536"
+          height="1024"
+        />
+      </video>
+    </div>
   </main>
+
+  <script is:inline>
+    (() => {
+      const video = document.querySelector('[data-home-video]');
+      if (!video) return;
+
+      const showVideo = () => video.classList.add('is-visible');
+      if (video.readyState >= 2) {
+        requestAnimationFrame(showVideo);
+        return;
+      }
+
+      video.addEventListener('loadeddata', showVideo, { once: true });
+      window.setTimeout(showVideo, 900);
+    })();
+  </script>
 </BaseLayout>

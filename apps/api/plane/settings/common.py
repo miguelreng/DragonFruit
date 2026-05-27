@@ -72,6 +72,26 @@ WEBHOOK_DISALLOWED_DOMAINS = [
     if _d.strip()
 ]
 
+# Optional hook to trigger landing-site static rebuilds when public docs change.
+# Example target: Vercel Deploy Hook URL.
+LANDING_DEPLOY_WEBHOOK_URL = os.environ.get("LANDING_DEPLOY_WEBHOOK_URL", "").strip()
+LANDING_DEPLOY_WEBHOOK_AUTH_HEADER = os.environ.get("LANDING_DEPLOY_WEBHOOK_AUTH_HEADER", "").strip()
+LANDING_DEPLOY_WEBHOOK_TIMEOUT_SECONDS = int(os.environ.get("LANDING_DEPLOY_WEBHOOK_TIMEOUT_SECONDS", "5"))
+LANDING_DEPLOY_WEBHOOK_COOLDOWN_SECONDS = int(os.environ.get("LANDING_DEPLOY_WEBHOOK_COOLDOWN_SECONDS", "90"))
+
+# Optional selector used when dispatching essay illustration generation prompts to
+# the workspace agent webhook. Can be either the agent UUID or display name.
+ESSAY_ILLUSTRATION_AGENT_SELECTOR = os.environ.get(
+    "ESSAY_ILLUSTRATION_AGENT_SELECTOR", ""
+).strip()
+
+# Optional project filter for essay illustration generation. Only pages that belong
+# to this project will be eligible for first-publish generation.
+ESSAY_ILLUSTRATION_PROJECT_ID = (
+    os.environ.get("ESSAY_ILLUSTRATION_PROJECT_ID", "")
+    or os.environ.get("DRAGONFRUIT_ESSAYS_PROJECT_ID", "")
+).strip()
+
 # Allowed Hosts
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
@@ -339,6 +359,8 @@ CELERY_IMPORTS = (
     "plane.bgtasks.issue_description_version_sync",
     # agent dispatch (issue + page comment variants registered from the same module)
     "plane.bgtasks.agent_dispatch_task",
+    # landing page rebuild trigger for public essays
+    "plane.bgtasks.landing_deploy_task",
 )
 
 FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))

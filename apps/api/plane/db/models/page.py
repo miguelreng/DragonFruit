@@ -3,17 +3,41 @@
 # See the LICENSE file for details.
 
 import uuid
+import logging
 
 from django.conf import settings
+from django.core.cache import cache
 from django.utils import timezone
 
 # Django imports
-from django.db import models
+from django.db import models, transaction
+from django.db.models.signals import post_save, pre_save
+from django.dispatch import receiver
 
 # Module imports
 from plane.utils.html_processor import strip_tags
 
 from .base import BaseModel
+
+logger = logging.getLogger(__name__)
+
+ESSAY_ILLUSTRATION_TRIGGER_FIELDS = {
+    "access",
+    "archived_at",
+    "deleted_at",
+    "page_type",
+    "view_props",
+}
+
+LANDING_REDEPLOY_MUTATION_FIELDS = {
+    "access",
+    "archived_at",
+    "deleted_at",
+    "description_html",
+    "name",
+    "page_type",
+    "view_props",
+}
 
 
 def get_view_props():
@@ -87,6 +111,158 @@ class Page(BaseModel):
             else strip_tags(self.description_html)
         )
         super(Page, self).save(*args, **kwargs)
+
+
+def _is_public_doc_page(page: "Page") -> bool:
+    return (
+        page.page_type == Page.PAGE_TYPE_DOC
+        and page.access == Page.PUBLIC_ACCESS
+        and page.archived_at is None
+        and page.deleted_at is None
+    )
+
+
+def _is_in_essays_project(page: "Page") -> bool:
+    configured_project_id = (getattr(settings, "ESSAY_ILLUSTRATION_PROJECT_ID", "") or "").strip()
+    if not configured_project_id:
+        return False
+
+    from plane.db.models import ProjectPage
+
+    try:
+        return ProjectPage.objects.filter(
+            page_id=page.id,
+            project_id=configured_project_id,
+            deleted_at__isnull=True,
+        ).exists()
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to check essay project for page_id=%s", page.id)
+        return False
+
+
+@receiver(pre_save, sender="db.Page")
+def _capture_page_public_doc_state_before_save(sender, instance, **kwargs):
+    if not getattr(settings, "LANDING_DEPLOY_WEBHOOK_URL", ""):
+        return
+
+    if not instance.pk:
+        instance._was_public_doc_page_for_landing = False
+        return
+
+    update_fields = kwargs.get("update_fields")
+    if update_fields is not None and set(update_fields).isdisjoint(LANDING_REDEPLOY_MUTATION_FIELDS):
+        return
+
+    try:
+        previous = (
+            Page.objects.only("page_type", "access", "archived_at", "deleted_at")
+            .filter(pk=instance.pk)
+            .first()
+        )
+        instance._was_public_doc_page_for_landing = bool(previous and _is_public_doc_page(previous))
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to capture prior page visibility for landing redeploy page_id=%s", instance.pk)
+        instance._was_public_doc_page_for_landing = False
+
+
+@receiver(pre_save, sender="db.Page")
+def _capture_page_public_doc_state_before_save_for_essay_illustration(sender, instance, **kwargs):
+    if not instance.pk:
+        instance._was_public_doc_page_for_essay_illustration = False
+        return
+
+    update_fields = kwargs.get("update_fields")
+    if update_fields is not None and set(update_fields).isdisjoint(ESSAY_ILLUSTRATION_TRIGGER_FIELDS):
+        instance._was_public_doc_page_for_essay_illustration = _is_public_doc_page(instance)
+        return
+
+    try:
+        previous = (
+            Page.objects.only("page_type", "access", "archived_at", "deleted_at")
+            .filter(pk=instance.pk)
+            .first()
+        )
+        instance._was_public_doc_page_for_essay_illustration = bool(
+            previous and _is_public_doc_page(previous)
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "failed to capture prior public page state for essay illustration page_id=%s",
+            instance.pk,
+        )
+        instance._was_public_doc_page_for_essay_illustration = False
+
+
+@receiver(post_save, sender="db.Page")
+def _trigger_landing_redeploy_for_public_doc_changes(sender, instance, created, **kwargs):
+    webhook_url = getattr(settings, "LANDING_DEPLOY_WEBHOOK_URL", "")
+    if not webhook_url:
+        return
+
+    update_fields = kwargs.get("update_fields")
+    if not created and update_fields is not None and set(update_fields).isdisjoint(LANDING_REDEPLOY_MUTATION_FIELDS):
+        return
+
+    is_public_doc_now = _is_public_doc_page(instance)
+    was_public_doc_before = getattr(instance, "_was_public_doc_page_for_landing", False)
+    if not (is_public_doc_now or was_public_doc_before):
+        return
+
+    cooldown_seconds = max(int(getattr(settings, "LANDING_DEPLOY_WEBHOOK_COOLDOWN_SECONDS", 90)), 0)
+    cache_key = f"landing_redeploy:page:{instance.id}"
+    if cooldown_seconds > 0 and not cache.add(cache_key, "1", cooldown_seconds):
+        return
+
+    payload = {
+        "event": "public_page_changed",
+        "workspace_id": str(instance.workspace_id),
+        "workspace_slug": instance.workspace.slug if instance.workspace_id else None,
+        "page_id": str(instance.id),
+        "public_slug": instance.view_props.get("public_slug") if isinstance(instance.view_props, dict) else None,
+        "is_public": is_public_doc_now,
+    }
+
+    def _enqueue():
+        try:
+            from plane.bgtasks.landing_deploy_task import trigger_landing_redeploy
+
+            trigger_landing_redeploy.delay(payload=payload)
+        except Exception:  # noqa: BLE001
+            logger.exception("failed to enqueue landing redeploy hook for page_id=%s", instance.id)
+
+    transaction.on_commit(_enqueue)
+
+
+@receiver(post_save, sender="db.Page")
+def _trigger_essay_illustration_for_first_publish(sender, instance, created, **kwargs):
+    # Always react on publish state transitions for doc pages, even if landing
+    # deploy webhooks are not configured, because image generation is separate.
+    update_fields = kwargs.get("update_fields")
+    if update_fields is not None and set(update_fields).isdisjoint(ESSAY_ILLUSTRATION_TRIGGER_FIELDS):
+        return
+
+    is_public_doc_now = _is_public_doc_page(instance)
+    was_public_doc_before = getattr(instance, "_was_public_doc_page_for_essay_illustration", False)
+    if not (is_public_doc_now and not was_public_doc_before):
+        return
+
+    if not _is_in_essays_project(instance):
+        return
+
+    from plane.db.models import WorkspaceAgentWebhook
+
+    if not WorkspaceAgentWebhook.objects.filter(workspace_id=instance.workspace_id, is_enabled=True).exists():
+        return
+
+    def _enqueue():
+        try:
+            from plane.bgtasks.essay_illustration_task import request_essay_illustration
+
+            request_essay_illustration.delay(str(instance.id))
+        except Exception:  # noqa: BLE001
+            logger.exception("failed to enqueue essay illustration task for page_id=%s", instance.id)
+
+    transaction.on_commit(_enqueue)
 
 
 class PageLog(BaseModel):
