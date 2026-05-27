@@ -1,9 +1,17 @@
 ---
 import SiteHeader from "../../components/SiteHeader.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { formatEssayDate, getEssayDescription, getEssays, getEssaySlug } from "../../lib/essays";
+import {
+  formatEssayDate,
+  getEssayDescription,
+  getEssayHeroImage,
+  getEssays,
+  getEssaysSourceError,
+  getEssaySlug,
+} from "../../lib/essays";
 
 const essays = await getEssays();
+const essaysSourceError = getEssaysSourceError();
 ---
 
 <BaseLayout
@@ -14,38 +22,68 @@ const essays = await getEssays();
   <main class="essay-shell essay-index-main">
     <div class="essay-index-copy">
       <header class="essay-top">
-        <SiteHeader showEssaysLink={false} />
-        <a class="nav-link" href="https://app.dragonfruit.sh">start now</a>
+        <SiteHeader />
       </header>
 
       <section class="essay-index-title" aria-labelledby="essays-title">
-        <p class="eyebrow meta">DragonFruit essays</p>
-        <h1 id="essays-title">Productivity, generalists, and agentic workflows.</h1>
+        <h1 id="essays-title">Essays for the new generalists.</h1>
       </section>
 
       {
         essays.length > 0 ? (
           <div class="essay-list">
-            {essays.map((essay) => (
-              <a class="essay-list-item" href={`/essays/${getEssaySlug(essay)}`}>
-                <div class="meta">{formatEssayDate(essay.created_at)}</div>
-                <h2>{essay.name || "Untitled"}</h2>
-                <p>{getEssayDescription(essay)}</p>
-              </a>
-            ))}
+            {essays.map((essay) => {
+              const heroImage = getEssayHeroImage(essay);
+              const coverAlt = heroImage?.alt || essay.name || "Essay cover image";
+              return (
+                <a class="essay-list-item" href={`/essays/${getEssaySlug(essay)}`}>
+                  {
+                    heroImage ? (
+                      <div class="essay-list-item-cover-wrap">
+                        <img
+                          class="essay-list-item-cover"
+                          src={heroImage.src}
+                          alt={coverAlt}
+                          width="120"
+                          height="80"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
+                      <div class="essay-list-item-cover-wrap essay-list-item-cover-placeholder">
+                        <span class="essay-list-item-cover-fallback">{essay.name?.slice(0, 1) || "E"}</span>
+                      </div>
+                    )
+                  }
+                  <div class="essay-list-item-content">
+                    <div class="meta">{formatEssayDate(essay.created_at)}</div>
+                    <h2>{essay.name || "Untitled"}</h2>
+                    <p>{getEssayDescription(essay)}</p>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         ) : (
-          <p class="empty-essays">No public essays are configured yet.</p>
+          <p class="empty-essays">
+            {
+              essaysSourceError
+                ? "Essays are temporarily unavailable from DragonFruit. Please try again in a moment."
+                : "No public essays are configured yet."
+            }
+          </p>
         )
       }
     </div>
 
-    <img
-      class="essay-illustration"
-      src="/assets/imprenta.png"
-      alt="Renaissance-style sketch of a small coworking meeting with a few people using laptops and a phone"
-      width="1536"
-      height="1024"
-    />
+    <div class="essay-index-illustration-wrap">
+      <img
+        class="essay-illustration"
+        src="/assets/essays-listing-illustration.png"
+        alt="Renaissance-style rose engraving of scholars collaborating with books, notes, and a laptop"
+        width="1536"
+        height="1024"
+      />
+    </div>
   </main>
 </BaseLayout>
