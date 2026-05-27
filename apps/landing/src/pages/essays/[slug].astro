@@ -1,7 +1,7 @@
 ---
 import SiteHeader from "../../components/SiteHeader.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { formatEssayDate, getEssayDescription, getEssays, getEssaySlug, type Essay } from "../../lib/essays";
+import { formatEssayDate, getEssayDescription, getEssayHeroImage, getEssays, getEssaySlug, type Essay } from "../../lib/essays";
 
 export async function getStaticPaths() {
   const essays = await getEssays();
@@ -20,16 +20,24 @@ const { essay } = Astro.props;
 const slug = getEssaySlug(essay);
 const title = `${essay.name || "Untitled"} | DragonFruit Essays`;
 const description = getEssayDescription(essay);
+const heroImage = getEssayHeroImage(essay);
+const illustrationSrc = heroImage?.src || "/assets/imprenta.png";
+const illustrationAlt =
+  heroImage?.alt ||
+  `Renaissance-style sketch inspired by the essay: ${essay.name || "Untitled"}`;
 ---
 
 <BaseLayout title={title} description={description} canonicalPath={`/essays/${slug}`} ogType="article">
-  <main class="essay-shell">
-    <header class="essay-top">
+  <main class="essay-shell essay-article-main">
+    <header class="essay-top essay-article-top">
       <SiteHeader />
-      <a class="nav-link" href="/essays">all essays</a>
     </header>
 
-    <article class="essay-article">
+    <div class="essay-article-illustration-wrap" data-essay-reveal>
+      <img class="essay-illustration essay-article-illustration" src={illustrationSrc} alt={illustrationAlt} width="1536" height="1024" />
+    </div>
+
+    <article class="essay-article essay-article-copy">
       <header>
         <p class="meta">DragonFruit essay · {formatEssayDate(essay.created_at)}</p>
         <h1>{essay.name || "Untitled"}</h1>
@@ -38,4 +46,60 @@ const description = getEssayDescription(essay);
       <div class="essay-body" set:html={essay.description_html || "<p></p>"} />
     </article>
   </main>
+
+  <script is:inline>
+    (() => {
+      const revealWrap = document.querySelector('[data-essay-reveal]');
+      if (!revealWrap) return;
+
+      const copyPanel = document.querySelector('.essay-article-copy');
+      if (!copyPanel) return;
+
+      const mobileMedia = window.matchMedia('(max-width: 920px)');
+      const reducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+      const setRevealState = () => {
+        if (reducedMotionMedia.matches || mobileMedia.matches) {
+          revealWrap.style.setProperty('--essay-illustration-opacity', '0.92');
+          revealWrap.style.setProperty('--essay-illustration-grayscale', '0');
+          revealWrap.style.setProperty('--essay-illustration-saturation', '1');
+          revealWrap.style.setProperty('--essay-illustration-veil-opacity', '0');
+          return;
+        }
+
+        const scrollY = window.scrollY || window.pageYOffset;
+        const copyRect = copyPanel.getBoundingClientRect();
+        const startY = copyRect.top + scrollY;
+        const totalScrollable = Math.max(
+          document.documentElement.scrollHeight - window.innerHeight - startY,
+          1,
+        );
+
+        const progress = Math.max(0, Math.min((scrollY - startY) / totalScrollable, 1));
+        const easedProgress = progress * progress * (3 - 2 * progress);
+        const imageOpacity = 0.18 + easedProgress * 0.74;
+        const imageGrayscale = 1 - easedProgress;
+        const imageSaturation = 0.82 + easedProgress * 0.18;
+        const veilOpacity = (1 - easedProgress) * 0.56;
+
+        revealWrap.style.setProperty('--essay-illustration-opacity', imageOpacity.toFixed(3));
+        revealWrap.style.setProperty('--essay-illustration-grayscale', imageGrayscale.toFixed(3));
+        revealWrap.style.setProperty('--essay-illustration-saturation', imageSaturation.toFixed(3));
+        revealWrap.style.setProperty('--essay-illustration-veil-opacity', veilOpacity.toFixed(3));
+      };
+
+      let raf = 0;
+      const onScroll = () => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          setRevealState();
+          raf = 0;
+        });
+      };
+
+      setRevealState();
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
+    })();
+  </script>
 </BaseLayout>
