@@ -140,6 +140,31 @@ def _is_in_essays_project(page: "Page") -> bool:
         return False
 
 
+def _enqueue_essay_illustration_request(page_id) -> None:
+    page = (
+        Page.objects.only("id", "workspace_id", "page_type", "access", "archived_at", "deleted_at")
+        .filter(pk=page_id)
+        .first()
+    )
+    if page is None or not _is_public_doc_page(page):
+        return
+
+    if not _is_in_essays_project(page):
+        return
+
+    from plane.db.models import WorkspaceAgentWebhook
+
+    if not WorkspaceAgentWebhook.objects.filter(workspace_id=page.workspace_id, is_enabled=True).exists():
+        return
+
+    try:
+        from plane.bgtasks.essay_illustration_task import request_essay_illustration
+
+        request_essay_illustration.delay(str(page.id))
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to enqueue essay illustration task for page_id=%s", page.id)
+
+
 @receiver(pre_save, sender="db.Page")
 def _capture_page_public_doc_state_before_save(sender, instance, **kwargs):
     if not getattr(settings, "LANDING_DEPLOY_WEBHOOK_URL", ""):
@@ -237,6 +262,9 @@ def _trigger_landing_redeploy_for_public_doc_changes(sender, instance, created, 
 def _trigger_essay_illustration_for_first_publish(sender, instance, created, **kwargs):
     # Always react on publish state transitions for doc pages, even if landing
     # deploy webhooks are not configured, because image generation is separate.
+    if created:
+        return
+
     update_fields = kwargs.get("update_fields")
     if update_fields is not None and set(update_fields).isdisjoint(ESSAY_ILLUSTRATION_TRIGGER_FIELDS):
         return
@@ -246,23 +274,17 @@ def _trigger_essay_illustration_for_first_publish(sender, instance, created, **k
     if not (is_public_doc_now and not was_public_doc_before):
         return
 
-    if not _is_in_essays_project(instance):
+    transaction.on_commit(lambda: _enqueue_essay_illustration_request(instance.id))
+
+@receiver(post_save, sender="db.ProjectPage")
+def _trigger_essay_illustration_for_public_page_project_link(sender, instance, created, **kwargs):
+    if not created:
         return
 
-    from plane.db.models import WorkspaceAgentWebhook
-
-    if not WorkspaceAgentWebhook.objects.filter(workspace_id=instance.workspace_id, is_enabled=True).exists():
+    if not _is_public_doc_page(instance.page):
         return
 
-    def _enqueue():
-        try:
-            from plane.bgtasks.essay_illustration_task import request_essay_illustration
-
-            request_essay_illustration.delay(str(instance.id))
-        except Exception:  # noqa: BLE001
-            logger.exception("failed to enqueue essay illustration task for page_id=%s", instance.id)
-
-    transaction.on_commit(_enqueue)
+    transaction.on_commit(lambda: _enqueue_essay_illustration_request(instance.page_id))
 
 
 class PageLog(BaseModel):
