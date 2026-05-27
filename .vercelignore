@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+.turbo
+**/.turbo
+dist
+**/dist
+build
+**/build
+.react-router
+**/.react-router
+.next
+**/.next
+.ruff_cache
+.DS_Store
+tmp-*.png
