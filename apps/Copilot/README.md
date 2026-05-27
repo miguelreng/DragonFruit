@@ -1,6 +1,6 @@
-# DragonFruit Copilot Native (Xcode Target)
+# DragonFruit Atlas Native (Xcode Target)
 
-This is the canonical native macOS app target (SwiftUI + MenuBarExtra). Use this `.app` bundle for real Copilot testing because macOS permissions are tied to the app bundle identifier.
+This is the canonical native macOS app target (SwiftUI + MenuBarExtra). Use this `.app` bundle for real Atlas testing because macOS permissions are tied to the app bundle identifier.
 
 - Stable bundle identifier: `sh.dragonfruit.copilot`
 - DragonFruit native session sign-in

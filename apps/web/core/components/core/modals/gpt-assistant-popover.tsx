@@ -268,9 +268,12 @@ export function GptAssistantPopover(props: Props) {
                 onChange={onChange}
                 ref={ref}
                 placeholder={`${
-                  prompt && prompt !== "" ? "Tell AI what action to perform on this content..." : "Ask AI anything..."
+                  prompt && prompt !== ""
+                    ? "Tell Atlas what action to perform on this content..."
+                    : "Ask Atlas anything..."
                 }`}
                 className="w-full"
+                // oxlint-disable-next-line jsx-a11y/no-autofocus -- the modal opens from an explicit command and should be ready to type.
                 autoFocus
               />
             )}

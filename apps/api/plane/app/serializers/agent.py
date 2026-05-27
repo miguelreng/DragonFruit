@@ -110,12 +110,17 @@ class AgentRunSerializer(serializers.ModelSerializer):
 
 class AgentChatMessageSerializer(serializers.ModelSerializer):
     cost_usd = serializers.FloatField(read_only=True)
+    user_display_name = serializers.SerializerMethodField()
+    user_avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = AgentChatMessage
         fields = [
             "id",
             "session",
+            "user",
+            "user_display_name",
+            "user_avatar_url",
             "role",
             "content",
             "attachments",
@@ -129,6 +134,9 @@ class AgentChatMessageSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "session",
+            "user",
+            "user_display_name",
+            "user_avatar_url",
             "prompt_tokens",
             "completion_tokens",
             "total_tokens",
@@ -136,6 +144,18 @@ class AgentChatMessageSerializer(serializers.ModelSerializer):
             "error_message",
             "created_at",
         ]
+
+    def get_user_display_name(self, obj: AgentChatMessage) -> str:
+        user = obj.user
+        if user is None:
+            return ""
+        return user.display_name or user.get_full_name() or user.email
+
+    def get_user_avatar_url(self, obj: AgentChatMessage) -> str:
+        user = obj.user
+        if user is None:
+            return ""
+        return user.avatar_url or ""
 
 
 class AgentChatSessionSerializer(serializers.ModelSerializer):
@@ -154,6 +174,8 @@ class AgentChatSessionSerializer(serializers.ModelSerializer):
             "agent",
             "agent_name",
             "agent_avatar_url",
+            "scope_type",
+            "page",
             "title",
             "created_at",
             "updated_at",
@@ -165,6 +187,8 @@ class AgentChatSessionSerializer(serializers.ModelSerializer):
             "user",
             "agent_name",
             "agent_avatar_url",
+            "scope_type",
+            "page",
             "created_at",
             "updated_at",
             "last_activity_at",

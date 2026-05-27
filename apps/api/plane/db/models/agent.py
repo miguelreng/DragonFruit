@@ -222,6 +222,17 @@ class AgentChatSession(BaseModel):
     )
     # Auto-generated from the first user message; user can rename later.
     title = models.CharField(max_length=200, blank=True, default="")
+    # Personal sessions stay private to `user`. Page sessions are shared by
+    # members who can access the linked doc, so the doc can behave like a
+    # persistent chat room with Atlas.
+    scope_type = models.CharField(max_length=24, blank=True, default="personal")
+    page = models.ForeignKey(
+        "db.Page",
+        on_delete=models.CASCADE,
+        related_name="agent_chat_sessions",
+        null=True,
+        blank=True,
+    )
     # Stamped each time a message is added so the "Recent chats" panel
     # can sort by activity instead of creation.
     last_activity_at = models.DateTimeField(auto_now=True)
@@ -233,6 +244,7 @@ class AgentChatSession(BaseModel):
         ordering = ("-last_activity_at",)
         indexes = [
             models.Index(fields=["workspace", "user", "-last_activity_at"]),
+            models.Index(fields=["workspace", "scope_type", "page", "-last_activity_at"]),
         ]
 
     def __str__(self) -> str:
@@ -328,6 +340,13 @@ class AgentChatMessage(BaseModel):
         AgentChatSession,
         on_delete=models.CASCADE,
         related_name="messages",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="agent_chat_messages",
+        null=True,
+        blank=True,
     )
     role = models.CharField(max_length=16, choices=ROLE_CHOICES)
     content = models.TextField()

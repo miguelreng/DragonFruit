@@ -44,9 +44,9 @@ export default function TermsPage() {
         by their terms and policies.
       </p>
 
-      <h2>Copilot and BYOK</h2>
+      <h2>Atlas and BYOK</h2>
       <p>
-        DragonFruit may provide AI and Copilot features. Where bring-your-own-key (BYOK) is enabled, you are responsible
+        DragonFruit may provide AI and Atlas features. Where bring-your-own-key (BYOK) is enabled, you are responsible
         for the API keys and provider accounts you connect, including compliance with provider terms, usage limits, and
         billing.
       </p>

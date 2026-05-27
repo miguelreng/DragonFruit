@@ -25,6 +25,7 @@ import re
 import urllib.parse
 import urllib.request
 
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
@@ -34,6 +35,7 @@ from plane.app.serializers.agent import (
     AgentChatMessageSerializer,
     AgentChatSessionSerializer,
 )
+from plane.app.views.agent.base import _BOT_WORKSPACE_ROLE, _build_bot_user
 from plane.db.models import (
     Agent,
     AgentChatMessage,
@@ -44,6 +46,7 @@ from plane.db.models import (
     ProjectPage,
     Sticky,
     Workspace,
+    WorkspaceMember,
 )
 from plane.utils.content_validator import validate_html_content
 from plane.llm.pricing import estimate_cost_usd
@@ -53,6 +56,7 @@ from ..base import BaseAPIView
 
 
 logger = logging.getLogger(__name__)
+_DEFAULT_ASSISTANT_NAME = "Atlas"
 
 
 # Per-attachment caps. The whole POST body is also bounded by Django's
@@ -254,6 +258,71 @@ def _coerce_bool(value) -> bool:
     if isinstance(value, (int, float)):
         return bool(value)
     return False
+
+
+def _get_or_create_default_agent(workspace: Workspace) -> Agent:
+    """Resolve the workspace's single user-facing assistant.
+
+    Legacy workspaces may already have multiple agents. Until we add an
+    explicit `is_default` column, prefer an enabled agent and fall back to the
+    oldest surviving one. Brand-new workspaces get an Atlas bot automatically.
+    """
+    existing = (
+        Agent.objects.filter(workspace=workspace, deleted_at__isnull=True)
+        .select_related("bot_user")
+        .order_by("-is_enabled", "created_at")
+        .first()
+    )
+    if existing is not None:
+        return existing
+
+    with transaction.atomic():
+        locked_workspace = Workspace.objects.select_for_update().get(pk=workspace.pk)
+        existing = (
+            Agent.objects.filter(workspace=locked_workspace, deleted_at__isnull=True)
+            .select_related("bot_user")
+            .order_by("-is_enabled", "created_at")
+            .first()
+        )
+        if existing is not None:
+            return existing
+
+        bot_user = _build_bot_user(locked_workspace.slug, _DEFAULT_ASSISTANT_NAME)
+        WorkspaceMember.objects.create(
+            workspace=locked_workspace,
+            member=bot_user,
+            role=_BOT_WORKSPACE_ROLE,
+            is_active=True,
+        )
+        return Agent.objects.create(
+            workspace=locked_workspace,
+            bot_user=bot_user,
+            name=_DEFAULT_ASSISTANT_NAME,
+            description="The default workspace assistant.",
+            system_prompt="You are Atlas, a helpful workspace companion for DragonFruit.",
+        )
+
+
+def _get_accessible_doc_page(*, workspace: Workspace, user, page_id: str | None, project_id: str | None) -> Page | None:
+    if not page_id:
+        return None
+
+    page_filter = Q(page__owned_by=user) | Q(page__access=Page.PUBLIC_ACCESS)
+    base_query = ProjectPage.objects.filter(
+        workspace=workspace,
+        page_id=page_id,
+        deleted_at__isnull=True,
+        page__deleted_at__isnull=True,
+        page__page_type=Page.PAGE_TYPE_DOC,
+        project__archived_at__isnull=True,
+        project__project_projectmember__member=user,
+        project__project_projectmember__is_active=True,
+    ).filter(page_filter)
+    if project_id:
+        base_query = base_query.filter(project_id=project_id)
+
+    project_page = base_query.select_related("page").first()
+    return project_page.page if project_page is not None else None
 
 
 def _normalise_document_subject(text: str) -> str:
@@ -847,15 +916,30 @@ class AgentChatSessionEndpoint(BaseAPIView):
         workspace = Workspace.objects.filter(slug=slug).first()
         if workspace is None:
             return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
-        sessions = (
-            AgentChatSession.objects.filter(
+        scope_type = (request.query_params.get("scope_type") or "personal").strip().lower()
+        if scope_type == "page":
+            page = _get_accessible_doc_page(
                 workspace=workspace,
                 user=request.user,
+                page_id=str(request.query_params.get("page_id") or "").strip() or None,
+                project_id=str(request.query_params.get("project_id") or "").strip() or None,
+            )
+            if page is None:
+                return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+            sessions = AgentChatSession.objects.filter(
+                workspace=workspace,
+                scope_type="page",
+                page=page,
                 deleted_at__isnull=True,
             )
-            .select_related("agent")
-            .order_by("-last_activity_at")
-        )
+        else:
+            sessions = AgentChatSession.objects.filter(
+                workspace=workspace,
+                user=request.user,
+                scope_type="personal",
+                deleted_at__isnull=True,
+            )
+        sessions = sessions.select_related("agent", "page").order_by("-last_activity_at")
         return Response(
             {"sessions": AgentChatSessionSerializer(sessions, many=True).data},
             status=status.HTTP_200_OK,
@@ -865,19 +949,48 @@ class AgentChatSessionEndpoint(BaseAPIView):
     def post(self, request, slug):
         agent_id = request.data.get("agent_id")
         title = (request.data.get("title") or "").strip()
-        if not agent_id:
-            return Response({"error": "agent_id is required"}, status=status.HTTP_400_BAD_REQUEST)
         workspace = Workspace.objects.filter(slug=slug).first()
         if workspace is None:
             return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
-        agent = Agent.objects.filter(id=agent_id, workspace=workspace, deleted_at__isnull=True).first()
-        if agent is None:
-            return Response({"error": "Agent not found in this workspace"}, status=status.HTTP_400_BAD_REQUEST)
+        scope_type = (request.data.get("scope_type") or "personal").strip().lower()
+        page = None
+        if scope_type == "page":
+            page = _get_accessible_doc_page(
+                workspace=workspace,
+                user=request.user,
+                page_id=str(request.data.get("page_id") or "").strip() or None,
+                project_id=str(request.data.get("project_id") or "").strip() or None,
+            )
+            if page is None:
+                return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            scope_type = "personal"
+        if agent_id:
+            agent = Agent.objects.filter(id=agent_id, workspace=workspace, deleted_at__isnull=True).first()
+            if agent is None:
+                return Response({"error": "Agent not found in this workspace"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            agent = _get_or_create_default_agent(workspace)
+        if scope_type == "page" and page is not None:
+            session = (
+                AgentChatSession.objects.filter(
+                    workspace=workspace,
+                    scope_type="page",
+                    page=page,
+                    deleted_at__isnull=True,
+                )
+                .select_related("agent", "page")
+                .first()
+            )
+            if session is not None:
+                return Response(AgentChatSessionSerializer(session).data, status=status.HTTP_200_OK)
         session = AgentChatSession.objects.create(
             workspace=workspace,
             user=request.user,
             agent=agent,
-            title=title or "New chat",
+            title=title or (page.name if page is not None else "New chat"),
+            scope_type=scope_type,
+            page=page,
         )
         return Response(AgentChatSessionSerializer(session).data, status=status.HTTP_201_CREATED)
 
@@ -885,24 +998,38 @@ class AgentChatSessionEndpoint(BaseAPIView):
 class AgentChatSessionDetailEndpoint(BaseAPIView):
     """Retrieve, rename, or delete a single session."""
 
-    def _get(self, slug, session_id, user):
-        return (
+    def _get(self, request, slug, session_id):
+        session = (
             AgentChatSession.objects.filter(
                 id=session_id,
                 workspace__slug=slug,
-                user=user,
                 deleted_at__isnull=True,
             )
-            .select_related("agent")
+            .select_related("agent", "workspace", "page")
             .first()
         )
+        if session is None:
+            return None
+        if session.scope_type == "page":
+            page = _get_accessible_doc_page(
+                workspace=session.workspace,
+                user=request.user,
+                page_id=str(session.page_id) if session.page_id else None,
+                project_id=str(request.query_params.get("project_id") or "").strip() or None,
+            )
+            return session if page is not None else None
+        return session if session.user_id == request.user.id else None
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug, session_id):
-        session = self._get(slug, session_id, request.user)
+        session = self._get(request, slug, session_id)
         if session is None:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
-        messages = list(session.messages.filter(deleted_at__isnull=True).order_by("created_at"))
+        messages = list(
+            session.messages.filter(deleted_at__isnull=True)
+            .select_related("user")
+            .order_by("created_at")
+        )
         return Response(
             {
                 "session": AgentChatSessionSerializer(session).data,
@@ -913,9 +1040,11 @@ class AgentChatSessionDetailEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def patch(self, request, slug, session_id):
-        session = self._get(slug, session_id, request.user)
+        session = self._get(request, slug, session_id)
         if session is None:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+        if session.scope_type == "page" and session.user_id != request.user.id:
+            return Response({"error": "Only the chat creator can rename this doc chat"}, status=status.HTTP_403_FORBIDDEN)
         if "title" in request.data:
             new_title = (request.data.get("title") or "").strip()
             if not new_title:
@@ -926,9 +1055,11 @@ class AgentChatSessionDetailEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def delete(self, request, slug, session_id):
-        session = self._get(slug, session_id, request.user)
+        session = self._get(request, slug, session_id)
         if session is None:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+        if session.scope_type == "page" and session.user_id != request.user.id:
+            return Response({"error": "Only the chat creator can delete this doc chat"}, status=status.HTTP_403_FORBIDDEN)
         session.delete(soft=True)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -961,13 +1092,23 @@ class AgentChatMessageEndpoint(BaseAPIView):
             AgentChatSession.objects.filter(
                 id=session_id,
                 workspace__slug=slug,
-                user=request.user,
                 deleted_at__isnull=True,
             )
-            .select_related("agent", "workspace")
+            .select_related("agent", "workspace", "page")
             .first()
         )
         if session is None:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+        if session.scope_type == "page":
+            page = _get_accessible_doc_page(
+                workspace=session.workspace,
+                user=request.user,
+                page_id=str(session.page_id) if session.page_id else None,
+                project_id=project_id,
+            )
+            if page is None:
+                return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+        elif session.user_id != request.user.id:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Normalise + cap incoming attachments here so the model row
@@ -981,6 +1122,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         # question.
         user_msg = AgentChatMessage.objects.create(
             session=session,
+            user=request.user,
             role="user",
             content=content,
             attachments=attachments,
@@ -994,7 +1136,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
 
         agent = session.agent
         if not agent.is_enabled:
-            err = "This agent is disabled. Re-enable it in Settings → Agents."
+            err = "Atlas is disabled. Re-enable it in Atlas Settings."
             assistant_msg = AgentChatMessage.objects.create(
                 session=session,
                 role="assistant",
@@ -1069,7 +1211,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         if context_note:
             system = (
                 f"{system}\n\n"
-                "Private Copilot context (do not quote this block unless the user asks):\n"
+                "Private Atlas context (do not quote this block unless the user asks):\n"
                 f"{context_note}\n\n"
                 "Use this context only to resolve references like 'this/that' and improve grounding."
             )

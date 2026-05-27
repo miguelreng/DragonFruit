@@ -62,7 +62,7 @@ const sidebarOptions: {
   },
   {
     key: "agents",
-    label: "Agents / Ask AI",
+    label: "Atlas",
     Icon: AiIcon,
   },
   {

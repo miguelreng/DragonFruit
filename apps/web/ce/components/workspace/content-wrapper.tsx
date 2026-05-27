@@ -32,9 +32,8 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     const handleKeyDown = (event: KeyboardEvent) => {
       if (typeof event.key !== "string" || isTypingInInput(event.target)) return;
 
-      const isAskCopilotShortcut =
-        (event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "a";
-      if (!isAskCopilotShortcut) return;
+      const isAskAtlasShortcut = (event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "a";
+      if (!isAskAtlasShortcut) return;
 
       event.preventDefault();
       openAgentChat();
@@ -62,13 +61,13 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
           )}
           {!agentChatOpen && (
             <div className="absolute right-4 bottom-4 z-20">
-              <Tooltip tooltipContent="Ask Copilot (Cmd+Shift+A)" position="left">
+              <Tooltip tooltipContent="Ask Atlas (Cmd+Shift+A)" position="left">
                 <IconButton
                   type="button"
                   variant="secondary"
                   size="xl"
                   icon={Sparkles}
-                  aria-label="Ask Copilot"
+                  aria-label="Ask Atlas"
                   aria-keyshortcuts="Meta+Shift+A Control+Shift+A"
                   onClick={openAgentChat}
                   className="size-10 rounded-lg border-strong bg-layer-2 text-accent-primary shadow-raised-300 hover:bg-layer-2-hover hover:text-accent-secondary"

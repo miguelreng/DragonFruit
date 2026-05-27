@@ -56,11 +56,10 @@ function ensureHljsRegistered() {
 import type { EditorRefApi } from "@plane/editor";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Avatar, CustomMenu, Spinner } from "@plane/ui";
+import { Avatar, Spinner } from "@plane/ui";
 import { calculateTimeAgo, cn, getFileURL } from "@plane/utils";
 // components
 import {
-  ChevronDown,
   FileText,
   History,
   Image as ImageIconBase,
@@ -94,13 +93,12 @@ type View = "chat" | "history";
  * Topbar "Talk to AI" drawer.
  *
  * Single-column, chat-app feel. Two views:
- *   - `chat`     — the active conversation. Header carries the agent's
+ *   - `chat`     — the active conversation. Header carries Atlas'
  *                  identity, a history button, and close. Composer at the
  *                  bottom with an embedded send button. Empty state shows
- *                  the agent's avatar large + a prompt.
+ *                  avatar large + a prompt.
  *   - `history`  — past sessions list. From here you can resume, delete,
- *                  or start a new chat (agent picker built into the
- *                  "New chat" affordance, not always-on-screen).
+ *                  or start a new Atlas session.
  *
  * The single-column shape mirrors the in-app chat UX in Linear / Cursor
  * / ChatGPT — past sessions are an *occasional* navigation, not an
@@ -115,8 +113,8 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
   const projectPages = usePageStore(EPageStoreType.PROJECT);
   const onClose = () => toggleAgentChat(false);
 
-  // Agents in this workspace, used for the new-chat picker and to look
-  // up the active session's agent metadata (avatar, model).
+  // Legacy agent rows still back Atlas internally. We only use them to
+  // enrich existing sessions with avatar/model metadata during the transition.
   const { data: agents } = useSWR<TAgent[]>(
     workspaceSlug ? `agents/${workspaceSlug}` : null,
     () => agentService.list(workspaceSlug!),
@@ -148,26 +146,23 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
     }
   }, [activeId, sessions, sessionsData]);
 
-  const handleStartSession = useCallback(
-    async (agentId: string) => {
-      if (!workspaceSlug || !agentId) return;
-      try {
-        const session = await chatService.createSession(workspaceSlug, { agent_id: agentId });
-        await refetchSessions();
-        setActiveId(session.id);
-        setView("chat");
-      } catch (err) {
-        // Surface so the user doesn't see the "Start chat" button click
-        // and nothing happen — common failures are: agent disabled,
-        // workspace permission, or a stale agent_id (record deleted).
-        const message = (err as { error?: string } | undefined)?.error ?? "Couldn't start the chat. Try again.";
-        setToast({ type: TOAST_TYPE.ERROR, title: "Chat error", message });
-        // eslint-disable-next-line no-console
-        console.error("[agent-chat] createSession failed", err);
-      }
-    },
-    [workspaceSlug, refetchSessions]
-  );
+  const handleStartSession = useCallback(async () => {
+    if (!workspaceSlug) return;
+    try {
+      const session = await chatService.createSession(workspaceSlug);
+      await refetchSessions();
+      setActiveId(session.id);
+      setView("chat");
+    } catch (err) {
+      // Surface so the user doesn't see the "Start chat" button click
+      // and nothing happen — common failures are: agent disabled,
+      // workspace permission, disabled Atlas config, or a stale session.
+      const message = (err as { error?: string } | undefined)?.error ?? "Couldn't start the chat. Try again.";
+      setToast({ type: TOAST_TYPE.ERROR, title: "Chat error", message });
+      // eslint-disable-next-line no-console
+      console.error("[agent-chat] createSession failed", err);
+    }
+  }, [workspaceSlug, refetchSessions]);
 
   const handleDeleteSession = useCallback(
     async (sessionId: string) => {
@@ -205,7 +200,6 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
           projectId={projectId}
           sessionId={activeId}
           agent={activeAgent}
-          agents={agents ?? []}
           sessions={sessions}
           activePageEditorRef={activePageEditorRef}
           onClose={onClose}
@@ -217,7 +211,6 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
       {view === "history" && (
         <HistoryView
           sessions={sessions}
-          agents={agents ?? []}
           activeId={activeId}
           onPickSession={(id) => {
             setActiveId(id);
@@ -242,12 +235,11 @@ function ChatView(props: {
   projectId: string | undefined;
   sessionId: string | null;
   agent: TAgent | undefined;
-  agents: TAgent[];
   sessions: TAgentChatSession[];
   activePageEditorRef: EditorRefApi | null;
   onClose: () => void;
   onOpenHistory: () => void;
-  onStartSession: (agentId: string) => Promise<void>;
+  onStartSession: () => Promise<void>;
   onSentRefreshSessions: () => void;
 }) {
   const {
@@ -255,7 +247,6 @@ function ChatView(props: {
     projectId,
     sessionId,
     agent,
-    agents,
     activePageEditorRef,
     onClose,
     onOpenHistory,
@@ -269,12 +260,15 @@ function ChatView(props: {
           right. Sits at h-11 to match the page-level header strip. */}
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Avatar size="md" name={agent?.name ?? "AI"} src={getFileURL(agent?.avatar_url ?? "")} className="shrink-0" />
+          <Avatar
+            size="md"
+            name={agent?.name ?? "Atlas"}
+            src={getFileURL(agent?.avatar_url ?? "")}
+            className="shrink-0"
+          />
           <div className="flex min-w-0 flex-col">
-            <div className="truncate text-13 font-medium text-primary">{agent?.name ?? "Talk to AI"}</div>
-            <div className="truncate text-11 text-tertiary">
-              {agent?.provider_model || "Pick an agent to start chatting"}
-            </div>
+            <div className="truncate text-13 font-medium text-primary">Atlas</div>
+            <div className="truncate text-11 text-tertiary">{agent?.provider_model || "Workspace companion"}</div>
           </div>
         </div>
         <IconButton variant="tertiary" size="sm" icon={History} onClick={onOpenHistory} aria-label="Chat history" />
@@ -292,92 +286,30 @@ function ChatView(props: {
           onSentRefreshSessions={onSentRefreshSessions}
         />
       ) : (
-        <NewChatLanding agents={agents} onStartSession={onStartSession} />
+        <NewChatLanding onStartSession={onStartSession} />
       )}
     </>
   );
 }
 
-function NewChatLanding(props: { agents: TAgent[]; onStartSession: (agentId: string) => Promise<void> }) {
-  const { agents, onStartSession } = props;
-  // Prefer an enabled agent as the default pick; fall back to the
-  // first one in the list so the picker isn't empty even when
-  // everything's disabled.
-  const candidate = useMemo(() => agents.find((a) => a.is_enabled) ?? agents[0], [agents]);
-  const [pickedId, setPickedId] = useState<string>("");
-  // Sync the default selection once `agents` arrives from SWR. Without
-  // this, mounting with an empty `agents` array (the SWR-loading state)
-  // leaves `pickedId = ""` permanently, which disables the Start
-  // button and looks broken when the user picks from the dropdown. We
-  // only set when the user hasn't picked yet to avoid stomping a
-  // manual selection.
-  useEffect(() => {
-    if (!pickedId && candidate?.id) setPickedId(candidate.id);
-  }, [candidate?.id, pickedId]);
-
-  const pickedAgent = agents.find((a) => a.id === pickedId);
-
+function NewChatLanding(props: { onStartSession: () => Promise<void> }) {
+  const { onStartSession } = props;
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
       <div className="grid size-12 place-items-center rounded-full bg-layer-1">
         <Sparkles className="size-5 text-accent-primary" />
       </div>
       <div className="space-y-1">
-        <div className="text-14 font-medium text-primary">Chat with any agent</div>
-        <div className="text-12 text-tertiary">
-          Pick an agent and start a conversation — like ChatGPT, but in your workspace.
-        </div>
+        <div className="text-14 font-medium text-primary">Ask Atlas</div>
+        <div className="text-12 text-tertiary">Start a persistent workspace conversation.</div>
       </div>
-
-      {agents.length === 0 ? (
-        <div className="text-12 text-tertiary">No agents yet. Add one in Settings → Agents to start chatting.</div>
-      ) : (
-        <div className="flex w-full max-w-sm flex-col gap-2">
-          {/* customButton is a <div> — CustomMenu wraps whatever you
-              pass in its own <button>, so passing another <button>
-              produces invalid nested-button HTML that Chrome renders
-              but with broken click semantics. The div keeps the
-              visual + lets CustomMenu own the interactivity. */}
-          <CustomMenu
-            customButton={
-              <div className="flex w-full items-center justify-between rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
-                <span className="truncate">{pickedAgent?.name ?? "Pick an agent"}</span>
-                <ChevronDown className="size-3.5 text-tertiary" />
-              </div>
-            }
-            placement="bottom-start"
-            menuItemsClassName="w-72"
-          >
-            {agents.map((a) => (
-              <CustomMenu.MenuItem
-                key={a.id}
-                onClick={() => setPickedId(a.id)}
-                disabled={!a.is_enabled}
-                className="flex items-center gap-2"
-              >
-                <Avatar size="sm" name={a.name} src={getFileURL(a.avatar_url ?? "")} className="shrink-0" />
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-13 text-primary">{a.name}</span>
-                  <span className="truncate text-11 text-tertiary">
-                    {a.is_enabled ? a.provider_model || "no model" : "Disabled"}
-                  </span>
-                </div>
-              </CustomMenu.MenuItem>
-            ))}
-          </CustomMenu>
-          <button
-            type="button"
-            onClick={() => {
-              if (!pickedId) return;
-              void onStartSession(pickedId);
-            }}
-            disabled={!pickedId}
-            className="rounded-md bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a] disabled:opacity-60"
-          >
-            Start chat
-          </button>
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={() => void onStartSession()}
+        className="rounded-md bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
+      >
+        Start chat
+      </button>
     </div>
   );
 }
@@ -388,23 +320,21 @@ function NewChatLanding(props: { agents: TAgent[]; onStartSession: (agentId: str
 
 function HistoryView(props: {
   sessions: TAgentChatSession[];
-  agents: TAgent[];
   activeId: string | null;
   onPickSession: (id: string) => void;
-  onStartSession: (agentId: string) => Promise<void>;
+  onStartSession: () => Promise<void>;
   onDeleteSession: (id: string) => Promise<void>;
   onClose: () => void;
   onBack: (() => void) | undefined;
 }) {
-  const { sessions, agents, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onBack } = props;
-  const enabled = agents.filter((a) => a.is_enabled);
+  const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onBack } = props;
 
   return (
     <>
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex flex-1 items-center gap-2">
           <Sparkles className="size-4 text-accent-primary" />
-          <div className="text-13 font-medium text-primary">Chat history</div>
+          <div className="text-13 font-medium text-primary">Atlas sessions</div>
         </div>
         {onBack && (
           <button
@@ -418,46 +348,16 @@ function HistoryView(props: {
         <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
       </header>
 
-      {/* New chat launcher — picks an agent from a dropdown and
-          starts a session in one click. customButton is a <div> so
-          we don't end up with invalid nested <button> markup (the
-          outer CustomMenu already supplies the real <button>). */}
-      {agents.length > 0 && (
-        <div className="border-b border-subtle px-3 py-2">
-          <CustomMenu
-            customButton={
-              <div className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]">
-                <Plus className="size-3.5" />
-                New chat
-              </div>
-            }
-            placement="bottom-start"
-            menuItemsClassName="w-72"
-          >
-            {agents.map((a) => (
-              <CustomMenu.MenuItem
-                key={a.id}
-                disabled={!a.is_enabled}
-                onClick={() => void onStartSession(a.id)}
-                className="flex items-center gap-2"
-              >
-                <Avatar size="sm" name={a.name} src={getFileURL(a.avatar_url ?? "")} className="shrink-0" />
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-13 text-primary">{a.name}</span>
-                  <span className="truncate text-11 text-tertiary">
-                    {a.is_enabled ? a.provider_model || "no model" : "Disabled"}
-                  </span>
-                </div>
-              </CustomMenu.MenuItem>
-            ))}
-            {enabled.length === 0 && (
-              <CustomMenu.MenuItem onClick={() => {}} disabled className="text-12 text-tertiary">
-                No enabled agents
-              </CustomMenu.MenuItem>
-            )}
-          </CustomMenu>
-        </div>
-      )}
+      <div className="border-b border-subtle px-3 py-2">
+        <button
+          type="button"
+          onClick={() => void onStartSession()}
+          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
+        >
+          <Plus className="size-3.5" />
+          New Atlas session
+        </button>
+      </div>
 
       <ul className="vertical-scrollbar scrollbar-sm flex-1 overflow-y-auto">
         {sessions.length === 0 && <li className="px-3 py-6 text-center text-12 text-tertiary">No past chats yet.</li>}
@@ -469,11 +369,16 @@ function HistoryView(props: {
               activeId === s.id ? "bg-layer-1" : "hover:bg-layer-1"
             )}
           >
-            <Avatar size="sm" name={s.agent_name} src={getFileURL(s.agent_avatar_url ?? "")} className="shrink-0" />
+            <Avatar
+              size="sm"
+              name={s.agent_name || "Atlas"}
+              src={getFileURL(s.agent_avatar_url ?? "")}
+              className="shrink-0"
+            />
             <button type="button" onClick={() => onPickSession(s.id)} className="min-w-0 flex-1 text-left">
               <div className="truncate text-13 text-primary">{s.title || "New chat"}</div>
               <div className="flex items-center gap-1 truncate text-11 text-tertiary">
-                <span className="truncate">{s.agent_name}</span>
+                <span className="truncate">{s.agent_name || "Atlas"}</span>
                 <span aria-hidden>·</span>
                 <span>{calculateTimeAgo(s.last_activity_at)}</span>
               </div>
@@ -613,6 +518,9 @@ function ChatThread(props: {
     const optimistic: TAgentChatMessage = {
       id: `local-${Date.now()}`,
       session: sessionId,
+      user: null,
+      user_display_name: "",
+      user_avatar_url: "",
       role: "user",
       content: trimmed,
       // Hydrate optimistic attachments so the bubble renders thumbnails
@@ -651,7 +559,7 @@ function ChatThread(props: {
         setToast({
           type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
           title: "Added to page",
-          message: `${agent?.name ?? "The agent"} wrote it into the editor.`,
+          message: `${agent?.name ?? "Atlas"} wrote it into the editor.`,
         });
       }
       await mutate();
@@ -685,12 +593,12 @@ function ChatThread(props: {
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
             <Avatar
               size="lg"
-              name={agent?.name ?? "AI"}
+              name={agent?.name ?? "Atlas"}
               src={getFileURL(agent?.avatar_url ?? "")}
               className="shrink-0"
             />
             <div className="space-y-1">
-              <div className="text-14 font-medium text-primary">How can {agent?.name ?? "the agent"} help?</div>
+              <div className="text-14 font-medium text-primary">How can Atlas help?</div>
               <div className="max-w-xs text-12 text-tertiary">
                 Ask a question, brainstorm, or paste in something you want rewritten. Tasks and pages are not
                 auto-attached.
@@ -707,7 +615,7 @@ function ChatThread(props: {
               <li className="flex items-center gap-2">
                 <Avatar
                   size="sm"
-                  name={agent?.name ?? "AI"}
+                  name={agent?.name ?? "Atlas"}
                   src={getFileURL(agent?.avatar_url ?? "")}
                   className="shrink-0"
                 />
@@ -781,7 +689,7 @@ function ChatThread(props: {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               rows={1}
-              placeholder={`Message ${agent?.name ?? "the agent"}…`}
+              placeholder="Message Atlas…"
               className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
             />
             <button
@@ -985,7 +893,7 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
     <li className="flex gap-2">
       <Avatar
         size="sm"
-        name={agent?.name ?? "AI"}
+        name={agent?.name ?? "Atlas"}
         src={getFileURL(agent?.avatar_url ?? "")}
         className="mt-0.5 shrink-0"
       />
@@ -1011,9 +919,9 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
 }
 
 function stripCopilotContextForDisplay(content: string): string {
-  if (!content.includes("Copilot context:")) return content;
+  if (!content.includes("Copilot context:") && !content.includes("Atlas context:")) return content;
   const legacyContextBlock =
-    /(?:\r?\n){2}Copilot context:\n[\s\S]*?Resolve words like "this", "that", "look at this", "translate this", or "summarize this" against the selected text, focused text, hovered UI element, URL, visual attachment, and frontmost app context above\. If selected text is present, treat it as the primary object of the request\./g;
+    /(?:\r?\n){2}(?:Copilot|Atlas) context:\n[\s\S]*?Resolve words like "this", "that", "look at this", "translate this", or "summarize this" against the selected text, focused text, hovered UI element, URL, visual attachment, and frontmost app context above\. If selected text is present, treat it as the primary object of the request\./g;
   return content.replace(legacyContextBlock, "").trim();
 }
 

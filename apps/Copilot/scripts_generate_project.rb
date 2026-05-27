@@ -56,9 +56,9 @@ File.write(plist_path, <<~PLIST)
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>DragonFruit Copilot</string>
+  <string>DragonFruit Atlas</string>
   <key>CFBundleDisplayName</key>
-  <string>DragonFruit Copilot</string>
+  <string>DragonFruit Atlas</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -68,11 +68,11 @@ File.write(plist_path, <<~PLIST)
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>NSMicrophoneUsageDescription</key>
-  <string>DragonFruit Copilot uses the microphone when you start voice capture, so it can answer questions, create workspace items, or type dictation.</string>
+  <string>DragonFruit Atlas uses the microphone when you start voice capture, so it can answer questions, create workspace items, or type dictation.</string>
   <key>NSAudioCaptureUsageDescription</key>
-  <string>DragonFruit Copilot captures system audio when you start meeting notes, so remote speakers in calls can be transcribed.</string>
+  <string>DragonFruit Atlas captures system audio when you start meeting notes, so remote speakers in calls can be transcribed.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>DragonFruit Copilot transcribes your voice when you use Copilot voice or dictation.</string>
+  <string>DragonFruit Atlas transcribes your voice when you use Atlas voice or dictation.</string>
   <key>LSApplicationCategoryType</key>
   <string>public.app-category.productivity</string>
   <key>CFBundleURLTypes</key>

@@ -13,7 +13,7 @@ export const POWER_K_SCOPE_CHIPS: { id: TPowerKScope; label: string }[] = [
   { id: "pages", label: "Pages" },
   { id: "projects", label: "Projects" },
   { id: "people", label: "People" },
-  { id: "ai", label: "Ask AI" },
+  { id: "ai", label: "Ask Atlas" },
 ];
 
 export const SCOPE_TO_RESULT_KEYS: Record<TPowerKScope, TPowerKSearchResultsKeys[] | null> = {

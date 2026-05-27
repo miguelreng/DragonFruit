@@ -222,7 +222,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
               href={agentsHref}
               className="decoration-tertiary inline-flex items-center gap-1 underline underline-offset-2 hover:text-primary"
             >
-              Settings → Agents
+              Settings → Atlas
               <ExternalLink className="size-3" />
             </Link>{" "}
             and pick an agent. On its detail panel you can add MCP servers with{" "}
