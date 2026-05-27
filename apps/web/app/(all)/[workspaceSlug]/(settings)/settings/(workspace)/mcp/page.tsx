@@ -115,7 +115,6 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
   });
   const mcpUrl = useMemo(() => `${origin}/api/workspaces/${slug}/mcp/`, [origin, slug]);
   const tokensHref = useMemo(() => `/${slug}/settings/api-tokens/`, [slug]);
-  const agentsHref = useMemo(() => `/${slug}/settings/agents/`, [slug]);
 
   const claudeCodeSnippet = `claude mcp add dragon-fruit \\
   --transport http \\
@@ -147,7 +146,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
             <span>
               MCP lets AI tools talk to each other through a standard protocol. Dragon Fruit can play both roles: an MCP
               server that external tools (Claude Code, Cursor, ChatGPT desktop, etc.) connect to, and an MCP client for
-              your agents to consume tools from other services (GitHub, Slack, Linear, your own internal MCP servers).
+              Atlas to consume tools from other services (GitHub, Slack, Linear, your own internal MCP servers).
             </span>
           }
         />
@@ -212,20 +211,21 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
         </Section>
 
         <Section
-          title="2 · Give your agents tools from other services"
-          subtitle="Dragon Fruit acts as the MCP client. Each agent can be configured with one or more external MCP servers; their tools merge into the agent's toolbelt at dispatch time."
+          title="2 · Give Atlas tools from other services"
+          subtitle="Dragon Fruit acts as the MCP client. Atlas can use one or more external MCP servers; their tools merge into Atlas's toolbelt at dispatch time."
           className="mt-8"
         >
           <p className="text-caption-md text-secondary">
-            Open{" "}
+            Atlas owns outgoing MCP tools for the workspace. The model and API key live in{" "}
             <Link
-              href={agentsHref}
+              href={`/${slug}/settings/ai/`}
               className="decoration-tertiary inline-flex items-center gap-1 underline underline-offset-2 hover:text-primary"
             >
-              Settings → Atlas
+              Settings → AI
               <ExternalLink className="size-3" />
-            </Link>{" "}
-            and pick an agent. On its detail panel you can add MCP servers with{" "}
+            </Link>
+            ; MCP servers are stored on the Atlas profile so they can follow the companion across docs, chat, tasks, and
+            automations. Add each server with{" "}
             <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">name</code>,{" "}
             <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">url</code>, and an optional{" "}
             <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">auth_header</code> (Fernet-encrypted
@@ -283,7 +283,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
               even if you point a client at it.
             </li>
             <li>
-              Auth headers configured on agents for outgoing MCP calls are stored Fernet-encrypted — ciphertext is never
+              Auth headers configured on Atlas for outgoing MCP calls are stored Fernet-encrypted — ciphertext is never
               returned by the API (you'll only see{" "}
               <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">has_auth_header: true</code>).
             </li>

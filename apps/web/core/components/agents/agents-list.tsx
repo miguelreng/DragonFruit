@@ -10,12 +10,11 @@ import { AgentsListItem, type TAgentTriggerKey } from "./agents-list-item";
 interface IAgentsListProps {
   agents: TAgent[];
   onToggle: (id: string, next: boolean) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
   onEdit: (agent: TAgent) => void;
   onUpdateTrigger: (id: string, key: TAgentTriggerKey, next: boolean) => Promise<void>;
 }
 
-export function AgentsList({ agents, onToggle, onDelete, onEdit, onUpdateTrigger }: IAgentsListProps) {
+export function AgentsList({ agents, onToggle, onEdit, onUpdateTrigger }: IAgentsListProps) {
   return (
     <div className="flex size-full flex-col divide-y divide-subtle overflow-hidden rounded-lg border border-subtle bg-layer-2">
       {agents.map((agent) => (
@@ -23,7 +22,6 @@ export function AgentsList({ agents, onToggle, onDelete, onEdit, onUpdateTrigger
           key={agent.id}
           agent={agent}
           onToggle={onToggle}
-          onDelete={onDelete}
           onEdit={onEdit}
           onUpdateTrigger={onUpdateTrigger}
         />
