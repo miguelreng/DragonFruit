@@ -4,8 +4,62 @@
  * See the LICENSE file for details.
  */
 
-import sanitizeHtml from "sanitize-html";
 import type { Content, JSONContent } from "@plane/types";
+
+const HTML_ENTITY_MAP: Record<string, string> = {
+  amp: "&",
+  gt: ">",
+  lt: "<",
+  nbsp: " ",
+  quot: '"',
+  apos: "'",
+};
+
+const decodeHTMLEntities = (value: string) =>
+  value.replace(/&(#(?:x[a-fA-F0-9]+|\d+)|[a-zA-Z]+);/g, (match, entity: string) => {
+    if (entity.startsWith("#x")) {
+      const codePoint = Number.parseInt(entity.slice(2), 16);
+      return Number.isNaN(codePoint) || codePoint > 0x10ffff ? match : String.fromCodePoint(codePoint);
+    }
+
+    if (entity.startsWith("#")) {
+      const codePoint = Number.parseInt(entity.slice(1), 10);
+      return Number.isNaN(codePoint) || codePoint > 0x10ffff ? match : String.fromCodePoint(codePoint);
+    }
+
+    return HTML_ENTITY_MAP[entity] ?? match;
+  });
+
+const stripHTMLTags = (htmlString: string) => {
+  if (typeof window !== "undefined" && window.document) {
+    const template = window.document.createElement("template");
+    template.innerHTML = htmlString;
+    template.content.querySelectorAll("script, style, template").forEach((node) => node.remove());
+    return template.content.textContent ?? "";
+  }
+
+  return decodeHTMLEntities(
+    htmlString
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<(script|style|template)[^>]*>[\s\S]*?<\/\1>/gi, "")
+      .replace(/<[^>]*>/g, "")
+  );
+};
+
+const hasAllowedHTMLTag = (htmlString: string, allowedHTMLTags: string[]) => {
+  if (allowedHTMLTags.length === 0) return false;
+
+  if (typeof window !== "undefined" && window.document) {
+    const template = window.document.createElement("template");
+    template.innerHTML = htmlString;
+    return Array.from(template.content.querySelectorAll("*")).some((node) =>
+      allowedHTMLTags.includes(node.tagName.toLowerCase())
+    );
+  }
+
+  const allowedTagPattern = allowedHTMLTags.map((tag) => tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  return new RegExp(`<\\s*(${allowedTagPattern})(\\s|/|>)`, "i").test(htmlString);
+};
 
 /**
  * @description Adds space between camelCase words
@@ -126,7 +180,7 @@ const text = stripHTML(html);
 console.log(text); // Some text
  */
 export const sanitizeHTML = (htmlString: string) => {
-  const sanitizedText = sanitizeHtml(htmlString, { allowedTags: [] }); // sanitize the string to remove all HTML tags
+  const sanitizedText = stripHTMLTags(htmlString); // sanitize the string to remove all HTML tags
   return sanitizedText.trim(); // trim the string to remove leading and trailing whitespaces
 };
 
@@ -161,10 +215,9 @@ export const checkEmailValidity = (email: string): boolean => {
 };
 
 export const isEmptyHtmlString = (htmlString: string, allowedHTMLTags: string[] = []) => {
-  // Remove HTML tags using sanitize-html
-  const cleanText = sanitizeHtml(htmlString, { allowedTags: allowedHTMLTags });
-  // Trim the string and check if it's empty
-  return cleanText.trim() === "";
+  if (hasAllowedHTMLTag(htmlString, allowedHTMLTags)) return false;
+
+  return sanitizeHTML(htmlString) === "";
 };
 
 /**
