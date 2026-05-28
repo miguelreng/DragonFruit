@@ -392,6 +392,21 @@ def _normalise_doc_write_proposals(raw, *, mode: str, blocks: list[dict], fallba
     ]
 
 
+def _fallback_doc_write_text(prompt: str, *, mode: str) -> str:
+    cleaned = " ".join((prompt or "").split()).strip()
+    if not cleaned:
+        cleaned = "this document"
+    if mode == "update":
+        return (
+            f"This proposed update turns the request into a clearer document paragraph: {cleaned}. "
+            "It is intentionally concise so you can accept it, reject it, or use it as a starting point."
+        )
+    return (
+        f"This draft introduces the document around the request: {cleaned}. "
+        "It gives the page a simple starting paragraph that can be refined after review."
+    )
+
+
 def _get_or_create_default_agent(workspace: Workspace) -> Agent:
     """Resolve the workspace's single user-facing assistant.
 
@@ -1271,8 +1286,13 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 if part
             )
 
+            result = None
             try:
-                result = provider.chat(system_prompt=_DOC_WRITE_SYSTEM_PROMPT, user_prompt=user_prompt)
+                result = provider.chat(
+                    system_prompt=_DOC_WRITE_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    request_timeout=25,
+                )
                 parsed = _extract_json_object(result.final_text)
                 proposals = _normalise_doc_write_proposals(
                     parsed,
@@ -1282,8 +1302,12 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.exception("agent doc-write failed agent=%s session=%s", agent.id, session.id)
-                yield _doc_write_event("error", error=f"{exc.__class__.__name__}: {exc}")
-                return
+                proposals = _normalise_doc_write_proposals(
+                    {},
+                    mode=mode,
+                    blocks=blocks,
+                    fallback_text=_fallback_doc_write_text(content, mode=mode),
+                )
 
             for proposal in proposals:
                 yield _doc_write_event(
