@@ -5,6 +5,7 @@
 from django.urls import path
 
 from plane.app.views.agent import (
+    AgentChatDocWriteEndpoint,
     AgentChatMessageEndpoint,
     AgentChatSessionDetailEndpoint,
     AgentChatSessionEndpoint,
@@ -111,5 +112,10 @@ urlpatterns = [
         "workspaces/<str:slug>/agent-chats/sessions/<uuid:session_id>/messages/",
         AgentChatMessageEndpoint.as_view(),
         name="workspace-agent-chat-messages",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-chats/sessions/<uuid:session_id>/doc-writes/",
+        AgentChatDocWriteEndpoint.as_view(),
+        name="workspace-agent-chat-doc-writes",
     ),
 ]

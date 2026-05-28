@@ -51,6 +51,7 @@ export enum CORE_EXTENSIONS {
   EMOJI = "emoji",
   UNIQUE_ID = "uniqueID",
   BLOCK_COMMENT = "blockComment",
+  ATLAS_DOC_REVIEW = "atlasDocReview",
 }
 
 export const BLOCK_NODE_TYPES = [

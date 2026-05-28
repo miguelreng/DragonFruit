@@ -72,6 +72,59 @@ export type TAgentChatPostResponse = {
   assistant_message: TAgentChatMessage;
 };
 
+export type TAtlasDocWriteMode = "create" | "update";
+
+export type TAtlasDocEditOperation = "insert_after" | "replace" | "delete";
+
+export type TAtlasDocWriteEvent =
+  | {
+      event: "session_started";
+      session_id: string;
+      mode: TAtlasDocWriteMode;
+      user_message: TAgentChatMessage;
+    }
+  | {
+      event: "proposal_started";
+      proposal_id: string;
+      operation: TAtlasDocEditOperation;
+      target_block_id: string;
+      target_original_text: string;
+    }
+  | {
+      event: "proposal_delta";
+      proposal_id: string;
+      content_text: string;
+      content_html: string;
+    }
+  | {
+      event: "proposal_completed";
+      proposal_id: string;
+      operation: TAtlasDocEditOperation;
+      target_block_id: string;
+      target_original_text: string;
+      content_text: string;
+      content_html: string;
+    }
+  | {
+      event: "session_completed";
+      assistant_message: TAgentChatMessage;
+    }
+  | {
+      event: "error";
+      error: string;
+    };
+
+export type TAtlasDocWritePayload = {
+  page_id: string;
+  project_id?: string;
+  prompt: string;
+  mode: TAtlasDocWriteMode;
+  cursor_position?: number;
+  selection_text?: string | null;
+  document_markdown?: string;
+  document_json?: object | null;
+};
+
 export class AgentChatService extends APIService {
   constructor() {
     super(API_BASE_URL);
@@ -151,5 +204,58 @@ export class AgentChatService extends APIService {
       .catch((error) => {
         throw error?.response?.data;
       });
+  }
+
+  async streamDocWrite(
+    workspaceSlug: string,
+    sessionId: string,
+    payload: TAtlasDocWritePayload,
+    onEvent: (event: TAtlasDocWriteEvent) => void
+  ): Promise<void> {
+    const response = await fetch(
+      `${this.baseURL}/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/doc-writes/`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      let message = response.statusText || "Doc write failed.";
+      try {
+        const body = await response.json();
+        message = body?.error || body?.detail || message;
+      } catch {
+        // Keep the status text fallback.
+      }
+      throw new Error(message);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Streaming is not available in this browser.");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      // eslint-disable-next-line no-await-in-loop -- Streams have to be consumed sequentially.
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        onEvent(JSON.parse(trimmed) as TAtlasDocWriteEvent);
+      }
+    }
+
+    buffer += decoder.decode();
+    if (buffer.trim()) onEvent(JSON.parse(buffer.trim()) as TAtlasDocWriteEvent);
   }
 }

@@ -5,6 +5,7 @@
  */
 
 export * from "./block-comment";
+export * from "./atlas-doc-review";
 export * from "./callout";
 export * from "./code";
 export * from "./code-inline";

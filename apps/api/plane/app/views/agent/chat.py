@@ -20,11 +20,13 @@ mention, where AgentRun + Celery already cover it.
 
 import base64
 import html
+import json
 import logging
 import re
 import urllib.parse
 import urllib.request
 
+from django.http import StreamingHttpResponse
 from django.db import transaction
 from django.db.models import Q
 from rest_framework import status
@@ -76,6 +78,28 @@ _DOCUMENT_CREATION_RE = re.compile(
     r"\b(create|write|draft|generate|make|prepare|crear|crea|redacta|genera|prepara|escribe)\b.{0,120}\b(document|doc|page|documento|pagina|página)\b",
     re.IGNORECASE,
 )
+
+_DOC_WRITE_SYSTEM_PROMPT = """
+You are Atlas writing inside a Dragon Fruit document review mode.
+
+Return JSON only, with this shape:
+{
+  "proposals": [
+    {
+      "operation": "insert_after" | "replace" | "delete",
+      "target_block_id": "exact block id from the provided block list, or empty for new insertions",
+      "content_text": "one paragraph, heading, or short list worth of proposed document text"
+    }
+  ]
+}
+
+Rules:
+- Create one proposal per paragraph or logical block.
+- For create mode, use only insert_after proposals and leave target_block_id empty.
+- For update mode, use replace/delete only when you are changing a provided block; use insert_after for new context.
+- Preserve the user's intent and write production-ready document prose.
+- Do not include markdown fences, commentary, or any keys outside the JSON object.
+""".strip()
 
 
 _CHAT_INTENT_SYSTEM_PROMPT = """
@@ -258,6 +282,113 @@ def _coerce_bool(value) -> bool:
     if isinstance(value, (int, float)):
         return bool(value)
     return False
+
+
+def _extract_json_object(text: str) -> dict | None:
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return None
+
+
+def _doc_write_event(event: str, **payload):
+    return json.dumps({"event": event, **payload}, separators=(",", ":")) + "\n"
+
+
+def _plain_text_to_html(text: str) -> str:
+    paragraphs = [part.strip() for part in re.split(r"\n{2,}", text or "") if part.strip()]
+    if not paragraphs:
+        return ""
+    return "".join(f"<p>{html.escape(paragraph).replace(chr(10), '<br />')}</p>" for paragraph in paragraphs)
+
+
+def _document_blocks_from_json(document_json) -> list[dict]:
+    if not isinstance(document_json, dict):
+        return []
+    content = document_json.get("content")
+    if not isinstance(content, list):
+        return []
+    blocks: list[dict] = []
+    for node in content:
+        if not isinstance(node, dict):
+            continue
+        attrs = node.get("attrs") if isinstance(node.get("attrs"), dict) else {}
+        block_id = str(attrs.get("id") or "").strip()
+        text = _text_from_pm_node(node).strip()
+        if block_id and text:
+            blocks.append({"id": block_id, "type": node.get("type") or "block", "text": text[:2_000]})
+    return blocks[:80]
+
+
+def _text_from_pm_node(node) -> str:
+    if not isinstance(node, dict):
+        return ""
+    if node.get("type") == "text":
+        return str(node.get("text") or "")
+    content = node.get("content")
+    if not isinstance(content, list):
+        return ""
+    return " ".join(part for part in (_text_from_pm_node(child) for child in content) if part)
+
+
+def _normalise_doc_write_proposals(raw, *, mode: str, blocks: list[dict], fallback_text: str) -> list[dict]:
+    block_map = {block["id"]: block for block in blocks}
+    proposals = raw.get("proposals") if isinstance(raw, dict) else None
+    if not isinstance(proposals, list):
+        proposals = []
+
+    clean: list[dict] = []
+    for index, proposal in enumerate(proposals[:30]):
+        if not isinstance(proposal, dict):
+            continue
+        operation = str(proposal.get("operation") or "insert_after").strip()
+        if operation not in {"insert_after", "replace", "delete"}:
+            operation = "insert_after"
+        target_block_id = str(proposal.get("target_block_id") or "").strip()
+        if operation in {"replace", "delete"} and target_block_id not in block_map:
+            operation = "insert_after"
+            target_block_id = ""
+        content_text = str(proposal.get("content_text") or "").strip()
+        if operation != "delete" and not content_text:
+            continue
+        if mode == "create":
+            operation = "insert_after"
+            target_block_id = ""
+        clean.append(
+            {
+                "id": f"proposal-{index + 1}",
+                "operation": operation,
+                "target_block_id": target_block_id,
+                "target_original_text": block_map.get(target_block_id, {}).get("text", ""),
+                "content_text": content_text[:4_000],
+                "content_html": _plain_text_to_html(content_text[:4_000]),
+            }
+        )
+
+    if clean:
+        return clean
+
+    fallback_parts = [part.strip() for part in re.split(r"\n{2,}", fallback_text or "") if part.strip()]
+    return [
+        {
+            "id": f"proposal-{index + 1}",
+            "operation": "insert_after",
+            "target_block_id": "",
+            "target_original_text": "",
+            "content_text": part[:4_000],
+            "content_html": _plain_text_to_html(part[:4_000]),
+        }
+        for index, part in enumerate(fallback_parts[:12])
+    ]
 
 
 def _get_or_create_default_agent(workspace: Workspace) -> Agent:
@@ -1062,6 +1193,157 @@ class AgentChatSessionDetailEndpoint(BaseAPIView):
             return Response({"error": "Only the chat creator can delete this doc chat"}, status=status.HTTP_403_FORBIDDEN)
         session.delete(soft=True)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AgentChatDocWriteEndpoint(BaseAPIView):
+    """Stream Atlas document-writing proposals as reviewable editor edits."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def post(self, request, slug, session_id):
+        content = (request.data.get("prompt") or "").strip()
+        project_id = (request.data.get("project_id") or "").strip() or None
+        page_id = (request.data.get("page_id") or "").strip() or None
+        mode = (request.data.get("mode") or "create").strip().lower()
+        if mode not in {"create", "update"}:
+            mode = "create"
+        if not content:
+            return Response({"error": "prompt is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        session = (
+            AgentChatSession.objects.filter(
+                id=session_id,
+                workspace__slug=slug,
+                deleted_at__isnull=True,
+            )
+            .select_related("agent", "workspace", "page")
+            .first()
+        )
+        if session is None:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+        page = _get_accessible_doc_page(
+            workspace=session.workspace,
+            user=request.user,
+            page_id=page_id or (str(session.page_id) if session.page_id else None),
+            project_id=project_id,
+        )
+        if page is None:
+            return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+        if session.scope_type != "page" and session.user_id != request.user.id:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        document_markdown = str(request.data.get("document_markdown") or "")[:40_000]
+        selection_text = str(request.data.get("selection_text") or "")[:8_000]
+        blocks = _document_blocks_from_json(request.data.get("document_json"))
+        agent = session.agent
+
+        def stream():
+            review_session_id = f"atlas-doc-write-{user_msg.id}"
+            yield _doc_write_event(
+                "session_started",
+                session_id=review_session_id,
+                mode=mode,
+                user_message=AgentChatMessageSerializer(user_msg).data,
+            )
+
+            if not agent.is_enabled:
+                yield _doc_write_event("error", error="Atlas is disabled. Re-enable it in Atlas Settings.")
+                return
+
+            try:
+                provider = LLMProvider.from_agent(agent)
+            except LLMConfigError as exc:
+                yield _doc_write_event("error", error=str(exc))
+                return
+
+            block_context = "\n".join(
+                f"- id: {block['id']}\n  type: {block['type']}\n  text: {block['text']}" for block in blocks
+            )
+            user_prompt = "\n\n".join(
+                part
+                for part in [
+                    f"Mode: {mode}",
+                    f"User request:\n{content}",
+                    f"Selected text:\n{selection_text}" if selection_text else "",
+                    f"Document blocks with stable ids:\n{block_context}" if block_context else "",
+                    f"Document markdown:\n{document_markdown}" if document_markdown else "",
+                ]
+                if part
+            )
+
+            try:
+                result = provider.chat(system_prompt=_DOC_WRITE_SYSTEM_PROMPT, user_prompt=user_prompt)
+                parsed = _extract_json_object(result.final_text)
+                proposals = _normalise_doc_write_proposals(
+                    parsed,
+                    mode=mode,
+                    blocks=blocks,
+                    fallback_text=result.final_text,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("agent doc-write failed agent=%s session=%s", agent.id, session.id)
+                yield _doc_write_event("error", error=f"{exc.__class__.__name__}: {exc}")
+                return
+
+            for proposal in proposals:
+                yield _doc_write_event(
+                    "proposal_started",
+                    proposal_id=proposal["id"],
+                    operation=proposal["operation"],
+                    target_block_id=proposal["target_block_id"],
+                    target_original_text=proposal["target_original_text"],
+                )
+                yield _doc_write_event(
+                    "proposal_delta",
+                    proposal_id=proposal["id"],
+                    content_text=proposal["content_text"],
+                    content_html=proposal["content_html"],
+                )
+                yield _doc_write_event(
+                    "proposal_completed",
+                    proposal_id=proposal["id"],
+                    operation=proposal["operation"],
+                    target_block_id=proposal["target_block_id"],
+                    target_original_text=proposal["target_original_text"],
+                    content_text=proposal["content_text"],
+                    content_html=proposal["content_html"],
+                )
+
+            assistant_msg = AgentChatMessage.objects.create(
+                session=session,
+                role="assistant",
+                content=(
+                    f"I drafted {len(proposals)} reviewable document "
+                    f"{'edit' if len(proposals) == 1 else 'edits'} in the page."
+                ),
+                prompt_tokens=getattr(result, "prompt_tokens", 0),
+                completion_tokens=getattr(result, "completion_tokens", 0),
+                total_tokens=(getattr(result, "prompt_tokens", 0) + getattr(result, "completion_tokens", 0)),
+                cost_usd=estimate_cost_usd(
+                    agent.provider_model or "",
+                    getattr(result, "prompt_tokens", 0),
+                    getattr(result, "completion_tokens", 0),
+                ),
+            )
+            session.save(update_fields=["updated_at", "last_activity_at"])
+            yield _doc_write_event(
+                "session_completed",
+                assistant_message=AgentChatMessageSerializer(assistant_msg).data,
+            )
+
+        user_msg = AgentChatMessage.objects.create(
+            session=session,
+            user=request.user,
+            role="user",
+            content=content,
+            attachments=[],
+        )
+        if (session.title in ("", "New chat")) and session.messages.filter(role="user").count() == 1:
+            session.title = _generate_title(content)
+            session.save(update_fields=["title", "updated_at"])
+
+        response = StreamingHttpResponse(stream(), content_type="application/x-ndjson")
+        response["Cache-Control"] = "no-cache"
+        return response
 
 
 class AgentChatMessageEndpoint(BaseAPIView):

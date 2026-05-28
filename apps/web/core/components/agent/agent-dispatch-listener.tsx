@@ -4,13 +4,21 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import type { EditorRefApi } from "@plane/editor";
 import { ChevronDown, FileText, ListChecks, PenTool, Plus, Sparkles } from "@plane/icons";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { Loader } from "@plane/ui";
-import { AgentChatService, type TAgentChatMessage, type TAgentChatSession } from "@/services/agent-chat.service";
+import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
+import {
+  AgentChatService,
+  type TAgentChatMessage,
+  type TAgentChatSession,
+  type TAtlasDocWriteEvent,
+  type TAtlasDocWriteMode,
+} from "@/services/agent-chat.service";
 
 type InvokeDetail = {
   paragraphText?: string;
@@ -136,6 +144,115 @@ const mapChatMessageToDocMessage = (message: TAgentChatMessage): TDocChatMessage
   };
 };
 
+function isEditorWritingRequest(text: string): boolean {
+  if (/\b(create|make|add)\b.{0,80}\b(page|doc|document|task|work item|sticky|note)\b/i.test(text)) return false;
+  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into)\b/i.test(
+    text
+  );
+}
+
+type TStreamDocReviewArgs = {
+  activePageEditorRef: EditorRefApi;
+  pageId: string;
+  projectId?: string;
+  prompt: string;
+  sessionId: string;
+  setMessages: Dispatch<SetStateAction<TDocChatMessage[]>>;
+  userMessageId: string;
+  workspaceSlug: string;
+};
+
+async function streamDocReview(args: TStreamDocReviewArgs) {
+  const { activePageEditorRef, pageId, projectId, prompt, sessionId, setMessages, userMessageId, workspaceSlug } = args;
+  const editorDocument = activePageEditorRef.getDocument();
+  const documentMarkdown = activePageEditorRef.getMarkDown();
+  const cursorPosition = activePageEditorRef.getCurrentCursorPosition();
+  const mode: TAtlasDocWriteMode = documentMarkdown.trim().length > 0 ? "update" : "create";
+  let streamError: string | null = null;
+  let receivedProposal = false;
+
+  activePageEditorRef.startAtlasReviewSession({
+    id: `local-atlas-doc-write-${Date.now()}`,
+    mode,
+    anchorPos: cursorPosition,
+  });
+
+  try {
+    await agentChatService.streamDocWrite(
+      workspaceSlug,
+      sessionId,
+      {
+        page_id: pageId,
+        project_id: projectId,
+        prompt,
+        mode,
+        cursor_position: cursorPosition,
+        selection_text: activePageEditorRef.getSelectedText(),
+        document_markdown: documentMarkdown,
+        document_json: editorDocument.json,
+      },
+      (event: TAtlasDocWriteEvent) => {
+        if (event.event === "session_started") {
+          activePageEditorRef.startAtlasReviewSession({
+            id: event.session_id,
+            mode: event.mode,
+            anchorPos: cursorPosition,
+          });
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === userMessageId ? mapChatMessageToDocMessage(event.user_message) : message
+            )
+          );
+        } else if (event.event === "proposal_started") {
+          receivedProposal = true;
+          activePageEditorRef.appendAtlasProposal({
+            id: event.proposal_id,
+            operation: event.operation,
+            status: "streaming",
+            anchorPos: cursorPosition,
+            targetBlockId: event.target_block_id || undefined,
+            targetOriginalText: event.target_original_text || undefined,
+            contentText: "",
+            contentHtml: "",
+          });
+        } else if (event.event === "proposal_delta") {
+          activePageEditorRef.updateAtlasProposal(event.proposal_id, {
+            contentText: event.content_text,
+            contentHtml: event.content_html,
+            status: "streaming",
+          });
+        } else if (event.event === "proposal_completed") {
+          activePageEditorRef.updateAtlasProposal(event.proposal_id, {
+            status: "pending",
+            contentText: event.content_text,
+            contentHtml: event.content_html,
+            targetBlockId: event.target_block_id || undefined,
+            targetOriginalText: event.target_original_text || undefined,
+          });
+        } else if (event.event === "session_completed") {
+          setMessages((current) => [...current, mapChatMessageToDocMessage(event.assistant_message)]);
+        } else if (event.event === "error") {
+          streamError = event.error;
+        }
+      }
+    );
+  } catch (error) {
+    if (!receivedProposal) activePageEditorRef.rejectAllAtlasProposals();
+    throw error;
+  }
+
+  if (streamError) {
+    if (!receivedProposal) activePageEditorRef.rejectAllAtlasProposals();
+    throw new Error(streamError);
+  }
+
+  setToast({
+    type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
+    title: "Atlas drafted edits",
+    message: "Review them inline, then accept or reject each paragraph.",
+  });
+}
+
 /**
  * Renders the always-available floating Atlas bar for page editors.
  * Slash-command events can still prefill editor context, but the request
@@ -160,6 +277,9 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
+  const projectPages = usePageStore(EPageStoreType.PROJECT);
+  const activePage = pageId ? projectPages.getPageById(pageId) : undefined;
+  const activePageEditorRef = activePage?.editor.editorRef ?? null;
 
   useEffect(() => {
     function onInvoke(e: Event) {
@@ -254,6 +374,22 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
       },
     ]);
     try {
+      const shouldWriteIntoEditor = Boolean(activePageEditorRef && isEditorWritingRequest(trimmed));
+
+      if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
+        await streamDocReview({
+          activePageEditorRef,
+          pageId,
+          projectId,
+          prompt: trimmed,
+          sessionId: session.id,
+          setMessages,
+          userMessageId,
+          workspaceSlug,
+        });
+        return;
+      }
+
       const contextNote = [
         `Atlas writing mode: ${activeMode.label}.`,
         `Task: ${activeMode.buildTask(Boolean(contextText))}`,
@@ -298,7 +434,9 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
           ? response.data.error || response.data.detail
           : typeof response?.data === "string"
             ? response.data
-            : response?.statusText;
+            : err instanceof Error
+              ? err.message
+              : response?.statusText;
       setMessages((current) => [
         ...current,
         {
@@ -311,13 +449,13 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     } finally {
       setIsSending(false);
     }
-  }, [activeMode, contextText, mode, projectId, prompt, session, workspaceSlug]);
+  }, [activeMode, activePageEditorRef, contextText, mode, pageId, projectId, prompt, session, workspaceSlug]);
 
   if (!workspaceSlug || !projectId || !pageId) return null;
 
   return (
     <div aria-live="polite" className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
-      <div className="relative w-full isolate">
+      <div className="relative isolate w-full">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 -top-8 -bottom-10 h-auto bg-gradient-to-b from-surface-1/0 via-surface-1/66 to-surface-1/98"
@@ -405,7 +543,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
           <div
             role="presentation"
             onMouseDown={(e) => e.stopPropagation()}
-            className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto relative overflow-hidden w-full rounded-[18px] border border-subtle bg-surface-1/72 px-3 py-1.5 shadow-raised-200 duration-150 backdrop-blur-sm"
+            className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto relative w-full overflow-hidden rounded-[18px] border border-subtle bg-surface-1/72 px-3 py-1.5 shadow-raised-200 backdrop-blur-sm duration-150"
           >
             <div
               aria-hidden="true"
@@ -492,7 +630,11 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                   className="inline-flex h-7 shrink-0 items-center rounded-lg border border-subtle bg-layer-2 px-2.5 text-[12px] font-medium text-primary transition-colors hover:bg-layer-3 disabled:opacity-50"
                   aria-label="Send prompt"
                 >
-                  {isSending || isLoadingSession ? <span className="text-xs leading-none">...</span> : <span>Send</span>}
+                  {isSending || isLoadingSession ? (
+                    <span className="text-xs leading-none">...</span>
+                  ) : (
+                    <span>Send</span>
+                  )}
                 </button>
               </div>
             </div>

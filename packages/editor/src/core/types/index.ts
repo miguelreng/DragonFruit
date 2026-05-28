@@ -17,3 +17,4 @@ export * from "./slash-commands-suggestion";
 export * from "./document-collaborative-events";
 
 export * from "@/plane-editor/types";
+export * from "./atlas-doc-review";

@@ -80,6 +80,8 @@ import type {
   TAgentChatAttachmentPayload,
   TAgentChatMessage,
   TAgentChatSession,
+  TAtlasDocWriteEvent,
+  TAtlasDocWriteMode,
 } from "@/services/agent-chat.service";
 import { AgentService } from "@/services/agent.service";
 import type { TAgent } from "@/services/agent.service";
@@ -201,6 +203,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
           sessionId={activeId}
           agent={activeAgent}
           sessions={sessions}
+          pageId={pageId}
           activePageEditorRef={activePageEditorRef}
           onClose={onClose}
           onOpenHistory={() => setView("history")}
@@ -233,6 +236,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
 function ChatView(props: {
   workspaceSlug: string;
   projectId: string | undefined;
+  pageId: string | undefined;
   sessionId: string | null;
   agent: TAgent | undefined;
   sessions: TAgentChatSession[];
@@ -245,6 +249,7 @@ function ChatView(props: {
   const {
     workspaceSlug,
     projectId,
+    pageId,
     sessionId,
     agent,
     activePageEditorRef,
@@ -281,6 +286,7 @@ function ChatView(props: {
           workspaceSlug={workspaceSlug}
           sessionId={sessionId}
           projectId={projectId}
+          pageId={pageId}
           agent={agent}
           activePageEditorRef={activePageEditorRef}
           onSentRefreshSessions={onSentRefreshSessions}
@@ -406,11 +412,12 @@ function ChatThread(props: {
   workspaceSlug: string;
   sessionId: string;
   projectId: string | undefined;
+  pageId: string | undefined;
   agent: TAgent | undefined;
   activePageEditorRef: EditorRefApi | null;
   onSentRefreshSessions: () => void;
 }) {
-  const { workspaceSlug, sessionId, projectId, agent, activePageEditorRef, onSentRefreshSessions } = props;
+  const { workspaceSlug, sessionId, projectId, pageId, agent, activePageEditorRef, onSentRefreshSessions } = props;
   const { data, mutate } = useSWR(
     `agent-chat/${workspaceSlug}/${sessionId}`,
     () => chatService.getSession(workspaceSlug, sessionId),
@@ -515,6 +522,103 @@ function ChatThread(props: {
 
     const shouldWriteIntoEditor = Boolean(activePageEditorRef && !hasFiles && isEditorWritingRequest(trimmed));
 
+    if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
+      const document = activePageEditorRef.getDocument();
+      const documentMarkdown = activePageEditorRef.getMarkDown();
+      const cursorPosition = activePageEditorRef.getCurrentCursorPosition();
+      const mode: TAtlasDocWriteMode = documentMarkdown.trim().length > 0 ? "update" : "create";
+      let streamError: string | null = null;
+
+      setDraft("");
+      setPendingFiles([]);
+      activePageEditorRef.startAtlasReviewSession({
+        id: `local-atlas-doc-write-${Date.now()}`,
+        mode,
+        anchorPos: cursorPosition,
+      });
+
+      try {
+        await chatService.streamDocWrite(
+          workspaceSlug,
+          sessionId,
+          {
+            page_id: pageId,
+            project_id: projectId,
+            prompt: trimmed,
+            mode,
+            cursor_position: cursorPosition,
+            selection_text: activePageEditorRef.getSelectedText(),
+            document_markdown: documentMarkdown,
+            document_json: document.json,
+          },
+          (event: TAtlasDocWriteEvent) => {
+            if (event.event === "session_started") {
+              activePageEditorRef.startAtlasReviewSession({
+                id: event.session_id,
+                mode: event.mode,
+                anchorPos: cursorPosition,
+              });
+              void mutate(
+                (current) =>
+                  current ? { session: current.session, messages: [...current.messages, event.user_message] } : current,
+                { revalidate: false }
+              );
+            } else if (event.event === "proposal_started") {
+              activePageEditorRef.appendAtlasProposal({
+                id: event.proposal_id,
+                operation: event.operation,
+                status: "streaming",
+                anchorPos: cursorPosition,
+                targetBlockId: event.target_block_id || undefined,
+                targetOriginalText: event.target_original_text || undefined,
+                contentText: "",
+                contentHtml: "",
+              });
+            } else if (event.event === "proposal_delta") {
+              activePageEditorRef.updateAtlasProposal(event.proposal_id, {
+                contentText: event.content_text,
+                contentHtml: event.content_html,
+                status: "streaming",
+              });
+            } else if (event.event === "proposal_completed") {
+              activePageEditorRef.updateAtlasProposal(event.proposal_id, {
+                status: "pending",
+                contentText: event.content_text,
+                contentHtml: event.content_html,
+                targetBlockId: event.target_block_id || undefined,
+                targetOriginalText: event.target_original_text || undefined,
+              });
+            } else if (event.event === "session_completed") {
+              void mutate(
+                (current) =>
+                  current
+                    ? { session: current.session, messages: [...current.messages, event.assistant_message] }
+                    : current,
+                { revalidate: false }
+              );
+            } else if (event.event === "error") {
+              streamError = event.error;
+            }
+          }
+        );
+        if (streamError) throw new Error(streamError);
+        setToast({
+          type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
+          title: "Atlas drafted edits",
+          message: "Review them inline, then accept or reject each paragraph.",
+        });
+        await mutate();
+        onSentRefreshSessions();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Couldn't draft document edits.";
+        setToast({ type: TOAST_TYPE.ERROR, title: "Doc write failed", message: msg });
+        await mutate();
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
     const optimistic: TAgentChatMessage = {
       id: `local-${Date.now()}`,
       session: sessionId,
@@ -580,6 +684,7 @@ function ChatThread(props: {
     sessionId,
     workspaceSlug,
     projectId,
+    pageId,
     mutate,
     onSentRefreshSessions,
   ]);

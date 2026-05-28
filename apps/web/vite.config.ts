@@ -12,9 +12,20 @@ export default defineConfig(({ mode }) => {
 
   const devApiProxyTarget = process.env.VITE_DEV_API_PROXY_TARGET || "http://127.0.0.1:8000";
   const devApiProxyOrigin = new URL(devApiProxyTarget).origin;
+  const devProxyRedirectRewrites = [
+    ["https://app.dragonfruit.sh", process.env.VITE_WEB_BASE_URL],
+    ["https://admin.dragonfruit.sh", process.env.VITE_ADMIN_BASE_URL],
+    ["https://spaces.dragonfruit.sh", process.env.VITE_SPACE_BASE_URL],
+  ].filter((rewrite): rewrite is [string, string] => typeof rewrite[1] === "string" && rewrite[1].trim() !== "");
   const configureDevApiProxy: NonNullable<ProxyOptions["configure"]> = (proxy) => {
     proxy.on("proxyReq", (proxyReq) => proxyReq.setHeader("origin", devApiProxyOrigin));
     proxy.on("proxyRes", (proxyRes) => {
+      const locationHeader = proxyRes.headers.location;
+      if (typeof locationHeader === "string") {
+        const rewrite = devProxyRedirectRewrites.find(([from]) => locationHeader.startsWith(from));
+        if (rewrite) proxyRes.headers.location = locationHeader.replace(rewrite[0], rewrite[1]);
+      }
+
       const setCookieHeader = proxyRes.headers["set-cookie"];
       if (!setCookieHeader) return;
 
