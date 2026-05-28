@@ -26,6 +26,7 @@ import re
 import urllib.parse
 import urllib.request
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import StreamingHttpResponse
 from django.db import transaction
 from django.db.models import Q
@@ -301,7 +302,7 @@ def _extract_json_object(text: str) -> dict | None:
 
 
 def _doc_write_event(event: str, **payload):
-    return json.dumps({"event": event, **payload}, separators=(",", ":")) + "\n"
+    return json.dumps({"event": event, **payload}, cls=DjangoJSONEncoder, separators=(",", ":")) + "\n"
 
 
 def _plain_text_to_html(text: str) -> str:
