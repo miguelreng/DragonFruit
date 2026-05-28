@@ -169,6 +169,7 @@ class LLMProvider:
         *,
         system_prompt: str,
         user_prompt,
+        request_timeout: Optional[float] = None,
     ) -> LLMRunResult:
         """One-shot generate — no tool loop. Useful for tests and for
         simple "summarise / draft" features that don't need tool use.
@@ -186,6 +187,7 @@ class LLMProvider:
             user_prompt=user_prompt,
             tools=[],
             max_iterations=1,
+            request_timeout=request_timeout,
         )
 
     # ----------------------------------------------------------------- #
@@ -201,6 +203,7 @@ class LLMProvider:
         max_iterations: Optional[int] = None,
         is_cancelled: Optional[Callable[[], bool]] = None,
         on_tool_call: Optional[Callable[[Dict[str, Any]], None]] = None,
+        request_timeout: Optional[float] = None,
     ) -> LLMRunResult:
         """Drive a multi-turn tool-use loop.
 
@@ -239,15 +242,18 @@ class LLMProvider:
             result.iterations = iteration + 1
 
             try:
-                completion = litellm.completion(
-                    model=self._litellm_model(),
-                    api_key=self.api_key,
-                    api_base=self.api_base_url,
-                    messages=messages,
-                    tools=litellm_tools if litellm_tools else None,
+                completion_kwargs = {
+                    "model": self._litellm_model(),
+                    "api_key": self.api_key,
+                    "api_base": self.api_base_url,
+                    "messages": messages,
+                    "tools": litellm_tools if litellm_tools else None,
                     # Don't surface tool_choice='auto' explicitly — LiteLLM
                     # picks the right default per provider.
-                )
+                }
+                if request_timeout is not None:
+                    completion_kwargs["timeout"] = request_timeout
+                completion = litellm.completion(**completion_kwargs)
             except Exception:  # noqa: BLE001 — surface any provider error
                 logger.exception("llm call failed model=%s", self.model)
                 result.stopped_reason = "error"
