@@ -140,7 +140,7 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       const { itemKey } = props;
       const editorItems = getEditorMenuItems(editor);
 
-      const getEditorMenuItem = (itemKey: TEditorCommands) => editorItems.find((item) => item.key === itemKey);
+      const getEditorMenuItem = (commandKey: TEditorCommands) => editorItems.find((item) => item.key === commandKey);
 
       const item = getEditorMenuItem(itemKey);
       if (item) {
@@ -149,7 +149,7 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
         console.warn(`No command found for item: ${itemKey}`);
       }
     },
-    focus: (args) => editor?.commands.focus(args),
+    focus: (focusArgs) => editor?.commands.focus(focusArgs),
     getCoordsFromPos: (pos) => editor?.view.coordsAtPos(pos ?? editor.state.selection.from),
     getCurrentCursorPosition: () => editor?.state.selection.from,
     getAttributesWithExtendedMark: (mark, attribute) => {
@@ -195,7 +195,7 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       const { itemKey } = props;
       const editorItems = getEditorMenuItems(editor);
 
-      const getEditorMenuItem = (itemKey: TEditorCommands) => editorItems.find((item) => item.key === itemKey);
+      const getEditorMenuItem = (commandKey: TEditorCommands) => editorItems.find((item) => item.key === commandKey);
       const item = getEditorMenuItem(itemKey);
       if (!item) return false;
 
@@ -282,6 +282,27 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       const document = provider?.document;
       if (!document) return;
       Y.applyUpdate(document, value);
+    },
+    startAtlasReviewSession: (session) => {
+      editor?.commands.startAtlasReviewSession(session);
+    },
+    appendAtlasProposal: (proposal) => {
+      editor?.commands.appendAtlasProposal(proposal);
+    },
+    updateAtlasProposal: (id, patch) => {
+      editor?.commands.updateAtlasProposal(id, patch);
+    },
+    acceptAtlasProposal: (id) => {
+      editor?.commands.acceptAtlasProposal(id);
+    },
+    rejectAtlasProposal: (id) => {
+      editor?.commands.rejectAtlasProposal(id);
+    },
+    acceptAllAtlasProposals: () => {
+      editor?.commands.acceptAllAtlasProposals();
+    },
+    rejectAllAtlasProposals: () => {
+      editor?.commands.rejectAllAtlasProposals();
     },
     undo: () => editor?.commands.undo(),
   };

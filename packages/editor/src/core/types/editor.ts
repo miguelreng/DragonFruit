@@ -36,6 +36,9 @@ import type {
   TUserDetails,
   TExtendedEditorRefApi,
   EventToPayloadMap,
+  TAtlasDocReviewProposal,
+  TAtlasDocReviewProposalUpdate,
+  TAtlasDocReviewSession,
 } from "@/types";
 
 export type TEditorCommands =
@@ -145,6 +148,13 @@ export type CoreEditorRefApi = {
   setEditorValueAtCursorPosition: (content: Content) => void;
   setFocusAtPosition: (position: number) => void;
   setProviderDocument: (value: Uint8Array) => void;
+  startAtlasReviewSession: (session: TAtlasDocReviewSession) => void;
+  appendAtlasProposal: (proposal: TAtlasDocReviewProposal) => void;
+  updateAtlasProposal: (id: string, patch: TAtlasDocReviewProposalUpdate) => void;
+  acceptAtlasProposal: (id: string) => void;
+  rejectAtlasProposal: (id: string) => void;
+  acceptAllAtlasProposals: () => void;
+  rejectAllAtlasProposals: () => void;
   undo: () => void;
 };
 

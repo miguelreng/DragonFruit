@@ -15,6 +15,7 @@ from .base import (
     AgentStopEndpoint,
 )
 from .chat import (
+    AgentChatDocWriteEndpoint,
     AgentChatMessageEndpoint,
     AgentChatSessionDetailEndpoint,
     AgentChatSessionEndpoint,

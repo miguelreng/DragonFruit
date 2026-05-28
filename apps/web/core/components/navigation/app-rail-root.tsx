@@ -721,8 +721,8 @@ export const AppRailRoot = observer(() => {
           >
             <div
               className={cn({
-                "flex w-full flex-col items-start gap-0.5": isRailExpanded,
-                "flex flex-col items-center gap-0.5": !isRailExpanded,
+                "flex w-full flex-col items-start gap-1": isRailExpanded,
+                "flex flex-col items-center gap-1": !isRailExpanded,
               })}
             >
               <AppSidebarItemsRoot showLabel={showRailLabels} isInline={isRailExpanded} />
