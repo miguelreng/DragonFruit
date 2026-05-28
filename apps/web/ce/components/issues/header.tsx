@@ -154,7 +154,6 @@ export const IssuesHeader = observer(function IssuesHeader() {
             projectId={projectId}
             currentProjectDetails={currentProjectDetails}
             workspaceSlug={workspaceSlug}
-            canUserCreateIssue={canUserCreateIssue}
           />
         </div>
         {canUserCreateIssue && (

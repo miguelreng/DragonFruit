@@ -14,6 +14,7 @@ import {
   GridIcon,
   LinkSquare01Icon,
   ListViewIcon,
+  MoreHorizontal,
   PencilEdit02Icon,
   PlusSignIcon,
 } from "@hugeicons/core-free-icons";
@@ -26,7 +27,7 @@ import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
-import { Breadcrumbs, EModalWidth, Header, ModalCore } from "@plane/ui";
+import { Breadcrumbs, CustomMenu, EModalWidth, Header, ModalCore } from "@plane/ui";
 import { cn, renderFormattedDate } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { AppHeader } from "@/components/core/app-header";
@@ -314,35 +315,64 @@ function BookmarkCard(props: {
   const isExternal = !!bookmark.url;
   const imageUrl = bookmarkPreviewImage(bookmark);
   const hasTwitterScreenshot = bookmarkHasTwitterScreenshot(bookmark, imageUrl);
-  const faviconUrl = typeof bookmark.metadata?.favicon_url === "string" ? bookmark.metadata.favicon_url : "";
   const cardBody = (
-    <div className="group flex h-[260px] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 transition-colors hover:border-strong">
-      <div className="flex items-start gap-2.5">
-        <span className="grid size-5 shrink-0 place-items-center">
-          {isExternal ? (
-            <HugeiconsIcon
-              icon={LinkSquare01Icon}
-              className="size-4 text-tertiary"
-              color="currentColor"
-              strokeWidth={1.5}
-            />
-          ) : faviconUrl ? (
-            <img src={faviconUrl} alt="" className="size-4 rounded" />
-          ) : (
-            <HugeiconsIcon
-              icon={BookmarkIcon}
-              className="size-4 text-tertiary"
-              color="currentColor"
-              strokeWidth={1.5}
-            />
-          )}
+    <div className="group relative flex h-[312px] flex-col gap-2 rounded-2xl border border-subtle bg-surface-1 p-4 shadow-none transition-colors hover:border-strong">
+      <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+        <CustomMenu
+          placement="bottom-end"
+          closeOnSelect
+          useCaptureForOutsideClick
+          customButton={
+            <span className="shadow-sm grid size-6 place-items-center rounded-md bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
+              <HugeiconsIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
+            </span>
+          }
+        >
+          <CustomMenu.MenuItem
+            onClick={() => {
+              void navigator.clipboard?.writeText(href);
+            }}
+          >
+            <span className="flex items-center gap-2">
+              <HugeiconsIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              Copy link
+            </span>
+          </CustomMenu.MenuItem>
+          <CustomMenu.MenuItem
+            onClick={() => {
+              onEdit(bookmark);
+            }}
+          >
+            <span className="flex items-center gap-2">
+              <HugeiconsIcon icon={PencilEdit02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              Edit bookmark
+            </span>
+          </CustomMenu.MenuItem>
+          <CustomMenu.MenuItem
+            onClick={() => {
+              onDelete(bookmark);
+            }}
+            className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
+          >
+            <span className="flex items-center gap-2">
+              <HugeiconsIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              Delete bookmark
+            </span>
+          </CustomMenu.MenuItem>
+        </CustomMenu>
+      </div>
+      <div className="flex h-[72px] items-start gap-2.5 overflow-hidden">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
+          <HugeiconsIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
         </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 text-13 leading-tight font-semibold text-primary">{bookmark.title}</h3>
-          <p className="mt-1 truncate text-11 text-tertiary">{bookmarkSource(bookmark)}</p>
+        <div className="min-w-0 flex-1 pr-8">
+          <h3 className="line-clamp-2 text-14 leading-snug font-medium text-primary">{bookmark.title}</h3>
+          <p className="mt-1 line-clamp-1 text-12 leading-relaxed text-secondary">
+            {bookmark.description || bookmarkSource(bookmark)}
+          </p>
         </div>
       </div>
-      <div className="relative flex-1 overflow-hidden rounded-md border border-subtle/60 bg-layer-1">
+      <div className="relative min-h-[126px] flex-1 overflow-hidden rounded-xl bg-layer-1/40">
         {imageUrl ? (
           <>
             <img src={imageUrl} alt="" className="h-full w-full object-cover" />
@@ -361,70 +391,17 @@ function BookmarkCard(props: {
               </button>
             )}
           </>
-        ) : bookmark.description ? (
-          <p
-            className="px-3 pt-3 pb-6 text-12 leading-relaxed text-secondary"
-            style={{
-              WebkitMaskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
-              maskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
-            }}
-          >
-            {bookmark.description}
-          </p>
         ) : (
-          <div className="absolute inset-0 grid place-items-center text-tertiary/60">
-            <HugeiconsIcon icon={BookmarkIcon} className="size-8" color="currentColor" strokeWidth={1.5} />
+          <div className="absolute inset-0 grid place-items-center px-6 text-center text-12 leading-relaxed text-tertiary/40">
+            <span>{bookmark.description ? "Preview unavailable" : "No preview available"}</span>
           </div>
         )}
       </div>
-      <div className="flex min-h-6 items-center gap-1.5 text-11 text-tertiary">
-        {showProject && bookmark.project_name && (
-          <span className="inline-flex max-w-[8rem] rounded-sm bg-layer-1 px-1.5 py-0.5 text-secondary">
-            <span className="truncate">{bookmark.project_name}</span>
-          </span>
-        )}
-        {bookmark.tags.slice(0, 2).map((tag) => (
-          <span key={tag} className="rounded-sm bg-layer-1 px-1.5 py-0.5 text-tertiary">
-            {tag}
-          </span>
-        ))}
-        {bookmark.tags.length > 2 && <span>+{bookmark.tags.length - 2}</span>}
-        {bookmark.updated_at && <span className="ml-auto shrink-0">{renderFormattedDate(bookmark.updated_at)}</span>}
-      </div>
-      <div className="flex items-center justify-end gap-1 border-t border-subtle pt-2">
-        <button
-          type="button"
-          className="grid size-7 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
-          onClick={(event) => {
-            event.preventDefault();
-            void navigator.clipboard?.writeText(href);
-          }}
-          aria-label="Copy bookmark link"
-        >
-          <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-        </button>
-        <button
-          type="button"
-          className="grid size-7 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
-          onClick={(event) => {
-            event.preventDefault();
-            onEdit(bookmark);
-          }}
-          aria-label="Edit bookmark"
-        >
-          <HugeiconsIcon icon={PencilEdit02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-        </button>
-        <button
-          type="button"
-          className="hover:bg-red-500/10 hover:text-red-500 grid size-7 place-items-center rounded-md text-icon-tertiary"
-          onClick={(event) => {
-            event.preventDefault();
-            onDelete(bookmark);
-          }}
-          aria-label="Delete bookmark"
-        >
-          <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-        </button>
+      <div className="mt-auto flex items-center justify-between gap-2 pt-1 text-11 text-tertiary">
+        <div className="min-w-0 truncate">
+          {showProject && bookmark.project_name ? bookmark.project_name : (bookmark.tags[0] ?? "")}
+        </div>
+        {bookmark.updated_at && <span className="shrink-0">{renderFormattedDate(bookmark.updated_at)}</span>}
       </div>
     </div>
   );
@@ -481,16 +458,7 @@ function BookmarkListItem(props: {
       isMobile={isMobile}
       parentRef={parentRef}
       prependTitleElement={
-        isExternal ? (
-          <HugeiconsIcon
-            icon={LinkSquare01Icon}
-            className="size-4 text-tertiary"
-            color="currentColor"
-            strokeWidth={1.5}
-          />
-        ) : (
-          <HugeiconsIcon icon={BookmarkIcon} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
-        )
+        <HugeiconsIcon icon={BookmarkIcon} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
       }
       actionableItems={
         <div className="flex items-center gap-3 text-13 text-tertiary">

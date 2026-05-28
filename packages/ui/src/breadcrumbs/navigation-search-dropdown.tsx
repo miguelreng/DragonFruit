@@ -12,6 +12,52 @@ import { CustomSearchSelect } from "../dropdowns";
 import { cn } from "../utils";
 import { Breadcrumbs } from "./breadcrumbs";
 
+const BreadcrumbIconWrapper = React.memo(function BreadcrumbIconWrapper({ icon }: { icon: React.ReactNode }) {
+  return <div className="inline-flex size-4 shrink-0 items-center justify-center overflow-hidden !text-16">{icon}</div>;
+});
+
+BreadcrumbIconWrapper.displayName = "BreadcrumbIconWrapper";
+
+const BreadcrumbLabelWrapper = React.memo(function BreadcrumbLabelWrapper({
+  label,
+  className = "",
+}: {
+  label: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative inline-flex max-w-[150px] items-center truncate overflow-hidden leading-none text-primary",
+        className
+      )}
+    >
+      {label}
+    </div>
+  );
+});
+
+BreadcrumbLabelWrapper.displayName = "BreadcrumbLabelWrapper";
+
+const BreadcrumbContent = React.memo(function BreadcrumbContent({
+  icon,
+  label,
+}: {
+  icon?: React.ReactNode;
+  label?: React.ReactNode;
+}) {
+  if (!icon && !label) return null;
+
+  return (
+    <div className="inline-flex items-center gap-1.5 leading-none">
+      {icon && <BreadcrumbIconWrapper icon={icon} />}
+      {label && <BreadcrumbLabelWrapper label={label} />}
+    </div>
+  );
+});
+
+BreadcrumbContent.displayName = "BreadcrumbContent";
+
 type TBreadcrumbNavigationSearchDropdownProps = {
   icon?: React.ReactNode;
   title?: string;
@@ -76,13 +122,11 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
               )}
             >
               {shouldTruncate && <div className="flex text-tertiary @4xl:hidden">...</div>}
-              <div
-                className={cn("flex gap-2", {
-                  "hidden items-center gap-2 @4xl:flex": shouldTruncate,
-                })}
-              >
-                {icon && <Breadcrumbs.Icon>{icon}</Breadcrumbs.Icon>}
-                <Breadcrumbs.Label className={titleClassName}>{title}</Breadcrumbs.Label>
+              <div className={cn("flex items-center leading-none", { "hidden @4xl:flex": shouldTruncate })}>
+                <BreadcrumbContent
+                  icon={icon}
+                  label={<BreadcrumbLabelWrapper label={title} className={titleClassName} />}
+                />
               </div>
             </button>
           </Tooltip>

@@ -157,7 +157,7 @@ function AgentsSettingsPage({ params }: Route.ComponentProps) {
   return (
     <SettingsContentWrapper header={<AgentsWorkspaceSettingsHeader />} hugging>
       <PageHead title={pageTitle} />
-      <div className="w-full">
+      <div className="mx-auto flex w-full max-w-5xl flex-col">
         {editingAgent && (
           <AgentFormModal
             mode="edit"

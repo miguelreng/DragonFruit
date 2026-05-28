@@ -27,7 +27,7 @@ function AboutSettingsPage() {
           title={t("workspace_settings.settings.about.heading")}
           description={t("workspace_settings.settings.about.description")}
         />
-        <article className="mt-8 flex max-w-[560px] flex-col gap-5 text-body-md-regular text-secondary">
+        <article className="font-newsreader mt-8 flex max-w-[560px] flex-col gap-5 text-[17px] leading-[1.65] text-secondary">
           <p>Hi —</p>
           <p>
             DragonFruit started as a small frustration. I love how Linear feels, I love how Notion docs read, and I love

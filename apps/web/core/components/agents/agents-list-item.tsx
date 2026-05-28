@@ -107,7 +107,7 @@ export function AgentsListItem({ agent, onToggle, onEdit, onUpdateTrigger }: IAg
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
           aria-expanded={expanded}
           aria-label={expanded ? "Collapse Atlas profile" : "Expand Atlas profile"}
         >

@@ -138,11 +138,11 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
       className={cn(
         // Base layout and positioning
         "group flex w-[350px] max-w-[calc(100vw-2rem)] items-start rounded-lg border border-subtle-1 shadow-overlay-100",
-        "absolute top-3 right-3 z-[calc(1000-var(--toast-index))]",
+        "absolute right-3 bottom-3 z-[calc(1000-var(--toast-index))]",
         "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] select-none",
 
         // Default transform with stacking and scaling
-        "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)+calc(min(var(--toast-index),10)*10px)))_scale(calc(max(0,1-(var(--toast-index)*0.1))))]",
+        "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(-1*(var(--toast-swipe-movement-y)+calc(min(var(--toast-index),10)*10px))))_scale(calc(max(0,1-(var(--toast-index)*0.1))))]",
 
         // Pseudo-element for gap spacing
         "after:absolute after:top-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
@@ -151,10 +151,10 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         "data-[ending-style]:opacity-0 data-[limited]:opacity-0",
 
         // Starting animation
-        "data-[starting-style]:[transform:translateY(-150%)]",
+        "data-[starting-style]:[transform:translateY(150%)]",
 
         // Expanded state transform
-        "data-[expanded]:[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-offset-y)+calc(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y)))]",
+        "data-[expanded]:[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(-1*(var(--toast-offset-y)+calc(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y))))]",
 
         // Swipe direction endings - consolidated
         "data-[ending-style]:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
@@ -163,7 +163,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         "data-[ending-style]:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
 
         // Default ending transform for non-limited toasts
-        "data-[ending-style]:[&:not([data-limited])]:[transform:translateY(-150%)]",
+        "data-[ending-style]:[&:not([data-limited])]:[transform:translateY(150%)]",
 
         data.backgroundColorClassName,
         data.borderColorClassName

@@ -7,9 +7,9 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { CircleUserRound } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
+import { Avatar } from "@plane/propel/avatar";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
 import type { IUser, TUserProfile } from "@plane/types";
@@ -25,6 +25,11 @@ import { useInstance } from "@/hooks/store/use-instance";
 import { useUser, useUserProfile } from "@/hooks/store/user";
 // utils
 import { validatePersonName, validateDisplayName } from "@plane/utils";
+
+const buildGeneratedAvatarUrl = (seed: string) =>
+  `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(seed)}`;
+
+const buildRandomAvatarUrl = () => buildGeneratedAvatarUrl(crypto.randomUUID());
 
 type TUserProfileForm = {
   avatar_url: string;
@@ -54,6 +59,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
   // form info
   const {
     handleSubmit,
+    getValues,
     watch,
     control,
     setValue,
@@ -78,6 +84,11 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
   const { config } = useInstance();
 
   const isSMTPConfigured = config?.is_smtp_configured || false;
+  const handleRandomizeAvatar = async () => {
+    const avatarUrl = buildRandomAvatarUrl();
+    setValue("avatar_url", avatarUrl, { shouldDirty: true, shouldTouch: true });
+    await onSubmit({ ...getValues(), avatar_url: avatarUrl });
+  };
 
   const handleProfilePictureDelete = async (url: string | null | undefined) => {
     if (!url) return;
@@ -179,22 +190,25 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
       />
       <form onSubmit={handleSubmit(onSubmit)} className="w-full">
         <div className="flex w-full flex-col gap-7">
-          <div className="flex h-24 items-end">
-            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-surface-2">
+          <div className="flex h-16 items-end">
+            <div className="flex items-center gap-3">
               <button type="button" onClick={() => setIsImageUploadModalOpen(true)}>
-                {!userAvatar || userAvatar === "" ? (
-                  <div className="h-16 w-16 rounded-md bg-layer-1 p-2">
-                    <CircleUserRound className="h-full w-full text-secondary" />
-                  </div>
-                ) : (
-                  <div className="relative h-16 w-16 overflow-hidden">
-                    <img
-                      src={getFileURL(userAvatar)}
-                      className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
-                      alt={currentUser?.display_name}
-                    />
-                  </div>
-                )}
+                <div className="rounded-lg border border-subtle bg-layer-2 p-1 transition-colors hover:bg-layer-1">
+                  <Avatar
+                    name={currentUser?.display_name ?? user.display_name}
+                    src={userAvatar ? getFileURL(userAvatar) : undefined}
+                    size={44}
+                    shape="square"
+                    className="text-14"
+                  />
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleRandomizeAvatar()}
+                className="rounded-md border border-subtle bg-layer-2 px-2.5 py-1 text-11 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+              >
+                Randomize avatar
               </button>
             </div>
           </div>

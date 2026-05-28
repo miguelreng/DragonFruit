@@ -32,6 +32,7 @@ export const PageEditorHeaderRoot = observer(function PageEditorHeaderRoot(props
   const isLogoSelected = !!logo_props?.in_use;
   const isTitleEmpty = !name || name.trim() === "";
   const hasCover = !!readPageCoverId(page.view_props);
+  const showLogoOverlay = hasCover && isLogoSelected;
   // Icon + Cover action buttons sit on the same row. Both fade in on header
   // hover unless the title is empty (then they're visible to nudge the user).
   const showActionsByDefault = isTitleEmpty;
@@ -40,18 +41,29 @@ export const PageEditorHeaderRoot = observer(function PageEditorHeaderRoot(props
   // logo set + cover set (cover-picker moves to an overlay on the banner)
   // and the title isn't empty (so the empty-state nudge isn't needed). This
   // keeps the cover close to the title instead of a dead 48px gap below.
-  const showActionRow = !isLogoSelected || !hasCover || showActionsByDefault;
+  const showActionRow = !showLogoOverlay && (!isLogoSelected || !hasCover || showActionsByDefault);
   const showIconButtonInRow = !isLogoSelected;
   // Cover picker stays inline in the row only when no cover is set yet —
   // once a cover exists, the "Change cover" affordance lives as an overlay
   // on the banner itself, freeing up the action row.
   const showCoverButtonInRow = !hasCover;
+  const logoPickerWrapperClassName = cn("flex w-full flex-shrink-0", {
+    "mt-2": isLogoSelected,
+    "mt-1": !isLogoSelected,
+  });
+  const actionRowClassName = cn("flex items-end gap-1 text-left", {
+    "h-[48px]": isLogoSelected,
+    "h-[36px]": !isLogoSelected,
+  });
 
   return (
     <>
-      <PageCover page={page} />
+      <PageCover
+        page={page}
+        logoOverlay={showLogoOverlay ? <PageEditorHeaderLogoPicker page={page} variant="overlay" /> : null}
+      />
       {showActionRow && (
-        <div className="flex h-[48px] items-end gap-1 text-left">
+        <div className={actionRowClassName}>
           {showIconButtonInRow && (
             <div
               className={cn("opacity-0 transition-all duration-200 group-hover/page-header:opacity-100", {
@@ -101,7 +113,7 @@ export const PageEditorHeaderRoot = observer(function PageEditorHeaderRoot(props
           )}
         </div>
       )}
-      <PageEditorHeaderLogoPicker className="mt-2 flex w-full flex-shrink-0" page={page} />
+      {!showLogoOverlay ? <PageEditorHeaderLogoPicker className={logoPickerWrapperClassName} page={page} /> : null}
     </>
   );
 });

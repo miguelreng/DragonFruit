@@ -23,10 +23,11 @@ type Props = {
   handleOpenNavigationPane: () => void;
   isNavigationPaneOpen: boolean;
   page: TPageInstance;
+  showNavigationPaneButton?: boolean;
 };
 
 export const PageEditorToolbarRoot = observer(function PageEditorToolbarRoot(props: Props) {
-  const { handleOpenNavigationPane, isNavigationPaneOpen, page } = props;
+  const { handleOpenNavigationPane, isNavigationPaneOpen, page, showNavigationPaneButton = true } = props;
   // translation
   const { t } = useTranslation();
   // derived values
@@ -59,7 +60,7 @@ export const PageEditorToolbarRoot = observer(function PageEditorToolbarRoot(pro
             <div className="flex-1">{editorRef && <PageToolbar editorRef={editorRef} />}</div>
             <div className="flex items-center gap-2">
               <PageCollaboratorsList page={page} />
-              {!isNavigationPaneOpen && (
+              {showNavigationPaneButton && !isNavigationPaneOpen && (
                 <button
                   type="button"
                   className="grid size-6 shrink-0 place-items-center rounded-sm text-secondary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
@@ -74,7 +75,7 @@ export const PageEditorToolbarRoot = observer(function PageEditorToolbarRoot(pro
       </div>
       {shouldHideToolbar && (
         <div className="absolute top-0 right-0 z-10 flex h-[52px] items-center px-page-x">
-          {!isNavigationPaneOpen && (
+          {showNavigationPaneButton && !isNavigationPaneOpen && (
             <Tooltip tooltipContent={t("page_navigation_pane.open_button")}>
               <button
                 type="button"

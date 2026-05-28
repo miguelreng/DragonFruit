@@ -40,32 +40,43 @@ export function PageSyncingBadge({ syncStatus }: Props) {
 
   if (!isVisible || syncStatus === "synced") return null;
 
+  const syncingContent = {
+    label: "Syncing",
+    variant: "neutral" as const,
+    icon: <Dot />,
+  };
+
+  const errorContent = {
+    label: "Connection lost",
+    tooltipHeading: "Connection lost",
+    tooltipContent:
+      "We're having trouble connecting to the websocket server. Your changes will be synced and saved every 10 seconds.",
+  };
+
   const badgeContent = {
     syncing: {
-      label: "Syncing...",
-      tooltipHeading: "Syncing...",
-      tooltipContent: "Your changes are being synced with the server. You can continue making changes.",
+      ...syncingContent,
     },
     error: {
-      label: "Connection lost",
-      tooltipHeading: "Connection lost",
-      tooltipContent:
-        "We're having trouble connecting to the websocket server. Your changes will be synced and saved every 10 seconds.",
+      ...errorContent,
     },
   };
 
-  // This way we guarantee badgeContent is defined
-  const content = badgeContent[syncStatus];
+  if (syncStatus === "syncing") {
+    return (
+      <span className="animate-quickFadeIn">
+        <Badge variant={badgeContent.syncing.variant} size="base" prependIcon={badgeContent.syncing.icon}>
+          {badgeContent.syncing.label}
+        </Badge>
+      </span>
+    );
+  }
 
   return (
-    <Tooltip tooltipHeading={content.tooltipHeading} tooltipContent={content.tooltipContent}>
+    <Tooltip tooltipHeading={badgeContent.error.tooltipHeading} tooltipContent={badgeContent.error.tooltipContent}>
       <span className="animate-quickFadeIn">
-        <Badge
-          variant={syncStatus === "syncing" ? "brand" : "danger"}
-          size="lg"
-          prependIcon={syncStatus === "syncing" ? <Dot /> : <CloudOff />}
-        >
-          {content.label}
+        <Badge variant="danger" size="base" prependIcon={<CloudOff />}>
+          {badgeContent.error.label}
         </Badge>
       </span>
     </Tooltip>

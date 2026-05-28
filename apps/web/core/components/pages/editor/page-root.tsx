@@ -70,10 +70,8 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
   // derived values
   const {
     isContentEditable,
-    view_props,
     editor: { setEditorRef },
   } = page;
-  const isFocusMode = Boolean(view_props?.focus_mode);
   // page fallback
   const { isFetchingFallbackBinary } = usePageFallback({
     editorRef,
@@ -167,11 +165,10 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
     [setEditorRef]
   );
 
-  // Doc pages get the rich-text toolbar (formatting) and the right-hand
-  // navigation pane (Outline / Info / Assets). Whiteboard pages have neither
-  // headings nor uploaded assets, so the pane's empty states ("Missing
-  // headings", etc.) are noise — skip both surfaces for them.
-  const isCanvasPage = page.page_type === "whiteboard";
+  // Doc pages keep the rich-text toolbar. The right-hand navigation pane is
+  // intentionally disabled in this app, but the formatting toolbar remains.
+  const shouldShowToolbar = page.page_type !== "whiteboard";
+  const shouldShowNavigationPane = false;
 
   return (
     <div className="relative flex size-full overflow-hidden transition-all duration-300 ease-in-out">
@@ -184,11 +181,12 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           restoreEnabled={isContentEditable}
           storeType={storeType}
         />
-        {!isCanvasPage && !isFocusMode && (
+        {shouldShowToolbar && (
           <PageEditorToolbarRoot
             handleOpenNavigationPane={handleOpenNavigationPane}
-            isNavigationPaneOpen={isNavigationPaneOpen}
+            isNavigationPaneOpen={true}
             page={page}
+            showNavigationPaneButton={false}
           />
         )}
         {showContentTooLargeBanner && <ContentLimitBanner className="px-page-x" />}
@@ -202,9 +200,9 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
               editorReady={editorReady}
               editorForwardRef={editorRef}
               handleEditorReady={handleEditorReady}
-              handleOpenNavigationPane={handleOpenNavigationPane}
+              handleOpenNavigationPane={shouldShowNavigationPane ? handleOpenNavigationPane : () => undefined}
               handlers={handlers}
-              isNavigationPaneOpen={isNavigationPaneOpen}
+              isNavigationPaneOpen={shouldShowNavigationPane ? isNavigationPaneOpen : true}
               page={page}
               projectId={projectId}
               storeType={storeType}
@@ -217,7 +215,7 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           )}
         </Suspense>
       </div>
-      {!isCanvasPage && !isFocusMode && (
+      {shouldShowNavigationPane && (
         <PageNavigationPaneRoot
           storeType={storeType}
           handleClose={handleCloseNavigationPane}

@@ -151,7 +151,7 @@ export function ProjectTemplateModal(props: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-tertiary hover:bg-layer-2 hover:text-primary"
+            className="rounded-lg p-1 text-tertiary hover:bg-layer-2 hover:text-primary"
             aria-label="Close"
           >
             <X className="size-3.5" />
@@ -198,7 +198,7 @@ export function ProjectTemplateModal(props: Props) {
                     type="button"
                     onClick={() => setNetwork(opt.value)}
                     className={cn(
-                      "flex flex-col items-start gap-0.5 rounded-md border-[0.5px] px-3 py-2 text-left transition-colors",
+                      "flex flex-col items-start gap-0.5 rounded-lg border-[0.5px] px-3 py-2 text-left transition-colors",
                       network === opt.value
                         ? "border-accent-strong bg-accent-primary/5"
                         : "border-subtle bg-layer-1 hover:bg-layer-2"
@@ -235,7 +235,7 @@ export function ProjectTemplateModal(props: Props) {
                           priority: e.target.value as TProjectTemplateInitialTask["priority"],
                         })
                       }
-                      className="rounded border-[0.5px] border-subtle bg-layer-2 px-1.5 py-1 text-12 text-secondary outline-none"
+                      className="rounded-lg border-[0.5px] border-subtle bg-layer-2 px-1.5 py-1 text-12 text-secondary outline-none"
                     >
                       {PRIORITY_OPTIONS.map((p) => (
                         <option key={p} value={p}>
@@ -246,7 +246,7 @@ export function ProjectTemplateModal(props: Props) {
                     <button
                       type="button"
                       onClick={() => handleRemoveTask(row._key)}
-                      className="grid size-7 place-items-center rounded text-tertiary hover:bg-layer-2 hover:text-danger-primary"
+                      className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2 hover:text-danger-primary"
                       aria-label="Remove task"
                     >
                       <Trash2 className="size-3.5" />
@@ -257,7 +257,7 @@ export function ProjectTemplateModal(props: Props) {
                   <button
                     type="button"
                     onClick={handleAddTask}
-                    className="inline-flex items-center gap-1.5 rounded-md border-[0.5px] border-dashed border-subtle px-3 py-1.5 text-12 text-secondary hover:bg-layer-2 hover:text-primary"
+                    className="inline-flex items-center gap-1.5 rounded-lg border-[0.5px] border-dashed border-subtle px-3 py-1.5 text-12 text-secondary hover:bg-layer-2 hover:text-primary"
                   >
                     <Plus className="size-3" />
                     Add task

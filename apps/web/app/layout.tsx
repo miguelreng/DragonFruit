@@ -18,10 +18,9 @@ import { cn } from "@plane/utils";
 // assets
 import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";
 import favicon32 from "@/app/assets/favicon/favicon-32x32.png?url";
-import faviconIco from "@/app/assets/favicon/favicon.ico?url";
-import faviconSvg from "@/app/assets/favicon/app.svg?url";
 import icon180 from "@/app/assets/icons/icon-180x180.png?url";
 import icon512 from "@/app/assets/icons/icon-512x512.png?url";
+import ogLandingImage from "@/app/assets/og-landing.png?url";
 
 // local
 import { AppProvider } from "./provider";
@@ -44,10 +43,12 @@ export const meta = () => [
     content: SITE_DESCRIPTION,
   },
   { property: "og:url", content: "https://dragonfruit.app/" },
+  { property: "og:image", content: ogLandingImage },
   { property: "og:image:width", content: "1200" },
   { property: "og:image:height", content: "630" },
   { property: "og:image:alt", content: "DragonFruit — Beautiful project management & docs" },
   { name: "twitter:card", content: "summary_large_image" },
+  { name: "twitter:image", content: ogLandingImage },
   { name: "twitter:image:width", content: "1200" },
   { name: "twitter:image:height", content: "630" },
   { name: "twitter:image:alt", content: "DragonFruit — Beautiful project management & docs" },
@@ -60,10 +61,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta name="theme-color" content="#fff" />
-        <link rel="icon" type="image/svg+xml" href={faviconSvg} />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="icon" type="image/png" sizes="32x32" href={favicon32} />
         <link rel="icon" type="image/png" sizes="16x16" href={favicon16} />
-        <link rel="shortcut icon" href={faviconIco} />
+        <link rel="shortcut icon" href="/favicon.ico" />
         {/* Meta info for PWA */}
         <meta name="application-name" content="DragonFruit" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

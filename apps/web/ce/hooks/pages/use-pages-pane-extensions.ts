@@ -30,9 +30,14 @@ export const usePagesPaneExtensions = (_params: TPageExtensionHookParams) => {
   const searchParams = useSearchParams();
 
   // Generic navigation pane logic - hook manages feature-specific routing
-  const navigationPaneQueryParam = searchParams.get(
-    PAGE_NAVIGATION_PANE_TABS_QUERY_PARAM
-  ) as TPageNavigationPaneTab | null;
+  const fallbackNavigationPaneQueryParam =
+    typeof window !== "undefined"
+      ? (new URLSearchParams(window.location.search).get(
+          PAGE_NAVIGATION_PANE_TABS_QUERY_PARAM
+        ) as TPageNavigationPaneTab | null)
+      : null;
+  const navigationPaneQueryParam = (searchParams.get(PAGE_NAVIGATION_PANE_TABS_QUERY_PARAM) ??
+    fallbackNavigationPaneQueryParam) as TPageNavigationPaneTab | null;
 
   const isNavigationPaneOpen =
     !!navigationPaneQueryParam && PAGE_NAVIGATION_PANE_TAB_KEYS.includes(navigationPaneQueryParam);
