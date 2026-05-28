@@ -8,14 +8,18 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { Link } from "react-router";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
+import { Archive02Icon, Copy01Icon, Delete02Icon, LinkSquare01Icon, MoreHorizontal } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { ListBullets, SquaresFour } from "@phosphor-icons/react";
 import { ListFilter, PaintBoard } from "@/components/icons/lucide-shim";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@plane/propel/icons";
-import { Breadcrumbs, Header } from "@plane/ui";
-import { cn, getPageName, renderFormattedDate } from "@plane/utils";
+import { ArchiveRestoreIcon } from "@plane/icons";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { Breadcrumbs, CustomMenu, Header } from "@plane/ui";
+import { cn, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
 import type { TPage } from "@plane/types";
 import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
@@ -150,7 +154,13 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredPages.map((page) => (
-                <DocCard key={page.id} page={page} workspaceSlug={workspaceSlug} getProjectById={getProjectById} />
+                <DocCard
+                  key={page.id}
+                  page={page}
+                  pageType={pageType}
+                  workspaceSlug={workspaceSlug}
+                  getProjectById={getProjectById}
+                />
               ))}
             </div>
           </div>
@@ -265,69 +275,177 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
 
 type DocCardProps = {
   page: TPage;
+  pageType: TPage["page_type"];
   workspaceSlug: string;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
 };
 
-function DocCard({ page, workspaceSlug, getProjectById }: DocCardProps) {
+function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps) {
+  const { mutate } = useSWRConfig();
   const projectIds = page.project_ids ?? [];
   const primaryProjectId = projectIds[0];
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
   const itemLink =
     primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : null;
   const FallbackIcon = page.page_type === "whiteboard" ? PaintBoard : PageIcon;
-  const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
+  const pagesKey = `WORKSPACE_PAGES_${workspaceSlug}_${pageType}`;
+
+  const refreshPages = async () => {
+    await mutate(pagesKey);
+  };
+
+  const handleCopyLink = async () => {
+    if (!itemLink) return;
+    await copyUrlToClipboard(itemLink);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Link copied",
+      message: "Doc link copied to clipboard.",
+    });
+  };
+
+  const handleDuplicate = async () => {
+    if (!primaryProjectId || !page.id) return;
+    try {
+      await pageService.duplicate(workspaceSlug, primaryProjectId, page.id);
+      await refreshPages();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Page duplicated successfully.",
+      });
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Page could not be duplicated. Please try again later.",
+      });
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!primaryProjectId || !page.id) return;
+    try {
+      if (page.archived_at) {
+        await pageService.restore(workspaceSlug, primaryProjectId, page.id);
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Success!",
+          message: "Page restored successfully.",
+        });
+      } else {
+        await pageService.archive(workspaceSlug, primaryProjectId, page.id);
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Success!",
+          message: "Page archived successfully.",
+        });
+      }
+      await refreshPages();
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: page.archived_at
+          ? "Page could not be restored. Please try again later."
+          : "Page could not be archived. Please try again later.",
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!primaryProjectId || !page.id) return;
+    const confirmed = window.confirm(`Delete ${getPageName(page.name)}? This can't be undone.`);
+    if (!confirmed) return;
+    try {
+      await pageService.remove(workspaceSlug, primaryProjectId, page.id);
+      await refreshPages();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Page deleted successfully.",
+      });
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Page could not be deleted. Please try again later.",
+      });
+    }
+  };
 
   const card = (
     <div
       className={cn(
-        "group flex h-[260px] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 transition-colors",
+        "group relative flex h-[240px] flex-col gap-3 rounded-2xl border border-subtle bg-surface-1 p-4 transition-colors",
         { "hover:border-strong": itemLink, "opacity-60": !itemLink }
       )}
     >
       <div className="flex items-start gap-2.5">
-        <span className="grid size-5 shrink-0 place-items-center">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
           {page.logo_props?.in_use ? (
-            <Logo logo={page.logo_props} size={18} type="lucide" />
+            <Logo logo={page.logo_props} size={16} type="lucide" />
           ) : (
             <FallbackIcon className="size-4 text-tertiary" />
           )}
         </span>
-        <h3 className="line-clamp-2 flex-1 text-13 leading-tight font-semibold text-primary">
-          {getPageName(page.name)}
-        </h3>
+        <div className="min-w-0 flex-1 pr-8">
+          <h3 className="line-clamp-2 text-14 leading-snug font-medium text-primary">{getPageName(page.name)}</h3>
+        </div>
       </div>
-      {tags.length > 0 && (
-        <div className="flex min-h-5 items-center gap-1 overflow-hidden">
-          {tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="max-w-[90px] truncate rounded-sm border border-subtle px-1.5 py-0.5 text-10 text-secondary"
+      {primaryProjectId && page.id && (
+        <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+          <CustomMenu
+            ariaLabel="Doc actions"
+            placement="bottom-end"
+            closeOnSelect
+            useCaptureForOutsideClick
+            customButton={
+              <span className="shadow-sm grid size-6 place-items-center rounded-md bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
+                <HugeiconsIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
+              </span>
+            }
+          >
+            <CustomMenu.MenuItem onClick={() => void handleCopyLink()}>
+              <span className="flex items-center gap-2">
+                <HugeiconsIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                Copy link
+              </span>
+            </CustomMenu.MenuItem>
+            <CustomMenu.MenuItem onClick={() => void handleDuplicate()}>
+              <span className="flex items-center gap-2">
+                <HugeiconsIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                Duplicate
+              </span>
+            </CustomMenu.MenuItem>
+            <CustomMenu.MenuItem onClick={() => void handleArchive()}>
+              <span className="flex items-center gap-2">
+                {page.archived_at ? (
+                  <ArchiveRestoreIcon className="size-4" />
+                ) : (
+                  <HugeiconsIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                )}
+                {page.archived_at ? "Restore" : "Archive"}
+              </span>
+            </CustomMenu.MenuItem>
+            <CustomMenu.MenuItem
+              onClick={() => void handleDelete()}
+              className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
             >
-              {tag}
-            </span>
-          ))}
-          {tags.length > 3 && <span className="text-11 text-tertiary">+{tags.length - 3}</span>}
+              <span className="flex items-center gap-2">
+                <HugeiconsIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                Delete
+              </span>
+            </CustomMenu.MenuItem>
+          </CustomMenu>
         </div>
       )}
-      <div className="relative flex-1 overflow-hidden rounded-md border border-subtle/60">
+      <div className="flex flex-1 flex-col">
         {page.description_snippet ? (
-          <p
-            className="px-3 pt-3 pb-6 text-12 leading-relaxed text-secondary"
-            style={{
-              WebkitMaskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
-              maskImage: "linear-gradient(to bottom, black 65%, transparent 100%)",
-            }}
-          >
-            {page.description_snippet}
-          </p>
+          <p className="line-clamp-4 text-12 leading-relaxed text-secondary">{page.description_snippet}</p>
         ) : (
-          <div className="absolute inset-0 grid place-items-center text-tertiary/60">
-            {page.logo_props?.in_use ? (
-              <Logo logo={page.logo_props} size={40} type="lucide" />
-            ) : (
-              <FallbackIcon className="size-8" />
-            )}
+          <div className="mt-1 flex flex-1 items-center justify-center rounded-xl bg-layer-1/60 text-12 text-placeholder">
+            No content
           </div>
         )}
       </div>

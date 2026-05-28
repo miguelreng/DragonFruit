@@ -22,6 +22,8 @@ import { AgentAvatar } from "./agent-avatar";
 const buildGeneratedAvatarUrl = (seed: string) =>
   `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(seed)}`;
 
+const buildRandomAvatarUrl = () => buildGeneratedAvatarUrl(crypto.randomUUID());
+
 const AGENT_TEMPLATES = [
   {
     key: "workspace",
@@ -230,17 +232,16 @@ export function AgentFormModal(props: IAgentFormModalProps) {
                 />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-11 text-tertiary">
-                    Paste an image URL, or generate a unique companion avatar from Atlas.
+                    Paste an image URL, or randomize a unique companion avatar from Atlas.
                   </p>
                   <button
                     type="button"
                     onClick={() => {
-                      const avatarSeed = form.name.trim() || (isEdit ? props.agent.id : `agent-${Date.now()}`);
-                      setForm((f) => ({ ...f, avatar_url: buildGeneratedAvatarUrl(avatarSeed) }));
+                      setForm((f) => ({ ...f, avatar_url: buildRandomAvatarUrl() }));
                     }}
                     className="shrink-0 text-11 font-medium text-accent-primary hover:underline"
                   >
-                    {form.avatar_url ? "Regenerate" : "Generate avatar"}
+                    Randomize avatar
                   </button>
                 </div>
               </div>

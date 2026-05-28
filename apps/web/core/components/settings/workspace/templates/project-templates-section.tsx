@@ -96,7 +96,7 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-14 font-medium text-primary">Project templates</h3>
           <p className="text-12 text-tertiary">
@@ -106,7 +106,7 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
         {canEdit && (
           <Button variant="primary" size="sm" onClick={handleOpenCreate}>
             <Plus className="size-3.5" />
-            New template
+            New project template
           </Button>
         )}
       </header>
@@ -119,7 +119,7 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
           Loading…
         </div>
       ) : templates.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-subtle bg-layer-1 px-6 py-10 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-subtle bg-layer-1 px-6 py-10 text-center">
           <Briefcase className="size-7 text-tertiary" />
           <h4 className="text-13 font-medium text-secondary">No project templates yet</h4>
           <p className="max-w-md text-12 text-tertiary">
@@ -128,53 +128,59 @@ export function ProjectTemplatesSection({ workspaceSlug, canEdit }: Props) {
           {canEdit && (
             <Button variant="primary" size="sm" onClick={handleOpenCreate}>
               <Plus className="size-3.5" />
-              New template
+              New project template
             </Button>
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-subtle bg-layer-2">
-          <div className="grid grid-cols-[1fr_1.4fr_80px_120px_84px] gap-3 border-b border-subtle bg-layer-1 px-4 py-2 text-11 font-medium text-tertiary uppercase">
-            <span>Name</span>
-            <span>Description</span>
-            <span>Tasks</span>
-            <span>Updated</span>
-            <span className="text-right">Actions</span>
-          </div>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {templates.map((template) => {
             const isBusy = busyId === template.id;
             const taskCount = (template.initial_tasks ?? []).length;
             return (
               <div
                 key={template.id}
-                className="grid grid-cols-[1fr_1.4fr_80px_120px_84px] items-center gap-3 border-b border-subtle px-4 py-3 text-13 last:border-b-0"
+                className="group shadow-sm flex min-h-[168px] flex-col justify-between rounded-xl border border-subtle bg-surface-1 p-4"
               >
-                <div className="flex items-center gap-2 truncate text-primary">
-                  <Briefcase className="size-3.5 shrink-0 text-tertiary" />
-                  <span className="truncate">{template.name}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-layer-2 text-secondary">
+                      <Briefcase className="size-4" />
+                    </div>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <h4 className="truncate text-14 font-medium text-primary">{template.name}</h4>
+                      <p className="line-clamp-3 text-12 leading-5 text-secondary">
+                        {template.description ||
+                          "Project starter with a visibility preset, a description scaffold, and an initial task list."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(template)}
+                      disabled={!canEdit || isBusy}
+                      className="rounded-lg p-1.5 text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-50"
+                      title="Edit"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(template)}
+                      disabled={!canEdit || isBusy}
+                      className="rounded-lg p-1.5 text-tertiary hover:bg-layer-1 hover:text-danger-primary disabled:opacity-50"
+                      title="Delete"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <span className="truncate text-12 text-secondary">{template.description || "—"}</span>
-                <span className="text-12 text-tertiary">{taskCount}</span>
-                <span className="text-11 text-tertiary">{formatRelative(template.updated_at)}</span>
-                <div className="flex items-center justify-end gap-1">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEdit(template)}
-                    disabled={!canEdit || isBusy}
-                    className="rounded-md p-1.5 text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-50"
-                    title="Edit"
-                  >
-                    <Pencil className="size-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(template)}
-                    disabled={!canEdit || isBusy}
-                    className="rounded-md p-1.5 text-tertiary hover:bg-layer-1 hover:text-danger-primary disabled:opacity-50"
-                    title="Delete"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
+                <div className="flex items-center justify-between pt-4 text-11 text-tertiary">
+                  <span>
+                    {taskCount} starter task{taskCount === 1 ? "" : "s"}
+                  </span>
+                  <span>{formatRelative(template.updated_at)}</span>
                 </div>
               </div>
             );

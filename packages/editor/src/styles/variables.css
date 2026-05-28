@@ -206,7 +206,7 @@
       --header-width: var(--wide-content-width);
     }
 
-    padding-left: calc(((100% - var(--header-width)) / 2) - 10px);
+    padding-left: calc((100% - var(--header-width)) / 2);
   }
 }
 

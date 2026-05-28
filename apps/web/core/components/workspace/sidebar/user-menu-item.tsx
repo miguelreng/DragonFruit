@@ -27,11 +27,10 @@ export interface SidebarUserMenuItemProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Icon: any;
   };
-  draftIssueCount: number;
 }
 
 export const SidebarUserMenuItem = observer(function SidebarUserMenuItem(props: SidebarUserMenuItemProps) {
-  const { item, draftIssueCount } = props;
+  const { item } = props;
   // nextjs hooks
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
@@ -42,8 +41,6 @@ export const SidebarUserMenuItem = observer(function SidebarUserMenuItem(props: 
   const { toggleSidebar } = useAppTheme();
 
   const isActive = pathname === item.href;
-
-  if (item.key === "drafts" && draftIssueCount === 0) return null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!allowPermissions(item.access as any, EUserPermissionsLevel.WORKSPACE, workspaceSlug.toString())) return null;

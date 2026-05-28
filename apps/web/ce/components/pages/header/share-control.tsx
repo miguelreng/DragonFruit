@@ -192,7 +192,7 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
         type="button"
         onClick={() => void handlePublish()}
         disabled={isPublishing}
-        className="flex h-7 items-center gap-1.5 rounded-md border border-subtle-1 bg-surface-1 px-2.5 text-12 font-medium text-secondary transition-colors hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
+        className="flex h-7 items-center gap-1.5 rounded-lg border border-subtle-1 bg-surface-1 px-2.5 text-12 font-medium text-secondary transition-colors hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
       >
         {isPublishing ? <HeroArrowPathIcon className="size-4 animate-spin" /> : <HeroGlobeAltIcon className="size-4" />}
         {page.access === EPageAccess.PUBLIC ? "Published" : "Publish"}

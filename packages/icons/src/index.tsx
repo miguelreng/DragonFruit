@@ -193,6 +193,33 @@ function huge(icon: IconSvgElement) {
   };
 }
 
+function spinner({ color = "currentColor", strokeWidth, size, width, height, ...rest }: LucideShimProps) {
+  const resolvedSize = (size ?? width ?? height) as number | string | undefined;
+  const parsedStrokeWidth = typeof strokeWidth === "number" ? strokeWidth : Number(strokeWidth);
+  const resolvedStrokeWidth = Number.isFinite(parsedStrokeWidth) ? parsedStrokeWidth : 1.75;
+
+  return (
+    <svg
+      {...rest}
+      width={resolvedSize ?? "1em"}
+      height={resolvedSize ?? "1em"}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="12" cy="12" r="8.5" stroke={color} strokeWidth={resolvedStrokeWidth} opacity="0.18" />
+      <path d="M12 3.5A8.5 8.5 0 0 1 20.5 12" stroke={color} strokeWidth={resolvedStrokeWidth} strokeLinecap="round" />
+      <path
+        d="M18.6 6.15A8.44 8.44 0 0 1 20.5 12"
+        stroke={color}
+        strokeWidth={resolvedStrokeWidth}
+        strokeLinecap="round"
+        opacity="0.55"
+      />
+    </svg>
+  );
+}
+
 export type LucideIcon = ReturnType<typeof huge>;
 export type LucideProps = LucideShimProps;
 
@@ -318,8 +345,8 @@ export const ListTodo = ListChecks;
 export const ListNumbers = huge(ListViewIcon);
 export const ListOrdered = ListNumbers;
 export const ListOrderedIcon = ListOrdered;
-export const Loader = huge(Loading01Icon);
-export const Loader2 = huge(Loading01Icon);
+export const Loader = spinner;
+export const Loader2 = spinner;
 export const Lock = huge(LockIconSvg);
 export const LockIconShim = Lock;
 export const LockKeyOpen = huge(LockIconSvg);

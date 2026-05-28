@@ -14,19 +14,17 @@ import { ToggleSwitch } from "@plane/ui";
 // hooks
 import { useAppRouter } from "@/hooks/use-app-router";
 import { usePageFilters } from "@/hooks/use-page-filters";
-import { useQueryParams } from "@/hooks/use-query-params";
 // services
 import { IssueService } from "@/services/issue";
 
 const issueService = new IssueService();
 // plane web imports
-import type { TPageNavigationPaneTab } from "@/plane-web/components/pages/navigation-pane";
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
 import { PageActions } from "../../dropdowns";
-import { PAGE_NAVIGATION_PANE_TABS_QUERY_PARAM } from "../../navigation-pane";
+import { PageVersionHistoryModal } from "../../version/history-modal";
 
 // Lazy-load the Export PDF modal — pulls in @react-pdf/renderer +
 // react-pdf-html (with css-tree's MDN data) which is ~540 KB. Most users
@@ -45,6 +43,7 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
   const { page, storeType } = props;
   // states
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   // navigation
   const router = useAppRouter();
@@ -62,8 +61,6 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
   const isDropCapEnabled = Boolean(view_props?.drop_cap);
   // page filters
   const { isFullWidth, handleFullWidth, isStickyToolbarEnabled, handleStickyToolbar } = usePageFilters();
-  // query params
-  const { updateQueryParams } = useQueryParams();
   // menu items list
   const EXTRA_MENU_OPTIONS = useMemo(
     function EXTRA_MENU_OPTIONS(): React.ComponentProps<typeof PageActions>["extraOptions"] {
@@ -136,15 +133,7 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
         },
         {
           key: "version-history",
-          action: () => {
-            // update query param to show info tab in navigation pane
-            const updatedRoute = updateQueryParams({
-              paramsToAdd: {
-                [PAGE_NAVIGATION_PANE_TABS_QUERY_PARAM]: "info" satisfies TPageNavigationPaneTab,
-              },
-            });
-            router.push(updatedRoute);
-          },
+          action: () => setIsVersionHistoryOpen(true),
           title: "Version history",
           icon: History,
           shouldRender: true,
@@ -199,9 +188,9 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
       isDropCapEnabled,
       isContentEditable,
       editorRef,
-      updateQueryParams,
       router,
       setIsExportModalOpen,
+      setIsVersionHistoryOpen,
       workspaceSlug,
       docProjectId,
       name,
@@ -222,6 +211,12 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
           />
         </Suspense>
       )}
+      <PageVersionHistoryModal
+        handleClose={() => setIsVersionHistoryOpen(false)}
+        isOpen={isVersionHistoryOpen}
+        page={page}
+        storeType={storeType}
+      />
       <PageActions
         extraOptions={EXTRA_MENU_OPTIONS}
         optionsOrder={[

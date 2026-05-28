@@ -4,13 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { observer } from "mobx-react";
-import { ChartNoAxesColumn, SlidersHorizontal } from "@/components/icons/lucide-shim";
+import { SlidersHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
 import { EIssueFilterType, ISSUE_STORE_TO_FILTERS_MAP } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 // hooks
@@ -18,7 +17,6 @@ import { useIssues } from "@/hooks/store/use-issues";
 // plane web imports
 import type { TProject } from "@/plane-web/types";
 // local imports
-import { WorkItemsModal } from "../analytics/work-items/modal";
 import { WorkItemFiltersToggle } from "../work-item-filters/filters-toggle";
 import {
   DisplayFiltersSelection,
@@ -31,7 +29,6 @@ type Props = {
   currentProjectDetails: TProject | undefined;
   projectId: string;
   workspaceSlug: string;
-  canUserCreateIssue: boolean | undefined;
   storeType?: EIssuesStoreType.PROJECT | EIssuesStoreType.EPIC;
 };
 const LAYOUTS = [
@@ -43,17 +40,9 @@ const LAYOUTS = [
 ];
 
 export const HeaderFilters = observer(function HeaderFilters(props: Props) {
-  const {
-    currentProjectDetails,
-    projectId,
-    workspaceSlug,
-    canUserCreateIssue,
-    storeType = EIssuesStoreType.PROJECT,
-  } = props;
+  const { currentProjectDetails, projectId, workspaceSlug, storeType = EIssuesStoreType.PROJECT } = props;
   // i18n
   const { t } = useTranslation();
-  // states
-  const [analyticsModal, setAnalyticsModal] = useState(false);
   // store hooks
   const {
     issuesFilter: { issueFilters, updateFilters },
@@ -88,12 +77,6 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
 
   return (
     <>
-      <WorkItemsModal
-        isOpen={analyticsModal}
-        onClose={() => setAnalyticsModal(false)}
-        projectDetails={currentProjectDetails ?? undefined}
-        isEpic={storeType === EIssuesStoreType.EPIC}
-      />
       <div className="hidden @4xl:flex">
         <LayoutSelection
           layouts={LAYOUTS}
@@ -125,16 +108,6 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
           isEpic={storeType === EIssuesStoreType.EPIC}
         />
       </FiltersDropdown>
-      {canUserCreateIssue ? (
-        <Button className="hidden px-2 md:block" onClick={() => setAnalyticsModal(true)} variant="secondary" size="lg">
-          <div className="hidden @4xl:flex">{t("common.analytics")}</div>
-          <div className="flex @4xl:hidden">
-            <ChartNoAxesColumn className="size-3.5" />
-          </div>
-        </Button>
-      ) : (
-        <></>
-      )}
     </>
   );
 });

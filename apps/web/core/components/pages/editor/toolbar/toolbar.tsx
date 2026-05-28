@@ -121,7 +121,7 @@ export function PageToolbar(props: Props) {
         customButton={
           <span
             className={cn(
-              "flex h-7 w-24 items-center justify-between gap-2 rounded-sm border-[0.5px] border-strong px-2 text-left text-13 whitespace-nowrap",
+              "flex h-7 w-24 items-center justify-between gap-2 rounded-lg border-[0.5px] border-strong px-2 text-left text-13 whitespace-nowrap",
               {
                 "bg-layer-1-selected text-primary": isTypographyMenuOpen,
                 "text-tertiary hover:bg-layer-1-hover": !isTypographyMenuOpen,

@@ -19,13 +19,17 @@ type Props = {
 };
 
 const IconWrapper = React.memo(function IconWrapper({ icon }: { icon: React.ReactNode }) {
-  return <div className="flex size-4 items-center justify-center overflow-hidden !text-16">{icon}</div>;
+  return <div className="inline-flex size-4 shrink-0 items-center justify-center overflow-hidden !text-16">{icon}</div>;
 });
 
 IconWrapper.displayName = "IconWrapper";
 
 const LabelWrapper = React.memo(function LabelWrapper({ label }: { label: React.ReactNode }) {
-  return <div className="relative line-clamp-1 block max-w-[150px] truncate overflow-hidden text-primary">{label}</div>;
+  return (
+    <div className="relative inline-flex max-w-[150px] items-center truncate overflow-hidden leading-none text-primary">
+      {label}
+    </div>
+  );
 });
 
 LabelWrapper.displayName = "LabelWrapper";
@@ -40,10 +44,10 @@ const BreadcrumbContent = React.memo(function BreadcrumbContent({
   if (!icon && !label) return null;
 
   return (
-    <>
+    <div className="inline-flex items-center gap-1.5 leading-none">
       {icon && <IconWrapper icon={icon} />}
       {label && <LabelWrapper label={label} />}
-    </>
+    </div>
   );
 });
 

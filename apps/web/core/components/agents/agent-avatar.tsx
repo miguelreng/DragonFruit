@@ -61,7 +61,7 @@ export function AgentAvatar({ seed, name, src, size = "base", showBadge = true, 
       : size === "md"
         ? "h-6 w-6 text-12"
         : size === "lg"
-          ? "h-10 w-10 text-16"
+          ? "h-7 w-7 text-13"
           : "h-8 w-8 text-14";
   const badgeSize = isNumericSize
     ? size >= 36
@@ -78,15 +78,17 @@ export function AgentAvatar({ seed, name, src, size = "base", showBadge = true, 
       className={cn("relative inline-flex shrink-0", className)}
       style={isNumericSize ? { width: size, height: size } : undefined}
     >
-      <Avatar
-        name={name}
-        src={hasImage ? src : undefined}
-        size={size}
-        shape="square"
-        fallbackBackgroundColor={accent.bg}
-        fallbackTextColor={accent.fg}
-        className={cn(isNumericSize && "h-full w-full", !hasImage && "hidden")}
-      />
+      {hasImage && (
+        <Avatar
+          name={name}
+          src={src}
+          size={size}
+          shape="square"
+          fallbackBackgroundColor={accent.bg}
+          fallbackTextColor={accent.fg}
+          className={cn(isNumericSize && "h-full w-full")}
+        />
+      )}
       {!hasImage && (
         <div
           className={cn(
