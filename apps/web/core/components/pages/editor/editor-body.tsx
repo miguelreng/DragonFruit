@@ -35,6 +35,7 @@ import { useEditorMention } from "@/hooks/editor";
 import { useMember } from "@/hooks/store/use-member";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser } from "@/hooks/store/user";
+import { normalizeDocFontStyle } from "@/helpers/doc-font";
 import { usePageFilters } from "@/hooks/use-page-filters";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
 import { useDocEmbed } from "@/plane-web/hooks/use-doc-embed";
@@ -243,17 +244,17 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     workspaceSlug,
   });
   // page filters
-  const { fontSize, fontStyle, isFullWidth } = usePageFilters();
+  const { fontSize, isFullWidth } = usePageFilters();
   // translation
   const { t } = useTranslation();
   // derived values
   const displayConfig: TDisplayConfig = useMemo(
     () => ({
       fontSize,
-      fontStyle,
+      fontStyle: normalizeDocFontStyle(view_props?.font_style),
       wideLayout: isFullWidth,
     }),
-    [fontSize, fontStyle, isFullWidth]
+    [fontSize, isFullWidth, view_props?.font_style]
   );
 
   // Use the new hook to handle page events

@@ -5,11 +5,12 @@
  */
 
 import { Menu } from "@headlessui/react";
-import { MoreHorizontal } from "lucide-react";
 import * as React from "react";
 import ReactDOM from "react-dom";
 import { usePopper } from "react-popper";
 import { useOutsideClickDetector } from "@plane/hooks";
+import { MoreHorizontal } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { ChevronDownIcon, ChevronRightIcon } from "@plane/propel/icons";
 // plane helpers
 // helpers
@@ -284,7 +285,12 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
                     tabIndex={customButtonTabIndex}
                     aria-label={ariaLabel}
                   >
-                    <MoreHorizontal className={`h-4 w-4 ${verticalEllipsis ? "rotate-90" : ""}`} />
+                    <HugeiconsIcon
+                      icon={MoreHorizontal}
+                      className={`size-4 ${verticalEllipsis ? "rotate-90" : ""}`}
+                      color="currentColor"
+                      strokeWidth={1.5}
+                    />
                   </button>
                 </Menu.Button>
               ) : (

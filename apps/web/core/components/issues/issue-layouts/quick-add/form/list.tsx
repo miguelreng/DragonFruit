@@ -12,11 +12,11 @@ export const ListQuickAddIssueForm = observer(function ListQuickAddIssueForm(pro
   const { ref, register, onSubmit, isEpic } = props;
   const { t } = useTranslation();
   return (
-    <div className="shadow-raised-200">
+    <div className="overflow-hidden rounded-sm bg-white shadow-raised-100">
       <form
         ref={ref}
         onSubmit={onSubmit}
-        className="flex h-8 w-full items-center gap-x-3 border-[0.5px] border-t-0 border-subtle bg-surface-1 px-3"
+        className="flex h-8 w-full items-center gap-x-3 border-[0.5px] border-t-0 border-subtle bg-white px-3"
       >
         <div className="flex w-full items-center gap-3">
           <input

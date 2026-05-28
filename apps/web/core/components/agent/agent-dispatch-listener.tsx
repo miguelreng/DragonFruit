@@ -29,14 +29,7 @@ type TDocChatMessage = {
   copyable?: boolean;
 };
 
-const createInitialMessages = (): TDocChatMessage[] => [
-  {
-    content: "Atlas is ready for this doc. Tell me the topic, and I’ll help you shape it.",
-    copyable: false,
-    id: "doc-chat-starter",
-    role: "assistant",
-  },
-];
+const createInitialMessages = (): TDocChatMessage[] => [];
 
 const agentChatService = new AgentChatService();
 
@@ -324,180 +317,192 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
 
   return (
     <div aria-live="polite" className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
-      <div className="flex w-full max-w-2xl flex-col items-stretch gap-2">
-        <div className="relative">
-          <div className="pointer-events-auto flex max-h-[24vh] flex-col gap-1.5 overflow-y-auto px-1 pt-3 pb-1">
-            {shouldShowConversationLoader ? (
-              <div className="mr-auto flex max-w-[78%] items-center gap-2 rounded-full border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
-                <Loader className="flex items-center gap-1.5">
-                  <Loader.Item className="rounded-full" width="5px" height="5px" />
-                  <Loader.Item className="rounded-full" width="5px" height="5px" />
-                  <Loader.Item className="rounded-full" width="5px" height="5px" />
-                </Loader>
-              </div>
-            ) : (
-              messages.map((message) => {
-                if (message.role === "user") {
-                  return (
-                    <div
-                      key={message.id}
-                      className="mr-auto max-w-[80%] rounded-full border border-subtle bg-layer-1 px-3 py-2 text-[12px] leading-5 text-primary shadow-raised-100"
-                    >
-                      {message.authorName && <span className="mr-1 text-tertiary">{message.authorName}</span>}
-                      {message.content}
-                    </div>
-                  );
-                }
-
-                if (message.role === "error") {
-                  return (
-                    <div
-                      key={message.id}
-                      className="border-danger-primary/30 bg-red-500/5 ml-auto max-w-[85%] rounded-full border px-3 py-2 text-[12px] leading-5 text-danger-primary shadow-raised-100"
-                    >
-                      {message.content}
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={message.id} className="ml-auto flex max-w-[85%] flex-col items-end gap-2">
-                    {message.pills?.length ? (
-                      <div className="flex flex-col items-end gap-2">
-                        {message.pills.map((_, index, pills) => {
-                          const pill = pills[pills.length - 1 - index]!;
-                          return (
-                            <button
-                              key={`${message.id}-${pill}`}
-                              type="button"
-                              onClick={async () => {
-                                await navigator.clipboard.writeText(pill);
-                                setToast({
-                                  type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
-                                  title: "Copied suggestion",
-                                  message: "The Atlas writing cue is ready to paste into your document.",
-                                });
-                              }}
-                              className="max-w-full rounded-full border border-subtle bg-surface-1 px-3 py-2 text-left text-[12px] text-secondary shadow-raised-100 transition-colors hover:bg-layer-1 hover:text-primary"
-                            >
-                              {pill}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="w-full rounded-2xl border border-subtle bg-surface-1 px-3 py-2 text-[12px] leading-5 whitespace-pre-wrap text-primary shadow-raised-100">
+      <div className="relative w-full isolate">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-8 -bottom-10 h-auto bg-gradient-to-b from-surface-1/0 via-surface-1/66 to-surface-1/98"
+        />
+        <div className="relative mx-auto flex w-full max-w-2xl flex-col items-stretch gap-2">
+          <div className="relative">
+            <div className="pointer-events-auto flex max-h-[24vh] flex-col gap-1.5 overflow-y-auto px-1 pt-3 pb-1">
+              {shouldShowConversationLoader ? (
+                <div className="mr-auto flex max-w-[78%] items-center gap-2 rounded-full border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
+                  <Loader className="flex items-center gap-1.5">
+                    <Loader.Item className="rounded-full" width="5px" height="5px" />
+                    <Loader.Item className="rounded-full" width="5px" height="5px" />
+                    <Loader.Item className="rounded-full" width="5px" height="5px" />
+                  </Loader>
+                </div>
+              ) : (
+                messages.map((message) => {
+                  if (message.role === "user") {
+                    return (
+                      <div
+                        key={message.id}
+                        className="mr-auto max-w-[80%] rounded-full border border-subtle bg-layer-1 px-3 py-2 text-[12px] leading-5 text-primary shadow-raised-100"
+                      >
+                        {message.authorName && <span className="mr-1 text-tertiary">{message.authorName}</span>}
                         {message.content}
                       </div>
-                    )}
-                  </div>
-                );
-              })
+                    );
+                  }
+
+                  if (message.role === "error") {
+                    return (
+                      <div
+                        key={message.id}
+                        className="border-danger-primary/30 bg-red-500/5 ml-auto max-w-[85%] rounded-full border px-3 py-2 text-[12px] leading-5 text-danger-primary shadow-raised-100"
+                      >
+                        {message.content}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={message.id} className="ml-auto flex max-w-[85%] flex-col items-end gap-2">
+                      {message.pills?.length ? (
+                        <div className="flex flex-col items-end gap-2">
+                          {message.pills.map((_, index, pills) => {
+                            const pill = pills[pills.length - 1 - index]!;
+                            return (
+                              <button
+                                key={`${message.id}-${pill}`}
+                                type="button"
+                                onClick={async () => {
+                                  await navigator.clipboard.writeText(pill);
+                                  setToast({
+                                    type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
+                                    title: "Copied suggestion",
+                                    message: "The Atlas writing cue is ready to paste into your document.",
+                                  });
+                                }}
+                                className="max-w-full rounded-full border border-subtle bg-surface-1 px-3 py-2 text-left text-[12px] text-secondary shadow-raised-100 transition-colors hover:bg-layer-1 hover:text-primary"
+                              >
+                                {pill}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="w-full rounded-2xl border border-subtle bg-surface-1 px-3 py-2 text-[12px] leading-5 whitespace-pre-wrap text-primary shadow-raised-100">
+                          {message.content}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            {messages.length > 1 && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-surface-1/0 via-surface-1/50 to-transparent"
+              />
             )}
-            <div ref={messagesEndRef} />
           </div>
-          {messages.length > 1 && (
+
+          <div
+            role="presentation"
+            onMouseDown={(e) => e.stopPropagation()}
+            className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto relative overflow-hidden w-full rounded-[18px] border border-subtle bg-surface-1/72 px-3 py-1.5 shadow-raised-200 duration-150 backdrop-blur-sm"
+          >
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-surface-1 via-surface-1/90 to-transparent"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-surface-1/0 via-surface-1/35 to-surface-1/90"
             />
-          )}
-        </div>
+            <textarea
+              ref={textareaRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleSubmit();
+                }
+              }}
+              placeholder={activeMode.placeholder(Boolean(contextText))}
+              rows={1}
+              className="max-h-16 min-h-[22px] w-full resize-none bg-transparent text-[14px] leading-5 text-primary outline-none placeholder:text-placeholder/70"
+            />
 
-        <div
-          role="presentation"
-          onMouseDown={(e) => e.stopPropagation()}
-          className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto w-full rounded-[18px] border border-subtle bg-surface-1 px-3 py-1.5 shadow-raised-200 duration-150"
-        >
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void handleSubmit();
-              }
-            }}
-            placeholder={activeMode.placeholder(Boolean(contextText))}
-            rows={1}
-            className="max-h-16 min-h-[22px] w-full resize-none bg-transparent text-[14px] leading-5 text-primary outline-none placeholder:text-placeholder/70"
-          />
-
-          <div className="my-0.5 flex items-center justify-between gap-1.5">
-            <div className="text-sm flex min-w-0 items-center gap-1 text-tertiary">
-              <button
-                type="button"
-                className="grid size-6 shrink-0 place-items-center rounded-full border border-subtle bg-layer-2 text-tertiary transition-colors hover:bg-layer-3 hover:text-primary"
-                aria-label="Add context"
-                title="Add context"
-              >
-                <Plus className="size-3" />
-              </button>
-              <div ref={modeMenuRef} className="relative flex min-w-0 items-center gap-1">
+            <div className="relative my-0.5 flex items-center justify-between gap-1.5">
+              <div className="text-sm flex min-w-0 items-center gap-1 text-tertiary">
                 <button
                   type="button"
-                  onClick={() => setIsModeMenuOpen((current) => !current)}
-                  className="inline-flex items-center gap-1 rounded-full px-0.5 py-0 text-[12px] text-accent-primary transition-opacity hover:opacity-80"
+                  className="grid size-6 shrink-0 place-items-center rounded-full border border-subtle bg-layer-2 text-tertiary transition-colors hover:bg-layer-3 hover:text-primary"
+                  aria-label="Add context"
+                  title="Add context"
                 >
-                  <ActiveModeIcon className="size-2" />
-                  <span className="font-medium">{activeMode.label}</span>
-                  <ChevronDown className="size-2" />
+                  <Plus className="size-3" />
                 </button>
-                {isModeMenuOpen && (
-                  <div className="absolute bottom-full left-0 mb-1.5 min-w-36 rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
-                    {AI_MODES.map((entry) => (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        onClick={() => {
-                          setMode(entry.id);
-                          setIsModeMenuOpen(false);
-                        }}
-                        className={`flex w-full items-center rounded-lg px-2 py-1.5 text-left text-[12px] transition-colors ${
-                          entry.id === mode ? "bg-layer-1 text-primary" : "text-secondary hover:bg-layer-1"
-                        }`}
-                      >
-                        <entry.Icon className="mr-1.5 size-3 shrink-0" />
-                        {entry.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {contextText && (
+                <div ref={modeMenuRef} className="relative flex min-w-0 items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      detailRef.current = {};
-                      setContext({});
-                    }}
-                    className="truncate rounded-md px-1 py-0.5 text-[10px] transition-colors hover:bg-layer-1 hover:text-primary"
+                    onClick={() => setIsModeMenuOpen((current) => !current)}
+                    className="inline-flex items-center gap-1 rounded-full px-0.5 py-0 text-[12px] text-accent-primary transition-opacity hover:opacity-80"
                   >
-                    Clear context
+                    <ActiveModeIcon className="size-2" />
+                    <span className="font-medium">{activeMode.label}</span>
+                    <ChevronDown className="size-2" />
                   </button>
-                )}
+                  {isModeMenuOpen && (
+                    <div className="absolute bottom-full left-0 mb-1.5 min-w-36 rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
+                      {AI_MODES.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => {
+                            setMode(entry.id);
+                            setIsModeMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center rounded-lg px-2 py-1.5 text-left text-[12px] transition-colors ${
+                            entry.id === mode ? "bg-layer-1 text-primary" : "text-secondary hover:bg-layer-1"
+                          }`}
+                        >
+                          <entry.Icon className="mr-1.5 size-3 shrink-0" />
+                          {entry.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {contextText && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        detailRef.current = {};
+                        setContext({});
+                      }}
+                      className="truncate rounded-md px-1 py-0.5 text-[10px] transition-colors hover:bg-layer-1 hover:text-primary"
+                    >
+                      Clear context
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1.5">
+                <div className="hidden items-center gap-1 text-[10px] text-tertiary sm:flex">
+                  <span>Enter to send</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={isSending || isLoadingSession || !session || !prompt.trim()}
+                  className="inline-flex h-7 shrink-0 items-center rounded-lg border border-subtle bg-layer-2 px-2.5 text-[12px] font-medium text-primary transition-colors hover:bg-layer-3 disabled:opacity-50"
+                  aria-label="Send prompt"
+                >
+                  {isSending || isLoadingSession ? <span className="text-xs leading-none">...</span> : <span>Send</span>}
+                </button>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5">
-              <div className="hidden items-center gap-1 text-[10px] text-tertiary sm:flex">
-                <span>Enter to send</span>
+            {contextText && (
+              <div className="relative mt-1 truncate pl-0.5 text-[10px] text-tertiary">
+                Context: "{contextText.slice(0, 96)}"
               </div>
-              <button
-                type="button"
-                onClick={() => void handleSubmit()}
-                disabled={isSending || isLoadingSession || !session || !prompt.trim()}
-                className="inline-flex h-7 shrink-0 items-center rounded-lg border border-subtle bg-layer-2 px-2.5 text-[12px] font-medium text-primary transition-colors hover:bg-layer-3 disabled:opacity-50"
-                aria-label="Send prompt"
-              >
-                {isSending || isLoadingSession ? <span className="text-xs leading-none">...</span> : <span>Send</span>}
-              </button>
-            </div>
+            )}
           </div>
-
-          {contextText && (
-            <div className="mt-1 truncate pl-0.5 text-[10px] text-tertiary">Context: "{contextText.slice(0, 96)}"</div>
-          )}
         </div>
       </div>
     </div>

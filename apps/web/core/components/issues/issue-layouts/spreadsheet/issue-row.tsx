@@ -98,7 +98,7 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
           <td
             colSpan={100}
             className="border-[0.5px] border-transparent border-b-subtle-1"
-            style={{ height: "calc(2.75rem - 1px)" }}
+            style={{ height: "calc(2.25rem - 1px)" }}
           />
         }
         classNames={cn("bg-surface-1 transition-[background-color]", {
@@ -274,16 +274,15 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
           disabled={!!issueDetail?.tempId}
         >
           <Row
-            className={cn(
-              // Tightened the row from h-11 (44px) → h-9 (36px) for a denser
-              // spreadsheet — scanning a long task list, the extra 8px per row
-              // was wasted breathing room. Cells in IssueColumn match.
-              "group clickable z-10 flex h-9 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
+              className={cn(
+                // Tightened the row from h-11 (44px) → h-9 (36px) for a denser
+                // spreadsheet — scanning a long task list, the extra 8px per row
+                // was wasted breathing room. Cells in IssueColumn match.
+            "group clickable z-10 flex h-9 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
               {
                 "border-b-[0.5px]": !getIsIssuePeeked(issueDetail.id),
                 "border border-accent-strong hover:border-accent-strong":
                   getIsIssuePeeked(issueDetail.id) && nestingLevel === peekIssue?.nestingLevel,
-                "shadow-[8px_22px_22px_10px_rgba(0,0,0,0.05)]": isScrolled.current,
               }
             )}
           >
@@ -293,8 +292,8 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                 Unchecked state is faded so it doesn't compete with content;
                 hover and selected states bring it to full opacity. Sits
                 BEFORE the identifier so it lines up top-to-bottom. */}
-            {projectId && canSelectIssues && (
-              <Tooltip
+              {projectId && canSelectIssues && (
+                <Tooltip
                 tooltipContent={
                   <>
                     Only tasks within the current
@@ -304,7 +303,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                 }
                 disabled={issueDetail.project_id === projectId}
               >
-                <div className="flex h-full w-8 flex-shrink-0 items-center justify-center">
+                <div className="flex h-full w-7 flex-shrink-0 items-center justify-center">
                   <MultipleSelectEntityAction
                     className={cn("opacity-50 transition-opacity group-hover/list-block:opacity-100", {
                       "opacity-100": isIssueSelected,
@@ -320,7 +319,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
 
             {/* Identifier section - conditionally rendered */}
             {displayProperties?.key && (
-              <div className="flex h-full min-w-24 flex-shrink-0 items-center">
+              <div className="flex h-full min-w-20 flex-shrink-0 items-center">
                 <div className="relative flex cursor-pointer items-center text-11 hover:text-primary">
                   {issueDetail.project_id && (
                     <IssueIdentifier
@@ -337,9 +336,9 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
 
             {/* Workitem section */}
             <div
-              className={cn("flex flex-grow items-center gap-0.5 py-1.5", {
-                "min-w-[360px]": !displayProperties?.key,
-                "min-w-60": displayProperties?.key,
+              className={cn("flex flex-grow items-center gap-0.5 py-1", {
+                "min-w-[320px]": !displayProperties?.key,
+                "min-w-52": displayProperties?.key,
               })}
             >
               {/* sub issues indentation */}

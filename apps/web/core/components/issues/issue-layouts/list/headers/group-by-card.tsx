@@ -112,7 +112,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             />
           </div>
         )}
-        <div className="grid flex-shrink-0 place-items-center overflow-hidden">
+        <div className="grid flex-shrink-0 place-items-center overflow-hidden text-secondary">
           {icon ?? <CircleDashed className="size-3.5" strokeWidth={2} />}
         </div>
 
@@ -142,8 +142,10 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             })}
             strokeWidth={2.5}
           />
-          <div className="line-clamp-1 inline-block truncate text-13 font-medium text-primary">{title}</div>
-          <div className="pl-2 text-13 font-medium text-tertiary">{count || 0}</div>
+          <div className="line-clamp-1 inline-block truncate text-13 font-medium">
+            {title}
+          </div>
+          <div className="pl-2 text-13 font-medium">{count || 0}</div>
           <div className="px-2.5">
             <WorkFlowGroupTree groupBy={groupBy} groupId={groupID} />
           </div>

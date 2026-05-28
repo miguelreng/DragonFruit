@@ -26,6 +26,7 @@ import type {
   TGroupedIssues,
   IIssueDisplayFilterOptions,
   TGetColumns,
+  TStateGroups,
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 // plane ui
@@ -73,6 +74,38 @@ export const isWorkspaceLevel = (type: EIssuesStoreType) =>
   ].includes(type)
     ? true
     : false;
+
+export type TStateGroupTheme = {
+  color: string;
+  stateGroup: TStateGroups;
+};
+
+const normalizeStateGroupTitle = (value: string) => value.trim().toLowerCase().replace(/[\s_-]+/g, "");
+
+const STATE_GROUP_TITLE_MAP: Record<string, TStateGroups> = Object.values(STATE_GROUPS).reduce(
+  (acc, stateGroup) => {
+    [stateGroup.key, stateGroup.label, stateGroup.defaultStateName].forEach((value) => {
+      acc[normalizeStateGroupTitle(value)] = stateGroup.key;
+    });
+    return acc;
+  },
+  {} as Record<string, TStateGroups>
+);
+
+export const getStateGroupThemeFromHeaderTitle = (
+  groupBy: GroupByColumnTypes | TIssueGroupByOptions | null | undefined,
+  title: string
+): TStateGroupTheme | undefined => {
+  if (groupBy !== "state" && groupBy !== "state_detail.group") return undefined;
+
+  const stateGroup = STATE_GROUP_TITLE_MAP[normalizeStateGroupTitle(title)];
+  if (!stateGroup) return undefined;
+
+  return {
+    color: STATE_GROUPS[stateGroup].color,
+    stateGroup,
+  };
+};
 
 type TGetGroupByColumns = {
   groupBy: GroupByColumnTypes | null;

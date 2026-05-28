@@ -265,15 +265,16 @@ const RailCategory = (props: {
   isExpanded: boolean;
   isOpen: boolean;
   onToggle: () => void;
+  className?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) => {
-  const { title, isExpanded, isOpen, onToggle, action, children } = props;
+  const { title, isExpanded, isOpen, onToggle, action, children, className = "" } = props;
 
   if (!isExpanded) return <>{children}</>;
 
   return (
-    <div className="flex w-full flex-col gap-1">
+    <div className={cn("flex w-full flex-col gap-1", className)}>
       <div className="group/category flex w-full items-center justify-between gap-1 rounded-md pr-1 hover:bg-layer-transparent-hover dark:hover:bg-white/[0.08]">
         <AppSidebarTooltip tooltipContent={title}>
           <button
@@ -745,6 +746,7 @@ export const AppRailRoot = observer(() => {
               isExpanded={isRailExpanded}
               isOpen={isProjectsCategoryOpen}
               onToggle={() => setIsProjectsCategoryOpen((isOpen) => !isOpen)}
+              className="mt-[-4px]"
               action={
                 canCreateProject ? (
                   <AppSidebarTooltip tooltipContent={t("create_project")}>

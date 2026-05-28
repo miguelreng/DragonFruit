@@ -24,6 +24,7 @@ type Props = {
   fetchVersionDetails: (pageId: string, versionId: string) => Promise<TPageVersion | undefined>;
   handleClose: () => void;
   handleRestore: (descriptionHTML: string) => Promise<void>;
+  pageFontStyle: TVersionEditorProps["fontStyle"];
   pageId: string;
   restoreEnabled: boolean;
   storeType: EPageStoreType;
@@ -36,6 +37,7 @@ export const PageVersionsMainContent = observer(function PageVersionsMainContent
     fetchVersionDetails,
     handleClose,
     handleRestore,
+    pageFontStyle,
     pageId,
     restoreEnabled,
     storeType,
@@ -119,7 +121,12 @@ export const PageVersionsMainContent = observer(function PageVersionsMainContent
             )}
           </div>
           <div className="vertical-scrollbar scrollbar-sm h-full overflow-y-scroll pt-8">
-            <VersionEditor activeVersion={activeVersion} storeType={storeType} versionDetails={versionDetails} />
+            <VersionEditor
+              activeVersion={activeVersion}
+              fontStyle={pageFontStyle}
+              storeType={storeType}
+              versionDetails={versionDetails}
+            />
           </div>
         </>
       )}

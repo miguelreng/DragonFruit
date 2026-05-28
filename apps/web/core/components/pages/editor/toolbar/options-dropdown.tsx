@@ -7,12 +7,14 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
-import { ArrowUpToLine, CheckSquare, Clipboard, History } from "@/components/icons/lucide-shim";
+import { ArrowUpToLine, CaseSensitive, CheckSquare, Clipboard, History } from "@/components/icons/lucide-shim";
 // plane imports
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { CheckIcon } from "@plane/propel/icons";
 import { ToggleSwitch } from "@plane/ui";
 // hooks
 import { useAppRouter } from "@/hooks/use-app-router";
+import { DOC_FONT_STYLE_OPTIONS, normalizeDocFontStyle } from "@/helpers/doc-font";
 import { usePageFilters } from "@/hooks/use-page-filters";
 // services
 import { IssueService } from "@/services/issue";
@@ -59,6 +61,7 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
   const docProjectId = project_ids?.[0];
   const isFocusMode = Boolean(view_props?.focus_mode);
   const isDropCapEnabled = Boolean(view_props?.drop_cap);
+  const currentFontStyle = normalizeDocFontStyle(view_props?.font_style);
   // page filters
   const { isFullWidth, handleFullWidth, isStickyToolbarEnabled, handleStickyToolbar } = usePageFilters();
   // menu items list
@@ -87,6 +90,31 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
           ),
           className: "flex items-center justify-between gap-2",
           shouldRender: isContentEditable,
+        },
+        {
+          key: "font-style",
+          action: () => {},
+          title: "Font",
+          icon: CaseSensitive,
+          shouldRender: isContentEditable,
+          nestedMenuItems: DOC_FONT_STYLE_OPTIONS.map((option) => ({
+            key: option.value,
+            action: () => {
+              void page.updateViewProps({ font_style: option.value });
+            },
+            customContent: (
+              <div className="flex w-full items-center justify-between gap-2">
+                <span className="truncate">{option.label}</span>
+                {currentFontStyle === option.value ? (
+                  <CheckIcon className="size-3.5 flex-shrink-0 text-accent-primary" />
+                ) : (
+                  <span className="size-3.5 flex-shrink-0" />
+                )}
+              </div>
+            ),
+            className: "justify-between",
+            shouldRender: true,
+          })),
         },
         {
           key: "focus-mode",
@@ -184,6 +212,7 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
       handleStickyToolbar,
       isStickyToolbarEnabled,
       page,
+      currentFontStyle,
       isFocusMode,
       isDropCapEnabled,
       isContentEditable,
@@ -221,6 +250,7 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
         extraOptions={EXTRA_MENU_OPTIONS}
         optionsOrder={[
           "full-screen",
+          "font-style",
           "sticky-toolbar",
           "focus-mode",
           "drop-cap",

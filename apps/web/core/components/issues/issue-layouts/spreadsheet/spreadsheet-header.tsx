@@ -61,7 +61,7 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
               active). */}
           <div className="flex h-full w-full items-center">
             {canSelectIssues && (
-              <div className="flex h-full w-8 flex-shrink-0 items-center justify-center">
+              <div className="flex h-full w-7 flex-shrink-0 items-center justify-center">
                 <MultipleSelectGroupAction
                   className={cn(
                     "pointer-events-none size-3.5 opacity-0 !outline-none group-hover/list-header:pointer-events-auto group-hover/list-header:opacity-100",
@@ -74,7 +74,7 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
                 />
               </div>
             )}
-            <span className="px-2 text-13 font-medium">{`${isEpic ? "Epics" : "Tasks"}`}</span>
+            <span className="px-1.5 text-13 font-medium">{`${isEpic ? "Epics" : "Tasks"}`}</span>
           </div>
         </th>
 

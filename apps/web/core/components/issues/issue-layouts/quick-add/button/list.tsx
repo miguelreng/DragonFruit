@@ -19,7 +19,7 @@ export const ListQuickAddIssueButton = observer(function ListQuickAddIssueButton
       // Density-matched to the data rows (min-h-8 + py-1.5) so the "New task"
       // call-to-action sits flush with the rest of the list instead of
       // ballooning to almost 1.5× the row height.
-      className="flex min-h-8 w-full cursor-pointer items-center gap-2 bg-layer-transparent py-1.5 hover:bg-layer-transparent-hover"
+      className="flex min-h-8 w-full cursor-pointer items-center gap-2 bg-transparent py-1.5 shadow-none hover:bg-transparent"
       onClick={onClick}
     >
       <PlusIcon className="h-3.5 w-3.5 stroke-2" />

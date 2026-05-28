@@ -22,7 +22,7 @@ export const SpreadsheetAssigneeColumn = observer(function SpreadsheetAssigneeCo
   const { issue, onChange, disabled, onClose } = props;
 
   return (
-    <div className="h-11 border-b-[0.5px] border-subtle">
+    <div className="h-9 border-b-[0.5px] border-subtle">
       <MemberDropdown
         value={issue?.assignee_ids ?? []}
         onChange={(data) => {
