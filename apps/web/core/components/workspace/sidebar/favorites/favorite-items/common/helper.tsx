@@ -58,7 +58,7 @@ export const getFavoriteViewIcon = (layout?: EIssueLayoutTypes) => {
   return (
     <div className="flex size-5 items-center justify-center">
       {isKnownLayout && layout ? (
-        <IssueLayoutIcon layout={layout} className="m-auto size-4 flex-shrink-0 text-tertiary" />
+        <IssueLayoutIcon layout={layout} className="m-auto size-[14px] flex-shrink-0 text-tertiary" />
       ) : (
         <FallbackIcon className="m-auto size-4 flex-shrink-0 stroke-[1.5]" />
       )}

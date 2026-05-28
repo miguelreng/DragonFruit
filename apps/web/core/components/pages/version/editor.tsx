@@ -21,12 +21,13 @@ import type { EPageStoreType } from "@/plane-web/hooks/store";
 
 export type TVersionEditorProps = {
   activeVersion: string | null;
+  fontStyle: TDisplayConfig["fontStyle"];
   versionDetails: TPageVersion | undefined;
   storeType: EPageStoreType;
 };
 
 export const PagesVersionEditor = observer(function PagesVersionEditor(props: TVersionEditorProps) {
-  const { activeVersion, versionDetails } = props;
+  const { activeVersion, fontStyle, versionDetails } = props;
   // params
   const { workspaceSlug, projectId } = useParams();
   // store hooks
@@ -34,7 +35,7 @@ export const PagesVersionEditor = observer(function PagesVersionEditor(props: TV
   // derived values
   const workspaceDetails = getWorkspaceBySlug(workspaceSlug?.toString() ?? "");
   // page filters
-  const { fontSize, fontStyle } = usePageFilters();
+  const { fontSize } = usePageFilters();
 
   const displayConfig: TDisplayConfig = {
     fontSize,

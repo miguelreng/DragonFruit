@@ -31,7 +31,7 @@ export const StateOption = observer(function StateOption(props: TStateOptionProp
       key={option.value}
       value={option.value}
       className={({ active, selected }) =>
-        cn(`${className} ${active ? "bg-layer-transparent-hover" : ""} ${selected ? "text-primary" : "text-secondary"}`)
+        cn(`${className} ${active ? "bg-layer-1" : ""} ${selected ? "text-primary" : "text-secondary"}`)
       }
     >
       {({ selected }) => (

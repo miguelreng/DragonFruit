@@ -10,7 +10,7 @@ import { useTranslation } from "@plane/i18n";
 import { setPromiseToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IProject } from "@plane/types";
-import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon } from "@plane/propel/icons";
+import { IntakeIcon, PageIcon, ViewsIcon } from "@plane/propel/icons";
 // components
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 import { SettingsHeading } from "@/components/settings/heading";
@@ -28,24 +28,6 @@ type Props = {
 };
 
 const PROJECT_FEATURES_LIST = {
-  cycles: {
-    key: "cycles",
-    property: "cycle_view",
-    title: "Cycles",
-    description: "Timebox work as you see fit per project and change frequency from one period to the next.",
-    icon: <CycleIcon className="h-5 w-5 flex-shrink-0 rotate-180 text-tertiary" />,
-    isPro: false,
-    isEnabled: true,
-  },
-  modules: {
-    key: "modules",
-    property: "module_view",
-    title: "Modules",
-    description: "Group work into sub-project-like set-ups with their own leads and assignees.",
-    icon: <ModuleIcon width={20} height={20} className="flex-shrink-0 text-tertiary" />,
-    isPro: false,
-    isEnabled: true,
-  },
   views: {
     key: "views",
     property: "issue_views_view",

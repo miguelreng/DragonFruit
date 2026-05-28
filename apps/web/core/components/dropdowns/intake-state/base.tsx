@@ -58,7 +58,7 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
     dropdownArrowClassName = "",
     getStateById,
     hideIcon = false,
-    iconSize = "size-4",
+    iconSize = "size-3.5",
     isInitializing = false,
     onChange,
     onClose,

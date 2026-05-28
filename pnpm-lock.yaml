@@ -1434,6 +1434,12 @@ importers:
       '@headlessui/react':
         specifier: ^1.7.3
         version: 1.7.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@hugeicons/core-free-icons':
+        specifier: ^4.1.4
+        version: 4.1.4
+      '@hugeicons/react':
+        specifier: ^1.1.6
+        version: 1.1.6(react@18.3.1)
       '@plane/constants':
         specifier: workspace:*
         version: link:../constants

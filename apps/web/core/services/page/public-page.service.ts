@@ -9,6 +9,7 @@ import { APIService } from "@/services/api.service";
 
 export type TPublicPageResponse = {
   id: string;
+  view_props?: Record<string, unknown>;
   workspace_slug: string;
   project_id: string | null;
   name: string;

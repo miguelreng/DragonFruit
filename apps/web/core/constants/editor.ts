@@ -210,18 +210,23 @@ export const EDITOR_FONT_STYLES: {
   icon: any;
 }[] = [
   {
-    key: "sans-serif",
-    label: "Sans serif",
+    key: "font-default",
+    label: "Default (Figtree + Newsreader)",
     icon: SansSerifIcon,
   },
   {
-    key: "serif",
-    label: "Serif",
+    key: "font-figtree",
+    label: "Figtree",
+    icon: SansSerifIcon,
+  },
+  {
+    key: "font-newsreader",
+    label: "Newsreader",
     icon: SerifIcon,
   },
   {
-    key: "monospace",
-    label: "Mono",
+    key: "font-inter",
+    label: "Inter",
     icon: MonospaceIcon,
   },
 ];

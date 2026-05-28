@@ -5,7 +5,7 @@
  */
 
 import type { MutableRefObject } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TIssue } from "@plane/types";
@@ -66,39 +66,6 @@ export const SpreadsheetTable = observer(function SpreadsheetTable(props: Props)
   const {
     issues: { getIssueLoader },
   } = useIssuesStore();
-
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current) return;
-    const scrollLeft = containerRef.current.scrollLeft;
-
-    const columnShadow = "8px 22px 22px 10px rgba(0, 0, 0, 0.05)"; // shadow for regular columns
-    const headerShadow = "8px -22px 22px 10px rgba(0, 0, 0, 0.05)"; // shadow for headers
-
-    //The shadow styles are added this way to avoid re-render of all the rows of table, which could be costly
-    if (scrollLeft > 0 !== isScrolled.current) {
-      const firstColumns = containerRef.current.querySelectorAll("table tr td:first-child, th:first-child");
-
-      for (let i = 0; i < firstColumns.length; i++) {
-        const shadow = i === 0 ? headerShadow : columnShadow;
-        if (scrollLeft > 0) {
-          (firstColumns[i] as HTMLElement).style.boxShadow = shadow;
-        } else {
-          (firstColumns[i] as HTMLElement).style.boxShadow = "none";
-        }
-      }
-      isScrolled.current = scrollLeft > 0;
-    }
-  }, [containerRef]);
-
-  useEffect(() => {
-    const currentContainerRef = containerRef.current;
-
-    if (currentContainerRef) currentContainerRef.addEventListener("scroll", handleScroll);
-
-    return () => {
-      if (currentContainerRef) currentContainerRef.removeEventListener("scroll", handleScroll);
-    };
-  }, [handleScroll, containerRef]);
 
   const isPaginating = !!getIssueLoader();
 

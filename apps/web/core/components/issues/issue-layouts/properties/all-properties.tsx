@@ -59,7 +59,7 @@ export interface IIssueProperties {
 }
 
 export const IssueProperties = observer(function IssueProperties(props: IIssueProperties) {
-  const { issue, updateIssue, displayProperties, isReadOnly, className, isEpic = false } = props;
+  const { issue, updateIssue, displayProperties, isReadOnly, className, activeLayout, isEpic = false } = props;
   // i18n
   const { t } = useTranslation();
   // store hooks
@@ -491,6 +491,7 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
           disabled={isReadOnly}
           renderByDefault={isMobile}
           hideDropdownArrow
+          noLabelBorder={["list", "kanban"].includes((activeLayout ?? "").toLowerCase())}
           maxRender={3}
         />
       </WithDisplayPropertiesHOC>

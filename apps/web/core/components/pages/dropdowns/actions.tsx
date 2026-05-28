@@ -26,6 +26,7 @@ import {
   normalizePublicPageSlug,
   validatePublicPageSlug,
 } from "@/helpers/page-public";
+import { DOC_FONT_STYLE_OPTIONS, normalizeDocFontStyle } from "@/helpers/doc-font";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -43,6 +44,7 @@ const templateService = new PageTemplateService();
 
 export type TPageActions =
   | "full-screen"
+  | "font-style"
   | "focus-mode"
   | "sticky-toolbar"
   | "drop-cap"
@@ -115,6 +117,7 @@ export const PageActions = observer(function PageActions(props: Props) {
     access,
     archived_at,
     is_locked,
+    view_props,
     canCurrentUserArchivePage,
     canCurrentUserChangeAccess,
     canCurrentUserDeletePage,
@@ -122,6 +125,9 @@ export const PageActions = observer(function PageActions(props: Props) {
     canCurrentUserLockPage,
     canCurrentUserMovePage,
   } = page;
+  const currentFontStyle = normalizeDocFontStyle(view_props?.font_style);
+  const currentFontStyleLabel =
+    DOC_FONT_STYLE_OPTIONS.find((option) => option.value === currentFontStyle)?.label ?? "Default";
   // menu items
   const MENU_ITEMS = useMemo(
     function MENU_ITEMS() {
@@ -279,6 +285,24 @@ export const PageActions = observer(function PageActions(props: Props) {
     [optionsOrder, MENU_ITEMS]
   );
 
+  const renderMenuItemContent = (item: TContextMenuItem) => {
+    if (item.key === "font-style") {
+      return (
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+          <span className="truncate">Font</span>
+          <span className="truncate text-tertiary">{currentFontStyleLabel}</span>
+        </div>
+      );
+    }
+
+    return item.customContent ?? (
+      <>
+        {item.icon && <item.icon className="size-3" />}
+        {item.title}
+      </>
+    );
+  };
+
   return (
     <>
       <MovePageModal isOpen={movePageModal} onClose={() => setMovePageModal(false)} page={page} />
@@ -289,9 +313,43 @@ export const PageActions = observer(function PageActions(props: Props) {
         storeType={storeType}
       />
       {parentRef && <ContextMenu parentRef={parentRef} items={arrangedOptions} />}
-      <CustomMenu placement="bottom-end" optionsClassName="max-h-[90vh]" ellipsis closeOnSelect>
+      <CustomMenu placement="bottom-end" optionsClassName="max-h-[90vh]" ellipsis closeOnSelect={false}>
         {arrangedOptions.map((item) => {
           if (item.shouldRender === false) return null;
+
+          if (item.nestedMenuItems?.length) {
+            return (
+              <CustomMenu.SubMenu
+                key={item.key}
+                trigger={renderMenuItemContent(item)}
+                disabled={item.disabled}
+                className={item.className}
+              >
+                <CustomMenu.SubMenuContent className="min-w-[14rem]">
+                  {item.nestedMenuItems
+                    .filter((nestedItem) => nestedItem.shouldRender !== false)
+                    .map((nestedItem) => (
+                      <CustomMenu.MenuItem
+                        key={nestedItem.key}
+                        onClick={() => {
+                          nestedItem.action?.();
+                        }}
+                        className={cn("flex items-center gap-2", nestedItem.className)}
+                        disabled={nestedItem.disabled}
+                      >
+                        {nestedItem.customContent ?? (
+                          <>
+                            {nestedItem.icon && <nestedItem.icon className="size-3" />}
+                            {nestedItem.title}
+                          </>
+                        )}
+                      </CustomMenu.MenuItem>
+                    ))}
+                </CustomMenu.SubMenuContent>
+              </CustomMenu.SubMenu>
+            );
+          }
+
           return (
             <CustomMenu.MenuItem
               key={item.key}
@@ -301,12 +359,7 @@ export const PageActions = observer(function PageActions(props: Props) {
               className={cn("flex items-center gap-2", item.className)}
               disabled={item.disabled}
             >
-              {item.customContent ?? (
-                <>
-                  {item.icon && <item.icon className="size-3" />}
-                  {item.title}
-                </>
-              )}
+              {renderMenuItemContent(item)}
             </CustomMenu.MenuItem>
           );
         })}

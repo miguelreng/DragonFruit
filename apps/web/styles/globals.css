@@ -462,8 +462,48 @@ body {
   font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
 }
 
+.published-doc-surface {
+  --published-doc-body-font: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --published-doc-heading-font: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  --published-doc-display-sans-font: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --published-doc-blockquote-font: var(--published-doc-heading-font);
+  --published-doc-code-font: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--published-doc-body-font);
+}
+
+.published-doc-surface.font-default {
+  --published-doc-body-font: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --published-doc-heading-font: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  --published-doc-display-sans-font: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+.published-doc-surface.font-figtree {
+  --published-doc-body-font: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --published-doc-heading-font: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --published-doc-display-sans-font: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+.published-doc-surface.font-newsreader {
+  --published-doc-body-font: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  --published-doc-heading-font: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  --published-doc-display-sans-font: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+}
+
+.published-doc-surface.font-inter {
+  --published-doc-body-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --published-doc-heading-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --published-doc-display-sans-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
 .published-doc-title {
-  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  font-family: var(--published-doc-heading-font);
   font-size: clamp(2rem, 4vw, 2.75rem);
   line-height: 1.15;
   font-weight: 500;
@@ -483,21 +523,14 @@ body {
   --tw-prose-code: var(--text-color-primary);
   --tw-prose-th-borders: var(--border-color-subtle);
   --tw-prose-td-borders: var(--border-color-subtle);
-  font-family:
-    "Figtree Variable",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
+  font-family: var(--published-doc-body-font);
   font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--text-color-primary);
 }
 
 .published-doc :where(h1, h2, h3, .editor-heading-block:is(h1, h2, h3)) {
-  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  font-family: var(--published-doc-heading-font);
   font-weight: 500 !important;
   letter-spacing: 0;
   color: var(--text-color-primary);
@@ -532,14 +565,7 @@ body {
 }
 
 .published-doc :where(h4, h5, h6, h4.editor-heading-block, h5.editor-heading-block, h6.editor-heading-block) {
-  font-family:
-    "Figtree Variable",
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
+  font-family: var(--published-doc-display-sans-font);
   font-weight: 600 !important;
   letter-spacing: 0;
   color: var(--text-color-primary);
@@ -563,7 +589,7 @@ body {
   margin: 1.25rem 0;
   border-left: 2px solid var(--border-color-subtle);
   padding-left: 1.25rem;
-  font-family: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  font-family: var(--published-doc-blockquote-font);
   font-size: 1.0625rem;
   font-style: italic;
   color: color-mix(in srgb, var(--text-color-primary) 82%, transparent);
@@ -580,7 +606,7 @@ body {
   border-radius: 4px;
   background-color: color-mix(in srgb, var(--background-color-accent-primary) 8%, transparent);
   padding: 0.12em 0.35em;
-  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--published-doc-code-font);
   font-size: 0.92em;
 }
 

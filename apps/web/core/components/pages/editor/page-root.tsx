@@ -12,6 +12,7 @@ import type { TDocumentPayload, TPage, TPageVersion, TWebhookConnectionQueryPara
 // hooks
 import { usePageFallback } from "@/hooks/use-page-fallback";
 import { useUnsyncedPageTracker } from "@/hooks/use-unsynced-page-tracker";
+import { normalizeDocFontStyle } from "@/helpers/doc-font";
 // plane web import
 import type { PageUpdateHandler, TCustomEventHandlers } from "@/hooks/use-realtime-page-events";
 import { PageModals } from "@/plane-web/components/pages";
@@ -177,6 +178,7 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           editorComponent={PagesVersionEditor}
           fetchVersionDetails={handlers.fetchVersionDetails}
           handleRestore={handleRestoreVersion}
+          pageFontStyle={normalizeDocFontStyle(page.view_props?.font_style)}
           pageId={page.id ?? ""}
           restoreEnabled={isContentEditable}
           storeType={storeType}

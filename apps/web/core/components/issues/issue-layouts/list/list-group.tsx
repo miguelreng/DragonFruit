@@ -327,7 +327,7 @@ export const ListGroup = observer(function ListGroup(props: Props) {
                   layout={EIssueLayoutTypes.LIST}
                   QuickAddButton={ListQuickAddIssueButton}
                   prePopulatedData={prePopulateQuickAddData(group_by, group.id)}
-                  containerClassName="border-b border-t border-subtle bg-surface-1 "
+                  containerClassName="border-b border-t border-subtle bg-transparent"
                   quickAddCallback={quickAddCallback}
                   isEpic={isEpic}
                 />

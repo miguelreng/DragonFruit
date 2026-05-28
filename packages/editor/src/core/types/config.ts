@@ -26,7 +26,7 @@ export type TFileHandler = {
   };
 } & TExtendedFileHandler;
 
-export type TEditorFontStyle = "sans-serif" | "serif" | "monospace";
+export type TEditorFontStyle = "font-default" | "font-figtree" | "font-newsreader" | "font-inter";
 
 export type TEditorFontSize = "small-font" | "large-font" | "mobile-font";
 

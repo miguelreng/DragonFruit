@@ -16,18 +16,7 @@
  * to "classic" on a page falls back to the base Plane look.
  */
 
-/* ─── 1. Font stack ────────────────────────────────────────────────────── */
-
-.editor-container.dragonfruit {
-  /* Pair a humanist sans for body with a refined display family for headings.
-   * We rely on system fallbacks so this works before web fonts are bundled. */
-  --font-style: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-style-display:
-    "Newsreader", "Source Serif Pro", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
-  --font-style-display-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
-}
-
-/* ─── 2. Layout: tighter measure for prose ─────────────────────────────── */
+/* ─── 1. Layout: tighter measure for prose ─────────────────────────────── */
 
 .editor-container.dragonfruit {
   /* Craft uses ~680px column — comfortable for reading without feeling cramped. */
@@ -35,7 +24,7 @@
   --wide-content-width: 1040px;
 }
 
-/* ─── 3. Type scale & rhythm overrides ─────────────────────────────────── */
+/* ─── 2. Type scale & rhythm overrides ─────────────────────────────────── */
 
 .editor-container.dragonfruit.large-font,
 .editor-container.dragonfruit:not(.small-font):not(.mobile-font) {
@@ -79,7 +68,7 @@
   --paragraph-padding-between: 4px;
 }
 
-/* ─── 4. Headings: serif display, refined tracking ─────────────────────── */
+/* ─── 3. Headings: serif display, refined tracking ─────────────────────── */
 
 .editor-container.dragonfruit .ProseMirror h1.editor-heading-block,
 .editor-container.dragonfruit .ProseMirror h2.editor-heading-block,
@@ -110,7 +99,7 @@
   line-height: 1.15;
 }
 
-/* ─── 5. Body prose: humanist sans with relaxed rhythm ─────────────────── */
+/* ─── 4. Body prose: humanist sans with relaxed rhythm ─────────────────── */
 
 .editor-container.dragonfruit .ProseMirror {
   font-feature-settings:
@@ -126,7 +115,7 @@
   letter-spacing: -0.003em;
 }
 
-/* ─── 6. Blockquote: a calmer, more editorial pull-quote ───────────────── */
+/* ─── 5. Blockquote: a calmer, more editorial pull-quote ───────────────── */
 
 .editor-container.dragonfruit .ProseMirror blockquote {
   border-left-width: 2px;
@@ -138,7 +127,7 @@
   color: color-mix(in srgb, var(--text-color-primary) 82%, transparent);
 }
 
-/* ─── 7. Inline code & code blocks: warmer treatment ───────────────────── */
+/* ─── 6. Inline code & code blocks: warmer treatment ───────────────────── */
 
 .editor-container.dragonfruit .ProseMirror code {
   font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -163,14 +152,14 @@
   line-height: 1.6;
 }
 
-/* ─── 8. Horizontal rule: a hairline, not a slab ───────────────────────── */
+/* ─── 7. Horizontal rule: a hairline, not a slab ───────────────────────── */
 
 .editor-container.dragonfruit .ProseMirror div[data-type="horizontalRule"] > div {
   border-bottom-width: 1px !important;
   border-color: color-mix(in srgb, var(--text-color-primary) 12%, transparent) !important;
 }
 
-/* ─── 9. Task lists: rounder, calmer checkbox ──────────────────────────── */
+/* ─── 8. Task lists: rounder, calmer checkbox ──────────────────────────── */
 
 .editor-container.dragonfruit ul[data-type="taskList"] li > label input[type="checkbox"] {
   border-radius: 4px !important;
@@ -187,13 +176,13 @@
   text-decoration-thickness: 1px;
 }
 
-/* ─── 10. Selection: soft peach instead of harsh blue ──────────────────── */
+/* ─── 9. Selection: soft peach instead of harsh blue ──────────────────── */
 
 .editor-container.dragonfruit .ProseMirror ::selection {
   background-color: color-mix(in srgb, #ff7a8c 28%, transparent);
 }
 
-/* ─── 11. Drop cap (optional, opt-in via .dragonfruit.drop-cap) ────────── */
+/* ─── 10. Drop cap (optional, opt-in via .dragonfruit.drop-cap) ───────── */
 
 .editor-container.dragonfruit.drop-cap .ProseMirror > p.editor-paragraph-block:first-of-type::first-letter {
   font-family: var(--font-style-display);
@@ -205,7 +194,7 @@
   color: color-mix(in srgb, var(--text-color-primary) 95%, var(--background-color-accent-primary));
 }
 
-/* ─── 12. Focus mode (opt-in via .dragonfruit.focus-mode) ──────────────── */
+/* ─── 11. Focus mode (opt-in via .dragonfruit.focus-mode) ─────────────── */
 
 .editor-container.dragonfruit.focus-mode .ProseMirror p.editor-paragraph-block,
 .editor-container.dragonfruit.focus-mode .ProseMirror ul,

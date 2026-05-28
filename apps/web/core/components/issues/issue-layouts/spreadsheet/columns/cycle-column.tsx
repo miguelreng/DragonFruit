@@ -39,7 +39,7 @@ export const SpreadsheetCycleColumn = observer(function SpreadsheetCycleColumn(p
   );
 
   return (
-    <div className="h-11 border-b-[0.5px] border-subtle">
+    <div className="h-9 border-b-[0.5px] border-subtle">
       <CycleDropdown
         projectId={issue.project_id ?? undefined}
         value={issue.cycle_id}

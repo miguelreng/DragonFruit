@@ -114,13 +114,35 @@
   /* end font sizes and line heights */
 
   /* font styles */
-  --font-style: "Figtree Variable", sans-serif;
+  &.font-default {
+    --font-style: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-style-display: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+    --font-style-display-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      sans-serif;
+  }
+  &.font-figtree {
+    --font-style: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-style-display: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-style-display-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      sans-serif;
+  }
+  &.font-newsreader {
+    --font-style: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+    --font-style-display: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+    --font-style-display-sans: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  }
+  &.font-inter {
+    --font-style: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-style-display: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-style-display-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
 
+  /* legacy aliases */
   &.sans-serif {
-    --font-style: "Figtree Variable", sans-serif;
+    --font-style: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   &.serif {
-    --font-style: serif;
+    --font-style: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
   }
   &.monospace {
     --font-style: monospace;

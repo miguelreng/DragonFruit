@@ -14,6 +14,7 @@ import { useTranslation } from "@plane/i18n";
 import { Avatar, EModalPosition, EModalWidth, Loader, ModalCore } from "@plane/ui";
 import { cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
 // hooks
+import { normalizeDocFontStyle } from "@/helpers/doc-font";
 import { useMember } from "@/hooks/store/use-member";
 // services
 import { ProjectPageVersionService } from "@/services/page";
@@ -187,6 +188,7 @@ export const PageVersionHistoryModal = observer(function PageVersionHistoryModal
                 }
                 handleClose={handleClose}
                 handleRestore={handleRestore}
+                pageFontStyle={normalizeDocFontStyle(page.view_props?.font_style)}
                 pageId={pageKey}
                 restoreEnabled={page.isContentEditable}
                 storeType={storeType}

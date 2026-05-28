@@ -7,6 +7,7 @@
 import { useCallback, useMemo } from "react";
 // plane editor
 import type { TEditorFontSize, TEditorFontStyle } from "@plane/editor";
+import { normalizeDocFontStyle } from "@/helpers/doc-font";
 // hooks
 import useLocalStorage from "@/hooks/use-local-storage";
 
@@ -20,7 +21,7 @@ export type TPagesPersonalizationConfig = {
 const DEFAULT_PERSONALIZATION_VALUES: TPagesPersonalizationConfig = {
   full_width: false,
   font_size: "large-font",
-  font_style: "sans-serif",
+  font_style: "font-default",
   sticky_toolbar: true,
 };
 
@@ -47,7 +48,7 @@ export const usePageFilters = () => {
     [pagesConfig?.font_size]
   );
   const fontStyle = useMemo(
-    () => pagesConfig?.font_style ?? DEFAULT_PERSONALIZATION_VALUES.font_style,
+    () => normalizeDocFontStyle(pagesConfig?.font_style),
     [pagesConfig?.font_style]
   );
   // update action
