@@ -8,7 +8,6 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import { cn } from "@plane/utils";
 import { PageHead } from "@/components/core/page-title";
 import { CsvImportModal } from "@/components/imports";
@@ -21,7 +20,7 @@ import { ImportsWorkspaceSettingsHeader } from "./header";
 
 type ActiveModal = null | { kind: "csv"; source: SourceKey };
 
-type SourceKey = "csv" | "notion" | "clickup";
+type SourceKey = "csv";
 
 const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
@@ -35,31 +34,15 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
 
   const sources: Array<{
     key: SourceKey;
-    ready: boolean;
     title: string;
     description: string;
     cta: string;
   }> = [
     {
       key: "csv",
-      ready: true,
       title: t("workspace_settings.settings.imports.sources.csv.title"),
       description: t("workspace_settings.settings.imports.sources.csv.description"),
       cta: t("workspace_settings.settings.imports.sources.csv.cta"),
-    },
-    {
-      key: "notion",
-      ready: true,
-      title: t("workspace_settings.settings.imports.sources.notion.title"),
-      description: t("workspace_settings.settings.imports.sources.notion.description"),
-      cta: t("workspace_settings.settings.imports.sources.notion.cta"),
-    },
-    {
-      key: "clickup",
-      ready: true,
-      title: t("workspace_settings.settings.imports.sources.clickup.title"),
-      description: t("workspace_settings.settings.imports.sources.clickup.description"),
-      cta: t("workspace_settings.settings.imports.sources.clickup.cta"),
     },
   ];
 
@@ -69,7 +52,7 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
       <div className="flex w-full flex-col gap-y-6">
         <SettingsHeading
           title={t("workspace_settings.settings.imports.heading")}
-          description={t("workspace_settings.settings.imports.description")}
+          description="Import work from a CSV file. Each row becomes a task."
         />
         {/* Boxed group of source rows — mirrors the export form's pattern
             (rounded outer border, rows stacked with internal dividers, primary
@@ -79,23 +62,10 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
             <SettingsBoxedControlItem
               key={s.key}
               className={cn("rounded-none border-0", index < sources.length - 1 && "border-b border-subtle")}
-              title={
-                <span className="flex items-center gap-2">
-                  <span>{s.title}</span>
-                  {!s.ready && (
-                    <Pill variant={EPillVariant.DEFAULT} size={EPillSize.XS}>
-                      {t("workspace_settings.settings.imports.setup_required")}
-                    </Pill>
-                  )}
-                </span>
-              }
+              title={s.title}
               description={s.description}
               control={
-                <Button
-                  variant={s.ready ? "primary" : "secondary"}
-                  size="sm"
-                  onClick={() => setActive({ kind: "csv", source: s.key })}
-                >
+                <Button variant="primary" size="sm" onClick={() => setActive({ kind: "csv", source: s.key })}>
                   {s.cta}
                 </Button>
               }

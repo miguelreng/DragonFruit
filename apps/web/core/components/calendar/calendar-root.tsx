@@ -28,13 +28,11 @@ import "@schedule-x/theme-default/dist/index.css";
 import { Menu } from "@headlessui/react";
 import {
   Calendar as CalendarIcon,
-  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
-  Plus,
   Trash2,
 } from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
@@ -360,9 +358,11 @@ export function CalendarRoot() {
       return results.flat();
     },
     {
-      refreshInterval: 30_000,
-      revalidateOnFocus: true,
-      revalidateOnReconnect: true,
+      refreshInterval: 0,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateIfStale: false,
+      keepPreviousData: true,
     }
   );
 
@@ -406,7 +406,7 @@ export function CalendarRoot() {
       createCalendar({
         views: [createViewMonthGrid()],
         defaultView: createViewMonthGrid().name,
-        events: sxEvents,
+        events: [],
         calendars: calendarsConfig,
         plugins: [eventsService, calendarControls],
         callbacks: {
@@ -445,7 +445,7 @@ export function CalendarRoot() {
           },
         },
       }),
-    [calendarControls, calendarsConfig, eventsService, sxEvents]
+    [calendarControls, calendarsConfig, eventsService]
   );
 
   const handleSetDate = (d: Date) => {
@@ -482,10 +482,8 @@ export function CalendarRoot() {
             googleAccounts={googleAccounts}
             googleSources={googleSources}
             calendarPrefs={calendarPrefs}
-            taskRange={taskRange}
             refetchAccounts={refetchAccounts}
             onUpdateCalendarPrefs={updateCalendarPrefs}
-            onImportComplete={refetchTasks}
             onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
             visibleMonth={visibleMonth}
             googleEventCount={googleEvents.length}
@@ -538,10 +536,8 @@ type CalendarPageHeaderProps = {
   googleAccounts: TCalendarAccount[];
   googleSources: TGoogleCalendarSource[];
   calendarPrefs: TCalendarPrefs;
-  taskRange: { from: string; to: string };
   refetchAccounts: () => void;
   onUpdateCalendarPrefs: (source: TGoogleCalendarSource, patch: Partial<{ visible: boolean; color: string }>) => void;
-  onImportComplete: () => void;
   onQuickAdd: () => void;
   visibleMonth: string;
   googleEventCount: number;
@@ -557,11 +553,9 @@ function CalendarPageHeader({
   googleAccounts,
   googleSources,
   calendarPrefs,
-  taskRange,
   refetchAccounts,
   workspaceSlug,
   onUpdateCalendarPrefs,
-  onImportComplete,
   onQuickAdd,
   visibleMonth,
   googleEventCount,
@@ -572,8 +566,6 @@ function CalendarPageHeader({
   onNext,
 }: CalendarPageHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [syncingAccountId, setSyncingAccountId] = useState<string | null>(null);
-  const [importingAccountId, setImportingAccountId] = useState<string | null>(null);
   const hasGoogleAccounts = googleAccounts.length > 0;
   const visibleGoogleSources = googleSources.filter((source) => isGoogleSourceVisible(source, calendarPrefs));
 
@@ -608,68 +600,6 @@ function CalendarPageHeader({
     refetchAccounts();
   };
 
-  const handleSyncTasks = async (source: TGoogleCalendarSource) => {
-    if (syncingAccountId) return;
-    setSyncingAccountId(source.id);
-    try {
-      const res = await calendarService.syncTasksToGoogle(workspaceSlug, {
-        account_id: source.account.id,
-        calendar_id: source.calendar.id,
-        from: taskRange.from,
-        to: taskRange.to,
-      });
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: `Synced ${res.synced} tasks`,
-        message: res.failed.length > 0 ? `${res.failed.length} failed` : `${googleSourceLabel(source)} is up to date.`,
-      });
-    } catch {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Couldn't sync tasks",
-        message: "Try again in a moment.",
-      });
-    } finally {
-      setSyncingAccountId(null);
-    }
-  };
-
-  const handleImportGoogle = async (source: TGoogleCalendarSource) => {
-    if (importingAccountId) return;
-    setImportingAccountId(source.id);
-    try {
-      const res = await calendarService.importGoogleEvents(workspaceSlug, {
-        account_id: source.account.id,
-        calendar_id: source.calendar.id,
-        from: taskRange.from,
-        to: taskRange.to,
-      });
-      onImportComplete();
-      setToast({
-        type: res.failed.length > 0 ? TOAST_TYPE.WARNING : TOAST_TYPE.SUCCESS,
-        title: `Imported ${res.imported} Google events`,
-        message:
-          res.failed.length > 0
-            ? `${res.failed.length} couldn't import, ${res.skipped} skipped.`
-            : res.skipped > 0
-              ? `${res.skipped} skipped`
-              : "DragonFruit calendar is up to date.",
-      });
-    } catch (err) {
-      const message =
-        (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data?.details ||
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        "Try again in a moment.";
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Couldn't import Google events",
-        message,
-      });
-    } finally {
-      setImportingAccountId(null);
-    }
-  };
-
   return (
     <Header>
       <Header.LeftItem>
@@ -689,12 +619,12 @@ function CalendarPageHeader({
               <LegendDot color={googleSources[0] ? googleSourceColor(googleSources[0], calendarPrefs) : "#2563eb"} />
               <span className="truncate">
                 {isLoadingGoogleEvents
-                  ? "Loading Google events"
+                  ? "Loading events"
                   : hasGoogleEventsError
-                    ? "Google events need attention"
+                    ? "Events need attention"
                     : googleSources.length === 1
                       ? googleSourceLabel(googleSources[0]!)
-                      : `${visibleGoogleSources.length}/${googleSources.length} Google calendars`}
+                      : `${visibleGoogleSources.length}/${googleSources.length} calendars`}
                 <span className="ml-0.5 text-tertiary">· {googleEventCount}</span>
               </span>
             </>
@@ -725,9 +655,6 @@ function CalendarPageHeader({
         </div>
         <span className="px-1 text-13 font-medium text-primary">{visibleMonth}</span>
         <span className="bg-subtle mx-1 h-5 w-px" aria-hidden />
-        <Button variant="primary" size="lg" prependIcon={<Plus />} onClick={onQuickAdd}>
-          New task
-        </Button>
         <Button
           variant="secondary"
           size="lg"
@@ -735,21 +662,20 @@ function CalendarPageHeader({
           onClick={handleConnect}
           disabled={isConnecting}
         >
-          {isConnecting ? "Redirecting…" : hasGoogleAccounts ? "Add Google Calendar" : "Connect Google Calendar"}
+          {isConnecting ? "Redirecting…" : hasGoogleAccounts ? "Add calendar" : "Connect calendar"}
         </Button>
         {hasGoogleAccounts && (
           <GoogleAccountsMenu
             accounts={googleAccounts}
             sources={googleSources}
-            syncingAccountId={syncingAccountId}
-            importingAccountId={importingAccountId}
             calendarPrefs={calendarPrefs}
             onUpdateCalendarPrefs={onUpdateCalendarPrefs}
-            onSync={handleSyncTasks}
-            onImport={handleImportGoogle}
             onDisconnect={handleDisconnect}
           />
         )}
+        <Button variant="primary" size="lg" onClick={onQuickAdd}>
+          New task
+        </Button>
       </Header.RightItem>
     </Header>
   );
@@ -758,33 +684,25 @@ function CalendarPageHeader({
 type GoogleAccountsMenuProps = {
   accounts: TCalendarAccount[];
   sources: TGoogleCalendarSource[];
-  syncingAccountId: string | null;
-  importingAccountId: string | null;
   calendarPrefs: TCalendarPrefs;
   onUpdateCalendarPrefs: (source: TGoogleCalendarSource, patch: Partial<{ visible: boolean; color: string }>) => void;
-  onSync: (source: TGoogleCalendarSource) => void;
-  onImport: (source: TGoogleCalendarSource) => void;
   onDisconnect: (account: TCalendarAccount) => void;
 };
 
 function GoogleAccountsMenu({
   accounts,
   sources,
-  syncingAccountId,
-  importingAccountId,
   calendarPrefs,
   onUpdateCalendarPrefs,
-  onSync,
-  onImport,
   onDisconnect,
 }: GoogleAccountsMenuProps) {
   return (
     <Menu as="div" className="relative">
-      <Menu.Button className="inline-flex h-7 items-center gap-1.5 rounded-md border border-strong bg-layer-2 px-2 text-body-xs-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover">
-        Google calendars
+      <Menu.Button className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-2 text-body-xs-medium whitespace-nowrap text-secondary shadow-raised-100 hover:bg-layer-2-hover">
+        My calendars
         <ChevronDown className="size-3.5 text-tertiary" />
       </Menu.Button>
-      <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-72 rounded-md border border-strong bg-layer-2 py-1 outline-none">
+      <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-64 rounded-md border border-strong bg-layer-2 py-1 outline-none">
         {accounts.map((account) => {
           const accountSources = sources.filter((source) => source.account.id === account.id);
           return (
@@ -808,60 +726,19 @@ function GoogleAccountsMenu({
                 const visible = isGoogleSourceVisible(source, calendarPrefs);
                 return (
                   <div key={source.id} className="rounded-md px-1 py-1.5 hover:bg-layer-2-hover">
-                    <div className="mb-1 flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <LegendDot color={color} />
                       <span className="min-w-0 flex-1 truncate text-13 text-primary">{googleSourceLabel(source)}</span>
                       {source.calendar.primary && <span className="text-11 text-tertiary">Primary</span>}
                     </div>
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-11 text-tertiary">{visible ? "Shown" : "Hidden"}</span>
                       <button
                         type="button"
                         onClick={() => onUpdateCalendarPrefs(source, { visible: !visible })}
-                        className="inline-flex items-center gap-1.5 rounded px-1.5 py-1 text-12 text-secondary hover:bg-layer-2-hover"
+                        className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-12 text-secondary hover:bg-layer-2-hover"
                       >
                         {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-                        {visible ? "Shown" : "Hidden"}
-                      </button>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          aria-label={`Custom color for ${googleSourceLabel(source)}`}
-                          value={color}
-                          onChange={(event) => onUpdateCalendarPrefs(source, { color: event.target.value })}
-                          className="size-5 cursor-pointer rounded-full border border-subtle bg-transparent p-0"
-                        />
-                        {GOOGLE_COLORS.map((option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            aria-label={`Use calendar color ${option}`}
-                            onClick={() => onUpdateCalendarPrefs(source, { color: option })}
-                            className="grid size-5 place-items-center rounded-full border border-subtle"
-                            style={{ backgroundColor: option }}
-                          >
-                            {color.toLowerCase() === option.toLowerCase() && (
-                              <Check className="size-3 text-on-color" strokeWidth={3} />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="mt-1 grid grid-cols-2 gap-1">
-                      <button
-                        type="button"
-                        onClick={() => onImport(source)}
-                        disabled={importingAccountId !== null}
-                        className="rounded px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2-hover disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {importingAccountId === source.id ? "Importing..." : "Import events"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onSync(source)}
-                        disabled={syncingAccountId !== null}
-                        className="rounded px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2-hover disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {syncingAccountId === source.id ? "Syncing..." : "Sync tasks"}
                       </button>
                     </div>
                   </div>

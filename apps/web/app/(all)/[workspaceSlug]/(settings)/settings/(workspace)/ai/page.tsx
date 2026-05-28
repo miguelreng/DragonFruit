@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Sparkles } from "@/components/icons/lucide-shim";
+import { Sparkles } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -40,6 +40,43 @@ const SELECT_CLASSNAME =
   "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary min-w-[220px]";
 const INPUT_CLASSNAME =
   "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder min-w-[220px]";
+
+function AISettingsLoader() {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="animate-pulse rounded-lg border border-subtle bg-layer-2 p-4">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4 border-b border-subtle pb-4">
+            <span className="h-4 w-28 rounded-full bg-layer-1" />
+            <span className="h-9 w-32 rounded-lg bg-layer-1" />
+          </div>
+          <div className="flex items-center justify-between gap-4 border-b border-subtle pb-4">
+            <div className="flex flex-col gap-2">
+              <span className="h-4 w-20 rounded-full bg-layer-1" />
+              <span className="h-3 w-48 rounded-full bg-layer-1" />
+            </div>
+            <span className="h-10 w-56 rounded-lg bg-layer-1" />
+          </div>
+          <div className="flex items-center justify-between gap-4 border-b border-subtle pb-4">
+            <div className="flex flex-col gap-2">
+              <span className="h-4 w-16 rounded-full bg-layer-1" />
+              <span className="h-3 w-36 rounded-full bg-layer-1" />
+            </div>
+            <span className="h-10 w-56 rounded-lg bg-layer-1" />
+          </div>
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <span className="h-4 w-28 rounded-full bg-layer-1" />
+            <div className="flex items-center gap-2">
+              <span className="h-9 w-20 rounded-lg bg-layer-1" />
+              <span className="h-9 w-24 rounded-lg bg-layer-1" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <span className="sr-only">Loading AI settings</span>
+    </div>
+  );
+}
 
 function AISettingsPage() {
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
@@ -153,10 +190,7 @@ function AISettingsPage() {
         />
 
         {loading ? (
-          <div className="flex items-center gap-2 text-13 text-tertiary">
-            <Loader2 className="size-4 animate-spin" />
-            Loading…
-          </div>
+          <AISettingsLoader />
         ) : (
           <>
             {!config?.has_workspace_override && (
@@ -242,8 +276,8 @@ function AISettingsPage() {
                   {config?.has_workspace_override && (
                     <Button
                       variant="secondary"
-                      size="xl"
-                      className="!h-9 px-3"
+                      size="lg"
+                      className="!h-8 px-3"
                       disabled={!canEdit || saving}
                       onClick={() => void handleClear()}
                     >
@@ -252,8 +286,8 @@ function AISettingsPage() {
                   )}
                   <Button
                     variant="primary"
-                    size="xl"
-                    className="!h-9 px-4"
+                    size="lg"
+                    className="!h-8 px-4"
                     disabled={!canEdit || !canSubmit}
                     onClick={() => void handleSave()}
                   >

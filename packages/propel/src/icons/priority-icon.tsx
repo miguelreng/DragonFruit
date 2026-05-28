@@ -31,12 +31,12 @@ export function PriorityIcon(props: IPriorityIcon) {
 
   const priorityClasses = {
     urgent:
-      "bg-[color-mix(in_srgb,var(--priority-urgent)_12%,var(--bg-layer-3))] text-[color-mix(in_srgb,var(--priority-urgent)_84%,black)]",
-    high: "bg-[color-mix(in_srgb,var(--priority-high)_14%,var(--bg-layer-3))] text-[color-mix(in_srgb,var(--priority-high)_82%,black)]",
+      "border border-[color-mix(in_srgb,var(--priority-urgent)_42%,white)] bg-[color-mix(in_srgb,var(--priority-urgent)_30%,var(--bg-layer-2))] text-[color-mix(in_srgb,var(--priority-urgent)_98%,black)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
+    high: "border border-[color-mix(in_srgb,var(--priority-high)_38%,white)] bg-[color-mix(in_srgb,var(--priority-high)_28%,var(--bg-layer-2))] text-[color-mix(in_srgb,var(--priority-high)_96%,black)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
     medium:
-      "bg-[color-mix(in_srgb,var(--priority-medium)_16%,var(--bg-layer-3))] text-[color-mix(in_srgb,var(--priority-medium)_78%,black)]",
-    low: "bg-[color-mix(in_srgb,var(--priority-low)_14%,var(--bg-layer-3))] text-[color-mix(in_srgb,var(--priority-low)_82%,black)]",
-    none: "bg-layer-3 text-placeholder",
+      "border border-[color-mix(in_srgb,var(--priority-medium)_38%,white)] bg-[color-mix(in_srgb,var(--priority-medium)_30%,var(--bg-layer-2))] text-[color-mix(in_srgb,var(--priority-medium)_95%,black)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
+    low: "border border-[color-mix(in_srgb,var(--priority-low)_38%,white)] bg-[color-mix(in_srgb,var(--priority-low)_28%,var(--bg-layer-2))] text-[color-mix(in_srgb,var(--priority-low)_96%,black)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
+    none: "border border-subtle bg-layer-3 text-placeholder",
   };
 
   // get priority icon
@@ -78,10 +78,10 @@ export function PriorityIcon(props: IPriorityIcon) {
           className={cn(
             "flex-shrink-0",
             {
-              "text-[color-mix(in_srgb,var(--priority-urgent)_84%,black)]": resolvedPriority === "urgent",
-              "text-[color-mix(in_srgb,var(--priority-high)_82%,black)]": resolvedPriority === "high",
-              "text-[color-mix(in_srgb,var(--priority-medium)_78%,black)]": resolvedPriority === "medium",
-              "text-[color-mix(in_srgb,var(--priority-low)_82%,black)]": resolvedPriority === "low",
+              "text-[color-mix(in_srgb,var(--priority-urgent)_94%,black)]": resolvedPriority === "urgent",
+              "text-[color-mix(in_srgb,var(--priority-high)_92%,black)]": resolvedPriority === "high",
+              "text-[color-mix(in_srgb,var(--priority-medium)_90%,black)]": resolvedPriority === "medium",
+              "text-[color-mix(in_srgb,var(--priority-low)_92%,black)]": resolvedPriority === "low",
               "text-placeholder": resolvedPriority === "none",
             },
             className

@@ -16,11 +16,9 @@ import { cn } from "@plane/utils";
 // assets
 import favicon16 from "@/app/assets/favicon/favicon-16x16.png?url";
 import favicon32 from "@/app/assets/favicon/favicon-32x32.png?url";
-import faviconIco from "@/app/assets/favicon/favicon.ico?url";
-import faviconSvg from "@/app/assets/favicon/app.svg?url";
 import icon180 from "@/app/assets/icons/icon-180x180.png?url";
 import icon512 from "@/app/assets/icons/icon-512x512.png?url";
-import ogImage from "@/app/assets/og-image.png?url";
+import ogAppImage from "@/app/assets/og-app.png?url";
 import globalStyles from "@/styles/globals.css?url";
 import type { Route } from "./+types/root";
 // local
@@ -41,10 +39,10 @@ import "@fontsource/ibm-plex-mono";
 const APP_TITLE = "DragonFruit — Beautiful project management & docs";
 
 export const links: LinksFunction = () => [
-  { rel: "icon", type: "image/svg+xml", href: faviconSvg },
+  { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
   { rel: "icon", type: "image/png", sizes: "32x32", href: favicon32 },
   { rel: "icon", type: "image/png", sizes: "16x16", href: favicon16 },
-  { rel: "shortcut icon", href: faviconIco },
+  { rel: "shortcut icon", href: "/favicon.ico" },
   { rel: "apple-touch-icon", href: icon512 },
   { rel: "apple-touch-icon", sizes: "180x180", href: icon180 },
   { rel: "apple-touch-icon", sizes: "512x512", href: icon512 },
@@ -115,7 +113,7 @@ export const meta: Route.MetaFunction = () => [
     content: "Open-source project management tool to manage tasks, cycles, and product roadmaps easily",
   },
   { property: "og:url", content: "https://app.plane.so/" },
-  { property: "og:image", content: ogImage },
+  { property: "og:image", content: ogAppImage },
   { property: "og:image:width", content: "1200" },
   { property: "og:image:height", content: "630" },
   { property: "og:image:alt", content: "DragonFruit - Modern project management" },
@@ -126,7 +124,7 @@ export const meta: Route.MetaFunction = () => [
   },
   { name: "twitter:site", content: "@planepowers" },
   { name: "twitter:card", content: "summary_large_image" },
-  { name: "twitter:image", content: ogImage },
+  { name: "twitter:image", content: ogAppImage },
   { name: "twitter:image:width", content: "1200" },
   { name: "twitter:image:height", content: "630" },
   { name: "twitter:image:alt", content: "DragonFruit - Modern project management" },

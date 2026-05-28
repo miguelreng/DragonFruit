@@ -14,9 +14,8 @@ import { getPageName } from "@plane/utils";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { PageAccessIcon } from "@/components/common/page-access-icon";
-import { SwitcherIcon, SwitcherLabel } from "@/components/common/switcher-label";
+import { SwitcherLabel } from "@/components/common/switcher-label";
 import { PageHeaderActions } from "@/components/pages/header/actions";
-import { PageSyncingBadge } from "@/components/pages/header/syncing-badge";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -87,7 +86,7 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
 
             <Breadcrumbs.Item
               component={
-                <div className="content-title-font">
+                <div className="content-title-font inline-flex items-center">
                   <BreadcrumbNavigationSearchDropdown
                     selectedItem={pageId?.toString() ?? ""}
                     navigationItems={switcherOptions}
@@ -95,11 +94,6 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
                       router.push(`/${workspaceSlug}/projects/${projectId}/pages/${value}`);
                     }}
                     title={getPageName(page?.name)}
-                    icon={
-                      <Breadcrumbs.Icon>
-                        <SwitcherIcon logo_props={page.logo_props} LabelIcon={PageIcon} size={16} />
-                      </Breadcrumbs.Icon>
-                    }
                     isLast
                   />
                 </div>
@@ -109,7 +103,6 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
         </div>
       </Header.LeftItem>
       <Header.RightItem>
-        <PageSyncingBadge syncStatus={page.isSyncingWithServer} />
         <PageDetailsHeaderExtraActions page={page} storeType={storeType} />
         <PageHeaderActions page={page} storeType={storeType} />
       </Header.RightItem>

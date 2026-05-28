@@ -7,8 +7,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { ArrowUp, ArrowBendDownRight, ChevronDown, FileText, ListChecks, PenTool, Plus, Sparkles } from "@plane/icons";
+import { ChevronDown, FileText, ListChecks, PenTool, Plus, Sparkles } from "@plane/icons";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
+import { Loader } from "@plane/ui";
 import { AgentChatService, type TAgentChatMessage, type TAgentChatSession } from "@/services/agent-chat.service";
 
 type InvokeDetail = {
@@ -105,7 +106,11 @@ const cleanResponseLine = (line: string) =>
     .trim()
     .replace(/^[-*•]\s*/, "")
     .replace(/^\d+[.)]\s*/, "")
-    .replace(/^"+|"+$/g, "");
+    .replace(/^#+\s*/, "")
+    .replace(/^"+|"+$/g, "")
+    .replace(/^\*\*(.+)\*\*$/, "$1")
+    .replace(/^__(.+)__$/, "$1")
+    .replace(/^`(.+)`$/, "$1");
 
 const parseResponsePills = (text: string, mode: TAIMode) => {
   const lineItems = text
@@ -154,7 +159,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState<TDocChatMessage[]>(createInitialMessages());
+  const [messages, setMessages] = useState<TDocChatMessage[]>([]);
   const [context, setContext] = useState<InvokeDetail>({});
   const [mode, setMode] = useState<TAIMode>("quick-ask");
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
@@ -197,7 +202,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     async function loadDocSession() {
       setIsLoadingSession(true);
       setSession(null);
-      setMessages(createInitialMessages());
+      setMessages([]);
       setPrompt("");
 
       try {
@@ -239,6 +244,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   const contextText = context.selectionText?.trim() || context.paragraphText?.trim() || "";
   const activeMode = AI_MODES.find((entry) => entry.id === mode) ?? AI_MODES[0]!;
   const ActiveModeIcon = activeMode.Icon;
+  const shouldShowConversationLoader = isLoadingSession && messages.length === 0;
 
   const handleSubmit = useCallback(async () => {
     const trimmed = prompt.trim();
@@ -317,89 +323,91 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   if (!workspaceSlug || !projectId || !pageId) return null;
 
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-5 z-[100] flex justify-center px-4">
+    <div aria-live="polite" className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
       <div className="flex w-full max-w-2xl flex-col items-stretch gap-2">
-        <div className="pointer-events-auto flex max-h-[40vh] flex-col gap-2 overflow-y-auto px-1 pb-1">
-          {messages.map((message) => {
-            if (message.role === "user") {
-              return (
-                <div
-                  key={message.id}
-                  className="mr-auto max-w-[80%] rounded-full border border-subtle bg-layer-1 px-3 py-2 text-[12px] leading-5 text-primary shadow-raised-100"
-                >
-                  {message.authorName && <span className="mr-1 text-tertiary">{message.authorName}</span>}
-                  {message.content}
-                </div>
-              );
-            }
-
-            if (message.role === "error") {
-              return (
-                <div
-                  key={message.id}
-                  className="border-danger-primary/30 bg-red-500/5 ml-auto max-w-[85%] rounded-full border px-3 py-2 text-[12px] leading-5 text-danger-primary shadow-raised-100"
-                >
-                  {message.content}
-                </div>
-              );
-            }
-
-            return (
-              <div key={message.id} className="ml-auto flex max-w-[85%] flex-col items-end gap-2">
-                {message.pills?.length ? (
-                  <div className="flex flex-col items-end gap-2">
-                    {message.pills.map((_, index, pills) => {
-                      const pill = pills[pills.length - 1 - index]!;
-                      return (
-                        <button
-                          key={`${message.id}-${pill}`}
-                          type="button"
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(pill);
-                            setToast({
-                              type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
-                              title: "Copied suggestion",
-                              message: "The Atlas writing cue is ready to paste into your document.",
-                            });
-                          }}
-                          className="max-w-full rounded-full border border-subtle bg-surface-1 px-3 py-2 text-left text-[12px] text-secondary shadow-raised-100 transition-colors hover:bg-layer-1 hover:text-primary"
-                        >
-                          {pill}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="w-full rounded-2xl border border-subtle bg-surface-1 px-3 py-2 text-[12px] leading-5 whitespace-pre-wrap text-primary shadow-raised-100">
-                    {message.content}
-                  </div>
-                )}
-                {message.copyable !== false && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(message.content);
-                      setToast({
-                        type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
-                        title: "Copied full response",
-                        message: "The full Atlas response is ready to paste into your document.",
-                      });
-                    }}
-                    className="rounded-full border border-subtle bg-layer-1 px-3 py-2 text-[12px] text-tertiary transition-colors hover:bg-layer-2 hover:text-primary"
-                  >
-                    Copy all
-                  </button>
-                )}
+        <div className="relative">
+          <div className="pointer-events-auto flex max-h-[24vh] flex-col gap-1.5 overflow-y-auto px-1 pt-3 pb-1">
+            {shouldShowConversationLoader ? (
+              <div className="mr-auto flex max-w-[78%] items-center gap-2 rounded-full border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
+                <Loader className="flex items-center gap-1.5">
+                  <Loader.Item className="rounded-full" width="5px" height="5px" />
+                  <Loader.Item className="rounded-full" width="5px" height="5px" />
+                  <Loader.Item className="rounded-full" width="5px" height="5px" />
+                </Loader>
               </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
+            ) : (
+              messages.map((message) => {
+                if (message.role === "user") {
+                  return (
+                    <div
+                      key={message.id}
+                      className="mr-auto max-w-[80%] rounded-full border border-subtle bg-layer-1 px-3 py-2 text-[12px] leading-5 text-primary shadow-raised-100"
+                    >
+                      {message.authorName && <span className="mr-1 text-tertiary">{message.authorName}</span>}
+                      {message.content}
+                    </div>
+                  );
+                }
+
+                if (message.role === "error") {
+                  return (
+                    <div
+                      key={message.id}
+                      className="border-danger-primary/30 bg-red-500/5 ml-auto max-w-[85%] rounded-full border px-3 py-2 text-[12px] leading-5 text-danger-primary shadow-raised-100"
+                    >
+                      {message.content}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={message.id} className="ml-auto flex max-w-[85%] flex-col items-end gap-2">
+                    {message.pills?.length ? (
+                      <div className="flex flex-col items-end gap-2">
+                        {message.pills.map((_, index, pills) => {
+                          const pill = pills[pills.length - 1 - index]!;
+                          return (
+                            <button
+                              key={`${message.id}-${pill}`}
+                              type="button"
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(pill);
+                                setToast({
+                                  type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
+                                  title: "Copied suggestion",
+                                  message: "The Atlas writing cue is ready to paste into your document.",
+                                });
+                              }}
+                              className="max-w-full rounded-full border border-subtle bg-surface-1 px-3 py-2 text-left text-[12px] text-secondary shadow-raised-100 transition-colors hover:bg-layer-1 hover:text-primary"
+                            >
+                              {pill}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="w-full rounded-2xl border border-subtle bg-surface-1 px-3 py-2 text-[12px] leading-5 whitespace-pre-wrap text-primary shadow-raised-100">
+                        {message.content}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+          {messages.length > 1 && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-surface-1 via-surface-1/90 to-transparent"
+            />
+          )}
         </div>
 
         <div
           role="presentation"
           onMouseDown={(e) => e.stopPropagation()}
-          className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto w-full rounded-[18px] border border-subtle bg-surface-1 px-3 py-2 shadow-raised-200 duration-150"
+          className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto w-full rounded-[18px] border border-subtle bg-surface-1 px-3 py-1.5 shadow-raised-200 duration-150"
         >
           <textarea
             ref={textareaRef}
@@ -416,27 +424,28 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
             className="max-h-16 min-h-[22px] w-full resize-none bg-transparent text-[14px] leading-5 text-primary outline-none placeholder:text-placeholder/70"
           />
 
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <div className="text-sm flex min-w-0 items-center gap-1.5 text-tertiary">
+          <div className="my-0.5 flex items-center justify-between gap-1.5">
+            <div className="text-sm flex min-w-0 items-center gap-1 text-tertiary">
               <button
                 type="button"
-                className="grid size-6 shrink-0 place-items-center rounded-full transition-colors hover:bg-layer-1 hover:text-primary"
+                className="grid size-6 shrink-0 place-items-center rounded-full border border-subtle bg-layer-2 text-tertiary transition-colors hover:bg-layer-3 hover:text-primary"
                 aria-label="Add context"
+                title="Add context"
               >
-                <Plus className="size-2.5" />
+                <Plus className="size-3" />
               </button>
-              <div ref={modeMenuRef} className="relative flex min-w-0 items-center gap-1.5">
+              <div ref={modeMenuRef} className="relative flex min-w-0 items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setIsModeMenuOpen((current) => !current)}
-                  className="inline-flex items-center gap-1 rounded-full px-0.5 py-0.5 text-[12px] text-accent-primary transition-opacity hover:opacity-80"
+                  className="inline-flex items-center gap-1 rounded-full px-0.5 py-0 text-[12px] text-accent-primary transition-opacity hover:opacity-80"
                 >
-                  <ActiveModeIcon className="size-2.5" />
+                  <ActiveModeIcon className="size-2" />
                   <span className="font-medium">{activeMode.label}</span>
-                  <ChevronDown className="size-2.5" />
+                  <ChevronDown className="size-2" />
                 </button>
                 {isModeMenuOpen && (
-                  <div className="absolute bottom-full left-0 mb-2 min-w-36 rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
+                  <div className="absolute bottom-full left-0 mb-1.5 min-w-36 rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
                     {AI_MODES.map((entry) => (
                       <button
                         key={entry.id}
@@ -472,21 +481,16 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
 
             <div className="flex shrink-0 items-center gap-1.5">
               <div className="hidden items-center gap-1 text-[10px] text-tertiary sm:flex">
-                <ArrowBendDownRight className="size-2.5" />
                 <span>Enter to send</span>
               </div>
               <button
                 type="button"
                 onClick={() => void handleSubmit()}
                 disabled={isSending || isLoadingSession || !session || !prompt.trim()}
-                className="grid size-8 shrink-0 place-items-center rounded-full bg-layer-2 text-primary transition-colors hover:bg-layer-3 disabled:opacity-50"
+                className="inline-flex h-7 shrink-0 items-center rounded-lg border border-subtle bg-layer-2 px-2.5 text-[12px] font-medium text-primary transition-colors hover:bg-layer-3 disabled:opacity-50"
                 aria-label="Send prompt"
               >
-                {isSending || isLoadingSession ? (
-                  <span className="text-xs leading-none">...</span>
-                ) : (
-                  <ArrowUp className="size-3.5" />
-                )}
+                {isSending || isLoadingSession ? <span className="text-xs leading-none">...</span> : <span>Send</span>}
               </button>
             </div>
           </div>

@@ -16,7 +16,7 @@ interface IAgentsListProps {
 
 export function AgentsList({ agents, onToggle, onEdit, onUpdateTrigger }: IAgentsListProps) {
   return (
-    <div className="flex size-full flex-col divide-y divide-subtle overflow-hidden rounded-lg border border-subtle bg-layer-2">
+    <div className="flex w-full flex-col divide-y divide-subtle overflow-hidden rounded-lg border border-subtle bg-layer-2">
       {agents.map((agent) => (
         <AgentsListItem
           key={agent.id}

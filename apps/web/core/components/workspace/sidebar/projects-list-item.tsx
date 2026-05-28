@@ -11,7 +11,7 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/eleme
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { attachInstruction, extractInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
 import { observer } from "mobx-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import scrollIntoView from "smooth-scroll-into-view-if-needed";
 import { Briefcase, Copy, FileText, Settings, Share2, LogOut, MoreHorizontal } from "@/components/icons/lucide-shim";
@@ -89,9 +89,12 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
   const dragHandleRef = useRef<HTMLButtonElement | null>(null);
   // router
   const { workspaceSlug, projectId: URLProjectId } = useParams();
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   // derived values
   const project = getPartialProjectById(projectId);
+  const openedFromFavorites = searchParams.get("openFrom") === "favorites";
 
   // Get available navigation items for this project
   const navigationItems = useNavigationItems({
@@ -284,18 +287,22 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     if (URLProjectId === project?.id) {
-      setIsProjectListOpen(true);
-      // Scroll to active project
-      if (projectRef.current) {
-        timeoutId = setTimeout(() => {
-          if (projectRef.current) {
-            scrollIntoView(projectRef.current, {
-              behavior: "smooth",
-              block: "center",
-              scrollMode: "if-needed",
-            });
-          }
-        }, 200);
+      if (openedFromFavorites) {
+        setIsProjectListOpen(false);
+      } else {
+        setIsProjectListOpen(true);
+        // Scroll to active project
+        if (projectRef.current) {
+          timeoutId = setTimeout(() => {
+            if (projectRef.current) {
+              scrollIntoView(projectRef.current, {
+                behavior: "smooth",
+                block: "center",
+                scrollMode: "if-needed",
+              });
+            }
+          }, 200);
+        }
       }
     }
 
@@ -304,7 +311,16 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
         clearTimeout(timeoutId);
       }
     };
-  }, [URLProjectId, project?.id, setIsProjectListOpen]);
+  }, [URLProjectId, openedFromFavorites, project?.id, setIsProjectListOpen]);
+
+  useEffect(() => {
+    if (!openedFromFavorites) return;
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("openFrom");
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }, [openedFromFavorites, pathname, router, searchParams]);
 
   if (!project) return null;
 
@@ -409,9 +425,9 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   }
                   menuButtonOnClick={() => setIsMenuActive((isActive) => !isActive)}
                   className={cn(
-                    "pointer-events-none flex-shrink-0 opacity-0 transition-opacity group-focus-within/project-item:pointer-events-auto group-focus-within/project-item:opacity-100 group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100",
+                    "pointer-events-none flex-shrink-0 opacity-0 transition-opacity group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100",
                     {
-                      "pointer-events-auto opacity-100": isMobile || isMenuActive,
+                      "pointer-events-auto opacity-100": isMenuActive,
                     }
                   )}
                   customButtonClassName={cn(getIconButtonStyling("ghost", "sm"), "text-placeholder")}
