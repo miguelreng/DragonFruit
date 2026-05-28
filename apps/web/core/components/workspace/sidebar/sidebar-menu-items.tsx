@@ -30,7 +30,7 @@ export const SidebarMenuItems = observer(function SidebarMenuItems() {
   }, []);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-1.5">
       {topLevelItems.map((item) => (
         <SidebarItem key={item.key} item={item} />
       ))}

@@ -7,9 +7,8 @@
 import { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { ListFilter } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
+import { WorkItemsIcon } from "@plane/propel/icons";
 import type { GroupByColumnTypes, TIssue, TIssueServiceType, TSubIssueOperations } from "@plane/types";
 import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
 // hooks
@@ -53,7 +52,7 @@ export const SubIssuesListRoot = observer(function SubIssuesListRoot(props: Prop
   const {
     subIssues: {
       subIssuesByIssueId,
-      filters: { getSubIssueFilters, getGroupedSubWorkItems, getFilteredSubWorkItems, resetFilters },
+      filters: { getSubIssueFilters, getGroupedSubWorkItems, getFilteredSubWorkItems },
     },
   } = useIssueDetail(issueServiceType);
 
@@ -62,6 +61,10 @@ export const SubIssuesListRoot = observer(function SubIssuesListRoot(props: Prop
   const isRootLevel = useMemo(() => rootIssueId === parentIssueId, [rootIssueId, parentIssueId]);
   const group_by = isRootLevel ? (filters?.displayFilters?.group_by ?? null) : null;
   const filteredSubWorkItemsCount = (getFilteredSubWorkItems(rootIssueId, filters.filters ?? {}) ?? []).length;
+  const hasActiveFilters = Object.values(filters?.filters ?? {}).some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    return Boolean(value);
+  });
 
   const groups = getGroupByColumns({
     groupBy: group_by as GroupByColumnTypes,
@@ -83,29 +86,22 @@ export const SubIssuesListRoot = observer(function SubIssuesListRoot(props: Prop
     [isRootLevel, subIssuesByIssueId, rootIssueId, getGroupedSubWorkItems, parentIssueId]
   );
 
-  const isSubWorkItems = issueServiceType === EIssueServiceType.ISSUES;
-
   return (
     <div className="relative">
       {isRootLevel && filteredSubWorkItemsCount === 0 ? (
         <SectionEmptyState
           title={
-            !isSubWorkItems
-              ? t("sub_work_item.empty_state.list_filters.title")
-              : t("sub_work_item.empty_state.sub_list_filters.title")
+            hasActiveFilters
+              ? "No sub-tasks match your current filters."
+              : `No ${t("common.sub_work_items").toLowerCase()} yet.`
           }
           description={
-            !isSubWorkItems
-              ? t("sub_work_item.empty_state.list_filters.description")
-              : t("sub_work_item.empty_state.sub_list_filters.description")
+            hasActiveFilters
+              ? "Try adjusting the filters or add a new sub-task below."
+              : "Add your first sub-task below to break this issue into smaller steps."
           }
-          icon={<ListFilter />}
+          icon={<WorkItemsIcon className="size-3.5" />}
           customClassName={storeType !== EIssuesStoreType.EPIC ? "border-none" : ""}
-          actionElement={
-            <Button variant="secondary" onClick={() => resetFilters(rootIssueId)}>
-              {t("sub_work_item.empty_state.list_filters.action")}
-            </Button>
-          }
         />
       ) : (
         groups?.map((group) => (

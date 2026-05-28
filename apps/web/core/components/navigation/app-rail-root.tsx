@@ -243,7 +243,7 @@ const CompactRailItemGroup = (props: {
   return (
     <div
       className={cn("flex flex-col", {
-        "items-center gap-1": isCompact,
+        "items-center gap-0.5": isCompact,
         "items-start gap-0.5": !isCompact,
       })}
     >
@@ -468,7 +468,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
                 <MoreHorizontal className="size-4 text-current" />
               </span>
             }
-            className="flex-shrink-0"
+            className="pointer-events-none flex-shrink-0 opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
             customButtonClassName="grid size-5 flex-shrink-0 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90"
             placement="bottom-start"
             ariaLabel="Project actions"
@@ -674,17 +674,17 @@ export const AppRailRoot = observer(() => {
         display: "block",
       }}
     >
-      <div className="flex h-full flex-col justify-between gap-3 px-2 py-3">
+      <div className="flex h-full flex-col justify-between gap-2 px-2 py-3">
         <div
           className={cn("min-h-0 flex-1 overflow-x-hidden overflow-y-auto", {
-            "flex flex-col items-start gap-4": isRailExpanded,
-            "flex flex-col items-center gap-4": !isRailExpanded,
+            "flex flex-col items-start gap-2": isRailExpanded,
+            "flex flex-col items-center gap-2": !isRailExpanded,
           })}
         >
           <div
             className={cn({
-              "flex w-full flex-col items-start gap-1": isRailExpanded,
-              "flex flex-col items-center gap-1": !isRailExpanded,
+              "flex w-full flex-col items-start gap-0.5": isRailExpanded,
+              "flex flex-col items-center gap-0.5": !isRailExpanded,
             })}
           >
             <AppSidebarTooltip tooltipContent={isRailExpanded ? "Collapse rail" : "Expand rail"}>
@@ -714,14 +714,14 @@ export const AppRailRoot = observer(() => {
           </div>
           <div
             className={cn({
-              "flex w-full flex-col items-start gap-3": isRailExpanded,
-              "flex flex-col items-center gap-3": !isRailExpanded,
+              "flex w-full flex-col items-start gap-1.5": isRailExpanded,
+              "flex flex-col items-center gap-1.5": !isRailExpanded,
             })}
           >
             <div
               className={cn({
-                "flex w-full flex-col items-start gap-1": isRailExpanded,
-                "flex flex-col items-center gap-1": !isRailExpanded,
+                "flex w-full flex-col items-start gap-0.5": isRailExpanded,
+                "flex flex-col items-center gap-0.5": !isRailExpanded,
               })}
             >
               <AppSidebarItemsRoot showLabel={showRailLabels} isInline={isRailExpanded} />

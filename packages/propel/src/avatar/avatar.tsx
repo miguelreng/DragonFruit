@@ -124,12 +124,14 @@ export function Avatar(props: Props) {
   const fallbackLetter = name?.[0]?.toUpperCase() ?? fallbackText ?? "?";
   const shouldUsePortraitPlaceholder = !fallbackText && !fallbackBackgroundColor && !fallbackTextColor;
   const fallbackSrc = shouldUsePortraitPlaceholder ? getAvatarPlaceholderSrc(name) : undefined;
+  const numericSizeStyle = isAValidNumber(size) ? { width: `${size}px`, height: `${size}px` } : undefined;
 
   return (
     <div
       className={cn("grid place-items-center overflow-hidden", getBorderRadius(shape), {
         [sizeInfo.avatarSize]: !isAValidNumber(size),
       })}
+      style={numericSizeStyle}
       tabIndex={-1}
     >
       <AvatarPrimitive.Root className={cn("h-full w-full", getBorderRadius(shape), className)}>

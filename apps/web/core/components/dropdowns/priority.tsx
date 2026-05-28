@@ -47,27 +47,31 @@ const PRIORITY_SIGNAL_STYLES: Record<
   }
 > = {
   urgent: {
-    badge: "bg-[color-mix(in_srgb,var(--priority-urgent)_12%,var(--bg-layer-3))]",
-    icon: "text-[color-mix(in_srgb,var(--priority-urgent)_84%,black)]",
-    text: "text-[color-mix(in_srgb,var(--priority-urgent)_84%,black)]",
+    badge:
+      "border border-[color-mix(in_srgb,var(--priority-urgent)_42%,white)] bg-[color-mix(in_srgb,var(--priority-urgent)_30%,var(--bg-layer-2))] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
+    icon: "text-[color-mix(in_srgb,var(--priority-urgent)_98%,black)]",
+    text: "text-[color-mix(in_srgb,var(--priority-urgent)_98%,black)]",
   },
   high: {
-    badge: "bg-[color-mix(in_srgb,var(--priority-high)_14%,var(--bg-layer-3))]",
-    icon: "text-[color-mix(in_srgb,var(--priority-high)_82%,black)]",
-    text: "text-[color-mix(in_srgb,var(--priority-high)_82%,black)]",
+    badge:
+      "border border-[color-mix(in_srgb,var(--priority-high)_38%,white)] bg-[color-mix(in_srgb,var(--priority-high)_28%,var(--bg-layer-2))] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
+    icon: "text-[color-mix(in_srgb,var(--priority-high)_96%,black)]",
+    text: "text-[color-mix(in_srgb,var(--priority-high)_96%,black)]",
   },
   medium: {
-    badge: "bg-[color-mix(in_srgb,var(--priority-medium)_16%,var(--bg-layer-3))]",
-    icon: "text-[color-mix(in_srgb,var(--priority-medium)_78%,black)]",
-    text: "text-[color-mix(in_srgb,var(--priority-medium)_78%,black)]",
+    badge:
+      "border border-[color-mix(in_srgb,var(--priority-medium)_38%,white)] bg-[color-mix(in_srgb,var(--priority-medium)_30%,var(--bg-layer-2))] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
+    icon: "text-[color-mix(in_srgb,var(--priority-medium)_95%,black)]",
+    text: "text-[color-mix(in_srgb,var(--priority-medium)_95%,black)]",
   },
   low: {
-    badge: "bg-[color-mix(in_srgb,var(--priority-low)_14%,var(--bg-layer-3))]",
-    icon: "text-[color-mix(in_srgb,var(--priority-low)_82%,black)]",
-    text: "text-[color-mix(in_srgb,var(--priority-low)_82%,black)]",
+    badge:
+      "border border-[color-mix(in_srgb,var(--priority-low)_38%,white)] bg-[color-mix(in_srgb,var(--priority-low)_28%,var(--bg-layer-2))] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
+    icon: "text-[color-mix(in_srgb,var(--priority-low)_96%,black)]",
+    text: "text-[color-mix(in_srgb,var(--priority-low)_96%,black)]",
   },
   none: {
-    badge: "bg-layer-3 text-placeholder",
+    badge: "border border-subtle bg-layer-3 text-placeholder",
     icon: "text-priority-none",
     text: "text-placeholder",
   },
@@ -413,6 +417,7 @@ export function PriorityDropdown(props: Props) {
   return (
     <ComboDropDown
       as="div"
+      role="presentation"
       ref={dropdownRef}
       className={cn(
         "h-full",
@@ -457,8 +462,8 @@ export function PriorityDropdown(props: Props) {
                     value={option.value}
                     className={({ active, selected }) =>
                       cn(
-                        `flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 select-none ${
-                          active ? "bg-layer-transparent-hover" : ""
+                        `flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-md px-1.5 py-1.5 transition-colors select-none ${
+                          active ? "bg-[color-mix(in_srgb,var(--priority-medium)_12%,var(--bg-layer-1))]" : ""
                         } ${selected ? "text-primary" : "text-secondary"}`
                       )
                     }
@@ -466,7 +471,7 @@ export function PriorityDropdown(props: Props) {
                     {({ selected }) => (
                       <>
                         <span className="flex-grow truncate">{option.content}</span>
-                        {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+                        {selected && <CheckIcon className="h-3.5 w-3.5 flex-shrink-0 text-accent-primary" />}
                       </>
                     )}
                   </Combobox.Option>

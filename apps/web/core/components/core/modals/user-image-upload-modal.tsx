@@ -69,7 +69,7 @@ export const UserImageUploadModal = observer(function UserImageUploadModal(props
         title: "Error!",
         message: error?.toString() ?? "Something went wrong. Please try again.",
       });
-      throw new Error("Error in uploading file.");
+      throw new Error("Error in uploading file.", { cause: error });
     } finally {
       setIsImageUploading(false);
     }
@@ -94,14 +94,14 @@ export const UserImageUploadModal = observer(function UserImageUploadModal(props
   };
 
   return (
-    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XL}>
-      <div className="space-y-5 px-5 py-8 sm:p-6">
-        <h3 className="text-16 leading-6 font-medium text-primary">Upload Image</h3>
-        <div className="space-y-3">
+    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.MD}>
+      <div className="space-y-4 px-5 py-5">
+        <h3 className="text-15 leading-6 font-medium text-primary">Upload image</h3>
+        <div className="space-y-2">
           <div className="flex items-center justify-center gap-3">
             <div
               {...getRootProps()}
-              className={`relative grid h-80 w-80 cursor-pointer place-items-center rounded-lg p-12 text-center focus:ring-2 focus:ring-accent-strong focus:ring-offset-2 focus:outline-none ${
+              className={`relative grid size-44 cursor-pointer place-items-center overflow-hidden rounded-lg p-8 text-center focus:ring-2 focus:ring-accent-strong focus:ring-offset-2 focus:outline-none ${
                 (image === null && isDragActive) || !value
                   ? "border-2 border-dashed border-subtle hover:bg-surface-2"
                   : ""
@@ -111,19 +111,19 @@ export const UserImageUploadModal = observer(function UserImageUploadModal(props
                 <>
                   <button
                     type="button"
-                    className="absolute top-0 right-0 z-40 translate-x-1/2 -translate-y-1/2 rounded-sm bg-surface-2 px-2 py-0.5 text-11 font-medium text-secondary"
+                    className="shadow-sm absolute top-2 right-2 z-40 rounded-md bg-surface-2 px-2 py-0.5 text-11 font-medium text-secondary"
                   >
                     Edit
                   </button>
                   <img
                     src={image ? URL.createObjectURL(image) : value ? getFileURL(value) : ""}
-                    alt="image"
+                    alt="Avatar preview"
                     className="absolute top-0 left-0 h-full w-full rounded-md object-cover"
                   />
                 </>
               ) : (
                 <div>
-                  <UserCirclePropertyIcon className="mx-auto h-16 w-16 text-secondary" />
+                  <UserCirclePropertyIcon className="mx-auto size-10 text-secondary" />
                   <span className="mt-2 block text-13 font-medium text-secondary">
                     {isDragActive ? "Drop image here to upload" : "Drag & drop image here"}
                   </span>
@@ -141,16 +141,16 @@ export const UserImageUploadModal = observer(function UserImageUploadModal(props
             </p>
           )}
         </div>
-        <p className="my-4 text-13 text-secondary">File formats supported- .jpeg, .jpg, .png, .webp</p>
+        <p className="text-12 text-tertiary">Supports .jpeg, .jpg, .png, and .webp.</p>
         <div className="flex items-center justify-between">
-          <Button variant="error-fill" size="lg" onClick={handleImageRemove} disabled={!value}>
+          <Button variant="error-fill" size="sm" onClick={handleImageRemove} disabled={!value}>
             {isRemoving ? "Removing" : "Remove"}
           </Button>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="lg" onClick={handleClose}>
+            <Button variant="secondary" size="sm" onClick={handleClose}>
               Cancel
             </Button>
-            <Button variant="primary" size="lg" onClick={handleSubmit} disabled={!image} loading={isImageUploading}>
+            <Button variant="primary" size="sm" onClick={handleSubmit} disabled={!image} loading={isImageUploading}>
               {isImageUploading ? "Uploading" : "Upload & Save"}
             </Button>
           </div>

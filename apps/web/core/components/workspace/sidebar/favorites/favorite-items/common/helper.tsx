@@ -82,11 +82,13 @@ export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavor
     favorite.entity_type === "project" && favorite.entity_data?.view_layout
       ? `?layout=${encodeURIComponent(favorite.entity_data.view_layout)}`
       : "";
+  const openedFromFavoritesQuery =
+    favorite.entity_type === "page" ? `${layoutQuery ? "&" : "?"}openFrom=favorites` : "";
 
   if (entityLinkDetails.itemLevel === "workspace") {
-    return `/${workspaceSlug}/${entityLinkDetails.getLink(favorite)}${layoutQuery}`;
+    return `/${workspaceSlug}/${entityLinkDetails.getLink(favorite)}${layoutQuery}${openedFromFavoritesQuery}`;
   } else if (entityLinkDetails.itemLevel === "project") {
-    return `/${workspaceSlug}/projects/${favorite.project_id}/${entityLinkDetails.getLink(favorite)}${layoutQuery}`;
+    return `/${workspaceSlug}/projects/${favorite.project_id}/${entityLinkDetails.getLink(favorite)}${layoutQuery}${openedFromFavoritesQuery}`;
   } else {
     return `/${workspaceSlug}`;
   }

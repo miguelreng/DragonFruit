@@ -64,7 +64,7 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
       <ContentWrapper className={cn("scrollbar-hide bg-surface-1", header ? "gap-0 !px-0 !py-0" : "gap-6 px-page-x")}>
         {header}
         <div className={cn("home-dashboard-container", header && "px-page-x")}>
-          <div className={cn("home-dashboard-grid", header ? "pt-4" : "pt-2")}>
+          <div className={cn("home-dashboard-grid", header ? "pt-6" : "pt-2")}>
             {enabledKeys("activity") && SECTION_RENDERERS.activity()}
             {enabledKeys("inbox") && SECTION_RENDERERS.inbox()}
             {enabledKeys("agent_cost") && SECTION_RENDERERS.agent_cost()}

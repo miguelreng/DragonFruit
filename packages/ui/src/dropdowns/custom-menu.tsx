@@ -278,13 +278,13 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
                     type="button"
                     onClick={handleMenuButtonClick}
                     disabled={disabled}
-                    className={`relative grid place-items-center rounded-md p-1 text-secondary outline-none hover:text-primary ${
+                    className={`relative flex h-7 w-7 items-center justify-center rounded-lg text-secondary outline-none hover:text-primary ${
                       disabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-layer-transparent-hover"
                     } ${buttonClassName}`}
                     tabIndex={customButtonTabIndex}
                     aria-label={ariaLabel}
                   >
-                    <MoreHorizontal className={`h-3.5 w-3.5 ${verticalEllipsis ? "rotate-90" : ""}`} />
+                    <MoreHorizontal className={`h-4 w-4 ${verticalEllipsis ? "rotate-90" : ""}`} />
                   </button>
                 </Menu.Button>
               ) : (

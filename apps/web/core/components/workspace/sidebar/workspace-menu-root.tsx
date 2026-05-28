@@ -236,7 +236,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                     )}
 
                     {(canManageActiveWorkspace || canInviteToActiveWorkspace) && (
-                      <div className="bg-border-200 my-0.5 h-px w-full" />
+                      <div className="bg-border-200 my-0 h-px w-full" />
                     )}
 
                     {!isWorkspaceCreationDisabled && (

@@ -97,7 +97,7 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
       />
       <div
         className={cn(
-          "group/sticky shadow-sm hover:shadow-md relative flex h-fit w-full flex-col overflow-y-scroll rounded-sm ring-1 ring-black/5 transition-[box-shadow,transform,filter] duration-200 ease-out hover:-translate-y-0.5",
+          "group/sticky shadow-sm hover:shadow-md relative flex h-fit w-full flex-col overflow-y-scroll rounded-sm ring-1 ring-black/5 transition-[box-shadow,filter] duration-200 ease-out",
           {
             "shadow-lg ring-accent-primary/30 cursor-grabbing": isDragging,
           },

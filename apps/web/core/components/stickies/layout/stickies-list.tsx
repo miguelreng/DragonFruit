@@ -13,7 +13,6 @@ import type { ElementDragPayload } from "@atlaskit/pragmatic-drag-and-drop/eleme
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import Masonry from "react-masonry-component";
 
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
@@ -47,6 +46,8 @@ type TProps = TStickiesLayout & {
   columnCount: number;
 };
 
+const handleStickyLayout = () => {};
+
 const getStickyColumnCount = (width: number | null): number => {
   if (width === null) return 3;
   if (width < 640) return 1;
@@ -57,7 +58,6 @@ const getStickyColumnCount = (width: number | null): number => {
 
 export const StickiesList = observer(function StickiesList(props: TProps) {
   const { workspaceSlug, intersectionElement, columnCount } = props;
-  const masonryRef = useRef<{ performLayout: () => void } | null>(null);
   // navigation
   const pathname = usePathname();
   // theme hook
@@ -71,7 +71,7 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   const { stickyOperations } = useStickyOperations({ workspaceSlug: workspaceSlug?.toString() });
   // derived values
   const workspaceStickyIds = getWorkspaceStickyIds(workspaceSlug?.toString());
-  const itemWidth = `${100 / columnCount}%`;
+  const itemWidth = "100%";
   const totalRows = Math.ceil(workspaceStickyIds.length / columnCount);
   const isStickiesPage = pathname?.includes("stickies");
   const hasGuestLevelPermissions = allowPermissions(
@@ -80,10 +80,6 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   );
   const stickiesResolvedPath = resolvedTheme === "light" ? lightStickiesAsset : darkStickiesAsset;
   const stickiesSearchResolvedPath = resolvedTheme === "light" ? lightStickiesSearchAsset : darkStickiesSearchAsset;
-
-  const handleStickyLayout = () => {
-    masonryRef.current?.performLayout();
-  };
 
   // Function to determine if an item is in first or last row
   const getRowPositions = (index: number) => {
@@ -153,27 +149,29 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   }
 
   return (
-    <div className="transition-opacity duration-300 ease-in-out">
-      {/* @ts-expect-error Third-party ref types for Masonry are incomplete */}
-      <Masonry elementType="div" ref={masonryRef}>
-        {workspaceStickyIds.map((stickyId, index) => {
-          const { isInFirstRow, isInLastRow } = getRowPositions(index);
-          return (
-            <StickyDNDWrapper
-              key={stickyId}
-              stickyId={stickyId}
-              workspaceSlug={workspaceSlug.toString()}
-              itemWidth={itemWidth}
-              handleDrop={handleDrop}
-              isLastChild={index === workspaceStickyIds.length - 1}
-              isInFirstRow={isInFirstRow}
-              isInLastRow={isInLastRow}
-              handleLayout={handleStickyLayout}
-            />
-          );
-        })}
-        {intersectionElement && <div style={{ width: itemWidth }}>{intersectionElement}</div>}
-      </Masonry>
+    <div
+      className="grid gap-4 transition-opacity duration-300 ease-in-out"
+      style={{
+        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+      }}
+    >
+      {workspaceStickyIds.map((stickyId, index) => {
+        const { isInFirstRow, isInLastRow } = getRowPositions(index);
+        return (
+          <StickyDNDWrapper
+            key={stickyId}
+            stickyId={stickyId}
+            workspaceSlug={workspaceSlug.toString()}
+            itemWidth={itemWidth}
+            handleDrop={handleDrop}
+            isLastChild={index === workspaceStickyIds.length - 1}
+            isInFirstRow={isInFirstRow}
+            isInLastRow={isInLastRow}
+            handleLayout={handleStickyLayout}
+          />
+        );
+      })}
+      {intersectionElement && <div className="col-span-full">{intersectionElement}</div>}
     </div>
   );
 });

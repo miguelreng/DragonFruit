@@ -121,13 +121,12 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
   return (
     <Menu as="div" className="relative">
       <div ref={setReferenceElement} className="flex items-stretch">
-        <Menu.Button as={Button} variant="primary" size="lg" loading={isCreating} className="gap-1.5 rounded-r-none">
-          <meta.Icon className="size-3.5" />
+        <Menu.Button as={Button} variant="primary" size="lg" loading={isCreating} className="rounded-r-none">
           {isCreating ? "Adding" : `New ${meta.label.toLowerCase()}`}
         </Menu.Button>
         <Menu.Button
           aria-label="Choose type and project"
-          className="flex items-center rounded-r-md bg-[#e548a5] px-1.5 text-white hover:bg-[#d93d9a] active:bg-[#c9368e]"
+          className="flex items-center rounded-r-lg bg-[#e548a5] px-1.5 text-white hover:bg-[#d93d9a] active:bg-[#c9368e]"
         >
           <ChevronDown className="size-4" />
         </Menu.Button>

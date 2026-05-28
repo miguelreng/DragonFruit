@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 // plane imports
@@ -12,8 +12,6 @@ import type { EditorRefApi } from "@plane/editor";
 import type { TSticky } from "@plane/types";
 import { cn, isCommentEmpty } from "@plane/utils";
 import { StickyEditor } from "@/components/editor/sticky-editor";
-// hooks
-import { normalizeTags, parseTagsInput } from "@/helpers/tags";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 
 // const StickyEditor = dynamic(() => import("../../editor/sticky-editor").then((mod) => mod.StickyEditor), {
@@ -35,7 +33,6 @@ export function StickyInput(props: TProps) {
   // refs
   const editorRef = useRef<EditorRefApi>(null);
   const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const [tagsInput, setTagsInput] = useState("");
   // navigation
   const pathname = usePathname();
   // store hooks
@@ -61,15 +58,6 @@ export function StickyInput(props: TProps) {
     [handleUpdate]
   );
 
-  const handleTagsSubmit = useCallback(
-    async (value = tagsInput) => {
-      await handleChange({
-        tags: parseTagsInput(value),
-      });
-    },
-    [handleChange, tagsInput]
-  );
-
   const resizeTitleTextarea = useCallback((element: HTMLTextAreaElement | null) => {
     if (!element) return;
     element.style.height = "0px";
@@ -84,7 +72,6 @@ export function StickyInput(props: TProps) {
       name: stickyData?.name ?? "",
       description_html: stickyData?.description_html?.trim() === "" ? "<p></p>" : stickyData?.description_html,
     });
-    setTagsInput((stickyData?.tags ?? []).join(", "));
   }, [stickyData, stickyId, reset]);
 
   useEffect(() => {
@@ -114,7 +101,7 @@ export function StickyInput(props: TProps) {
               resizeTitleTextarea(element);
             }}
             placeholder="Title"
-            className="w-full resize-none overflow-hidden border-0 bg-transparent px-4 pt-6 pb-0 font-['Newsreader'] text-20 leading-tight font-medium wrap-anywhere whitespace-pre-wrap text-primary placeholder:text-primary/40 focus:outline-none"
+            className="w-full resize-none overflow-hidden border-0 bg-transparent px-4 pt-6 pb-0 font-['Figtree'] text-[1.1rem] leading-tight font-medium wrap-anywhere whitespace-pre-wrap text-primary placeholder:text-primary/40 focus:outline-none"
             maxLength={100}
           />
         )}
@@ -150,10 +137,6 @@ export function StickyInput(props: TProps) {
             parentClassName="border-none p-0"
             handleDelete={handleDelete}
             handleColorChange={handleChange}
-            tags={normalizeTags(stickyData?.tags)}
-            tagsInput={tagsInput}
-            onTagsInputChange={setTagsInput}
-            onTagsSubmit={handleTagsSubmit}
             ref={editorRef}
           />
         )}
