@@ -126,34 +126,21 @@ const dispatchReviewEvent = (view: EditorView, eventName: string, id?: string) =
   );
 };
 
-const proposalTitle = (proposal: TAtlasDocReviewProposal, stale: boolean) => {
-  if (stale) return "Target changed";
-  if (proposal.operation === "replace") return "Replace paragraph";
-  if (proposal.operation === "delete") return "Delete paragraph";
-  return "Insert paragraph";
-};
-
 const buildProposalCard = (view: EditorView, proposal: TAtlasDocReviewProposal, stale: boolean) => {
   const card = document.createElement("div");
   card.className = `atlas-doc-review-card${stale ? " is-stale" : ""}`;
   card.setAttribute("data-atlas-proposal-id", proposal.id);
   card.contentEditable = "false";
 
-  const header = document.createElement("div");
-  header.className = "atlas-doc-review-header";
-
-  const title = document.createElement("div");
-  title.className = "atlas-doc-review-title";
-  title.textContent = proposalTitle(proposal, stale);
-  header.appendChild(title);
-
+  // Float the controls to the top-right so the proposed text wraps to their
+  // left — the suggestion reads as inline highlighted prose, not a boxed card.
   const actions = document.createElement("div");
   actions.className = "atlas-doc-review-actions";
 
   const accept = document.createElement("button");
   accept.type = "button";
   accept.className = "atlas-doc-review-button is-primary";
-  accept.textContent = stale && proposal.operation !== "delete" ? "Insert as new" : "Accept";
+  accept.textContent = `✓ ${stale && proposal.operation !== "delete" ? "Insert as new" : "Accept"}`;
   accept.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -164,7 +151,7 @@ const buildProposalCard = (view: EditorView, proposal: TAtlasDocReviewProposal, 
   const reject = document.createElement("button");
   reject.type = "button";
   reject.className = "atlas-doc-review-button";
-  reject.textContent = "Reject";
+  reject.textContent = "✕ Reject";
   reject.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -172,8 +159,7 @@ const buildProposalCard = (view: EditorView, proposal: TAtlasDocReviewProposal, 
   });
   actions.appendChild(reject);
 
-  header.appendChild(actions);
-  card.appendChild(header);
+  card.appendChild(actions);
 
   if (proposal.targetOriginalText && proposal.operation !== "insert_after") {
     const oldText = document.createElement("div");
