@@ -11,7 +11,10 @@ import os
 from urllib.parse import urlparse, urlencode
 
 
-ALLOWED_NATIVE_REDIRECT_SCHEMES = {"dragonfruitmini"}
+# Custom URL schemes we allow as native auth-handoff callback targets.
+# - dragonfruitmini: the macOS Copilot desktop app
+# - dragonfruit: the Expo mobile client
+ALLOWED_NATIVE_REDIRECT_SCHEMES = {"dragonfruitmini", "dragonfruit"}
 
 
 def is_allowed_native_redirect_url(url: str | None) -> bool:
