@@ -1442,6 +1442,10 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                         user_prompt=user_prompt,
                         request_timeout=60,
                         usage_out=usage_out,
+                        # Drafting prose needs little deliberation; skipping the
+                        # model's thinking phase is what makes the proposals
+                        # actually stream in live instead of arriving in a burst.
+                        reasoning_effort="minimal",
                     ),
                     mode=mode,
                     block_map=block_map,
@@ -1535,9 +1539,13 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             session.save(update_fields=["title", "updated_at"])
 
         response = StreamingHttpResponse(stream(), content_type="application/x-ndjson")
-        # Keep proxies/CDNs from buffering the stream and flushing it as one
-        # block: X-Accel-Buffering disables nginx response buffering, and
-        # no-transform stops intermediaries from re-chunking/compressing it.
+        # Keep the NDJSON flowing token-by-token instead of arriving as one
+        # block. Three buffers can defeat streaming:
+        #   - Django's GZipMiddleware compresses the (small) stream and zlib
+        #     holds it until close — declaring an encoding makes it skip us.
+        #   - nginx response buffering (X-Accel-Buffering).
+        #   - intermediary re-chunking/transforms (no-transform).
+        response["Content-Encoding"] = "identity"
         response["Cache-Control"] = "no-cache, no-transform"
         response["X-Accel-Buffering"] = "no"
         return response

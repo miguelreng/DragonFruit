@@ -348,6 +348,7 @@ class LLMProvider:
         user_prompt,
         request_timeout: Optional[float] = None,
         usage_out: Optional[Dict[str, int]] = None,
+        reasoning_effort: Optional[str] = None,
     ):
         """Yield assistant text deltas as the model produces them.
 
@@ -359,6 +360,12 @@ class LLMProvider:
         `completion_tokens` from the final usage chunk (requested via
         `stream_options`). Providers that omit streamed usage simply leave
         it untouched, so callers must treat the values as best-effort.
+
+        `reasoning_effort` (e.g. "minimal"/"low") caps the model's silent
+        "thinking" phase. For thinking-capable models this is the difference
+        between ~18s of nothing-then-a-burst and tokens arriving in ~1-2s, so
+        latency-sensitive streaming should pass it. LiteLLM normalises the
+        knob per provider; unsupported models drop it (`drop_params`).
         """
         import litellm  # local import — heavy module, only load when used
 
@@ -375,6 +382,11 @@ class LLMProvider:
         }
         if request_timeout is not None:
             completion_kwargs["timeout"] = request_timeout
+        if reasoning_effort is not None:
+            completion_kwargs["reasoning_effort"] = reasoning_effort
+            # Let LiteLLM silently drop the param for models that don't reason,
+            # rather than erroring on a non-thinking BYOK model.
+            completion_kwargs["drop_params"] = True
 
         try:
             response = litellm.completion(**completion_kwargs)
