@@ -80,12 +80,12 @@ const TOAST_DATA = {
       <span className="relative grid size-3.5 place-items-center">
         <span
           aria-hidden
-          className="bg-on-color/35 absolute size-3 animate-ping rounded-full [animation-duration:1.8s]"
+          className="absolute size-3 animate-ping rounded-full bg-success-primary/25 [animation-duration:1.8s]"
         />
-        <Sparkles width={14} height={14} className="relative text-on-color" />
+        <Sparkles width={14} height={14} className="relative text-success-primary" />
       </span>
     ),
-    iconBgClassName: "bg-success-primary",
+    iconBgClassName: "bg-transparent",
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
