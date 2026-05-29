@@ -106,20 +106,34 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
       customButton={
         <>
           <Tooltip tooltipContent={title} position="bottom">
-            <button
-              onClick={(e) => {
-                if (!isLast) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleOnClick?.();
-                }
-              }}
+            {/* span, not button: CustomSearchSelect already wraps customButton in its own
+                <button>, so a nested <button> here is invalid DOM. Click handling still works
+                on a span (the event bubbles; stopPropagation blocks the outer toggle). */}
+            <span
               className={cn(
                 "group flex h-full cursor-pointer items-center gap-2 rounded-sm rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary",
                 {
                   "hover:bg-layer-1 hover:text-primary": !isLast,
                 }
               )}
+              {...(isLast
+                ? {}
+                : {
+                    role: "button",
+                    tabIndex: 0,
+                    onClick: (e: React.MouseEvent) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleOnClick?.();
+                    },
+                    onKeyDown: (e: React.KeyboardEvent) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleOnClick?.();
+                      }
+                    },
+                  })}
             >
               {shouldTruncate && <div className="flex text-tertiary @4xl:hidden">...</div>}
               <div className={cn("flex items-center leading-none", { "hidden @4xl:flex": shouldTruncate })}>
@@ -128,7 +142,7 @@ export function BreadcrumbNavigationSearchDropdown(props: TBreadcrumbNavigationS
                   label={<BreadcrumbLabelWrapper label={title} className={titleClassName} />}
                 />
               </div>
-            </button>
+            </span>
           </Tooltip>
           <Breadcrumbs.Separator
             className={cn("rounded-r-sm", {

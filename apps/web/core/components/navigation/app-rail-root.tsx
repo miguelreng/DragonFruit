@@ -189,28 +189,27 @@ const CompactRailOverflowMenu = (props: {
       customButton={
         isCompact ? (
           <AppSidebarTooltip tooltipContent="More">
-            <button
-              type="button"
-              aria-label="More"
-              className={cn(COMPRESSED_ICON_CLASS, "cursor-pointer border-none bg-transparent p-0")}
-            >
+            <span className="flex items-center justify-center">
               <MoreHorizontal className={RAIL_INLINE_ICON_CLASS} />
-            </button>
+            </span>
           </AppSidebarTooltip>
         ) : (
-          <button
-            type="button"
-            className={cn(
+          <span className="flex min-w-0 items-center gap-1.5">
+            <MoreHorizontal className={RAIL_INLINE_ICON_CLASS} />
+            <span className="min-w-0 flex-1 truncate">More</span>
+          </span>
+        )
+      }
+      customButtonClassName={
+        isCompact
+          ? cn(COMPRESSED_ICON_CLASS, "cursor-pointer border-none bg-transparent p-0")
+          : cn(
               EXPANDED_ICON_CLASS,
               "min-w-0 cursor-pointer border-none bg-transparent outline-none",
               EXPANDED_ICON_INACTIVE
-            )}
-          >
-            <MoreHorizontal className={RAIL_INLINE_ICON_CLASS} />
-            <span className="min-w-0 flex-1 truncate">More</span>
-          </button>
-        )
+            )
       }
+      ariaLabel="More"
       placement="right-start"
       className="p-0"
       optionsClassName="min-w-52 p-1.5"

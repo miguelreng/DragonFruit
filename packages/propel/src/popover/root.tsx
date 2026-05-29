@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { memo, useMemo } from "react";
+import { forwardRef, memo, useMemo } from "react";
 import { Popover as BasePopover } from "@base-ui-components/react/popover";
 import type { TPlacement, TSide, TAlign } from "../utils/placement";
 import { cn } from "../utils/classname";
@@ -57,9 +57,14 @@ const PopoverContent = memo(function PopoverContent({
 });
 
 // wrapper components
-const PopoverTrigger = memo(function PopoverTrigger(props: React.ComponentProps<typeof BasePopover.Trigger>) {
-  return <BasePopover.Trigger data-slot="popover-trigger" {...props} />;
-});
+const PopoverTrigger = memo(
+  forwardRef(function PopoverTrigger(
+    props: React.ComponentProps<typeof BasePopover.Trigger>,
+    ref: React.ForwardedRef<React.ElementRef<typeof BasePopover.Trigger>>
+  ) {
+    return <BasePopover.Trigger ref={ref} data-slot="popover-trigger" {...props} />;
+  })
+);
 
 const PopoverPortal = memo(function PopoverPortal(props: React.ComponentProps<typeof BasePopover.Portal>) {
   return <BasePopover.Portal data-slot="popover-portal" {...props} />;

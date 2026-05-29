@@ -43,7 +43,7 @@ export const HelpMenuRoot = observer(function HelpMenuRoot(props: THelpMenuRootP
       <CustomMenu
         customButton={
           <AppSidebarItem
-            variant="button"
+            variant="static"
             item={{
               label: "Help",
               icon: <HelpCircle className="size-5" />,

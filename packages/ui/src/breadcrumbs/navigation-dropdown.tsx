@@ -33,30 +33,55 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
   // if no selected item, return null
   if (!selectedItem) return null;
 
-  function NavigationButton() {
+  // `nested` renders a <span> instead of <button>: when used as CustomMenu's customButton,
+  // CustomMenu wraps it in its own <button>, so a nested <button> would be invalid DOM.
+  // Click handling still works on the span (event bubbles; stopPropagation blocks the outer toggle).
+  function NavigationButton({ nested = false }: { nested?: boolean }) {
+    const handleClick = (e: React.MouseEvent | React.KeyboardEvent) => {
+      if (!isLast) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleOnClick?.();
+      }
+    };
+    const className = cn(
+      "group flex h-full cursor-pointer items-center gap-2 rounded-sm rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary",
+      {
+        "hover:bg-layer-1 hover:text-primary": !isLast,
+      }
+    );
+    const content = (
+      <>
+        <div className="flex text-tertiary @4xl:hidden">...</div>
+        <div className="hidden items-center gap-2 @4xl:flex">
+          {selectedItemIcon && <Breadcrumbs.Icon>{selectedItemIcon}</Breadcrumbs.Icon>}
+          <Breadcrumbs.Label>{selectedItem?.title}</Breadcrumbs.Label>
+        </div>
+      </>
+    );
     return (
       <Tooltip tooltipContent={selectedItem?.title} position="bottom" disabled={isOpen}>
-        <button
-          onClick={(e) => {
-            if (!isLast) {
-              e.preventDefault();
-              e.stopPropagation();
-              handleOnClick?.();
-            }
-          }}
-          className={cn(
-            "group flex h-full cursor-pointer items-center gap-2 rounded-sm rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary",
-            {
-              "hover:bg-layer-1 hover:text-primary": !isLast,
-            }
-          )}
-        >
-          <div className="flex text-tertiary @4xl:hidden">...</div>
-          <div className="hidden items-center gap-2 @4xl:flex">
-            {selectedItemIcon && <Breadcrumbs.Icon>{selectedItemIcon}</Breadcrumbs.Icon>}
-            <Breadcrumbs.Label>{selectedItem?.title}</Breadcrumbs.Label>
-          </div>
-        </button>
+        {nested ? (
+          <span
+            className={className}
+            {...(isLast
+              ? {}
+              : {
+                  role: "button",
+                  tabIndex: 0,
+                  onClick: handleClick,
+                  onKeyDown: (e: React.KeyboardEvent) => {
+                    if (e.key === "Enter" || e.key === " ") handleClick(e);
+                  },
+                })}
+          >
+            {content}
+          </span>
+        ) : (
+          <button onClick={handleClick} className={className}>
+            {content}
+          </button>
+        )}
       </Tooltip>
     );
   }
@@ -69,7 +94,7 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
     <CustomMenu
       customButton={
         <>
-          <NavigationButton />
+          <NavigationButton nested />
           <Breadcrumbs.Separator
             className={cn("rounded-r-sm", {
               "bg-layer-1": isOpen && !isLast,

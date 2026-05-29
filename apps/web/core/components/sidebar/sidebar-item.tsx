@@ -25,7 +25,7 @@ interface AppSidebarItemData {
 }
 
 interface AppSidebarItemProps {
-  variant?: "link" | "button";
+  variant?: "link" | "button" | "static";
   item?: AppSidebarItemData;
 }
 
@@ -231,6 +231,25 @@ function AppSidebarItem({ variant = "link", item }: AppSidebarItemProps) {
       {showLabel && <AppSidebarItemLabel highlight={isActive} label={label} isInline={isInline} />}
     </>
   );
+
+  // Presentational variant: renders no interactive element. Used when the item is
+  // already nested inside an interactive trigger (e.g. CustomMenu wraps customButton
+  // in its own <button>) — rendering another <button> here would nest buttons.
+  if (variant === "static") {
+    return (
+      <AppSidebarTooltip tooltipContent={tooltipContent}>
+        <span
+          aria-label={label}
+          className={cn(isInline ? styles.baseInline : styles.base, {
+            [styles.inlineActive]: isInline && isActive,
+            [styles.inlineInactive]: isInline && !isActive,
+          })}
+        >
+          {commonItems}
+        </span>
+      </AppSidebarTooltip>
+    );
+  }
 
   if (variant === "link") {
     return (

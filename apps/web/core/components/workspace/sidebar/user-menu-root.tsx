@@ -65,7 +65,7 @@ export const UserMenuRoot = observer(function UserMenuRoot(props: TUserMenuRootP
       className="flex items-center"
       customButton={
         <AppSidebarItem
-          variant="button"
+          variant="static"
           item={{
             label: "Profile",
             icon: (
