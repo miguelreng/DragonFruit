@@ -218,7 +218,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
     <button
       type="button"
       ref={menuActionRef}
-      className={`flex h-full w-full cursor-pointer items-center rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
+      className={`flex h-full w-full cursor-pointer items-center rounded-lg p-1 text-placeholder hover:bg-layer-1 ${
         isMenuActive ? "bg-layer-1 text-primary" : "text-secondary"
       }`}
       onClick={() => setIsMenuActive(!isMenuActive)}
@@ -395,7 +395,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                         type="button"
                         onClick={handleToggleExpand}
                         aria-expanded={isExpanded}
-                        className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-sm bg-layer-1 px-1 py-0.5 text-11 font-medium text-tertiary transition-colors hover:bg-layer-2 hover:text-primary"
+                        className="inline-flex flex-shrink-0 items-center gap-0.5 rounded-lg bg-layer-1 px-1 py-0.5 text-11 font-medium text-tertiary transition-colors hover:bg-layer-2 hover:text-primary"
                       >
                         <GitBranch className="size-3" strokeWidth={2} />
                         {subIssuesCount}

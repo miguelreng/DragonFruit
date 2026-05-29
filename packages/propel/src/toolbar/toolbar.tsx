@@ -86,7 +86,7 @@ const ToolbarItem = React.forwardRef(function ToolbarItem(
       ref={ref}
       type="button"
       className={cn(
-        "grid aspect-square place-items-center rounded-md p-0.5 text-placeholder transition-colors hover:bg-layer-1",
+        "grid aspect-square place-items-center rounded-lg p-0.5 text-placeholder transition-colors hover:bg-layer-1",
         {
           "bg-layer-1 text-primary": isActive,
         },
@@ -147,7 +147,7 @@ const ToolbarSubmitButton = React.forwardRef(function ToolbarSubmitButton(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-11 font-medium transition-colors duration-200",
+          "inline-flex items-center justify-center gap-2 rounded-lg px-2.5 py-1.5 text-11 font-medium transition-colors duration-200",
           "focus:ring-2 focus:ring-accent-strong/20 focus:ring-offset-2 focus:outline-none",
           "disabled:pointer-events-none disabled:opacity-50",
           buttonVariants[variant],

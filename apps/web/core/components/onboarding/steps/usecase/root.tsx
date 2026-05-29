@@ -125,7 +125,7 @@ export const UseCaseSetupStep = observer(function UseCaseSetupStep({ handleStepC
                     }`}
                   >
                     <span
-                      className={cn(`flex size-4 items-center justify-center rounded-sm border-2`, {
+                      className={cn(`flex size-4 items-center justify-center rounded-lg border-2`, {
                         "border-accent-strong bg-accent-primary": isSelected,
                         "border-strong": !isSelected,
                       })}

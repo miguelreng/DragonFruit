@@ -311,7 +311,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   type="button"
                   onClick={handleToggleExpand}
                   aria-expanded={isExpanded}
-                  className="ml-2 inline-flex flex-shrink-0 items-center gap-0.5 rounded-sm bg-layer-1 px-1 py-0.5 text-11 font-medium text-tertiary transition-colors hover:bg-layer-2 hover:text-primary"
+                  className="ml-2 inline-flex flex-shrink-0 items-center gap-0.5 rounded-lg bg-layer-1 px-1 py-0.5 text-11 font-medium text-tertiary transition-colors hover:bg-layer-2 hover:text-primary"
                 >
                   <GitBranch className="size-3" strokeWidth={2} />
                   {subIssuesCount}
@@ -330,7 +330,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
           </div>
           {!issue?.tempId && (
             <div
-              className={cn("block rounded-sm border border-strong", {
+              className={cn("block rounded-lg border border-strong", {
                 "md:hidden": isSidebarCollapsed,
                 "lg:hidden": !isSidebarCollapsed,
               })}

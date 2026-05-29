@@ -17,9 +17,9 @@ export const badgeVariants = cva("inline-flex items-center justify-center gap-1 
       danger: "bg-danger-subtle text-danger-primary",
     },
     size: {
-      sm: "h-4 rounded-sm px-1 text-caption-sm-medium",
-      base: "h-5 rounded-md px-1.5 text-caption-sm-medium",
-      lg: "h-6 rounded-md px-2 text-caption-md-medium",
+      sm: "h-4 rounded-lg px-1 text-caption-sm-medium",
+      base: "h-5 rounded-lg px-1.5 text-caption-sm-medium",
+      lg: "h-6 rounded-lg px-2 text-caption-md-medium",
     },
   },
   defaultVariants: {

@@ -53,7 +53,7 @@ export const ModuleGanttBlock = observer(function ModuleGanttBlock(props: Props)
       position="top-start"
     >
       <div
-        className="relative flex h-full w-full cursor-pointer items-center rounded-sm"
+        className="relative flex h-full w-full cursor-pointer items-center rounded-lg"
         style={blockStyle}
         onClick={() =>
           router.push(

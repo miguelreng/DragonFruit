@@ -68,7 +68,7 @@ export const StickySearch = observer(function StickySearch() {
       )}
       <div
         className={cn(
-          "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-md border border-transparent text-placeholder opacity-0 transition-[width] ease-linear",
+          "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-lg border border-transparent text-placeholder opacity-0 transition-[width] ease-linear",
           {
             "w-30 border-subtle px-2.5 py-1.5 opacity-100 md:w-64": isSearchOpen,
           }
@@ -89,7 +89,7 @@ export const StickySearch = observer(function StickySearch() {
         {isSearchOpen && (
           <button
             type="button"
-            className="grid place-items-center rounded-md p-0.5 hover:bg-layer-transparent-hover"
+            className="grid place-items-center rounded-lg p-0.5 hover:bg-layer-transparent-hover"
             onClick={() => {
               updateSearchQuery("");
               setIsSearchOpen(false);

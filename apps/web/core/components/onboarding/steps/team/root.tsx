@@ -185,7 +185,7 @@ const InviteMemberInput = observer(function InviteMemberInput(props: InviteMembe
                 <Listbox.Button
                   type="button"
                   ref={setReferenceElement}
-                  className="flex w-full items-center justify-between gap-1 rounded-md border-[0.5px] border-strong px-2.5 py-2 text-13"
+                  className="flex w-full items-center justify-between gap-1 rounded-lg border-[0.5px] border-strong px-2.5 py-2 text-13"
                 >
                   <span
                     className={`text-13 ${
@@ -204,7 +204,7 @@ const InviteMemberInput = observer(function InviteMemberInput(props: InviteMembe
 
                 <Listbox.Options as="div">
                   <div
-                    className="shadow-sm absolute z-10 mt-1 h-fit w-48 space-y-1 rounded-md border border-strong bg-surface-1 p-2 focus:outline-none sm:w-60"
+                    className="shadow-sm absolute z-10 mt-1 h-fit w-48 space-y-1 rounded-lg border border-strong bg-surface-1 p-2 focus:outline-none sm:w-60"
                     ref={setPopperElement}
                     style={styles.popper}
                     {...attributes.popper}
@@ -215,7 +215,7 @@ const InviteMemberInput = observer(function InviteMemberInput(props: InviteMembe
                         key={key}
                         value={parseInt(key)}
                         className={({ active, selected }) =>
-                          `cursor-pointer truncate rounded-sm px-1 py-1.5 select-none ${
+                          `cursor-pointer truncate rounded-lg px-1 py-1.5 select-none ${
                             active || selected ? "bg-onboarding-background-400/40" : ""
                           } ${selected ? "text-primary" : "text-secondary"}`
                         }
@@ -240,7 +240,7 @@ const InviteMemberInput = observer(function InviteMemberInput(props: InviteMembe
         {fields.length > 1 && (
           <button
             type="button"
-            className="absolute right-0 hidden place-items-center self-center rounded-sm group-hover:grid"
+            className="absolute right-0 hidden place-items-center self-center rounded-lg group-hover:grid"
             onClick={() => remove(index)}
           >
             <XCircle className="h-5 w-5 pl-0.5 text-placeholder" />

@@ -26,7 +26,7 @@ export function LatestFeatureBlock() {
         </p>
       </div>
       <div
-        className={`mx-auto mt-8 overflow-hidden rounded-md border border-subtle object-cover sm:h-52 sm:w-96 ${
+        className={`mx-auto mt-8 overflow-hidden rounded-lg border border-subtle object-cover sm:h-52 sm:w-96 ${
           resolvedTheme === "dark" ? "bg-surface-1" : "bg-layer-2"
         }`}
       >
@@ -34,7 +34,7 @@ export function LatestFeatureBlock() {
           <img
             src={latestFeatures}
             alt="DragonFruit Tasks"
-            className={`-mt-2 ml-10 h-full rounded-md ${resolvedTheme === "dark" ? "bg-surface-1" : "bg-layer-2"}`}
+            className={`-mt-2 ml-10 h-full rounded-lg ${resolvedTheme === "dark" ? "bg-surface-1" : "bg-layer-2"}`}
           />
         </div>
       </div>

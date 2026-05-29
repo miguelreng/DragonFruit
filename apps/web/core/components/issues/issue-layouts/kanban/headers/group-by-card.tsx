@@ -133,7 +133,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           neutral `bg-layer-1`.
         */}
         <div
-          className={`inline-flex min-w-0 items-center gap-1.5 rounded-md bg-layer-1 ${
+          className={`inline-flex min-w-0 items-center gap-1.5 rounded-lg bg-layer-1 ${
             verticalAlignPosition ? `flex-col px-1 py-1.5` : `flex-row overflow-hidden px-2 py-0.5`
           }`}
           style={{
@@ -188,7 +188,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
 
           {sub_group_by === null && (
             <button
-              className="flex h-[20px] w-[20px] flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm bg-layer-transparent transition-all hover:bg-layer-transparent-hover"
+              className="flex h-[20px] w-[20px] flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-layer-transparent transition-all hover:bg-layer-transparent-hover"
               onClick={() => handleCollapsedGroups("group_by", column_id)}
             >
               {verticalAlignPosition ? (
@@ -203,7 +203,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             (renderExistingIssueModal ? (
               <CustomMenu
                 customButton={
-                  <span className="flex h-[20px] w-[20px] flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm bg-layer-transparent transition-all hover:bg-layer-transparent-hover">
+                  <span className="flex h-[20px] w-[20px] flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-layer-transparent transition-all hover:bg-layer-transparent-hover">
                     <PlusIcon height={14} width={14} strokeWidth={2} />
                   </span>
                 }
@@ -226,7 +226,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
               </CustomMenu>
             ) : (
               <button
-                className="flex h-[20px] w-[20px] flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm bg-layer-transparent transition-all hover:bg-layer-transparent-hover"
+                className="flex h-[20px] w-[20px] flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-layer-transparent transition-all hover:bg-layer-transparent-hover"
                 onClick={() => {
                   setIsOpen(true);
                 }}

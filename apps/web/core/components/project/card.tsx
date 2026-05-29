@@ -215,7 +215,7 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
           })}
         >
           <div className="flex min-w-0 flex-grow items-center gap-2.5">
-            <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-md border border-subtle bg-layer-1">
+            <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg border border-subtle bg-layer-1">
               <Logo logo={project.logo_props} size={18} />
             </div>
 
@@ -232,7 +232,7 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
             <div data-prevent-progress className="flex flex-shrink-0 items-center gap-2">
               <button
                 aria-label="Copy project link"
-                className="flex h-7 w-7 items-center justify-center rounded-sm border border-subtle bg-layer-1 text-secondary hover:text-primary"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-subtle bg-layer-1 text-secondary hover:text-primary"
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -243,7 +243,7 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
               </button>
               {shouldRenderFavorite && (
                 <FavoriteStar
-                  buttonClassName="h-7 w-7 rounded-sm border border-subtle bg-layer-1"
+                  buttonClassName="h-7 w-7 rounded-lg border border-subtle bg-layer-1"
                   iconClassName={cn("h-3 w-3", {
                     "text-secondary": !project.is_favorite,
                   })}
@@ -334,7 +334,7 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
                 {isMemberOfProject &&
                   (hasAdminRole || hasMemberRole ? (
                     <Link
-                      className="flex items-center justify-center rounded-sm p-1 text-placeholder hover:bg-layer-1 hover:text-secondary"
+                      className="flex items-center justify-center rounded-lg p-1 text-placeholder hover:bg-layer-1 hover:text-secondary"
                       onClick={(e) => {
                         e.stopPropagation();
                       }}

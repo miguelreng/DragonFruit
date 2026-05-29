@@ -180,7 +180,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
               customButton={
                 <button
                   type="button"
-                  className="flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-11 hover:bg-layer-1"
+                  className="flex h-full cursor-pointer items-center justify-between gap-1 rounded-lg border-[0.5px] border-strong px-2 py-0.5 text-11 hover:bg-layer-1"
                 >
                   <ParentPropertyIcon className="h-3 w-3 flex-shrink-0" />
                   <span className="whitespace-nowrap">
@@ -213,7 +213,7 @@ export const InboxIssueProperties = observer(function InboxIssueProperties(props
           ) : (
             <button
               type="button"
-              className="flex h-full cursor-pointer items-center justify-between gap-1 rounded-sm border-[0.5px] border-strong px-2 py-0.5 text-11 hover:bg-layer-1"
+              className="flex h-full cursor-pointer items-center justify-between gap-1 rounded-lg border-[0.5px] border-strong px-2 py-0.5 text-11 hover:bg-layer-1"
               onClick={() => setParentIssueModalOpen(true)}
             >
               <ParentPropertyIcon className="h-3 w-3 flex-shrink-0" />

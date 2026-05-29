@@ -83,7 +83,7 @@ export const StickyEditor = React.forwardRef(function StickyEditor(
 
   return (
     <div
-      className={cn("relative rounded-sm border border-subtle", parentClassName)}
+      className={cn("relative rounded-lg border border-subtle", parentClassName)}
       onFocus={() => !showToolbarInitially && setIsFocused(true)}
       onBlur={() => !showToolbarInitially && setIsFocused(false)}
     >

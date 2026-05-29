@@ -99,7 +99,7 @@ export const DescriptionVersionsModal = observer(function DescriptionVersionsMod
             <button
               type="button"
               onClick={() => handleNavigation("prev")}
-              className={cn("grid size-6 place-items-center rounded-sm text-secondary transition-colors outline-none", {
+              className={cn("grid size-6 place-items-center rounded-lg text-secondary transition-colors outline-none", {
                 "hover:bg-layer-1": !isPrevDisabled,
                 "opacity-50": isPrevDisabled,
               })}
@@ -110,7 +110,7 @@ export const DescriptionVersionsModal = observer(function DescriptionVersionsMod
             <button
               type="button"
               onClick={() => handleNavigation("next")}
-              className={cn("grid size-6 place-items-center rounded-sm text-secondary transition-colors outline-none", {
+              className={cn("grid size-6 place-items-center rounded-lg text-secondary transition-colors outline-none", {
                 "hover:bg-layer-1": !isNextDisabled,
                 "opacity-50": isNextDisabled,
               })}

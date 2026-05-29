@@ -123,7 +123,7 @@ export const WorkspaceInvitationsListItem = observer(function WorkspaceInvitatio
       />
       <div className="group flex h-full w-full items-center justify-between px-3 py-4 hover:bg-layer-transparent-hover">
         <div className="flex items-center gap-x-4 gap-y-2">
-          <span className="relative flex h-10 w-10 items-center justify-center rounded-sm bg-layer-3 p-4 text-tertiary capitalize">
+          <span className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-layer-3 p-4 text-tertiary capitalize">
             {(invitationDetails.email ?? "?")[0]}
           </span>
           <div>
@@ -131,14 +131,14 @@ export const WorkspaceInvitationsListItem = observer(function WorkspaceInvitatio
           </div>
         </div>
         <div className="flex items-center gap-2 text-11">
-          <div className="flex items-center justify-center rounded-sm bg-label-yellow-bg-strong/20 px-2.5 py-1 text-center text-caption-sm-medium text-label-yellow-text">
+          <div className="flex items-center justify-center rounded-lg bg-label-yellow-bg-strong/20 px-2.5 py-1 text-center text-caption-sm-medium text-label-yellow-text">
             <p>{t("common.pending")}</p>
           </div>
           <CustomSelect
             customButton={
-              <div className="item-center flex gap-1 rounded-sm px-2 py-0.5">
+              <div className="item-center flex gap-1 rounded-lg px-2 py-0.5">
                 <span
-                  className={`flex items-center rounded-sm text-caption-sm-medium ${
+                  className={`flex items-center rounded-lg text-caption-sm-medium ${
                     hasRoleChangeAccess ? "" : "text-placeholder"
                   }`}
                 >

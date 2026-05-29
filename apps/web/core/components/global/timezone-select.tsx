@@ -47,7 +47,7 @@ export const TimezoneSelect = observer(function TimezoneSelect(props: TTimezoneS
         buttonClassName={cn(buttonClassName, "border border-subtle-1", {
           "border-danger-strong": error,
         })}
-        className={cn("rounded-md", className)}
+        className={cn("rounded-lg", className)}
         optionsClassName={cn("w-72", optionsClassName)}
         input
         disabled={isDisabled || disabled}

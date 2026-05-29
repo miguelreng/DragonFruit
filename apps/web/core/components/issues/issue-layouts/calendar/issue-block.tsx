@@ -65,7 +65,7 @@ export const CalendarIssueBlock = observer(
     const customActionButton = (
       <div
         ref={menuActionRef}
-        className={`w-full cursor-pointer rounded-sm p-1 text-placeholder hover:bg-layer-1 ${
+        className={`w-full cursor-pointer rounded-lg p-1 text-placeholder hover:bg-layer-1 ${
           isMenuActive ? "bg-layer-1-active text-primary" : "text-secondary"
         }`}
         onClick={() => setIsMenuActive(!isMenuActive)}
@@ -98,7 +98,7 @@ export const CalendarIssueBlock = observer(
               id={`issue-${issue.id}`}
               href={workItemLink}
               onClick={() => handleIssuePeekOverview(issue)}
-              className="block w-full rounded-sm border-b border-subtle text-13 text-primary hover:border-subtle-1 md:border-[1px]"
+              className="block w-full rounded-lg border-b border-subtle text-13 text-primary hover:border-subtle-1 md:border-[1px]"
               disabled={!!issue?.tempId || isMobile}
               ref={ref}
             >
@@ -110,7 +110,7 @@ export const CalendarIssueBlock = observer(
                 <div
                   ref={blockRef}
                   className={cn(
-                    "group/calendar-block flex h-10 w-full items-center justify-between gap-1.5 rounded-sm px-4 py-1.5 md:h-8 md:px-1",
+                    "group/calendar-block flex h-10 w-full items-center justify-between gap-1.5 rounded-lg px-4 py-1.5 md:h-8 md:px-1",
                     {
                       "border-accent-strong bg-surface-2 shadow-raised-200": isDragging,
                       "bg-surface-1 hover:bg-surface-2": !isDragging,
@@ -120,7 +120,7 @@ export const CalendarIssueBlock = observer(
                 >
                   <div className="flex h-full items-center gap-1.5 truncate">
                     <span
-                      className="h-full w-0.5 flex-shrink-0 rounded-sm"
+                      className="h-full w-0.5 flex-shrink-0 rounded-lg"
                       style={{
                         backgroundColor: stateColor,
                       }}

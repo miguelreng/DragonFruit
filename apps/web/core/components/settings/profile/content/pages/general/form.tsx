@@ -206,7 +206,7 @@ export const GeneralProfileSettingsForm = observer(function GeneralProfileSettin
               <button
                 type="button"
                 onClick={() => void handleRandomizeAvatar()}
-                className="rounded-md border border-subtle bg-layer-2 px-2.5 py-1 text-11 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                className="rounded-lg border border-subtle bg-layer-2 px-2.5 py-1 text-11 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
               >
                 Randomize avatar
               </button>

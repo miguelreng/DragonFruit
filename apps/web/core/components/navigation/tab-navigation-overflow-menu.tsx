@@ -39,7 +39,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
       buttonClassName="!p-1.5"
       optionsClassName="min-w-[200px] space-y-1"
       customButton={
-        <div className="flex items-center justify-center rounded-md p-1 transition-colors hover:bg-layer-1">
+        <div className="flex items-center justify-center rounded-lg p-1 transition-colors hover:bg-layer-1">
           <MoreHorizontal className="h-4 w-4 text-secondary" />
         </div>
       }
@@ -66,7 +66,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
                       e.preventDefault();
                       onShow(item.key);
                     }}
-                    className="invisible rounded-md p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary"
+                    className="invisible rounded-lg p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary"
                     title="Show"
                   >
                     <Pin className="size-3" />
@@ -80,7 +80,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
                       onToggleDefault(item.key);
                     }}
                     className={cn(
-                      "invisible rounded-md p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary",
+                      "invisible rounded-lg p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary",
                       {
                         visible: isDefault,
                       }

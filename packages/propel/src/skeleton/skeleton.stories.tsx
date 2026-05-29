@@ -144,7 +144,7 @@ export const Button: Story = {
   render() {
     return (
       <Skeleton className="inline-flex">
-        <Skeleton.Item height="40px" width="120px" className="rounded-md" />
+        <Skeleton.Item height="40px" width="120px" className="rounded-lg" />
       </Skeleton>
     );
   },
@@ -155,7 +155,7 @@ export const Input: Story = {
     return (
       <Skeleton className="flex w-80 flex-col gap-2">
         <Skeleton.Item height="14px" width="80px" />
-        <Skeleton.Item height="40px" width="100%" className="rounded-md" />
+        <Skeleton.Item height="40px" width="100%" className="rounded-lg" />
       </Skeleton>
     );
   },
@@ -167,17 +167,17 @@ export const Form: Story = {
       <Skeleton className="flex w-96 flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Skeleton.Item height="14px" width="80px" />
-          <Skeleton.Item height="40px" width="100%" className="rounded-md" />
+          <Skeleton.Item height="40px" width="100%" className="rounded-lg" />
         </div>
         <div className="flex flex-col gap-2">
           <Skeleton.Item height="14px" width="100px" />
-          <Skeleton.Item height="40px" width="100%" className="rounded-md" />
+          <Skeleton.Item height="40px" width="100%" className="rounded-lg" />
         </div>
         <div className="flex flex-col gap-2">
           <Skeleton.Item height="14px" width="60px" />
-          <Skeleton.Item height="80px" width="100%" className="rounded-md" />
+          <Skeleton.Item height="80px" width="100%" className="rounded-lg" />
         </div>
-        <Skeleton.Item height="40px" width="120px" className="rounded-md" />
+        <Skeleton.Item height="40px" width="120px" className="rounded-lg" />
       </Skeleton>
     );
   },
@@ -187,13 +187,13 @@ export const ProductCard: Story = {
   render() {
     return (
       <Skeleton className="flex w-72 flex-col gap-3 rounded-lg border p-4">
-        <Skeleton.Item height="200px" width="100%" className="rounded-md" />
+        <Skeleton.Item height="200px" width="100%" className="rounded-lg" />
         <div className="flex flex-col gap-2">
           <Skeleton.Item height="20px" width="80%" />
           <Skeleton.Item height="16px" width="60%" />
           <Skeleton.Item height="24px" width="40%" />
         </div>
-        <Skeleton.Item height="40px" width="100%" className="rounded-md" />
+        <Skeleton.Item height="40px" width="100%" className="rounded-lg" />
       </Skeleton>
     );
   },

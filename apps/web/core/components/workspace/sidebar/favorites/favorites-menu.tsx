@@ -184,7 +184,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
         <div
           ref={elementRef}
           className={cn(
-            "group/favorites-button flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-placeholder hover:bg-layer-transparent-hover"
+            "group/favorites-button flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-placeholder hover:bg-layer-transparent-hover"
           )}
         >
           <Disclosure.Button
@@ -221,7 +221,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
             <Disclosure.Button
               as="button"
               type="button"
-              className="grid flex-shrink-0 place-items-center rounded-sm p-0.5 hover:bg-layer-transparent-hover"
+              className="grid flex-shrink-0 place-items-center rounded-lg p-0.5 hover:bg-layer-transparent-hover"
               onClick={() => toggleFavoriteMenu(!isFavoriteMenuOpen)}
               aria-label={t(
                 isFavoriteMenuOpen

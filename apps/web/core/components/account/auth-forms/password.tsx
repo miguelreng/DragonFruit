@@ -120,7 +120,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
   return (
     <>
       {isBannerMessage && mode === EAuthModes.SIGN_UP && (
-        <div className="relative flex items-center gap-2 rounded-md border border-danger-strong/50 bg-danger-subtle p-2">
+        <div className="relative flex items-center gap-2 rounded-lg border border-danger-strong/50 bg-danger-subtle p-2">
           <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
             <Info size={16} className="text-danger-primary" />
           </div>

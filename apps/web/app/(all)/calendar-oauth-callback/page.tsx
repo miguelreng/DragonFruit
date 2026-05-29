@@ -63,7 +63,7 @@ function CalendarOauthCallbackPage() {
             <div className="text-sm mt-1 text-tertiary">{error}</div>
             <button
               onClick={() => navigate("/")}
-              className="bg-primary text-sm text-primary-foreground mt-4 rounded-md px-3 py-1.5"
+              className="bg-primary text-sm text-primary-foreground mt-4 rounded-lg px-3 py-1.5"
             >
               Go home
             </button>

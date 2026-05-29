@@ -28,7 +28,7 @@ type ItemProps = {
 };
 
 function Item({ height = "auto", width = "auto", className = "" }: ItemProps) {
-  return <div className={cn("rounded-md bg-layer-1", className)} style={{ height: height, width: width }} />;
+  return <div className={cn("rounded-lg bg-layer-1", className)} style={{ height: height, width: width }} />;
 }
 
 Loader.Item = Item;

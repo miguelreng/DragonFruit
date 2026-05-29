@@ -38,7 +38,7 @@ export function LayoutSelection(props: Props) {
           <button
             type="button"
             className={cn(
-              "group grid h-5.5 w-7 place-items-center overflow-hidden rounded-sm transition-all hover:bg-layer-transparent-hover",
+              "group grid h-5.5 w-7 place-items-center overflow-hidden rounded-lg transition-all hover:bg-layer-transparent-hover",
               {
                 "bg-white shadow-raised-100 hover:bg-white": selectedLayout === layout.key,
               }

@@ -97,7 +97,7 @@ export function LabelItemBlock(props: ILabelItemBlock) {
           {!isLabelGroup && (
             <div className="py-0.5">
               <button
-                className="flex size-5 items-center justify-center rounded-sm hover:bg-layer-1"
+                className="flex size-5 items-center justify-center rounded-lg hover:bg-layer-1"
                 onClick={() => {
                   handleLabelDelete(label);
                 }}

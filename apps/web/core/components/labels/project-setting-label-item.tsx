@@ -87,10 +87,10 @@ export function ProjectSettingLabelItem(props: Props) {
     <LabelDndHOC label={label} isGroup={false} isChild={isChild} isLastChild={isLastChild} onDrop={onDrop}>
       {(isDragging, isDroppingInLabel, dragHandleRef) => (
         <div
-          className={`rounded-sm ${isDroppingInLabel ? "border-[2px] border-accent-strong" : "border-[1.5px] border-transparent"}`}
+          className={`rounded-lg ${isDroppingInLabel ? "border-[2px] border-accent-strong" : "border-[1.5px] border-transparent"}`}
         >
           <div
-            className={`group relative flex items-center justify-between gap-2 space-y-3 rounded-sm px-1 py-3 ${
+            className={`group relative flex items-center justify-between gap-2 space-y-3 rounded-lg px-1 py-3 ${
               isDroppingInLabel ? "" : "border-[0.5px] border-subtle"
             } ${isDragging || isParentDragging ? "bg-layer-1" : "bg-surface-1"}`}
           >

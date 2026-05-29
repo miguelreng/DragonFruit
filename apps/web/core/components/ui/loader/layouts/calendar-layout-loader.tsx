@@ -10,13 +10,13 @@ import { getRandomInt } from "../utils";
 function CalendarDay() {
   const dataCount = getRandomInt(0, 1);
   const dataBlocks = range(dataCount).map((index) => (
-    <span key={index} className="mb-2 h-8 w-full rounded-sm bg-layer-1" />
+    <span key={index} className="mb-2 h-8 w-full rounded-lg bg-layer-1" />
   ));
 
   return (
     <div className="flex min-h-[9rem] w-full flex-col">
       <div className="flex w-full items-center justify-end p-2">
-        <span className="h-6 w-6 rounded-sm bg-layer-1" />
+        <span className="h-6 w-6 rounded-lg bg-layer-1" />
       </div>
       <div className="flex flex-col gap-2.5 p-2">{dataBlocks}</div>
     </div>

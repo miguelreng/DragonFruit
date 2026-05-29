@@ -380,7 +380,7 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                         required: false,
                       }}
                       render={({ field: { value, onChange, ref } }) => (
-                        <div className="relative flex items-center rounded-md">
+                        <div className="relative flex items-center rounded-lg">
                           <Input
                             type={showPassword.password ? "text" : "password"}
                             name="password"
@@ -423,7 +423,7 @@ export const ProfileSetup = observer(function ProfileSetup(props: Props) {
                           watch("password") ? (value === watch("password") ? true : "Passwords don't match") : true,
                       }}
                       render={({ field: { value, onChange, ref } }) => (
-                        <div className="relative flex items-center rounded-md">
+                        <div className="relative flex items-center rounded-lg">
                           <Input
                             type={showPassword.retypePassword ? "text" : "password"}
                             name="confirm_password"

@@ -46,7 +46,7 @@ export function IssueLinkDetail(props: TIssueLinkDetail) {
 
   return (
     <div key={linkId}>
-      <div className="relative flex flex-col rounded-md bg-surface-2 p-2.5">
+      <div className="relative flex flex-col rounded-lg bg-surface-2 p-2.5">
         <div
           className="flex w-full cursor-pointer items-start justify-between gap-2"
           onClick={() => {

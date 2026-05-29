@@ -76,7 +76,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
           {!isSearchOpen && (
             <button
               type="button"
-              className="-mr-5 grid place-items-center rounded-sm p-2 text-placeholder hover:bg-layer-1"
+              className="-mr-5 grid place-items-center rounded-lg p-2 text-placeholder hover:bg-layer-1"
               onClick={() => {
                 setIsSearchOpen(true);
                 inputRef.current?.focus();
@@ -87,7 +87,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
           )}
           <div
             className={cn(
-              "mr-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-md border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
+              "mr-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-lg border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
               {
                 "w-64 border-subtle px-2.5 py-1.5 opacity-100": isSearchOpen,
               }
@@ -129,7 +129,7 @@ export function DataTable<TData, TValue>({ columns, data, searchPlaceholder, act
         {actions && <div>{actions(table)}</div>}
       </div>
 
-      <div className="rounded-md">
+      <div className="rounded-lg">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

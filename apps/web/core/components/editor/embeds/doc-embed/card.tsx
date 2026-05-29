@@ -134,10 +134,10 @@ export function DocEmbedCard(props: Props) {
   const shell = (
     <div
       className={cn(
-        "not-prose group flex w-full items-center gap-3 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4 py-3 shadow-raised-100 transition-colors hover:border-strong hover:bg-surface-2"
+        "not-prose group flex w-full items-center gap-3 rounded-lg border-[0.5px] border-subtle bg-surface-1 px-4 py-3 shadow-raised-100 transition-colors hover:border-strong hover:bg-surface-2"
       )}
     >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-subtle bg-layer-1 text-tertiary">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-subtle bg-layer-1 text-tertiary">
         {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
       </div>
       <div className="min-w-0 flex-1">
@@ -186,7 +186,7 @@ function StickyEmbedCard({
 
   const shell = (
     <div
-      className="not-prose group/sticky shadow-sm hover:shadow-md relative flex min-h-[180px] w-full max-w-md flex-col overflow-hidden rounded-sm px-4 pt-5 pb-4 ring-1 ring-black/5 transition-[box-shadow,transform,filter] duration-200 ease-out hover:-translate-y-0.5"
+      className="not-prose group/sticky shadow-sm hover:shadow-md relative flex min-h-[180px] w-full max-w-md flex-col overflow-hidden rounded-lg px-4 pt-5 pb-4 ring-1 ring-black/5 transition-[box-shadow,transform,filter] duration-200 ease-out hover:-translate-y-0.5"
       style={{ backgroundColor }}
     >
       <div className="content-title-font line-clamp-2 text-20 font-medium text-primary">
@@ -209,7 +209,7 @@ function StickyEmbedCard({
 
 function EmbedFallback({ children }: { children: React.ReactNode }) {
   return (
-    <div className="not-prose rounded-md border-[0.5px] border-subtle bg-surface-1 px-4 py-3 text-13 text-secondary">
+    <div className="not-prose rounded-lg border-[0.5px] border-subtle bg-surface-1 px-4 py-3 text-13 text-secondary">
       {children}
     </div>
   );

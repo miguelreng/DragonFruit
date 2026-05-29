@@ -76,7 +76,7 @@ function PublishedPage({ params }: Route.ComponentProps) {
     <PublicPageShell>
       <div className="relative mx-auto w-full max-w-[900px]">
         {data.page_type !== "doc" ? (
-          <div className="rounded-md border border-subtle bg-surface-1 p-5 text-14 text-secondary">
+          <div className="rounded-lg border border-subtle bg-surface-1 p-5 text-14 text-secondary">
             This published page type is not supported in public view yet.
           </div>
         ) : (

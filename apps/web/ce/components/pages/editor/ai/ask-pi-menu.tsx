@@ -59,7 +59,7 @@ export function AskPiMenu(props: Props) {
             <div className="mt-3 flex items-center gap-4">
               <button
                 type="button"
-                className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
+                className="rounded-lg p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
                 onClick={() => handleInsertText(false)}
               >
                 Replace selection
@@ -67,7 +67,7 @@ export function AskPiMenu(props: Props) {
               <Tooltip tooltipContent="Add to next line">
                 <button
                   type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                  className="grid size-6 flex-shrink-0 place-items-center rounded-lg outline-none hover:bg-layer-1"
                   onClick={() => handleInsertText(true)}
                 >
                   <CornerDownRight className="size-4 text-tertiary" />
@@ -76,7 +76,7 @@ export function AskPiMenu(props: Props) {
               <Tooltip tooltipContent="Re-generate response">
                 <button
                   type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                  className="grid size-6 flex-shrink-0 place-items-center rounded-lg outline-none hover:bg-layer-1"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -98,7 +98,7 @@ export function AskPiMenu(props: Props) {
         )}
       </div>
       <div className="px-4 py-3">
-        <div className="flex items-center gap-2 rounded-md border border-subtle p-2">
+        <div className="flex items-center gap-2 rounded-lg border border-subtle p-2">
           <span className="grid size-3 flex-shrink-0 place-items-center">
             <Sparkles className="size-3 text-secondary" />
           </span>

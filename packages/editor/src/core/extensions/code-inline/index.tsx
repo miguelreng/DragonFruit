@@ -41,7 +41,7 @@ export const CustomCodeInlineExtension = Mark.create<InlineCodeOptions>({
     return {
       HTMLAttributes: {
         class:
-          "rounded-sm bg-layer-3 px-[6px] py-[1.5px] font-code font-medium text-(--extended-color-orange-600) border-[0.5px] border-subtle",
+          "rounded-lg bg-layer-3 px-[6px] py-[1.5px] font-code font-medium text-(--extended-color-orange-600) border-[0.5px] border-subtle",
         spellcheck: "false",
       },
     };

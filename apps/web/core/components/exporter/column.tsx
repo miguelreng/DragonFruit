@@ -76,7 +76,7 @@ export const useExportColumns = () => {
       content: "Status",
       tdRender: (rowData: RowData) => (
         <span
-          className={`rounded-sm px-2 py-1 text-11 capitalize ${
+          className={`rounded-lg px-2 py-1 text-11 capitalize ${
             rowData.status === "completed"
               ? "bg-success-subtle text-success-primary"
               : rowData.status === "processing"

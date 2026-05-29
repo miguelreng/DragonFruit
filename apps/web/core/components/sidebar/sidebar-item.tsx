@@ -75,8 +75,8 @@ interface AppSidebarTooltipProps {
 const styles = {
   base: "group flex flex-col gap-0.5 items-center justify-center text-tertiary dark:text-white/65",
   baseInline:
-    "group relative flex w-fit max-w-full cursor-pointer items-center rounded-md px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
-  icon: "flex items-center justify-center gap-2 size-8 rounded-md text-icon-tertiary dark:text-white/55 [&_svg]:size-5 [&_svg]:text-current",
+    "group relative flex w-fit max-w-full cursor-pointer items-center rounded-lg px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
+  icon: "flex items-center justify-center gap-2 size-8 rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:size-5 [&_svg]:text-current",
   iconActive: "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary",
   iconInactive:
     "group-hover:text-icon-secondary group-hover:bg-layer-transparent-hover !text-icon-tertiary dark:!text-white/55 dark:group-hover:!text-white/85 dark:group-hover:bg-white/[0.08]",

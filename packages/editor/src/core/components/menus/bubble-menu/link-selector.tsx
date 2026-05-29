@@ -52,7 +52,7 @@ export function BubbleMenuLinkSelector(props: Props) {
       classNames={{
         buttonContainer: "h-full",
         button: cn(
-          "flex h-full items-center gap-1 rounded-sm px-3 text-13 font-medium whitespace-nowrap text-tertiary transition-colors hover:bg-layer-1 active:bg-layer-1",
+          "flex h-full items-center gap-1 rounded-lg px-3 text-13 font-medium whitespace-nowrap text-tertiary transition-colors hover:bg-layer-1 active:bg-layer-1",
           {
             "bg-layer-1": context.open,
             "text-primary": editor.isActive(CORE_EXTENSIONS.CUSTOM_LINK),
@@ -69,9 +69,9 @@ export function BubbleMenuLinkSelector(props: Props) {
       }
       options={options}
     >
-      <div className="mt-1 w-60 rounded-md bg-surface-1 shadow-raised-200">
+      <div className="mt-1 w-60 rounded-lg bg-surface-1 shadow-raised-200">
         <div
-          className={cn("flex rounded-sm border-[0.5px] border-strong transition-colors", {
+          className={cn("flex rounded-lg border-[0.5px] border-strong transition-colors", {
             "border-danger-strong": error,
           })}
         >
@@ -80,7 +80,7 @@ export function BubbleMenuLinkSelector(props: Props) {
             type="url"
             placeholder="Enter or paste a link"
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 rounded-sm border-r-[0.5px] border-strong bg-surface-1 px-1.5 py-2 text-11 outline-none placeholder:text-placeholder"
+            className="flex-1 rounded-lg border-r-[0.5px] border-strong bg-surface-1 px-1.5 py-2 text-11 outline-none placeholder:text-placeholder"
             defaultValue={editor.getAttributes("link").href || ""}
             onKeyDown={(e) => {
               setError(false);

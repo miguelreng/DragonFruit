@@ -115,15 +115,15 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
               className="h-[110px] w-full"
               showDefaultWhenEmpty
             />
-            <div className="absolute -bottom-[26px] left-5 h-[52px] w-[52px] rounded-sm">
+            <div className="absolute -bottom-[26px] left-5 h-[52px] w-[52px] rounded-lg">
               {userData?.avatar_url && userData?.avatar_url !== "" ? (
                 <img
                   src={getFileURL(userData?.avatar_url)}
                   alt={userData?.display_name}
-                  className="h-full w-full rounded-sm object-cover"
+                  className="h-full w-full rounded-lg object-cover"
                 />
               ) : (
-                <div className="flex h-[52px] w-[52px] items-center justify-center rounded-sm bg-accent-primary text-on-color capitalize">
+                <div className="flex h-[52px] w-[52px] items-center justify-center rounded-lg bg-accent-primary text-on-color capitalize">
                   {userData?.first_name?.[0]}
                 </div>
               )}
@@ -173,7 +173,7 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
                             {project.assigned_issues > 0 && (
                               <Tooltip tooltipContent="Completion percentage" position="left" isMobile={isMobile}>
                                 <div
-                                  className={`rounded-sm px-1 py-0.5 text-11 font-medium ${
+                                  className={`rounded-lg px-1 py-0.5 text-11 font-medium ${
                                     completedIssuePercentage <= 35
                                       ? "bg-danger-subtle text-danger-primary"
                                       : completedIssuePercentage <= 70
@@ -201,28 +201,28 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
                             {totalIssues > 0 && (
                               <div className="flex items-center gap-0.5">
                                 <div
-                                  className="h-1 rounded-sm"
+                                  className="h-1 rounded-lg"
                                   style={{
                                     backgroundColor: "#203b80",
                                     width: `${(project.created_issues / totalIssues) * 100}%`,
                                   }}
                                 />
                                 <div
-                                  className="h-1 rounded-sm"
+                                  className="h-1 rounded-lg"
                                   style={{
                                     backgroundColor: "#aa0276",
                                     width: `${(project.assigned_issues / totalIssues) * 100}%`,
                                   }}
                                 />
                                 <div
-                                  className="h-1 rounded-sm"
+                                  className="h-1 rounded-lg"
                                   style={{
                                     backgroundColor: "#f59e0b",
                                     width: `${(project.pending_issues / totalIssues) * 100}%`,
                                   }}
                                 />
                                 <div
-                                  className="h-1 rounded-sm"
+                                  className="h-1 rounded-lg"
                                   style={{
                                     backgroundColor: "#16a34a",
                                     width: `${(project.completed_issues / totalIssues) * 100}%`,

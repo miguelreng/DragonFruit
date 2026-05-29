@@ -49,7 +49,7 @@ export const ModulesLinksListItem = observer(function ModulesLinksListItem(props
   };
 
   return (
-    <div className="relative flex flex-col rounded-md bg-layer-3 p-2.5">
+    <div className="relative flex flex-col rounded-lg bg-layer-3 p-2.5">
       <div className="flex w-full items-start justify-between gap-2">
         <div className="flex items-start gap-2 truncate">
           <span className="py-1">
@@ -66,7 +66,7 @@ export const ModulesLinksListItem = observer(function ModulesLinksListItem(props
           {isEditingAllowed && (
             <button
               type="button"
-              className="grid place-items-center rounded-sm p-1 text-secondary hover:bg-layer-transparent-hover"
+              className="grid place-items-center rounded-lg p-1 text-secondary hover:bg-layer-transparent-hover"
               data-ph-element={MODULE_TRACKER_ELEMENTS.LIST_ITEM}
               onClick={(e) => {
                 e.preventDefault();
@@ -80,14 +80,14 @@ export const ModulesLinksListItem = observer(function ModulesLinksListItem(props
           <button
             type="button"
             onClick={() => copyToClipboard(link.url)}
-            className="grid place-items-center rounded-sm p-1 text-secondary hover:bg-layer-transparent-hover"
+            className="grid place-items-center rounded-lg p-1 text-secondary hover:bg-layer-transparent-hover"
           >
             <CopyIcon className="size-3 stroke-[1.5]" />
           </button>
           {isEditingAllowed && (
             <button
               type="button"
-              className="grid place-items-center rounded-sm p-1 text-secondary hover:bg-layer-transparent-hover"
+              className="grid place-items-center rounded-lg p-1 text-secondary hover:bg-layer-transparent-hover"
               data-ph-element={MODULE_TRACKER_ELEMENTS.LIST_ITEM}
               onClick={(e) => {
                 e.preventDefault();

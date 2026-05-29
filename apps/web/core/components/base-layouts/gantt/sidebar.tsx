@@ -102,7 +102,7 @@ export const BaseGanttSidebar = observer(function BaseGanttSidebar<T extends IBa
                     return (
                       <div
                         className={cn("group/list-block", {
-                          "rounded-sm bg-layer-1": isDragging,
+                          "rounded-lg bg-layer-1": isDragging,
                         })}
                         onMouseEnter={() => updateActiveBlockId(blockId)}
                         onMouseLeave={() => updateActiveBlockId(null)}
@@ -138,7 +138,7 @@ export const BaseGanttSidebar = observer(function BaseGanttSidebar<T extends IBa
           })}
           {canLoadMoreBlocks && (
             <div ref={setIntersectionElement} className="p-2">
-              <div className="flex h-10 w-full animate-pulse items-center justify-between gap-1.5 rounded-sm bg-layer-1 px-4 py-1.5 md:h-8 md:px-1" />
+              <div className="flex h-10 w-full animate-pulse items-center justify-between gap-1.5 rounded-lg bg-layer-1 px-4 py-1.5 md:h-8 md:px-1" />
             </div>
           )}
         </>

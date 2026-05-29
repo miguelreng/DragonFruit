@@ -170,7 +170,7 @@ export const DraftIssueBlock = observer(function DraftIssueBlock(props: Props) {
 
             {/* quick actions */}
             <div
-              className={cn("block rounded-sm border border-strong", {
+              className={cn("block rounded-lg border border-strong", {
                 "md:hidden": isSidebarCollapsed,
                 "lg:hidden": !isSidebarCollapsed,
               })}

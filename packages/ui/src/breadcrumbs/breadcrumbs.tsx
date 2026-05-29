@@ -19,9 +19,9 @@ type BreadcrumbsProps = {
 export function BreadcrumbItemLoader() {
   return (
     <div className="flex h-7 animate-pulse items-center gap-2">
-      <div className="group flex h-full items-center gap-2 rounded-sm px-2 py-1 text-13 font-medium">
-        <span className="h-full w-5 rounded-sm bg-layer-1" />
-        <span className="h-full w-16 rounded-sm bg-layer-1" />
+      <div className="group flex h-full items-center gap-2 rounded-lg px-2 py-1 text-13 font-medium">
+        <span className="h-full w-5 rounded-lg bg-layer-1" />
+        <span className="h-full w-16 rounded-lg bg-layer-1" />
       </div>
     </div>
   );
@@ -150,7 +150,7 @@ function BreadcrumbSeparator(props: BreadcrumbSeparatorProps) {
       {showDivider && <span className="absolute top-0 -left-0.5 h-full w-[1.8px] bg-surface-1" />}
       <div
         className={cn(
-          "flex flex-shrink-0 items-center justify-center rounded-sm text-placeholder transition-all",
+          "flex flex-shrink-0 items-center justify-center rounded-lg text-placeholder transition-all",
           containerClassName
         )}
       >
@@ -176,7 +176,7 @@ function BreadcrumbItemWrapper(props: BreadcrumbItemWrapperProps) {
     <Tooltip tooltipContent={label} position="bottom" disabled={!label || label === "" || disableTooltip}>
       <div
         className={cn(
-          "group flex h-full cursor-default items-center gap-2 rounded-sm px-1.5 py-1 text-13 font-medium",
+          "group flex h-full cursor-default items-center gap-2 rounded-lg px-1.5 py-1 text-13 font-medium",
           {
             "text-primary": isLast,
             "text-tertiary": !isLast,

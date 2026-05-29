@@ -28,7 +28,7 @@ export const GanttQuickAddIssueForm = observer(function GanttQuickAddIssueForm(p
             {...register("name", {
               required: isEpic ? t("epic.title.required") : t("issue.title.required"),
             })}
-            className="w-full rounded-md bg-transparent px-2 py-3 text-13 leading-5 font-medium text-secondary outline-none"
+            className="w-full rounded-lg bg-transparent px-2 py-3 text-13 leading-5 font-medium text-secondary outline-none"
           />
         </div>
       </form>

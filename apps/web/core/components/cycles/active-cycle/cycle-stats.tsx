@@ -125,7 +125,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
       >
         <Tab.List
           as="div"
-          className="relative grid rounded-sm border-[0.5px] border-subtle bg-layer-1 p-[1px]"
+          className="relative grid rounded-lg border-[0.5px] border-subtle bg-layer-1 p-[1px]"
           style={{
             gridTemplateColumns: `repeat(3, 1fr)`,
           }}
@@ -191,7 +191,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
                       return (
                         <div
                           key={issue.id}
-                          className="group flex cursor-pointer items-center justify-between gap-2 rounded-md p-1 hover:bg-surface-2"
+                          className="group flex cursor-pointer items-center justify-between gap-2 rounded-lg p-1 hover:bg-surface-2"
                           onClick={() => {
                             if (issue.id) {
                               setPeekIssue({
@@ -228,7 +228,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
                                 tooltipHeading="Target Date"
                                 tooltipContent={renderFormattedDate(issue.target_date)}
                               >
-                                <div className="flex h-full cursor-pointer items-center gap-1.5 truncate rounded-sm bg-layer-1 px-2 py-0.5 text-11 group-hover:bg-surface-1">
+                                <div className="flex h-full cursor-pointer items-center gap-1.5 truncate rounded-lg bg-layer-1 px-2 py-0.5 text-11 group-hover:bg-surface-1">
                                   <CalendarCheck className="h-3 w-3 flex-shrink-0" />
                                   <span className="truncate text-11">
                                     {renderFormattedDateWithoutYear(issue.target_date)}

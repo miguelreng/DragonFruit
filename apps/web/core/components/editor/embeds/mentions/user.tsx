@@ -39,7 +39,7 @@ export const EditorUserMention = observer(function EditorUserMention(props: Prop
 
   if (!userDetails) {
     return (
-      <div className="not-prose inline rounded-sm bg-layer-1 px-1 py-0.5 text-tertiary no-underline">
+      <div className="not-prose inline rounded-lg bg-layer-1 px-1 py-0.5 text-tertiary no-underline">
         @suspended user
       </div>
     );
@@ -48,7 +48,7 @@ export const EditorUserMention = observer(function EditorUserMention(props: Prop
   return (
     <div
       className={cn(
-        "not-prose inline rounded-sm bg-accent-subtle-active px-1 py-0.5 text-accent-primary no-underline",
+        "not-prose inline rounded-lg bg-accent-subtle-active px-1 py-0.5 text-accent-primary no-underline",
         {
           "bg-label-yellow-bg text-label-yellow-text": id === currentUser?.id,
         }

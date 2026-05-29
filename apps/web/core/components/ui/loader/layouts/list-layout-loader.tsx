@@ -30,14 +30,14 @@ export const ListLoaderItemRow = forwardRef(function ListLoaderItemRow(
     >
       <div className="flex items-center gap-3">
         <span
-          className={cn("h-5 w-10 rounded-sm bg-[var(--illustration-fill-tertiary)]", {
+          className={cn("h-5 w-10 rounded-lg bg-[var(--illustration-fill-tertiary)]", {
             "animate-pulse": shouldAnimate,
             "bg-surface-2": renderForPlaceHolder,
           })}
         />
         <span
           className={cn(
-            `h-5 w-${getRandomLength(["32", "52", "72"])} rounded-sm bg-[var(--illustration-fill-tertiary)]`,
+            `h-5 w-${getRandomLength(["32", "52", "72"])} rounded-lg bg-[var(--illustration-fill-tertiary)]`,
             {
               "animate-pulse": shouldAnimate,
               "bg-surface-2": renderForPlaceHolder,
@@ -51,14 +51,14 @@ export const ListLoaderItemRow = forwardRef(function ListLoaderItemRow(
             {getRandomInt(1, 2) % 2 === 0 ? (
               <span
                 key={index}
-                className={cn("h-5 w-5 rounded-sm bg-[var(--illustration-fill-tertiary)]", {
+                className={cn("h-5 w-5 rounded-lg bg-[var(--illustration-fill-tertiary)]", {
                   "animate-pulse": shouldAnimate,
                   "bg-surface-2": renderForPlaceHolder,
                 })}
               />
             ) : (
               <span
-                className={cn("h-5 w-16 rounded-sm bg-[var(--illustration-fill-tertiary)]", {
+                className={cn("h-5 w-16 rounded-lg bg-[var(--illustration-fill-tertiary)]", {
                   "animate-pulse": shouldAnimate,
                   "bg-surface-2": renderForPlaceHolder,
                 })}
@@ -78,8 +78,8 @@ function ListSection({ itemCount }: { itemCount: number }) {
     <div className="flex flex-shrink-0 flex-col">
       <Row className="sticky top-0 z-[2] w-full flex-shrink-0 border-b border-subtle bg-surface-2 py-1">
         <div className="flex w-full items-center gap-2 py-1.5">
-          <span className="h-6 w-6 animate-pulse rounded-sm bg-layer-1" />
-          <span className="h-6 w-24 animate-pulse rounded-sm bg-layer-1" />
+          <span className="h-6 w-6 animate-pulse rounded-lg bg-layer-1" />
+          <span className="h-6 w-24 animate-pulse rounded-lg bg-layer-1" />
         </div>
       </Row>
       <div className="relative h-full w-full">

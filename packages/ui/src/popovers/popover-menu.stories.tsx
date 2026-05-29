@@ -22,7 +22,7 @@ const meta: Meta<typeof PopoverMenu<TPopoverMenu>> = {
   tags: ["autodocs"],
   args: {
     popperPosition: "bottom-start",
-    panelClassName: "rounded-sm bg-gray-100 p-2",
+    panelClassName: "rounded-lg bg-gray-100 p-2",
     data: [
       { id: 1, name: "John Doe" },
       { id: 2, name: "Jane Doe" },

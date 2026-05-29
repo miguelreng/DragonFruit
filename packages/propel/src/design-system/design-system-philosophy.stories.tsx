@@ -48,20 +48,20 @@ const Info: React.FC<{ title: string; children?: React.ReactNode; tone?: "info" 
   tone = "info",
 }) => (
   <div
-    className={`mb-4 rounded-md border ${tone === "warn" ? "bg-red-50 border-danger-strong p-4" : "border-subtle bg-layer-1 p-4"}`}
+    className={`mb-4 rounded-lg border ${tone === "warn" ? "bg-red-50 border-danger-strong p-4" : "border-subtle bg-layer-1 p-4"}`}
   >
     <h3 className={`mb-2 text-16 font-semibold text-primary`}>{title}</h3>
     <div className="text-13 text-secondary">{children}</div>
   </div>
 );
 
-const Surface: React.FC<ContainerProps> = ({ children, className = "bg-surface-1 rounded-md p-6" }) => (
+const Surface: React.FC<ContainerProps> = ({ children, className = "bg-surface-1 rounded-lg p-6" }) => (
   <div className={className}>{children}</div>
 );
 
 const Layer: React.FC<ContainerProps & { hover?: boolean }> = ({
   children,
-  className = "bg-layer-1 hover:bg-layer-1-hover rounded-md p-4",
+  className = "bg-layer-1 hover:bg-layer-1-hover rounded-lg p-4",
 }) => <div className={`${className} transition-colors`}>{children}</div>;
 
 /* Small helpers to keep stories concise */
@@ -102,7 +102,7 @@ export const SurfaceSiblings: Story = {
           <p className="text-13 text-secondary">This is bg-surface-1 - a primary surface</p>
         </Surface>
 
-        <Surface className="rounded-md bg-surface-2 p-6">
+        <Surface className="rounded-lg bg-surface-2 p-6">
           <h4 className="mb-2 font-semibold text-primary">Surface 2</h4>
           <p className="text-13 text-secondary">This is bg-surface-2 - a secondary surface (sibling to surface-1)</p>
         </Surface>
@@ -119,15 +119,15 @@ export const LayerStacking: Story = {
       <Surface>
         <h4 className="mb-3 font-semibold text-primary">Surface 1</h4>
 
-        <Layer className="mb-4 rounded-md bg-layer-1 p-4 hover:bg-layer-1-hover">
+        <Layer className="mb-4 rounded-lg bg-layer-1 p-4 hover:bg-layer-1-hover">
           <h5 className="mb-2 font-medium text-primary">Layer 1 (First level of depth)</h5>
           <p className="mb-3 text-13 text-secondary">Hover over me to see the hover state</p>
 
-          <Layer className="rounded-md bg-layer-2 p-3 hover:bg-layer-2-hover">
+          <Layer className="rounded-lg bg-layer-2 p-3 hover:bg-layer-2-hover">
             <h6 className="mb-2 text-13 font-medium text-primary">Layer 2 (Second level)</h6>
             <p className="mb-2 text-13 text-secondary">Nested within Layer 1</p>
 
-            <Layer className="rounded-md bg-layer-3 p-2 hover:bg-layer-3-hover" hover>
+            <Layer className="rounded-lg bg-layer-3 p-2 hover:bg-layer-3-hover" hover>
               <p className="text-11 font-medium text-primary">Layer 3 (Third level)</p>
               <p className="text-11 text-secondary">Deepest nesting level</p>
             </Layer>
@@ -149,15 +149,15 @@ export const SurfaceLayerAssociation: Story = {
       <TwoColGrid>
         <Surface>
           <h4 className="mb-3 font-semibold text-primary">Surface 1</h4>
-          <Layer className="rounded-md bg-layer-1 p-4 hover:bg-layer-1-hover">
+          <Layer className="rounded-lg bg-layer-1 p-4 hover:bg-layer-1-hover">
             <h5 className="mb-1 font-medium text-primary">Layer 1</h5>
             <p className="text-13 text-secondary">Correctly using layer-1 with surface-1</p>
           </Layer>
         </Surface>
 
-        <Surface className="rounded-md bg-surface-2 p-6">
+        <Surface className="rounded-lg bg-surface-2 p-6">
           <h4 className="mb-3 font-semibold text-primary">Surface 2</h4>
-          <Layer className="rounded-md bg-layer-2 p-4 hover:bg-layer-2-hover">
+          <Layer className="rounded-lg bg-layer-2 p-4 hover:bg-layer-2-hover">
             <h5 className="mb-1 font-medium text-primary">Layer 2</h5>
             <p className="text-13 text-secondary">Correctly using layer-2 with surface-2</p>
           </Layer>
@@ -177,7 +177,7 @@ export const SurfaceLayerAssociation: Story = {
               </label>
               <input
                 id="example-input"
-                className="mt-1 w-full rounded-md border border-subtle bg-layer-2 px-3 py-2 text-primary"
+                className="mt-1 w-full rounded-lg border border-subtle bg-layer-2 px-3 py-2 text-primary"
                 placeholder="Input uses layer-2 for visual separation"
               />
               <p className="mt-1 text-11 text-tertiary">
@@ -213,7 +213,7 @@ export const ModalException: Story = {
             they&apos;re on different planes.
           </p>
 
-          <Layer className="rounded-md bg-layer-1 p-3 hover:bg-layer-1-hover">
+          <Layer className="rounded-lg bg-layer-1 p-3 hover:bg-layer-1-hover">
             <p className="text-13 text-primary">Modal content can use layers as normal</p>
           </Layer>
         </div>
@@ -231,7 +231,7 @@ export const CardListPattern: Story = {
         <h4 className="mb-4 font-semibold text-primary">Task List</h4>
         <div className="space-y-3">
           {[1, 2, 3].map((item) => (
-            <Layer key={item} className="rounded-md bg-layer-1 p-4 hover:bg-layer-1-hover">
+            <Layer key={item} className="rounded-lg bg-layer-1 p-4 hover:bg-layer-1-hover">
               <h5 className="mb-1 font-medium text-primary">Task {item}</h5>
               <p className="text-13 text-secondary">This is a task card using bg-layer-1 with hover state</p>
             </Layer>
@@ -250,12 +250,12 @@ export const SidebarLayoutPattern: Story = {
         hover states.
       </Info>
 
-      <Surface className="flex rounded-md bg-surface-1">
+      <Surface className="flex rounded-lg bg-surface-1">
         <aside className="w-64 border-r border-subtle p-4">
           <h4 className="mb-3 font-semibold text-primary">Sidebar</h4>
           <div className="space-y-2">
             {["Home", "Projects", "Settings"].map((item) => (
-              <div key={item} className="rounded-md p-2 transition-colors hover:bg-layer-1-hover">
+              <div key={item} className="rounded-lg p-2 transition-colors hover:bg-layer-1-hover">
                 <p className="text-13 text-primary">{item}</p>
               </div>
             ))}
@@ -264,7 +264,7 @@ export const SidebarLayoutPattern: Story = {
 
         <main className="flex-1 p-6">
           <h4 className="mb-3 font-semibold text-primary">Main Content</h4>
-          <Layer className="rounded-md bg-layer-1 p-4 hover:bg-layer-1-hover">
+          <Layer className="rounded-lg bg-layer-1 p-4 hover:bg-layer-1-hover">
             <p className="text-primary">Content card using layer-1</p>
           </Layer>
         </main>
@@ -280,17 +280,17 @@ export const StateVariants: Story = {
 
       <Surface>
         <div className="space-y-4">
-          <Layer className="rounded-md bg-layer-1 p-4 hover:bg-layer-1-hover">
+          <Layer className="rounded-lg bg-layer-1 p-4 hover:bg-layer-1-hover">
             <h5 className="mb-1 font-medium text-primary">Hover State</h5>
             <p className="text-13 text-secondary">Hover over me to see bg-layer-1-hover</p>
           </Layer>
 
-          <div className="rounded-md bg-layer-1-active p-4">
+          <div className="rounded-lg bg-layer-1-active p-4">
             <h5 className="mb-1 font-medium text-primary">Active State</h5>
             <p className="text-13 text-secondary">Using bg-layer-1-active (pressed/active)</p>
           </div>
 
-          <div className="rounded-md bg-layer-1-selected p-4">
+          <div className="rounded-lg bg-layer-1-selected p-4">
             <h5 className="mb-1 font-medium text-primary">Selected State</h5>
             <p className="text-13 text-secondary">Using bg-layer-1-selected (when selected)</p>
           </div>
@@ -306,7 +306,7 @@ export const TextColorHierarchy: Story = {
       <Info title="✅ Text Color Hierarchy">Semantic text colors for different importance levels</Info>
 
       <Surface>
-        <div className="rounded-md bg-layer-1 p-4">
+        <div className="rounded-lg bg-layer-1 p-4">
           <h4 className="mb-3 text-16 font-semibold text-primary">Primary Text</h4>
           <p className="mb-3 text-secondary">Secondary text for descriptions and supporting content</p>
           <p className="mb-3 text-13 text-tertiary">Tertiary text for labels and metadata</p>
@@ -325,7 +325,7 @@ export const CompleteExample: Story = {
     <DemoRoot>
       <Info title="✅ Complete Example">A realistic dashboard layout using all design system concepts</Info>
 
-      <div className="mb-6 rounded-md bg-surface-1">
+      <div className="mb-6 rounded-lg bg-surface-1">
         <div className="border-b border-subtle p-4">
           <h1 className="text-18 font-bold text-primary">Dashboard</h1>
         </div>
@@ -338,7 +338,7 @@ export const CompleteExample: Story = {
           { label: "Completed Tasks", value: "856" },
         ].map((stat, idx) => (
           <Surface key={idx}>
-            <Layer className="rounded-md bg-layer-1 p-4 hover:bg-layer-1-hover">
+            <Layer className="rounded-lg bg-layer-1 p-4 hover:bg-layer-1-hover">
               <p className="mb-1 text-13 text-tertiary">{stat.label}</p>
               <p className="text-20 font-bold text-primary">{stat.value}</p>
             </Layer>
@@ -351,7 +351,7 @@ export const CompleteExample: Story = {
           <h3 className="mb-4 font-semibold text-primary">Recent Activity</h3>
           <div className="space-y-2">
             {[1, 2, 3].map((item) => (
-              <Layer key={item} className="rounded-md bg-layer-1 p-3 hover:bg-layer-1-hover">
+              <Layer key={item} className="rounded-lg bg-layer-1 p-3 hover:bg-layer-1-hover">
                 <p className="mb-1 text-13 font-medium text-primary">Activity {item}</p>
                 <p className="text-11 text-secondary">Description of the activity</p>
               </Layer>
@@ -359,11 +359,11 @@ export const CompleteExample: Story = {
           </div>
         </Surface>
 
-        <Surface className="rounded-md bg-surface-2 p-6">
+        <Surface className="rounded-lg bg-surface-2 p-6">
           <h3 className="mb-4 font-semibold text-primary">Quick Actions</h3>
           <div className="space-y-2">
             {["Create Project", "Invite Team", "View Reports"].map((action) => (
-              <Layer key={action} className="rounded-md bg-layer-2 p-3 hover:bg-layer-2-hover">
+              <Layer key={action} className="rounded-lg bg-layer-2 p-3 hover:bg-layer-2-hover">
                 <p className="text-13 text-primary">{action}</p>
               </Layer>
             ))}
@@ -382,11 +382,11 @@ export const CommonMistakes: Story = {
       </Info>
 
       <div className="space-y-6">
-        <div className="rounded-md border-2 border-danger-strong p-4">
+        <div className="rounded-lg border-2 border-danger-strong p-4">
           <h4 className="mb-2 font-semibold text-primary">❌ Mistake 1: Nested Surfaces (Same Plane)</h4>
           <Surface>
             <p className="mb-2 text-13 text-secondary">Surface 1</p>
-            <div className="rounded-md bg-surface-2 p-4">
+            <div className="rounded-lg bg-surface-2 p-4">
               <p className="text-13 text-secondary">Surface 2 nested inside Surface 1 - WRONG!</p>
             </div>
           </Surface>
@@ -395,11 +395,11 @@ export const CommonMistakes: Story = {
           </p>
         </div>
 
-        <div className="rounded-md border-2 border-danger-strong p-4">
+        <div className="rounded-lg border-2 border-danger-strong p-4">
           <h4 className="mb-2 font-semibold text-primary">❌ Mistake 2: Wrong Layer-Surface Association</h4>
           <Surface>
             <p className="mb-2 text-13 text-secondary">Surface 1</p>
-            <div className="rounded-md bg-layer-2 p-4">
+            <div className="rounded-lg bg-layer-2 p-4">
               <p className="text-13 text-secondary">Using layer-2 with surface-1 for content box - WRONG!</p>
             </div>
           </Surface>
@@ -409,19 +409,19 @@ export const CommonMistakes: Story = {
           </p>
         </div>
 
-        <div className="rounded-md border-2 border-danger-strong p-4">
+        <div className="rounded-lg border-2 border-danger-strong p-4">
           <h4 className="mb-2 font-semibold text-primary">❌ Mistake 3: Mismatched Hover State</h4>
           <Surface>
-            <div className="rounded-md bg-layer-1 p-4 transition-colors hover:bg-layer-2-hover">
+            <div className="rounded-lg bg-layer-1 p-4 transition-colors hover:bg-layer-2-hover">
               <p className="text-13 text-secondary">bg-layer-1 with hover:bg-layer-2-hover - WRONG!</p>
             </div>
           </Surface>
           <p className="mt-2 text-11 text-tertiary">✅ Fix: Use bg-layer-1 hover:bg-layer-1-hover</p>
         </div>
 
-        <div className="rounded-md border-2 border-danger-strong p-4">
+        <div className="rounded-lg border-2 border-danger-strong p-4">
           <h4 className="mb-2 font-semibold text-primary">❌ Mistake 4: Canvas for Pages</h4>
-          <div className="rounded-md bg-canvas p-4">
+          <div className="rounded-lg bg-canvas p-4">
             <p className="text-13 text-secondary">Using bg-canvas for a page or component - WRONG!</p>
           </div>
           <p className="mt-2 text-11 text-tertiary">

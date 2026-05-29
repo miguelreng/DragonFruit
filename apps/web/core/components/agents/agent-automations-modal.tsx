@@ -234,7 +234,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
               type="button"
               onClick={() => setTab("browse")}
               className={cn(
-                "text-sm rounded-md px-3 py-1.5 font-medium",
+                "text-sm rounded-lg px-3 py-1.5 font-medium",
                 tab === "browse"
                   ? "bg-custom-primary-100 text-white"
                   : "text-custom-text-300 hover:bg-custom-background-90"
@@ -246,7 +246,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
               type="button"
               onClick={() => setTab("manage")}
               className={cn(
-                "text-sm rounded-md px-3 py-1.5 font-medium",
+                "text-sm rounded-lg px-3 py-1.5 font-medium",
                 tab === "manage"
                   ? "bg-custom-primary-100 text-white"
                   : "text-custom-text-300 hover:bg-custom-background-90"
@@ -288,13 +288,13 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                   value={automationName}
                   onChange={(e) => setAutomationName(e.target.value)}
                   placeholder="Triage new task with Atlas"
-                  className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2"
+                  className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-lg border px-3 py-2"
                 />
               </div>
               <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
                 <div className="flex min-w-[260px] flex-1 flex-col gap-1">
                   <span className="text-xs text-custom-text-300 font-medium uppercase">Companion</span>
-                  <div className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2">
+                  <div className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-lg border px-3 py-2">
                     {selectedAgent?.name ?? "Atlas"}
                   </div>
                 </div>
@@ -324,7 +324,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                       const values = Array.from(e.target.selectedOptions).map((option) => option.value);
                       setSelectedProjectIds(values);
                     }}
-                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 min-h-[96px] rounded-md border px-3 py-2"
+                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 min-h-[96px] rounded-lg border px-3 py-2"
                   >
                     {sortedProjects.map((project) => (
                       <option key={project.id} value={project.id}>
@@ -342,7 +342,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                       const values = Array.from(e.target.selectedOptions).map((option) => option.value);
                       setSelectedPriorities(values);
                     }}
-                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 min-h-[96px] rounded-md border px-3 py-2"
+                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 min-h-[96px] rounded-lg border px-3 py-2"
                   >
                     {PRIORITY_OPTIONS.map((priority) => (
                       <option key={priority} value={priority}>
@@ -360,7 +360,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                       const values = Array.from(e.target.selectedOptions).map((option) => option.value);
                       setSelectedLabelIds(values);
                     }}
-                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 min-h-[96px] rounded-md border px-3 py-2"
+                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 min-h-[96px] rounded-lg border px-3 py-2"
                   >
                     {sortedLabels.map((label) => (
                       <option key={label.id} value={label.id}>
@@ -377,7 +377,7 @@ export function AgentAutomationsModal({ workspaceSlug, agents, isOpen, onClose }
                     value={issueTypeIdsInput}
                     onChange={(e) => setIssueTypeIdsInput(e.target.value)}
                     placeholder="comma-separated IDs"
-                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-md border px-3 py-2"
+                    className="border-custom-border-300 bg-custom-background-100 text-sm text-custom-text-100 rounded-lg border px-3 py-2"
                   />
                   <span className="text-xs text-custom-text-300">Use IDs until type picker is added.</span>
                 </label>

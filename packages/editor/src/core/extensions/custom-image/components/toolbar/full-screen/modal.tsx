@@ -238,7 +238,7 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
           }}
           onMouseDown={handleMouseDown}
         />
-        <div className="fixed bottom-10 left-1/2 flex -translate-x-1/2 items-center justify-center gap-1 divide-x divide-subtle-1 rounded-md border border-subtle-1 bg-black py-2">
+        <div className="fixed bottom-10 left-1/2 flex -translate-x-1/2 items-center justify-center gap-1 divide-x divide-subtle-1 rounded-lg border border-subtle-1 bg-black py-2">
           <div className="flex items-center">
             <button
               type="button"

@@ -108,7 +108,7 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
                 return (
                   <button
                     key={optionId}
-                    className="flex w-full items-center gap-4 rounded-sm px-4 py-3 text-13 text-secondary hover:bg-surface-2"
+                    className="flex w-full items-center gap-4 rounded-lg px-4 py-3 text-13 text-secondary hover:bg-surface-2"
                     onClick={() => {
                       transferIssue({
                         new_cycle_id: optionId,

@@ -140,7 +140,7 @@ export const CreateUpdateCustomFieldModal = (props: Props) => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("workspace_settings.settings.imports.csv_modal.custom_field_name_placeholder")}
-              className="ring-primary w-full rounded-md border border-subtle bg-layer-2 px-3 py-2 text-13 text-secondary outline-none focus:ring-1"
+              className="ring-primary w-full rounded-lg border border-subtle bg-layer-2 px-3 py-2 text-13 text-secondary outline-none focus:ring-1"
             />
           </div>
 
@@ -174,7 +174,7 @@ export const CreateUpdateCustomFieldModal = (props: Props) => {
                 onChange={(e) => setOptionsText(e.target.value)}
                 placeholder={t("workspace_settings.settings.imports.csv_modal.custom_field_options_placeholder")}
                 rows={4}
-                className="ring-primary w-full rounded-md border border-subtle bg-layer-2 px-3 py-2 text-13 text-secondary outline-none focus:ring-1"
+                className="ring-primary w-full rounded-lg border border-subtle bg-layer-2 px-3 py-2 text-13 text-secondary outline-none focus:ring-1"
               />
             </div>
           )}

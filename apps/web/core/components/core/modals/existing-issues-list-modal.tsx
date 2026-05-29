@@ -191,7 +191,7 @@ export function ExistingIssuesListModal(props: Props) {
               {selectedIssues.map((issue) => (
                 <div
                   key={issue.id}
-                  className="flex items-center gap-1 rounded-md border border-subtle bg-layer-1 py-1 pl-2 text-11 whitespace-nowrap text-primary"
+                  className="flex items-center gap-1 rounded-lg border border-subtle bg-layer-1 py-1 pl-2 text-11 whitespace-nowrap text-primary"
                 >
                   <IssueIdentifier
                     projectId={issue.project_id}
@@ -212,7 +212,7 @@ export function ExistingIssuesListModal(props: Props) {
               ))}
             </div>
           ) : (
-            <div className="w-min rounded-md border border-subtle bg-layer-1 p-2 text-11 whitespace-nowrap">
+            <div className="w-min rounded-lg border border-subtle bg-layer-1 p-2 text-11 whitespace-nowrap">
               {t("issue.select.empty")}
             </div>
           )}
@@ -278,7 +278,7 @@ export function ExistingIssuesListModal(props: Props) {
                         htmlFor={`issue-${issue.id}`}
                         value={issue}
                         className={({ active }) =>
-                          `group my-0.5 flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-secondary select-none ${
+                          `group my-0.5 flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-secondary select-none ${
                             active ? "bg-layer-1 text-primary" : ""
                           } ${selected ? "text-primary" : ""}`
                         }

@@ -195,7 +195,7 @@ export const WorkItemPicker = observer(function WorkItemPicker(props: Props) {
               disabled={!canCreate}
               onClick={() => void handleCreate()}
               className={cn(
-                "text-on-accent-primary rounded-md bg-accent-primary px-3 py-1.5 text-13 font-medium transition-opacity",
+                "text-on-accent-primary rounded-lg bg-accent-primary px-3 py-1.5 text-13 font-medium transition-opacity",
                 !canCreate && "cursor-not-allowed opacity-50"
               )}
             >

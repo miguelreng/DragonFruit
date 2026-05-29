@@ -45,7 +45,7 @@ export const IssuesSidebarBlock = observer(function IssuesSidebarBlock(props: Pr
   return (
     <div
       className={cn("group/list-block", {
-        "rounded-sm bg-layer-1": isDragging,
+        "rounded-lg bg-layer-1": isDragging,
         "rounded-l-sm border border-r-0 border-accent-strong": getIsIssuePeeked(block.data.id),
         "border border-r-0 border-strong-1": isIssueFocused,
       })}

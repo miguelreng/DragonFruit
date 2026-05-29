@@ -52,7 +52,7 @@ function MenuItem(props: TMenuItemProps) {
     <BaseMenu.Item
       disabled={disabled}
       className={cn(
-        "w-full cursor-pointer truncate rounded-md px-1 py-1.5 text-left text-secondary outline-none select-none hover:bg-layer-1",
+        "w-full cursor-pointer truncate rounded-lg px-1 py-1.5 text-left text-secondary outline-none select-none hover:bg-layer-1",
         {
           "text-placeholder": disabled,
         },
@@ -150,7 +150,7 @@ function Menu(props: TMenuProps) {
               type="button"
               onClick={handleMenuButtonClick}
               disabled={disabled}
-              className={`relative grid place-items-center rounded-md p-1 text-secondary outline-none hover:text-primary ${
+              className={`relative grid place-items-center rounded-lg p-1 text-secondary outline-none hover:text-primary ${
                 disabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-layer-1"
               } ${buttonClassName}`}
               tabIndex={customButtonTabIndex}
@@ -161,7 +161,7 @@ function Menu(props: TMenuProps) {
           ) : (
             <BaseMenu.Trigger
               type="button"
-              className={`flex items-center justify-between gap-1 rounded-md px-2.5 py-1 text-11 whitespace-nowrap duration-300 outline-none ${
+              className={`flex items-center justify-between gap-1 rounded-lg px-2.5 py-1 text-11 whitespace-nowrap duration-300 outline-none ${
                 isOpen ? "bg-surface-2 text-primary" : "text-secondary"
               } ${noBorder ? "" : "shadow-sm border border-strong focus:outline-none"} ${
                 disabled ? "cursor-not-allowed text-secondary" : "cursor-pointer hover:bg-layer-1"

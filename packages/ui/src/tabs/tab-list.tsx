@@ -44,7 +44,7 @@ function TabListInner({ tabs, tabListClassName, tabClassName, size = "md", selec
     <Tab.List
       as="div"
       className={cn(
-        "flex w-full min-w-fit items-center justify-between gap-1.5 rounded-md bg-layer-1 p-0.5 text-13",
+        "flex w-full min-w-fit items-center justify-between gap-1.5 rounded-lg bg-layer-1 p-0.5 text-13",
         tabListClassName
       )}
     >
@@ -52,7 +52,7 @@ function TabListInner({ tabs, tabListClassName, tabClassName, size = "md", selec
         <Tab
           className={({ selected }) =>
             cn(
-              "flex w-full min-w-fit cursor-pointer items-center justify-center rounded-sm p-1 font-medium text-primary transition-all outline-none focus:outline-none",
+              "flex w-full min-w-fit cursor-pointer items-center justify-center rounded-lg p-1 font-medium text-primary transition-all outline-none focus:outline-none",
               (selectedTab ? selectedTab === tab.key : selected)
                 ? "shadow-sm bg-layer-transparent-active text-primary"
                 : tab.disabled

@@ -77,11 +77,11 @@ function UnsavedDocCard({ entry, projectName, onDismiss }: CardProps) {
     <div className="group relative">
       <Link
         to={itemLink}
-        className="focus-visible:ring-accent-primary/40 block rounded-md focus:outline-none focus-visible:ring-2"
+        className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
       >
         <div
           className={cn(
-            "flex h-[260px] flex-col gap-3 rounded-md border border-subtle bg-surface-1 p-4 transition-colors",
+            "flex h-[260px] flex-col gap-3 rounded-lg border border-subtle bg-surface-1 p-4 transition-colors",
             "hover:border-strong"
           )}
         >
@@ -93,13 +93,13 @@ function UnsavedDocCard({ entry, projectName, onDismiss }: CardProps) {
               {entry.page_name || "Untitled"}
             </h3>
           </div>
-          <div className="relative flex-1 overflow-hidden rounded-sm border border-subtle/60">
+          <div className="relative flex-1 overflow-hidden rounded-lg border border-subtle/60">
             <div className="absolute inset-0 grid place-items-center text-tertiary/60">
               <PageIcon className="size-8" />
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-11 text-tertiary">
-            <span className="truncate rounded-sm bg-layer-1 px-1.5 py-0.5 text-secondary">{projectName}</span>
+            <span className="truncate rounded-lg bg-layer-1 px-1.5 py-0.5 text-secondary">{projectName}</span>
             <span className="ml-auto shrink-0">edited {renderFormattedDate(new Date(entry.last_edit_at))}</span>
           </div>
         </div>
@@ -111,7 +111,7 @@ function UnsavedDocCard({ entry, projectName, onDismiss }: CardProps) {
           e.stopPropagation();
           onDismiss();
         }}
-        className="absolute top-3 right-3 grid size-6 place-items-center rounded-sm text-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-layer-1 hover:text-primary focus:opacity-100"
+        className="absolute top-3 right-3 grid size-6 place-items-center rounded-lg text-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-layer-1 hover:text-primary focus:opacity-100"
         aria-label="Dismiss"
       >
         <X className="size-3.5" />

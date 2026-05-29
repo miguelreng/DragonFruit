@@ -13,10 +13,10 @@ export function NotificationsLoader() {
         <div key={i} className="flex w-full items-center gap-4 p-3">
           <span className="min-h-12 min-w-12 rounded-full bg-layer-1" />
           <div className="flex w-full flex-col gap-2.5">
-            <span className="h-5 w-36 rounded-sm bg-layer-1" />
+            <span className="h-5 w-36 rounded-lg bg-layer-1" />
             <div className="flex w-full items-center justify-between gap-2">
-              <span className="h-5 w-28 rounded-sm bg-layer-1" />
-              <span className="h-5 w-16 rounded-sm bg-layer-1" />
+              <span className="h-5 w-28 rounded-lg bg-layer-1" />
+              <span className="h-5 w-16 rounded-lg bg-layer-1" />
             </div>
           </div>
         </div>

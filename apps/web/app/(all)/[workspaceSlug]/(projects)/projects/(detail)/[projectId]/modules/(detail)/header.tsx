@@ -262,7 +262,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
               moduleId={moduleId}
               projectId={projectId.toString()}
               workspaceSlug={workspaceSlug.toString()}
-              customClassName="flex-shrink-0 flex items-center justify-center bg-layer-1/70 rounded-sm size-[26px]"
+              customClassName="flex-shrink-0 flex items-center justify-center bg-layer-1/70 rounded-lg size-[26px]"
             />
           )}
         </Header.RightItem>

@@ -51,7 +51,7 @@ export function GroupDragOverlay(props: Props) {
     <div
       ref={messageContainerRef}
       className={cn(
-        `absolute top-0 left-0 h-full w-full items-center rounded-sm bg-layer-1/85 text-13 font-medium text-tertiary ${dragColumnOrientation}`,
+        `absolute top-0 left-0 h-full w-full items-center rounded-lg bg-layer-1/85 text-13 font-medium text-tertiary ${dragColumnOrientation}`,
         {
           "z-2 flex flex-col border-[1px] border-strong": shouldOverlayBeVisible,
           "bg-danger-subtle": workflowDisabledSource && isDropDisabled,
@@ -67,7 +67,7 @@ export function GroupDragOverlay(props: Props) {
         />
       ) : (
         <div
-          className={cn("my-8 flex flex-col items-center rounded-sm p-3", {
+          className={cn("my-8 flex flex-col items-center rounded-lg p-3", {
             "text-secondary": shouldOverlayBeVisible,
             "text-danger-secondary": isDropDisabled,
           })}

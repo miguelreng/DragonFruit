@@ -225,7 +225,7 @@ export function ResizableSidebar({
         <aside
           className={cn(
             "group/sidebar relative z-20 flex h-full w-full flex-col overflow-hidden bg-surface-1 pt-4",
-            "self-center rounded-md rounded-tl-none rounded-bl-none border-r border-subtle"
+            "self-center rounded-lg rounded-tl-none rounded-bl-none border-r border-subtle"
           )}
         >
           {children}

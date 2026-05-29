@@ -25,7 +25,7 @@ export const AppliedPriorityFilters = observer(function AppliedPriorityFilters(p
       {values.map((priority) => (
         <div
           key={priority}
-          className="shadow-sm flex items-center gap-1.5 rounded-md border border-strong bg-layer-2 px-1.5 py-1 text-11 font-medium text-primary"
+          className="shadow-sm flex items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-1.5 py-1 text-11 font-medium text-primary"
         >
           <PriorityIcon priority={priority as TIssuePriorities} className="h-3.5 w-3.5" />
           {priority}

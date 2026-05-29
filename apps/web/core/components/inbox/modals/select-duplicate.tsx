@@ -98,7 +98,7 @@ export function SelectDuplicateInboxIssueModal(props: Props) {
                 as="div"
                 value={issue.id}
                 className={({ active, selected }) =>
-                  `flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-secondary select-none ${
+                  `flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-secondary select-none ${
                     active || selected ? "bg-layer-1 text-primary" : ""
                   } `
                 }

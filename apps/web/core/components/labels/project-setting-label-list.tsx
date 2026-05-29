@@ -93,7 +93,7 @@ export const ProjectSettingsLabelList = observer(function ProjectSettingsLabelLi
       />
       <div className="mt-6 w-full">
         {showLabelForm && (
-          <div className="my-2 w-full rounded-sm border border-subtle px-3.5 py-2">
+          <div className="my-2 w-full rounded-lg border border-subtle px-3.5 py-2">
             <CreateUpdateLabelInline
               labelForm={showLabelForm}
               setLabelForm={setLabelForm}

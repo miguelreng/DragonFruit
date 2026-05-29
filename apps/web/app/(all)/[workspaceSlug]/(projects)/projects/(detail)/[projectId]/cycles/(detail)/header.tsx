@@ -265,7 +265,7 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
               cycleId={cycleId}
               projectId={projectId}
               workspaceSlug={workspaceSlug}
-              customClassName="flex-shrink-0 flex items-center justify-center size-[26px] bg-layer-1/70 rounded-sm"
+              customClassName="flex-shrink-0 flex items-center justify-center size-[26px] bg-layer-1/70 rounded-lg"
             />
           </div>
         </Header.RightItem>

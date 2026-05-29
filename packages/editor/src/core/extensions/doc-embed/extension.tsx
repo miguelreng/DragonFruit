@@ -54,7 +54,7 @@ function renderDocEmbedWidget({
 }) {
   if (!embedType || !config?.widgetCallback) {
     return (
-      <div className="not-prose rounded-md border border-subtle bg-surface-1 px-4 py-3 text-13 text-secondary">
+      <div className="not-prose rounded-lg border border-subtle bg-surface-1 px-4 py-3 text-13 text-secondary">
         Embedded content is unavailable.
       </div>
     );

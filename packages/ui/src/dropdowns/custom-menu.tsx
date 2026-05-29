@@ -298,7 +298,7 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
                   <button
                     ref={setReferenceElement}
                     type="button"
-                    className={`flex items-center justify-between gap-1 rounded-md px-2.5 py-1 text-11 whitespace-nowrap duration-300 ${
+                    className={`flex items-center justify-between gap-1 rounded-lg px-2.5 py-1 text-11 whitespace-nowrap duration-300 ${
                       open ? "text-primary" : "text-secondary"
                     } ${noBorder ? "" : "shadow-sm border border-strong focus:outline-none"} ${
                       disabled ? "cursor-not-allowed text-secondary" : "cursor-pointer hover:bg-layer-transparent-hover"

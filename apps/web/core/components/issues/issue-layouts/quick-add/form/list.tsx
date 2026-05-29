@@ -12,7 +12,7 @@ export const ListQuickAddIssueForm = observer(function ListQuickAddIssueForm(pro
   const { ref, register, onSubmit, isEpic } = props;
   const { t } = useTranslation();
   return (
-    <div className="overflow-hidden rounded-sm bg-white shadow-raised-100">
+    <div className="overflow-hidden rounded-lg bg-white shadow-raised-100">
       <form
         ref={ref}
         onSubmit={onSubmit}
@@ -26,7 +26,7 @@ export const ListQuickAddIssueForm = observer(function ListQuickAddIssueForm(pro
             {...register("name", {
               required: isEpic ? t("epic.title.required") : t("issue.title.required"),
             })}
-            className="h-8 w-full rounded-md bg-transparent px-2 text-13 leading-5 font-medium text-secondary outline-none"
+            className="h-8 w-full rounded-lg bg-transparent px-2 text-13 leading-5 font-medium text-secondary outline-none"
           />
         </div>
       </form>

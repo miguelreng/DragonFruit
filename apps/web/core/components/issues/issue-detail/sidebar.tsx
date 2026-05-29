@@ -127,7 +127,7 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { priority: val })}
                 disabled={!isEditable}
                 buttonVariant="transparent-with-text"
-                className="h-6 w-full grow rounded-sm"
+                className="h-6 w-full grow rounded-lg"
                 buttonContainerClassName="size-full text-left"
                 buttonClassName="size-full px-2 py-0.5 whitespace-nowrap [&_svg]:size-3.5"
               />

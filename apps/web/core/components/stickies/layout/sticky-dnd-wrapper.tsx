@@ -101,7 +101,7 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
               const root = createRoot(container);
               root.render(
                 <div className="shadow-2xl scale-[0.92] rotate-[1.5deg] opacity-95">
-                  <div className="max-h-[190px] overflow-hidden rounded-sm ring-1 ring-black/10">
+                  <div className="max-h-[190px] overflow-hidden rounded-lg ring-1 ring-black/10">
                     <StickyNote
                       className={"w-[290px]"}
                       workspaceSlug={workspaceSlug.toString()}

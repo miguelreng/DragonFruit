@@ -21,14 +21,14 @@ export function PagesLoader() {
         {range(5).map((i) => (
           <div key={i} className="flex h-12 w-full items-center justify-between px-3">
             <div className="flex items-center gap-1.5">
-              <span className="h-5 w-5 rounded-sm bg-layer-1" />
-              <span className="h-5 w-20 rounded-sm bg-layer-1" />
+              <span className="h-5 w-5 rounded-lg bg-layer-1" />
+              <span className="h-5 w-20 rounded-lg bg-layer-1" />
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="h-5 w-16 rounded-sm bg-layer-1" />
-              <span className="h-5 w-5 rounded-sm bg-layer-1" />
-              <span className="h-5 w-5 rounded-sm bg-layer-1" />
-              <span className="h-5 w-5 rounded-sm bg-layer-1" />
+              <span className="h-5 w-16 rounded-lg bg-layer-1" />
+              <span className="h-5 w-5 rounded-lg bg-layer-1" />
+              <span className="h-5 w-5 rounded-lg bg-layer-1" />
+              <span className="h-5 w-5 rounded-lg bg-layer-1" />
             </div>
           </div>
         ))}

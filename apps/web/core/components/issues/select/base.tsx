@@ -197,12 +197,12 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
       {isDropdownOpen && (
         <Combobox.Options className="fixed z-10" static>
           <div
-            className="my-1 w-48 rounded-sm border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200 focus:outline-none"
+            className="my-1 w-48 rounded-lg border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-11 shadow-raised-200 focus:outline-none"
             ref={setPopperElement}
             style={styles.popper}
             {...attributes.popper}
           >
-            <div className="flex items-center gap-1.5 rounded-sm border border-subtle bg-surface-2 px-2">
+            <div className="flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-2 px-2">
               <SearchIcon className="h-3.5 w-3.5 text-placeholder" strokeWidth={1.5} />
               <Combobox.Input
                 as="input"
@@ -228,12 +228,12 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                             className={({ active }) =>
                               `${
                                 active ? "bg-layer-1" : ""
-                              } group flex w-full cursor-pointer items-center gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none`
+                              } group flex w-full cursor-pointer items-center gap-2 truncate rounded-lg px-1 py-1.5 text-secondary select-none`
                             }
                             value={option.id}
                           >
                             {({ selected }) => (
-                              <div className="flex w-full justify-between gap-2 rounded-sm">
+                              <div className="flex w-full justify-between gap-2 rounded-lg">
                                 <div className="flex items-center justify-start gap-2 truncate">
                                   <span
                                     className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
@@ -243,7 +243,7 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                                   />
                                   <span className="truncate">{option.name}</span>
                                 </div>
-                                <div className="flex shrink-0 items-center justify-center rounded-sm p-1">
+                                <div className="flex shrink-0 items-center justify-center rounded-lg p-1">
                                   <CheckIcon className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`} />
                                 </div>
                               </div>
@@ -263,12 +263,12 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                                 className={({ active }) =>
                                   `${
                                     active ? "bg-layer-1" : ""
-                                  } group flex min-w-[14rem] cursor-pointer items-center gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none`
+                                  } group flex min-w-[14rem] cursor-pointer items-center gap-2 truncate rounded-lg px-1 py-1.5 text-secondary select-none`
                                 }
                                 value={child.id}
                               >
                                 {({ selected }) => (
-                                  <div className="flex w-full justify-between gap-2 rounded-sm">
+                                  <div className="flex w-full justify-between gap-2 rounded-lg">
                                     <div className="flex items-center justify-start gap-2">
                                       <span
                                         className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
@@ -278,7 +278,7 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                                       />
                                       <span>{child.name}</span>
                                     </div>
-                                    <div className="flex items-center justify-center rounded-sm p-1">
+                                    <div className="flex items-center justify-center rounded-lg p-1">
                                       <CheckIcon className={`h-3 w-3 ${selected ? "opacity-100" : "opacity-0"}`} />
                                     </div>
                                   </div>

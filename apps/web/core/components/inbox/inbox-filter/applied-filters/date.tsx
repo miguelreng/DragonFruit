@@ -51,7 +51,7 @@ export const InboxIssueAppliedFiltersDate = observer(function InboxIssueAppliedF
         const optionDetail = currentOptionDetail(value);
         if (!optionDetail) return <></>;
         return (
-          <div key={value} className="relative flex items-center gap-1 rounded-sm bg-layer-1 p-1 text-11">
+          <div key={value} className="relative flex items-center gap-1 rounded-lg bg-layer-1 p-1 text-11">
             <div className="truncate text-11">{optionDetail?.name}</div>
             <div
               className="relative flex h-3 w-3 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden text-tertiary transition-all hover:text-secondary"

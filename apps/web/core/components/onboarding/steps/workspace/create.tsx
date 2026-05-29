@@ -153,7 +153,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
               },
             }}
             render={({ field: { value, ref, onChange } }) => (
-              <div className="relative flex items-center rounded-md">
+              <div className="relative flex items-center rounded-lg">
                 <input
                   id="name"
                   name="name"
@@ -169,7 +169,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                   placeholder="Enter workspace name"
                   ref={ref}
                   className={cn(
-                    "w-full rounded-md border border-strong bg-surface-1 px-3 py-2 text-secondary transition-all duration-200 placeholder:text-placeholder focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
+                    "w-full rounded-lg border border-strong bg-surface-1 px-3 py-2 text-secondary transition-all duration-200 placeholder:text-placeholder focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
                     {
                       "border-strong": !errors.name,
                       "border-danger-strong": errors.name,
@@ -203,14 +203,14 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
             render={({ field: { value, ref, onChange } }) => (
               <div
                 className={cn(
-                  "flex w-full items-center rounded-md border border-strong bg-surface-1 px-3 py-2 text-secondary transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
+                  "flex w-full items-center rounded-lg border border-strong bg-surface-1 px-3 py-2 text-secondary transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
                   {
                     "border-strong": !errors.name,
                     "border-danger-strong": errors.name,
                   }
                 )}
               >
-                <span className={cn("rounded-md pr-0 whitespace-nowrap text-secondary")}>
+                <span className={cn("rounded-lg pr-0 whitespace-nowrap text-secondary")}>
                   {window && window.location.host}/
                 </span>
                 <input
@@ -227,7 +227,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                   ref={ref}
                   placeholder={t("workspace_creation.form.url.placeholder")}
                   className={cn(
-                    "ring-none w-full rounded-md border-none bg-surface-1 px-3 py-0 pl-0 text-secondary outline-none placeholder:text-placeholder"
+                    "ring-none w-full rounded-lg border-none bg-surface-1 px-3 py-0 pl-0 text-secondary outline-none placeholder:text-placeholder"
                   )}
                 />
               </div>

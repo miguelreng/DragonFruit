@@ -40,7 +40,7 @@ export const Default: Story = {
     return (
       <ContextMenu>
         <ContextMenu.Trigger>
-          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-md border border-dashed border-strong text-13">
+          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-lg border border-dashed border-strong text-13">
             Right click here
           </div>
         </ContextMenu.Trigger>
@@ -63,7 +63,7 @@ export const WithIcons: Story = {
     return (
       <ContextMenu>
         <ContextMenu.Trigger>
-          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-md border border-dashed border-strong text-13">
+          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-lg border border-dashed border-strong text-13">
             Right click here
           </div>
         </ContextMenu.Trigger>
@@ -102,7 +102,7 @@ export const WithSubmenus: Story = {
     return (
       <ContextMenu>
         <ContextMenu.Trigger>
-          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-md border border-dashed border-strong text-13">
+          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-lg border border-dashed border-strong text-13">
             Right click here
           </div>
         </ContextMenu.Trigger>
@@ -148,7 +148,7 @@ export const DisabledItems: Story = {
     return (
       <ContextMenu>
         <ContextMenu.Trigger>
-          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-md border border-dashed border-strong text-13">
+          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-lg border border-dashed border-strong text-13">
             Right click here
           </div>
         </ContextMenu.Trigger>
@@ -189,7 +189,7 @@ export const OnFileCard: Story = {
         <ContextMenu.Trigger>
           <div className="w-64 cursor-pointer rounded-lg border border-subtle p-4 hover:bg-layer-1">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-accent-primary text-16 text-on-color">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent-primary text-16 text-on-color">
                 📄
               </div>
               <div className="flex-1">
@@ -298,7 +298,7 @@ export const NestedSubmenus: Story = {
     return (
       <ContextMenu>
         <ContextMenu.Trigger>
-          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-md border border-dashed border-strong text-13">
+          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-lg border border-dashed border-strong text-13">
             Right click here
           </div>
         </ContextMenu.Trigger>
@@ -349,7 +349,7 @@ export const WithKeyboardShortcuts: Story = {
     return (
       <ContextMenu>
         <ContextMenu.Trigger>
-          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-md border border-dashed border-strong text-13">
+          <div className="flex h-[150px] w-[300px] items-center justify-center rounded-lg border border-dashed border-strong text-13">
             Right click here
           </div>
         </ContextMenu.Trigger>

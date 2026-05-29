@@ -34,8 +34,8 @@ export const PageEditorHeaderLogoPicker = observer(function PageEditorHeaderLogo
     }
   );
   const logoButtonClassName = cn("grid place-items-center transition-colors", {
-    "-ml-[8px] size-[56px] rounded-sm": !isOverlayVariant,
-    "size-[60px] rounded-md bg-transparent shadow-none": isOverlayVariant,
+    "-ml-[8px] size-[56px] rounded-lg": !isOverlayVariant,
+    "size-[60px] rounded-lg bg-transparent shadow-none": isOverlayVariant,
     "hover:bg-layer-1": isContentEditable && !isOverlayVariant,
   });
 

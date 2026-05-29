@@ -82,7 +82,7 @@ const WorkspaceIdentifierRow = (props: {
         <button
           type="button"
           onClick={() => onCopy(label, value)}
-          className="grid size-7 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-secondary"
+          className="grid size-7 shrink-0 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-secondary"
           aria-label={`Copy workspace ${label.toLowerCase()}`}
         >
           <Copy className="size-3.5" />
@@ -275,7 +275,7 @@ export const WorkspaceDetails = observer(function WorkspaceDetails() {
               <div className="relative flex size-14">
                 <img
                   src={logoSrc}
-                  className="absolute top-0 left-0 size-full rounded-md object-cover"
+                  className="absolute top-0 left-0 size-full rounded-lg object-cover"
                   alt="Workspace Logo"
                 />
               </div>

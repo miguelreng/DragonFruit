@@ -48,7 +48,7 @@ export function ProjectActionsMenu({
       customButton={
         <span
           ref={actionSectionRef}
-          className="grid place-items-center rounded-md p-0.5 text-placeholder hover:bg-layer-1"
+          className="grid place-items-center rounded-lg p-0.5 text-placeholder hover:bg-layer-1"
           onClick={() => setIsMenuActive(!isMenuActive)}
         >
           <MoreHorizontal className="size-4" />
@@ -66,7 +66,7 @@ export function ProjectActionsMenu({
       {isAdmin && (
         <CustomMenu.MenuItem onClick={onPublishModal}>
           <div className="relative flex flex-shrink-0 items-center justify-start gap-2">
-            <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-md text-secondary transition-all duration-300 hover:bg-layer-1">
+            <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-lg text-secondary transition-all duration-300 hover:bg-layer-1">
               <Share2 className="h-3.5 w-3.5 stroke-[1.5]" />
             </div>
             <div>{t("publish_project")}</div>

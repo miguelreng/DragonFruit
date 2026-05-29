@@ -115,7 +115,7 @@ export const ModuleViewHeader = observer(function ModuleViewHeader() {
         )}
         <div
           className={cn(
-            "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-md border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
+            "ml-auto flex w-0 items-center justify-start gap-1 overflow-hidden rounded-lg border border-transparent bg-surface-1 text-placeholder opacity-0 transition-[width] ease-linear",
             {
               "w-64 border-subtle px-2.5 py-1.5 opacity-100": isSearchOpen,
             }
@@ -170,13 +170,13 @@ export const ModuleViewHeader = observer(function ModuleViewHeader() {
           memberIds={workspaceMemberIds ?? undefined}
         />
       </FiltersDropdown>
-      <div className="hidden items-center gap-1 rounded-sm bg-layer-3 p-1 md:flex">
+      <div className="hidden items-center gap-1 rounded-lg bg-layer-3 p-1 md:flex">
         {MODULE_VIEW_LAYOUTS.map((layout) => (
           <Tooltip key={layout.key} tooltipContent={t(layout.i18n_title)} isMobile={isMobile}>
             <button
               type="button"
               className={cn(
-                "group grid h-5.5 w-7 place-items-center overflow-hidden rounded-sm transition-all hover:bg-layer-transparent-hover",
+                "group grid h-5.5 w-7 place-items-center overflow-hidden rounded-lg transition-all hover:bg-layer-transparent-hover",
                 {
                   "bg-layer-transparent-active hover:bg-layer-transparent-active":
                     displayFilters?.layout === layout.key,

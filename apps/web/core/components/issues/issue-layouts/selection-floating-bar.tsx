@@ -174,7 +174,7 @@ export const SelectionFloatingBar = observer(function SelectionFloatingBar() {
               type="button"
               disabled={isChangingState || !projectStates?.length}
               aria-label="Change status"
-              className="inline-flex h-5 items-center gap-1 rounded-sm border border-strong bg-layer-2 px-1.5 text-caption-md-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-5 items-center gap-1 rounded-lg border border-strong bg-layer-2 px-1.5 text-caption-md-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span>{isChangingState ? "Updating…" : "Status"}</span>
               <ChevronDown className="size-3" />

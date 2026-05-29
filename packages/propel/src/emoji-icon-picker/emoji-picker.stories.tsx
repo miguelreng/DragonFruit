@@ -44,7 +44,7 @@ export const Default: Story = {
           closeOnSelect
         />
         {selectedValue && (
-          <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">
+          <div className="rounded-lg border border-subtle bg-layer-1 p-4 text-13">
             <div className="mb-2 font-medium">Selected:</div>
             <pre className="text-11">{JSON.stringify(selectedValue, null, 2)}</pre>
           </div>
@@ -140,7 +140,7 @@ export const LucideIcons: Story = {
           iconType="lucide"
         />
         {selectedValue && (
-          <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">
+          <div className="rounded-lg border border-subtle bg-layer-1 p-4 text-13">
             <div className="mb-2 font-medium">Selected Icon:</div>
             <pre className="text-11">{JSON.stringify(selectedValue, null, 2)}</pre>
           </div>
@@ -173,7 +173,7 @@ export const MaterialIcons: Story = {
           iconType="material"
         />
         {selectedValue && (
-          <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">
+          <div className="rounded-lg border border-subtle bg-layer-1 p-4 text-13">
             <div className="mb-2 font-medium">Selected Icon:</div>
             <pre className="text-11">{JSON.stringify(selectedValue, null, 2)}</pre>
           </div>
@@ -210,14 +210,14 @@ export const CloseOnSelectDisabled: Story = {
             closeOnSelect={false}
           />
           <button
-            className="rounded-sm bg-layer-1 px-3 py-1.5 text-13 hover:bg-surface-2"
+            className="rounded-lg bg-layer-1 px-3 py-1.5 text-13 hover:bg-surface-2"
             onClick={() => setSelectedValues([])}
           >
             Clear
           </button>
         </div>
         {selectedValues.length > 0 && (
-          <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">
+          <div className="rounded-lg border border-subtle bg-layer-1 p-4 text-13">
             <div className="mb-2 font-medium">Selected ({selectedValues.length}):</div>
             <div className="flex flex-wrap gap-2">
               {selectedValues.map((val, idx) => (
@@ -312,7 +312,7 @@ export const CustomIconColor: Story = {
           defaultIconColor="#FF5733"
         />
         {selectedValue && (
-          <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">
+          <div className="rounded-lg border border-subtle bg-layer-1 p-4 text-13">
             <pre className="text-11">{JSON.stringify(selectedValue, null, 2)}</pre>
           </div>
         )}
@@ -413,7 +413,7 @@ export const InFormContext: Story = {
               type="text"
               value={formData.title}
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-              className="w-full rounded-sm border border-subtle bg-layer-1 px-3 py-2"
+              className="w-full rounded-lg border border-subtle bg-layer-1 px-3 py-2"
               placeholder="Enter project title"
             />
           </div>
@@ -426,12 +426,12 @@ export const InFormContext: Story = {
               label={formData.emoji && formData.emoji.type === "emoji" ? formData.emoji.value : "Click to select icon"}
               defaultOpen={EmojiIconPickerTypes.EMOJI}
               closeOnSelect
-              buttonClassName="px-4 py-2 bg-layer-1 border border-subtle rounded-sm hover:bg-surface-2 w-full text-left"
+              buttonClassName="px-4 py-2 bg-layer-1 border border-subtle rounded-lg hover:bg-surface-2 w-full text-left"
             />
           </div>
           <button
             type="submit"
-            className="w-full rounded-sm bg-accent-primary px-4 py-2 text-on-color hover:bg-accent-primary/80"
+            className="w-full rounded-lg bg-accent-primary px-4 py-2 text-on-color hover:bg-accent-primary/80"
           >
             Create Project
           </button>

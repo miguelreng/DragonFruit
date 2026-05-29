@@ -680,7 +680,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                         detailRef.current = {};
                         setContext({});
                       }}
-                      className="truncate rounded-md px-1 py-0.5 text-[10px] transition-colors hover:bg-layer-1 hover:text-primary"
+                      className="truncate rounded-lg px-1 py-0.5 text-[10px] transition-colors hover:bg-layer-1 hover:text-primary"
                     >
                       Clear context
                     </button>

@@ -75,7 +75,7 @@ export function TextAlignmentSelector(props: Props) {
             item.command();
           }}
           className={cn(
-            "grid size-7 place-items-center rounded-sm text-tertiary transition-colors hover:bg-layer-1 active:bg-layer-1",
+            "grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 active:bg-layer-1",
             {
               "bg-layer-1 text-primary": item.isActive(),
             }

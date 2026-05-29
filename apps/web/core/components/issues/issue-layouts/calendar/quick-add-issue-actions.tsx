@@ -111,7 +111,7 @@ export const CalendarQuickAddIssueActions = observer(function CalendarQuickAddIs
         customQuickAddButton={
           <div
             className={cn(
-              "overflow-hidden rounded-sm bg-layer-transparent hover:bg-layer-transparent-hover md:opacity-0 md:group-hover:opacity-100",
+              "overflow-hidden rounded-lg bg-layer-transparent hover:bg-layer-transparent-hover md:opacity-0 md:group-hover:opacity-100",
               {
                 block: isMenuOpen,
               }
@@ -124,7 +124,7 @@ export const CalendarQuickAddIssueActions = observer(function CalendarQuickAddIs
               className="w-full"
               customButtonClassName="w-full"
               customButton={
-                <div className="flex w-full items-center gap-x-[6px] rounded-md px-2 py-1.5 text-tertiary hover:text-tertiary">
+                <div className="flex w-full items-center gap-x-[6px] rounded-lg px-2 py-1.5 text-tertiary hover:text-tertiary">
                   <PlusIcon className="h-3.5 w-3.5 flex-shrink-0 stroke-2" />
                   <span className="flex-shrink-0 text-13 font-medium">
                     {isEpic ? t("epic.add.label") : t("issue.add.label")}

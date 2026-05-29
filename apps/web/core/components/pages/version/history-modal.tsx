@@ -132,7 +132,7 @@ export const PageVersionHistoryModal = observer(function PageVersionHistoryModal
           <button
             type="button"
             onClick={handleClose}
-            className="grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            className="grid size-7 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label={t("common.close")}
           >
             <XIcon className="size-4" />

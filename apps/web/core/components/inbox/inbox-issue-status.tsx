@@ -39,7 +39,7 @@ export const InboxIssueStatus = observer(function InboxIssueStatus(props: Props)
   return (
     <div
       className={cn(
-        `relative flex flex-col gap-1 rounded-sm p-1.5 py-0.5 ${statusIcon.textColor(
+        `relative flex flex-col gap-1 rounded-lg p-1.5 py-0.5 ${statusIcon.textColor(
           isSnoozedDatePassed
         )} ${statusIcon.bgColor(isSnoozedDatePassed)}`
       )}

@@ -44,7 +44,7 @@ export function ProjectTemplateSelect(props: TProjectTemplateSelect) {
         customButton={
           // div, not button — CustomMenu wraps customButton in its
           // own <button> internally. Avoids nested-button HTML.
-          <div className="flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
+          <div className="flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
             <span className="truncate">{triggerLabel}</span>
             <ChevronDown className="size-3.5 text-tertiary" />
           </div>

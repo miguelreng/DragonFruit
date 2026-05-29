@@ -103,7 +103,7 @@ export function LabelCreate(props: ILabelCreate) {
                       <button type="button" ref={setReferenceElement} className="grid place-items-center outline-none">
                         {value && value?.trim() !== "" && (
                           <span
-                            className="h-5 w-5 rounded-sm"
+                            className="h-5 w-5 rounded-lg"
                             style={{
                               backgroundColor: value ?? "black",
                             }}
@@ -149,7 +149,7 @@ export function LabelCreate(props: ILabelCreate) {
           />
           <button
             type="button"
-            className="grid place-items-center rounded-sm bg-danger-primary p-1"
+            className="grid place-items-center rounded-lg bg-danger-primary p-1"
             onClick={() => setIsCreateToggle(false)}
             disabled={disabled}
           >
@@ -157,7 +157,7 @@ export function LabelCreate(props: ILabelCreate) {
           </button>
           <button
             type="submit"
-            className="grid place-items-center rounded-sm bg-success-primary p-1"
+            className="grid place-items-center rounded-lg bg-success-primary p-1"
             disabled={isSubmitting}
           >
             {isSubmitting ? (

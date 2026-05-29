@@ -192,7 +192,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
     // surface family inside the app frame.
     <aside
       className={cn(
-        "t-panel-slide flex h-full w-full flex-col overflow-hidden rounded-md border-[0.5px] border-subtle bg-surface-1"
+        "t-panel-slide flex h-full w-full flex-col overflow-hidden rounded-lg border-[0.5px] border-subtle bg-surface-1"
       )}
       data-open="true"
     >
@@ -312,7 +312,7 @@ function NewChatLanding(props: { onStartSession: () => Promise<void> }) {
       <button
         type="button"
         onClick={() => void onStartSession()}
-        className="rounded-md bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
+        className="rounded-lg bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
       >
         Start chat
       </button>
@@ -358,7 +358,7 @@ function HistoryView(props: {
         <button
           type="button"
           onClick={() => void onStartSession()}
-          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
+          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
         >
           <Plus className="size-3.5" />
           New Atlas session
@@ -953,7 +953,7 @@ function PendingAttachmentChip({ file, onRemove }: { file: File; onRemove: () =>
   const sizeLabel = file.size > 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${kb} KB`;
 
   return (
-    <li className="group relative inline-flex items-center gap-1.5 rounded-md border-[0.5px] border-subtle bg-surface-1 py-1 pr-1 pl-1.5">
+    <li className="group relative inline-flex items-center gap-1.5 rounded-lg border-[0.5px] border-subtle bg-surface-1 py-1 pr-1 pl-1.5">
       {previewUrl ? (
         <img src={previewUrl} alt="" className="size-6 rounded object-cover" />
       ) : (
@@ -1605,7 +1605,7 @@ function SentAttachmentChip({ attachment }: { attachment: TAgentChatAttachment }
       ? `${(attachment.size / 1024 / 1024).toFixed(1)} MB`
       : `${(attachment.size / 1024).toFixed(attachment.size > 1024 * 1024 ? 0 : 1)} KB`;
   return (
-    <li className="inline-flex items-center gap-1.5 rounded-md border-[0.5px] border-subtle bg-surface-1 py-1 pr-2 pl-1.5">
+    <li className="inline-flex items-center gap-1.5 rounded-lg border-[0.5px] border-subtle bg-surface-1 py-1 pr-2 pl-1.5">
       <Icon className="size-3.5 text-tertiary" />
       <span className="max-w-[160px] truncate text-11 text-primary">{attachment.name}</span>
       <span className="text-11 text-tertiary">{sizeLabel}</span>

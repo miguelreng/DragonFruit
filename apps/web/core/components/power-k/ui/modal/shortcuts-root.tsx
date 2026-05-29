@@ -70,7 +70,7 @@ export function ShortcutsModal(props: Props) {
                     </button>
                   </Dialog.Title>
                   <div className="px-5">
-                    <div className="flex w-full items-center rounded-sm border-[0.5px] border-subtle bg-surface-2 px-2">
+                    <div className="flex w-full items-center rounded-lg border-[0.5px] border-subtle bg-surface-2 px-2">
                       <SearchIcon className="h-3.5 w-3.5 text-secondary" />
                       <Input
                         id="search"

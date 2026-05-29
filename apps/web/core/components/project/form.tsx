@@ -168,7 +168,7 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                   isOpen={isOpen}
                   handleToggle={(val: boolean) => setIsOpen(val)}
                   className="flex items-center justify-center"
-                  buttonClassName="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-md border border-subtle bg-layer-2"
+                  buttonClassName="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-lg border border-subtle bg-layer-2"
                   label={<Logo logo={value} size={20} />}
                   // TODO: fix types
                   onChange={(val: any) => {
@@ -213,7 +213,7 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                   value={value}
                   onChange={onChange}
                   hasError={Boolean(errors.name)}
-                  className="rounded-md !p-3 font-medium"
+                  className="rounded-lg !p-3 font-medium"
                   placeholder={t("common.project_name")}
                   disabled={!isAdmin}
                 />
@@ -311,7 +311,7 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                         )}
                       </div>
                     }
-                    buttonClassName="!border-subtle !shadow-none font-medium rounded-md"
+                    buttonClassName="!border-subtle !shadow-none font-medium rounded-lg"
                     input
                     disabled={!isAdmin}
                     // optionsClassName="w-full"
@@ -346,7 +346,7 @@ export function ProjectDetailsForm(props: IProjectDetailsForm) {
                       onChange(nextTimezone);
                     }}
                     error={Boolean(errors.timezone)}
-                    buttonClassName="!border-subtle !shadow-none font-medium rounded-md"
+                    buttonClassName="!border-subtle !shadow-none font-medium rounded-lg"
                     disabled={!isAdmin}
                   />
                 </>

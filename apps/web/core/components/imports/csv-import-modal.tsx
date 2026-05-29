@@ -431,7 +431,7 @@ export const CsvImportModal = observer(function CsvImportModal({
               <span className="text-danger-strong">*</span>
             </label>
             {file ? (
-              <div className="flex items-center gap-3 rounded-md border border-subtle bg-layer-2 px-3 py-2.5">
+              <div className="flex items-center gap-3 rounded-lg border border-subtle bg-layer-2 px-3 py-2.5">
                 <FileText className="size-4 shrink-0 text-tertiary" />
                 <span className="flex-1 truncate text-13 text-secondary">{file.name}</span>
                 {parsed && (
@@ -452,7 +452,7 @@ export const CsvImportModal = observer(function CsvImportModal({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-subtle bg-layer-2 px-4 py-6 text-13 text-tertiary transition-colors hover:border-strong hover:text-secondary"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-subtle bg-layer-2 px-4 py-6 text-13 text-tertiary transition-colors hover:border-strong hover:text-secondary"
               >
                 <UploadCloud className="size-4" />
                 {t("workspace_settings.settings.imports.csv_modal.drop_or_click")}
@@ -642,7 +642,7 @@ export const CsvImportModal = observer(function CsvImportModal({
                     total: parsed.rows.length,
                   })}
                 </p>
-                <div className="overflow-x-auto rounded-md border-[0.5px] border-subtle">
+                <div className="overflow-x-auto rounded-lg border-[0.5px] border-subtle">
                   <table className="min-w-full text-11">
                     <thead className="bg-layer-2 text-tertiary">
                       <tr>

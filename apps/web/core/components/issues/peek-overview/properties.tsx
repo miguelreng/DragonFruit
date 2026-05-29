@@ -122,7 +122,7 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
             onChange={(val) => issueOperations.update(workspaceSlug, projectId, issueId, { priority: val })}
             disabled={disabled}
             buttonVariant="transparent-with-text"
-            className="h-7.5 w-full grow rounded-sm"
+            className="h-7.5 w-full grow rounded-lg"
             buttonContainerClassName="w-full text-left h-7.5"
             buttonClassName={`text-body-xs-medium whitespace-nowrap [&_svg]:size-3.5 ${!issue?.priority || issue?.priority === "none" ? "text-placeholder" : ""}`}
           />

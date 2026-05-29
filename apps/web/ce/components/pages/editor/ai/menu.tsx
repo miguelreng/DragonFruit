@@ -144,7 +144,7 @@ export function EditorAIMenu(props: Props) {
   return (
     <div
       className={cn(
-        "flex w-[210px] flex-col rounded-md border-[0.5px] border-strong bg-surface-1 shadow-raised-200 transition-all",
+        "flex w-[210px] flex-col rounded-lg border-[0.5px] border-strong bg-surface-1 shadow-raised-200 transition-all",
         {
           "w-[700px]": activeTask,
         }
@@ -164,7 +164,7 @@ export function EditorAIMenu(props: Props) {
                 key={item.key}
                 type="button"
                 className={cn(
-                  "flex w-full items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 text-11 text-secondary transition-colors hover:bg-layer-1",
+                  "flex w-full items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 text-11 text-secondary transition-colors hover:bg-layer-1",
                   {
                     "bg-layer-1": isActiveTask,
                   }
@@ -229,7 +229,7 @@ export function EditorAIMenu(props: Props) {
                     <div className="mt-3 flex items-center gap-4">
                       <button
                         type="button"
-                        className="rounded-sm p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
+                        className="rounded-lg p-1 text-13 font-medium text-tertiary outline-none hover:bg-layer-1"
                         onClick={() => handleInsertText(false)}
                       >
                         Replace selection
@@ -237,7 +237,7 @@ export function EditorAIMenu(props: Props) {
                       <Tooltip tooltipContent="Add to next line">
                         <button
                           type="button"
-                          className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                          className="grid size-6 flex-shrink-0 place-items-center rounded-lg outline-none hover:bg-layer-1"
                           onClick={() => handleInsertText(true)}
                         >
                           <CornerDownRight className="size-4 text-tertiary" />
@@ -246,7 +246,7 @@ export function EditorAIMenu(props: Props) {
                       <Tooltip tooltipContent="Re-generate response">
                         <button
                           type="button"
-                          className="grid size-6 flex-shrink-0 place-items-center rounded-sm outline-none hover:bg-layer-1"
+                          className="grid size-6 flex-shrink-0 place-items-center rounded-lg outline-none hover:bg-layer-1"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -275,7 +275,7 @@ export function EditorAIMenu(props: Props) {
                     key={tone.key}
                     type="button"
                     className={cn(
-                      "rounded-sm bg-layer-1 p-1 text-11 font-medium text-secondary transition-colors outline-none",
+                      "rounded-lg bg-layer-1 p-1 text-11 font-medium text-secondary transition-colors outline-none",
                       {
                         "bg-accent-primary/20 text-accent-primary": tone.key === "default",
                       }

@@ -123,8 +123,8 @@ export const ModuleProgressStats = observer(function ModuleProgressStats(props: 
         <Tab.List
           as="div"
           className={cn(
-            `flex w-full items-center justify-between gap-2 rounded-md p-1`,
-            roundedTab ? `rounded-3xl` : `rounded-md`,
+            `flex w-full items-center justify-between gap-2 rounded-lg p-1`,
+            roundedTab ? `rounded-3xl` : `rounded-lg`,
             noBackground ? `` : `bg-layer-2`,
             size === "xs" ? `text-11` : `text-13`
           )}
@@ -133,7 +133,7 @@ export const ModuleProgressStats = observer(function ModuleProgressStats(props: 
             <Tab
               className={cn(
                 `w-full cursor-pointer p-1 text-primary transition-all outline-none focus:outline-none`,
-                roundedTab ? `rounded-3xl border border-subtle` : `rounded-sm`,
+                roundedTab ? `rounded-3xl border border-subtle` : `rounded-lg`,
                 stat.key === currentTab
                   ? "bg-layer-transparent-active text-secondary"
                   : "text-placeholder hover:text-secondary"

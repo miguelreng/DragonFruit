@@ -240,7 +240,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                 type="button"
                 onClick={() => setTab(t)}
                 className={
-                  "rounded-md px-2 py-1 text-12 font-medium transition-colors " +
+                  "rounded-lg px-2 py-1 text-12 font-medium transition-colors " +
                   (tab === t ? "bg-layer-2 text-primary" : "text-placeholder hover:text-secondary")
                 }
               >
@@ -255,7 +255,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                 type="button"
                 onClick={() => setRange(r)}
                 className={
-                  "rounded-md px-2 py-1 text-12 font-medium tabular-nums transition-colors " +
+                  "rounded-lg px-2 py-1 text-12 font-medium tabular-nums transition-colors " +
                   (range === r ? "bg-layer-2 text-primary" : "text-placeholder hover:text-secondary")
                 }
               >

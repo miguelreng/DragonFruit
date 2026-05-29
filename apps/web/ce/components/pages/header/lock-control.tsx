@@ -90,7 +90,7 @@ export const PageLockControl = observer(function PageLockControl({ page }: Props
           <button
             type="button"
             onClick={toggleLock}
-            className="grid size-6 flex-shrink-0 place-items-center rounded-sm text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            className="grid size-6 flex-shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label="Lock"
           >
             <LockIcon className="size-3.5" />
@@ -102,7 +102,7 @@ export const PageLockControl = observer(function PageLockControl({ page }: Props
         <button
           type="button"
           onClick={toggleLock}
-          className="flex h-6 items-center gap-1 rounded-sm bg-accent-primary/20 px-2 text-accent-primary transition-colors hover:bg-accent-primary/30"
+          className="flex h-6 items-center gap-1 rounded-lg bg-accent-primary/20 px-2 text-accent-primary transition-colors hover:bg-accent-primary/30"
           aria-label="Locked"
         >
           <LockIcon className="animate-lock-icon size-3.5 flex-shrink-0" />
@@ -114,7 +114,7 @@ export const PageLockControl = observer(function PageLockControl({ page }: Props
 
       {displayState === "unlocked" && (
         <div
-          className="flex h-6 animate-fade-out items-center gap-1 rounded-sm px-2 text-secondary"
+          className="flex h-6 animate-fade-out items-center gap-1 rounded-lg px-2 text-secondary"
           aria-label="Unlocked"
         >
           <LockKeyholeOpen className="animate-unlock-icon size-3.5 flex-shrink-0" />

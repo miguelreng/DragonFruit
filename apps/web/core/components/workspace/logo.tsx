@@ -27,7 +27,7 @@ export const WorkspaceLogo = observer(function WorkspaceLogo(props: Props) {
     <div className={cn("relative grid h-6 w-6 flex-shrink-0 place-items-center", props.classNames)}>
       <img
         src={src}
-        className="absolute top-0 left-0 h-full w-full rounded-md object-cover"
+        className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
         alt={t("aria_labels.projects_sidebar.workspace_logo")}
       />
     </div>

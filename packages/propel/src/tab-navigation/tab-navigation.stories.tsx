@@ -81,7 +81,7 @@ export const Default: Story = {
         </div>
 
         {/* Code example */}
-        <div className="mt-6 rounded-md bg-layer-1 p-4">
+        <div className="mt-6 rounded-lg bg-layer-1 p-4">
           <div className="mb-2 text-11 font-medium text-secondary">Example Code:</div>
           <pre className="overflow-x-auto text-11 text-tertiary">
             {`// With React Router Link

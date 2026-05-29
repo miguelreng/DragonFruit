@@ -111,14 +111,14 @@ export const UserImageUploadModal = observer(function UserImageUploadModal(props
                 <>
                   <button
                     type="button"
-                    className="shadow-sm absolute top-2 right-2 z-40 rounded-md bg-surface-2 px-2 py-0.5 text-11 font-medium text-secondary"
+                    className="shadow-sm absolute top-2 right-2 z-40 rounded-lg bg-surface-2 px-2 py-0.5 text-11 font-medium text-secondary"
                   >
                     Edit
                   </button>
                   <img
                     src={image ? URL.createObjectURL(image) : value ? getFileURL(value) : ""}
                     alt="Avatar preview"
-                    className="absolute top-0 left-0 h-full w-full rounded-md object-cover"
+                    className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
                   />
                 </>
               ) : (

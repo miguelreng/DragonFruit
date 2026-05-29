@@ -19,7 +19,7 @@ type TFiltersToggleProps<P extends TFilterProperty, E extends TExternalFilter> =
 };
 
 const COMMON_CLASSNAME =
-  "grid place-items-center h-7 w-full py-0.5 px-2 rounded-md border border-subtle-1 transition-all duration-200 cursor-pointer";
+  "grid place-items-center h-7 w-full py-0.5 px-2 rounded-lg border border-subtle-1 transition-all duration-200 cursor-pointer";
 
 export const FiltersToggle = observer(function FiltersToggle<P extends TFilterProperty, E extends TExternalFilter>(
   props: TFiltersToggleProps<P, E>

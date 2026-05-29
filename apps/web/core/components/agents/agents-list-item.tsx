@@ -154,7 +154,7 @@ export function AgentsListItem({ agent, onToggle, onEdit, onUpdateTrigger }: IAg
               <h6 className="text-body-sm-medium">Triggers</h6>
               <p className="text-caption-sm-regular text-tertiary">What events make Atlas reply.</p>
             </div>
-            <ul className="flex flex-col gap-1 rounded-md border border-subtle bg-layer-2">
+            <ul className="flex flex-col gap-1 rounded-lg border border-subtle bg-layer-2">
               {TRIGGER_LABELS.map(({ key, title, description }, idx) => {
                 const value = !!agent.triggers?.[key];
                 return (

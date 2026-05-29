@@ -29,7 +29,7 @@ export const SingleDate: Story = {
 
     return (
       <div className="p-4">
-        <Calendar {...args} mode="single" selected={date} onSelect={setDate} className="rounded-md border" />
+        <Calendar {...args} mode="single" selected={date} onSelect={setDate} className="rounded-lg border" />
       </div>
     );
   },
@@ -45,7 +45,7 @@ export const MultipleDates: Story = {
 
     return (
       <div className="p-4">
-        <Calendar {...args} mode="multiple" selected={dates} onSelect={setDates} className="rounded-md border" />
+        <Calendar {...args} mode="multiple" selected={dates} onSelect={setDates} className="rounded-lg border" />
       </div>
     );
   },
@@ -60,7 +60,7 @@ export const RangeSelection: Story = {
 
     return (
       <div className="p-4">
-        <Calendar {...args} mode="range" selected={range} onSelect={setRange} className="rounded-md border" />
+        <Calendar {...args} mode="range" selected={range} onSelect={setRange} className="rounded-lg border" />
       </div>
     );
   },
@@ -79,7 +79,7 @@ export const DisabledDates: Story = {
           selected={date}
           onSelect={setDate}
           disabled={disabledDays}
-          className="rounded-md border"
+          className="rounded-lg border"
         />
       </div>
     );
@@ -98,7 +98,7 @@ export const DisabledWeekends: Story = {
           selected={date}
           onSelect={setDate}
           disabled={(date) => date.getDay() === 0 || date.getDay() === 6}
-          className="rounded-md border"
+          className="rounded-lg border"
         />
       </div>
     );
@@ -122,7 +122,7 @@ export const MinMaxDates: Story = {
           selected={date}
           onSelect={setDate}
           disabled={(date) => date < tenDaysAgo || date > tenDaysFromNow}
-          className="rounded-md border"
+          className="rounded-lg border"
         />
       </div>
     );
@@ -141,7 +141,7 @@ export const WeekStartsOnMonday: Story = {
           selected={date}
           onSelect={setDate}
           weekStartsOn={1}
-          className="rounded-md border"
+          className="rounded-lg border"
         />
       </div>
     );
@@ -160,7 +160,7 @@ export const WithoutOutsideDays: Story = {
           selected={date}
           onSelect={setDate}
           showOutsideDays={false}
-          className="rounded-md border"
+          className="rounded-lg border"
         />
       </div>
     );
@@ -182,7 +182,7 @@ export const TwoMonths: Story = {
           selected={range}
           onSelect={setRange}
           numberOfMonths={2}
-          className="rounded-md border"
+          className="rounded-lg border"
         />
       </div>
     );
@@ -193,7 +193,7 @@ export const Uncontrolled: Story = {
   render() {
     return (
       <div className="p-4">
-        <Calendar mode="single" defaultMonth={new Date(2024, 0)} showOutsideDays className="rounded-md border" />
+        <Calendar mode="single" defaultMonth={new Date(2024, 0)} showOutsideDays className="rounded-lg border" />
       </div>
     );
   },

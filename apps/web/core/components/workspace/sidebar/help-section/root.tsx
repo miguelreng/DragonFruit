@@ -53,7 +53,7 @@ export const HelpMenuRoot = observer(function HelpMenuRoot(props: THelpMenuRootP
             }}
           />
         }
-        // customButtonClassName="relative grid place-items-center rounded-md p-1.5 outline-none"
+        // customButtonClassName="relative grid place-items-center rounded-lg p-1.5 outline-none"
         menuButtonOnClick={() => !isNeedHelpOpen && setIsNeedHelpOpen(true)}
         onMenuClose={() => setIsNeedHelpOpen(false)}
         placement="bottom-end"
@@ -62,13 +62,13 @@ export const HelpMenuRoot = observer(function HelpMenuRoot(props: THelpMenuRootP
         closeOnSelect
       >
         <CustomMenu.MenuItem onClick={() => window.open("https://github.com/miguelreng/DragonFruit#readme", "_blank")}>
-          <div className="flex items-center gap-x-2 rounded-sm text-11">
+          <div className="flex items-center gap-x-2 rounded-lg text-11">
             <PageIcon className="h-3.5 w-3.5 text-secondary" height={14} width={14} />
             <span className="text-11">{t("documentation")}</span>
           </div>
         </CustomMenu.MenuItem>
         <CustomMenu.MenuItem onClick={() => window.open("mailto:miguelreng@gmail.com", "_blank")}>
-          <div className="flex items-center gap-x-2 rounded-sm text-11">
+          <div className="flex items-center gap-x-2 rounded-lg text-11">
             <User className="h-3.5 w-3.5 text-secondary" size={14} />
             <span className="text-11">Contact</span>
           </div>
@@ -76,7 +76,7 @@ export const HelpMenuRoot = observer(function HelpMenuRoot(props: THelpMenuRootP
         <CustomMenu.MenuItem
           onClick={() => window.open("https://github.com/miguelreng/DragonFruit", "_blank", "noopener,noreferrer")}
         >
-          <div className="flex items-center gap-x-2 rounded-sm text-11">
+          <div className="flex items-center gap-x-2 rounded-lg text-11">
             <GithubIcon className="h-3.5 w-3.5 text-secondary" size={14} />
             <span className="text-11">Source code (AGPL-3.0)</span>
           </div>
@@ -105,7 +105,7 @@ export const HelpMenuRoot = observer(function HelpMenuRoot(props: THelpMenuRootP
             window.open("https://github.com/miguelreng/DragonFruit/discussions", "_blank", "noopener,noreferrer")
           }
         >
-          <div className="flex items-center gap-x-2 rounded-sm text-11">
+          <div className="flex items-center gap-x-2 rounded-lg text-11">
             <span className="text-11">Community</span>
           </div>
         </CustomMenu.MenuItem>

@@ -54,7 +54,7 @@ export const StickiesInfinite = observer(function StickiesInfinite() {
               ref={setElementRef}
               id="intersection-element"
             >
-              <div className="flex min-h-[300px] w-full rounded-sm">
+              <div className="flex min-h-[300px] w-full rounded-lg">
                 <Loader className="h-full w-full">
                   <Loader.Item height="100%" width="100%" />
                 </Loader>

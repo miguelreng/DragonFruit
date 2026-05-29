@@ -80,7 +80,7 @@ export function StickyEditorToolbar(props: Props) {
           </button>
         </Tooltip>
 
-        <div className="my-auto flex w-fit items-stretch justify-between gap-4 rounded-sm p-1">
+        <div className="my-auto flex w-fit items-stretch justify-between gap-4 rounded-lg p-1">
           <div className="my-auto flex items-stretch gap-4">
             {Object.keys(toolbarItems).map((key) => (
               <div key={key} className={cn("flex items-stretch gap-4", {})}>

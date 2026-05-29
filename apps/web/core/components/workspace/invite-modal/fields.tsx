@@ -112,7 +112,7 @@ export const InvitationFields = observer(function InvitationFields(props: TInvit
               <div className="flex-item flex w-6">
                 <button
                   type="button"
-                  className="place-items-center self-center rounded-sm"
+                  className="place-items-center self-center rounded-lg"
                   onClick={() => remove(index)}
                 >
                   <CloseIcon className="h-4 w-4 text-secondary" />

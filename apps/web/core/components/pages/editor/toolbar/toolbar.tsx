@@ -49,7 +49,7 @@ const ToolbarButton = React.memo(function ToolbarButton(props: ToolbarButtonProp
             ...item.extraProps,
           })
         }
-        className={cn("grid size-7 shrink-0 place-items-center rounded-sm text-tertiary", {
+        className={cn("grid size-7 shrink-0 place-items-center rounded-lg text-tertiary", {
           "bg-layer-transparent-selected text-primary hover:bg-layer-transparent-selected": isActive,
           "hover:bg-layer-transparent-hover": !isActive,
         })}

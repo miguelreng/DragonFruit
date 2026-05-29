@@ -176,7 +176,7 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
                 </div>
               }
               buttonClassName={`!px-0 !justify-start hover:bg-surface-1 ${errors.role ? "border-danger-strong" : "border-none"}`}
-              className="w-32 rounded-md p-0"
+              className="w-32 rounded-lg p-0"
               input
             >
               {Object.keys(ROLE).map((item) => (

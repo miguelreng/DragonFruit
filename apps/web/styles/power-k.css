@@ -8,7 +8,7 @@
   }
 
   [cmdk-item] {
-    @apply flex items-center justify-between cursor-pointer bg-layer-transparent text-body-xs-regular p-2 rounded-md;
+    @apply flex items-center justify-between cursor-pointer bg-layer-transparent text-body-xs-regular p-2 rounded-lg;
 
     &:focus,
     &[aria-selected="true"] {

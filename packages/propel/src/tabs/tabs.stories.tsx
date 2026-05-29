@@ -243,7 +243,7 @@ export const DynamicTabs: Story = {
     return (
       <div className="w-[500px]">
         <div className="mb-4">
-          <button onClick={addTab} className="rounded-sm bg-layer-1 px-3 py-1.5 text-13 hover:bg-surface-2">
+          <button onClick={addTab} className="rounded-lg bg-layer-1 px-3 py-1.5 text-13 hover:bg-surface-2">
             Add Tab
           </button>
         </div>
@@ -323,11 +323,11 @@ export const WithComplexContent: Story = {
             <div className="space-y-4">
               <div>
                 <label className="text-13 font-medium">Username</label>
-                <input type="text" className="mt-1 w-full rounded-sm bg-layer-1 px-3 py-2" />
+                <input type="text" className="mt-1 w-full rounded-lg bg-layer-1 px-3 py-2" />
               </div>
               <div>
                 <label className="text-13 font-medium">Email</label>
-                <input type="email" className="mt-1 w-full rounded-sm bg-layer-1 px-3 py-2" />
+                <input type="email" className="mt-1 w-full rounded-lg bg-layer-1 px-3 py-2" />
               </div>
             </div>
           </Tabs.Content>
@@ -335,11 +335,11 @@ export const WithComplexContent: Story = {
             <div className="space-y-4">
               <div>
                 <label className="text-13 font-medium">Current Password</label>
-                <input type="password" className="mt-1 w-full rounded-sm bg-layer-1 px-3 py-2" />
+                <input type="password" className="mt-1 w-full rounded-lg bg-layer-1 px-3 py-2" />
               </div>
               <div>
                 <label className="text-13 font-medium">New Password</label>
-                <input type="password" className="mt-1 w-full rounded-sm bg-layer-1 px-3 py-2" />
+                <input type="password" className="mt-1 w-full rounded-lg bg-layer-1 px-3 py-2" />
               </div>
             </div>
           </Tabs.Content>

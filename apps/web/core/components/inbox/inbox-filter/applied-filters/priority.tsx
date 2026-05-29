@@ -37,7 +37,7 @@ export const InboxIssueAppliedFiltersPriority = observer(function InboxIssueAppl
         return (
           <div
             key={value}
-            className="shadow-sm relative flex items-center gap-1.5 rounded-md border border-strong bg-layer-2 px-1.5 py-1 text-11 font-medium text-primary"
+            className="shadow-sm relative flex items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-1.5 py-1 text-11 font-medium text-primary"
           >
             <div className="relative flex h-3 w-3 flex-shrink-0 items-center justify-center overflow-hidden">
               <PriorityIcon priority={optionDetail.key} className="h-3.5 w-3.5" />

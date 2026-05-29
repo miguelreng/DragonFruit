@@ -65,7 +65,7 @@ export const CreateIssueToastActionItems = observer(function CreateIssueToastAct
         href={workItemLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="rounded-sm px-2 py-1 font-medium text-accent-primary hover:bg-surface-2"
+        className="rounded-lg px-2 py-1 font-medium text-accent-primary hover:bg-surface-2"
       >
         {`View ${isEpic ? "epic" : "task"}`}
       </a>
@@ -77,7 +77,7 @@ export const CreateIssueToastActionItems = observer(function CreateIssueToastAct
       ) : (
         <>
           <button
-            className="hidden cursor-pointer rounded-sm px-2 py-1 text-tertiary group-hover:flex hover:bg-surface-2 hover:text-secondary"
+            className="hidden cursor-pointer rounded-lg px-2 py-1 text-tertiary group-hover:flex hover:bg-surface-2 hover:text-secondary"
             onClick={copyToClipboard}
           >
             Copy link

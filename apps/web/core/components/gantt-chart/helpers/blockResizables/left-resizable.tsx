@@ -39,7 +39,7 @@ export const LeftResizable = observer(function LeftResizable(props: LeftResizabl
     <>
       {(isHovering || isLeftResizing) && dateString && (
         <div className="absolute -left-36 flex h-full w-32 items-center justify-end text-11 font-regular text-tertiary">
-          <div className="rounded-sm bg-accent-subtle px-2 py-1">{dateString}</div>
+          <div className="rounded-lg bg-accent-subtle px-2 py-1">{dateString}</div>
         </div>
       )}
       <div
@@ -52,7 +52,7 @@ export const LeftResizable = observer(function LeftResizable(props: LeftResizabl
         onMouseOut={() => {
           setIsHovering(false);
         }}
-        className="absolute top-1/2 -left-1.5 z-[6] h-full w-3 -translate-y-1/2 cursor-col-resize rounded-md"
+        className="absolute top-1/2 -left-1.5 z-[6] h-full w-3 -translate-y-1/2 cursor-col-resize rounded-lg"
       />
       <div
         className={cn(

@@ -351,7 +351,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
           <DropIndicator classNames="absolute top-0" isVisible={instruction === "DRAG_OVER"} />
           <div
             className={cn(
-              "group/project-item relative flex w-full items-center rounded-md px-2 py-1.5 text-primary hover:bg-layer-transparent-hover",
+              "group/project-item relative flex w-full items-center rounded-lg px-2 py-1.5 text-primary hover:bg-layer-transparent-hover",
               {
                 "bg-surface-2": isMenuActive,
                 "bg-layer-transparent-active": shouldHighlightProject,
@@ -372,7 +372,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                 <button
                   type="button"
                   className={cn(
-                    "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/project-item:flex",
+                    "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-lg text-placeholder group-hover/project-item:flex",
                     {
                       "cursor-not-allowed opacity-60": project.sort_order === null,
                       "cursor-grabbing": isDragging,
@@ -440,7 +440,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   {pageNavigationItem && (
                     <CustomMenu.MenuItem onClick={() => router.push(pageNavigationItem.href)}>
                       <div className="flex cursor-pointer items-center justify-start gap-2">
-                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-all duration-300 hover:bg-layer-1">
+                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-lg text-secondary transition-all duration-300 hover:bg-layer-1">
                           <pageNavigationItem.icon className="h-3.5 w-3.5 stroke-[1.5]" />
                         </div>
                         <div>{t(pageNavigationItem.i18n_key)}</div>
@@ -449,7 +449,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   )}
                   <CustomMenu.MenuItem onClick={() => router.push(`/${workspaceSlug.toString()}/docs`)}>
                     <div className="flex cursor-pointer items-center justify-start gap-2">
-                      <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-all duration-300 hover:bg-layer-1">
+                      <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-lg text-secondary transition-all duration-300 hover:bg-layer-1">
                         <FileText className="h-3.5 w-3.5 stroke-[1.5]" />
                       </div>
                       <div>{t("sidebar.docs")}</div>
@@ -475,7 +475,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   {isAdmin && (
                     <CustomMenu.MenuItem onClick={() => setPublishModal(true)}>
                       <div className="relative flex flex-shrink-0 items-center justify-start gap-2">
-                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-all duration-300 hover:bg-layer-1">
+                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-lg text-secondary transition-all duration-300 hover:bg-layer-1">
                           <Share2 className="h-3.5 w-3.5 stroke-[1.5]" />
                         </div>
                         <div>{t("publish_project")}</div>
@@ -489,7 +489,7 @@ export const SidebarProjectsListItem = observer(function SidebarProjectsListItem
                   {isAdmin && (
                     <CustomMenu.MenuItem onClick={() => void handleSaveAsTemplate()}>
                       <div className="relative flex flex-shrink-0 items-center justify-start gap-2">
-                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm text-secondary transition-all duration-300 hover:bg-layer-1">
+                        <div className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-lg text-secondary transition-all duration-300 hover:bg-layer-1">
                           <Briefcase className="h-3.5 w-3.5 stroke-[1.5]" />
                         </div>
                         <div>Save as template</div>

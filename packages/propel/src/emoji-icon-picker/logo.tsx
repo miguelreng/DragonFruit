@@ -31,7 +31,7 @@ export function Logo({ logo, size = 16, type = "material" }: Props) {
   ]);
 
   // Reusable loading skeleton
-  const loadingSkeleton = <span style={{ height: size, width: size }} className="rounded-sm bg-layer-1" />;
+  const loadingSkeleton = <span style={{ height: size, width: size }} className="rounded-lg bg-layer-1" />;
 
   // Early returns for loading/empty states
   if (!logo || !logo.in_use) return loadingSkeleton;

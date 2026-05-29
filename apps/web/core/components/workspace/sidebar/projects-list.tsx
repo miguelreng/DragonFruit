@@ -161,7 +161,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
       >
         <>
           <Disclosure as="div" className="flex flex-col" defaultOpen={isAllProjectsListOpen}>
-            <div className="group flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-placeholder hover:bg-layer-transparent-hover">
+            <div className="group flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-placeholder hover:bg-layer-transparent-hover">
               <Disclosure.Button
                 as="button"
                 type="button"
@@ -256,7 +256,7 @@ export const SidebarProjectsList = observer(function SidebarProjectsList() {
           <button
             type="button"
             data-ph-element={PROJECT_TRACKER_ELEMENTS.SIDEBAR_CREATE_PROJECT_BUTTON}
-            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-13 leading-5 font-medium text-secondary hover:bg-surface-2"
+            className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-13 leading-5 font-medium text-secondary hover:bg-surface-2"
             onClick={() => {
               toggleCreateProjectModal(true);
             }}

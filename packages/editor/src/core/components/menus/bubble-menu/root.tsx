@@ -218,7 +218,7 @@ export function EditorBubbleMenu(props: Props) {
                   e.stopPropagation();
                 }}
                 className={cn(
-                  "grid size-7 place-items-center rounded-sm text-tertiary transition-colors hover:bg-layer-1 active:bg-layer-1",
+                  "grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 active:bg-layer-1",
                   {
                     "bg-layer-1 text-primary": editorState[item.key],
                   }
@@ -263,7 +263,7 @@ export function EditorBubbleMenu(props: Props) {
               }}
               aria-label="Comment on selection"
               title="Comment"
-              className="grid size-7 place-items-center rounded-sm text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
+              className="grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
             >
               <MessageCircle className="size-4" />
             </button>

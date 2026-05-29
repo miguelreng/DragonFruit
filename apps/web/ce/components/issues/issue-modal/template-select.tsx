@@ -92,7 +92,7 @@ export function WorkItemTemplateSelect(props: TWorkItemTemplateSelect) {
         customButton={
           <div
             className={cn(
-              "flex cursor-pointer items-center gap-1.5 rounded-md border-[0.5px] border-subtle bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary",
+              "flex cursor-pointer items-center gap-1.5 rounded-lg border-[0.5px] border-subtle bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary",
               triggerSize
             )}
           >

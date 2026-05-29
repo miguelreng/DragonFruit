@@ -640,7 +640,7 @@ function CalendarPageHeader({
             type="button"
             onClick={onPrev}
             aria-label="Previous"
-            className="grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-2-hover hover:text-primary"
+            className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2-hover hover:text-primary"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -648,7 +648,7 @@ function CalendarPageHeader({
             type="button"
             onClick={onNext}
             aria-label="Next"
-            className="grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-2-hover hover:text-primary"
+            className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2-hover hover:text-primary"
           >
             <ChevronRight className="size-4" />
           </button>
@@ -702,7 +702,7 @@ function GoogleAccountsMenu({
         My calendars
         <ChevronDown className="size-3.5 text-tertiary" />
       </Menu.Button>
-      <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-64 rounded-md border border-strong bg-layer-2 py-1 outline-none">
+      <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-64 rounded-lg border border-strong bg-layer-2 py-1 outline-none">
         {accounts.map((account) => {
           const accountSources = sources.filter((source) => source.account.id === account.id);
           return (
@@ -725,7 +725,7 @@ function GoogleAccountsMenu({
                 const color = googleSourceColor(source, calendarPrefs);
                 const visible = isGoogleSourceVisible(source, calendarPrefs);
                 return (
-                  <div key={source.id} className="rounded-md px-1 py-1.5 hover:bg-layer-2-hover">
+                  <div key={source.id} className="rounded-lg px-1 py-1.5 hover:bg-layer-2-hover">
                     <div className="flex items-center gap-2">
                       <LegendDot color={color} />
                       <span className="min-w-0 flex-1 truncate text-13 text-primary">{googleSourceLabel(source)}</span>
@@ -736,7 +736,7 @@ function GoogleAccountsMenu({
                       <button
                         type="button"
                         onClick={() => onUpdateCalendarPrefs(source, { visible: !visible })}
-                        className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-12 text-secondary hover:bg-layer-2-hover"
+                        className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-12 text-secondary hover:bg-layer-2-hover"
                       >
                         {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
                       </button>

@@ -45,7 +45,7 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
       }
     };
     const className = cn(
-      "group flex h-full cursor-pointer items-center gap-2 rounded-sm rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary",
+      "group flex h-full cursor-pointer items-center gap-2 rounded-lg rounded-r-none px-1.5 py-1 text-13 font-medium text-tertiary",
       {
         "hover:bg-layer-1 hover:text-primary": !isLast,
       }
@@ -110,9 +110,9 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
         </>
       }
       placement="bottom-start"
-      className="h-full rounded-md"
+      className="h-full rounded-lg"
       customButtonClassName={cn(
-        "group flex h-full cursor-pointer items-center gap-0.5 rounded-md outline-none hover:bg-surface-2",
+        "group flex h-full cursor-pointer items-center gap-0.5 rounded-lg outline-none hover:bg-surface-2",
         {
           "bg-surface-2": isOpen,
         }

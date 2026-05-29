@@ -195,7 +195,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
             </p>
           </Step>
 
-          <div className="mt-4 rounded-md border border-subtle bg-layer-1 p-3">
+          <div className="mt-4 rounded-lg border border-subtle bg-layer-1 p-3">
             <h4 className="mb-1.5 text-caption-md-medium text-primary">Tools exposed ({SERVER_TOOLS.length})</h4>
             <ul className="flex flex-col gap-1.5">
               {SERVER_TOOLS.map((t) => (
@@ -239,7 +239,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
             silently falls back to its built-in tools — one broken integration doesn't kill the run.
           </p>
 
-          <div className="mt-4 rounded-md border border-subtle bg-layer-1 p-3">
+          <div className="mt-4 rounded-lg border border-subtle bg-layer-1 p-3">
             <h4 className="mb-1.5 text-caption-md-medium text-primary">Example MCP servers worth trying</h4>
             <ul className="flex flex-col gap-2">
               {EXAMPLE_MCP_SERVERS.map((s) => (

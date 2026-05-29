@@ -91,7 +91,7 @@ export function CommentAttachmentMenu(props: TCommentAttachmentMenu) {
     insertLinkedText(editorRef, pickedFile.name, pickedFile.web_view_link);
   };
 
-  const menuItemClassName = "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-13";
+  const menuItemClassName = "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-13";
   const iconClassName = "size-4 flex-shrink-0";
 
   return (
@@ -150,7 +150,7 @@ export function CommentAttachmentMenu(props: TCommentAttachmentMenu) {
               key={key}
               type="button"
               disabled
-              className="grid size-7 place-items-center rounded-md text-placeholder"
+              className="grid size-7 place-items-center rounded-lg text-placeholder"
               aria-hidden="true"
             >
               <Icon className="size-3.5" />

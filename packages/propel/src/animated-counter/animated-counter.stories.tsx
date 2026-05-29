@@ -60,13 +60,13 @@ export const Sizes: Story = {
       <div className="space-y-6 p-4">
         <div className="flex items-center gap-4">
           <button
-            className="rounded-sm bg-layer-1 px-3 py-1 text-13 hover:bg-surface-2"
+            className="rounded-lg bg-layer-1 px-3 py-1 text-13 hover:bg-surface-2"
             onClick={() => setCount((prev) => Math.max(0, prev - 1))}
           >
             -1
           </button>
           <button
-            className="rounded-sm bg-layer-1 px-3 py-1 text-13 hover:bg-surface-2"
+            className="rounded-lg bg-layer-1 px-3 py-1 text-13 hover:bg-surface-2"
             onClick={() => setCount((prev) => prev + 1)}
           >
             +1
@@ -75,19 +75,19 @@ export const Sizes: Story = {
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <span className="w-20 text-13 text-placeholder">Small:</span>
-            <div className="flex h-8 min-w-[40px] items-center justify-center rounded-sm border border-subtle bg-layer-1">
+            <div className="flex h-8 min-w-[40px] items-center justify-center rounded-lg border border-subtle bg-layer-1">
               <AnimatedCounter count={count} size="sm" />
             </div>
           </div>
           <div className="flex items-center gap-4">
             <span className="w-20 text-13 text-placeholder">Medium:</span>
-            <div className="flex h-10 min-w-[50px] items-center justify-center rounded-sm border border-subtle bg-layer-1">
+            <div className="flex h-10 min-w-[50px] items-center justify-center rounded-lg border border-subtle bg-layer-1">
               <AnimatedCounter count={count} size="md" />
             </div>
           </div>
           <div className="flex items-center gap-4">
             <span className="w-20 text-13 text-placeholder">Large:</span>
-            <div className="flex h-12 min-w-[60px] items-center justify-center rounded-sm border border-subtle bg-layer-1">
+            <div className="flex h-12 min-w-[60px] items-center justify-center rounded-lg border border-subtle bg-layer-1">
               <AnimatedCounter count={count} size="lg" />
             </div>
           </div>
@@ -105,13 +105,13 @@ export const LargeNumbers: Story = {
       <div className="space-y-6 p-4">
         <div className="flex items-center gap-4">
           <button
-            className="bg-red-500 hover:bg-red-600 rounded-sm px-3 py-1 text-13 text-on-color"
+            className="bg-red-500 hover:bg-red-600 rounded-lg px-3 py-1 text-13 text-on-color"
             onClick={() => setCount((prev) => Math.max(0, prev - 1000))}
           >
             -1000
           </button>
           <button
-            className="bg-green-500 hover:bg-green-600 rounded-sm px-3 py-1 text-13 text-on-color"
+            className="bg-green-500 hover:bg-green-600 rounded-lg px-3 py-1 text-13 text-on-color"
             onClick={() => setCount((prev) => prev + 1000)}
           >
             +1000
@@ -184,21 +184,21 @@ export const LiveCounter: Story = {
           </div>
           <div className="flex gap-2">
             <button
-              className="bg-green-500 hover:bg-green-600 rounded-sm px-4 py-2 font-medium text-on-color"
+              className="bg-green-500 hover:bg-green-600 rounded-lg px-4 py-2 font-medium text-on-color"
               onClick={() => setIsRunning(true)}
               disabled={isRunning}
             >
               Start
             </button>
             <button
-              className="bg-red-500 hover:bg-red-600 rounded-sm px-4 py-2 font-medium text-on-color"
+              className="bg-red-500 hover:bg-red-600 rounded-lg px-4 py-2 font-medium text-on-color"
               onClick={() => setIsRunning(false)}
               disabled={!isRunning}
             >
               Stop
             </button>
             <button
-              className="bg-gray-500 hover:bg-gray-600 rounded-sm px-4 py-2 font-medium text-on-color"
+              className="bg-gray-500 hover:bg-gray-600 rounded-lg px-4 py-2 font-medium text-on-color"
               onClick={() => {
                 setIsRunning(false);
                 setCount(0);
@@ -230,12 +230,12 @@ export const MultipleCounters: Story = {
               <div className="text-13 text-placeholder">Likes</div>
               <div className="flex items-center gap-2">
                 <button
-                  className="flex h-8 w-8 items-center justify-center rounded-sm bg-layer-1 hover:bg-surface-2"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-layer-1 hover:bg-surface-2"
                   onClick={() => setLikes((prev) => prev + 1)}
                 >
                   +
                 </button>
-                <div className="flex h-10 min-w-[40px] items-center justify-center rounded-sm border border-subtle bg-layer-1">
+                <div className="flex h-10 min-w-[40px] items-center justify-center rounded-lg border border-subtle bg-layer-1">
                   <AnimatedCounter count={likes} size="md" />
                 </div>
               </div>
@@ -244,12 +244,12 @@ export const MultipleCounters: Story = {
               <div className="text-13 text-placeholder">Comments</div>
               <div className="flex items-center gap-2">
                 <button
-                  className="flex h-8 w-8 items-center justify-center rounded-sm bg-layer-1 hover:bg-surface-2"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-layer-1 hover:bg-surface-2"
                   onClick={() => setComments((prev) => prev + 1)}
                 >
                   +
                 </button>
-                <div className="flex h-10 min-w-[40px] items-center justify-center rounded-sm border border-subtle bg-layer-1">
+                <div className="flex h-10 min-w-[40px] items-center justify-center rounded-lg border border-subtle bg-layer-1">
                   <AnimatedCounter count={comments} size="md" />
                 </div>
               </div>
@@ -258,12 +258,12 @@ export const MultipleCounters: Story = {
               <div className="text-13 text-placeholder">Shares</div>
               <div className="flex items-center gap-2">
                 <button
-                  className="flex h-8 w-8 items-center justify-center rounded-sm bg-layer-1 hover:bg-surface-2"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-layer-1 hover:bg-surface-2"
                   onClick={() => setShares((prev) => prev + 1)}
                 >
                   +
                 </button>
-                <div className="flex h-10 min-w-[40px] items-center justify-center rounded-sm border border-subtle bg-layer-1">
+                <div className="flex h-10 min-w-[40px] items-center justify-center rounded-lg border border-subtle bg-layer-1">
                   <AnimatedCounter count={shares} size="md" />
                 </div>
               </div>
@@ -289,7 +289,7 @@ export const InBadge: Story = {
             </div>
           </div>
           <button
-            className="rounded-sm bg-accent-primary px-4 py-2 text-on-color hover:bg-accent-primary/80"
+            className="rounded-lg bg-accent-primary px-4 py-2 text-on-color hover:bg-accent-primary/80"
             onClick={() => setNotifications((prev) => prev + 1)}
           >
             Add Notification
@@ -318,12 +318,12 @@ export const FastAnimation: Story = {
           </div>
           <div className="flex gap-2">
             <button
-              className="rounded-sm bg-accent-primary px-4 py-2 text-on-color hover:bg-accent-primary/80"
+              className="rounded-lg bg-accent-primary px-4 py-2 text-on-color hover:bg-accent-primary/80"
               onClick={incrementFast}
             >
               +10 Fast
             </button>
-            <button className="rounded-sm bg-layer-1 px-4 py-2 hover:bg-surface-2" onClick={() => setCount(0)}>
+            <button className="rounded-lg bg-layer-1 px-4 py-2 hover:bg-surface-2" onClick={() => setCount(0)}>
               Reset
             </button>
           </div>

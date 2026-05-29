@@ -79,13 +79,13 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
           className={cn(
             "text-tertiary outline-none dark:text-white/65",
             isInline
-              ? "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-md px-2 py-1 text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]"
+              ? "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]"
               : "group flex flex-col items-center justify-center gap-0.5"
           )}
         >
           <div
             className={cn(
-              "rounded-md text-icon-tertiary dark:text-white/55 [&_svg]:text-current",
+              "rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:text-current",
               isInline
                 ? "flex size-5 flex-shrink-0 items-center justify-center [&_svg]:size-4"
                 : "flex size-8 items-center justify-center gap-2 [&_svg]:size-5"
@@ -124,7 +124,7 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
               <span className="text-11 font-medium text-tertiary">{totalUnread} unread</span>
               <button
                 type="button"
-                className="flex h-6 items-center gap-1 rounded-md px-1.5 text-11 font-medium text-accent-primary transition-colors hover:bg-layer-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-6 items-center gap-1 rounded-lg px-1.5 text-11 font-medium text-accent-primary transition-colors hover:bg-layer-2 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isMarkingAllAsRead}
                 onClick={handleMarkAllAsRead}
               >

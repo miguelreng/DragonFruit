@@ -49,7 +49,7 @@ export function TableDragHandleDropdownColorSelector(props: Props) {
       <Disclosure.Button
         as="button"
         type="button"
-        className="flex w-full items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 text-left text-11 text-secondary hover:bg-layer-1"
+        className="flex w-full items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 text-left text-11 text-secondary hover:bg-layer-1"
       >
         {({ open }) => (
           <>
@@ -73,7 +73,7 @@ export function TableDragHandleDropdownColorSelector(props: Props) {
               <button
                 key={color.key}
                 type="button"
-                className="flex-shrink-0 size-6 rounded-sm border-[0.5px] border-strong-1 hover:opacity-60 transition-opacity"
+                className="flex-shrink-0 size-6 rounded-lg border-[0.5px] border-strong-1 hover:opacity-60 transition-opacity"
                 style={{
                   backgroundColor: color.textColor,
                 }}
@@ -82,7 +82,7 @@ export function TableDragHandleDropdownColorSelector(props: Props) {
             ))}
             <button
               type="button"
-              className="flex-shrink-0 size-6 grid place-items-center rounded-sm text-tertiary border-[0.5px] border-strong-1 hover:bg-layer-1 transition-colors"
+              className="flex-shrink-0 size-6 grid place-items-center rounded-lg text-tertiary border-[0.5px] border-strong-1 hover:bg-layer-1 transition-colors"
               onClick={() => handleTextColorChange(editor, null)}
             >
               <Ban className="size-4" />
@@ -96,7 +96,7 @@ export function TableDragHandleDropdownColorSelector(props: Props) {
               <button
                 key={color.key}
                 type="button"
-                className="size-6 flex-shrink-0 rounded-sm border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
+                className="size-6 flex-shrink-0 rounded-lg border-[0.5px] border-strong-1 transition-opacity hover:opacity-60"
                 style={{
                   backgroundColor: color.backgroundColor,
                 }}
@@ -108,7 +108,7 @@ export function TableDragHandleDropdownColorSelector(props: Props) {
             ))}
             <button
               type="button"
-              className="grid size-6 flex-shrink-0 place-items-center rounded-sm border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1-hover"
+              className="grid size-6 flex-shrink-0 place-items-center rounded-lg border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1-hover"
               onClick={() => {
                 handleBackgroundColorChange(editor, null);
                 onSelect(null);

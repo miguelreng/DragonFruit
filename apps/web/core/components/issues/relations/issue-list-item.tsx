@@ -223,7 +223,7 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
                   }}
                   placeholder='e.g. "Stakeholder"'
                   maxLength={120}
-                  className="focus:border-primary flex-shrink-0 rounded-sm border border-strong bg-surface-1 px-1.5 py-0.5 text-11 text-primary placeholder:text-placeholder focus:outline-none"
+                  className="focus:border-primary flex-shrink-0 rounded-lg border border-strong bg-surface-1 px-1.5 py-0.5 text-11 text-primary placeholder:text-placeholder focus:outline-none"
                   style={{ width: "11rem" }}
                 />
               ) : issue.custom_label ? (
@@ -231,7 +231,7 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
                   type="button"
                   onClick={handleStartLabelEdit}
                   disabled={disabled}
-                  className="flex-shrink-0 rounded-sm border border-subtle bg-surface-2 px-1.5 py-0.5 text-11 text-secondary transition-colors hover:border-strong hover:text-primary disabled:cursor-default disabled:hover:border-subtle disabled:hover:text-secondary"
+                  className="flex-shrink-0 rounded-lg border border-subtle bg-surface-2 px-1.5 py-0.5 text-11 text-secondary transition-colors hover:border-strong hover:text-primary disabled:cursor-default disabled:hover:border-subtle disabled:hover:text-secondary"
                 >
                   {issue.custom_label}
                 </button>
@@ -240,7 +240,7 @@ export const RelationIssueListItem = observer(function RelationIssueListItem(pro
                   <button
                     type="button"
                     onClick={handleStartLabelEdit}
-                    className="hidden flex-shrink-0 rounded-sm border border-dashed border-subtle px-1.5 py-0.5 text-11 text-tertiary opacity-0 transition-all group-hover:flex group-hover:opacity-100 hover:border-strong hover:text-secondary"
+                    className="hidden flex-shrink-0 rounded-lg border border-dashed border-subtle px-1.5 py-0.5 text-11 text-tertiary opacity-0 transition-all group-hover:flex group-hover:opacity-100 hover:border-strong hover:text-secondary"
                   >
                     + Label
                   </button>

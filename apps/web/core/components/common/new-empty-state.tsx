@@ -82,7 +82,7 @@ export function NewEmptyState({ title, description, image, primaryButton, disabl
                   <div className="relative mt-5 h-0 w-0 border-t-[11px] border-r-[11px] border-b-[11px] border-subtle border-y-transparent">
                     <div className="border-surface-1 absolute top-[-10px] right-[-12px] h-0 w-0 border-t-[10px] border-r-[10px] border-b-[10px] border-y-transparent" />
                   </div>
-                  <div className="rounded-md border border-subtle bg-surface-1">
+                  <div className="rounded-lg border border-subtle bg-surface-1">
                     <h1 className="p-5">
                       <h3 className="text-16 font-semibold">{comicBox?.title}</h3>
                       <h4 className="mt-1 text-13">{comicBox?.description}</h4>
@@ -94,7 +94,7 @@ export function NewEmptyState({ title, description, image, primaryButton, disabl
                   <div className="relative mt-5 h-0 w-0 border-t-[11px] border-b-[11px] border-l-[11px] border-subtle border-y-transparent">
                     <div className="border-surface-1 absolute top-[-10px] left-[-12px] h-0 w-0 border-t-[10px] border-b-[10px] border-l-[10px] border-y-transparent" />
                   </div>
-                  <div className="rounded-md border border-subtle bg-surface-1">
+                  <div className="rounded-lg border border-subtle bg-surface-1">
                     <h1 className="p-5">
                       <h3 className="text-16 font-semibold">{comicBox?.title}</h3>
                       <h4 className="mt-1 text-13">{comicBox?.description}</h4>

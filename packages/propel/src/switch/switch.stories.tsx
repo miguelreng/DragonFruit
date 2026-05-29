@@ -187,7 +187,7 @@ export const Interactive: Story = {
           <span className="text-13 font-medium">Feature Toggle</span>
           <Switch value={enabled} onChange={setEnabled} size="md" />
         </div>
-        <div className="bg-gray-50 rounded-sm p-4">
+        <div className="bg-gray-50 rounded-lg p-4">
           <p className="text-gray-700 text-13">
             Status: <span className="font-semibold">{enabled ? "Enabled" : "Disabled"}</span>
           </p>

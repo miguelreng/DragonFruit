@@ -34,7 +34,7 @@ export const ModulesSidebarBlock = observer(function ModulesSidebarBlock(props: 
   return (
     <div
       className={cn({
-        "rounded-sm bg-layer-1": isDragging,
+        "rounded-lg bg-layer-1": isDragging,
       })}
       onMouseEnter={() => updateActiveBlockId(block.id)}
       onMouseLeave={() => updateActiveBlockId(null)}

@@ -187,7 +187,7 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
     { value: "grid", Icon: SquaresFour, label: "Grid view" },
   ];
   return (
-    <div className="flex items-center gap-0.5 rounded-md border border-subtle p-0.5">
+    <div className="flex items-center gap-0.5 rounded-lg border border-subtle p-0.5">
       {options.map(({ value, Icon, label }) => {
         const isActive = mode === value;
         return (
@@ -198,7 +198,7 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
             aria-pressed={isActive}
             onClick={() => onChange(value)}
             className={cn(
-              "grid size-6 place-items-center rounded-sm text-tertiary transition-colors hover:text-primary",
+              "grid size-6 place-items-center rounded-lg text-tertiary transition-colors hover:text-primary",
               { "bg-layer-1 text-primary": isActive }
             )}
           >
@@ -247,7 +247,7 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
               {tags.slice(0, 2).map((tag) => (
                 <span
                   key={tag}
-                  className="truncate rounded-sm border border-subtle px-1.5 py-0.5 text-10 text-secondary"
+                  className="truncate rounded-lg border border-subtle px-1.5 py-0.5 text-10 text-secondary"
                 >
                   {tag}
                 </span>
@@ -259,7 +259,7 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
             {projectIds.slice(0, 3).map((id) => {
               const project = getProjectById(id);
               return (
-                <span key={id} className="rounded-sm bg-layer-1 px-1.5 py-0.5 text-11 text-secondary">
+                <span key={id} className="rounded-lg bg-layer-1 px-1.5 py-0.5 text-11 text-secondary">
                   {project?.name ?? "—"}
                 </span>
               );
@@ -401,7 +401,7 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
             closeOnSelect
             useCaptureForOutsideClick
             customButton={
-              <span className="shadow-sm grid size-6 place-items-center rounded-md bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
+              <span className="shadow-sm grid size-6 place-items-center rounded-lg bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
                 <HugeiconsIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
               </span>
             }
@@ -451,7 +451,7 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
       </div>
       <div className="flex items-center gap-1.5 text-11 text-tertiary">
         {primaryProject ? (
-          <span className="truncate rounded-sm bg-layer-1 px-1.5 py-0.5 text-secondary">{primaryProject.name}</span>
+          <span className="truncate rounded-lg bg-layer-1 px-1.5 py-0.5 text-secondary">{primaryProject.name}</span>
         ) : (
           <span className="text-placeholder">No project</span>
         )}
@@ -504,7 +504,7 @@ const ProjectFilterSection = observer(function ProjectFilterSection({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search projects"
-          className="w-full rounded-sm border border-subtle bg-canvas px-2 py-1 text-11 text-primary outline-none placeholder:text-placeholder"
+          className="w-full rounded-lg border border-subtle bg-canvas px-2 py-1 text-11 text-primary outline-none placeholder:text-placeholder"
         />
       </div>
       <div className="overflow-y-auto px-2 pb-2">

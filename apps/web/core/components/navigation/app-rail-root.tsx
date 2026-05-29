@@ -71,9 +71,9 @@ type TProjectRailItem = TCompactRailItem & {
 const MAX_COMPACT_RAIL_ITEMS = 3;
 const RAIL_INLINE_ICON_CLASS = "size-4 flex-shrink-0 text-current";
 const COMPRESSED_ICON_CLASS =
-  "relative grid size-8 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
+  "relative grid size-8 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
 const EXPANDED_ICON_CLASS =
-  "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-md px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none transition-colors dark:text-white/70";
+  "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none transition-colors dark:text-white/70";
 const EXPANDED_ICON_ACTIVE = "!bg-white/55 !text-primary dark:!bg-layer-1 dark:!text-accent-primary";
 const EXPANDED_ICON_INACTIVE =
   "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]";
@@ -216,7 +216,7 @@ const CompactRailOverflowMenu = (props: {
       panelDataTheme={panelDataTheme}
     >
       {items.map((item) => (
-        <CustomMenu.MenuItem key={item.id} onClick={() => routerPush(item.href)} className="rounded-sm">
+        <CustomMenu.MenuItem key={item.id} onClick={() => routerPush(item.href)} className="rounded-lg">
           <span className="text-sm flex w-full items-center gap-2 px-1.5 py-1 text-left font-medium">
             <span className="grid size-4 place-items-center text-icon-tertiary dark:text-white/60 [&_svg]:size-4 [&_svg]:text-current">
               {item.icon}
@@ -274,7 +274,7 @@ const RailCategory = (props: {
 
   return (
     <div className={cn("flex w-full flex-col gap-1", className)}>
-      <div className="group/category flex w-full items-center justify-between gap-1 rounded-md pr-1 hover:bg-layer-transparent-hover dark:hover:bg-white/[0.08]">
+      <div className="group/category flex w-full items-center justify-between gap-1 rounded-lg pr-1 hover:bg-layer-transparent-hover dark:hover:bg-white/[0.08]">
         <AppSidebarTooltip tooltipContent={title}>
           <button
             type="button"
@@ -437,7 +437,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
       <div className="flex w-full flex-col">
         <div
           className={cn(
-            "group/project flex w-full items-center gap-1 rounded-md px-2 py-1 text-secondary hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
+            "group/project flex w-full items-center gap-1 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
             {
               [EXPANDED_ICON_ACTIVE]: shouldHighlightProject,
             }
@@ -469,7 +469,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
               </span>
             }
             className="pointer-events-none flex-shrink-0 opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
-            customButtonClassName="grid size-5 flex-shrink-0 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90"
+            customButtonClassName="grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90"
             placement="bottom-start"
             ariaLabel="Project actions"
             closeOnSelect
@@ -512,7 +512,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
               type="button"
               onClick={() => setIsOpen((open) => !open)}
               className={cn(
-                "grid size-5 flex-shrink-0 place-items-center rounded-md text-icon-tertiary opacity-0 group-hover/project:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
+                "grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary opacity-0 group-hover/project:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                 {
                   "opacity-100": isOpen,
                 }
@@ -536,7 +536,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
                 href={item.tasksHref}
                 aria-label={`${item.label} Tasks`}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
+                  "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
                     "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isTasksActive,
                   }
@@ -551,7 +551,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
                 href={item.pagesHref}
                 aria-label={`${item.label} Pages`}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
+                  "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
                     "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isPagesActive,
                   }
@@ -693,7 +693,7 @@ export const AppRailRoot = observer(() => {
                 onClick={() => {
                   updateDisplayMode(isRailExpanded ? "icon_only" : "icon_with_label");
                 }}
-                className="grid size-8 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-5 [&_svg]:text-current"
+                className="grid size-8 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-5 [&_svg]:text-current"
                 aria-label={isRailExpanded ? "Collapse app rail" : "Expand app rail"}
               >
                 {isRailExpanded ? <PanelLeft /> : <PanelRight />}
@@ -755,7 +755,7 @@ export const AppRailRoot = observer(() => {
                         event.stopPropagation();
                         toggleCreateProjectModal(true);
                       }}
-                      className="grid size-5 flex-shrink-0 place-items-center rounded-md text-icon-tertiary opacity-0 transition-opacity group-hover/category:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-3.5 [&_svg]:text-current"
+                      className="grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary opacity-0 transition-opacity group-hover/category:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-3.5 [&_svg]:text-current"
                       aria-label={t("aria_labels.projects_sidebar.create_new_project")}
                     >
                       <PlusIcon />

@@ -177,9 +177,9 @@ function PublicDocEmbedCard({ embed }: { embed: TPublicDocEmbed }) {
   const Icon = meta.Icon;
 
   return (
-    <div className="not-prose shadow-sm my-4 rounded-md border border-subtle bg-surface-1 px-4 py-3">
+    <div className="not-prose shadow-sm my-4 rounded-lg border border-subtle bg-surface-1 px-4 py-3">
       <div className="flex items-start gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-subtle bg-layer-1 text-tertiary">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-subtle bg-layer-1 text-tertiary">
           <Icon className="size-4" />
         </div>
         <div className="min-w-0 flex-1">

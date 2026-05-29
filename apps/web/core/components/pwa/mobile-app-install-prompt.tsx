@@ -73,7 +73,7 @@ export function MobileAppInstallPrompt() {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[90] px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] md:hidden">
       <div className="pointer-events-auto mx-auto flex max-w-sm items-center gap-3 rounded-lg border border-subtle bg-surface-1 p-3 shadow-raised-200">
-        <div className="grid size-9 shrink-0 place-items-center rounded-md bg-accent-primary text-on-color">
+        <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-primary text-on-color">
           <DownloadSimple size={18} weight="bold" />
         </div>
         <div className="min-w-0 flex-1">
@@ -82,14 +82,14 @@ export function MobileAppInstallPrompt() {
         </div>
         <button
           type="button"
-          className="h-9 shrink-0 rounded-md bg-accent-primary px-3 text-12 font-medium text-on-color"
+          className="h-9 shrink-0 rounded-lg bg-accent-primary px-3 text-12 font-medium text-on-color"
           onClick={install}
         >
           Install
         </button>
         <button
           type="button"
-          className="grid size-8 shrink-0 place-items-center rounded-md text-secondary hover:bg-surface-2 hover:text-primary"
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-secondary hover:bg-surface-2 hover:text-primary"
           onClick={dismiss}
           aria-label="Dismiss install prompt"
         >

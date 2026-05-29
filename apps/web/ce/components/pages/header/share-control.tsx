@@ -145,13 +145,13 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
             {isCopied ? "Copied public URL" : "Published URL"}
           </div>
           <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 truncate rounded-sm border border-subtle-1 bg-layer-1 px-2 py-1.5 text-12 text-secondary">
+            <div className="min-w-0 flex-1 truncate rounded-lg border border-subtle-1 bg-layer-1 px-2 py-1.5 text-12 text-secondary">
               {publicUrl}
             </div>
             <button
               type="button"
               onClick={() => void handleCopy()}
-              className="flex size-8 flex-shrink-0 items-center justify-center rounded-sm border border-subtle-1 bg-surface-2 text-secondary hover:bg-layer-2"
+              className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg border border-subtle-1 bg-surface-2 text-secondary hover:bg-layer-2"
               aria-label="Copy published URL"
             >
               {isCopied ? (
@@ -166,7 +166,7 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
               <button
                 type="button"
                 onClick={() => void handleEditPublicUrl()}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2"
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2"
               >
                 <HeroPencilSquareIcon className="size-4" />
                 Edit public URL
@@ -175,7 +175,7 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
                 type="button"
                 onClick={() => void handleMakePrivate()}
                 disabled={isUpdatingPrivacy}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
               >
                 {isUpdatingPrivacy ? (
                   <HeroArrowPathIcon className="size-4 animate-spin" />

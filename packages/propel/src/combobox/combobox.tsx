@@ -188,7 +188,7 @@ function ComboboxOptions({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={onSearchQueryKeyDown}
                   className={cn(
-                    "w-full rounded-md border border-subtle bg-surface-2 py-1.5 pr-2 pl-8 text-13 outline-none placeholder:text-placeholder",
+                    "w-full rounded-lg border border-subtle bg-surface-2 py-1.5 pr-2 pl-8 text-13 outline-none placeholder:text-placeholder",
                     inputClassName
                   )}
                 />
@@ -219,7 +219,7 @@ function ComboboxOption({ value, children, disabled, className }: ComboboxOption
     <BaseCombobox.Item
       value={value}
       disabled={disabled}
-      className={cn("cursor-pointer rounded-md px-2 py-1.5 text-13 transition-colors outline-none", className)}
+      className={cn("cursor-pointer rounded-lg px-2 py-1.5 text-13 transition-colors outline-none", className)}
     >
       {children}
     </BaseCombobox.Item>

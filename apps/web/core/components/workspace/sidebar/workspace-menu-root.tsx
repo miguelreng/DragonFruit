@@ -100,7 +100,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                 <Menu.Button
                   aria-label={activeWorkspace?.name ?? t("aria_labels.projects_sidebar.open_workspace_switcher")}
                   className={cn(
-                    "flex h-8 max-w-full items-center rounded-md hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
+                    "flex h-8 max-w-full items-center rounded-lg hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
                     {
                       "bg-layer-1": open,
                       "dark:bg-white/[0.12]": open,
@@ -113,7 +113,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                     logo={activeWorkspace?.logo_url}
                     name={activeWorkspace?.name}
                     workspaceId={activeWorkspace?.id}
-                    classNames="size-5 flex-shrink-0 rounded-md border border-subtle"
+                    classNames="size-5 flex-shrink-0 rounded-lg border border-subtle"
                   />
                   {showLabel && (
                     <>
@@ -133,7 +133,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
             {variant === "top-navigation" && (
               <Menu.Button
                 className={cn(
-                  "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-sm py-1 pr-1 pl-0 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
+                  "group/menu-button flex flex-grow items-center justify-between gap-1 truncate rounded-lg py-1 pr-1 pl-0 text-13 font-medium text-secondary hover:bg-layer-1 focus:outline-none",
                   {
                     "bg-layer-1": open,
                   }
@@ -145,7 +145,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                     logo={activeWorkspace?.logo_url}
                     name={activeWorkspace?.name}
                     workspaceId={activeWorkspace?.id}
-                    classNames="border border-subtle rounded-md size-7"
+                    classNames="border border-subtle rounded-lg size-7"
                   />
                   <h4 className="truncate text-14 font-medium text-primary">{activeWorkspace?.name ?? t("loading")}</h4>
                 </div>

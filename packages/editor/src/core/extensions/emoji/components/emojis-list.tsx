@@ -130,7 +130,7 @@ export const EmojisListDropdown = forwardRef(function EmojisListDropdown(
       <div
         ref={dropdownContainerRef}
         className={cn(
-          "invisible relative max-h-80 w-[14rem] space-y-2 overflow-y-auto rounded-md border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 opacity-0 shadow-raised-200 transition-opacity",
+          "invisible relative max-h-80 w-[14rem] space-y-2 overflow-y-auto rounded-lg border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 opacity-0 shadow-raised-200 transition-opacity",
           {
             "visible opacity-100": isVisible,
           }
@@ -156,7 +156,7 @@ export const EmojisListDropdown = forwardRef(function EmojisListDropdown(
                 id={`emoji-item-${index}`}
                 type="button"
                 className={cn(
-                  "flex w-full items-center gap-2 truncate rounded-sm px-2 py-1.5 text-left text-13 text-secondary transition-colors duration-150 hover:bg-layer-1-hover",
+                  "flex w-full items-center gap-2 truncate rounded-lg px-2 py-1.5 text-left text-13 text-secondary transition-colors duration-150 hover:bg-layer-1-hover",
                   {
                     "bg-layer-1-hover": isSelected,
                   }

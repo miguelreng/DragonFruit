@@ -84,7 +84,7 @@ export const ColumnDirection: Story = {
       <>
         <h3 className="text-16 font-semibold">Column Direction</h3>
         <p className="text-gray-600 text-13">Content is arranged vertically.</p>
-        <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Action</button>
+        <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Action</button>
       </>
     ),
   },
@@ -96,7 +96,7 @@ export const RowDirection: Story = {
     children: (
       <>
         <div className="flex-shrink-0">
-          <div className="bg-blue-500 h-12 w-12 rounded-sm" />
+          <div className="bg-blue-500 h-12 w-12 rounded-lg" />
         </div>
         <div className="flex-1">
           <h3 className="text-16 font-semibold">Row Direction</h3>
@@ -114,12 +114,12 @@ export const ProductCard: Story = {
     direction: ECardDirection.COLUMN,
     children: (
       <>
-        <div className="bg-gray-200 h-48 w-full rounded-sm" />
+        <div className="bg-gray-200 h-48 w-full rounded-lg" />
         <h3 className="text-18 font-bold">Product Name</h3>
         <p className="text-gray-600 text-13">A brief description of the product goes here.</p>
         <div className="flex items-center justify-between">
           <span className="text-16 font-semibold">$99.99</span>
-          <button className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color">Add to Cart</button>
+          <button className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-on-color">Add to Cart</button>
         </div>
       </>
     ),
@@ -202,10 +202,10 @@ export const AllDirections: Story = {
         <Card direction={ECardDirection.COLUMN}>
           <h3 className="font-semibold">Column Direction</h3>
           <p className="text-gray-600 text-13">Vertical layout</p>
-          <button className="bg-blue-500 w-fit rounded-sm px-4 py-2 text-on-color">Button</button>
+          <button className="bg-blue-500 w-fit rounded-lg px-4 py-2 text-on-color">Button</button>
         </Card>
         <Card direction={ECardDirection.ROW}>
-          <div className="bg-blue-500 h-12 w-12 flex-shrink-0 rounded-sm" />
+          <div className="bg-blue-500 h-12 w-12 flex-shrink-0 rounded-lg" />
           <div>
             <h3 className="font-semibold">Row Direction</h3>
             <p className="text-gray-600 text-13">Horizontal layout</p>

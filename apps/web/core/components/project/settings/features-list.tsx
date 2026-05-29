@@ -103,7 +103,7 @@ export const ProjectFeaturesList = observer(function ProjectFeaturesList(props: 
                     {t(featureItem.key)}
                     {featureItem.isPro && (
                       <Tooltip tooltipContent="Pro feature" position="top">
-                        <UpgradeBadge className="rounded-sm" />
+                        <UpgradeBadge className="rounded-lg" />
                       </Tooltip>
                     )}
                   </span>

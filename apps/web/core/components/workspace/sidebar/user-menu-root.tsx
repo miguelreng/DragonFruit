@@ -113,7 +113,7 @@ export const UserMenuRoot = observer(function UserMenuRoot(props: TUserMenuRootP
               isOpen: true,
             })
           }
-          className="flex h-8 items-center gap-2 rounded-md text-13 font-medium"
+          className="flex h-8 items-center gap-2 rounded-lg text-13 font-medium"
         >
           <Settings2 className="size-3.5 shrink-0" />
           {t("preferences")}
@@ -121,7 +121,7 @@ export const UserMenuRoot = observer(function UserMenuRoot(props: TUserMenuRootP
       </div>
       <CustomMenu.MenuItem
         onClick={handleSignOut}
-        className="flex h-8 items-center gap-2 rounded-md text-13 font-medium"
+        className="flex h-8 items-center gap-2 rounded-lg text-13 font-medium"
       >
         <LogOut className="size-3.5 shrink-0" />
         {t("sign_out")}

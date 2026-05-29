@@ -37,7 +37,7 @@ export function RecentProject(props: BlockProps) {
       title={projectDetails?.name}
       prependTitleElement={
         <div className="flex flex-shrink-0 items-center gap-2">
-          <div className="grid size-8 flex-shrink-0 place-items-center rounded-sm bg-layer-2">
+          <div className="grid size-8 flex-shrink-0 place-items-center rounded-lg bg-layer-2">
             <Logo logo={projectDetails?.logo_props} size={16} />
           </div>
           <div className="text-13 font-medium whitespace-nowrap text-placeholder">{projectDetails?.identifier}</div>

@@ -67,7 +67,7 @@ export const PageEditorTitle = observer(function PageEditorTitle(props: Props) {
           />
           <div
             className={cn(
-              "pointer-events-none absolute right-1 bottom-1 z-[2] rounded-sm bg-surface-1 p-0.5 text-11 font-regular text-secondary opacity-0 transition-opacity",
+              "pointer-events-none absolute right-1 bottom-1 z-[2] rounded-lg bg-surface-1 p-0.5 text-11 font-regular text-secondary opacity-0 transition-opacity",
               {
                 "opacity-100": isLengthVisible,
               }

@@ -41,7 +41,7 @@ const RenderCustomPopoverComponent = (
 export const Default: Story = {
   args: {
     popperPosition: "bottom-start",
-    panelClassName: "rounded-sm bg-gray-100 p-2",
+    panelClassName: "rounded-lg bg-gray-100 p-2",
     children: RenderCustomPopoverComponent,
   },
 };
@@ -50,11 +50,11 @@ export const CustomMenuButton: Story = {
   args: {
     popperPosition: "bottom-start",
     button: (
-      <div className="bg-gray-100 hover:bg-gray-200 rounded-sm p-2 text-13 font-medium transition-all">
+      <div className="bg-gray-100 hover:bg-gray-200 rounded-lg p-2 text-13 font-medium transition-all">
         Custom Menu Button
       </div>
     ),
-    panelClassName: "rounded-sm bg-gray-100 p-2",
+    panelClassName: "rounded-lg bg-gray-100 p-2",
     children: RenderCustomPopoverComponent,
   },
 };

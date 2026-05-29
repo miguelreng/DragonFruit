@@ -191,7 +191,7 @@ export function FavoriteFolder(props: Props) {
                         <button
                           type="button"
                           className={cn(
-                            "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-placeholder group-hover/project-item:flex",
+                            "absolute top-1/2 -left-3 hidden -translate-y-1/2 cursor-grab items-center justify-center rounded-lg text-placeholder group-hover/project-item:flex",
                             {
                               "cursor-not-allowed opacity-60": favorite.sort_order === null,
                               "cursor-grabbing": isDragging,
@@ -212,7 +212,7 @@ export function FavoriteFolder(props: Props) {
                   customButton={
                     <span
                       ref={actionSectionRef}
-                      className="grid place-items-center rounded-sm p-0.5 text-placeholder hover:bg-layer-1"
+                      className="grid place-items-center rounded-lg p-0.5 text-placeholder hover:bg-layer-1"
                     >
                       <MoreHorizontal className="size-3" />
                     </span>
@@ -244,7 +244,7 @@ export function FavoriteFolder(props: Props) {
                 <Disclosure.Button
                   as="button"
                   type="button"
-                  className={cn("hidden rounded-sm p-0.5 group-hover/project-item:inline-block hover:bg-layer-1", {
+                  className={cn("hidden rounded-lg p-0.5 group-hover/project-item:inline-block hover:bg-layer-1", {
                     "inline-block": isMenuActive,
                   })}
                   aria-label={t(

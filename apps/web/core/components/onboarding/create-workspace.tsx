@@ -146,7 +146,7 @@ export const CreateWorkspace = observer(function CreateWorkspace(props: Props) {
               },
             }}
             render={({ field: { value, ref, onChange } }) => (
-              <div className="relative flex items-center rounded-md">
+              <div className="relative flex items-center rounded-lg">
                 <Input
                   id="name"
                   name="name"
@@ -189,7 +189,7 @@ export const CreateWorkspace = observer(function CreateWorkspace(props: Props) {
             }}
             render={({ field: { value, ref, onChange } }) => (
               <div
-                className={`relative flex items-center rounded-md border-[0.5px] px-3 ${
+                className={`relative flex items-center rounded-lg border-[0.5px] px-3 ${
                   invalidSlug ? "border-danger-strong" : "border-strong"
                 }`}
               >
@@ -248,7 +248,7 @@ export const CreateWorkspace = observer(function CreateWorkspace(props: Props) {
                       </span>
                     )
                   }
-                  buttonClassName="border border-subtle bg-layer-2 !shadow-none !rounded-md"
+                  buttonClassName="border border-subtle bg-layer-2 !shadow-none !rounded-lg"
                   input
                 >
                   {ORGANIZATION_SIZE.map((item) => (

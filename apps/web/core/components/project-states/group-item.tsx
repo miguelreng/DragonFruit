@@ -56,7 +56,7 @@ export const GroupItem = observer(function GroupItem(props: TGroupItem) {
 
   return (
     <div
-      className={cn("space-y-1 rounded-sm border border-subtle bg-surface-2 p-2 transition-all", groupItemClassName)}
+      className={cn("space-y-1 rounded-lg border border-subtle bg-surface-2 p-2 transition-all", groupItemClassName)}
       ref={dropElementRef}
     >
       <div className="flex items-center justify-between gap-2">
@@ -66,7 +66,7 @@ export const GroupItem = observer(function GroupItem(props: TGroupItem) {
         >
           <div
             className={cn(
-              "flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-sm transition-all",
+              "flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg transition-all",
               {
                 "rotate-0": currentStateExpanded,
                 "-rotate-90": !currentStateExpanded,
@@ -75,7 +75,7 @@ export const GroupItem = observer(function GroupItem(props: TGroupItem) {
           >
             <ChevronDownIcon className="h-4 w-4" />
           </div>
-          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-sm">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg">
             <StateGroupIcon stateGroup={groupKey} size={EIconSize.XL} />
           </div>
           <div className="px-1 text-14 font-medium text-secondary capitalize">{groupKey}</div>
@@ -84,7 +84,7 @@ export const GroupItem = observer(function GroupItem(props: TGroupItem) {
           type="button"
           data-ph-element={STATE_TRACKER_ELEMENTS.STATE_GROUP_ADD_BUTTON}
           className={cn(
-            "flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm text-accent-primary/80 transition-colors hover:bg-layer-1 hover:text-accent-primary",
+            "flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg text-accent-primary/80 transition-colors hover:bg-layer-1 hover:text-accent-primary",
             (!isEditable || createState) && "cursor-not-allowed text-placeholder hover:text-placeholder"
           )}
           onClick={() => {

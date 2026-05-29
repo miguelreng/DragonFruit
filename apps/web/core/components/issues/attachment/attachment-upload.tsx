@@ -63,7 +63,7 @@ export const IssueAttachmentUpload = observer(function IssueAttachmentUpload(pro
   return (
     <div
       {...getRootProps()}
-      className={`flex h-[60px] items-center justify-center rounded-md border-2 border-dashed bg-accent-primary/5 px-4 text-11 text-accent-primary ${
+      className={`flex h-[60px] items-center justify-center rounded-lg border-2 border-dashed bg-accent-primary/5 px-4 text-11 text-accent-primary ${
         isDragActive ? "border-accent-strong bg-accent-primary/10" : "border-subtle"
       } ${isDragReject ? "bg-danger-subtle" : ""} ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
     >

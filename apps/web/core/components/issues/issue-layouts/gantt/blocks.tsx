@@ -66,7 +66,7 @@ export const IssueGanttBlock = observer(function IssueGanttBlock(props: Props) {
         render={
           <div
             id={`issue-${issueId}`}
-            className="space-between relative flex h-full w-full cursor-pointer items-center rounded-sm"
+            className="space-between relative flex h-full w-full cursor-pointer items-center rounded-lg"
             style={blockStyle}
             onClick={handleIssuePeekOverview}
           >

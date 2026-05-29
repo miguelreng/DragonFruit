@@ -31,7 +31,7 @@ export const AppliedLabelsFilters = observer(function AppliedLabelsFilters(props
         return (
           <div
             key={labelId}
-            className="shadow-sm flex items-center gap-1.5 rounded-md border border-strong bg-layer-2 px-1.5 py-1 text-11 font-medium text-primary"
+            className="shadow-sm flex items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-1.5 py-1 text-11 font-medium text-primary"
           >
             <span
               className="h-2 w-2 rounded-full"

@@ -54,7 +54,7 @@ const SidebarDropdownItem = observer(function SidebarDropdownItem(props: TProps)
               logo={workspace?.logo_url}
               name={workspace?.name}
               workspaceId={workspace?.id}
-              classNames="size-7 rounded-md border border-subtle"
+              classNames="size-7 rounded-lg border border-subtle"
             />
             <div className="min-w-0 flex-1">
               <div

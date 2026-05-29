@@ -213,7 +213,7 @@ export function AgentFormModal(props: IAgentFormModalProps) {
               Avatar
             </label>
             <div className="flex items-start gap-3">
-              <div className="mt-1 shrink-0 rounded-md border border-subtle bg-layer-2 p-1">
+              <div className="mt-1 shrink-0 rounded-lg border border-subtle bg-layer-2 p-1">
                 <AgentAvatar
                   seed={isEdit ? props.agent.id : form.name || "new-agent"}
                   name={form.name || "Agent"}
@@ -289,7 +289,7 @@ export function AgentFormModal(props: IAgentFormModalProps) {
             />
           </div>
 
-          <div className="rounded-md border border-subtle bg-layer-2 px-3 py-2.5">
+          <div className="rounded-lg border border-subtle bg-layer-2 px-3 py-2.5">
             <p className="text-13 font-medium text-secondary">Model and API key</p>
             <p className="mt-0.5 text-11 text-tertiary">
               Atlas uses the workspace provider configured in Settings -&gt; AI, so collaborators have one clear place

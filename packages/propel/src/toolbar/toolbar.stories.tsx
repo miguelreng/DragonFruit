@@ -42,7 +42,7 @@ export const Default: Story = {
   render() {
     return (
       <div className="space-y-4 p-4">
-        <div className="w-96 rounded-sm border">
+        <div className="w-96 rounded-lg border">
           <Toolbar>
             <Toolbar.Group isFirst>
               <Toolbar.Item icon={Undo} tooltip="Undo" />
@@ -106,15 +106,15 @@ export const CommentToolbar: Story = {
     return (
       <div className="space-y-4 p-4">
         <h3 className="text-13 font-medium">Comment Toolbar with Access Control</h3>
-        <div className="rounded-sm border-[0.5px] border-subtle p-1">
+        <div className="rounded-lg border-[0.5px] border-subtle p-1">
           <Toolbar>
             {/* Access Specifier */}
-            <div className="flex flex-shrink-0 items-stretch gap-0.5 rounded-sm border-[0.5px] border-subtle p-1">
+            <div className="flex flex-shrink-0 items-stretch gap-0.5 rounded-lg border-[0.5px] border-subtle p-1">
               <Toolbar.Item icon={LockIcon} tooltip="Private" isActive />
               <Toolbar.Item icon={GlobeIcon} tooltip="Public" />
             </div>
 
-            <div className="flex w-full items-stretch justify-between gap-2 rounded-sm border-[0.5px] border-subtle p-1">
+            <div className="flex w-full items-stretch justify-between gap-2 rounded-lg border-[0.5px] border-subtle p-1">
               <div className="flex items-stretch">
                 <Toolbar.Group isFirst>
                   <Toolbar.Item icon={Bold} tooltip="Bold" shortcut={["Cmd", "B"]} />

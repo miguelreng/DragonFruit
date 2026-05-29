@@ -39,7 +39,7 @@ export const RightResizable = observer(function RightResizable(props: RightResiz
     <>
       {(isHovering || isRightResizing) && dateString && (
         <div className="absolute -right-36 z-[10] flex h-full w-32 items-center justify-start text-11 font-regular text-tertiary">
-          <div className="rounded-sm bg-accent-subtle px-2 py-1">{dateString}</div>
+          <div className="rounded-lg bg-accent-subtle px-2 py-1">{dateString}</div>
         </div>
       )}
       <div
@@ -50,7 +50,7 @@ export const RightResizable = observer(function RightResizable(props: RightResiz
         onMouseOut={() => {
           setIsHovering(false);
         }}
-        className="absolute top-1/2 -right-1.5 z-[6] h-full w-3 -translate-y-1/2 cursor-col-resize rounded-md"
+        className="absolute top-1/2 -right-1.5 z-[6] h-full w-3 -translate-y-1/2 cursor-col-resize rounded-lg"
       />
       <div
         className={cn(

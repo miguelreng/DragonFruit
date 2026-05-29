@@ -35,7 +35,7 @@ export function InboxIssueSnoozeModal(props: InboxIssueSnoozeModalProps) {
     >
       <div className="flex h-full w-full flex-col gap-y-1 px-5 py-8 sm:p-6">
         <Calendar
-          className="rounded-md border border-subtle p-3"
+          className="rounded-lg border border-subtle p-3"
           captionLayout="dropdown"
           selected={date ? new Date(date) : undefined}
           defaultMonth={date ? new Date(date) : undefined}

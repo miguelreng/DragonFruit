@@ -172,7 +172,7 @@ export function TranscriptSpecModal(props: Props) {
                   value={hint}
                   onChange={(e) => setHint(e.target.value)}
                   placeholder='e.g. "discovery call with Acme; we sell warehouse robotics"'
-                  className="mt-1 w-full rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder focus:border-strong focus:outline-none"
+                  className="mt-1 w-full rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder focus:border-strong focus:outline-none"
                 />
               </label>
               <label className="block">
@@ -197,7 +197,7 @@ export function TranscriptSpecModal(props: Props) {
                   onChange={(e) => handleTranscriptChange(e.target.value)}
                   placeholder="Paste the meeting transcript here…"
                   rows={12}
-                  className="mt-1 w-full resize-y rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder focus:border-strong focus:outline-none"
+                  className="mt-1 w-full resize-y rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder focus:border-strong focus:outline-none"
                 />
                 {cleanedSummary && <p className="mt-1 text-11 text-tertiary">{cleanedSummary}</p>}
               </label>
@@ -212,7 +212,7 @@ export function TranscriptSpecModal(props: Props) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-1.5 text-13 text-primary hover:bg-layer-2"
+                  className="rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-1.5 text-13 text-primary hover:bg-layer-2"
                 >
                   Cancel
                 </button>
@@ -221,7 +221,7 @@ export function TranscriptSpecModal(props: Props) {
                   disabled={!canSubmit}
                   onClick={() => void handleGenerate()}
                   className={cn(
-                    "text-on-accent-primary flex items-center gap-1.5 rounded-md bg-accent-primary px-3 py-1.5 text-13 font-medium transition-opacity",
+                    "text-on-accent-primary flex items-center gap-1.5 rounded-lg bg-accent-primary px-3 py-1.5 text-13 font-medium transition-opacity",
                     !canSubmit && "cursor-not-allowed opacity-50"
                   )}
                 >
@@ -275,7 +275,7 @@ function PreviewBody(props: { preview: TTranscriptToDocResponse | null; onBack: 
               {preview.action_items.map((item) => (
                 <li
                   key={`item-${item.title}-${item.description.slice(0, 24)}`}
-                  className="flex items-start gap-2 rounded-md border-[0.5px] border-dashed border-strong bg-accent-subtle px-3 py-2"
+                  className="flex items-start gap-2 rounded-lg border-[0.5px] border-dashed border-strong bg-accent-subtle px-3 py-2"
                 >
                   <Sparkles className="mt-0.5 size-3.5 shrink-0 text-accent-primary" />
                   <div className="min-w-0 flex-1">
@@ -298,14 +298,14 @@ function PreviewBody(props: { preview: TTranscriptToDocResponse | null; onBack: 
           <button
             type="button"
             onClick={onBack}
-            className="rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-1.5 text-13 text-primary hover:bg-layer-2"
+            className="rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-1.5 text-13 text-primary hover:bg-layer-2"
           >
             Edit transcript
           </button>
           <button
             type="button"
             onClick={onInsert}
-            className="text-on-accent-primary flex items-center gap-1.5 rounded-md bg-accent-primary px-3 py-1.5 text-13 font-medium"
+            className="text-on-accent-primary flex items-center gap-1.5 rounded-lg bg-accent-primary px-3 py-1.5 text-13 font-medium"
           >
             <Sparkles className="size-3.5" />
             Insert at cursor

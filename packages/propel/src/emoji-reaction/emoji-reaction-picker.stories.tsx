@@ -43,13 +43,13 @@ export const Default: Story = {
           onChange={setSelectedEmoji}
           closeOnSelect
           label={
-            <span className="flex size-8 items-center justify-center rounded-md px-2 text-18">
+            <span className="flex size-8 items-center justify-center rounded-lg px-2 text-18">
               {selectedEmoji ? stringToEmoji(selectedEmoji) : <SmilePlus className="h-6 text-primary" />}
             </span>
           }
         />
         {selectedEmoji && (
-          <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">Selected: {selectedEmoji}</div>
+          <div className="rounded-lg border border-subtle bg-layer-1 p-4 text-13">Selected: {selectedEmoji}</div>
         )}
       </div>
     );
@@ -75,7 +75,7 @@ export const WithCustomLabel: Story = {
           onChange={setSelectedEmoji}
           closeOnSelect
           label={
-            <button className="flex items-center gap-2 rounded-sm border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
+            <button className="flex items-center gap-2 rounded-lg border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
               {selectedEmoji ? stringToEmoji(selectedEmoji) : <SmilePlus className="h-4 w-4" />}
               <span className="text-13">Add Reaction</span>
             </button>
@@ -230,7 +230,7 @@ export const SearchDisabled: Story = {
           closeOnSelect
           searchDisabled
           label={
-            <button className="rounded-sm border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
+            <button className="rounded-lg border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
               No Search
             </button>
           }
@@ -261,7 +261,7 @@ export const CustomSearchPlaceholder: Story = {
           closeOnSelect
           searchPlaceholder="Find your emoji..."
           label={
-            <button className="rounded-sm border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
+            <button className="rounded-lg border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
               Custom Search
             </button>
           }
@@ -296,20 +296,20 @@ export const CloseOnSelectDisabled: Story = {
             onChange={handleChange}
             closeOnSelect={false}
             label={
-              <button className="rounded-sm border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
+              <button className="rounded-lg border border-subtle bg-layer-1 px-4 py-2 hover:bg-surface-2">
                 Select Multiple (Stays Open)
               </button>
             }
           />
           <button
-            className="rounded-sm bg-layer-1 px-3 py-1.5 text-13 hover:bg-surface-2"
+            className="rounded-lg bg-layer-1 px-3 py-1.5 text-13 hover:bg-surface-2"
             onClick={() => setSelectedEmojis([])}
           >
             Clear
           </button>
         </div>
         {selectedEmojis.length > 0 && (
-          <div className="rounded-sm border border-subtle bg-layer-1 p-4 text-13">
+          <div className="rounded-lg border border-subtle bg-layer-1 p-4 text-13">
             <div className="mb-2 font-medium">Selected ({selectedEmojis.length}):</div>
             <div className="flex flex-wrap gap-2">
               {selectedEmojis.map((emoji, idx) => (

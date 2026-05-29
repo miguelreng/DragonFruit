@@ -27,9 +27,9 @@ export function LinkItemBlock(props: TLinkItemBlockProps) {
   return (
     <div
       onClick={onClick}
-      className="group flex h-[56px] w-[230px] cursor-pointer items-center gap-4 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4"
+      className="group flex h-[56px] w-[230px] cursor-pointer items-center gap-4 rounded-lg border-[0.5px] border-subtle bg-surface-1 px-4"
     >
-      <div className="grid size-8 flex-shrink-0 place-items-center rounded-sm bg-surface-2 p-2">
+      <div className="grid size-8 flex-shrink-0 place-items-center rounded-lg bg-surface-2 p-2">
         <Icon className="size-4 stroke-2 text-tertiary group-hover:text-primary" />
       </div>
       <div className="flex-1 truncate">

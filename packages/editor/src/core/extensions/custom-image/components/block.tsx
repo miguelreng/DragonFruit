@@ -245,7 +245,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
         }}
       >
         {showImageLoader && (
-          <div className="animate-pulse rounded-md bg-layer-1" style={{ width: size.width, height: size.height }} />
+          <div className="animate-pulse rounded-lg bg-layer-1" style={{ width: size.width, height: size.height }} />
         )}
         <img
           ref={imageRef}
@@ -290,7 +290,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
             })()
           }
           width={size.width}
-          className={cn("image-component block rounded-md", {
+          className={cn("image-component block rounded-lg", {
             // hide the image while the background calculations of the image loader are in progress (to avoid flickering) and show the loader until then
             hidden: showImageLoader,
             "read-only-image": !editor.isEditable,
@@ -326,7 +326,7 @@ export function CustomImageBlock(props: CustomImageBlockProps) {
           <>
             <div
               className={cn(
-                "pointer-events-none absolute inset-0 rounded-md border-2 border-accent-strong transition-opacity duration-100 ease-in-out",
+                "pointer-events-none absolute inset-0 rounded-lg border-2 border-accent-strong transition-opacity duration-100 ease-in-out",
                 {
                   "opacity-100": isResizing,
                   "opacity-0 group-hover/image-component:opacity-100": !isResizing,

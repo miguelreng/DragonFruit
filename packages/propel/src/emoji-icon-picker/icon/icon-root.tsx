@@ -55,7 +55,7 @@ export function IconRoot(props: IconRootProps) {
                 placeholder="Search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="block h-full w-full rounded-md border-[0.5px] border-none border-subtle bg-transparent p-0 px-3 py-2 text-13 placeholder-(--text-color-placeholder) focus:outline-none"
+                className="block h-full w-full rounded-lg border-[0.5px] border-none border-subtle bg-transparent p-0 px-3 py-2 text-13 placeholder-(--text-color-placeholder) focus:outline-none"
               />
             </div>
           </div>
@@ -79,7 +79,7 @@ export function IconRoot(props: IconRootProps) {
                   setHexValue(value);
                   if (/^[0-9A-Fa-f]{6}$/.test(value)) setActiveColor(adjustColorForContrast(`#${value}`));
                 }}
-                className="block flex-grow rounded-sm border-[0.5px] border-none border-subtle bg-transparent px-3 py-2 pl-0 text-11 text-secondary placeholder-(--text-color-placeholder) ring-0 focus:outline-none"
+                className="block flex-grow rounded-lg border-[0.5px] border-none border-subtle bg-transparent px-3 py-2 pl-0 text-11 text-secondary placeholder-(--text-color-placeholder) ring-0 focus:outline-none"
                 autoFocus
               />
             </div>

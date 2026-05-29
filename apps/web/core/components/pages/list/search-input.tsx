@@ -55,7 +55,7 @@ export function PageSearchInput(props: Props) {
       )}
       <div
         className={cn(
-          "flex w-0 items-center justify-start overflow-hidden rounded-md border border-transparent text-placeholder opacity-0 transition-[width] ease-linear",
+          "flex w-0 items-center justify-start overflow-hidden rounded-lg border border-transparent text-placeholder opacity-0 transition-[width] ease-linear",
           {
             "w-64 border-subtle px-2.5 py-1.5 opacity-100": isSearchOpen,
           }

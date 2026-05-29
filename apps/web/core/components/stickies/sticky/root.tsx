@@ -97,7 +97,7 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
       />
       <div
         className={cn(
-          "group/sticky shadow-sm hover:shadow-md relative flex h-fit w-full flex-col overflow-y-scroll rounded-sm ring-1 ring-black/5 transition-[box-shadow,filter] duration-200 ease-out",
+          "group/sticky shadow-sm hover:shadow-md relative flex h-fit w-full flex-col overflow-y-scroll rounded-lg ring-1 ring-black/5 transition-[box-shadow,filter] duration-200 ease-out",
           {
             "shadow-lg ring-accent-primary/30 cursor-grabbing": isDragging,
           },
@@ -111,7 +111,7 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
         {onClose && (
           <button
             type="button"
-            className="ml-auto flex flex-shrink-0 justify-end rounded-md p-2.5 hover:bg-black/5"
+            className="ml-auto flex flex-shrink-0 justify-end rounded-lg p-2.5 hover:bg-black/5"
             onClick={onClose}
           >
             <Minimize2 className="size-4" />

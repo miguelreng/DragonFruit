@@ -31,7 +31,7 @@ export const Provider: Story = {
           <p className="text-gray-600 text-13">
             Toast provider is required to display toasts. It should be added to your app root.
           </p>
-          <code className="bg-gray-100 block rounded-sm p-2 text-11">{`<Toast theme="light" />`}</code>
+          <code className="bg-gray-100 block rounded-lg p-2 text-11">{`<Toast theme="light" />`}</code>
         </div>
       </div>
     );
@@ -51,7 +51,7 @@ export const Success: Story = {
               message: "Your changes have been saved successfully.",
             })
           }
-          className="rounded-sm bg-success-primary px-4 py-2 text-13 text-on-color hover:bg-success-primary/90"
+          className="rounded-lg bg-success-primary px-4 py-2 text-13 text-on-color hover:bg-success-primary/90"
         >
           Show Success Toast
         </button>
@@ -73,7 +73,7 @@ export const Error: Story = {
               message: "Something went wrong. Please try again.",
             })
           }
-          className="rounded-sm bg-danger-primary px-4 py-2 text-13 text-on-color hover:bg-danger-primary/90"
+          className="rounded-lg bg-danger-primary px-4 py-2 text-13 text-on-color hover:bg-danger-primary/90"
         >
           Show Error Toast
         </button>
@@ -95,7 +95,7 @@ export const Warning: Story = {
               message: "This action cannot be undone.",
             })
           }
-          className="rounded-sm bg-warning-primary px-4 py-2 text-13 text-on-color hover:bg-warning-primary/90"
+          className="rounded-lg bg-warning-primary px-4 py-2 text-13 text-on-color hover:bg-warning-primary/90"
         >
           Show Warning Toast
         </button>
@@ -117,7 +117,7 @@ export const Info: Story = {
               message: "Here's some helpful information for you.",
             })
           }
-          className="rounded-sm bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
+          className="rounded-lg bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
         >
           Show Info Toast
         </button>
@@ -138,7 +138,7 @@ export const Loading: Story = {
               title: "Loading...",
             })
           }
-          className="rounded-sm border border-subtle bg-layer-2 px-4 py-2 text-13 text-primary hover:bg-layer-1"
+          className="rounded-lg border border-subtle bg-layer-2 px-4 py-2 text-13 text-primary hover:bg-layer-1"
         >
           Show Loading Toast
         </button>
@@ -166,7 +166,7 @@ export const WithActionItems: Story = {
               ),
             })
           }
-          className="rounded-sm bg-success-primary px-4 py-2 text-13 text-on-color hover:bg-success-primary/90"
+          className="rounded-lg bg-success-primary px-4 py-2 text-13 text-on-color hover:bg-success-primary/90"
         >
           Show Toast with Action
         </button>
@@ -197,7 +197,7 @@ export const UpdateToast: Story = {
         <Toast theme="light" />
         <button
           onClick={handleUpdate}
-          className="rounded-sm bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
+          className="rounded-lg bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
         >
           Update Toast After 2s
         </button>
@@ -233,7 +233,7 @@ export const PromiseToast: Story = {
         <Toast theme="light" />
         <button
           onClick={handlePromise}
-          className="rounded-sm bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
+          className="rounded-lg bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
         >
           Show Promise Toast
         </button>
@@ -256,7 +256,7 @@ export const AllTypes: Story = {
                 message: "Operation successful",
               })
             }
-            className="rounded-sm bg-success-primary px-3 py-2 text-13 text-on-color hover:bg-success-primary/90"
+            className="rounded-lg bg-success-primary px-3 py-2 text-13 text-on-color hover:bg-success-primary/90"
           >
             Success
           </button>
@@ -268,7 +268,7 @@ export const AllTypes: Story = {
                 message: "Operation failed",
               })
             }
-            className="rounded-sm bg-danger-primary px-3 py-2 text-13 text-on-color hover:bg-danger-primary/90"
+            className="rounded-lg bg-danger-primary px-3 py-2 text-13 text-on-color hover:bg-danger-primary/90"
           >
             Error
           </button>
@@ -280,7 +280,7 @@ export const AllTypes: Story = {
                 message: "Please be careful",
               })
             }
-            className="rounded-sm bg-warning-primary px-3 py-2 text-13 text-on-color hover:bg-warning-primary/90"
+            className="rounded-lg bg-warning-primary px-3 py-2 text-13 text-on-color hover:bg-warning-primary/90"
           >
             Warning
           </button>
@@ -292,7 +292,7 @@ export const AllTypes: Story = {
                 message: "Here's some info",
               })
             }
-            className="rounded-sm bg-accent-primary px-3 py-2 text-13 text-on-color hover:bg-accent-primary/90"
+            className="rounded-lg bg-accent-primary px-3 py-2 text-13 text-on-color hover:bg-accent-primary/90"
           >
             Info
           </button>
@@ -303,7 +303,7 @@ export const AllTypes: Story = {
                 title: "Loading",
               })
             }
-            className="rounded-sm border border-subtle bg-layer-2 px-3 py-2 text-13 text-primary hover:bg-layer-1"
+            className="rounded-lg border border-subtle bg-layer-2 px-3 py-2 text-13 text-primary hover:bg-layer-1"
           >
             Loading
           </button>
@@ -340,7 +340,7 @@ export const MultipleToasts: Story = {
               });
             }, 1000);
           }}
-          className="rounded-sm bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
+          className="rounded-lg bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
         >
           Show Multiple Toasts
         </button>
@@ -361,7 +361,7 @@ export const TitleOnly: Story = {
               title: "Saved!",
             })
           }
-          className="rounded-sm bg-success-primary px-4 py-2 text-13 text-on-color hover:bg-success-primary/90"
+          className="rounded-lg bg-success-primary px-4 py-2 text-13 text-on-color hover:bg-success-primary/90"
         >
           Show Title Only
         </button>
@@ -384,7 +384,7 @@ export const LongMessage: Story = {
                 "This is a longer message that provides more detailed information about what happened and what the user should do next.",
             })
           }
-          className="rounded-sm bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
+          className="rounded-lg bg-accent-primary px-4 py-2 text-13 text-on-color hover:bg-accent-primary/90"
         >
           Show Long Message
         </button>

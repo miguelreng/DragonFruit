@@ -23,7 +23,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     tooltipContent: "This is a tooltip",
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Hover me</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Hover me</button>,
   },
 };
 
@@ -31,7 +31,7 @@ export const WithHeading: Story = {
   args: {
     tooltipHeading: "Tooltip Title",
     tooltipContent: "This is the tooltip content with a heading.",
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Hover me</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Hover me</button>,
   },
 };
 
@@ -39,7 +39,7 @@ export const PositionTop: Story = {
   args: {
     tooltipContent: "Tooltip on top",
     position: "top",
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Top</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Top</button>,
   },
 };
 
@@ -47,7 +47,7 @@ export const PositionBottom: Story = {
   args: {
     tooltipContent: "Tooltip on bottom",
     position: "bottom",
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Bottom</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Bottom</button>,
   },
 };
 
@@ -55,7 +55,7 @@ export const PositionLeft: Story = {
   args: {
     tooltipContent: "Tooltip on left",
     position: "left",
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Left</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Left</button>,
   },
 };
 
@@ -63,7 +63,7 @@ export const PositionRight: Story = {
   args: {
     tooltipContent: "Tooltip on right",
     position: "right",
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Right</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Right</button>,
   },
 };
 
@@ -82,7 +82,7 @@ export const Disabled: Story = {
   args: {
     tooltipContent: "This tooltip is disabled",
     disabled: true,
-    children: <button className="bg-gray-400 rounded-sm px-4 py-2 text-on-color">Hover me (disabled)</button>,
+    children: <button className="bg-gray-400 rounded-lg px-4 py-2 text-on-color">Hover me (disabled)</button>,
   },
 };
 
@@ -91,7 +91,7 @@ export const LongContent: Story = {
     tooltipHeading: "Important Information",
     tooltipContent:
       "This is a longer tooltip with more detailed information that wraps to multiple lines. It provides comprehensive details about the element.",
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Long content</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Long content</button>,
   },
 };
 
@@ -99,7 +99,7 @@ export const CustomDelay: Story = {
   args: {
     tooltipContent: "This tooltip has a custom delay",
     openDelay: 1000,
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Custom delay (1s)</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Custom delay (1s)</button>,
   },
 };
 
@@ -107,7 +107,7 @@ export const CustomOffset: Story = {
   args: {
     tooltipContent: "Custom offset tooltip",
     sideOffset: 20,
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">Custom offset</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">Custom offset</button>,
   },
 };
 
@@ -119,18 +119,18 @@ export const AllPositions: Story = {
     return (
       <div className="flex flex-col items-center gap-4">
         <Tooltip tooltipContent="Top position" position="top">
-          <button className="bg-blue-500 rounded-sm px-4 py-2 text-13 text-on-color">Top</button>
+          <button className="bg-blue-500 rounded-lg px-4 py-2 text-13 text-on-color">Top</button>
         </Tooltip>
         <div className="flex gap-4">
           <Tooltip tooltipContent="Left position" position="left">
-            <button className="bg-blue-500 rounded-sm px-4 py-2 text-13 text-on-color">Left</button>
+            <button className="bg-blue-500 rounded-lg px-4 py-2 text-13 text-on-color">Left</button>
           </Tooltip>
           <Tooltip tooltipContent="Right position" position="right">
-            <button className="bg-blue-500 rounded-sm px-4 py-2 text-13 text-on-color">Right</button>
+            <button className="bg-blue-500 rounded-lg px-4 py-2 text-13 text-on-color">Right</button>
           </Tooltip>
         </div>
         <Tooltip tooltipContent="Bottom position" position="bottom">
-          <button className="bg-blue-500 rounded-sm px-4 py-2 text-13 text-on-color">Bottom</button>
+          <button className="bg-blue-500 rounded-lg px-4 py-2 text-13 text-on-color">Bottom</button>
         </Tooltip>
       </div>
     );
@@ -161,7 +161,7 @@ export const OnDisabledButton: Story = {
   render() {
     return (
       <Tooltip tooltipContent="This feature is currently unavailable" position="top">
-        <button className="bg-gray-300 text-gray-500 cursor-not-allowed rounded-sm px-4 py-2" disabled>
+        <button className="bg-gray-300 text-gray-500 cursor-not-allowed rounded-lg px-4 py-2" disabled>
           Disabled Button
         </button>
       </Tooltip>
@@ -179,7 +179,7 @@ export const ComplexContent: Story = {
         <p className="text-gray-400 text-11">Last seen: 2 hours ago</p>
       </div>
     ),
-    children: <button className="bg-blue-500 rounded-sm px-4 py-2 text-on-color">View User</button>,
+    children: <button className="bg-blue-500 rounded-lg px-4 py-2 text-on-color">View User</button>,
   },
 };
 
@@ -187,7 +187,7 @@ export const WithCustomStyling: Story = {
   args: {
     tooltipContent: "Custom styled tooltip",
     className: "bg-purple-500 text-on-color",
-    children: <button className="bg-purple-500 rounded-sm px-4 py-2 text-on-color">Custom style</button>,
+    children: <button className="bg-purple-500 rounded-lg px-4 py-2 text-on-color">Custom style</button>,
   },
 };
 
@@ -199,16 +199,16 @@ export const MultipleTooltips: Story = {
     return (
       <div className="flex gap-4">
         <Tooltip tooltipContent="Save your work" position="top">
-          <button className="bg-green-500 rounded-sm px-4 py-2 text-13 text-on-color">Save</button>
+          <button className="bg-green-500 rounded-lg px-4 py-2 text-13 text-on-color">Save</button>
         </Tooltip>
         <Tooltip tooltipContent="Discard changes" position="top">
-          <button className="bg-red-500 rounded-sm px-4 py-2 text-13 text-on-color">Cancel</button>
+          <button className="bg-red-500 rounded-lg px-4 py-2 text-13 text-on-color">Cancel</button>
         </Tooltip>
         <Tooltip tooltipContent="Export to PDF" position="top">
-          <button className="bg-blue-500 rounded-sm px-4 py-2 text-13 text-on-color">Export</button>
+          <button className="bg-blue-500 rounded-lg px-4 py-2 text-13 text-on-color">Export</button>
         </Tooltip>
         <Tooltip tooltipContent="Share with team" position="top">
-          <button className="bg-purple-500 rounded-sm px-4 py-2 text-13 text-on-color">Share</button>
+          <button className="bg-purple-500 rounded-lg px-4 py-2 text-13 text-on-color">Share</button>
         </Tooltip>
       </div>
     );
@@ -223,7 +223,7 @@ export const IconButtons: Story = {
     return (
       <div className="flex gap-2">
         <Tooltip tooltipContent="Edit" position="top">
-          <button className="hover:bg-gray-100 rounded-sm p-2">
+          <button className="hover:bg-gray-100 rounded-lg p-2">
             <svg
               className="text-gray-600 h-5 w-5"
               fill="none"
@@ -241,7 +241,7 @@ export const IconButtons: Story = {
           </button>
         </Tooltip>
         <Tooltip tooltipContent="Delete" position="top">
-          <button className="hover:bg-gray-100 rounded-sm p-2">
+          <button className="hover:bg-gray-100 rounded-lg p-2">
             <svg
               className="h-5 w-5 text-danger-primary"
               fill="none"
@@ -259,7 +259,7 @@ export const IconButtons: Story = {
           </button>
         </Tooltip>
         <Tooltip tooltipContent="Share" position="top">
-          <button className="hover:bg-gray-100 rounded-sm p-2">
+          <button className="hover:bg-gray-100 rounded-lg p-2">
             <svg
               className="text-blue-600 h-5 w-5"
               fill="none"
@@ -300,7 +300,7 @@ export const InFormField: Story = {
         </label>
         <input
           type="email"
-          className="border-gray-300 w-full rounded-sm border px-3 py-2 text-13"
+          className="border-gray-300 w-full rounded-lg border px-3 py-2 text-13"
           placeholder="you@example.com"
         />
       </div>

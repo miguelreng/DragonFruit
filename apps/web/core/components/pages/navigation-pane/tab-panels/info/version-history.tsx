@@ -53,7 +53,7 @@ const VersionHistoryItem = observer(function VersionHistoryItem(props: VersionHi
       {/* end timeline icon */}
       <Link
         href={getVersionLink(version.id)}
-        className={cn("block flex-1 rounded-md px-1 py-2 hover:bg-layer-transparent-hover", {
+        className={cn("block flex-1 rounded-lg px-1 py-2 hover:bg-layer-transparent-hover", {
           "bg-layer-transparent-selected hover:bg-layer-transparent-selected": isVersionActive,
         })}
       >
@@ -126,7 +126,7 @@ export const PageNavigationPaneInfoTabVersionHistory = observer(function PageNav
             {/* end timeline icon */}
             <Link
               href={getVersionLink()}
-              className={cn("flex-1 rounded-md bg-layer-transparent px-1 py-2 hover:bg-layer-transparent-hover", {
+              className={cn("flex-1 rounded-lg bg-layer-transparent px-1 py-2 hover:bg-layer-transparent-hover", {
                 "bg-layer-transparent-selected hover:bg-layer-transparent-selected": !activeVersion,
               })}
             >

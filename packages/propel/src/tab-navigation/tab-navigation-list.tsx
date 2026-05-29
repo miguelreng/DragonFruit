@@ -11,7 +11,7 @@ import type { TTabNavigationListProps } from "./tab-navigation-types";
 export function TabNavigationList({ children, className }: TTabNavigationListProps) {
   return (
     <LayoutGroup id="tab-navigation">
-      <div className={cn("relative flex items-center gap-1 rounded-md", className)}>{children}</div>
+      <div className={cn("relative flex items-center gap-1 rounded-lg", className)}>{children}</div>
     </LayoutGroup>
   );
 }

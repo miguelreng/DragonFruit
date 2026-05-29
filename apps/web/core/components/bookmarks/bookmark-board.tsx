@@ -190,7 +190,7 @@ function BookmarkForm(props: {
         <label className="block">
           <span className="mb-1.5 block text-11 font-medium text-secondary">Project</span>
           <select
-            className="focus:border-accent-primary h-10 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none disabled:cursor-not-allowed disabled:text-tertiary"
+            className="focus:border-accent-primary h-10 w-full rounded-lg border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none disabled:cursor-not-allowed disabled:text-tertiary"
             value={selectedProjectId}
             disabled={isEditing}
             onChange={(event) => setSelectedProjectId(event.target.value)}
@@ -207,7 +207,7 @@ function BookmarkForm(props: {
         <label className="block">
           <span className="mb-1.5 block text-11 font-medium text-secondary">Title</span>
           <input
-            className="focus:border-accent-primary h-10 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
+            className="focus:border-accent-primary h-10 w-full rounded-lg border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
             placeholder="Bookmark title"
             value={draft.title}
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
@@ -216,7 +216,7 @@ function BookmarkForm(props: {
         <label className="block">
           <span className="mb-1.5 block text-11 font-medium text-secondary">URL</span>
           <input
-            className="focus:border-accent-primary h-10 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
+            className="focus:border-accent-primary h-10 w-full rounded-lg border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
             placeholder="https://..."
             value={draft.url}
             onChange={(event) => setDraft({ ...draft, url: event.target.value })}
@@ -226,7 +226,7 @@ function BookmarkForm(props: {
       <label className="block">
         <span className="mb-1.5 block text-11 font-medium text-secondary">Note</span>
         <textarea
-          className="focus:border-accent-primary min-h-28 w-full resize-y rounded-md border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none"
+          className="focus:border-accent-primary min-h-28 w-full resize-y rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none"
           placeholder="Add context"
           value={draft.description}
           onChange={(event) => setDraft({ ...draft, description: event.target.value })}
@@ -235,7 +235,7 @@ function BookmarkForm(props: {
       <label className="block">
         <span className="mb-1.5 block text-11 font-medium text-secondary">Tags</span>
         <input
-          className="focus:border-accent-primary h-10 w-full rounded-md border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
+          className="focus:border-accent-primary h-10 w-full rounded-lg border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none"
           placeholder="Tags, separated by commas"
           value={draft.tags}
           onChange={(event) => setDraft({ ...draft, tags: event.target.value })}
@@ -245,14 +245,14 @@ function BookmarkForm(props: {
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex h-8 items-center gap-1 rounded-md px-3 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
+          className="inline-flex h-8 items-center gap-1 rounded-lg px-3 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
         >
           <HugeiconsIcon icon={CancelCircleIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           Cancel
         </button>
         <button
           type="submit"
-          className="inline-flex h-8 items-center gap-1 rounded-md bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90"
+          className="inline-flex h-8 items-center gap-1 rounded-lg bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90"
         >
           <HugeiconsIcon icon={PlusSignIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           {submitLabel}
@@ -289,7 +289,7 @@ function BookmarkFormModal(props: {
           <button
             type="button"
             onClick={onCancel}
-            className="grid size-7 shrink-0 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
+            className="grid size-7 shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
             aria-label="Close bookmark modal"
           >
             <HugeiconsIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
@@ -323,7 +323,7 @@ function BookmarkCard(props: {
           closeOnSelect
           useCaptureForOutsideClick
           customButton={
-            <span className="shadow-sm grid size-6 place-items-center rounded-md bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
+            <span className="shadow-sm grid size-6 place-items-center rounded-lg bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
               <HugeiconsIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
             </span>
           }
@@ -379,7 +379,7 @@ function BookmarkCard(props: {
             {hasTwitterScreenshot && (
               <button
                 type="button"
-                className="shadow-sm absolute top-2 right-2 grid size-7 place-items-center rounded-md border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
+                className="shadow-sm absolute top-2 right-2 grid size-7 place-items-center rounded-lg border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -464,12 +464,12 @@ function BookmarkListItem(props: {
         <div className="flex items-center gap-3 text-13 text-tertiary">
           <div className="flex items-center gap-1.5">
             {showProject && bookmark.project_name && (
-              <span className="rounded-sm bg-layer-1 px-1.5 py-0.5 text-11 text-secondary">
+              <span className="rounded-lg bg-layer-1 px-1.5 py-0.5 text-11 text-secondary">
                 {bookmark.project_name}
               </span>
             )}
             {bookmark.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="rounded-sm bg-layer-1 px-1.5 py-0.5 text-11 text-tertiary">
+              <span key={tag} className="rounded-lg bg-layer-1 px-1.5 py-0.5 text-11 text-tertiary">
                 {tag}
               </span>
             ))}
@@ -478,7 +478,7 @@ function BookmarkListItem(props: {
           {bookmark.updated_at && <span className="text-11">{renderFormattedDate(bookmark.updated_at)}</span>}
           <button
             type="button"
-            className="grid size-7 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
+            className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
             onClick={() => void navigator.clipboard?.writeText(href)}
             aria-label="Copy bookmark link"
           >
@@ -486,7 +486,7 @@ function BookmarkListItem(props: {
           </button>
           <button
             type="button"
-            className="grid size-7 place-items-center rounded-md text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
+            className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
             onClick={() => onEdit(bookmark)}
             aria-label="Edit bookmark"
           >
@@ -494,7 +494,7 @@ function BookmarkListItem(props: {
           </button>
           <button
             type="button"
-            className="hover:bg-red-500/10 hover:text-red-500 grid size-7 place-items-center rounded-md text-icon-tertiary"
+            className="hover:bg-red-500/10 hover:text-red-500 grid size-7 place-items-center rounded-lg text-icon-tertiary"
             onClick={() => onDelete(bookmark)}
             aria-label="Delete bookmark"
           >
@@ -518,7 +518,7 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
   ];
 
   return (
-    <div className="flex items-center gap-0.5 rounded-md border border-subtle p-0.5">
+    <div className="flex items-center gap-0.5 rounded-lg border border-subtle p-0.5">
       {options.map(({ value, icon, label }) => {
         const isActive = mode === value;
         return (
@@ -529,7 +529,7 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
             aria-pressed={isActive}
             onClick={() => onChange(value)}
             className={cn(
-              "grid size-6 place-items-center rounded-sm text-tertiary transition-colors hover:text-primary",
+              "grid size-6 place-items-center rounded-lg text-tertiary transition-colors hover:text-primary",
               { "bg-layer-1 text-primary": isActive }
             )}
           >
@@ -588,7 +588,7 @@ const BookmarkFilterSection = observer(function BookmarkFilterSection({
               value={projectSearch}
               onChange={(event) => setProjectSearch(event.target.value)}
               placeholder="Search projects"
-              className="w-full rounded-sm border border-subtle bg-canvas px-2 py-1 text-11 text-primary outline-none placeholder:text-placeholder"
+              className="w-full rounded-lg border border-subtle bg-canvas px-2 py-1 text-11 text-primary outline-none placeholder:text-placeholder"
             />
           </div>
           <div className="px-2 pb-2">

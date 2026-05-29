@@ -52,7 +52,7 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
           <div
             key={chartView?.key}
             className={cn(
-              "cursor-pointer rounded-md bg-layer-transparent p-1 px-2 text-11 hover:bg-layer-transparent-hover",
+              "cursor-pointer rounded-lg bg-layer-transparent p-1 px-2 text-11 hover:bg-layer-transparent-hover",
               {
                 "bg-layer-transparent-selected": currentView === chartView?.key,
               }
@@ -67,7 +67,7 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
       {showToday && (
         <button
           type="button"
-          className="rounded-md bg-layer-transparent p-1 px-2 text-11 hover:bg-layer-transparent-hover"
+          className="rounded-lg bg-layer-transparent p-1 px-2 text-11 hover:bg-layer-transparent-hover"
           onClick={handleToday}
         >
           {t("common.today")}
@@ -76,7 +76,7 @@ export const GanttChartHeader = observer(function GanttChartHeader(props: Props)
 
       <button
         type="button"
-        className="flex items-center justify-center rounded-md border border-subtle bg-layer-transparent p-1 transition-all hover:bg-layer-transparent-hover"
+        className="flex items-center justify-center rounded-lg border border-subtle bg-layer-transparent p-1 transition-all hover:bg-layer-transparent-hover"
         onClick={toggleFullScreenMode}
       >
         {fullScreenMode ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}

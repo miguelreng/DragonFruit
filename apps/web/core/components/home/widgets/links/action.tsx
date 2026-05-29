@@ -16,10 +16,10 @@ export function AddLink(props: TProps) {
 
   return (
     <button
-      className="btn btn-primary flex h-[56px] w-[230px] gap-4 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4"
+      className="btn btn-primary flex h-[56px] w-[230px] gap-4 rounded-lg border-[0.5px] border-subtle bg-surface-1 px-4"
       onClick={onClick}
     >
-      <div className="my-auto h-8 w-8 rounded-md bg-layer-1/40 p-2">
+      <div className="my-auto h-8 w-8 rounded-lg bg-layer-1/40 p-2">
         <PlusIcon className="h-4 w-4 stroke-2 text-tertiary" />
       </div>
       <div className="my-auto text-13 font-medium">{t("home.quick_links.add")}</div>

@@ -235,7 +235,7 @@ export const IssueDetailWidgetModals = observer(function IssueDetailWidgetModals
                     onChange={(e) => setRelationCustomLabel(e.target.value)}
                     placeholder={`Optional — name this ${relationLabel} (e.g. "Stakeholder")`}
                     maxLength={120}
-                    className="focus:border-primary flex-1 rounded-md border border-strong bg-transparent px-2 py-1 text-13 text-primary placeholder:text-placeholder focus:outline-none"
+                    className="focus:border-primary flex-1 rounded-lg border border-strong bg-transparent px-2 py-1 text-13 text-primary placeholder:text-placeholder focus:outline-none"
                   />
                 </label>
               }

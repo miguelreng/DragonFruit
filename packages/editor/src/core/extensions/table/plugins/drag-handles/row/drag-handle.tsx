@@ -229,7 +229,7 @@ export function RowDragHandle(props: RowDragHandleProps) {
           {...getReferenceProps()}
           type="button"
           onMouseDown={handleMouseDown}
-          className={cn("rounded-sm border border-strong-1 bg-layer-1 py-1 transition-all duration-200 outline-none", {
+          className={cn("rounded-lg border border-strong-1 bg-layer-1 py-1 transition-all duration-200 outline-none", {
             "border-accent-strong bg-accent-primary !opacity-100": isDropdownOpen,
             "hover:bg-layer-1-hover": !isDropdownOpen,
           })}
@@ -247,7 +247,7 @@ export function RowDragHandle(props: RowDragHandleProps) {
             lockScroll
           />
           <div
-            className="max-h-[90vh] w-[12rem] overflow-y-auto rounded-md border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 shadow-raised-200"
+            className="max-h-[90vh] w-[12rem] overflow-y-auto rounded-lg border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 shadow-raised-200"
             ref={refs.setFloating}
             {...getFloatingProps()}
             style={{

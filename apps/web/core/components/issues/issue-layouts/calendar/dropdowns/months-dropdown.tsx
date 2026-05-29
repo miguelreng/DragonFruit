@@ -107,7 +107,7 @@ export const CalendarMonthsDropdown = observer(function CalendarMonthsDropdown(p
             ref={setPopperElement}
             style={styles.popper}
             {...attributes.popper}
-            className="w-56 divide-y divide-subtle-1 rounded-sm border border-subtle bg-surface-1 p-3 shadow-raised-200"
+            className="w-56 divide-y divide-subtle-1 rounded-lg border border-subtle bg-surface-1 p-3 shadow-raised-200"
           >
             <div className="flex items-center justify-between gap-2 pb-3">
               <button
@@ -137,7 +137,7 @@ export const CalendarMonthsDropdown = observer(function CalendarMonthsDropdown(p
                 <button
                   key={month.shortTitle}
                   type="button"
-                  className="rounded-sm py-0.5 text-11 hover:bg-layer-1"
+                  className="rounded-lg py-0.5 text-11 hover:bg-layer-1"
                   onClick={() => {
                     const newDate = new Date(activeMonthDate.getFullYear(), index, 1);
                     handleDateChange(newDate);

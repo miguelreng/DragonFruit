@@ -119,7 +119,7 @@ export const PageTagsControl = observer(function PageTagsControl({ page }: Props
           key={tag}
           type="button"
           onClick={() => void handleRemoveTag(index)}
-          className="group hover:border-accent-primary inline-flex max-w-[96px] items-center gap-1 rounded-md border border-subtle-1 bg-layer-1 px-1.5 py-0.5 text-10 font-medium text-secondary transition-colors hover:text-primary"
+          className="group hover:border-accent-primary inline-flex max-w-[96px] items-center gap-1 rounded-lg border border-subtle-1 bg-layer-1 px-1.5 py-0.5 text-10 font-medium text-secondary transition-colors hover:text-primary"
           aria-label={`Remove ${tag} tag`}
         >
           <span className="truncate">{tag}</span>

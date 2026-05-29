@@ -147,7 +147,7 @@ export const HorizontalScroll: Story = {
       <ScrollArea className="h-32 w-96 rounded-lg border" orientation="horizontal">
         <div className="flex w-[1200px] gap-4 p-4">
           {[...Array(12)].map((_, i) => (
-            <div key={i} className="flex h-20 w-32 flex-shrink-0 items-center justify-center rounded-sm bg-layer-1">
+            <div key={i} className="flex h-20 w-32 flex-shrink-0 items-center justify-center rounded-lg bg-layer-1">
               Item {i + 1}
             </div>
           ))}
@@ -186,7 +186,7 @@ export const ListExample: Story = {
             {[...Array(25)].map((_, i) => (
               <div
                 key={i}
-                className="flex cursor-pointer items-center gap-3 rounded-sm bg-layer-1 p-3 hover:bg-surface-2"
+                className="flex cursor-pointer items-center gap-3 rounded-lg bg-layer-1 p-3 hover:bg-surface-2"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-primary font-medium text-on-color">
                   {String.fromCharCode(65 + (i % 26))}
@@ -289,7 +289,7 @@ export const DataTable: Story = {
                 <td className="px-4 py-2">user{i + 1}@example.com</td>
                 <td className="px-4 py-2">
                   <span
-                    className={`rounded-sm px-2 py-1 text-11 ${i % 3 === 0 ? "bg-success-primary text-success-primary" : "bg-gray-500/20 text-gray-500"}`}
+                    className={`rounded-lg px-2 py-1 text-11 ${i % 3 === 0 ? "bg-success-primary text-success-primary" : "bg-gray-500/20 text-gray-500"}`}
                   >
                     {i % 3 === 0 ? "Active" : "Inactive"}
                   </span>

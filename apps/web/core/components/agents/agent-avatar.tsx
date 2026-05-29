@@ -92,7 +92,7 @@ export function AgentAvatar({ seed, name, src, size = "base", showBadge = true, 
       {!hasImage && (
         <div
           className={cn(
-            "grid place-items-center rounded-sm font-semibold text-white select-none",
+            "grid place-items-center rounded-lg font-semibold text-white select-none",
             isNumericSize ? "h-full w-full text-[24px] leading-none" : fallbackNamedSizeClass
           )}
           style={{ backgroundColor: accent.bg }}

@@ -191,7 +191,7 @@ export const SubIssuesListItem = observer(function SubIssuesListItem(props: Prop
               <CustomMenu
                 placement="bottom-end"
                 customButton={<MoreHorizontal className="size-5" />}
-                customButtonClassName="relative grid size-7 place-items-center rounded-md p-1 text-secondary outline-none hover:bg-layer-transparent-hover hover:text-primary"
+                customButtonClassName="relative grid size-7 place-items-center rounded-lg p-1 text-secondary outline-none hover:bg-layer-transparent-hover hover:text-primary"
               >
                 {canEdit && (
                   <CustomMenu.MenuItem

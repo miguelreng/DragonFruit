@@ -74,7 +74,7 @@ export const StateItemTitle = observer(function StateItemTitle(props: TStateItem
           {/* state edit options */}
           <div className="flex items-center gap-1 transition-all">
             <button
-              className="flex h-5 w-5 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-sm text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+              className="flex h-5 w-5 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
               onClick={() => setUpdateStateModal(true)}
               data-ph-element={STATE_TRACKER_ELEMENTS.STATE_LIST_EDIT_BUTTON}
             >

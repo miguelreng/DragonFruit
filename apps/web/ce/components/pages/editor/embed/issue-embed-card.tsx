@@ -103,7 +103,7 @@ const RealEmbedCard = observer(function RealEmbedCard(props: {
   return (
     <div
       className={cn(
-        "not-prose flex w-full items-center gap-3 rounded-md border-[0.5px] border-subtle bg-surface-1 px-4 py-2 shadow-raised-100 transition-colors hover:border-strong hover:bg-surface-2"
+        "not-prose flex w-full items-center gap-3 rounded-lg border-[0.5px] border-subtle bg-surface-1 px-4 py-2 shadow-raised-100 transition-colors hover:border-strong hover:bg-surface-2"
       )}
     >
       <Link to={href} className="flex min-w-0 flex-1 items-center gap-3 no-underline">
@@ -181,7 +181,7 @@ function DraftEmbedCard(props: {
   return (
     <div
       className={cn(
-        "not-prose flex w-full items-start gap-3 rounded-md border-[0.5px] border-dashed border-strong bg-accent-subtle px-4 py-2.5 shadow-raised-100"
+        "not-prose flex w-full items-start gap-3 rounded-lg border-[0.5px] border-dashed border-strong bg-accent-subtle px-4 py-2.5 shadow-raised-100"
       )}
     >
       <Sparkles className="mt-0.5 size-4 shrink-0 text-accent-primary" />
@@ -199,7 +199,7 @@ function DraftEmbedCard(props: {
         disabled={!canCreate}
         onClick={() => void handleCreate()}
         className={cn(
-          "shrink-0 self-center rounded-md border-[0.5px] border-strong bg-layer-1 px-3 py-1 text-12 font-medium text-primary transition-colors hover:bg-layer-2",
+          "shrink-0 self-center rounded-lg border-[0.5px] border-strong bg-layer-1 px-3 py-1 text-12 font-medium text-primary transition-colors hover:bg-layer-2",
           !canCreate && "cursor-not-allowed opacity-50"
         )}
       >
@@ -223,7 +223,7 @@ function EmbedShell({ children, variant }: { children: React.ReactNode; variant:
   return (
     <div
       className={cn(
-        "flex w-full items-center rounded-md border-[0.5px] px-4 py-2.5 text-14 shadow-raised-100",
+        "flex w-full items-center rounded-lg border-[0.5px] px-4 py-2.5 text-14 shadow-raised-100",
         variant === "loading" && "border-subtle bg-surface-1 text-tertiary",
         variant === "error" && "border-subtle bg-surface-1 text-secondary"
       )}

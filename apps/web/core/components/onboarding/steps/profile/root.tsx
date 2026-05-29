@@ -224,7 +224,7 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
                 onChange={(e) => onChange(e.target.value)}
                 autoFocus
                 className={cn(
-                  "w-full rounded-md border border-strong bg-surface-1 px-3 py-2 text-secondary transition-all duration-200 placeholder:text-placeholder focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
+                  "w-full rounded-lg border border-strong bg-surface-1 px-3 py-2 text-secondary transition-all duration-200 placeholder:text-placeholder focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
                   {
                     "border-strong": !errors.first_name,
                     "border-danger-strong": errors.first_name,

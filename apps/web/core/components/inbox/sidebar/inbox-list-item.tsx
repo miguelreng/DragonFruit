@@ -101,7 +101,7 @@ export const InboxIssueListItem = observer(function InboxIssueListItem(props: In
               )}
 
               {issue.label_ids && issue.label_ids.length > 3 ? (
-                <div className="relative flex !h-[17.5px] items-center gap-1 rounded-sm border border-strong px-1 text-11">
+                <div className="relative flex !h-[17.5px] items-center gap-1 rounded-lg border border-strong px-1 text-11">
                   <span className="bg-orange-400 h-2 w-2 rounded-full" />
                   <span className="max-w-28 truncate normal-case">{`${issue.label_ids.length} labels`}</span>
                 </div>
@@ -113,7 +113,7 @@ export const InboxIssueListItem = observer(function InboxIssueListItem(props: In
                     return (
                       <div
                         key={labelId}
-                        className="relative flex !h-[17.5px] items-center gap-1 rounded-sm border border-strong px-1 text-11"
+                        className="relative flex !h-[17.5px] items-center gap-1 rounded-lg border border-strong px-1 text-11"
                       >
                         <span
                           className="h-2 w-2 rounded-full"

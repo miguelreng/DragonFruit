@@ -95,7 +95,7 @@ export function PageForm(props: Props) {
                 <button> would produce invalid nested-button markup. */}
             <CustomMenu
               customButton={
-                <div className="flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-md border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
+                <div className="flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
                   <span className="truncate">
                     {templates.find((template) => template.id === selectedTemplateId)?.name ?? "Blank page"}
                   </span>
@@ -129,9 +129,9 @@ export function PageForm(props: Props) {
             isOpen={isOpen}
             handleToggle={(val: boolean) => setIsOpen(val)}
             className="flex-shrink0 flex items-center justify-center"
-            buttonClassName="flex items-center justify-center bg-layer-2 hover:bg-layer-2-hover rounded-md"
+            buttonClassName="flex items-center justify-center bg-layer-2 hover:bg-layer-2-hover rounded-lg"
             label={
-              <span className="grid h-9 w-9 place-items-center rounded-md">
+              <span className="grid h-9 w-9 place-items-center rounded-lg">
                 <>
                   {formData?.logo_props?.in_use ? (
                     <Logo logo={formData?.logo_props} size={18} type="lucide" />

@@ -196,7 +196,7 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
                         <CustomSearchSelect
                           value={value}
                           customButton={
-                            <button className="shadow-sm flex w-full items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2 text-left text-13 text-secondary duration-300 hover:bg-layer-1 hover:text-primary focus:outline-none">
+                            <button className="shadow-sm flex w-full items-center justify-between gap-1 rounded-lg border border-subtle px-3 py-2 text-left text-13 text-secondary duration-300 hover:bg-layer-1 hover:text-primary focus:outline-none">
                               {value && value !== "" ? (
                                 <div className="flex items-center gap-2">
                                   <Avatar
@@ -245,7 +245,7 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
                         <CustomSelect
                           {...field}
                           customButton={
-                            <div className="shadow-sm flex w-24 items-center justify-between gap-1 rounded-md border border-subtle px-3 py-2.5 text-left text-13 text-secondary duration-300 hover:bg-layer-1 hover:text-primary focus:outline-none">
+                            <div className="shadow-sm flex w-24 items-center justify-between gap-1 rounded-lg border border-subtle px-3 py-2.5 text-left text-13 text-secondary duration-300 hover:bg-layer-1 hover:text-primary focus:outline-none">
                               <span className="capitalize">{field.value ? ROLE[field.value] : "Select role"}</span>
                               <ChevronDownIcon className="h-3 w-3" aria-hidden="true" />
                             </div>
@@ -275,7 +275,7 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
                     <div className="flex-item flex w-6">
                       <button
                         type="button"
-                        className="place-items-center self-center rounded-sm"
+                        className="place-items-center self-center rounded-lg"
                         onClick={() => remove(index)}
                       >
                         <CloseIcon className="h-4 w-4 text-secondary" />

@@ -33,7 +33,7 @@ export const InboxIssueAppliedFiltersState = observer(function InboxIssueApplied
         const optionDetail = currentOptionDetail(value);
         if (!optionDetail) return <></>;
         return (
-          <div key={value} className="relative flex items-center gap-1 rounded-sm bg-layer-1 p-1 text-11">
+          <div key={value} className="relative flex items-center gap-1 rounded-lg bg-layer-1 p-1 text-11">
             <div className="relative flex h-3 w-3 flex-shrink-0 items-center justify-center overflow-hidden">
               <StateGroupIcon color={optionDetail.color} stateGroup={optionDetail.group} size={EIconSize.SM} />
             </div>

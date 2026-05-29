@@ -62,7 +62,7 @@ function ProjectCommonAttributes(props: Props) {
                 className="flex items-center justify-center"
                 buttonClassName="flex items-center justify-center"
                 label={
-                  <span className="grid h-9 w-9 place-items-center rounded-md border border-subtle bg-layer-2">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg border border-subtle bg-layer-2">
                     <Logo logo={value} size={16} />
                   </span>
                 }

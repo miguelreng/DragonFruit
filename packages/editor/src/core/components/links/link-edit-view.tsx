@@ -27,7 +27,7 @@ function InputView({ label, value, placeholder, onChange, autoFocus }: InputView
       <input
         placeholder={placeholder}
         onClick={(e) => e.stopPropagation()}
-        className="w-[280px] rounded-md border border-strong bg-layer-1 p-2 text-13 text-primary outline-none"
+        className="w-[280px] rounded-lg border border-strong bg-layer-1 p-2 text-13 text-primary outline-none"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         autoFocus={autoFocus}
@@ -138,7 +138,7 @@ export function LinkEditView({ viewProps }: LinkEditViewProps) {
   return (
     <div
       onKeyDown={handleKeyDown}
-      className="shadow-md animate-in fade-in flex translate-y-1 flex-col gap-3 rounded-sm border-2 border-subtle bg-layer-1 p-2"
+      className="shadow-md animate-in fade-in flex translate-y-1 flex-col gap-3 rounded-lg border-2 border-subtle bg-layer-1 p-2"
       style={{
         transition: "all 0.1s cubic-bezier(.55, .085, .68, .53)",
       }}

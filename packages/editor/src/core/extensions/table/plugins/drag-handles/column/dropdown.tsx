@@ -75,7 +75,7 @@ export function ColumnOptionsDropdown(props: Props) {
     <>
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 text-left text-11 text-secondary hover:bg-layer-1"
+        className="flex w-full items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 text-left text-11 text-secondary hover:bg-layer-1"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -92,7 +92,7 @@ export function ColumnOptionsDropdown(props: Props) {
         <button
           key={item.key}
           type="button"
-          className="flex w-full items-center gap-2 truncate rounded-sm px-1 py-1.5 text-left text-11 text-secondary hover:bg-layer-1"
+          className="flex w-full items-center gap-2 truncate rounded-lg px-1 py-1.5 text-left text-11 text-secondary hover:bg-layer-1"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

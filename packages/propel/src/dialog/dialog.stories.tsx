@@ -34,7 +34,7 @@ const meta = {
       <>
         <button
           onClick={() => setOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color"
+          className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-on-color"
         >
           Open Dialog
         </button>
@@ -49,13 +49,13 @@ const meta = {
                 <div className="mt-6 flex justify-end gap-2">
                   <button
                     onClick={() => setOpen(false)}
-                    className="bg-gray-200 hover:bg-gray-300 rounded-sm px-4 py-2 text-13"
+                    className="bg-gray-200 hover:bg-gray-300 rounded-lg px-4 py-2 text-13"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={() => setOpen(false)}
-                    className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-13 text-on-color"
+                    className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-13 text-on-color"
                   >
                     Confirm
                   </button>
@@ -85,7 +85,7 @@ export const TopPosition: Story = {
       <>
         <button
           onClick={() => setOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color"
+          className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-on-color"
         >
           Open Dialog (Top)
         </button>
@@ -102,7 +102,7 @@ export const TopPosition: Story = {
                 <div className="mt-6 flex justify-end gap-2">
                   <button
                     onClick={() => setOpen(false)}
-                    className="bg-gray-200 hover:bg-gray-300 rounded-sm px-4 py-2 text-13"
+                    className="bg-gray-200 hover:bg-gray-300 rounded-lg px-4 py-2 text-13"
                   >
                     Close
                   </button>
@@ -123,7 +123,7 @@ export const SmallWidth: Story = {
       <>
         <button
           onClick={() => setOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color"
+          className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-on-color"
         >
           Open Small Dialog
         </button>
@@ -138,7 +138,7 @@ export const SmallWidth: Story = {
                 <div className="mt-6 flex justify-end">
                   <button
                     onClick={() => setOpen(false)}
-                    className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-13 text-on-color"
+                    className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-13 text-on-color"
                   >
                     Close
                   </button>
@@ -159,7 +159,7 @@ export const LargeWidth: Story = {
       <>
         <button
           onClick={() => setOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color"
+          className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-on-color"
         >
           Open Large Dialog
         </button>
@@ -176,7 +176,7 @@ export const LargeWidth: Story = {
                 <div className="mt-6 flex justify-end">
                   <button
                     onClick={() => setOpen(false)}
-                    className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-13 text-on-color"
+                    className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-13 text-on-color"
                   >
                     Close
                   </button>
@@ -197,7 +197,7 @@ export const WithCloseButton: Story = {
       <>
         <button
           onClick={() => setOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color"
+          className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-on-color"
         >
           Open Dialog with Close Button
         </button>
@@ -234,7 +234,7 @@ export const ConfirmationDialog: Story = {
       <>
         <button
           onClick={() => setOpen(true)}
-          className="bg-red-500 hover:bg-red-600 rounded-sm px-4 py-2 text-on-color"
+          className="bg-red-500 hover:bg-red-600 rounded-lg px-4 py-2 text-on-color"
         >
           Delete Item
         </button>
@@ -251,13 +251,13 @@ export const ConfirmationDialog: Story = {
                 <div className="mt-6 flex justify-end gap-2">
                   <button
                     onClick={() => setOpen(false)}
-                    className="bg-gray-200 hover:bg-gray-300 rounded-sm px-4 py-2 text-13"
+                    className="bg-gray-200 hover:bg-gray-300 rounded-lg px-4 py-2 text-13"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleConfirm}
-                    className="bg-red-500 hover:bg-red-600 rounded-sm px-4 py-2 text-13 text-on-color"
+                    className="bg-red-500 hover:bg-red-600 rounded-lg px-4 py-2 text-13 text-on-color"
                   >
                     Delete
                   </button>
@@ -283,7 +283,7 @@ export const FormDialog: Story = {
       <>
         <button
           onClick={() => setOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color"
+          className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-on-color"
         >
           Open Form
         </button>
@@ -300,7 +300,7 @@ export const FormDialog: Story = {
                     <input
                       type="text"
                       id="name"
-                      className="border-gray-300 mt-1 w-full rounded-sm border px-3 py-2 text-13"
+                      className="border-gray-300 mt-1 w-full rounded-lg border px-3 py-2 text-13"
                       placeholder="Enter name"
                     />
                   </div>
@@ -311,7 +311,7 @@ export const FormDialog: Story = {
                     <textarea
                       id="description"
                       rows={3}
-                      className="border-gray-300 mt-1 w-full rounded-sm border px-3 py-2 text-13"
+                      className="border-gray-300 mt-1 w-full rounded-lg border px-3 py-2 text-13"
                       placeholder="Enter description"
                     />
                   </div>
@@ -320,13 +320,13 @@ export const FormDialog: Story = {
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="bg-gray-200 hover:bg-gray-300 rounded-sm px-4 py-2 text-13"
+                    className="bg-gray-200 hover:bg-gray-300 rounded-lg px-4 py-2 text-13"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-13 text-on-color"
+                    className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-13 text-on-color"
                   >
                     Create
                   </button>
@@ -347,7 +347,7 @@ export const ScrollableContent: Story = {
       <>
         <button
           onClick={() => setOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-on-color"
+          className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-on-color"
         >
           Open Scrollable Dialog
         </button>
@@ -367,7 +367,7 @@ export const ScrollableContent: Story = {
                 <div className="mt-6 flex justify-end">
                   <button
                     onClick={() => setOpen(false)}
-                    className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-13 text-on-color"
+                    className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-13 text-on-color"
                   >
                     Close
                   </button>
@@ -401,7 +401,7 @@ export const AllWidths: Story = {
           <button
             key={width}
             onClick={() => setOpenWidth(width)}
-            className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-13 text-on-color"
+            className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-13 text-on-color"
           >
             {label}
           </button>
@@ -417,7 +417,7 @@ export const AllWidths: Story = {
                 <div className="mt-6 flex justify-end">
                   <button
                     onClick={() => setOpenWidth(null)}
-                    className="bg-blue-500 hover:bg-blue-600 rounded-sm px-4 py-2 text-13 text-on-color"
+                    className="bg-blue-500 hover:bg-blue-600 rounded-lg px-4 py-2 text-13 text-on-color"
                   >
                     Close
                   </button>

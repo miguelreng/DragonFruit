@@ -94,7 +94,7 @@ function BorderButton(props: ButtonProps) {
         variant="ghost"
         size="sm"
         className={cn(
-          "flex h-full w-full items-center justify-start gap-1.5 rounded-md border-[0.5px] border-transparent transition-colors hover:bg-layer-1",
+          "flex h-full w-full items-center justify-start gap-1.5 rounded-lg border-[0.5px] border-transparent transition-colors hover:bg-layer-1",
           {
             "bg-layer-1": isActive,
           },
