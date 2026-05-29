@@ -246,21 +246,24 @@ export function BlockCommentFloating(props: Props) {
       // above the editor's own floating menus (which sit at z<=10).
       style={{ ...styles.popper, zIndex: 50 }}
       {...attributes.popper}
-      className={cn("w-96 max-w-[90vw] rounded-lg border-[0.5px] border-strong bg-surface-1 shadow-raised-200")}
+      className={cn("w-96 max-w-[90vw] rounded-2xl border-[0.5px] border-strong bg-surface-1 shadow-raised-200")}
     >
-      <div className="flex items-center justify-between border-b border-subtle px-3 py-2">
-        <div className="text-caption-md-medium text-primary">
-          {isEmptyThread ? "Add comment" : tops.length === 1 ? "Comment" : "Comments"}
+      {/* The empty "add comment" state needs no header — the placeholder says
+          it, and Esc / click-away both dismiss. Headers only add context once
+          there's an actual thread to label. */}
+      {!isEmptyThread && (
+        <div className="flex items-center justify-between border-b border-subtle px-3 py-2">
+          <div className="text-caption-md-medium text-primary">{tops.length === 1 ? "Comment" : "Comments"}</div>
+          <button
+            type="button"
+            onClick={() => onClose()}
+            className="rounded p-1 text-tertiary hover:bg-layer-2 hover:text-primary"
+            aria-label="Close"
+          >
+            <X className="size-3.5" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => (isEmptyThread ? onCancelEmpty() : onClose())}
-          className="rounded p-1 text-tertiary hover:bg-layer-2 hover:text-primary"
-          aria-label="Close"
-        >
-          <X className="size-3.5" />
-        </button>
-      </div>
+      )}
 
       <div className="flex max-h-[60vh] flex-col overflow-y-auto">
         {loading && <div className="px-3 py-2 text-12 text-tertiary">Loading…</div>}
@@ -300,7 +303,7 @@ export function BlockCommentFloating(props: Props) {
       </div>
 
       <div
-        className="border-t border-subtle px-3 py-2"
+        className={cn("px-3 py-2", !isEmptyThread && "border-t border-subtle")}
         // `role="presentation"` because the div itself isn't
         // interactive — it just catches Enter that bubbles up from
         // the editor. The actual interactive element is the LiteText
@@ -359,15 +362,14 @@ export function BlockCommentFloating(props: Props) {
         ) : null}
         <div className="mt-2 flex items-center justify-between">
           <span className="text-11 text-tertiary">
-            <span className="font-medium">@</span> to mention · <span className="font-medium">Enter</span> to post ·{" "}
-            <span className="font-medium">Shift+Enter</span> for newline
+            <span className="font-medium">Enter</span> to post
           </span>
           <button
             type="button"
             onClick={() => void handlePost()}
             disabled={saving || draftEmpty}
             className={cn(
-              "text-on-accent-primary inline-flex items-center gap-1.5 rounded bg-accent-primary px-2.5 py-1 text-12 font-medium",
+              "text-on-accent-primary inline-flex items-center gap-1.5 rounded-lg bg-accent-primary px-3 py-1 text-12 font-medium",
               (saving || draftEmpty) && "cursor-not-allowed opacity-60"
             )}
           >

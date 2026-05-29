@@ -145,8 +145,16 @@ const mapChatMessageToDocMessage = (message: TAgentChatMessage): TDocChatMessage
 };
 
 function isEditorWritingRequest(text: string): boolean {
-  if (/\b(create|make|add)\b.{0,80}\b(page|doc|document|task|work item|sticky|note)\b/i.test(text)) return false;
-  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into)\b/i.test(
+  // Creating a brand-new page/doc/task/note routes to the create_* tools, not inline editing.
+  if (
+    /\b(create|make|add|crea|crear|nuev[ao]|new)\b.{0,80}\b(page|doc|document|task|work item|sticky|note|p[áa]gina|documento|tarea|nota)\b/i.test(
+      text
+    )
+  )
+    return false;
+  // Writing OR editing the current document (EN + ES) — kept broad on purpose so
+  // "update my doc / actualiza el documento / amplía / continúa…" all land inline.
+  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
     text
   );
 }
@@ -274,6 +282,8 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   const [context, setContext] = useState<InvokeDetail>({});
   const [mode, setMode] = useState<TAIMode>("quick-ask");
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
+  const [pendingProposals, setPendingProposals] = useState(0);
+  const [isDrafting, setIsDrafting] = useState(false);
   const detailRef = useRef<InvokeDetail>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -307,6 +317,19 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages]);
+
+  // Track how many Atlas proposals are still awaiting review so the bar can
+  // surface bulk Accept all / Reject all only while there's something pending.
+  useEffect(() => {
+    if (!activePageEditorRef) {
+      setPendingProposals(0);
+      return;
+    }
+    const sync = () => setPendingProposals(activePageEditorRef.getActiveAtlasProposalCount());
+    sync();
+    const unsubscribe = activePageEditorRef.onStateChange?.(sync);
+    return () => unsubscribe?.();
+  }, [activePageEditorRef]);
 
   useEffect(() => {
     if (!workspaceSlug || !projectId || !pageId) return;
@@ -359,6 +382,10 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   const activeMode = AI_MODES.find((entry) => entry.id === mode) ?? AI_MODES[0]!;
   const ActiveModeIcon = activeMode.Icon;
   const shouldShowConversationLoader = isLoadingSession && messages.length === 0;
+  // Live hint: when what's typed reads as a doc-writing action (and there's a
+  // page to write into), the mode chip flips to "Writing" so the user knows it
+  // will land in the document rather than answer in chat.
+  const isWriteIntent = Boolean(activePageEditorRef) && isEditorWritingRequest(prompt.trim());
 
   const handleSubmit = useCallback(async () => {
     const trimmed = prompt.trim();
@@ -378,6 +405,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
       const shouldWriteIntoEditor = Boolean(activePageEditorRef && isEditorWritingRequest(trimmed));
 
       if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
+        setIsDrafting(true);
         await streamDocReview({
           activePageEditorRef,
           pageId,
@@ -449,6 +477,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
       setPrompt(trimmed);
     } finally {
       setIsSending(false);
+      setIsDrafting(false);
     }
   }, [activeMode, activePageEditorRef, contextText, mode, pageId, projectId, prompt, session, workspaceSlug]);
 
@@ -463,7 +492,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
         />
         <div className="relative mx-auto flex w-full max-w-2xl flex-col items-stretch gap-2">
           <div className="relative">
-            <div className="pointer-events-auto flex max-h-[12vh] flex-col gap-1.5 overflow-y-auto px-1 pt-3 pb-1">
+            <div className="pointer-events-auto flex max-h-[12vh] flex-col gap-1.5 overflow-y-auto px-1 pt-4 pb-1 [box-shadow:inset_0_18px_14px_-12px_rgba(255,255,255,0.95)]">
               {shouldShowConversationLoader ? (
                 <div className="mr-auto flex max-w-[78%] items-center gap-2 rounded-full border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
                   <Loader className="flex items-center gap-1.5">
@@ -531,6 +560,15 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                   );
                 })
               )}
+              {isSending && !isDrafting && (
+                <div className="ml-auto flex max-w-[85%] items-center gap-2 rounded-2xl border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
+                  <Loader className="flex items-center gap-1.5">
+                    <Loader.Item className="rounded-full" width="5px" height="5px" />
+                    <Loader.Item className="rounded-full" width="5px" height="5px" />
+                    <Loader.Item className="rounded-full" width="5px" height="5px" />
+                  </Loader>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
             {messages.length > 1 && (
@@ -550,6 +588,36 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 bg-gradient-to-b from-surface-1/0 via-surface-1/35 to-surface-1/90"
             />
+            {isDrafting ? (
+              <div className="relative mb-1 flex items-center gap-2 border-b border-subtle pb-1.5">
+                <span className="text-[11px] text-tertiary">Atlas is drafting</span>
+                <span className="flex items-center gap-0.5">
+                  <span className="size-1 animate-bounce rounded-full bg-accent-primary" />
+                  <span className="size-1 animate-bounce rounded-full bg-accent-primary [animation-delay:0.15s]" />
+                  <span className="size-1 animate-bounce rounded-full bg-accent-primary [animation-delay:0.3s]" />
+                </span>
+              </div>
+            ) : pendingProposals > 0 ? (
+              <div className="relative mb-1 flex items-center gap-2 border-b border-subtle pb-1.5">
+                <span className="min-w-0 flex-1 truncate text-[11px] text-tertiary">
+                  {pendingProposals} {pendingProposals === 1 ? "edit" : "edits"} awaiting review
+                </span>
+                <button
+                  type="button"
+                  onClick={() => activePageEditorRef?.acceptAllAtlasProposals()}
+                  className="inline-flex h-6 shrink-0 items-center rounded-full bg-accent-primary px-2.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90"
+                >
+                  Accept all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => activePageEditorRef?.rejectAllAtlasProposals()}
+                  className="inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                >
+                  Reject all
+                </button>
+              </div>
+            ) : null}
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -581,8 +649,8 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                     onClick={() => setIsModeMenuOpen((current) => !current)}
                     className="inline-flex items-center gap-1 rounded-full px-0.5 py-0 text-[12px] text-accent-primary transition-opacity hover:opacity-80"
                   >
-                    <ActiveModeIcon className="size-2" />
-                    <span className="font-medium">{activeMode.label}</span>
+                    {isWriteIntent ? <PenTool className="size-2" /> : <ActiveModeIcon className="size-2" />}
+                    <span className="font-medium">{isWriteIntent ? "Writing" : activeMode.label}</span>
                     <ChevronDown className="size-2" />
                   </button>
                   {isModeMenuOpen && (

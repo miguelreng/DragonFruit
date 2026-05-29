@@ -839,8 +839,16 @@ function ChatThread(props: {
 }
 
 function isEditorWritingRequest(text: string): boolean {
-  if (/\b(create|make|add)\b.{0,80}\b(page|doc|document|task|work item|sticky|note)\b/i.test(text)) return false;
-  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into)\b/i.test(
+  // Creating a brand-new page/doc/task/note routes to the create_* tools, not inline editing.
+  if (
+    /\b(create|make|add|crea|crear|nuev[ao]|new)\b.{0,80}\b(page|doc|document|task|work item|sticky|note|p[áa]gina|documento|tarea|nota)\b/i.test(
+      text
+    )
+  )
+    return false;
+  // Writing OR editing the current document (EN + ES) — kept broad on purpose so
+  // "update my doc / actualiza el documento / amplía / continúa…" all land inline.
+  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
     text
   );
 }
