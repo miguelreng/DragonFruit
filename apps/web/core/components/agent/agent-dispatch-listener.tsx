@@ -463,7 +463,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
         />
         <div className="relative mx-auto flex w-full max-w-2xl flex-col items-stretch gap-2">
           <div className="relative">
-            <div className="pointer-events-auto flex max-h-[24vh] flex-col gap-1.5 overflow-y-auto px-1 pt-3 pb-1">
+            <div className="pointer-events-auto flex max-h-[12vh] flex-col gap-1.5 overflow-y-auto px-1 pt-3 pb-1">
               {shouldShowConversationLoader ? (
                 <div className="mr-auto flex max-w-[78%] items-center gap-2 rounded-full border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
                   <Loader className="flex items-center gap-1.5">
