@@ -42,7 +42,7 @@ export const meta = () => [
     property: "og:description",
     content: SITE_DESCRIPTION,
   },
-  { property: "og:url", content: "https://dragonfruit.app/" },
+  { property: "og:url", content: "https://app.dragonfruit.sh/" },
   { property: "og:image", content: ogLandingImage },
   { property: "og:image:width", content: "1200" },
   { property: "og:image:height", content: "630" },

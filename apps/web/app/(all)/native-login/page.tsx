@@ -52,12 +52,24 @@ function extractApiTokenFromHtml(html: string) {
   return callbackMatch ? extractApiToken(callbackMatch[0]) : "";
 }
 
+// Send the user through the normal web sign-in and return here afterwards so the
+// extension handoff can complete once a session exists. `relogin=1` marks the
+// return trip so a session that still can't mint a token shows an error instead
+// of bouncing back to login forever.
+function redirectToWebLogin(callback: string) {
+  const returnPath = `/native-login?relogin=1&callback=${encodeURIComponent(callback)}`;
+  const loginUrl = new URL("/", window.location.origin);
+  loginUrl.searchParams.set("next_path", returnPath);
+  window.location.assign(loginUrl.toString());
+}
+
 export default function NativeLoginPage() {
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const callback = searchParams.get("callback");
+    const hasAttemptedLogin = searchParams.get("relogin") === "1";
     if (!callback) {
       setError("Missing native login callback.");
       return;
@@ -86,6 +98,15 @@ export default function NativeLoginPage() {
           credentials: "include",
           headers: { Accept: "application/json" },
         });
+
+        // A logged-out session makes the API redirect this fetch to the web
+        // sign-in page rather than returning a token. Send the user through the
+        // normal login and come back here to finish the handoff.
+        if (response.redirected || response.status === 401 || response.status === 403) {
+          if (hasAttemptedLogin) throw new Error("Sign in to DragonFruit, then connect the extension again.");
+          redirectToWebLogin(callback);
+          return;
+        }
         if (!response.ok) throw new Error(`Token handoff failed: ${response.status}`);
         let apiToken = "";
         if (response.headers.get("content-type")?.includes("application/json")) {
@@ -94,7 +115,11 @@ export default function NativeLoginPage() {
         } else {
           apiToken = extractApiToken(response.url) || extractApiTokenFromHtml(await response.text());
         }
-        if (!apiToken) throw new Error("Token handoff did not return an API token.");
+        if (!apiToken) {
+          if (hasAttemptedLogin) throw new Error("Token handoff did not return an API token.");
+          redirectToWebLogin(callback);
+          return;
+        }
 
         const chromeRuntime = (
           window as unknown as {

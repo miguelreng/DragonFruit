@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateA
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import type { EditorRefApi } from "@plane/editor";
-import { ChevronDown, FileText, ListChecks, PenTool, Plus, Sparkles } from "@plane/icons";
+import { ChevronDown, Eraser, FileText, ListChecks, PenTool, Plus, Sparkles } from "@plane/icons";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { Loader } from "@plane/ui";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
@@ -145,16 +145,13 @@ const mapChatMessageToDocMessage = (message: TAgentChatMessage): TDocChatMessage
 };
 
 function isEditorWritingRequest(text: string): boolean {
-  // Creating a brand-new page/doc/task/note routes to the create_* tools, not inline editing.
-  if (
-    /\b(create|make|add|crea|crear|nuev[ao]|new)\b.{0,80}\b(page|doc|document|task|work item|sticky|note|p[áa]gina|documento|tarea|nota)\b/i.test(
-      text
-    )
-  )
+  // Only brand-new task/sticky/note creation routes to the create_* tools. In a
+  // doc, "crea/create … (an essay, a doc, a section)" means write content inline.
+  if (/\b(create|make|add|crea|crear|nuev[ao]|new)\b.{0,80}\b(task|work item|sticky|note|tarea|nota)\b/i.test(text))
     return false;
   // Writing OR editing the current document (EN + ES) — kept broad on purpose so
-  // "update my doc / actualiza el documento / amplía / continúa…" all land inline.
-  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
+  // "create/crea … / update my doc / actualiza el documento / amplía / continúa…" all land inline.
+  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into|create|make|crea\b|crear\w*|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
     text
   );
 }
@@ -284,6 +281,8 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
   const [pendingProposals, setPendingProposals] = useState(0);
   const [isDrafting, setIsDrafting] = useState(false);
+  // Two-step inline confirm for the destructive "clear conversation".
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const detailRef = useRef<InvokeDetail>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -341,6 +340,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
       setSession(null);
       setMessages([]);
       setPrompt("");
+      setConfirmingClear(false);
 
       try {
         const created = await agentChatService.createSession(workspaceSlug!, {
@@ -481,6 +481,42 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     }
   }, [activeMode, activePageEditorRef, contextText, mode, pageId, projectId, prompt, session, workspaceSlug]);
 
+  // Clear conversation — destructive. The chat messages go away for good
+  // but whatever Atlas wrote lives in the document, so the result stays.
+  // Page sessions are get-or-create by page, so we must delete the old
+  // session *before* recreating, otherwise the create would just return
+  // the same (still-undeleted) session.
+  const handleClearConversation = useCallback(async () => {
+    if (!workspaceSlug || !projectId || !pageId) return;
+    // Keep the result: bake any still-pending Atlas edits into the doc.
+    if (activePageEditorRef && activePageEditorRef.getActiveAtlasProposalCount() > 0) {
+      activePageEditorRef.acceptAllAtlasProposals();
+    }
+    const previous = session;
+    setConfirmingClear(false);
+    setMessages([]);
+    setSession(null);
+    setIsLoadingSession(true);
+    try {
+      if (previous) await agentChatService.deleteSession(workspaceSlug, previous.id);
+      const created = await agentChatService.createSession(workspaceSlug, {
+        scope_type: "page",
+        page_id: pageId,
+        project_id: projectId,
+      });
+      setSession(created);
+    } catch (err) {
+      const response = err as { error?: string; detail?: string };
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't clear the conversation",
+        message: response?.error || response?.detail || "Try again.",
+      });
+    } finally {
+      setIsLoadingSession(false);
+    }
+  }, [activePageEditorRef, pageId, projectId, session, workspaceSlug]);
+
   if (!workspaceSlug || !projectId || !pageId) return null;
 
   return (
@@ -577,16 +613,52 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                 className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-surface-1/0 via-surface-1/50 to-transparent"
               />
             )}
+            {messages.length > 0 && !shouldShowConversationLoader && (
+              <div className="pointer-events-auto absolute top-0 right-1 z-10">
+                {confirmingClear ? (
+                  <div className="flex items-center gap-0.5 rounded-full border border-subtle bg-surface-1 py-0.5 pr-0.5 pl-2 shadow-raised-100">
+                    <span className="text-[11px] text-tertiary">Clear chat?</span>
+                    <button
+                      type="button"
+                      onClick={() => void handleClearConversation()}
+                      className="rounded-full px-2 py-0.5 text-[11px] font-medium text-danger-primary transition-colors hover:bg-layer-1"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingClear(false)}
+                      className="rounded-full px-2 py-0.5 text-[11px] text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingClear(true)}
+                    className="grid size-6 place-items-center rounded-full border border-subtle bg-surface-1 text-tertiary shadow-raised-100 transition-colors hover:text-primary"
+                    aria-label="Clear conversation"
+                    title="Clear conversation"
+                  >
+                    <Eraser className="size-3" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div
             role="presentation"
             onMouseDown={(e) => e.stopPropagation()}
-            className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto relative w-full overflow-hidden rounded-[18px] border border-subtle bg-surface-1/72 px-3 py-1.5 shadow-raised-200 backdrop-blur-sm duration-150"
+            className="animate-in fade-in slide-in-from-bottom-2 pointer-events-auto relative w-full rounded-[18px] border border-subtle bg-surface-1/72 px-3 py-1.5 shadow-raised-200 backdrop-blur-sm duration-150"
           >
+            {/* Gradient carries its own rounding so the bar itself can stay
+                overflow-visible — otherwise the mode menu (which opens upward
+                with `bottom-full`) gets clipped at the bar's top edge. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-surface-1/0 via-surface-1/35 to-surface-1/90"
+              className="pointer-events-none absolute inset-0 rounded-[18px] bg-gradient-to-b from-surface-1/0 via-surface-1/35 to-surface-1/90"
             />
             {isDrafting ? (
               <div className="relative mb-1 flex items-center gap-2 border-b border-subtle pb-1.5">
@@ -647,11 +719,13 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                   <button
                     type="button"
                     onClick={() => setIsModeMenuOpen((current) => !current)}
-                    className="inline-flex items-center gap-1 rounded-full px-0.5 py-0 text-[12px] text-accent-primary transition-opacity hover:opacity-80"
+                    className={`inline-flex items-center gap-1 rounded-full px-0.5 py-0 text-[12px] transition-opacity hover:opacity-80 ${
+                      isWriteIntent ? "text-accent-primary" : "text-tertiary"
+                    }`}
                   >
-                    {isWriteIntent ? <PenTool className="size-2" /> : <ActiveModeIcon className="size-2" />}
+                    {isWriteIntent ? <PenTool className="size-3.5" /> : <ActiveModeIcon className="size-3.5" />}
                     <span className="font-medium">{isWriteIntent ? "Writing" : activeMode.label}</span>
-                    <ChevronDown className="size-2" />
+                    <ChevronDown className="size-3" />
                   </button>
                   {isModeMenuOpen && (
                     <div className="absolute bottom-full left-0 mb-1.5 min-w-36 rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">

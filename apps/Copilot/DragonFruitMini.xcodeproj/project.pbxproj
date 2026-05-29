@@ -13,10 +13,10 @@
 		111111111111111111111103 /* buddy-completed.svg in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111203 /* buddy-completed.svg */; };
 		111111111111111111111104 /* buddy-x.svg in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111204 /* buddy-x.svg */; };
 		111111111111111111111105 /* dragon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111205 /* dragon.svg */; };
-		AB12CD34EF56AB78CD90EF12 /* app.svg in Resources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF56AB78CD90EF13 /* app.svg */; };
 		3E1A709007F535923319A43A /* MeetingPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B84AE484ECA88FD34BA5FAF /* MeetingPopoverView.swift */; };
 		83B6E3B23A1E4AA807EB8806 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B45BE7E39368D6CF23462F3 /* APIClient.swift */; };
 		A0FA574165E93ABF1AA26DF8 /* MeetingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45C192477CB1E48F5FD50A5B /* MeetingStore.swift */; };
+		AB12CD34EF56AB78CD90EF12 /* app.svg in Resources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF56AB78CD90EF13 /* app.svg */; };
 		B6D9E83BBC52544321FF719A /* icon-white.svg in Resources */ = {isa = PBXBuildFile; fileRef = 9CD03C888FBE7A8C2B5472C1 /* icon-white.svg */; };
 		B84006C53657D2C4554A2C72 /* DragonFruitMiniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524259350CB3D5744DA747A2 /* DragonFruitMiniApp.swift */; };
 		C11111111111111111111111 /* logo.svg in Resources */ = {isa = PBXBuildFile; fileRef = C22222222222222222222222 /* logo.svg */; };
@@ -26,16 +26,16 @@
 		EE6671AF86A63012AD284866 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B04CD6FAED4D3BFBB42E3F /* Cocoa.framework */; };
 		F198E166AA247FD55AD7E659 /* Figtree-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 651B4B6B23FAB0DE26FAB0D6 /* Figtree-Variable.ttf */; };
 		F4925D11B2F718172A481BCB /* BrandTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E06D59E36CF901D0B7D7D1F7 /* BrandTheme.swift */; };
+		FA9FE80C9FF2B5CD517F12E5 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9FE87AD39CD1B7DFD71E943 /* KeychainStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		214DFB6B0E078E8A48EC8B62 /* Figtree-Italic-Variable.ttf */ = {isa = PBXFileReference; includeInIndex = 1; name = "Figtree-Italic-Variable.ttf"; path = "Resources/Fonts/Figtree-Italic-Variable.ttf"; sourceTree = "<group>"; };
 		111111111111111111111201 /* buddy-idle.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-idle.svg"; path = "Resources/buddy-idle.svg"; sourceTree = "<group>"; };
 		111111111111111111111202 /* buddy-thinking.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-thinking.svg"; path = "Resources/buddy-thinking.svg"; sourceTree = "<group>"; };
 		111111111111111111111203 /* buddy-completed.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-completed.svg"; path = "Resources/buddy-completed.svg"; sourceTree = "<group>"; };
 		111111111111111111111204 /* buddy-x.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-x.svg"; path = "Resources/buddy-x.svg"; sourceTree = "<group>"; };
-		111111111111111111111205 /* dragon.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "dragon.svg"; path = "Resources/dragon.svg"; sourceTree = "<group>"; };
-		AB12CD34EF56AB78CD90EF13 /* app.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = app.svg; path = Resources/app.svg; sourceTree = "<group>"; };
+		111111111111111111111205 /* dragon.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = dragon.svg; path = Resources/dragon.svg; sourceTree = "<group>"; };
+		214DFB6B0E078E8A48EC8B62 /* Figtree-Italic-Variable.ttf */ = {isa = PBXFileReference; includeInIndex = 1; name = "Figtree-Italic-Variable.ttf"; path = "Resources/Fonts/Figtree-Italic-Variable.ttf"; sourceTree = "<group>"; };
 		3B84AE484ECA88FD34BA5FAF /* MeetingPopoverView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeetingPopoverView.swift; path = Sources/MeetingPopoverView.swift; sourceTree = "<group>"; };
 		45C192477CB1E48F5FD50A5B /* MeetingStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeetingStore.swift; path = Sources/MeetingStore.swift; sourceTree = "<group>"; };
 		524259350CB3D5744DA747A2 /* DragonFruitMiniApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DragonFruitMiniApp.swift; path = Sources/DragonFruitMiniApp.swift; sourceTree = "<group>"; };
@@ -44,11 +44,13 @@
 		87B04CD6FAED4D3BFBB42E3F /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		97CAC2EA763419BC940135A1 /* AppIcon.icns */ = {isa = PBXFileReference; includeInIndex = 1; name = AppIcon.icns; path = Resources/AppIcon.icns; sourceTree = "<group>"; };
 		9CD03C888FBE7A8C2B5472C1 /* icon-white.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "icon-white.svg"; path = "Resources/icon-white.svg"; sourceTree = "<group>"; };
+		AB12CD34EF56AB78CD90EF13 /* app.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = app.svg; path = Resources/app.svg; sourceTree = "<group>"; };
 		C15E2074D5DC62ABAB227A87 /* DragonFruitMini.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = DragonFruitMini.app; path = DragonFruitMini.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C22222222222222222222222 /* logo.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = logo.svg; path = Resources/logo.svg; sourceTree = "<group>"; };
 		C44444444444444444444444 /* Newsreader-Variable.ttf */ = {isa = PBXFileReference; includeInIndex = 1; name = "Newsreader-Variable.ttf"; path = "Resources/Fonts/Newsreader-Variable.ttf"; sourceTree = "<group>"; };
 		C66666666666666666666666 /* Newsreader-Italic-Variable.ttf */ = {isa = PBXFileReference; includeInIndex = 1; name = "Newsreader-Italic-Variable.ttf"; path = "Resources/Fonts/Newsreader-Italic-Variable.ttf"; sourceTree = "<group>"; };
 		E06D59E36CF901D0B7D7D1F7 /* BrandTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BrandTheme.swift; path = Sources/BrandTheme.swift; sourceTree = "<group>"; };
+		E9FE87AD39CD1B7DFD71E943 /* KeychainStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KeychainStore.swift; path = Sources/KeychainStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +89,7 @@
 				E06D59E36CF901D0B7D7D1F7 /* BrandTheme.swift */,
 				524259350CB3D5744DA747A2 /* DragonFruitMiniApp.swift */,
 				45C192477CB1E48F5FD50A5B /* MeetingStore.swift */,
+				E9FE87AD39CD1B7DFD71E943 /* KeychainStore.swift */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -211,6 +214,7 @@
 				F4925D11B2F718172A481BCB /* BrandTheme.swift in Sources */,
 				B84006C53657D2C4554A2C72 /* DragonFruitMiniApp.swift in Sources */,
 				A0FA574165E93ABF1AA26DF8 /* MeetingStore.swift in Sources */,
+				FA9FE80C9FF2B5CD517F12E5 /* KeychainStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -33,6 +33,8 @@ struct CalendarEvent: Codable, Identifiable {
     let calendar_id: String?
     let calendar_name: String?
     let source: String?
+    let attendee_count: Int?
+    let has_other_attendees: Bool?
 }
 
 struct WorkspaceSummary: Codable, Identifiable {
@@ -63,6 +65,7 @@ struct MeetingNotesDraftResponse: Codable {
     let created: Bool?
     let workspace_slug: String?
     let url: String?
+    let calendar_attached: Bool?
 }
 
 struct AgentSummary: Codable, Identifiable {
@@ -210,22 +213,6 @@ struct APIClient {
             throw NSError(domain: "DragonFruitNative", code: 1003, userInfo: [NSLocalizedDescriptionKey: "Invalid authorize URL"])
         }
         return authURL
-    }
-
-    func finishGoogleOAuth(code: String) async throws {
-        let csrf = try await fetchCSRFToken()
-        var request = URLRequest(url: baseURL.appending(path: "api/users/me/calendar-accounts/google/callback/"))
-        request.httpMethod = "POST"
-        request.timeoutInterval = 12
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
-        if let apiToken, !apiToken.isEmpty {
-            request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
-        }
-        request.httpBody = try JSONEncoder().encode(["code": code, "client": "native"])
-
-        let (_, response) = try await send(request, endpoint: "POST google/callback")
-        try ensureStatus(response, allowed: [200])
     }
 
     func getEvents(accountId: String, fromISO: String, toISO: String) async throws -> [CalendarEvent] {

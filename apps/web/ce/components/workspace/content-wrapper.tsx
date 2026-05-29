@@ -6,14 +6,19 @@
 
 import React, { useCallback, useEffect } from "react";
 import { observer } from "mobx-react";
+import { usePathname } from "next/navigation";
 import { Sparkles } from "@/components/icons/lucide-shim";
 import { AgentChatDrawer } from "@/components/agent-chat";
-import { AppRailRoot } from "@/components/navigation";
+import { AppRailRoot, MobileRailDrawer } from "@/components/navigation";
 import { isTypingInInput } from "@/components/power-k/core/shortcut-handler";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import useSize from "@/hooks/use-window-size";
 import { useAppRailVisibility } from "@/lib/app-rail";
 import { IconButton } from "@plane/propel/icon-button";
 import { Tooltip } from "@plane/propel/tooltip";
+
+// Matches Tailwind's `md` breakpoint — below this the rail becomes a drawer.
+const MOBILE_BREAKPOINT = 768;
 
 export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper({
   children,
@@ -21,12 +26,26 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   children: React.ReactNode;
 }) {
   // Use the context to determine if app rail should render
-  const { isEnabled: isAppRailEnabled } = useAppRailVisibility();
+  const {
+    isEnabled: isAppRailEnabled,
+    isMobileDrawerOpen,
+    openMobileDrawer,
+    closeMobileDrawer,
+  } = useAppRailVisibility();
   const { agentChatOpen, toggleAgentChat } = useAppTheme();
+  const [windowWidth] = useSize();
+  const pathname = usePathname();
+  const isMobile = windowWidth < MOBILE_BREAKPOINT;
 
   const openAgentChat = useCallback(() => {
     toggleAgentChat(true);
   }, [toggleAgentChat]);
+
+  // Close the drawer whenever the route changes so navigating away dismisses it.
+  useEffect(() => {
+    if (isMobileDrawerOpen) closeMobileDrawer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -48,7 +67,14 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
 
   return (
     <div className="bg-gray-200 relative flex size-full gap-2 overflow-hidden p-2 transition-all duration-300 ease-in-out">
-      {isAppRailEnabled && <AppRailRoot />}
+      {isAppRailEnabled &&
+        (isMobile ? (
+          <MobileRailDrawer open={isMobileDrawerOpen} onOpen={openMobileDrawer} onClose={closeMobileDrawer}>
+            <AppRailRoot isMobile />
+          </MobileRailDrawer>
+        ) : (
+          <AppRailRoot />
+        ))}
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="relative flex size-full min-h-0 gap-2 overflow-hidden">
           <div className="shadow-sm relative min-h-0 flex-grow overflow-hidden rounded-[18px] border border-subtle bg-surface-1 transition-all duration-300 ease-in-out">

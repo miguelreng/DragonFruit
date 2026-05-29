@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -36,6 +36,13 @@ export const AppRailVisibilityProvider = observer(function AppRailVisibilityProv
     setIsCollapsed(!isCollapsed);
   }, [isCollapsed, setIsCollapsed]);
 
+  // Mobile slide-over drawer state. Session-only — the drawer always starts
+  // closed on load, mirroring native drawer behavior.
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const openMobileDrawer = useCallback(() => setIsMobileDrawerOpen(true), []);
+  const closeMobileDrawer = useCallback(() => setIsMobileDrawerOpen(false), []);
+  const toggleMobileDrawer = useCallback(() => setIsMobileDrawerOpen((prev) => !prev), []);
+
   // Compute final visibility: enabled and not collapsed
   const shouldRenderAppRail = isEnabled && !isCollapsed;
 
@@ -45,8 +52,21 @@ export const AppRailVisibilityProvider = observer(function AppRailVisibilityProv
       isCollapsed: isCollapsed ?? false,
       shouldRenderAppRail,
       toggleAppRail,
+      isMobileDrawerOpen,
+      openMobileDrawer,
+      closeMobileDrawer,
+      toggleMobileDrawer,
     }),
-    [isEnabled, isCollapsed, shouldRenderAppRail, toggleAppRail]
+    [
+      isEnabled,
+      isCollapsed,
+      shouldRenderAppRail,
+      toggleAppRail,
+      isMobileDrawerOpen,
+      openMobileDrawer,
+      closeMobileDrawer,
+      toggleMobileDrawer,
+    ]
   );
 
   return <AppRailVisibilityContext.Provider value={value}>{children}</AppRailVisibilityContext.Provider>;

@@ -24,6 +24,14 @@ struct MeetingInfo: Identifiable {
     let accountEmail: String?
     let calendarId: String?
     let calendarName: String?
+    let hasOtherAttendees: Bool?
+
+    // A meeting worth auto-prompting notes for: one with other people on it.
+    // Falls back to "has a video link" when the backend predates attendee data.
+    var isLikelyRealMeeting: Bool {
+        if let hasOtherAttendees { return hasOtherAttendees }
+        return joinURL != nil
+    }
 
     var joinURL: URL? {
         let candidates = [hangoutLink, location, description, htmlLink].compactMap { $0 }
@@ -71,7 +79,8 @@ struct MeetingInfo: Identifiable {
             accountId: nil,
             accountEmail: nil,
             calendarId: nil,
-            calendarName: nil
+            calendarName: nil,
+            hasOtherAttendees: nil
         )
     }
 }
@@ -576,6 +585,20 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private static let logger = Logger(subsystem: "sh.dragonfruit.copilot", category: "store")
     private static let productionAPIURL = "https://api.dragonfruit.sh"
     private static let productionAppURL = "https://app.dragonfruit.sh"
+    private static let apiTokenKeychainAccount = "df_api_token"
+
+    private static func loadAPIToken(migratingFrom defaults: UserDefaults) -> String {
+        if let token = KeychainStore.load(account: apiTokenKeychainAccount), !token.isEmpty {
+            return token
+        }
+        // Migrate a token written by older builds that stored it in plaintext UserDefaults.
+        if let legacy = defaults.string(forKey: "df_api_token"), !legacy.isEmpty {
+            KeychainStore.save(account: apiTokenKeychainAccount, value: legacy)
+            defaults.removeObject(forKey: "df_api_token")
+            return legacy
+        }
+        return ""
+    }
 
     private enum AccessibilityResetResult: Sendable {
         case success
@@ -598,8 +621,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var meetingState = "Upcoming"
     @Published var autoStartEnabled = true
     @Published var autoStartMinutesBefore = 2
-    @Published var meetingNotesEnabled = true
-    @Published var showCursorBuddyEnabled = true
+    @Published var meetingNotesEnabled = true {
+        didSet { UserDefaults.standard.set(meetingNotesEnabled, forKey: "df_meeting_notes_enabled") }
+    }
+    @Published var showCursorBuddyEnabled = true {
+        didSet { UserDefaults.standard.set(showCursorBuddyEnabled, forKey: "df_show_cursor_buddy_enabled") }
+    }
     @Published var cursorBuddyOpacity: Double = 1.0 {
         didSet {
             let clampedOpacity = min(max(cursorBuddyOpacity, 0.35), 1.0)
@@ -659,7 +686,6 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published private(set) var permissionsRefreshCounter = 0
 
     private var oauthSession: ASWebAuthenticationSession?
-    private var loginPollTask: Task<Void, Never>?
     private var calendarPollTask: Task<Void, Never>?
     private var meetingRefreshTask: Task<Void, Never>?
     private var apiToken: String = ""
@@ -703,7 +729,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let savedAppURL = defaults.string(forKey: "df_app_url")
         baseURL = savedBaseURL ?? Self.productionAPIURL
         appURL = savedAppURL ?? Self.inferAppURL(from: baseURL) ?? Self.productionAppURL
-        apiToken = defaults.string(forKey: "df_api_token") ?? ""
+        apiToken = Self.loadAPIToken(migratingFrom: defaults)
         copilotTheme = CopilotThemeMode(rawValue: defaults.string(forKey: "df_copilot_theme") ?? "") ?? .light
         let savedCursorBuddyOpacity = defaults.object(forKey: "df_cursor_buddy_opacity") as? Double
         cursorBuddyOpacity = min(max(savedCursorBuddyOpacity ?? 1.0, 0.35), 1.0)
@@ -1019,7 +1045,6 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     func logout() {
-        loginPollTask?.cancel()
         calendarPollTask?.cancel()
         meetingRefreshTask?.cancel()
         if isListening {
@@ -1166,12 +1191,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 guard let store else { return }
                 if let error {
                     store.statusMessage = error.localizedDescription
-                    store.startLoginPolling()
                     return
                 }
                 guard let callbackURL else {
-                    store.statusMessage = "Missing login callback"
-                    store.startLoginPolling()
+                    store.statusMessage = "Sign in didn't complete. Please try again."
                     return
                 }
                 await store.finishDragonFruitLogin(callbackURL: callbackURL)
@@ -1194,7 +1217,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         do {
             apiToken = token
-            UserDefaults.standard.set(token, forKey: "df_api_token")
+            KeychainStore.save(account: Self.apiTokenKeychainAccount, value: token)
             let client = try makeClient()
             _ = try await client.getCurrentUser()
             isAuthenticated = true
@@ -1204,34 +1227,6 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         } catch {
             clearSavedSession(message: "Login finished, but API session is missing. Please retry.")
             statusMessage = "Login finished, but API session is missing. Please retry."
-        }
-    }
-
-    private func startLoginPolling() {
-        loginPollTask?.cancel()
-        loginPollTask = Task { [weak self] in
-            guard let self else { return }
-            for _ in 0..<60 {
-                if Task.isCancelled { return }
-                do {
-                    let client = try self.makeClient()
-                    _ = try await client.getCurrentUser()
-                    await MainActor.run {
-                        self.isAuthenticated = true
-                        self.persistSettings()
-                        self.statusMessage = "Signed in to DragonFruit"
-                        self.startPostLoginRefresh()
-                    }
-                    return
-                } catch {
-                    try? await Task.sleep(nanoseconds: 1_000_000_000)
-                }
-            }
-            await MainActor.run {
-                if !self.isAuthenticated {
-                    self.statusMessage = "Login complete on web? Click again to retry sync."
-                }
-            }
         }
     }
 
@@ -1312,8 +1307,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             }
             needsCalendarReconnect = !errorEvents.isEmpty && realEvents.isEmpty
             let mappedMeetings = realEvents
+                .filter { !$0.all_day }
                 .compactMap(makeMeetingInfo(from:))
-                .filter { $0.joinURL != nil }
+                .sorted { $0.startAt < $1.startAt }
             meetings = mappedMeetings
             hasMeetingsToday = mappedMeetings.contains(where: isTodayMeeting)
 
@@ -1364,7 +1360,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             accountId: event.account_id,
             accountEmail: event.account_email,
             calendarId: event.calendar_id,
-            calendarName: event.calendar_name
+            calendarName: event.calendar_name,
+            hasOtherAttendees: event.has_other_attendees
         )
     }
 
@@ -1390,7 +1387,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let secondsUntilStart = meeting.startAt.timeIntervalSinceNow
         guard secondsUntilStart >= 0, secondsUntilStart <= Double(max(1, autoStartMinutesBefore) * 60) else { return }
         notifiedMeetingIds.insert(meeting.id)
-        if meetingNotesEnabled {
+        if meetingNotesEnabled && meeting.isLikelyRealMeeting {
             meetingStartPrompt = meeting
         }
         deliverNotification(title: "Meeting starting", body: meeting.title)
@@ -1490,6 +1487,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         meetingStartPrompt = nil
         hasMeetingsToday = false
         meetingRefreshTask?.cancel()
+        KeychainStore.delete(account: Self.apiTokenKeychainAccount)
         UserDefaults.standard.removeObject(forKey: "df_api_token")
         if !message.isEmpty {
             statusMessage = message
@@ -2059,18 +2057,19 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 return
             }
             let targetMeeting = recordingMeeting ?? meeting
-            let notes = formattedMeetingNotes(from: transcript, meeting: targetMeeting)
             let draft = try await client.createMeetingNotesDraft(
                 workspaceSlug: workspace.slug,
                 meeting: targetMeeting,
-                notes: notes,
+                notes: transcript,
                 micAudioURL: nil,
                 systemAudioURL: nil
             )
             lastMeetingNotesURL = draft.url.flatMap(URL.init(string:))
             lastSavedMeetingTitle = targetMeeting.title
             meetingState = "Notes ready"
-            statusMessage = "Meeting notes saved to Docs."
+            statusMessage = (draft.calendar_attached == true)
+                ? "Meeting notes saved to Docs and attached to your event."
+                : "Meeting notes saved to Docs."
             notifyMeetingNotesSaved(title: targetMeeting.title)
         } catch {
             meetingState = "Summary"
@@ -2081,63 +2080,6 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
         meetingMicAudioURL = nil
         meetingSystemAudioURL = nil
-    }
-
-    private func formattedMeetingNotes(from transcript: String, meeting: MeetingInfo) -> String {
-        let trimmedTranscript = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        let actionItems = extractActionItems(from: trimmedTranscript)
-        let actionText = actionItems.isEmpty
-            ? "- No explicit action items detected."
-            : actionItems.map { "- \($0)" }.joined(separator: "\n")
-
-        return """
-        Meeting: \(meeting.title)
-
-        Action items:
-        \(actionText)
-
-        Transcript:
-        \(trimmedTranscript)
-        """
-    }
-
-    private func extractActionItems(from transcript: String) -> [String] {
-        let separators = CharacterSet(charactersIn: ".!?\n")
-        let candidates = transcript
-            .components(separatedBy: separators)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.count >= 8 }
-
-        let actionMarkers = [
-            "action item",
-            "todo",
-            "to do",
-            "follow up",
-            "need to",
-            "needs to",
-            "we should",
-            "we need",
-            "we will",
-            "we'll",
-            "i will",
-            "i'll",
-            "let's",
-            "please",
-            "can you",
-            "could you",
-        ]
-
-        var seen = Set<String>()
-        var items: [String] = []
-        for candidate in candidates {
-            let normalized = candidate.lowercased()
-            guard actionMarkers.contains(where: { normalized.contains($0) }) else { continue }
-            guard !seen.contains(normalized) else { continue }
-            seen.insert(normalized)
-            items.append(candidate)
-            if items.count == 12 { break }
-        }
-        return items
     }
 
     private func transcribeWithWhisperCPP(audioURL: URL) async throws -> String {
@@ -2389,13 +2331,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             recognitionTask = Self.startRecognitionTask(recognizer: recognizer, request: request) { [weak self] result, error in
                 if let result {
                     let transcript = result.bestTranscription.formattedString
-                    let isFinal = result.isFinal
                     Task { @MainActor in
                         guard let self else { return }
                         self.queueVoiceTranscriptUpdate(transcript)
-                        if isFinal {
-                            self.streamDictationText(transcript)
-                        }
+                        self.streamDictationText(transcript)
                     }
                 }
                 if error != nil {
@@ -2590,14 +2529,28 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         guard AXIsProcessTrusted() else { return }
         guard let source = CGEventSource(stateID: .hidSystemState) else { return }
 
-        if dictationStreamedText.isEmpty {
-            pasteStreamingDictationText(nextText, source: source)
-        } else if nextText.hasPrefix(dictationStreamedText) {
-            let suffix = String(nextText.dropFirst(dictationStreamedText.count))
-            pasteStreamingDictationText(suffix, source: source)
-        } else {
-            selectPreviousCharacters(dictationStreamedText.count, source: source)
-            pasteStreamingDictationText(nextText, source: source)
+        // Rewrite only the part of the transcript that actually changed: keep the
+        // shared prefix in place, drop the diverged tail, and type the new tail.
+        // This keeps live corrections cheap instead of re-pasting the whole buffer.
+        let previousChars = Array(dictationStreamedText)
+        let nextChars = Array(nextText)
+        var commonPrefix = 0
+        let maxPrefix = min(previousChars.count, nextChars.count)
+        while commonPrefix < maxPrefix, previousChars[commonPrefix] == nextChars[commonPrefix] {
+            commonPrefix += 1
+        }
+
+        let removeCount = previousChars.count - commonPrefix
+        let insertText = String(nextChars.dropFirst(commonPrefix))
+
+        if removeCount > 0 {
+            selectPreviousCharacters(removeCount, source: source)
+            if insertText.isEmpty {
+                postKeyboardShortcut(virtualKey: CGKeyCode(kVK_Delete), flags: [], source: source)
+            }
+        }
+        if !insertText.isEmpty {
+            pasteStreamingDictationText(insertText, source: source)
         }
         dictationStreamedText = nextText
     }
@@ -2658,7 +2611,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func restoreDictationTargetFocus() {
-        dictationTargetApplication?.activate(options: [.activateIgnoringOtherApps])
+        if let app = dictationTargetApplication, !app.isActive {
+            app.activate(options: [.activateIgnoringOtherApps])
+        }
         if let element = dictationTargetElement {
             AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
         }

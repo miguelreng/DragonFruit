@@ -6,7 +6,7 @@
 
 import * as React from "react";
 import { Toast as BaseToast } from "@base-ui-components/react/toast";
-import { AlertTriangle, CheckIcon, InfoIcon, Sparkles, XIcon } from "lucide-react";
+import { AlertCircle, AlertTriangle, InfoIcon, Sparkles } from "lucide-react";
 import { CloseIcon } from "../icons/actions/close-icon";
 // spinner
 import { CircularBarSpinner } from "../spinners/circular-bar-spinner";
@@ -70,52 +70,53 @@ export function Toast(props: ToastProps) {
 
 const TOAST_DATA = {
   [TOAST_TYPE.SUCCESS]: {
-    icon: <CheckIcon width={14} height={14} className="text-on-color" />,
-    iconBgClassName: "bg-success-primary",
+    icon: (
+      <span className="relative grid size-4 place-items-center">
+        <span
+          aria-hidden
+          className="absolute size-3 animate-ping rounded-full bg-success-primary/25 [animation-duration:1.8s]"
+        />
+        <Sparkles width={16} height={16} className="relative text-success-primary" />
+      </span>
+    ),
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.CURSOR_BUDDY_SUCCESS]: {
     icon: (
-      <span className="relative grid size-3.5 place-items-center">
+      <span className="relative grid size-4 place-items-center">
         <span
           aria-hidden
           className="absolute size-3 animate-ping rounded-full bg-success-primary/25 [animation-duration:1.8s]"
         />
-        <Sparkles width={14} height={14} className="relative text-success-primary" />
+        <Sparkles width={16} height={16} className="relative text-success-primary" />
       </span>
     ),
-    iconBgClassName: "bg-transparent",
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.ERROR]: {
-    icon: <XIcon width={12} height={12} className="text-on-color" />,
-    iconBgClassName: "bg-danger-primary",
+    icon: <AlertCircle width={16} height={16} className="text-danger-primary" />,
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.WARNING]: {
-    icon: <AlertTriangle width={12} height={12} className="text-on-color" />,
-    iconBgClassName: "bg-warning-primary",
+    icon: <AlertTriangle width={16} height={16} className="text-warning-primary" />,
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.INFO]: {
-    icon: <InfoIcon width={12} height={12} className="text-on-color" />,
-    iconBgClassName: "bg-accent-primary",
+    icon: <InfoIcon width={16} height={16} className="text-accent-primary" />,
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.LOADING]: {
-    icon: <CircularBarSpinner className="text-on-color" />,
-    iconBgClassName: "bg-layer-2",
+    icon: <CircularBarSpinner className="text-tertiary" />,
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.LOADING_TOAST]: {
-    icon: <CircularBarSpinner className="text-on-color" />,
-    iconBgClassName: "bg-layer-2",
+    icon: <CircularBarSpinner className="text-tertiary" />,
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
@@ -137,7 +138,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
       key={id}
       className={cn(
         // Base layout and positioning
-        "group flex w-[350px] max-w-[calc(100vw-2rem)] items-start rounded-lg border border-subtle-1 shadow-overlay-100",
+        "group flex w-[340px] max-w-[calc(100vw-2rem)] items-start rounded-lg border border-subtle-1 shadow-overlay-100",
         "absolute right-3 bottom-3 z-[calc(1000-var(--toast-index))]",
         "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] select-none",
 
@@ -178,24 +179,12 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         e.preventDefault();
       }}
     >
-      <BaseToast.Close className="absolute top-1 right-1 cursor-pointer text-icon-tertiary hover:text-icon-secondary">
+      <BaseToast.Close className="absolute top-2 right-2 cursor-pointer text-icon-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:text-icon-secondary">
         <CloseIcon strokeWidth={1.5} width={14} height={14} />
       </BaseToast.Close>
-      <div className="flex w-full items-start gap-3 p-4 pr-9">
-        <div className="py-1">
-          {data.icon && (
-            <div
-              className={cn(
-                "flex flex-shrink-0 items-center justify-center rounded-full",
-                "size-4",
-                data.iconBgClassName
-              )}
-            >
-              {data.icon}
-            </div>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="flex w-full items-start gap-2.5 p-3 pr-8">
+        <div className="flex-shrink-0 py-px">{data.icon}</div>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <BaseToast.Title className="text-body-sm-medium text-primary">
             {toastData.type === TOAST_TYPE.LOADING ? (toastData.title ?? "Loading...") : toastData.title}
           </BaseToast.Title>
@@ -205,7 +194,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
             </BaseToast.Description>
           )}
           {toastData.type !== TOAST_TYPE.LOADING && toastData.actionItems && (
-            <div className="flex items-center gap-2">{toastData.actionItems}</div>
+            <div className="mt-1 flex items-center gap-2">{toastData.actionItems}</div>
           )}
         </div>
       </div>
@@ -230,36 +219,27 @@ export function ToastStatic({ type, title, message, actionItems, theme = "light"
       <div
         className={cn(
           // Base layout and positioning
-          "group flex w-[350px] items-start rounded-lg border border-subtle-1 shadow-overlay-100",
+          "group flex w-[340px] items-start rounded-lg border border-subtle-1 shadow-overlay-100",
           "relative",
           data.backgroundColorClassName,
           data.borderColorClassName
         )}
       >
-        <div className="absolute top-1 right-1 cursor-default text-icon-tertiary">
+        <div className="absolute top-2 right-2 cursor-default text-icon-tertiary">
           <CloseIcon strokeWidth={1.5} width={14} height={14} />
         </div>
-        <div className="flex w-full items-start gap-3 p-4">
-          <div className="py-1">
-            {data.icon && (
-              <div
-                className={cn(
-                  "flex size-4 flex-shrink-0 items-center justify-center rounded-full",
-                  data.iconBgClassName
-                )}
-              >
-                {data.icon}
-              </div>
-            )}
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex w-full items-start gap-2.5 p-3 pr-8">
+          <div className="flex-shrink-0 py-px">{data.icon}</div>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="text-body-sm-medium text-primary">
               {type === TOAST_TYPE.LOADING ? (title ?? "Loading...") : title}
             </div>
             {type !== TOAST_TYPE.LOADING && message && (
               <div className="text-body-xs-regular text-tertiary">{message}</div>
             )}
-            {type !== TOAST_TYPE.LOADING && actionItems && <div className="flex items-center gap-2">{actionItems}</div>}
+            {type !== TOAST_TYPE.LOADING && actionItems && (
+              <div className="mt-1 flex items-center gap-2">{actionItems}</div>
+            )}
           </div>
         </div>
       </div>

@@ -56,10 +56,11 @@ function ensureHljsRegistered() {
 import type { EditorRefApi } from "@plane/editor";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Avatar, Spinner } from "@plane/ui";
+import { AlertModalCore, Avatar, Spinner } from "@plane/ui";
 import { calculateTimeAgo, cn, getFileURL } from "@plane/utils";
 // components
 import {
+  Eraser,
   FileText,
   History,
   Image as ImageIconBase,
@@ -176,6 +177,28 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
     [workspaceSlug, activeId, refetchSessions]
   );
 
+  // "Clear conversation" — destructive. Wipes the active chat's messages
+  // and drops the user onto a fresh, empty thread. Whatever Atlas wrote
+  // lives in the document, not the chat, so the result survives. We
+  // create the replacement session *before* deleting the old one so the
+  // auto-resume effect (which only fires when `activeId` is null) never
+  // gets a window to re-attach to a stale/deleted session.
+  const handleClearSession = useCallback(async () => {
+    if (!workspaceSlug || !activeId) return;
+    const clearedId = activeId;
+    try {
+      const session = await chatService.createSession(workspaceSlug);
+      setActiveId(session.id);
+      setView("chat");
+      await chatService.deleteSession(workspaceSlug, clearedId);
+    } catch (err) {
+      const message = (err as { error?: string } | undefined)?.error ?? "Couldn't clear the chat. Try again.";
+      setToast({ type: TOAST_TYPE.ERROR, title: "Chat error", message });
+    } finally {
+      await refetchSessions();
+    }
+  }, [workspaceSlug, activeId, refetchSessions]);
+
   const activeSession = sessions.find((s) => s.id === activeId);
   const activeAgent = useMemo(
     () => (activeSession ? (agents ?? []).find((a) => a.id === activeSession.agent) : undefined),
@@ -208,6 +231,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
           onClose={onClose}
           onOpenHistory={() => setView("history")}
           onStartSession={handleStartSession}
+          onClearSession={handleClearSession}
           onSentRefreshSessions={() => void refetchSessions()}
         />
       )}
@@ -244,6 +268,7 @@ function ChatView(props: {
   onClose: () => void;
   onOpenHistory: () => void;
   onStartSession: () => Promise<void>;
+  onClearSession: () => Promise<void>;
   onSentRefreshSessions: () => void;
 }) {
   const {
@@ -256,13 +281,41 @@ function ChatView(props: {
     onClose,
     onOpenHistory,
     onStartSession,
+    onClearSession,
     onSentRefreshSessions,
   } = props;
 
+  // "Clear conversation" confirmation. We snapshot the pending Atlas
+  // proposal count when the modal opens so the copy can promise the
+  // user their in-doc edits are kept.
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [pendingProposalCount, setPendingProposalCount] = useState(0);
+
+  const openClearConfirm = () => {
+    setPendingProposalCount(activePageEditorRef?.getActiveAtlasProposalCount() ?? 0);
+    setConfirmClearOpen(true);
+  };
+
+  const handleConfirmClear = async () => {
+    setClearing(true);
+    try {
+      // Keep the result: bake any still-pending Atlas edits into the
+      // document before the chat (and its proposal session) goes away.
+      if (activePageEditorRef && activePageEditorRef.getActiveAtlasProposalCount() > 0) {
+        activePageEditorRef.acceptAllAtlasProposals();
+      }
+      await onClearSession();
+      setConfirmClearOpen(false);
+    } finally {
+      setClearing(false);
+    }
+  };
+
   return (
     <>
-      {/* Header — agent identity on the left, history + close on the
-          right. Sits at h-11 to match the page-level header strip. */}
+      {/* Header — agent identity on the left, clear + history + close on
+          the right. Sits at h-11 to match the page-level header strip. */}
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Avatar
@@ -276,9 +329,33 @@ function ChatView(props: {
             <div className="truncate text-11 text-tertiary">{agent?.provider_model || "Workspace companion"}</div>
           </div>
         </div>
+        {sessionId && (
+          <IconButton
+            variant="tertiary"
+            size="sm"
+            icon={Eraser}
+            onClick={openClearConfirm}
+            aria-label="Clear conversation"
+          />
+        )}
         <IconButton variant="tertiary" size="sm" icon={History} onClick={onOpenHistory} aria-label="Chat history" />
         <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
       </header>
+
+      <AlertModalCore
+        isOpen={confirmClearOpen}
+        handleClose={() => setConfirmClearOpen(false)}
+        handleSubmit={() => void handleConfirmClear()}
+        isSubmitting={clearing}
+        variant="danger"
+        title="Clear conversation?"
+        content={
+          pendingProposalCount > 0
+            ? "This permanently deletes the chat messages and starts a fresh thread. Atlas' edits already in your document are kept."
+            : "This permanently deletes the chat messages and starts a fresh thread. Anything Atlas wrote in your document stays."
+        }
+        primaryButtonText={{ loading: "Clearing", default: "Clear chat" }}
+      />
 
       {sessionId ? (
         <ChatThread
@@ -839,16 +916,13 @@ function ChatThread(props: {
 }
 
 function isEditorWritingRequest(text: string): boolean {
-  // Creating a brand-new page/doc/task/note routes to the create_* tools, not inline editing.
-  if (
-    /\b(create|make|add|crea|crear|nuev[ao]|new)\b.{0,80}\b(page|doc|document|task|work item|sticky|note|p[áa]gina|documento|tarea|nota)\b/i.test(
-      text
-    )
-  )
+  // Only brand-new task/sticky/note creation routes to the create_* tools. In a
+  // doc, "crea/create … (an essay, a doc, a section)" means write content inline.
+  if (/\b(create|make|add|crea|crear|nuev[ao]|new)\b.{0,80}\b(task|work item|sticky|note|tarea|nota)\b/i.test(text))
     return false;
   // Writing OR editing the current document (EN + ES) — kept broad on purpose so
-  // "update my doc / actualiza el documento / amplía / continúa…" all land inline.
-  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
+  // "create/crea … / update my doc / actualiza el documento / amplía / continúa…" all land inline.
+  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into|create|make|crea\b|crear\w*|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
     text
   );
 }

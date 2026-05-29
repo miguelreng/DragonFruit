@@ -580,7 +580,8 @@ const ProjectRailTree = (props: { projects: TProjectRailItem[]; pathname: string
   );
 };
 
-export const AppRailRoot = observer(() => {
+export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
+  const { isMobile = false } = props;
   // router
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
@@ -598,9 +599,10 @@ export const AppRailRoot = observer(() => {
   const [isFavoritesCategoryOpen, setIsFavoritesCategoryOpen] = useState(true);
   const [isProjectsCategoryOpen, setIsProjectsCategoryOpen] = useState(true);
   // derived values
-  const isRailExpanded = preferences.displayMode === "icon_with_label";
+  // In the mobile drawer the rail always shows labels and fills the panel.
+  const isRailExpanded = isMobile || preferences.displayMode === "icon_with_label";
   const showRailLabels = isRailExpanded;
-  const railWidth = isRailExpanded ? "14.5rem" : "3.25rem";
+  const railWidth = isMobile ? "100%" : isRailExpanded ? "14.5rem" : "3.25rem";
   const slug = workspaceSlug?.toString() ?? "";
   const canCreateIssue = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
@@ -667,7 +669,9 @@ export const AppRailRoot = observer(() => {
       data-theme={surfaceTheme}
       className={cn(
         "z-[26] h-full flex-shrink-0 overflow-hidden rounded-[18px] transition-all duration-300 ease-in-out",
-        "bg-gray-200 shadow-sm text-secondary dark:bg-[#09090a] dark:text-white/75"
+        "bg-gray-200 shadow-sm text-secondary dark:bg-[#09090a] dark:text-white/75",
+        // Drawer mode: flush left edge, fill the panel, no width animation.
+        isMobile && "rounded-l-none transition-none"
       )}
       style={{
         width: railWidth,
@@ -687,18 +691,20 @@ export const AppRailRoot = observer(() => {
               "flex flex-col items-center gap-0.5": !isRailExpanded,
             })}
           >
-            <AppSidebarTooltip tooltipContent={isRailExpanded ? "Collapse rail" : "Expand rail"}>
-              <button
-                type="button"
-                onClick={() => {
-                  updateDisplayMode(isRailExpanded ? "icon_only" : "icon_with_label");
-                }}
-                className="grid size-8 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-5 [&_svg]:text-current"
-                aria-label={isRailExpanded ? "Collapse app rail" : "Expand app rail"}
-              >
-                {isRailExpanded ? <PanelLeft /> : <PanelRight />}
-              </button>
-            </AppSidebarTooltip>
+            {!isMobile && (
+              <AppSidebarTooltip tooltipContent={isRailExpanded ? "Collapse rail" : "Expand rail"}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateDisplayMode(isRailExpanded ? "icon_only" : "icon_with_label");
+                  }}
+                  className="grid size-8 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-5 [&_svg]:text-current"
+                  aria-label={isRailExpanded ? "Collapse app rail" : "Expand app rail"}
+                >
+                  {isRailExpanded ? <PanelLeft /> : <PanelRight />}
+                </button>
+              </AppSidebarTooltip>
+            )}
             <WorkspaceMenuRoot variant="sidebar" showLabel={isRailExpanded} />
             <AppSidebarItem
               variant="button"

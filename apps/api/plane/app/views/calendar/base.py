@@ -15,6 +15,7 @@ There are two halves to this module:
     overlay on top of the native task feed. Tokens stored Fernet-encrypted.
 """
 
+import json
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -31,7 +32,7 @@ from openai import OpenAI
 from plane.app.permissions import allow_permission, ROLE
 from plane.db.models import Issue, Page, Project, ProjectPage, State, UserCalendarAccount, Workspace
 from plane.bgtasks.page_transaction_task import page_transaction
-from plane.app.views.external.base import get_llm_config
+from plane.app.views.external.base import call_llm_chat, get_llm_config
 from plane.license.utils.instance_value import get_configuration_value
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 
@@ -694,6 +695,68 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
         return Response({"events": events[:20]}, status=status.HTTP_200_OK)
 
 
+def _attach_doc_to_calendar_event(
+    *,
+    user,
+    account_id: str,
+    calendar_id: str,
+    event_id: str,
+    doc_url: str,
+    title: str,
+) -> bool:
+    """Best-effort: attach a meeting-notes doc link onto its Google Calendar event.
+
+    Returns True when the attachment is present after the call. Never raises —
+    failing to attach must not block saving the notes doc.
+    """
+    if not (account_id and event_id and doc_url):
+        return False
+
+    account = UserCalendarAccount.objects.filter(
+        id=account_id,
+        user=user,
+        is_active=True,
+        provider=UserCalendarAccount.PROVIDER_GOOGLE,
+    ).first()
+    if account is None:
+        return False
+
+    calendar_id = calendar_id or account.primary_calendar_id or "primary"
+    event_url = _google_calendar_url(calendar_id, f"events/{event_id}")
+
+    try:
+        get_resp = _google_api_request(account=account, method="GET", url=event_url, timeout=10)
+        if get_resp.status_code != 200:
+            return False
+
+        existing = get_resp.json().get("attachments") or []
+        if any(a.get("fileUrl") == doc_url for a in existing):
+            return True
+        # Google caps attachments at 25 per event; PATCH replaces the whole list,
+        # so we resend the existing ones plus ours.
+        if len(existing) >= 25:
+            return False
+
+        attachments = existing + [
+            {
+                "fileUrl": doc_url,
+                "title": (title or "Meeting notes")[:1024],
+                "mimeType": "text/html",
+            }
+        ]
+        patch_resp = _google_api_request(
+            account=account,
+            method="PATCH",
+            url=event_url,
+            params={"supportsAttachments": "true"},
+            json={"attachments": attachments},
+            timeout=10,
+        )
+        return patch_resp.status_code == 200
+    except Exception:
+        return False
+
+
 class MeetingNotesDraftEndpoint(BaseAPIView):
     """Create or update a workspace document from captured meeting notes."""
 
@@ -721,6 +784,11 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
         if not external_key:
             external_key = f"meeting-notes:{request.user.id}:{datetime.now(timezone.utc).timestamp()}"[:255]
 
+        summary = _summarize_meeting_notes(
+            workspace=workspace,
+            meeting_title=meeting_title,
+            transcript=notes,
+        )
         description_html = _meeting_notes_html(
             meeting_title=meeting_title,
             notes=notes,
@@ -728,6 +796,7 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
             end=str(request.data.get("end") or ""),
             meeting_url=str(request.data.get("meeting_url") or ""),
             account_email=str(request.data.get("account_email") or ""),
+            summary=summary,
         )
 
         project = (
@@ -791,6 +860,16 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
             getattr(settings, "APP_BASE_URL", None)
             or getattr(settings, "WEB_URL", "http://localhost:3000")
         ).rstrip("/")
+        doc_url = f"{app_base_url}/{slug}/projects/{project.id}/pages/{page.id}"
+
+        calendar_attached = _attach_doc_to_calendar_event(
+            user=request.user,
+            account_id=account_id,
+            calendar_id=calendar_id,
+            event_id=meeting_id,
+            doc_url=doc_url,
+            title=page.name,
+        )
 
         return Response(
             {
@@ -798,10 +877,108 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
                 "name": page.name,
                 "created": created,
                 "workspace_slug": slug,
-                "url": f"{app_base_url}/{slug}/projects/{project.id}/pages/{page.id}",
+                "url": doc_url,
+                "calendar_attached": calendar_attached,
             },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
+
+
+_MEETING_SUMMARY_SYSTEM = (
+    "You are a meeting notes assistant. You read a raw meeting transcript and "
+    "produce clean, structured notes. Be faithful to the transcript: never invent "
+    "decisions, owners, or action items that were not discussed. If a section has no "
+    "content, return an empty list for it. Write in the dominant language of the "
+    "transcript (English or Spanish)."
+)
+
+_MEETING_SUMMARY_INSTRUCTIONS = """\
+Summarize the meeting transcript below. Respond with ONLY a JSON object (no markdown
+fences, no commentary) matching exactly this shape:
+
+{
+  "summary": "one or two sentence overview of the meeting",
+  "summary_sections": [
+    {"heading": "Short thematic heading", "body": "One short paragraph of prose."}
+  ],
+  "decisions": ["A concrete decision that was made", "..."],
+  "next_steps": [
+    {"owner": "Person responsible or empty string", "action": "What to do", "detail": "Optional extra context or empty string"}
+  ],
+  "details": [
+    {"topic": "Discussion topic", "body": "What was said about it, in prose."}
+  ]
+}
+
+Rules:
+- summary_sections: 0-4 items capturing the main threads of discussion.
+- decisions: only things that were actually agreed/decided. Empty list if none.
+- next_steps: only concrete follow-up actions. Empty list if none.
+- details: the substantive discussion points, in the order they came up.
+- Keep prose tight. No filler.
+
+Meeting title: {meeting_title}
+
+Transcript:
+{transcript}
+"""
+
+
+def _summarize_meeting_notes(*, workspace: Workspace, meeting_title: str, transcript: str) -> dict | None:
+    """Route the transcript through the workspace BYOK LLM to produce structured notes.
+
+    Returns a dict with keys summary/summary_sections/decisions/next_steps/details,
+    or None when no LLM is configured or the call/parse fails (caller falls back).
+    """
+    transcript = (transcript or "").strip()
+    if not transcript:
+        return None
+
+    api_key, model, provider = get_llm_config(workspace=workspace)
+    if not (api_key and model and provider):
+        return None
+
+    user_prompt = _MEETING_SUMMARY_INSTRUCTIONS.format(
+        meeting_title=meeting_title or "Meeting",
+        transcript=transcript[:120_000],
+    )
+    text, error = call_llm_chat(
+        system=_MEETING_SUMMARY_SYSTEM,
+        user=user_prompt,
+        api_key=api_key,
+        model=model,
+        provider=provider,
+        temperature=0.2,
+        max_tokens=4096,
+    )
+    if error or not text:
+        return None
+
+    raw = text.strip()
+    # Strip an optional ```json ... ``` fence if the model added one.
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1] if "\n" in raw else raw
+        if raw.endswith("```"):
+            raw = raw[: -3]
+        raw = raw.strip()
+        if raw.lower().startswith("json"):
+            raw = raw[4:].strip()
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        # Last-ditch: grab the outermost {...} block.
+        start_idx = raw.find("{")
+        end_idx = raw.rfind("}")
+        if start_idx == -1 or end_idx <= start_idx:
+            return None
+        try:
+            data = json.loads(raw[start_idx : end_idx + 1])
+        except (ValueError, TypeError):
+            return None
+
+    if not isinstance(data, dict):
+        return None
+    return data
 
 
 def _meeting_notes_html(
@@ -812,6 +989,7 @@ def _meeting_notes_html(
     end: str,
     meeting_url: str,
     account_email: str,
+    summary: dict | None = None,
 ) -> str:
     metadata = []
     if start:
@@ -823,19 +1001,95 @@ def _meeting_notes_html(
     if meeting_url:
         metadata.append(f'<li><strong>Join link:</strong> <a href="{escape(meeting_url)}">{escape(meeting_url)}</a></li>')
 
-    paragraphs = "".join(f"<p>{escape(line)}</p>" for line in notes.splitlines() if line.strip())
-    if not paragraphs:
-        paragraphs = f"<p>{escape(notes)}</p>"
+    transcript_paragraphs = "".join(
+        f"<p>{escape(line)}</p>" for line in notes.splitlines() if line.strip()
+    )
+    if not transcript_paragraphs:
+        transcript_paragraphs = f"<p>{escape(notes)}</p>"
 
-    return (
+    header = (
         f"<h2>{escape(meeting_title)}</h2>"
-        f"<p><em>Captured by DragonFruit Copilot.</em></p>"
+        f"<p><em>Captured by DragonFruit Atlas.</em></p>"
         f"<ul>{''.join(metadata)}</ul>"
+    )
+
+    structured = _structured_summary_html(summary) if summary else ""
+    if structured:
+        return f"{header}{structured}<h3>Transcript</h3>{transcript_paragraphs}"
+
+    # Fallback: no LLM summary available — keep the plain transcript render.
+    return (
+        f"{header}"
         f"<h3>Meeting notes</h3>"
-        f"{paragraphs}"
+        f"{transcript_paragraphs}"
         f"<h3>Next steps</h3>"
         f"<p>Move this draft into a project, convert it into tasks, or keep it as meeting context.</p>"
     )
+
+
+def _structured_summary_html(summary: dict) -> str:
+    """Render the LLM's structured notes as Gemini-style HTML. Empty string if nothing usable."""
+
+    def _clean(value) -> str:
+        return str(value or "").strip()
+
+    sections: list[str] = []
+
+    overview = _clean(summary.get("summary"))
+    summary_sections = summary.get("summary_sections")
+    summary_body = f"<p>{escape(overview)}</p>" if overview else ""
+    if isinstance(summary_sections, list):
+        for item in summary_sections:
+            if not isinstance(item, dict):
+                continue
+            heading = _clean(item.get("heading"))
+            body = _clean(item.get("body"))
+            if not (heading or body):
+                continue
+            prefix = f"<strong>{escape(heading)}</strong> " if heading else ""
+            summary_body += f"<p>{prefix}{escape(body)}</p>"
+    if summary_body:
+        sections.append(f"<h3>Summary</h3>{summary_body}")
+
+    decisions = summary.get("decisions")
+    if isinstance(decisions, list):
+        items = "".join(f"<li>{escape(_clean(d))}</li>" for d in decisions if _clean(d))
+        if items:
+            sections.append(f"<h3>Decisions</h3><ul>{items}</ul>")
+
+    next_steps = summary.get("next_steps")
+    if isinstance(next_steps, list):
+        items = ""
+        for step in next_steps:
+            if not isinstance(step, dict):
+                continue
+            owner = _clean(step.get("owner"))
+            action = _clean(step.get("action"))
+            detail = _clean(step.get("detail"))
+            if not action:
+                continue
+            owner_html = f"<strong>{escape(owner)}</strong> — " if owner else ""
+            detail_html = f": {escape(detail)}" if detail else ""
+            items += f"<li>{owner_html}{escape(action)}{detail_html}</li>"
+        if items:
+            sections.append(f"<h3>Next steps</h3><ul>{items}</ul>")
+
+    details = summary.get("details")
+    if isinstance(details, list):
+        items = ""
+        for item in details:
+            if not isinstance(item, dict):
+                continue
+            topic = _clean(item.get("topic"))
+            body = _clean(item.get("body"))
+            if not (topic or body):
+                continue
+            topic_html = f"<strong>{escape(topic)}</strong>: " if topic else ""
+            items += f"<li>{topic_html}{escape(body)}</li>"
+        if items:
+            sections.append(f"<h3>Details</h3><ul>{items}</ul>")
+
+    return "".join(sections)
 
 
 def _transcribe_meeting_audio(*, request, workspace: Workspace) -> tuple[str, str | None]:
@@ -1076,6 +1330,7 @@ def _event_to_dict(e: dict) -> dict:
     start = e.get("start", {})
     end = e.get("end", {})
     is_all_day = "date" in start and "dateTime" not in start
+    attendees = e.get("attendees") or []
     return {
         "id": e.get("id"),
         "title": e.get("summary") or "(no title)",
@@ -1087,6 +1342,8 @@ def _event_to_dict(e: dict) -> dict:
         "html_link": e.get("htmlLink", ""),
         "hangout_link": e.get("hangoutLink", ""),
         "status": e.get("status", ""),
+        "attendee_count": len(attendees),
+        "has_other_attendees": any(not a.get("self") for a in attendees),
     }
 
 
