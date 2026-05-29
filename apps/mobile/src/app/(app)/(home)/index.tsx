@@ -1,12 +1,14 @@
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DrawerActions } from "@react-navigation/native";
 
 import { getWorkspaces, type Workspace } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { useApiList } from "@/lib/use-api-list";
 
 export default function WorkspacesScreen() {
+  const navigation = useNavigation();
   const { user, signOut } = useSession();
   const { data: workspaces, loading, refreshing, error, onRefresh } = useApiList<Workspace>(getWorkspaces, []);
 
@@ -17,8 +19,16 @@ export default function WorkspacesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-canvas" edges={["top", "left", "right"]}>
-      <View className="flex-row items-center justify-between px-5 pt-2 pb-4">
-        <View>
+      <View className="flex-row items-center gap-3 px-5 pt-2 pb-4">
+        <Pressable
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          hitSlop={8}
+          className="-ml-1 h-9 w-9 items-center justify-center rounded-lg active:opacity-60"
+          accessibilityLabel="Open menu"
+        >
+          <Text className="text-xl text-ink">☰</Text>
+        </Pressable>
+        <View className="flex-1">
           <Text className="text-sm text-muted">Welcome back,</Text>
           <Text className="text-xl text-ink font-semibold">{greetingName}</Text>
         </View>
