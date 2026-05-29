@@ -13,6 +13,11 @@ import type { TAtlasDocReviewProposal, TAtlasDocReviewProposalUpdate, TAtlasDocR
 type TAtlasDocReviewState = {
   session: TAtlasDocReviewSession | null;
   proposals: TAtlasDocReviewProposal[];
+  // True from session start until the first proposal arrives or the stream ends.
+  // Drives the "Atlas is drafting…" placeholder so the editor isn't blank while
+  // the model is still composing. Kept separate from `proposals.length === 0`
+  // because that's also true after the user rejects every proposal.
+  loading: boolean;
 };
 
 type TFoundNode = { node: ProseMirrorNode; pos: number };
@@ -22,6 +27,7 @@ type TAtlasDocReviewAction =
   | { type: "append"; proposal: TAtlasDocReviewProposal }
   | { type: "update"; id: string; patch: TAtlasDocReviewProposalUpdate }
   | { type: "remove"; id: string }
+  | { type: "set-loading"; loading: boolean }
   | { type: "clear" };
 
 export const atlasDocReviewPluginKey = new PluginKey<TAtlasDocReviewState>("atlasDocReview");
@@ -30,6 +36,7 @@ declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     atlasDocReview: {
       startAtlasReviewSession: (session: TAtlasDocReviewSession) => ReturnType;
+      setAtlasReviewLoading: (loading: boolean) => ReturnType;
       appendAtlasProposal: (proposal: TAtlasDocReviewProposal) => ReturnType;
       updateAtlasProposal: (id: string, patch: TAtlasDocReviewProposalUpdate) => ReturnType;
       acceptAtlasProposal: (id: string) => ReturnType;
@@ -43,6 +50,7 @@ declare module "@tiptap/core" {
 const initialState: TAtlasDocReviewState = {
   session: null,
   proposals: [],
+  loading: false,
 };
 
 const clampPos = (state: EditorState, pos: number | undefined) =>
@@ -231,12 +239,50 @@ const buildToolbar = (view: EditorView, state: TAtlasDocReviewState) => {
   return toolbar;
 };
 
+const buildDraftingIndicator = (mode: TAtlasDocReviewSession["mode"] | undefined) => {
+  const indicator = document.createElement("div");
+  indicator.className = "atlas-doc-review-toolbar atlas-doc-review-drafting";
+  indicator.contentEditable = "false";
+
+  const title = document.createElement("div");
+  title.className = "atlas-doc-review-toolbar-title";
+  title.textContent = mode === "update" ? "Atlas is reviewing the page" : "Atlas is drafting";
+  indicator.appendChild(title);
+
+  const dots = document.createElement("div");
+  dots.className = "atlas-doc-review-dots";
+  for (let i = 0; i < 3; i += 1) {
+    const dot = document.createElement("span");
+    dot.className = "atlas-doc-review-dot";
+    dots.appendChild(dot);
+  }
+  indicator.appendChild(dots);
+
+  return indicator;
+};
+
 const buildDecorations = (state: EditorState) => {
   const reviewState = atlasDocReviewPluginKey.getState(state) ?? initialState;
   const visibleProposals = reviewState.proposals.filter(
     (proposal) => !["accepted", "rejected"].includes(proposal.status)
   );
   const decorations: Decoration[] = [];
+
+  // No proposals yet but the stream is open — show a live placeholder so the
+  // editor reflects that Atlas is working instead of looking inert.
+  if (reviewState.loading && visibleProposals.length === 0) {
+    decorations.push(
+      Decoration.widget(
+        clampPos(state, reviewState.session?.anchorPos),
+        () => buildDraftingIndicator(reviewState.session?.mode),
+        {
+          key: `atlas-drafting-${reviewState.session?.id ?? "active"}`,
+          side: -1,
+        }
+      )
+    );
+    return DecorationSet.create(state.doc, decorations);
+  }
 
   if (visibleProposals.length > 0) {
     decorations.push(
@@ -294,6 +340,14 @@ export const AtlasDocReviewExtension = Extension.create({
               type: "start",
               session: { ...session, anchorPos: clampPos(state, session.anchorPos) },
             } satisfies TAtlasDocReviewAction)
+          );
+          return true;
+        },
+      setAtlasReviewLoading:
+        (loading) =>
+        ({ tr, dispatch }) => {
+          dispatch?.(
+            tr.setMeta(atlasDocReviewPluginKey, { type: "set-loading", loading } satisfies TAtlasDocReviewAction)
           );
           return true;
         },
@@ -373,15 +427,19 @@ export const AtlasDocReviewExtension = Extension.create({
                   }
                 : null,
               proposals: previous.proposals.map((proposal) => mapProposal(transaction, proposal)),
+              loading: previous.loading,
             };
             const action = transaction.getMeta(atlasDocReviewPluginKey) as TAtlasDocReviewAction | undefined;
             if (!action) return mapped;
 
             if (action.type === "start") {
-              return { session: action.session, proposals: [] };
+              return { session: action.session, proposals: [], loading: true };
+            }
+            if (action.type === "set-loading") {
+              return { ...mapped, loading: action.loading };
             }
             if (action.type === "append") {
-              return { ...mapped, proposals: [...mapped.proposals, action.proposal] };
+              return { ...mapped, proposals: [...mapped.proposals, action.proposal], loading: false };
             }
             if (action.type === "update") {
               return {

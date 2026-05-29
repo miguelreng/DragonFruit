@@ -337,6 +337,69 @@ class LLMProvider:
         result.stopped_reason = "max_iterations"
         return result
 
+    # ----------------------------------------------------------------- #
+    # Streaming generate (no tool use)                                  #
+    # ----------------------------------------------------------------- #
+
+    def stream_text(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt,
+        request_timeout: Optional[float] = None,
+        usage_out: Optional[Dict[str, int]] = None,
+    ):
+        """Yield assistant text deltas as the model produces them.
+
+        One-shot, no tool loop — the streaming counterpart to `chat()`.
+        Each yielded item is the incremental text from one stream chunk;
+        callers concatenate to rebuild the full response.
+
+        `usage_out`, if provided, is populated with `prompt_tokens` and
+        `completion_tokens` from the final usage chunk (requested via
+        `stream_options`). Providers that omit streamed usage simply leave
+        it untouched, so callers must treat the values as best-effort.
+        """
+        import litellm  # local import — heavy module, only load when used
+
+        completion_kwargs: Dict[str, Any] = {
+            "model": self._litellm_model(),
+            "api_key": self.api_key,
+            "api_base": self.api_base_url,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+        if request_timeout is not None:
+            completion_kwargs["timeout"] = request_timeout
+
+        try:
+            response = litellm.completion(**completion_kwargs)
+        except Exception:  # noqa: BLE001 — surface any provider error
+            logger.exception("llm stream call failed model=%s", self.model)
+            raise
+
+        for chunk in response:
+            usage = _read_field(chunk, "usage")
+            if usage is not None and usage_out is not None:
+                prompt_tokens = _read_field(usage, "prompt_tokens")
+                completion_tokens = _read_field(usage, "completion_tokens")
+                if isinstance(prompt_tokens, int):
+                    usage_out["prompt_tokens"] = prompt_tokens
+                if isinstance(completion_tokens, int):
+                    usage_out["completion_tokens"] = completion_tokens
+
+            try:
+                delta = chunk.choices[0].delta
+            except (AttributeError, IndexError, TypeError):
+                continue
+            text = getattr(delta, "content", None)
+            if text:
+                yield text
+
 
 # ===================================================================== #
 # Helpers                                                               #

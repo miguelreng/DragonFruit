@@ -230,6 +230,7 @@ async function streamDocReview(args: TStreamDocReviewArgs) {
             targetOriginalText: event.target_original_text || undefined,
           });
         } else if (event.event === "session_completed") {
+          activePageEditorRef.setAtlasReviewLoading(false);
           setMessages((current) => [...current, mapChatMessageToDocMessage(event.assistant_message)]);
         } else if (event.event === "error") {
           streamError = event.error;

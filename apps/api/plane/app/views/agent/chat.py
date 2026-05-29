@@ -103,6 +103,31 @@ Rules:
 """.strip()
 
 
+# Streaming variant. Plain-text block protocol instead of one JSON blob so we
+# can parse proposals as they arrive token-by-token and surface each paragraph
+# live in the editor. Each block is a `@@ATLAS` header line followed by the
+# proposed body text; the next header (or end of stream) closes the block.
+_DOC_WRITE_STREAM_SYSTEM_PROMPT = """
+You are Atlas writing inside a Dragon Fruit document review mode.
+
+Stream the proposed edits as plain text using this exact block protocol. No JSON, no markdown fences, no commentary.
+
+For every proposed edit, first emit a header line by itself:
+@@ATLAS op=<insert_after|replace|delete> target=<block id or empty>
+Then write the proposed document text on the following lines. Begin each new edit with another @@ATLAS header line.
+
+Rules:
+- One @@ATLAS block per paragraph, heading, or short list.
+- create mode: use only `op=insert_after` and leave target empty.
+- update mode: use `op=replace` or `op=delete` only against a provided block id; use `op=insert_after` with an empty target for brand-new content.
+- For `op=delete`, emit only the header line (no body).
+- Write production-ready prose. Do not restate the user's prompt.
+- Never write the literal text "@@ATLAS" inside body content.
+""".strip()
+
+_DOC_WRITE_STREAM_MARKER = "@@ATLAS"
+
+
 _CHAT_INTENT_SYSTEM_PROMPT = """
 Before answering, silently classify the user's real intent.
 
@@ -390,6 +415,124 @@ def _normalise_doc_write_proposals(raw, *, mode: str, blocks: list[dict], fallba
         }
         for index, part in enumerate(fallback_parts[:12])
     ]
+
+
+_DOC_WRITE_HEADER_RE = re.compile(
+    r"^\s*@@ATLAS\s+op=(?P<op>[a-z_]+)\s*(?:target=(?P<target>\S*))?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _parse_doc_write_header(line: str):
+    """Parse a `@@ATLAS op=… target=…` header line.
+
+    Returns (operation, target_block_id) or None if the line isn't a header.
+    """
+    match = _DOC_WRITE_HEADER_RE.match(line)
+    if not match:
+        return None
+    operation = (match.group("op") or "").strip().lower()
+    target = (match.group("target") or "").strip()
+    return operation, target
+
+
+def _normalise_stream_header(operation: str, target_block_id: str, *, mode: str, block_map: dict):
+    """Apply the same validity rules as the non-streaming path to one
+    streamed header: clamp the operation, drop targets we don't recognise,
+    and force insert_after in create mode."""
+    if operation not in {"insert_after", "replace", "delete"}:
+        operation = "insert_after"
+    if operation in {"replace", "delete"} and target_block_id not in block_map:
+        operation = "insert_after"
+        target_block_id = ""
+    if mode == "create":
+        operation = "insert_after"
+        target_block_id = ""
+    return operation, target_block_id
+
+
+def _stream_doc_write_events(tokens, *, mode: str, block_map: dict):
+    """Parse Atlas's `@@ATLAS` block protocol from a token iterable.
+
+    Yields (event_name, payload) tuples — proposal_started / proposal_delta /
+    proposal_completed — as each block opens, grows, and closes. Pure with
+    respect to the token stream (no LLM, no database), so it is unit-testable
+    by feeding a scripted list of token strings.
+    """
+    index = 0
+    current: dict | None = None
+    buffer = ""
+
+    def _finalise(proposal: dict) -> dict:
+        text = (proposal["content_text"] or "").strip()[:4_000]
+        proposal["content_text"] = text
+        proposal["content_html"] = _plain_text_to_html(text)
+        return proposal
+
+    def _completed_payload(proposal: dict) -> dict:
+        return {
+            "proposal_id": proposal["id"],
+            "operation": proposal["operation"],
+            "target_block_id": proposal["target_block_id"],
+            "target_original_text": proposal["target_original_text"],
+            "content_text": proposal["content_text"],
+            "content_html": proposal["content_html"],
+        }
+
+    for token in tokens:
+        buffer += token
+        while "\n" in buffer:
+            line, buffer = buffer.split("\n", 1)
+            header = _parse_doc_write_header(line)
+            if header is not None:
+                if current is not None:
+                    _finalise(current)
+                    yield ("proposal_completed", _completed_payload(current))
+                operation, target = _normalise_stream_header(header[0], header[1], mode=mode, block_map=block_map)
+                index += 1
+                current = {
+                    "id": f"proposal-{index}",
+                    "operation": operation,
+                    "target_block_id": target,
+                    "target_original_text": block_map.get(target, {}).get("text", ""),
+                    "content_text": "",
+                    "content_html": "",
+                }
+                yield (
+                    "proposal_started",
+                    {
+                        "proposal_id": current["id"],
+                        "operation": current["operation"],
+                        "target_block_id": current["target_block_id"],
+                        "target_original_text": current["target_original_text"],
+                    },
+                )
+            elif current is not None:
+                current["content_text"] += line + "\n"
+                yield (
+                    "proposal_delta",
+                    {
+                        "proposal_id": current["id"],
+                        "content_text": current["content_text"].strip(),
+                        "content_html": _plain_text_to_html(current["content_text"]),
+                    },
+                )
+        # Stream the in-progress (newline-less) tail so text types out smoothly,
+        # but never mistake a partial header line for body content.
+        if current is not None and buffer and not buffer.lstrip().startswith("@"):
+            yield (
+                "proposal_delta",
+                {
+                    "proposal_id": current["id"],
+                    "content_text": (current["content_text"] + buffer).strip(),
+                    "content_html": _plain_text_to_html(current["content_text"] + buffer),
+                },
+            )
+    if current is not None:
+        if buffer and _parse_doc_write_header(buffer) is None:
+            current["content_text"] += buffer
+        _finalise(current)
+        yield ("proposal_completed", _completed_payload(current))
 
 
 def _fallback_doc_write_text(prompt: str, *, mode: str) -> str:
@@ -1286,68 +1429,93 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 if part
             )
 
-            result = None
+            block_map = {block["id"]: block for block in blocks}
+            usage_out: dict = {}
+            completed_count = 0
+
+            # Live path: parse the `@@ATLAS` block protocol as tokens arrive so
+            # each proposal surfaces (and types out) in the editor immediately.
             try:
-                result = provider.chat(
-                    system_prompt=_DOC_WRITE_SYSTEM_PROMPT,
-                    user_prompt=user_prompt,
-                    request_timeout=25,
-                )
-                parsed = _extract_json_object(result.final_text)
-                proposals = _normalise_doc_write_proposals(
-                    parsed,
+                for name, payload in _stream_doc_write_events(
+                    provider.stream_text(
+                        system_prompt=_DOC_WRITE_STREAM_SYSTEM_PROMPT,
+                        user_prompt=user_prompt,
+                        request_timeout=60,
+                        usage_out=usage_out,
+                    ),
                     mode=mode,
-                    blocks=blocks,
-                    fallback_text=result.final_text,
-                )
-            except Exception as exc:  # noqa: BLE001
-                logger.exception("agent doc-write failed agent=%s session=%s", agent.id, session.id)
-                proposals = _normalise_doc_write_proposals(
-                    {},
-                    mode=mode,
-                    blocks=blocks,
-                    fallback_text=_fallback_doc_write_text(content, mode=mode),
-                )
+                    block_map=block_map,
+                ):
+                    if name == "proposal_completed":
+                        completed_count += 1
+                    yield _doc_write_event(name, **payload)
+            except Exception:  # noqa: BLE001
+                logger.exception("agent doc-write stream failed agent=%s session=%s", agent.id, session.id)
 
-            for proposal in proposals:
-                yield _doc_write_event(
-                    "proposal_started",
-                    proposal_id=proposal["id"],
-                    operation=proposal["operation"],
-                    target_block_id=proposal["target_block_id"],
-                    target_original_text=proposal["target_original_text"],
-                )
-                yield _doc_write_event(
-                    "proposal_delta",
-                    proposal_id=proposal["id"],
-                    content_text=proposal["content_text"],
-                    content_html=proposal["content_html"],
-                )
-                yield _doc_write_event(
-                    "proposal_completed",
-                    proposal_id=proposal["id"],
-                    operation=proposal["operation"],
-                    target_block_id=proposal["target_block_id"],
-                    target_original_text=proposal["target_original_text"],
-                    content_text=proposal["content_text"],
-                    content_html=proposal["content_html"],
-                )
+            # Fallback: streaming produced nothing usable (model ignored the
+            # protocol or the stream errored before any block) — make one
+            # blocking call so the user still gets reviewable edits.
+            if completed_count == 0:
+                try:
+                    result = provider.chat(
+                        system_prompt=_DOC_WRITE_SYSTEM_PROMPT,
+                        user_prompt=user_prompt,
+                        request_timeout=25,
+                    )
+                    fallback = _normalise_doc_write_proposals(
+                        _extract_json_object(result.final_text),
+                        mode=mode,
+                        blocks=blocks,
+                        fallback_text=result.final_text,
+                    )
+                    usage_out.setdefault("prompt_tokens", getattr(result, "prompt_tokens", 0))
+                    usage_out.setdefault("completion_tokens", getattr(result, "completion_tokens", 0))
+                except Exception:  # noqa: BLE001
+                    logger.exception("agent doc-write fallback failed agent=%s session=%s", agent.id, session.id)
+                    fallback = _normalise_doc_write_proposals(
+                        {},
+                        mode=mode,
+                        blocks=blocks,
+                        fallback_text=_fallback_doc_write_text(content, mode=mode),
+                    )
+                for proposal in fallback:
+                    yield _doc_write_event(
+                        "proposal_started",
+                        proposal_id=proposal["id"],
+                        operation=proposal["operation"],
+                        target_block_id=proposal["target_block_id"],
+                        target_original_text=proposal["target_original_text"],
+                    )
+                    yield _doc_write_event(
+                        "proposal_delta",
+                        proposal_id=proposal["id"],
+                        content_text=proposal["content_text"],
+                        content_html=proposal["content_html"],
+                    )
+                    yield _doc_write_event(
+                        "proposal_completed",
+                        proposal_id=proposal["id"],
+                        operation=proposal["operation"],
+                        target_block_id=proposal["target_block_id"],
+                        target_original_text=proposal["target_original_text"],
+                        content_text=proposal["content_text"],
+                        content_html=proposal["content_html"],
+                    )
+                completed_count = len(fallback)
 
+            prompt_tokens = usage_out.get("prompt_tokens", 0)
+            completion_tokens = usage_out.get("completion_tokens", 0)
             assistant_msg = AgentChatMessage.objects.create(
                 session=session,
                 role="assistant",
                 content=(
-                    f"I drafted {len(proposals)} reviewable document "
-                    f"{'edit' if len(proposals) == 1 else 'edits'} in the page."
+                    f"I drafted {completed_count} reviewable document "
+                    f"{'edit' if completed_count == 1 else 'edits'} in the page."
                 ),
-                prompt_tokens=getattr(result, "prompt_tokens", 0),
-                completion_tokens=getattr(result, "completion_tokens", 0),
-                total_tokens=(getattr(result, "prompt_tokens", 0) + getattr(result, "completion_tokens", 0)),
-                cost_usd=estimate_cost_usd(
-                    agent.provider_model or "",
-                    getattr(result, "prompt_tokens", 0),
-                    getattr(result, "completion_tokens", 0),
-                ),
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=prompt_tokens + completion_tokens,
+                cost_usd=estimate_cost_usd(agent.provider_model or "", prompt_tokens, completion_tokens),
             )
             session.save(update_fields=["updated_at", "last_activity_at"])
             yield _doc_write_event(

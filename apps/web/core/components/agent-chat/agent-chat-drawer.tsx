@@ -589,6 +589,7 @@ function ChatThread(props: {
                 targetOriginalText: event.target_original_text || undefined,
               });
             } else if (event.event === "session_completed") {
+              activePageEditorRef.setAtlasReviewLoading(false);
               void mutate(
                 (current) =>
                   current
@@ -597,6 +598,7 @@ function ChatThread(props: {
                 { revalidate: false }
               );
             } else if (event.event === "error") {
+              activePageEditorRef.setAtlasReviewLoading(false);
               streamError = event.error;
             }
           }
@@ -610,6 +612,7 @@ function ChatThread(props: {
         await mutate();
         onSentRefreshSessions();
       } catch (err) {
+        activePageEditorRef.setAtlasReviewLoading(false);
         const msg = err instanceof Error ? err.message : "Couldn't draft document edits.";
         setToast({ type: TOAST_TYPE.ERROR, title: "Doc write failed", message: msg });
         await mutate();

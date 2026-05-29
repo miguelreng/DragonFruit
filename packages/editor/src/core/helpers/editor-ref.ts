@@ -286,6 +286,9 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
     startAtlasReviewSession: (session) => {
       editor?.commands.startAtlasReviewSession(session);
     },
+    setAtlasReviewLoading: (loading) => {
+      editor?.commands.setAtlasReviewLoading(loading);
+    },
     appendAtlasProposal: (proposal) => {
       editor?.commands.appendAtlasProposal(proposal);
     },
