@@ -552,7 +552,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                           })}
                         </div>
                       ) : (
-                        <div className="w-full rounded-2xl border border-subtle bg-surface-1 px-3 py-2 text-[12px] leading-5 whitespace-pre-wrap text-primary shadow-raised-100">
+                        <div className="w-full rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-[12px] leading-5 break-words whitespace-pre-wrap text-primary shadow-raised-100">
                           {message.content}
                         </div>
                       )}
@@ -561,7 +561,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                 })
               )}
               {isSending && !isDrafting && (
-                <div className="ml-auto flex max-w-[85%] items-center gap-2 rounded-2xl border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
+                <div className="ml-auto flex max-w-[85%] items-center gap-2 rounded-lg border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
                   <Loader className="flex items-center gap-1.5">
                     <Loader.Item className="rounded-full" width="5px" height="5px" />
                     <Loader.Item className="rounded-full" width="5px" height="5px" />
