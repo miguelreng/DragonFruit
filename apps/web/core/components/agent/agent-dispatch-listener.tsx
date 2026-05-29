@@ -488,7 +488,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
       <div className="relative isolate w-full">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-8 -bottom-10 h-auto bg-gradient-to-b from-surface-1/0 via-surface-1/66 to-surface-1/98"
+          className="pointer-events-none absolute inset-x-0 -top-24 -bottom-10 h-auto [background:radial-gradient(150%_130%_at_50%_100%,var(--bg-surface-1)_45%,transparent_75%)]"
         />
         <div className="relative mx-auto flex w-full max-w-2xl flex-col items-stretch gap-2">
           <div className="relative">
