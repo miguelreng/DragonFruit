@@ -75,8 +75,10 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
           provider?.disconnect();
           return;
         }
-        retryCountRef.current = 0;
-        // After successful connection, transition to awaiting-sync (onSynced will move to synced)
+        // Don't reset the retry counter here: opening the socket isn't proof of a
+        // working session. A server that accepts then immediately drops the
+        // connection would reset the counter every cycle and defeat the retry
+        // cap, causing an endless reconnect storm. We only reset on `onSynced`.
         const newStage = { kind: "awaiting-sync" as const };
         stageRef.current = newStage;
         setStage(newStage);
@@ -241,11 +243,19 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
       if (isDisposedRef.current) return;
 
       const wsProvider = provider.configuration.websocketProvider;
-      if (wsProvider) {
-        wsProvider.shouldConnect = true;
-        wsProvider.disconnect();
-        wsProvider.connect();
-      }
+      if (!wsProvider) return;
+
+      // Only force a reconnect if the socket is actually stale/closed or we've
+      // already given up — otherwise an `online` event would needlessly tear
+      // down a healthy connection and add to reconnect churn.
+      const ws = wsProvider.webSocket;
+      const isStale = ws?.readyState === WebSocket.CLOSED || ws?.readyState === WebSocket.CLOSING;
+      if (!isStale && stageRef.current.kind !== "disconnected") return;
+
+      wsProvider.shouldConnect = true;
+      retryCountRef.current = 0;
+      wsProvider.disconnect();
+      wsProvider.connect();
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
