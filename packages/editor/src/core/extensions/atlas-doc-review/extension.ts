@@ -5,14 +5,19 @@
  */
 
 import { Extension } from "@tiptap/core";
-import { DOMParser as ProseMirrorDOMParser, type Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/pm/state";
+import { DOMParser as ProseMirrorDOMParser, type Node as ProseMirrorNode, type Slice } from "@tiptap/pm/model";
+import { Plugin, PluginKey, type EditorState } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import type { TAtlasDocReviewProposal, TAtlasDocReviewProposalUpdate, TAtlasDocReviewSession } from "@/types";
 
+// A proposal whose content is written into the real document. `from`/`to`
+// track the live range of that content so it can be re-streamed, highlighted,
+// accepted (keep), or rejected (delete from the doc).
+type TTrackedProposal = TAtlasDocReviewProposal & { from: number; to: number };
+
 type TAtlasDocReviewState = {
   session: TAtlasDocReviewSession | null;
-  proposals: TAtlasDocReviewProposal[];
+  proposals: TTrackedProposal[];
   // True from session start until the first proposal arrives or the stream ends.
   // Drives the "Atlas is drafting…" placeholder so the editor isn't blank while
   // the model is still composing. Kept separate from `proposals.length === 0`
@@ -24,8 +29,8 @@ type TFoundNode = { node: ProseMirrorNode; pos: number };
 
 type TAtlasDocReviewAction =
   | { type: "start"; session: TAtlasDocReviewSession }
-  | { type: "append"; proposal: TAtlasDocReviewProposal }
-  | { type: "update"; id: string; patch: TAtlasDocReviewProposalUpdate }
+  | { type: "append"; proposal: TTrackedProposal }
+  | { type: "update"; id: string; patch: TAtlasDocReviewProposalUpdate; from: number; to: number }
   | { type: "remove"; id: string }
   | { type: "set-loading"; loading: boolean }
   | { type: "clear" };
@@ -53,6 +58,8 @@ const initialState: TAtlasDocReviewState = {
   loading: false,
 };
 
+const getReviewState = (state: EditorState) => atlasDocReviewPluginKey.getState(state) ?? initialState;
+
 const clampPos = (state: EditorState, pos: number | undefined) =>
   Math.max(0, Math.min(pos ?? state.selection.from, state.doc.content.size));
 
@@ -69,12 +76,14 @@ const contentHtml = (proposal: TAtlasDocReviewProposal) => {
     .join("");
 };
 
-const parseContent = (view: EditorView, proposal: TAtlasDocReviewProposal) => {
-  const html = contentHtml(proposal);
-  if (!html) return null;
+// A proposal always renders at least an empty paragraph so there's a real
+// range to highlight while the first tokens are still streaming in.
+const proposalHtml = (proposal: TAtlasDocReviewProposal) => contentHtml(proposal) || "<p></p>";
+
+const parseProposalSlice = (state: EditorState, proposal: TAtlasDocReviewProposal): Slice => {
   const container = document.createElement("div");
-  container.innerHTML = html;
-  return ProseMirrorDOMParser.fromSchema(view.state.schema).parseSlice(container);
+  container.innerHTML = proposalHtml(proposal);
+  return ProseMirrorDOMParser.fromSchema(state.schema).parseSlice(container);
 };
 
 const findNodeById = (state: EditorState, nodeId?: string): TFoundNode | null => {
@@ -88,33 +97,28 @@ const findNodeById = (state: EditorState, nodeId?: string): TFoundNode | null =>
     }
     return true;
   });
-  return found as TFoundNode | null;
+  return found;
 };
 
-const isStale = (state: EditorState, proposal: TAtlasDocReviewProposal) => {
-  if (!proposal.targetBlockId || !proposal.targetOriginalText) return false;
-  const target = findNodeById(state, proposal.targetBlockId);
-  if (!target) return true;
-  return target.node.textContent.trim() !== proposal.targetOriginalText.trim();
-};
-
-const applyAcceptedProposal = (view: EditorView, proposal: TAtlasDocReviewProposal) => {
-  const stale = isStale(view.state, proposal);
-  const parsed = parseContent(view, proposal);
-  const target = findNodeById(view.state, proposal.targetBlockId);
-  let tr = view.state.tr;
-
-  if (proposal.operation === "delete" && !stale && target) {
-    tr = tr.delete(target.pos, target.pos + target.node.nodeSize);
-  } else if (proposal.operation === "replace" && !stale && target && parsed) {
-    tr = tr.replaceRange(target.pos, target.pos + target.node.nodeSize, parsed);
-  } else if (parsed) {
-    const insertPos = target ? target.pos + target.node.nodeSize : clampPos(view.state, proposal.anchorPos);
-    tr = tr.replaceRange(insertPos, insertPos, parsed);
+// Resolve a clean top-level block boundary at/after `pos` so inserted content
+// lands between blocks instead of splitting the paragraph the cursor is in.
+const blockBoundaryAt = (state: EditorState, pos: number | undefined): number => {
+  const resolved = state.doc.resolve(clampPos(state, pos));
+  try {
+    return resolved.after(1);
+  } catch {
+    return clampPos(state, pos);
   }
+};
 
-  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id: proposal.id } satisfies TAtlasDocReviewAction);
-  view.dispatch(tr);
+// Where a proposal's content should be written. insert_after/replace land just
+// after the target block; everything else lands at the session anchor.
+const proposalInsertPos = (state: EditorState, proposal: TAtlasDocReviewProposal): number => {
+  if (proposal.operation === "insert_after" || proposal.operation === "replace") {
+    const target = findNodeById(state, proposal.targetBlockId);
+    if (target) return target.pos + target.node.nodeSize;
+  }
+  return blockBoundaryAt(state, proposal.anchorPos);
 };
 
 const dispatchReviewEvent = (view: EditorView, eventName: string, id?: string) => {
@@ -126,64 +130,96 @@ const dispatchReviewEvent = (view: EditorView, eventName: string, id?: string) =
   );
 };
 
-const buildProposalCard = (view: EditorView, proposal: TAtlasDocReviewProposal, stale: boolean) => {
-  const card = document.createElement("div");
-  card.className = `atlas-doc-review-card${stale ? " is-stale" : ""}`;
-  card.setAttribute("data-atlas-proposal-id", proposal.id);
-  card.contentEditable = "false";
+// --------------------------------------------------------------------------
+// Accept / reject — operate on the real document via the view.
+// --------------------------------------------------------------------------
 
-  // Float the controls to the top-right so the proposed text wraps to their
-  // left — the suggestion reads as inline highlighted prose, not a boxed card.
-  const actions = document.createElement("div");
-  actions.className = "atlas-doc-review-actions";
+const acceptProposal = (view: EditorView, id?: string) => {
+  const proposal = getReviewState(view.state).proposals.find((item) => item.id === id);
+  if (!proposal) return;
+  let tr = view.state.tr;
+  // For replace/delete the proposed content (if any) is already written in;
+  // accepting also removes the original target block it was meant to supersede.
+  if (proposal.operation === "replace" || proposal.operation === "delete") {
+    const target = findNodeById(view.state, proposal.targetBlockId);
+    if (target) tr = tr.delete(target.pos, target.pos + target.node.nodeSize);
+  }
+  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id: proposal.id } satisfies TAtlasDocReviewAction);
+  view.dispatch(tr);
+};
+
+const rejectProposal = (view: EditorView, id?: string) => {
+  const proposal = getReviewState(view.state).proposals.find((item) => item.id === id);
+  if (!proposal) return;
+  let tr = view.state.tr;
+  // Delete the written-in content. (A delete proposal never wrote anything, so
+  // rejecting it simply keeps the original block.)
+  if (proposal.operation !== "delete") {
+    tr = tr.delete(clampPos(view.state, proposal.from), clampPos(view.state, proposal.to));
+  }
+  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id: proposal.id } satisfies TAtlasDocReviewAction);
+  view.dispatch(tr);
+};
+
+const acceptAllProposals = (view: EditorView) => {
+  const proposals = getReviewState(view.state).proposals;
+  let tr = view.state.tr;
+  // Delete superseded target blocks high-to-low so earlier positions stay valid.
+  const targets = proposals
+    .filter((p) => p.operation === "replace" || p.operation === "delete")
+    .map((p) => findNodeById(view.state, p.targetBlockId))
+    .filter((t): t is TFoundNode => t !== null)
+    .toSorted((a, b) => b.pos - a.pos);
+  for (const target of targets) tr = tr.delete(target.pos, target.pos + target.node.nodeSize);
+  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "clear" } satisfies TAtlasDocReviewAction);
+  view.dispatch(tr);
+};
+
+const rejectAllProposals = (view: EditorView) => {
+  const proposals = getReviewState(view.state).proposals;
+  let tr = view.state.tr;
+  const ranges = proposals
+    .filter((p) => p.operation !== "delete")
+    .map((p) => ({ from: clampPos(view.state, p.from), to: clampPos(view.state, p.to) }))
+    .toSorted((a, b) => b.from - a.from);
+  for (const range of ranges) tr = tr.delete(range.from, range.to);
+  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "clear" } satisfies TAtlasDocReviewAction);
+  view.dispatch(tr);
+};
+
+// --------------------------------------------------------------------------
+// Decorations — pink highlight over the real content + floating controls.
+// --------------------------------------------------------------------------
+
+const buildProposalControls = (view: EditorView, proposal: TTrackedProposal) => {
+  const controls = document.createElement("div");
+  controls.className = "atlas-doc-review-controls";
+  controls.contentEditable = "false";
+  controls.setAttribute("data-atlas-proposal-id", proposal.id);
 
   const accept = document.createElement("button");
   accept.type = "button";
   accept.className = "atlas-doc-review-button is-primary";
-  accept.textContent = `✓ ${stale && proposal.operation !== "delete" ? "Insert as new" : "Accept"}`;
+  accept.textContent = proposal.operation === "delete" ? "✓ Delete" : "✓ Accept";
   accept.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     dispatchReviewEvent(view, "atlas-doc-review-accept", proposal.id);
   });
-  actions.appendChild(accept);
+  controls.appendChild(accept);
 
   const reject = document.createElement("button");
   reject.type = "button";
   reject.className = "atlas-doc-review-button";
-  reject.textContent = "✕ Reject";
+  reject.textContent = proposal.operation === "delete" ? "✕ Keep" : "✕ Reject";
   reject.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     dispatchReviewEvent(view, "atlas-doc-review-reject", proposal.id);
   });
-  actions.appendChild(reject);
+  controls.appendChild(reject);
 
-  card.appendChild(actions);
-
-  if (proposal.targetOriginalText && proposal.operation !== "insert_after") {
-    const oldText = document.createElement("div");
-    oldText.className = "atlas-doc-review-old";
-    oldText.textContent = proposal.targetOriginalText;
-    card.appendChild(oldText);
-  }
-
-  if (proposal.operation !== "delete") {
-    const body = document.createElement("div");
-    body.className = "atlas-doc-review-body";
-    const html = contentHtml(proposal);
-    body.innerHTML = html || "<p>Atlas is writing...</p>";
-    card.appendChild(body);
-  }
-
-  if (stale) {
-    const note = document.createElement("div");
-    note.className = "atlas-doc-review-note";
-    note.textContent = "The original paragraph changed while Atlas was writing.";
-    card.appendChild(note);
-  }
-
-  return card;
+  return controls;
 };
 
 const buildToolbar = (view: EditorView, state: TAtlasDocReviewState) => {
@@ -248,7 +284,7 @@ const buildDraftingIndicator = (mode: TAtlasDocReviewSession["mode"] | undefined
 };
 
 const buildDecorations = (state: EditorState) => {
-  const reviewState = atlasDocReviewPluginKey.getState(state) ?? initialState;
+  const reviewState = getReviewState(state);
   const visibleProposals = reviewState.proposals.filter(
     (proposal) => !["accepted", "rejected"].includes(proposal.status)
   );
@@ -280,38 +316,34 @@ const buildDecorations = (state: EditorState) => {
   }
 
   for (const proposal of visibleProposals) {
-    const target = findNodeById(state, proposal.targetBlockId);
-    const stale = isStale(state, proposal);
-    const widgetPos =
-      proposal.operation === "insert_after" && target
-        ? target.pos + target.node.nodeSize
-        : target
-          ? target.pos
-          : clampPos(state, proposal.anchorPos ?? reviewState.session?.anchorPos);
+    const from = clampPos(state, proposal.from);
+    const to = clampPos(state, proposal.to);
 
-    if (target && proposal.operation !== "insert_after") {
-      decorations.push(
-        Decoration.node(target.pos, target.pos + target.node.nodeSize, {
-          class: stale ? "atlas-doc-review-target is-stale" : "atlas-doc-review-target",
-        })
-      );
-    }
+    // Highlight every top-level block the proposal's real content spans.
+    state.doc.forEach((node, offset) => {
+      const start = offset;
+      const end = offset + node.nodeSize;
+      if (node.isBlock && start < to && end > from) {
+        decorations.push(
+          Decoration.node(start, end, {
+            class: "atlas-doc-review-pending",
+            "data-atlas-proposal-id": proposal.id,
+          })
+        );
+      }
+    });
 
+    // Floating Accept/Reject pinned to the top-right of the highlighted range.
     decorations.push(
-      Decoration.widget(widgetPos, (view) => buildProposalCard(view, proposal, stale), {
-        key: `atlas-proposal-${proposal.id}-${proposal.status}-${proposal.contentText ?? ""}`,
-        side: proposal.operation === "insert_after" ? 1 : -1,
+      Decoration.widget(from, (view) => buildProposalControls(view, proposal), {
+        key: `atlas-controls-${proposal.id}-${proposal.status}`,
+        side: -1,
       })
     );
   }
 
   return DecorationSet.create(state.doc, decorations);
 };
-
-const mapProposal = (transaction: Transaction, proposal: TAtlasDocReviewProposal): TAtlasDocReviewProposal => ({
-  ...proposal,
-  anchorPos: proposal.anchorPos === undefined ? undefined : transaction.mapping.map(proposal.anchorPos, 1),
-});
 
 export const AtlasDocReviewExtension = Extension.create({
   name: "atlasDocReview",
@@ -340,22 +372,54 @@ export const AtlasDocReviewExtension = Extension.create({
       appendAtlasProposal:
         (proposal) =>
         ({ state, tr, dispatch }) => {
-          dispatch?.(
+          if (!dispatch) return true;
+          let from: number;
+          let to: number;
+
+          if (proposal.operation === "delete") {
+            // Nothing is written for a delete; highlight the target block itself.
+            const target = findNodeById(state, proposal.targetBlockId);
+            if (!target) return false;
+            from = target.pos;
+            to = target.pos + target.node.nodeSize;
+          } else {
+            const insertPos = proposalInsertPos(state, proposal);
+            const before = state.doc.content.size;
+            tr.replaceRange(insertPos, insertPos, parseProposalSlice(state, proposal));
+            from = insertPos;
+            to = insertPos + (tr.doc.content.size - before);
+          }
+
+          dispatch(
             tr.setMeta(atlasDocReviewPluginKey, {
               type: "append",
-              proposal: {
-                ...proposal,
-                anchorPos: clampPos(state, proposal.anchorPos),
-              },
+              proposal: { ...proposal, anchorPos: clampPos(state, proposal.anchorPos), from, to },
             } satisfies TAtlasDocReviewAction)
           );
           return true;
         },
       updateAtlasProposal:
         (id, patch) =>
-        ({ tr, dispatch }) => {
-          dispatch?.(
-            tr.setMeta(atlasDocReviewPluginKey, { type: "update", id, patch } satisfies TAtlasDocReviewAction)
+        ({ state, tr, dispatch }) => {
+          if (!dispatch) return true;
+          const proposal = getReviewState(state).proposals.find((item) => item.id === id);
+          if (!proposal) return false;
+
+          let from = proposal.from;
+          let to = proposal.to;
+          // Re-stream the written-in content (delete proposals carry no body).
+          if (proposal.operation !== "delete") {
+            const before = state.doc.content.size;
+            tr.replaceRange(
+              clampPos(state, proposal.from),
+              clampPos(state, proposal.to),
+              parseProposalSlice(state, { ...proposal, ...patch })
+            );
+            to = proposal.to + (tr.doc.content.size - before);
+          }
+
+          dispatch(
+            tr.setMeta(atlasDocReviewPluginKey, { type: "update", id, patch, from, to } satisfies TAtlasDocReviewAction)
           );
           return true;
         },
@@ -363,36 +427,28 @@ export const AtlasDocReviewExtension = Extension.create({
         (id) =>
         ({ view }) => {
           if (!view) return false;
-          const proposal = atlasDocReviewPluginKey.getState(view.state)?.proposals.find((item) => item.id === id);
-          if (!proposal) return false;
-          applyAcceptedProposal(view, proposal);
+          acceptProposal(view, id);
           return true;
         },
       rejectAtlasProposal:
         (id) =>
-        ({ tr, dispatch }) => {
-          dispatch?.(tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id } satisfies TAtlasDocReviewAction));
+        ({ view }) => {
+          if (!view) return false;
+          rejectProposal(view, id);
           return true;
         },
       acceptAllAtlasProposals:
         () =>
         ({ view }) => {
           if (!view) return false;
-          const proposalIds = (atlasDocReviewPluginKey.getState(view.state)?.proposals ?? []).map(
-            (proposal) => proposal.id
-          );
-          for (const proposalId of proposalIds) {
-            const proposal = atlasDocReviewPluginKey
-              .getState(view.state)
-              ?.proposals.find((item) => item.id === proposalId);
-            if (proposal) applyAcceptedProposal(view, proposal);
-          }
+          acceptAllProposals(view);
           return true;
         },
       rejectAllAtlasProposals:
         () =>
-        ({ tr, dispatch }) => {
-          dispatch?.(tr.setMeta(atlasDocReviewPluginKey, { type: "clear" } satisfies TAtlasDocReviewAction));
+        ({ view }) => {
+          if (!view) return false;
+          rejectAllProposals(view);
           return true;
         },
     };
@@ -412,7 +468,13 @@ export const AtlasDocReviewExtension = Extension.create({
                     anchorPos: transaction.mapping.map(previous.session.anchorPos ?? 0, 1),
                   }
                 : null,
-              proposals: previous.proposals.map((proposal) => mapProposal(transaction, proposal)),
+              proposals: previous.proposals.map((proposal) => ({
+                ...proposal,
+                from: transaction.mapping.map(proposal.from, 1),
+                to: transaction.mapping.map(proposal.to, -1),
+                anchorPos:
+                  proposal.anchorPos === undefined ? undefined : transaction.mapping.map(proposal.anchorPos, 1),
+              })),
               loading: previous.loading,
             };
             const action = transaction.getMeta(atlasDocReviewPluginKey) as TAtlasDocReviewAction | undefined;
@@ -431,7 +493,9 @@ export const AtlasDocReviewExtension = Extension.create({
               return {
                 ...mapped,
                 proposals: mapped.proposals.map((proposal) =>
-                  proposal.id === action.id ? { ...proposal, ...action.patch } : proposal
+                  proposal.id === action.id
+                    ? { ...proposal, ...action.patch, from: action.from, to: action.to }
+                    : proposal
                 ),
               };
             }
@@ -445,30 +509,19 @@ export const AtlasDocReviewExtension = Extension.create({
           decorations: buildDecorations,
           handleDOMEvents: {
             "atlas-doc-review-accept": (view, event) => {
-              const id = (event as CustomEvent<{ id?: string }>).detail?.id;
-              const proposal = atlasDocReviewPluginKey.getState(view.state)?.proposals.find((item) => item.id === id);
-              if (proposal) applyAcceptedProposal(view, proposal);
+              acceptProposal(view, (event as CustomEvent<{ id?: string }>).detail?.id);
               return true;
             },
             "atlas-doc-review-reject": (view, event) => {
-              const id = (event as CustomEvent<{ id?: string }>).detail?.id;
-              if (id) view.dispatch(view.state.tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id }));
+              rejectProposal(view, (event as CustomEvent<{ id?: string }>).detail?.id);
               return true;
             },
             "atlas-doc-review-accept-all": (view) => {
-              const proposalIds = (atlasDocReviewPluginKey.getState(view.state)?.proposals ?? []).map(
-                (proposal) => proposal.id
-              );
-              for (const proposalId of proposalIds) {
-                const proposal = atlasDocReviewPluginKey
-                  .getState(view.state)
-                  ?.proposals.find((item) => item.id === proposalId);
-                if (proposal) applyAcceptedProposal(view, proposal);
-              }
+              acceptAllProposals(view);
               return true;
             },
             "atlas-doc-review-reject-all": (view) => {
-              view.dispatch(view.state.tr.setMeta(atlasDocReviewPluginKey, { type: "clear" }));
+              rejectAllProposals(view);
               return true;
             },
           },
