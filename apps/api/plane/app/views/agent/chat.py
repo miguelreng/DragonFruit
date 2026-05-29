@@ -1535,7 +1535,11 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             session.save(update_fields=["title", "updated_at"])
 
         response = StreamingHttpResponse(stream(), content_type="application/x-ndjson")
-        response["Cache-Control"] = "no-cache"
+        # Keep proxies/CDNs from buffering the stream and flushing it as one
+        # block: X-Accel-Buffering disables nginx response buffering, and
+        # no-transform stops intermediaries from re-chunking/compressing it.
+        response["Cache-Control"] = "no-cache, no-transform"
+        response["X-Accel-Buffering"] = "no"
         return response
 
 
