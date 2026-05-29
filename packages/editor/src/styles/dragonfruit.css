@@ -65,7 +65,7 @@
   --heading-6-padding-bottom: 2px;
   --paragraph-padding-top: 2px;
   --paragraph-padding-bottom: 2px;
-  --paragraph-padding-between: 4px;
+  --paragraph-padding-between: 12px;
 }
 
 /* ─── 3. Headings: serif display, refined tracking ─────────────────────── */
@@ -242,60 +242,73 @@
   cursor: default;
 }
 
-/* Real document blocks that are part of a pending Atlas proposal. */
+/* Pending Atlas proposal text — an inline tint that hugs the words like a
+   selection, wrapping cleanly per line rather than filling the block width. */
 .atlas-doc-review-pending {
-  border-radius: 6px;
-  padding: 2px 10px;
-  background: color-mix(in srgb, var(--color-bg-base, #fff) 86%, #e548a5 14%);
-  box-shadow: 0 0 0 1px rgba(229, 72, 165, 0.18);
+  border-radius: 3px;
+  padding: 0.08em 0.14em;
+  background: color-mix(in srgb, var(--color-bg-base, #fff) 84%, #e548a5 16%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
-/* Floating Accept / Reject pinned to the top-right of the highlighted range. */
+/* Zero-height anchor at the block boundary; the buttons themselves are pushed
+   into the right margin so they sit next to the paragraph, not over its text. */
 .atlas-doc-review-controls {
-  float: right;
+  position: relative;
+  display: block;
+  height: 0;
+}
+
+.atlas-doc-review-controls-inner {
+  position: absolute;
+  top: 4px;
+  left: 100%;
+  margin-left: 10px;
   display: flex;
-  flex-direction: column;
   gap: 4px;
-  margin: 2px 0 6px 14px;
 }
 
-.atlas-doc-review-drafting {
-  justify-content: flex-start;
-}
-
-.atlas-doc-review-dots {
+/* Icon-only control buttons — quiet by default, color/contrast on hover. */
+.atlas-doc-review-controls .atlas-doc-review-button {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg-base, #fff) 75%, transparent);
+  color: var(--color-text-tertiary, #64748b);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  opacity: 0.7;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.atlas-doc-review-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #e548a5;
-  animation: atlas-doc-review-dot 1s ease-in-out infinite;
+.atlas-doc-review-controls .atlas-doc-review-button:hover {
+  opacity: 1;
+  border-color: rgba(148, 163, 184, 0.35);
+  color: var(--color-text-primary, #111827);
 }
 
-.atlas-doc-review-dot:nth-child(2) {
-  animation-delay: 0.15s;
+.atlas-doc-review-controls .atlas-doc-review-button.is-primary {
+  background: color-mix(in srgb, var(--color-bg-base, #fff) 75%, transparent);
+  border-color: transparent;
+  color: #e548a5;
 }
 
-.atlas-doc-review-dot:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-@keyframes atlas-doc-review-dot {
-  0%,
-  80%,
-  100% {
-    opacity: 0.25;
-    transform: translateY(0);
-  }
-  40% {
-    opacity: 1;
-    transform: translateY(-2px);
-  }
+.atlas-doc-review-controls .atlas-doc-review-button.is-primary:hover {
+  background: color-mix(in srgb, var(--color-bg-base, #fff) 86%, #e548a5 14%);
+  border-color: rgba(229, 72, 165, 0.3);
+  color: #e548a5;
 }
 
 .atlas-doc-review-toolbar-title {

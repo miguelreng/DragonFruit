@@ -192,95 +192,47 @@ const rejectAllProposals = (view: EditorView) => {
 // --------------------------------------------------------------------------
 
 const buildProposalControls = (view: EditorView, proposal: TTrackedProposal) => {
+  // `controls` is a zero-height anchor at the block boundary; `inner` is
+  // pushed into the right margin so the buttons sit next to the paragraph
+  // rather than floating over its text.
   const controls = document.createElement("div");
   controls.className = "atlas-doc-review-controls";
   controls.contentEditable = "false";
   controls.setAttribute("data-atlas-proposal-id", proposal.id);
 
+  const inner = document.createElement("div");
+  inner.className = "atlas-doc-review-controls-inner";
+
+  const acceptLabel = proposal.operation === "delete" ? "Delete" : "Accept";
   const accept = document.createElement("button");
   accept.type = "button";
   accept.className = "atlas-doc-review-button is-primary";
-  accept.textContent = proposal.operation === "delete" ? "✓ Delete" : "✓ Accept";
+  accept.textContent = "✓";
+  accept.title = acceptLabel;
+  accept.setAttribute("aria-label", acceptLabel);
   accept.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     dispatchReviewEvent(view, "atlas-doc-review-accept", proposal.id);
   });
-  controls.appendChild(accept);
+  inner.appendChild(accept);
 
+  const rejectLabel = proposal.operation === "delete" ? "Keep" : "Reject";
   const reject = document.createElement("button");
   reject.type = "button";
   reject.className = "atlas-doc-review-button";
-  reject.textContent = proposal.operation === "delete" ? "✕ Keep" : "✕ Reject";
+  reject.textContent = "✕";
+  reject.title = rejectLabel;
+  reject.setAttribute("aria-label", rejectLabel);
   reject.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     dispatchReviewEvent(view, "atlas-doc-review-reject", proposal.id);
   });
-  controls.appendChild(reject);
+  inner.appendChild(reject);
 
+  controls.appendChild(inner);
   return controls;
-};
-
-const buildToolbar = (view: EditorView, state: TAtlasDocReviewState) => {
-  const toolbar = document.createElement("div");
-  toolbar.className = "atlas-doc-review-toolbar";
-  toolbar.contentEditable = "false";
-
-  const title = document.createElement("div");
-  title.className = "atlas-doc-review-toolbar-title";
-  title.textContent = state.session?.mode === "update" ? "Atlas proposed edits" : "Atlas draft";
-  toolbar.appendChild(title);
-
-  const actions = document.createElement("div");
-  actions.className = "atlas-doc-review-actions";
-
-  const acceptAll = document.createElement("button");
-  acceptAll.type = "button";
-  acceptAll.className = "atlas-doc-review-button is-primary";
-  acceptAll.textContent = "Accept all";
-  acceptAll.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    dispatchReviewEvent(view, "atlas-doc-review-accept-all");
-  });
-  actions.appendChild(acceptAll);
-
-  const rejectAll = document.createElement("button");
-  rejectAll.type = "button";
-  rejectAll.className = "atlas-doc-review-button";
-  rejectAll.textContent = "Reject all";
-  rejectAll.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    dispatchReviewEvent(view, "atlas-doc-review-reject-all");
-  });
-  actions.appendChild(rejectAll);
-
-  toolbar.appendChild(actions);
-  return toolbar;
-};
-
-const buildDraftingIndicator = (mode: TAtlasDocReviewSession["mode"] | undefined) => {
-  const indicator = document.createElement("div");
-  indicator.className = "atlas-doc-review-toolbar atlas-doc-review-drafting";
-  indicator.contentEditable = "false";
-
-  const title = document.createElement("div");
-  title.className = "atlas-doc-review-toolbar-title";
-  title.textContent = mode === "update" ? "Atlas is reviewing the page" : "Atlas is drafting";
-  indicator.appendChild(title);
-
-  const dots = document.createElement("div");
-  dots.className = "atlas-doc-review-dots";
-  for (let i = 0; i < 3; i += 1) {
-    const dot = document.createElement("span");
-    dot.className = "atlas-doc-review-dot";
-    dots.appendChild(dot);
-  }
-  indicator.appendChild(dots);
-
-  return indicator;
 };
 
 const buildDecorations = (state: EditorState) => {
@@ -290,48 +242,26 @@ const buildDecorations = (state: EditorState) => {
   );
   const decorations: Decoration[] = [];
 
-  // No proposals yet but the stream is open — show a live placeholder so the
-  // editor reflects that Atlas is working instead of looking inert.
-  if (reviewState.loading && visibleProposals.length === 0) {
-    decorations.push(
-      Decoration.widget(
-        clampPos(state, reviewState.session?.anchorPos),
-        () => buildDraftingIndicator(reviewState.session?.mode),
-        {
-          key: `atlas-drafting-${reviewState.session?.id ?? "active"}`,
-          side: -1,
-        }
-      )
-    );
-    return DecorationSet.create(state.doc, decorations);
-  }
+  // The "Atlas is drafting…" status now lives in the Atlas chat bar, so the
+  // document stays clean while the model is composing.
 
-  if (visibleProposals.length > 0) {
-    decorations.push(
-      Decoration.widget(clampPos(state, reviewState.session?.anchorPos), (view) => buildToolbar(view, reviewState), {
-        key: `atlas-toolbar-${reviewState.session?.id ?? "active"}`,
-        side: -1,
-      })
-    );
-  }
+  // Note: bulk Accept all / Reject all lives in the Atlas chat bar (less
+  // chrome inside the document), driven by the editor-ref commands.
 
   for (const proposal of visibleProposals) {
     const from = clampPos(state, proposal.from);
     const to = clampPos(state, proposal.to);
 
-    // Highlight every top-level block the proposal's real content spans.
-    state.doc.forEach((node, offset) => {
-      const start = offset;
-      const end = offset + node.nodeSize;
-      if (node.isBlock && start < to && end > from) {
-        decorations.push(
-          Decoration.node(start, end, {
-            class: "atlas-doc-review-pending",
-            "data-atlas-proposal-id": proposal.id,
-          })
-        );
-      }
-    });
+    // Highlight just the proposal's text — inline so the tint hugs the words
+    // (like a selection) instead of filling the whole block width.
+    if (to > from) {
+      decorations.push(
+        Decoration.inline(from, to, {
+          class: "atlas-doc-review-pending",
+          "data-atlas-proposal-id": proposal.id,
+        })
+      );
+    }
 
     // Floating Accept/Reject pinned to the top-right of the highlighted range.
     decorations.push(

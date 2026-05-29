@@ -150,6 +150,7 @@ export type CoreEditorRefApi = {
   setProviderDocument: (value: Uint8Array) => void;
   startAtlasReviewSession: (session: TAtlasDocReviewSession) => void;
   setAtlasReviewLoading: (loading: boolean) => void;
+  getActiveAtlasProposalCount: () => number;
   appendAtlasProposal: (proposal: TAtlasDocReviewProposal) => void;
   updateAtlasProposal: (id: string, patch: TAtlasDocReviewProposalUpdate) => void;
   acceptAtlasProposal: (id: string) => void;

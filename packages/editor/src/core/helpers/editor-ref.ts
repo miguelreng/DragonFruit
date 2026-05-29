@@ -15,6 +15,8 @@ import { getEditorMenuItems } from "@/components/menus";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
 import { CORE_EDITOR_META } from "@/constants/meta";
+// extensions
+import { atlasDocReviewPluginKey } from "@/extensions/atlas-doc-review/extension";
 // types
 import type { EditorRefApi, IEditorProps, TEditorCommands } from "@/types";
 // local imports
@@ -282,6 +284,12 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       const document = provider?.document;
       if (!document) return;
       Y.applyUpdate(document, value);
+    },
+    getActiveAtlasProposalCount: () => {
+      if (!editor) return 0;
+      const reviewState = atlasDocReviewPluginKey.getState(editor.state);
+      if (!reviewState) return 0;
+      return reviewState.proposals.filter((proposal) => !["accepted", "rejected"].includes(proposal.status)).length;
     },
     startAtlasReviewSession: (session) => {
       editor?.commands.startAtlasReviewSession(session);
