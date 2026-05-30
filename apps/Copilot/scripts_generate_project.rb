@@ -13,12 +13,14 @@ app_target.product_reference.name = 'DragonFruitMini.app'
 
 app_target.build_configurations.each do |config|
   settings = config.build_settings
+  settings['PRODUCT_NAME'] = 'DragonFruit Atlas'
   settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'sh.dragonfruit.copilot'
   settings['SWIFT_VERSION'] = '5.0'
   settings['MACOSX_DEPLOYMENT_TARGET'] = '13.0'
   settings['INFOPLIST_FILE'] = 'Info.plist'
   settings['CODE_SIGN_STYLE'] = 'Automatic'
   settings['DEVELOPMENT_TEAM'] = ''
+  settings['CODE_SIGN_ENTITLEMENTS'] = 'DragonFruitMini.entitlements'
   settings['GENERATE_INFOPLIST_FILE'] = 'NO'
   settings['ASSETCATALOG_COMPILER_APPICON_NAME'] = ''
   settings['ENABLE_HARDENED_RUNTIME'] = 'YES'
@@ -86,9 +88,32 @@ File.write(plist_path, <<~PLIST)
       </array>
     </dict>
   </array>
+  <key>SUFeedURL</key>
+  <string>https://dl.dragonfruit.sh/atlas/appcast.xml</string>
+  <key>SUPublicEDKey</key>
+  <string>kB1Du5nxW8xYaur3P3AZdqWlmltnO9kP/se0QPrW9ds=</string>
+  <key>SUEnableAutomaticChecks</key>
+  <true/>
+  <key>SUScheduledCheckInterval</key>
+  <integer>86400</integer>
 </dict>
 </plist>
 PLIST
+
+# Sparkle auto-update framework (Swift Package Manager).
+sparkle_pkg = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
+sparkle_pkg.repositoryURL = 'https://github.com/sparkle-project/Sparkle'
+sparkle_pkg.requirement = { 'kind' => 'upToNextMajorVersion', 'minimumVersion' => '2.6.0' }
+project.root_object.package_references << sparkle_pkg
+
+sparkle_dep = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+sparkle_dep.package = sparkle_pkg
+sparkle_dep.product_name = 'Sparkle'
+app_target.package_product_dependencies << sparkle_dep
+
+sparkle_build_file = project.new(Xcodeproj::Project::Object::PBXBuildFile)
+sparkle_build_file.product_ref = sparkle_dep
+app_target.frameworks_build_phase.files << sparkle_build_file
 
 project.save
 puts "Generated #{project_path}"

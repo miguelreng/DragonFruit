@@ -43,3 +43,10 @@ export type TProjectBookmarkCreatePayload = Partial<
     "title" | "description" | "url" | "entity_type" | "entity_identifier" | "metadata" | "tags" | "sort_order"
   >
 >;
+
+export type TProjectBookmarkBulkImportResult = {
+  bookmarks: TProjectBookmark[];
+  created_count: number;
+  skipped_count: number;
+  errors: { index: number; error: unknown }[];
+};

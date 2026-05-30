@@ -6,7 +6,7 @@
 
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { v4 as uuidv4 } from "uuid";
-import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
+import type { TProjectBookmark, TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } from "@plane/types";
 import { BookmarkService, type TBookmarkQueryParams } from "@/services/bookmark.service";
 
 export interface IBookmarkStore {
@@ -27,6 +27,11 @@ export interface IBookmarkStore {
     projectId: string,
     payload: TProjectBookmarkCreatePayload
   ) => Promise<TProjectBookmark>;
+  importBookmarks: (
+    workspaceSlug: string,
+    projectId: string,
+    payloads: TProjectBookmarkCreatePayload[]
+  ) => Promise<TProjectBookmarkBulkImportResult>;
   updateBookmark: (
     workspaceSlug: string,
     projectId: string,
@@ -51,6 +56,7 @@ export class BookmarkStore implements IBookmarkStore {
       fetchProjectBookmarks: action,
       fetchWorkspaceBookmarks: action,
       createBookmark: action,
+      importBookmarks: action,
       updateBookmark: action,
       deleteBookmark: action,
     });
@@ -140,6 +146,22 @@ export class BookmarkStore implements IBookmarkStore {
       });
       throw error;
     }
+  };
+
+  importBookmarks = async (workspaceSlug: string, projectId: string, payloads: TProjectBookmarkCreatePayload[]) => {
+    const result = await this.service.bulkCreateBookmarks(workspaceSlug, projectId, payloads);
+    const created = result.bookmarks ?? [];
+    runInAction(() => {
+      this.mergeBookmarks(created);
+      const createdIds = created.map((bookmark) => bookmark.id);
+      const dedupe = (existing: string[] | undefined) => [
+        ...createdIds,
+        ...(existing ?? []).filter((id) => !createdIds.includes(id)),
+      ];
+      this.projectBookmarkIds[projectId] = dedupe(this.projectBookmarkIds[projectId]);
+      this.workspaceBookmarkIds[workspaceSlug] = dedupe(this.workspaceBookmarkIds[workspaceSlug]);
+    });
+    return result;
   };
 
   updateBookmark = async (

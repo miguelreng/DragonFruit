@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   PencilEdit02Icon,
   PlusSignIcon,
+  Upload03Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { sortBy } from "lodash-es";
@@ -40,6 +41,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
+import { ImportBookmarksModal } from "./import-bookmarks-modal";
 
 type Props = {
   workspaceSlug: string;
@@ -664,6 +666,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [draft, setDraft] = useState<BookmarkDraft>(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
@@ -795,7 +798,21 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     }
   };
 
+  const openCreateModal = () => {
+    setEditingId(null);
+    setDraft(EMPTY_DRAFT);
+    setSelectedProjectId(
+      projectId && writableProjectIds.includes(projectId) ? projectId : (writableProjectIds[0] ?? "")
+    );
+    setIsFormModalOpen(true);
+  };
+
+  const handleImport = (targetProjectId: string, payloads: TProjectBookmarkCreatePayload[]) =>
+    bookmarkStore.importBookmarks(workspaceSlug, targetProjectId, payloads);
+
   const canCreateBookmark = writableProjectIds.length > 0;
+  const importDefaultProjectId =
+    projectId && writableProjectIds.includes(projectId) ? projectId : (writableProjectIds[0] ?? "");
 
   const header = (
     <Header>
@@ -851,20 +868,21 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
           />
         </FiltersDropdown>
         {canCreateBookmark && (
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() => {
-              setEditingId(null);
-              setDraft(EMPTY_DRAFT);
-              setSelectedProjectId(
-                projectId && writableProjectIds.includes(projectId) ? projectId : (writableProjectIds[0] ?? "")
-              );
-              setIsFormModalOpen(true);
-            }}
-          >
-            New bookmark
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              size="lg"
+              prependIcon={
+                <HugeiconsIcon icon={Upload03Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              }
+              onClick={() => setIsImportModalOpen(true)}
+            >
+              Import
+            </Button>
+            <Button variant="primary" size="lg" onClick={openCreateModal}>
+              New bookmark
+            </Button>
+          </>
         )}
       </Header.RightItem>
     </Header>
@@ -893,6 +911,16 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
           isEditing={!!editingId}
         />
       )}
+      {canCreateBookmark && (
+        <ImportBookmarksModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          projectOptions={writableProjects}
+          defaultProjectId={importDefaultProjectId}
+          showProjectSelect={mode === "workspace"}
+          onImport={handleImport}
+        />
+      )}
       <div className="relative flex h-full w-full flex-col overflow-hidden">
         {filteredBookmarks.length === 0 ? (
           <EmptyStateDetailed
@@ -909,16 +937,12 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                     {
                       label: "New bookmark",
                       variant: "primary",
-                      onClick: () => {
-                        setEditingId(null);
-                        setDraft(EMPTY_DRAFT);
-                        setSelectedProjectId(
-                          projectId && writableProjectIds.includes(projectId)
-                            ? projectId
-                            : (writableProjectIds[0] ?? "")
-                        );
-                        setIsFormModalOpen(true);
-                      },
+                      onClick: openCreateModal,
+                    },
+                    {
+                      label: "Import CSV",
+                      variant: "secondary",
+                      onClick: () => setIsImportModalOpen(true),
                     },
                   ]
                 : undefined

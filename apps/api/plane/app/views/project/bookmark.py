@@ -19,6 +19,7 @@ class ProjectBookmarkViewSet(BaseViewSet):
     serializer_class = ProjectBookmarkSerializer
     model = ProjectBookmark
     use_read_replica = True
+    MAX_IMPORT_SIZE = 2000
 
     def get_queryset(self):
         queryset = (
@@ -85,6 +86,62 @@ class ProjectBookmarkViewSet(BaseViewSet):
                 )
             return Response(ProjectBookmarkSerializer(bookmark).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="PROJECT")
+    def bulk_create(self, request, slug, project_id):
+        project = Project.objects.filter(pk=project_id, workspace__slug=slug).first()
+        if project is None:
+            return Response({"error": "The selected project does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        payload = data.get("bookmarks", data) if isinstance(data, dict) else data
+        if not isinstance(payload, list):
+            return Response({"error": "Provide a list of bookmarks to import."}, status=status.HTTP_400_BAD_REQUEST)
+        if not payload:
+            return Response({"error": "No bookmarks to import."}, status=status.HTTP_400_BAD_REQUEST)
+        if len(payload) > self.MAX_IMPORT_SIZE:
+            return Response(
+                {"error": f"You can import up to {self.MAX_IMPORT_SIZE} bookmarks at a time."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        created = []
+        errors = []
+        for index, item in enumerate(payload):
+            if not isinstance(item, dict):
+                errors.append({"index": index, "error": "Each bookmark must be an object."})
+                continue
+            serializer = ProjectBookmarkSerializer(data=item)
+            if not serializer.is_valid():
+                errors.append({"index": index, "error": serializer.errors})
+                continue
+            try:
+                bookmark = serializer.save(
+                    project=project,
+                    workspace=project.workspace,
+                    created_by=request.user,
+                    updated_by=request.user,
+                )
+                created.append(bookmark)
+            except DjangoValidationError as exc:
+                error = exc.message_dict if hasattr(exc, "message_dict") else exc.messages
+                errors.append({"index": index, "error": error})
+            except DatabaseError as exc:
+                log_exception(exc)
+                return Response(
+                    {"error": "Bookmark storage is not ready. Run API database migrations and try again."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+
+        return Response(
+            {
+                "bookmarks": ProjectBookmarkSerializer(created, many=True).data,
+                "created_count": len(created),
+                "skipped_count": len(errors),
+                "errors": errors,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="PROJECT")
     def retrieve(self, request, slug, project_id, pk):

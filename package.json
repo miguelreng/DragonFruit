@@ -10,6 +10,8 @@
     "dev": "turbo run dev --concurrency=18",
     "mac:dev": "bash apps/Copilot/scripts/dev.sh",
     "mac:open": "open apps/Copilot/DragonFruitMini.xcodeproj",
+    "mac:package": "bash apps/Copilot/scripts/package.sh",
+    "mac:release": "bash apps/Copilot/scripts/release.sh",
     "start": "turbo run start",
     "clean": "turbo run clean && rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist",
     "fix": "turbo run fix",

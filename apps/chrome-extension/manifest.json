@@ -30,7 +30,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["src/fonts/Newsreader-Variable.ttf"],
+      "resources": ["src/fonts/Figtree-Variable.ttf"],
       "matches": ["<all_urls>"]
     }
   ],

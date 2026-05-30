@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import QuartzCore
+import Sparkle
 import SwiftUI
 
 @main
@@ -9,13 +10,22 @@ struct DragonFruitMiniApp: App {
     @StateObject private var toastController = VoiceToastController()
     @StateObject private var cursorBuddyController = CursorBuddyOverlayController()
 
+    // Drives Sparkle auto-updates. Created once at launch; starts the updater so
+    // scheduled background checks run per the SUFeedURL / interval in Info.plist.
+    private let updaterController: SPUStandardUpdaterController
+
     init() {
         BrandTheme.registerFontsIfNeeded()
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
     }
 
     var body: some Scene {
         MenuBarExtra {
-            MeetingPopoverView(store: store)
+            MeetingPopoverView(store: store, updater: updaterController.updater)
                 .frame(width: 360)
                 .onAppear {
                     toastController.bind(to: store)

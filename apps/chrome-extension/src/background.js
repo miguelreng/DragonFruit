@@ -285,24 +285,65 @@ async function handleContextMenu(info, tab) {
 
   if (!tab?.id) return;
   if (info.menuItemId === MENU_SAVE_IMAGE && info.srcUrl) {
-    await saveBookmark({
-      title: titleFromUrl(info.srcUrl, "Saved image"),
-      url: info.srcUrl,
-      description: tab.title ? `Saved from ${tab.title}` : "",
-      tags: ["image"],
-      metadata: {
-        image_url: info.srcUrl,
-        source_url: tab.url || "",
-        source_app: "DragonFruit Chrome Extension",
-        site_name: "Image",
-      },
+    await saveWithFeedback(tab, {
+      savingText: "Saving image to DragonFruit...",
+      savedText: "Image saved to DragonFruit",
+      save: () =>
+        saveBookmark({
+          title: titleFromUrl(info.srcUrl, "Saved image"),
+          url: info.srcUrl,
+          description: tab.title ? `Saved from ${tab.title}` : "",
+          tags: ["image"],
+          metadata: {
+            image_url: info.srcUrl,
+            source_url: tab.url || "",
+            source_app: "DragonFruit Chrome Extension",
+            site_name: "Image",
+          },
+        }),
     });
     return;
   }
 
   const url = info.linkUrl || tab.url || "";
   if (!url) return;
-  await saveUrlBookmark(url, tab);
+  await saveWithFeedback(tab, {
+    savingText: "Saving to DragonFruit...",
+    savedText: "Saved to DragonFruit",
+    save: () => saveUrlBookmark(url, tab),
+  });
+}
+
+// Runs a save with the shared toast + error-recovery flow: auth gate, loading
+// toast, then a success toast or a routed recovery (login / settings / error
+// toast). Used by both the toolbar action and the context-menu entries so they
+// stay consistent.
+async function saveWithFeedback(tab, { savingText, savedText, save }) {
+  const tabId = tab?.id;
+  if (!tabId) return;
+  try {
+    const authState = await getAuthState(DEFAULT_API_URL);
+    if (!authState.authenticated) {
+      await openExtensionView("login", tabId);
+      if (tab.url) await updateActionIconForTab(tabId, tab.url);
+      return;
+    }
+    await showTabToast(tabId, savingText, "loading");
+    await save();
+    await showTabToast(tabId, savedText, "success");
+  } catch (error) {
+    const message = String(error?.message || "Could not save to DragonFruit.");
+    if (isAuthenticationError(message)) {
+      await openExtensionView("login", tabId);
+    } else if (isConfigurationError(message)) {
+      await openExtensionView("settings", tabId);
+    } else if (isPermissionError(message)) {
+      await showTabToast(tabId, "No write access for selected project. Choose another project.", "error");
+    } else {
+      await showTabToast(tabId, message, "error");
+    }
+    if (tab.url) await updateActionIconForTab(tabId, tab.url);
+  }
 }
 
 async function saveActiveTab() {
@@ -315,29 +356,11 @@ async function saveActiveTab() {
 async function handleActionClick(tab) {
   if (!tab?.id || !tab?.url) return;
   await setActionIcon("active", tab.id);
-  try {
-    const authState = await getAuthState(DEFAULT_API_URL);
-    if (!authState.authenticated) {
-      await openExtensionView("login", tab.id);
-      await updateActionIconForTab(tab.id, tab.url);
-      return;
-    }
-    await showTabToast(tab.id, "Saving to DragonFruit...", "loading");
-    await saveUrlBookmark(tab.url, tab);
-    await showTabToast(tab.id, "Saved to DragonFruit", "success");
-  } catch (error) {
-    const message = String(error?.message || "Could not save to DragonFruit.");
-    if (isAuthenticationError(message)) {
-      await openExtensionView("login", tab.id);
-    } else if (isConfigurationError(message)) {
-      await openExtensionView("settings", tab.id);
-    } else if (isPermissionError(message)) {
-      await showTabToast(tab.id, "No write access for selected project. Choose another project.", "error");
-    } else {
-      await showTabToast(tab.id, message, "error");
-    }
-    await updateActionIconForTab(tab.id, tab.url);
-  }
+  await saveWithFeedback(tab, {
+    savingText: "Saving to DragonFruit...",
+    savedText: "Saved to DragonFruit",
+    save: () => saveUrlBookmark(tab.url, tab),
+  });
 }
 
 async function saveUrlBookmark(url, tab) {
@@ -589,7 +612,7 @@ async function showTabToast(tabId, message, state = "success") {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
-      args: [String(message || ""), state, chrome.runtime.getURL("src/fonts/Newsreader-Variable.ttf")],
+      args: [String(message || ""), state, chrome.runtime.getURL("src/fonts/Figtree-Variable.ttf")],
       func: (toastMessage, toastState, fontUrl) => {
         const TOAST_ID = "dragonfruit-extension-toast";
         if (!toastMessage) return;
@@ -597,14 +620,34 @@ async function showTabToast(tabId, message, state = "success") {
         const toastToken = String(Date.now());
         const iconMarkup = {
           success: `
-            <svg class="status-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M20 6.5 9.5 17 4 11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            <span class="ping" aria-hidden="true"></span>
+            <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+              <path d="M20 3v4"></path>
+              <path d="M22 5h-4"></path>
+              <path d="M4 17v2"></path>
+              <path d="M5 18H3"></path>
             </svg>
           `,
-          loading: "",
+          loading: `
+            <svg class="status-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <g>
+                <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.14"></rect>
+                <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.29" transform="rotate(30 12 12)"></rect>
+                <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.43" transform="rotate(60 12 12)"></rect>
+                <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.57" transform="rotate(90 12 12)"></rect>
+                <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.71" transform="rotate(120 12 12)"></rect>
+                <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.86" transform="rotate(150 12 12)"></rect>
+                <rect width="2" height="5" x="11" y="1" fill="currentColor" transform="rotate(180 12 12)"></rect>
+                <animateTransform attributeName="transform" calcMode="discrete" dur="0.75s" repeatCount="indefinite" type="rotate" values="0 12 12;30 12 12;60 12 12;90 12 12;120 12 12;150 12 12;180 12 12;210 12 12;240 12 12;270 12 12;300 12 12;330 12 12;360 12 12"></animateTransform>
+              </g>
+            </svg>
+          `,
           error: `
-            <svg class="status-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+            <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" x2="12" y1="8" y2="12"></line>
+              <line x1="12" x2="12.01" y1="16" y2="16"></line>
             </svg>
           `,
         }[normalizedState];
@@ -626,7 +669,7 @@ async function showTabToast(tabId, message, state = "success") {
         root.innerHTML = `
           <style>
             @font-face {
-              font-family: Newsreader;
+              font-family: Figtree;
               src: url("${fontUrl}") format("truetype");
               font-style: normal;
               font-weight: 300 800;
@@ -635,38 +678,50 @@ async function showTabToast(tabId, message, state = "success") {
             :host {
               all: initial;
               --bg-surface-1: oklch(1 0 0);
-              --bg-success-subtle: oklch(0.9819 0.0181 155.83);
-              --bg-accent-subtle: oklch(0.9847 0.0092 347.17);
-              --bg-danger-subtle: oklch(0.9705 0.0129 17.38);
-              --border-strong: oklch(0.8925 0.0024 230.7);
+              --border-subtle-1: oklch(0.9235 0.001733 230.6853);
               --txt-primary: oklch(0.2378 0.0029 230.83);
-              --txt-icon-success-primary: oklch(0.4468 0.1187 151.4);
-              --txt-icon-accent-primary: oklch(0.4901 0.2056 347.17);
-              --txt-icon-danger-primary: oklch(0.4446 0.1774 26.79);
-              --shadow-raised-200: 0px 1px 2px -1px #292f3d0f, 0px 1px 3px 0px #292f3d0d;
+              --txt-success-primary: oklch(0.4468 0.1187 151.4);
+              --txt-danger-primary: oklch(0.4446 0.1774 26.79);
+              --bg-success-primary: oklch(0.632 0.185972 147.3695);
+              --txt-icon-tertiary: oklch(0.6161 0.009153 230.867);
+              --txt-icon-secondary: oklch(0.4377 0.0066 230.87);
+              --shadow-overlay-100: 0px 10px 10px -5px #292f3d0a, 0px 10px 40px -5px #292f3d0a;
               position: fixed;
-              right: 18px;
-              top: 18px;
+              right: 12px;
+              bottom: 12px;
               z-index: 2147483647;
-              width: min(320px, calc(100vw - 36px));
+              width: min(340px, calc(100vw - 24px));
               color-scheme: light;
               pointer-events: none;
             }
+            @media (prefers-color-scheme: dark) {
+              :host {
+                --bg-surface-1: oklch(0.175 0.0045 30);
+                --border-subtle-1: oklch(0.31 0.0065 30);
+                --txt-primary: oklch(0.925 0.0035 30);
+                --txt-success-primary: oklch(0.9258 0.0845 155.86);
+                --txt-danger-primary: oklch(0.8834 0.0616 18.39);
+                --bg-success-primary: oklch(0.7914 0.2091 151.66);
+                --txt-icon-tertiary: oklch(0.765 0.006 30);
+                --txt-icon-secondary: oklch(0.845 0.005 30);
+                color-scheme: dark;
+              }
+            }
             .toast {
+              position: relative;
               box-sizing: border-box;
               display: flex;
               width: 100%;
-              min-height: 52px;
-              align-items: center;
+              align-items: flex-start;
               gap: 10px;
-              border: 0.5px solid var(--border-strong);
-              border-radius: 18px;
+              border: 1px solid var(--border-subtle-1);
+              border-radius: 8px;
               background: var(--bg-surface-1);
-              padding: 10px 12px;
-              box-shadow: var(--shadow-raised-200);
-              transform: translateY(-8px);
+              padding: 12px 32px 12px 12px;
+              box-shadow: var(--shadow-overlay-100);
+              transform: translateY(150%);
               opacity: 0;
-              transition: opacity 0.16s ease, transform 0.16s ease;
+              transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
               pointer-events: auto;
             }
             .toast[data-visible="true"] {
@@ -674,33 +729,37 @@ async function showTabToast(tabId, message, state = "success") {
               transform: translateY(0);
             }
             .icon {
+              position: relative;
               box-sizing: border-box;
               display: grid;
               flex: 0 0 auto;
               place-items: center;
-              width: 24px;
-              height: 24px;
-              border-radius: 999px;
-              background: var(--bg-success-subtle);
-              color: var(--txt-icon-success-primary);
+              width: 16px;
+              height: 16px;
+              padding: 1px 0;
+              color: var(--txt-success-primary);
             }
             .icon[data-state="error"] {
-              background: var(--bg-danger-subtle);
-              color: var(--txt-icon-danger-primary);
+              color: var(--txt-danger-primary);
             }
             .icon[data-state="loading"] {
-              display: none;
+              color: var(--txt-icon-tertiary);
             }
             .status-icon {
-              width: 15px;
-              height: 15px;
+              position: relative;
+              width: 16px;
+              height: 16px;
             }
-            .status-icon.is-loading {
-              animation: dragonfruit-toast-spin 0.9s linear infinite;
-              transform-origin: center;
+            .ping {
+              position: absolute;
+              width: 12px;
+              height: 12px;
+              border-radius: 999px;
+              background: color-mix(in oklch, var(--bg-success-primary) 25%, transparent);
+              animation: dragonfruit-toast-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
             }
-            @keyframes dragonfruit-toast-spin {
-              to { transform: rotate(360deg); }
+            @keyframes dragonfruit-toast-ping {
+              75%, 100% { transform: scale(2); opacity: 0; }
             }
             .content {
               box-sizing: border-box;
@@ -708,31 +767,69 @@ async function showTabToast(tabId, message, state = "success") {
               min-width: 0;
               flex: 1 1 auto;
               flex-direction: column;
-              gap: 8px;
+              gap: 2px;
             }
             .message {
               margin: 0;
               color: var(--txt-primary);
-              font: 400 16px/1.2 Newsreader, ui-serif, Georgia, serif;
-              letter-spacing: 0;
+              font: 500 14px/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
+              letter-spacing: 0.01em;
+            }
+            .close {
+              position: absolute;
+              top: 8px;
+              right: 8px;
+              display: grid;
+              place-items: center;
+              width: 18px;
+              height: 18px;
+              margin: 0;
+              padding: 0;
+              border: 0;
+              background: transparent;
+              color: var(--txt-icon-tertiary);
+              cursor: pointer;
+              opacity: 0;
+              transition: opacity 0.15s ease, color 0.15s ease;
+            }
+            .toast:hover .close {
+              opacity: 1;
+            }
+            .close:hover {
+              color: var(--txt-icon-secondary);
+            }
+            .close svg {
+              width: 14px;
+              height: 14px;
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .toast { transition: opacity 0.2s ease; transform: none; }
+              .toast[data-visible="true"] { transform: none; }
+              .ping { animation: none; }
             }
           </style>
           <div class="toast" data-visible="false">
-            ${
-              normalizedState === "loading"
-                ? ""
-                : `<span class="icon" data-state="${normalizedState}" aria-hidden="true">${iconMarkup}</span>`
-            }
+            <span class="icon" data-state="${normalizedState}" aria-hidden="true">${iconMarkup}</span>
             <div class="content">
               <p class="message"></p>
             </div>
+            <button class="close" type="button" aria-label="Dismiss">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"></path>
+              </svg>
+            </button>
           </div>
         `;
 
         const toast = root.querySelector(".toast");
         const messageElement = root.querySelector(".message");
+        const closeButton = root.querySelector(".close");
         if (!toast || !messageElement) return;
         messageElement.textContent = toastMessage;
+
+        closeButton?.addEventListener("click", () => {
+          toast.dataset.visible = "false";
+        });
 
         requestAnimationFrame(() => {
           toast.dataset.visible = "true";

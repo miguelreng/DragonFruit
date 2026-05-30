@@ -5,7 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
-import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
+import type { TProjectBookmark, TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } from "@plane/types";
 import { APIService } from "@/services/api.service";
 
 export type TBookmarkQueryParams = {
@@ -48,6 +48,18 @@ export class BookmarkService extends APIService {
     payload: TProjectBookmarkCreatePayload
   ): Promise<TProjectBookmark> {
     return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/`, payload)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async bulkCreateBookmarks(
+    workspaceSlug: string,
+    projectId: string,
+    payloads: TProjectBookmarkCreatePayload[]
+  ): Promise<TProjectBookmarkBulkImportResult> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/bulk/`, { bookmarks: payloads })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

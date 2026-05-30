@@ -1,8 +1,10 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 struct MeetingPopoverView: View {
     @ObservedObject var store: MeetingStore
+    var updater: SPUUpdater? = nil
     @State private var isSettingsExpanded = true
     @State private var isPanelRevealed = false
     private let shellCornerRadius: CGFloat = 12
@@ -345,8 +347,31 @@ struct MeetingPopoverView: View {
                 featureToggle("Dictation", isOn: $store.cursorBuddyEnabled, detail: "Hold ⌥")
                 featureToggle("Meeting notes", isOn: $store.meetingNotesEnabled)
                 resetAccessibilityButton
+                if updater != nil {
+                    checkForUpdatesButton
+                }
             }
         }
+    }
+
+    private var checkForUpdatesButton: some View {
+        Button {
+            updater?.checkForUpdates()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.circle")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("Check for Updates…")
+                    .font(.custom("Figtree", size: 11).weight(.semibold))
+                Spacer(minLength: 8)
+            }
+            .foregroundStyle(theme.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(theme.layer1)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private var resetAccessibilityButton: some View {

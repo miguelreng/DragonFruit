@@ -115,6 +115,11 @@ urlpatterns = [
         name="project-bookmarks",
     ),
     path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/bulk/",
+        ProjectBookmarkViewSet.as_view({"post": "bulk_create"}),
+        name="project-bookmarks-bulk",
+    ),
+    path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/<uuid:pk>/",
         ProjectBookmarkViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="project-bookmarks",

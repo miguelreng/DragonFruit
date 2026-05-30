@@ -43,5 +43,17 @@
       </array>
     </dict>
   </array>
+  <!-- Sparkle auto-update. SUFeedURL must point at the hosted appcast.xml;
+       update it to the real distribution host before shipping. SUPublicEDKey
+       is the EdDSA public key — its private half lives in the release machine's
+       keychain (account "ed25519") and signs every update. -->
+  <key>SUFeedURL</key>
+  <string>https://dl.dragonfruit.sh/atlas/appcast.xml</string>
+  <key>SUPublicEDKey</key>
+  <string>kB1Du5nxW8xYaur3P3AZdqWlmltnO9kP/se0QPrW9ds=</string>
+  <key>SUEnableAutomaticChecks</key>
+  <true/>
+  <key>SUScheduledCheckInterval</key>
+  <integer>86400</integer>
 </dict>
 </plist>

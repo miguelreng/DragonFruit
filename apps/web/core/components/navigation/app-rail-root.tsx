@@ -14,11 +14,15 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   CalendarDays,
   Download,
+  ExternalLink,
   FileText,
   Folder,
+  Globe,
+  Info,
   Settings,
   Layers,
   ListTodo,
+  Monitor,
   Star,
   Search,
   Sparkles,
@@ -580,6 +584,140 @@ const ProjectRailTree = (props: { projects: TProjectRailItem[]; pathname: string
   );
 };
 
+// Distribution links for the downloadable clients. Update these once the Mac
+// build is hosted and the extension is published to the Chrome Web Store.
+const ATLAS_MAC_DOWNLOAD_URL = "https://dl.dragonfruit.sh/atlas/DragonFruit%20Atlas.dmg";
+const CHROME_EXTENSION_URL = "https://chromewebstore.google.com/";
+
+const DOWNLOAD_APPS: {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  icon: React.JSX.Element;
+  cta: string;
+  ctaIcon: React.JSX.Element;
+  variant: "primary" | "secondary";
+  steps: string[];
+  // Temporary beta caveat — remove once the Mac build is notarized.
+  note?: string;
+}[] = [
+  {
+    id: "atlas-mac",
+    title: "Atlas for Mac",
+    description: "Voice, dictation, and meeting notes from your menu bar.",
+    href: ATLAS_MAC_DOWNLOAD_URL,
+    icon: <Monitor />,
+    cta: "Download",
+    ctaIcon: <Download />,
+    variant: "primary",
+    note: "Beta build isn't notarized yet, so macOS blocks the first open. Allow it in System Settings → Privacy & Security → Open Anyway.",
+    steps: [
+      "Open the download and drag Atlas into Applications.",
+      "Grant Accessibility, Microphone, and Screen Recording when prompted.",
+      "Press ⌥Space to capture a voice action, or ⌥⇧Space to dictate.",
+    ],
+  },
+  {
+    id: "chrome-extension",
+    title: "Chrome extension",
+    description: "Save pages, images, and tweets straight to DragonFruit.",
+    href: CHROME_EXTENSION_URL,
+    icon: <Globe />,
+    cta: "Get extension",
+    ctaIcon: <ExternalLink />,
+    variant: "secondary",
+    steps: [
+      "Add it from the Chrome Web Store and pin it to your toolbar.",
+      "Sign in, then choose a workspace and project.",
+      "Click the icon to save a page, or right-click an image to save it.",
+    ],
+  },
+];
+
+const DownloadAppsModal = (props: { isOpen: boolean; onClose: () => void }) => {
+  const { isOpen, onClose } = props;
+
+  const openApp = (href: string) => {
+    window.open(href, "_blank", "noopener,noreferrer");
+    onClose();
+  };
+
+  return (
+    <ModalCore
+      isOpen={isOpen}
+      handleClose={onClose}
+      position={EModalPosition.CENTER}
+      width={EModalWidth.LG}
+      className="overflow-hidden"
+    >
+      <div className="flex flex-col">
+        {/* Banner that dissolves into the modal surface */}
+        <div className="relative h-48 w-full shrink-0 bg-layer-1">
+          <img
+            src="/images/download-apps-header.jpg"
+            alt=""
+            className="size-full object-cover object-center"
+            loading="lazy"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-surface-1 to-transparent"
+          />
+        </div>
+        <div className="flex flex-col gap-5 p-5">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-16 font-medium text-primary">Download apps</h3>
+            <p className="text-13 text-secondary">Use DragonFruit on your desktop and in your browser.</p>
+          </div>
+          <div className="flex flex-col gap-3">
+            {DOWNLOAD_APPS.map((app) => (
+              <div key={app.id} className="flex flex-col gap-3 rounded-lg border border-subtle bg-layer-1 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="grid size-9 flex-shrink-0 place-items-center rounded-lg bg-layer-transparent-hover text-icon-secondary [&_svg]:size-4">
+                    {app.icon}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-13 font-medium text-primary">{app.title}</span>
+                    <span className="text-12 text-tertiary">{app.description}</span>
+                  </div>
+                  <Button
+                    variant={app.variant}
+                    size="lg"
+                    prependIcon={app.ctaIcon}
+                    onClick={() => openApp(app.href)}
+                    className="flex-shrink-0"
+                  >
+                    {app.cta}
+                  </Button>
+                </div>
+                {app.note && (
+                  <div className="flex items-start gap-2 rounded-lg bg-layer-transparent-hover px-3 py-2.5 text-12 text-secondary">
+                    <span className="mt-px flex-shrink-0 text-tertiary [&_svg]:size-3.5">
+                      <Info />
+                    </span>
+                    <span className="flex-1">{app.note}</span>
+                  </div>
+                )}
+                <ol className="flex flex-col gap-2 border-t border-subtle pt-3">
+                  {app.steps.map((step, index) => (
+                    <li key={step} className="flex items-start gap-2 text-12 text-secondary">
+                      <span className="mt-px grid size-4 flex-shrink-0 place-items-center rounded-full bg-layer-transparent-hover text-11 font-medium text-tertiary">
+                        {index + 1}
+                      </span>
+                      <span className="flex-1">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </ModalCore>
+  );
+};
+
 export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const { isMobile = false } = props;
   // router
@@ -598,6 +736,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const surfaceTheme = useTopBarTheme();
   const [isFavoritesCategoryOpen, setIsFavoritesCategoryOpen] = useState(true);
   const [isProjectsCategoryOpen, setIsProjectsCategoryOpen] = useState(true);
+  const [isDownloadAppsModalOpen, setIsDownloadAppsModalOpen] = useState(false);
   // derived values
   // In the mobile drawer the rail always shows labels and fills the panel.
   const isRailExpanded = isMobile || preferences.displayMode === "icon_with_label";
@@ -814,8 +953,9 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
           <AppSidebarItem
             variant="button"
             item={{
-              label: "Get Atlas Mac App",
+              label: "Download Apps",
               icon: <Download />,
+              onClick: () => setIsDownloadAppsModalOpen(true),
               isInline: isRailExpanded,
               showLabel: showRailLabels,
             }}
@@ -824,6 +964,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
           <UserMenuRoot showLabel={showRailLabels} isInline={isRailExpanded} />
         </div>
       </div>
+      <DownloadAppsModal isOpen={isDownloadAppsModalOpen} onClose={() => setIsDownloadAppsModalOpen(false)} />
     </div>
   );
 });
