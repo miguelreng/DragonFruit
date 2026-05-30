@@ -120,6 +120,7 @@ Rules:
 - One @@ATLAS block per paragraph, heading, or short list.
 - create mode: use only `op=insert_after` and leave target empty.
 - update mode: use `op=replace` or `op=delete` only against a provided block id; use `op=insert_after` with an empty target for brand-new content.
+- If a "Selected text" section is present, the user is editing exactly that passage: find the provided block id whose text matches the selection and emit a single `op=replace` against it. Do not rewrite, re-order, or touch other blocks unless the request clearly asks you to.
 - For `op=delete`, emit only the header line (no body).
 - Write production-ready prose. Do not restate the user's prompt.
 - Never write the literal text "@@ATLAS" inside body content.

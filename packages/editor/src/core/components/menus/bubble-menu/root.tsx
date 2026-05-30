@@ -8,7 +8,7 @@ import { isNodeSelection } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import { BubbleMenu, useEditorState } from "@tiptap/react";
 import type { BubbleMenuProps } from "@tiptap/react";
-import { MessageCircle } from "@plane/icons";
+import { MessageCircle, Sparkles } from "@plane/icons";
 import { useEffect, useState, useRef } from "react";
 import { v4 as generateUuid } from "uuid";
 // plane utils
@@ -94,7 +94,7 @@ export function EditorBubbleMenu(props: Props) {
 
   const editorState: EditorStateType = useEditorState({
     editor,
-    selector: ({ editor }) => ({
+    selector: ({ editor: activeEditor }) => ({
       code: formattingItems.code.isActive(),
       bold: formattingItems.bold.isActive(),
       italic: formattingItems.italic.isActive(),
@@ -103,8 +103,8 @@ export function EditorBubbleMenu(props: Props) {
       left: formattingItems["text-align"].isActive({ alignment: "left" }),
       right: formattingItems["text-align"].isActive({ alignment: "right" }),
       center: formattingItems["text-align"].isActive({ alignment: "center" }),
-      color: COLORS_LIST.find((c) => TextColorItem(editor).isActive({ color: c.key })),
-      backgroundColor: COLORS_LIST.find((c) => BackgroundColorItem(editor).isActive({ color: c.key })),
+      color: COLORS_LIST.find((c) => TextColorItem(activeEditor).isActive({ color: c.key })),
+      backgroundColor: COLORS_LIST.find((c) => BackgroundColorItem(activeEditor).isActive({ color: c.key })),
     }),
   });
 
@@ -114,15 +114,15 @@ export function EditorBubbleMenu(props: Props) {
 
   const bubbleMenuProps: EditorBubbleMenuProps = {
     editor,
-    shouldShow: ({ state, editor }) => {
+    shouldShow: ({ state, editor: activeEditor }) => {
       const { selection } = state;
       const { empty } = selection;
 
       if (
         empty ||
-        !editor.isEditable ||
-        editor.isActive(CORE_EXTENSIONS.IMAGE) ||
-        editor.isActive(CORE_EXTENSIONS.CUSTOM_IMAGE) ||
+        !activeEditor.isEditable ||
+        activeEditor.isActive(CORE_EXTENSIONS.IMAGE) ||
+        activeEditor.isActive(CORE_EXTENSIONS.CUSTOM_IMAGE) ||
         isNodeSelection(selection) ||
         isCellSelection(selection) ||
         isSelecting
@@ -236,6 +236,35 @@ export function EditorBubbleMenu(props: Props) {
               the user expects when highlighting text. The host app
               listens for `dragonfruit:request-block-comment` and pops
               the composer. */}
+          {/* Reply to selection with Atlas. Same DOM event-bus pattern as
+              the comment button below — the host app catches
+              `dragonfruit:reply-to-selection` on `window`, opens the Atlas
+              drawer, and pins the highlighted passage as a "replying to"
+              chip in the composer. No mark is left on the doc; the snippet
+              text travels in the event payload. */}
+          <div className="flex gap-0.5 px-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const { from, to } = editor.state.selection;
+                if (from === to) return;
+                const text = editor.state.doc.textBetween(from, to, "\n").trim();
+                if (!text) return;
+                editor.view.dom.dispatchEvent(
+                  new CustomEvent("dragonfruit:reply-to-selection", {
+                    bubbles: true,
+                    detail: { text, from, to },
+                  })
+                );
+              }}
+              aria-label="Reply to selection with Atlas"
+              title="Ask Atlas"
+              className="grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
+            >
+              <Sparkles className="size-4" />
+            </button>
+          </div>
           <div className="flex gap-0.5 px-2">
             <button
               type="button"

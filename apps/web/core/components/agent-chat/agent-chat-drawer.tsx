@@ -86,6 +86,8 @@ import type {
 } from "@/services/agent-chat.service";
 import { AgentService } from "@/services/agent.service";
 import type { TAgent } from "@/services/agent.service";
+// local imports — `./reply-context` (not the barrel) avoids a self-import cycle
+import { consumePendingReplyContext, subscribePendingReplyContext, type PendingReplyContext } from "./reply-context";
 
 const chatService = new AgentChatService();
 const agentService = new AgentService();
@@ -504,6 +506,10 @@ function ChatThread(props: {
 
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  // Passage the user highlighted in the doc and chose to "Ask Atlas" about.
+  // Seeded from the shared bridge on mount (the drawer opens *after* the pick,
+  // so a window listener here would miss it), then kept live via subscribe.
+  const [replyContext, setReplyContext] = useState<PendingReplyContext | null>(() => consumePendingReplyContext());
   // Wrap pending files with a stable id so list keys don't rely on
   // array index (two files with the same name would otherwise share a
   // key). The id is local to this component — never sent to the server.
@@ -529,6 +535,20 @@ function ChatThread(props: {
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [draft]);
+
+  // Pin a freshly-picked passage and focus the composer. The mount-time read
+  // already happened in the `replyContext` initializer; this catches picks
+  // that arrive while the drawer is already open.
+  useEffect(() => {
+    if (replyContext) textareaRef.current?.focus();
+    return subscribePendingReplyContext((ctx) => {
+      if (!ctx) return;
+      setReplyContext(ctx);
+      consumePendingReplyContext();
+      textareaRef.current?.focus();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Keep this in sync with the server's `_MAX_IMAGE_BYTES`. JSON
   // payload ceilings are tight (Django: 5MB) and base64 inflates by
@@ -579,6 +599,11 @@ function ChatThread(props: {
   const handleSend = useCallback(async () => {
     const trimmed = draft.trim();
     const hasFiles = pendingFiles.length > 0;
+    // Snapshot the pinned passage now — by the time the request resolves the
+    // user may have cleared it or picked another. Intent decides what we do
+    // with it: an edit-like ask routes into the doc-write flow scoped to the
+    // selection; anything else rides along as private grounding context.
+    const reply = replyContext;
     // Allow attachments-only messages — common for "what's in this
     // CSV?" without any typed text.
     if ((!trimmed && !hasFiles) || sending) return;
@@ -602,16 +627,23 @@ function ChatThread(props: {
     if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
       const document = activePageEditorRef.getDocument();
       const documentMarkdown = activePageEditorRef.getMarkDown();
-      const cursorPosition = activePageEditorRef.getCurrentCursorPosition();
-      const mode: TAtlasDocWriteMode = documentMarkdown.trim().length > 0 ? "update" : "create";
+      const liveCursorPosition = activePageEditorRef.getCurrentCursorPosition();
+      // A pinned passage anchors the edit to where it was picked — the live
+      // editor selection has usually collapsed once focus moved to the
+      // composer. Fall back to the cursor for a plain "write…" request.
+      const anchorPos = reply ? reply.from : liveCursorPosition;
+      // When replying to a passage Atlas should edit that text, not start a
+      // fresh doc — force "update" so the model targets the existing block.
+      const mode: TAtlasDocWriteMode = reply || documentMarkdown.trim().length > 0 ? "update" : "create";
       let streamError: string | null = null;
 
       setDraft("");
       setPendingFiles([]);
+      setReplyContext(null);
       activePageEditorRef.startAtlasReviewSession({
         id: `local-atlas-doc-write-${Date.now()}`,
         mode,
-        anchorPos: cursorPosition,
+        anchorPos,
       });
 
       try {
@@ -623,8 +655,8 @@ function ChatThread(props: {
             project_id: projectId,
             prompt: trimmed,
             mode,
-            cursor_position: cursorPosition,
-            selection_text: activePageEditorRef.getSelectedText(),
+            cursor_position: anchorPos,
+            selection_text: reply?.text ?? activePageEditorRef.getSelectedText(),
             document_markdown: documentMarkdown,
             document_json: document.json,
           },
@@ -633,7 +665,7 @@ function ChatThread(props: {
               activePageEditorRef.startAtlasReviewSession({
                 id: event.session_id,
                 mode: event.mode,
-                anchorPos: cursorPosition,
+                anchorPos,
               });
               void mutate(
                 (current) =>
@@ -645,7 +677,7 @@ function ChatThread(props: {
                 id: event.proposal_id,
                 operation: event.operation,
                 status: "streaming",
-                anchorPos: cursorPosition,
+                anchorPos,
                 targetBlockId: event.target_block_id || undefined,
                 targetOriginalText: event.target_original_text || undefined,
                 contentText: "",
@@ -731,10 +763,18 @@ function ChatThread(props: {
     );
     setDraft("");
     setPendingFiles([]);
+    setReplyContext(null);
+    // A pinned passage that didn't read as an edit request rides along as
+    // private grounding so Atlas can resolve "this/that" against the exact
+    // text the user highlighted. The backend caps context_note at 4k chars.
+    const contextNote = reply
+      ? `The user highlighted this passage in the current document and is asking a follow-up about it:\n\n"""\n${reply.text}\n"""`
+      : undefined;
     try {
       const response = await chatService.sendMessage(workspaceSlug, sessionId, trimmed, attachments, {
         project_id: projectId,
         tool_mode: shouldWriteIntoEditor ? "none" : "auto",
+        context_note: contextNote,
       });
       const generatedContent = response.assistant_message.content?.trim();
       if (shouldWriteIntoEditor && generatedContent && !response.assistant_message.error_message) {
@@ -760,6 +800,7 @@ function ChatThread(props: {
     agent?.name,
     draft,
     pendingFiles,
+    replyContext,
     sending,
     sessionId,
     workspaceSlug,
@@ -857,6 +898,22 @@ function ChatThread(props: {
             "flex flex-col gap-2 rounded-2xl border-[0.5px] border-subtle bg-layer-1 px-3 py-2 transition-colors focus-within:border-strong"
           )}
         >
+          {replyContext && (
+            <div className="border-accent-primary flex items-start gap-2 rounded-lg border-l-2 bg-layer-2 py-1 pr-1 pl-2">
+              <div className="min-w-0 flex-1 py-0.5">
+                <div className="text-[11px] font-medium text-accent-primary">Replying to selection</div>
+                <p className="text-xs line-clamp-2 text-tertiary">{replyContext.text}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyContext(null)}
+                className="grid size-5 shrink-0 place-items-center rounded text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+                aria-label="Remove reply context"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          )}
           {pendingFiles.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">
               {pendingFiles.map((entry) => (

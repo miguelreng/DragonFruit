@@ -8,7 +8,12 @@ import React, { useCallback, useEffect } from "react";
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 import { Sparkles } from "@/components/icons/lucide-shim";
-import { AgentChatDrawer } from "@/components/agent-chat";
+import {
+  AgentChatDrawer,
+  REPLY_TO_SELECTION_EVENT,
+  setPendingReplyContext,
+  type ReplyToSelectionDetail,
+} from "@/components/agent-chat";
 import { AppRailRoot, MobileRailDrawer } from "@/components/navigation";
 import { isTypingInInput } from "@/components/power-k/core/shortcut-handler";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -64,6 +69,23 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [openAgentChat]);
+
+  // "Reply to selection": the editor bubble menu dispatches a snippet; stash
+  // it and open the drawer so the composer can pin it as a "replying to" chip.
+  // Lives here (always mounted) because the drawer mounts only once open and
+  // would otherwise miss the event that opens it.
+  useEffect(() => {
+    const onReplyToSelection = (event: Event) => {
+      const detail = (event as CustomEvent<ReplyToSelectionDetail>).detail;
+      if (!detail?.text) return;
+      setPendingReplyContext({ text: detail.text, from: detail.from, to: detail.to });
+      toggleAgentChat(true);
+    };
+    window.addEventListener(REPLY_TO_SELECTION_EVENT, onReplyToSelection);
+    return () => {
+      window.removeEventListener(REPLY_TO_SELECTION_EVENT, onReplyToSelection);
+    };
+  }, [toggleAgentChat]);
 
   return (
     <div className="bg-gray-200 relative flex size-full gap-2 overflow-hidden p-2 transition-all duration-300 ease-in-out">
