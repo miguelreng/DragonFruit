@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useSession } from "@/lib/session";
+import { colors } from "@/lib/theme";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
@@ -24,24 +25,98 @@ export default function SignInScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-canvas">
-      <View className="flex-1 items-center justify-center px-8">
-        <View className="bg-accent mb-4 h-16 w-16 items-center justify-center rounded-2xl">
-          <Text className="text-3xl">🐉</Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <View style={styles.logo}>
+          <Text style={styles.logoEmoji}>🐉</Text>
         </View>
-        <Text className="text-2xl text-ink font-semibold">DragonFruit</Text>
-        <Text className="text-base text-muted mt-2 text-center">Your workspace, in your pocket.</Text>
+
+        <Text style={styles.title}>DragonFruit</Text>
+        <Text style={styles.subtitle}>Your workspace, in your pocket.</Text>
 
         <Pressable
           onPress={onPress}
           disabled={submitting}
-          className="bg-accent mt-10 w-full items-center rounded-xl py-3.5 active:opacity-80 disabled:opacity-60"
+          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed, submitting && styles.buttonDisabled]}
         >
-          <Text className="text-base font-semibold text-white">{submitting ? "Opening sign-in…" : "Sign in"}</Text>
+          <Text style={styles.buttonText}>{submitting ? "Opening sign-in…" : "Sign in"}</Text>
         </Pressable>
 
-        {error ? <Text className="text-sm text-red-600 mt-4 text-center">{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.canvas,
+  },
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  logo: {
+    height: 72,
+    width: 72,
+    borderRadius: 20,
+    backgroundColor: colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  logoEmoji: {
+    fontSize: 34,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: colors.ink,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.muted,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  button: {
+    marginTop: 40,
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: "center",
+    shadowColor: colors.accent,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  buttonPressed: {
+    opacity: 0.85,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.white,
+  },
+  error: {
+    fontSize: 14,
+    color: colors.danger,
+    marginTop: 16,
+    textAlign: "center",
+  },
+});
