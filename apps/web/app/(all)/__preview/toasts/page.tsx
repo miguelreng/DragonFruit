@@ -11,7 +11,7 @@
  */
 
 import type { ReactNode } from "react";
-import { AlertTriangle, BadgeCheck, Info, X } from "lucide-react";
+import { AlertTriangle, CircleCheck, Info, X } from "@plane/icons";
 import { Button } from "@plane/propel/button";
 import { ToastStatic, setPromiseToast, setToast, TOAST_TYPE, updateToast } from "@plane/propel/toast";
 import { cn } from "@plane/utils";
@@ -26,7 +26,7 @@ const toneVar = (base: string, step: number) => `var(--${base}-${step})`;
 const PALETTE = {
   success: {
     base: "green",
-    Icon: BadgeCheck,
+    Icon: CircleCheck,
     title: "Success toast",
     desc: "Notification description will be here",
     label: "Success",
