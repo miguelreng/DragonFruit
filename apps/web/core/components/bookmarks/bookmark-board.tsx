@@ -28,7 +28,7 @@ import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
-import { Breadcrumbs, CustomMenu, EModalWidth, Header, ModalCore } from "@plane/ui";
+import { Breadcrumbs, CustomMenu, EModalWidth, Header, Loader, ModalCore } from "@plane/ui";
 import { cn, renderFormattedDate } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { AppHeader } from "@/components/core/app-header";
@@ -676,9 +676,26 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   );
   const viewMode: ViewMode = storedViewMode ?? "grid";
 
+  // Track the initial fetch so the UI can show a loader instead of flashing
+  // the "No bookmarks yet" empty state while the request is still in flight.
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    if (mode === "project" && projectId) void bookmarkStore.fetchProjectBookmarks(workspaceSlug, projectId);
-    if (mode === "workspace") void bookmarkStore.fetchWorkspaceBookmarks(workspaceSlug);
+    let cancelled = false;
+    setIsLoading(true);
+    const request =
+      mode === "project" && projectId
+        ? bookmarkStore.fetchProjectBookmarks(workspaceSlug, projectId)
+        : mode === "workspace"
+          ? bookmarkStore.fetchWorkspaceBookmarks(workspaceSlug)
+          : Promise.resolve([]);
+    request
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [bookmarkStore, mode, projectId, workspaceSlug]);
 
   const bookmarks =
@@ -923,8 +940,48 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       )}
       <div className="relative flex h-full w-full flex-col overflow-hidden">
         {filteredBookmarks.length === 0 ? (
-          <EmptyStateDetailed
-            assetKey={hasFilters ? "search" : "page"}
+          isLoading ? (
+            viewMode === "grid" ? (
+              <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <Loader
+                      key={index}
+                      className="flex h-[312px] flex-col gap-2 rounded-2xl border border-subtle bg-surface-1 p-4"
+                    >
+                      <div className="flex h-[72px] items-start gap-2.5">
+                        <Loader.Item height="32px" width="32px" />
+                        <div className="flex-1 space-y-2 pt-1">
+                          <Loader.Item height="14px" width="90%" />
+                          <Loader.Item height="12px" width="60%" />
+                        </div>
+                      </div>
+                      <Loader.Item width="100%" className="min-h-[126px] flex-1 rounded-xl" />
+                      <div className="flex items-center justify-between pt-1">
+                        <Loader.Item height="10px" width="30%" />
+                        <Loader.Item height="10px" width="18%" />
+                      </div>
+                    </Loader>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto">
+                {Array.from({ length: 10 }).map((_, index) => (
+                  <Loader key={index} className="flex items-center gap-3 border-b border-subtle px-4 py-3">
+                    <Loader.Item height="28px" width="28px" />
+                    <div className="flex-1 space-y-1.5">
+                      <Loader.Item height="13px" width="35%" />
+                      <Loader.Item height="11px" width="55%" />
+                    </div>
+                    <Loader.Item height="10px" width="64px" />
+                  </Loader>
+                ))}
+              </div>
+            )
+          ) : (
+            <EmptyStateDetailed
+              assetKey={hasFilters ? "search" : "page"}
             title={hasFilters ? "No bookmarks match your filters" : "No bookmarks yet"}
             description={
               hasFilters
@@ -947,7 +1004,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                   ]
                 : undefined
             }
-          />
+            />
+          )
         ) : viewMode === "grid" ? (
           <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

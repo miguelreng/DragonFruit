@@ -60,7 +60,20 @@ export default defineConfig(({ mode }) => {
         "next/navigation": path.resolve(__dirname, "app/compat/next/navigation.ts"),
         "next/script": path.resolve(__dirname, "app/compat/next/script.tsx"),
       },
-      dedupe: ["react", "react-dom", "@headlessui/react"],
+      // prosemirror-* (and @tiptap/pm, which re-exports them) MUST be single
+      // instances — TipTap extension bundles otherwise each pull their own
+      // prosemirror-view, and decorations created by one instance crash in
+      // another ("Cannot read properties of undefined (reading 'localsInner')").
+      dedupe: [
+        "react",
+        "react-dom",
+        "@headlessui/react",
+        "@tiptap/pm",
+        "prosemirror-view",
+        "prosemirror-state",
+        "prosemirror-model",
+        "prosemirror-transform",
+      ],
     },
     server: {
       host: "127.0.0.1",
