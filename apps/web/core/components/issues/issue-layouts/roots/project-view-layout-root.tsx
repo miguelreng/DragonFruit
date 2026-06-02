@@ -54,7 +54,7 @@ export const ProjectViewLayoutRoot = observer(function ProjectViewLayoutRoot() {
   // derived values
   const projectView = viewId ? getViewById(viewId) : undefined;
   const workItemFilters = viewId ? issuesFilter?.getIssueFilters(viewId) : undefined;
-  const activeLayout = workItemFilters?.displayFilters?.layout;
+  const activeLayout = workItemFilters?.displayFilters?.layout ?? EIssueLayoutTypes.LIST;
   const initialWorkItemFilters = projectView
     ? {
         displayFilters: workItemFilters?.displayFilters,

@@ -97,13 +97,15 @@ enum BrandTheme {
     static let labelLight = Color(red: 0.38, green: 0.38, blue: 0.45).opacity(0.7)
 
     static var menuBarIcon: NSImage? {
-        guard let path = Bundle.main.path(forResource: "app", ofType: "svg")
-            ?? Bundle.main.path(forResource: "icon-white", ofType: "svg")
+        // White DragonFruit mark, rendered as a template image so macOS tints it
+        // to match the menu bar — crisp white on dark menu bars, dark on light ones.
+        guard let path = Bundle.main.path(forResource: "icon-white", ofType: "svg")
+            ?? Bundle.main.path(forResource: "app", ofType: "svg")
         else { return nil }
         let url = URL(fileURLWithPath: path)
         guard let image = NSImage(contentsOf: url) else { return nil }
-        image.size = NSSize(width: 16, height: 16)
-        image.isTemplate = false
+        image.size = NSSize(width: 18, height: 18)
+        image.isTemplate = true
         return image
     }
 

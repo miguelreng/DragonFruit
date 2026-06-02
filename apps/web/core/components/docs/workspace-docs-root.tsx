@@ -127,14 +127,14 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   if (isLoading)
     return (
       <>
-        <AppHeader header={headerNode} />
+        <AppHeader header={headerNode} showContentEdgeFade />
         <PageLoader />
       </>
     );
 
   return (
     <>
-      <AppHeader header={headerNode} />
+      <AppHeader header={headerNode} showContentEdgeFade />
       <div className="relative flex h-full w-full flex-col overflow-hidden">
         {filteredPages.length === 0 ? (
           <EmptyStateDetailed
@@ -358,6 +358,7 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
     const confirmed = window.confirm(`Delete ${getPageName(page.name)}? This can't be undone.`);
     if (!confirmed) return;
     try {
+      if (!page.archived_at) await pageService.archive(workspaceSlug, primaryProjectId, page.id);
       await pageService.remove(workspaceSlug, primaryProjectId, page.id);
       await refreshPages();
       setToast({
@@ -366,6 +367,7 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
         message: "Page deleted successfully.",
       });
     } catch {
+      await refreshPages().catch(() => undefined);
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error!",

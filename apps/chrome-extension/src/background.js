@@ -1,5 +1,10 @@
 // @ts-nocheck
 
+// Logged on service-worker startup so you can confirm the running build in the
+// extension's DevTools console. Keep in sync with manifest.json "version".
+const EXTENSION_VERSION = "0.1.11";
+console.log(`DragonFruit Bookmarks extension v${EXTENSION_VERSION}`);
+
 const DEFAULT_API_URL = "https://api.dragonfruit.sh";
 const DEFAULT_WEB_URL = "https://app.dragonfruit.sh";
 
@@ -314,11 +319,11 @@ async function handleContextMenu(info, tab) {
   });
 }
 
-// Runs a save with the shared toast + error-recovery flow: auth gate, loading
+// Runs an action with the shared toast + error-recovery flow: auth gate, loading
 // toast, then a success toast or a routed recovery (login / settings / error
-// toast). Used by both the toolbar action and the context-menu entries so they
-// stay consistent.
-async function saveWithFeedback(tab, { savingText, savedText, save }) {
+// toast). `run` resolves with the action result; `successActionUrl(result)` may
+// return a URL to attach to the success toast's "View" pill.
+async function runWithFeedback(tab, { loadingText, successText, run, successActionUrl }) {
   const tabId = tab?.id;
   if (!tabId) return;
   try {
@@ -328,22 +333,38 @@ async function saveWithFeedback(tab, { savingText, savedText, save }) {
       if (tab.url) await updateActionIconForTab(tabId, tab.url);
       return;
     }
-    await showTabToast(tabId, savingText, "loading");
-    await save();
-    await showTabToast(tabId, savedText, "success");
+    await showTabToast(tabId, loadingText, { state: "loading" });
+    const result = await run();
+    await showTabToast(tabId, successText, {
+      state: "success",
+      actionUrl: typeof successActionUrl === "function" ? successActionUrl(result) : "",
+    });
   } catch (error) {
-    const message = String(error?.message || "Could not save to DragonFruit.");
+    const message = String(error?.message || "Something went wrong. Please try again.");
     if (isAuthenticationError(message)) {
       await openExtensionView("login", tabId);
     } else if (isConfigurationError(message)) {
       await openExtensionView("settings", tabId);
     } else if (isPermissionError(message)) {
-      await showTabToast(tabId, "No write access for selected project. Choose another project.", "error");
+      await showTabToast(tabId, "Error!", {
+        state: "error",
+        message: "No write access for the selected project. Choose another project.",
+      });
     } else {
-      await showTabToast(tabId, message, "error");
+      await showTabToast(tabId, "Error!", { state: "error", message });
     }
     if (tab.url) await updateActionIconForTab(tabId, tab.url);
   }
+}
+
+// Used by the toolbar action and the context-menu entries so they stay consistent.
+async function saveWithFeedback(tab, { savingText, savedText, save }) {
+  await runWithFeedback(tab, {
+    loadingText: savingText,
+    successText: savedText,
+    run: save,
+    successActionUrl: bookmarkActionUrl,
+  });
 }
 
 async function saveActiveTab() {
@@ -355,6 +376,19 @@ async function saveActiveTab() {
 
 async function handleActionClick(tab) {
   if (!tab?.id || !tab?.url) return;
+
+  // Toggle: if this page already shows as saved, a second click removes it from
+  // the workspace instead of saving a duplicate.
+  if (await isPageUrlLocallySaved(tab.url)) {
+    await setActionIcon("idle", tab.id);
+    await runWithFeedback(tab, {
+      loadingText: "Removing from DragonFruit...",
+      successText: "Removed from DragonFruit",
+      run: () => removeUrlBookmark(tab.url, tab),
+    });
+    return;
+  }
+
   await setActionIcon("active", tab.id);
   await saveWithFeedback(tab, {
     savingText: "Saving to DragonFruit...",
@@ -388,7 +422,7 @@ async function saveUrlBookmark(url, tab) {
     }
   }
 
-  await saveBookmark({
+  const savedBookmark = await saveBookmark({
     title: pageMetadata.title || tab?.title || titleFromUrl(url, "Saved bookmark"),
     url,
     description: pageMetadata.description || "",
@@ -399,6 +433,29 @@ async function saveUrlBookmark(url, tab) {
   if (tab?.id && tab.url && getSavedPageUrlKey(tab.url) === getSavedPageUrlKey(url)) {
     await markPageUrlSaved(url, tab.id);
   }
+  return savedBookmark;
+}
+
+// Removes every workspace bookmark that matches this URL, then clears the local
+// saved-state cache and resets the toolbar icon. Returns the number removed.
+async function removeUrlBookmark(url, tab) {
+  const matches = await findSavedBookmarksForUrl(url);
+  for (const bookmark of matches) {
+    await deleteBookmark(bookmark);
+  }
+  await removeSavedPageUrlKeys(getSavedPageUrlKeysForUrl(url));
+  if (tab?.id) await setActionIcon("idle", tab.id);
+  return matches.length;
+}
+
+function bookmarkActionUrl(bookmark) {
+  const workspaceSlug = stringValue(bookmark?.workspace_slug);
+  if (!workspaceSlug) return "";
+
+  const projectId = stringValue(bookmark?.project_id);
+  const workspacePath = encodeURIComponent(workspaceSlug);
+  if (projectId) return `${DEFAULT_WEB_URL}/${workspacePath}/projects/${encodeURIComponent(projectId)}/bookmarks`;
+  return `${DEFAULT_WEB_URL}/${workspacePath}/bookmarks`;
 }
 
 async function extractPageMetadata(tabId, fallbackUrl) {
@@ -522,6 +579,35 @@ async function saveBookmark(payload) {
   return response.json();
 }
 
+async function deleteBookmark(bookmark) {
+  const settings = await getSettings();
+  if (!settings.apiToken) {
+    throw new Error("Connect your DragonFruit account first.");
+  }
+  const workspaceSlug = stringValue(bookmark?.workspace_slug) || settings.workspaceSlug;
+  const projectId = stringValue(bookmark?.project_id) || settings.projectId;
+  const bookmarkId = stringValue(bookmark?.id);
+  if (!workspaceSlug || !projectId || !bookmarkId) {
+    throw new Error("Could not find the saved bookmark to remove.");
+  }
+
+  const response = await fetch(
+    `${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/`,
+    {
+      method: "DELETE",
+      headers: {
+        ...authorizedHeaders(settings.apiToken),
+        "X-DragonFruit-Source": "chrome-extension",
+      },
+    }
+  ).catch(() => null);
+
+  if (!response) throw new Error("Could not reach DragonFruit. Check your connection.");
+  // 404 means it's already gone — treat removal as successful.
+  if (response.status === 404) return;
+  if (!response.ok) throw new Error(await bookmarkErrorMessage(response));
+}
+
 async function recoverWritableProject(settings) {
   if (!settings.workspaceSlug) return null;
   const loaded = await loadProjects(settings.appUrl, settings.workspaceSlug);
@@ -607,30 +693,42 @@ function isConfigurationError(message) {
   return normalized.includes("choose a workspace") || normalized.includes("select workspace");
 }
 
-async function showTabToast(tabId, message, state = "success") {
+async function showTabToast(tabId, title, { message = "", state = "success", actionUrl = "" } = {}) {
   if (!tabId) return;
   try {
+    const fontUrl = chrome.runtime.getURL("src/fonts/Figtree-Variable.ttf");
+    // Register Figtree at the document level through the extension's own injected
+    // stylesheet. A shadow-scoped @font-face is ignored by the browser, and a
+    // page-context FontFace is often blocked by the site's font-src CSP — but
+    // extension-injected CSS loads web_accessible_resources regardless of page CSP,
+    // and document-level fonts are visible inside our shadow DOM.
+    await chrome.scripting
+      .insertCSS({
+        target: { tabId },
+        css: `@font-face{font-family:'Figtree';src:url('${fontUrl}') format('truetype');font-weight:300 800;font-style:normal;font-display:swap;}`,
+      })
+      .catch(() => {});
     await chrome.scripting.executeScript({
       target: { tabId },
-      args: [String(message || ""), state, chrome.runtime.getURL("src/fonts/Figtree-Variable.ttf")],
-      func: (toastMessage, toastState, fontUrl) => {
+      args: [String(title || ""), String(message || ""), state, String(actionUrl || "")],
+      func: (toastTitle, toastMessage, toastState, toastActionUrl) => {
         const TOAST_ID = "dragonfruit-extension-toast";
-        if (!toastMessage) return;
+        if (!toastTitle) return;
         const normalizedState = toastState === "error" || toastState === "loading" ? toastState : "success";
+        const hasAction = normalizedState === "success" && Boolean(toastActionUrl);
         const toastToken = String(Date.now());
+        // Filled, type-colored "badge" glyphs that knock out white — matching the
+        // shared action toast (packages/propel/src/toast/toast.tsx): BadgeCheck for
+        // success, AlertCircle for error, the bar spinner for loading.
         const iconMarkup = {
           success: `
-            <span class="ping" aria-hidden="true"></span>
-            <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
-              <path d="M20 3v4"></path>
-              <path d="M22 5h-4"></path>
-              <path d="M4 17v2"></path>
-              <path d="M5 18H3"></path>
+            <svg class="status-icon badge-icon" viewBox="0 0 24 24" fill="var(--success)" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path>
+              <path d="m9 12 2 2 4-4" fill="none"></path>
             </svg>
           `,
           loading: `
-            <svg class="status-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="status-icon spinner-icon" viewBox="0 0 24 24" aria-hidden="true">
               <g>
                 <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.14"></rect>
                 <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.29" transform="rotate(30 12 12)"></rect>
@@ -644,7 +742,7 @@ async function showTabToast(tabId, message, state = "success") {
             </svg>
           `,
           error: `
-            <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg class="status-icon badge-icon" viewBox="0 0 24 24" fill="var(--danger)" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" x2="12" y1="8" y2="12"></line>
               <line x1="12" x2="12.01" y1="16" y2="16"></line>
@@ -668,42 +766,47 @@ async function showTabToast(tabId, message, state = "success") {
         host.dataset.toastToken = toastToken;
         root.innerHTML = `
           <style>
-            @font-face {
-              font-family: Figtree;
-              src: url("${fontUrl}") format("truetype");
-              font-style: normal;
-              font-weight: 300 800;
-              font-display: swap;
-            }
             :host {
               all: initial;
-              --bg-surface-1: oklch(1 0 0);
+              /* Figtree is registered at the document level via insertCSS (see
+                 showTabToast) so it resolves here; this makes it the default family
+                 for every node in the toast. */
+              font-family: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+              /* Action-toast tokens — mirror packages/tailwind-config/variables.css
+                 and the shared toast in packages/propel/src/toast/toast.tsx (light). */
+              --surface: oklch(1 0 0);
+              --surface-2: oklch(0.9848 0.0003 230.66);
               --border-subtle-1: oklch(0.9235 0.001733 230.6853);
-              --txt-primary: oklch(0.2378 0.0029 230.83);
-              --txt-success-primary: oklch(0.4468 0.1187 151.4);
-              --txt-danger-primary: oklch(0.4446 0.1774 26.79);
-              --bg-success-primary: oklch(0.632 0.185972 147.3695);
-              --txt-icon-tertiary: oklch(0.6161 0.009153 230.867);
-              --txt-icon-secondary: oklch(0.4377 0.0066 230.87);
-              --shadow-overlay-100: 0px 10px 10px -5px #292f3d0a, 0px 10px 40px -5px #292f3d0a;
+              --border-subtle: oklch(0.9389 0.0014 230.68);
+              --text-primary: oklch(0.2378 0.0029 230.83);
+              --text-secondary: oklch(0.4377 0.0066 230.87);
+              --text-tertiary: oklch(0.5288 0.0083 230.88);
+              --icon-tertiary: oklch(0.6161 0.009153 230.867);
+              --icon-secondary: oklch(0.4377 0.0066 230.87);
+              --success: oklch(0.632 0.185972 147.3695);
+              --danger: oklch(0.583 0.238666 28.4765);
+              --shadow: 0px 10px 10px -10px #292f3d0a, 0px 30px 60px -12px #292f3d1a;
               position: fixed;
               right: 12px;
-              bottom: 12px;
+              top: 12px;
               z-index: 2147483647;
-              width: min(340px, calc(100vw - 24px));
+              width: min(360px, calc(100vw - 2rem));
               color-scheme: light;
               pointer-events: none;
             }
             @media (prefers-color-scheme: dark) {
               :host {
-                --bg-surface-1: oklch(0.175 0.0045 30);
+                --surface: oklch(0.175 0.0045 30);
+                --surface-2: oklch(0.205 0.005 30);
                 --border-subtle-1: oklch(0.31 0.0065 30);
-                --txt-primary: oklch(0.925 0.0035 30);
-                --txt-success-primary: oklch(0.9258 0.0845 155.86);
-                --txt-danger-primary: oklch(0.8834 0.0616 18.39);
-                --bg-success-primary: oklch(0.7914 0.2091 151.66);
-                --txt-icon-tertiary: oklch(0.765 0.006 30);
-                --txt-icon-secondary: oklch(0.845 0.005 30);
+                --border-subtle: oklch(0.265 0.006 30);
+                --text-primary: oklch(0.925 0.0035 30);
+                --text-secondary: oklch(0.845 0.005 30);
+                --text-tertiary: oklch(0.765 0.006 30);
+                --icon-tertiary: oklch(0.68 0.007 30);
+                --icon-secondary: oklch(0.845 0.005 30);
+                --success: oklch(0.7914 0.2091 151.66);
+                --danger: oklch(0.4446 0.1774 26.79);
                 color-scheme: dark;
               }
             }
@@ -712,14 +815,16 @@ async function showTabToast(tabId, message, state = "success") {
               box-sizing: border-box;
               display: flex;
               width: 100%;
-              align-items: flex-start;
-              gap: 10px;
+              height: 68px;
+              align-items: center;
+              gap: 12px;
+              overflow: hidden;
               border: 1px solid var(--border-subtle-1);
-              border-radius: 8px;
-              background: var(--bg-surface-1);
-              padding: 12px 32px 12px 12px;
-              box-shadow: var(--shadow-overlay-100);
-              transform: translateY(150%);
+              border-radius: 16px;
+              background: var(--surface);
+              padding: 14px 36px 14px 14px;
+              box-shadow: var(--shadow);
+              transform: translateY(-150%);
               opacity: 0;
               transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
               pointer-events: auto;
@@ -728,38 +833,13 @@ async function showTabToast(tabId, message, state = "success") {
               opacity: 1;
               transform: translateY(0);
             }
-            .icon {
-              position: relative;
-              box-sizing: border-box;
-              display: grid;
-              flex: 0 0 auto;
-              place-items: center;
-              width: 16px;
-              height: 16px;
-              padding: 1px 0;
-              color: var(--txt-success-primary);
-            }
-            .icon[data-state="error"] {
-              color: var(--txt-danger-primary);
-            }
-            .icon[data-state="loading"] {
-              color: var(--txt-icon-tertiary);
-            }
             .status-icon {
-              position: relative;
-              width: 16px;
-              height: 16px;
+              flex: 0 0 auto;
+              width: 22px;
+              height: 22px;
             }
-            .ping {
-              position: absolute;
-              width: 12px;
-              height: 12px;
-              border-radius: 999px;
-              background: color-mix(in oklch, var(--bg-success-primary) 25%, transparent);
-              animation: dragonfruit-toast-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-            }
-            @keyframes dragonfruit-toast-ping {
-              75%, 100% { transform: scale(2); opacity: 0; }
+            .spinner-icon {
+              color: var(--text-tertiary);
             }
             .content {
               box-sizing: border-box;
@@ -769,16 +849,26 @@ async function showTabToast(tabId, message, state = "success") {
               flex-direction: column;
               gap: 2px;
             }
+            .title {
+              margin: 0;
+              color: var(--text-primary);
+              font: 600 0.875rem/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
+              letter-spacing: calc(0.01 * 0.875rem);
+            }
             .message {
               margin: 0;
-              color: var(--txt-primary);
-              font: 500 14px/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
-              letter-spacing: 0.01em;
+              color: var(--text-tertiary);
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
+              max-width: 100%;
+              font: 400 0.8125rem/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
+              letter-spacing: calc(0.01 * 0.8125rem);
             }
             .close {
               position: absolute;
-              top: 8px;
-              right: 8px;
+              top: 10px;
+              right: 10px;
               display: grid;
               place-items: center;
               width: 18px;
@@ -787,32 +877,53 @@ async function showTabToast(tabId, message, state = "success") {
               padding: 0;
               border: 0;
               background: transparent;
-              color: var(--txt-icon-tertiary);
+              color: var(--icon-tertiary);
               cursor: pointer;
               opacity: 0;
-              transition: opacity 0.15s ease, color 0.15s ease;
+              transition: opacity 0.2s ease, color 0.15s ease;
             }
             .toast:hover .close {
               opacity: 1;
             }
             .close:hover {
-              color: var(--txt-icon-secondary);
+              color: var(--icon-secondary);
             }
             .close svg {
               width: 14px;
               height: 14px;
+              stroke-width: 1.5;
+            }
+            .action {
+              display: inline-flex;
+              flex: 0 0 auto;
+              align-items: center;
+              margin: 0;
+              padding: 4px 12px;
+              border: 1px solid var(--border-subtle);
+              border-radius: 999px;
+              background: var(--surface-2);
+              color: var(--text-secondary);
+              cursor: pointer;
+              font: 500 0.8125rem/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
+              letter-spacing: calc(0.01 * 0.8125rem);
+              transition: color 0.15s ease, border-color 0.15s ease;
+            }
+            .action:hover {
+              border-color: var(--border-subtle-1);
+              color: var(--text-primary);
             }
             @media (prefers-reduced-motion: reduce) {
               .toast { transition: opacity 0.2s ease; transform: none; }
               .toast[data-visible="true"] { transform: none; }
-              .ping { animation: none; }
             }
           </style>
-          <div class="toast" data-visible="false">
-            <span class="icon" data-state="${normalizedState}" aria-hidden="true">${iconMarkup}</span>
+          <div class="toast" data-state="${normalizedState}" data-visible="false">
+            ${iconMarkup}
             <div class="content">
-              <p class="message"></p>
+              <p class="title"></p>
+              ${toastMessage ? `<p class="message"></p>` : ""}
             </div>
+            ${hasAction ? `<button class="action" type="button">View</button>` : ""}
             <button class="close" type="button" aria-label="Dismiss">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12"></path>
@@ -822,10 +933,18 @@ async function showTabToast(tabId, message, state = "success") {
         `;
 
         const toast = root.querySelector(".toast");
+        const titleElement = root.querySelector(".title");
         const messageElement = root.querySelector(".message");
+        const actionButton = root.querySelector(".action");
         const closeButton = root.querySelector(".close");
-        if (!toast || !messageElement) return;
-        messageElement.textContent = toastMessage;
+        if (!toast || !titleElement) return;
+        titleElement.textContent = toastTitle;
+        if (messageElement) messageElement.textContent = toastMessage;
+
+        actionButton?.addEventListener("click", () => {
+          window.open(toastActionUrl, "_blank", "noopener,noreferrer");
+          toast.dataset.visible = "false";
+        });
 
         closeButton?.addEventListener("click", () => {
           toast.dataset.visible = "false";
@@ -942,11 +1061,15 @@ async function cacheSavedPageUrlKeys(urlKeys) {
   await chrome.storage.local.set({ [SAVED_PAGE_URLS_KEY]: nextSavedUrls });
 }
 
-async function isPageUrlBookmarked(url) {
+// Queries the workspace for bookmarks whose URL matches this page and returns the
+// matching bookmark objects (de-duped by id). Each carries id/project_id needed
+// to delete it. Returns [] when not signed in or nothing matches.
+async function findSavedBookmarksForUrl(url) {
   const settings = await getSettings();
-  if (!settings.apiToken || !settings.workspaceSlug) return false;
+  if (!settings.apiToken || !settings.workspaceSlug) return [];
 
   const urlKeys = getSavedPageUrlKeysForUrl(url);
+  if (urlKeys.length === 0) return [];
   const lookupQueries = getBookmarkLookupQueries(url);
 
   const lookupResults = await Promise.all(
@@ -964,20 +1087,46 @@ async function isPageUrlBookmarked(url) {
     })
   );
 
-  return lookupResults.flat().some((bookmark) => {
+  const seenIds = new Set();
+  return lookupResults.flat().filter((bookmark) => {
     const bookmarkUrlKeys = new Set([
       ...getSavedPageUrlKeysForUrl(bookmark?.url || ""),
       ...getSavedPageUrlKeysForUrl(bookmark?.metadata?.source_url || ""),
       ...getSavedPageUrlKeysForUrl(bookmark?.metadata?.og_url || ""),
     ]);
-    return urlKeys.some((urlKey) => bookmarkUrlKeys.has(urlKey));
+    if (!urlKeys.some((urlKey) => bookmarkUrlKeys.has(urlKey))) return false;
+    const id = stringValue(bookmark?.id);
+    if (!id || seenIds.has(id)) return false;
+    seenIds.add(id);
+    return true;
   });
+}
+
+async function isPageUrlBookmarked(url) {
+  return (await findSavedBookmarksForUrl(url)).length > 0;
+}
+
+// Fast, local-only check used to decide save-vs-remove on click. Mirrors the
+// cache that drives the toolbar icon, so the toggle matches what the user sees.
+async function isPageUrlLocallySaved(url) {
+  const urlKeys = getSavedPageUrlKeysForUrl(url);
+  if (urlKeys.length === 0) return false;
+  const savedUrlKeys = await getSavedPageUrlKeys();
+  return urlKeys.some((urlKey) => savedUrlKeys.has(urlKey));
 }
 
 async function getSavedPageUrlKeys() {
   const stored = await chrome.storage.local.get([SAVED_PAGE_URLS_KEY]);
   const savedUrls = Array.isArray(stored[SAVED_PAGE_URLS_KEY]) ? stored[SAVED_PAGE_URLS_KEY] : [];
   return new Set(savedUrls.filter(Boolean));
+}
+
+async function removeSavedPageUrlKeys(urlKeys) {
+  const keysToRemove = new Set((urlKeys || []).filter(Boolean));
+  if (keysToRemove.size === 0) return;
+  const savedUrlKeys = await getSavedPageUrlKeys();
+  const next = [...savedUrlKeys].filter((urlKey) => !keysToRemove.has(urlKey));
+  await chrome.storage.local.set({ [SAVED_PAGE_URLS_KEY]: next });
 }
 
 async function getTabUrl(tabId) {

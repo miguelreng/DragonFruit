@@ -105,8 +105,15 @@ export const PageLockControl = observer(function PageLockControl({ page }: Props
           className="flex h-6 items-center gap-1 rounded-lg bg-accent-primary/20 px-2 text-accent-primary transition-colors hover:bg-accent-primary/30"
           aria-label="Locked"
         >
-          <LockIcon className="animate-lock-icon size-3.5 flex-shrink-0" />
-          <span className="animate-text-slide-in overflow-hidden text-11 font-medium whitespace-nowrap transition-all duration-500 ease-out">
+          <span className="t-icon-swap size-3.5 flex-shrink-0" data-state="a">
+            <span className="t-icon" data-icon="a">
+              <LockIcon className="animate-lock-icon size-3.5" />
+            </span>
+            <span className="t-icon" data-icon="b">
+              <LockKeyholeOpen className="size-3.5" />
+            </span>
+          </span>
+          <span className="t-text-swap animate-text-slide-in overflow-hidden text-11 font-medium whitespace-nowrap transition-all duration-500 ease-out">
             Locked
           </span>
         </button>
@@ -117,8 +124,15 @@ export const PageLockControl = observer(function PageLockControl({ page }: Props
           className="flex h-6 animate-fade-out items-center gap-1 rounded-lg px-2 text-secondary"
           aria-label="Unlocked"
         >
-          <LockKeyholeOpen className="animate-unlock-icon size-3.5 flex-shrink-0" />
-          <span className="animate-text-slide-in animate-text-fade-out overflow-hidden text-11 font-medium whitespace-nowrap transition-all duration-500 ease-out">
+          <span className="t-icon-swap size-3.5 flex-shrink-0" data-state="b">
+            <span className="t-icon" data-icon="a">
+              <LockIcon className="size-3.5" />
+            </span>
+            <span className="t-icon" data-icon="b">
+              <LockKeyholeOpen className="animate-unlock-icon size-3.5" />
+            </span>
+          </span>
+          <span className="t-text-swap animate-text-slide-in animate-text-fade-out overflow-hidden text-11 font-medium whitespace-nowrap transition-all duration-500 ease-out">
             Unlocked
           </span>
         </div>

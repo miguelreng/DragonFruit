@@ -14,6 +14,10 @@ import type { TActivityRange, TActivitySummary } from "@/services/home-preferenc
 
 const RANGE_DAYS: Record<TActivityRange, number> = { all: 365, "30d": 30, "7d": 7 };
 
+// Mirror the server-side weights (see WorkspaceActivitySummaryEndpoint) so
+// the preview grades intensity the same way production does.
+const ACTION_WEIGHTS = { docs: 2, work_items: 1 } as const;
+
 function buildMock(range: TActivityRange): TActivitySummary {
   const days = RANGE_DAYS[range];
   const today = new Date();
@@ -47,7 +51,8 @@ function buildMock(range: TActivityRange): TActivitySummary {
     const count = Math.random() < 0.15 ? 0 : Math.max(0, Math.round(base));
     const docs = Math.round(count * (0.4 + rand() * 0.4));
     const work_items = Math.max(0, count - docs);
-    buckets.push({ date: d.toISOString().slice(0, 10), docs, work_items, count });
+    const score = docs * ACTION_WEIGHTS.docs + work_items * ACTION_WEIGHTS.work_items;
+    buckets.push({ date: d.toISOString().slice(0, 10), docs, work_items, count, score });
     if (count > 0) {
       activeDays += 1;
       docsTotal += docs;
@@ -91,6 +96,7 @@ function buildMock(range: TActivityRange): TActivitySummary {
     longest_streak: longest,
     peak_hour: 23,
     top_type: docsTotal >= tasksTotal ? "docs" : "work_items",
+    action_weights: ACTION_WEIGHTS,
     daily_buckets: buckets,
     hour_buckets,
   };

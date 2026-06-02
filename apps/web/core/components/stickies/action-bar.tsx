@@ -59,7 +59,8 @@ export const StickyActionBar = observer(function StickyActionBar() {
       className="sticky-action-bar__item flex flex-col overflow-hidden rounded-full border-2 border-accent-strong/10 bg-surface-2 p-[2px]"
     >
       <div
-        className={`flex origin-bottom flex-col gap-2 transition-all duration-300 ease-in-out ${isExpanded ? "mb-2 scale-y-100 opacity-100 " : "h-0 scale-y-0 opacity-0"}`}
+        className={`t-panel-slide flex origin-bottom flex-col gap-2 overflow-hidden transition-[max-height,margin] duration-300 ease-in-out ${isExpanded ? "mb-2 max-h-40" : "max-h-0"}`}
+        data-open={isExpanded ? "true" : "false"}
       >
         <Tooltip tooltipContent="All stickies" isMobile={false} position="left">
           <button

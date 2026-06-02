@@ -82,6 +82,7 @@ import type {
   TAgentChatMessage,
   TAgentChatSession,
   TAtlasDocWriteEvent,
+  TAtlasDocWriteIntent,
   TAtlasDocWriteMode,
 } from "@/services/agent-chat.service";
 import { AgentService } from "@/services/agent.service";
@@ -622,7 +623,11 @@ function ChatThread(props: {
       return;
     }
 
-    const shouldWriteIntoEditor = Boolean(activePageEditorRef && !hasFiles && isEditorWritingRequest(trimmed));
+    const shouldWriteIntoEditor = Boolean(
+      activePageEditorRef &&
+      !hasFiles &&
+      (isEditorWritingRequest(trimmed) || Boolean(replyContext && isSelectionEditRequest(trimmed)))
+    );
 
     if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
       const document = activePageEditorRef.getDocument();
@@ -635,6 +640,7 @@ function ChatThread(props: {
       // When replying to a passage Atlas should edit that text, not start a
       // fresh doc — force "update" so the model targets the existing block.
       const mode: TAtlasDocWriteMode = reply || documentMarkdown.trim().length > 0 ? "update" : "create";
+      const intent = mode === "create" ? "insert" : inferDocWriteIntent(trimmed);
       let streamError: string | null = null;
 
       setDraft("");
@@ -655,6 +661,7 @@ function ChatThread(props: {
             project_id: projectId,
             prompt: trimmed,
             mode,
+            intent,
             cursor_position: anchorPos,
             selection_text: reply?.text ?? activePageEditorRef.getSelectedText(),
             document_markdown: documentMarkdown,
@@ -979,9 +986,28 @@ function isEditorWritingRequest(text: string): boolean {
     return false;
   // Writing OR editing the current document (EN + ES) — kept broad on purpose so
   // "create/crea … / update my doc / actualiza el documento / amplía / continúa…" all land inline.
-  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into|create|make|crea\b|crear\w*|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
+  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|replace|change|fix|correct|translate|turn\s+this\s+into|create|make|crea\b|crear\w*|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|reemplaz\w*|sustitu\w*|cambi\w*|corrige\w*|corregir|traduce\w*|traducir|convierte\w*|convertir|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
     text
   );
+}
+
+function isSelectionEditRequest(text: string): boolean {
+  return /\b(replace|change|swap|rewrite|edit|revise|improve|polish|fix|correct|translate|make\s+it|turn\s+it\s+into|make\s+this|turn\s+this\s+into|reemplaz\w*|sustitu\w*|cambi\w*|pon\w*|haz(?:lo|la|le)?|hacerlo|vuelve\w*|convierte\w*|convertir|corrige\w*|corregir|traduce\w*|traducir|reescrib\w*|edita\w*|editar|mejora\w*|mejorar|otra\s+palabra|m[aá]s\s+(?:formal|claro|clara|breve|corto|corta|largo|larga|simple|natural))\b/i.test(
+    text
+  );
+}
+
+function inferDocWriteIntent(text: string): TAtlasDocWriteIntent {
+  if (/\b(delete|remove|erase|elimina\w*|borrar|borra\w*|quita\w*|remueve\w*)\b/i.test(text)) return "delete";
+  if (
+    /\b(replace|replace\s+entire|replace\s+all|swap|overwrite|change|reescrib\w*|reemplaz\w*|sustitu\w*|cambi\w*|otra\s+palabra)\b/i.test(
+      text
+    )
+  )
+    return "replace";
+  if (/\b(append|insert|add|continue|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|contin[uú]a\w*)\b/i.test(text))
+    return "insert";
+  return "update";
 }
 
 function markdownToEditorHtml(markdownSource: string): string {

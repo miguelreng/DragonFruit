@@ -111,6 +111,19 @@ export const List = observer(function List(props: IList) {
 
   const is_list = group_by === null ? true : false;
 
+  // In the ungrouped ("All tasks") view the single column reads the ALL_ISSUES
+  // bucket. If a racing/superseded fetch stored issues under group buckets
+  // (a group_by fetch-vs-render desync — fetch sent group_by=state while the
+  // layout settled on ungrouped), that key is empty and the list renders blank
+  // even though the issues are loaded. Fall back to the flattened union of all
+  // buckets so the flat list always shows every loaded issue. Only runs when
+  // genuinely ungrouped (sub-grouped data only exists when grouped).
+  const ungroupedIssueIds: string[] | undefined = is_list
+    ? groupedIssueIds?.[ALL_ISSUES]?.length
+      ? (groupedIssueIds[ALL_ISSUES] as string[])
+      : Array.from(new Set((Object.values(groupedIssueIds ?? {}) as unknown[]).filter(Array.isArray).flat() as string[]))
+    : undefined;
+
   // create groupIds array and entities object for bulk ops
   const groupIds = groups.map((g) => g.id);
   const orderedGroups: Record<string, string[]> = {};
@@ -120,7 +133,7 @@ export const List = observer(function List(props: IList) {
   let entities: Record<string, string[]> = {};
 
   if (is_list) {
-    entities = Object.assign(orderedGroups, { [groupIds[0]]: groupedIssueIds[ALL_ISSUES] ?? [] });
+    entities = Object.assign(orderedGroups, { [groupIds[0]]: ungroupedIssueIds ?? [] });
   } else if (!isSubGrouped(groupedIssueIds)) {
     entities = Object.assign(orderedGroups, { ...groupedIssueIds });
   } else {
@@ -143,7 +156,7 @@ export const List = observer(function List(props: IList) {
                 {groups.map((group: IGroupByColumn) => (
                   <ListGroup
                     key={group.id}
-                    groupIssueIds={groupedIssueIds?.[group.id]}
+                    groupIssueIds={is_list ? ungroupedIssueIds : groupedIssueIds?.[group.id]}
                     issuesMap={issuesMap}
                     group_by={group_by}
                     group={group}

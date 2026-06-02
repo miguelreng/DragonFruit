@@ -6,7 +6,7 @@
 
 import * as React from "react";
 import { Toast as BaseToast } from "@base-ui-components/react/toast";
-import { AlertCircle, AlertTriangle, InfoIcon, Sparkles } from "lucide-react";
+import { AlertCircle, AlertTriangle, BadgeCheck, InfoIcon } from "lucide-react";
 import { CloseIcon } from "../icons/actions/close-icon";
 // spinner
 import { CircularBarSpinner } from "../spinners/circular-bar-spinner";
@@ -68,45 +68,32 @@ export function Toast(props: ToastProps) {
   );
 }
 
+// Filled, type-colored "badge" glyphs — the main signal in the action-pill
+// style. Fill is driven off the semantic background tokens so each badge stays
+// correct in both light and dark; the glyph itself knocks out white.
 const TOAST_DATA = {
   [TOAST_TYPE.SUCCESS]: {
-    icon: (
-      <span className="relative grid size-4 place-items-center">
-        <span
-          aria-hidden
-          className="absolute size-3 animate-ping rounded-full bg-success-primary/25 [animation-duration:1.8s]"
-        />
-        <Sparkles width={16} height={16} className="relative text-success-primary" />
-      </span>
-    ),
+    icon: <BadgeCheck width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-success-primary)" }} />,
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.CURSOR_BUDDY_SUCCESS]: {
-    icon: (
-      <span className="relative grid size-4 place-items-center">
-        <span
-          aria-hidden
-          className="absolute size-3 animate-ping rounded-full bg-success-primary/25 [animation-duration:1.8s]"
-        />
-        <Sparkles width={16} height={16} className="relative text-success-primary" />
-      </span>
-    ),
+    icon: <BadgeCheck width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-success-primary)" }} />,
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.ERROR]: {
-    icon: <AlertCircle width={16} height={16} className="text-danger-primary" />,
+    icon: <AlertCircle width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-danger-primary)" }} />,
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.WARNING]: {
-    icon: <AlertTriangle width={16} height={16} className="text-warning-primary" />,
+    icon: <AlertTriangle width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-warning-primary)" }} />,
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.INFO]: {
-    icon: <InfoIcon width={16} height={16} className="text-accent-primary" />,
+    icon: <InfoIcon width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-accent-primary)" }} />,
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
@@ -122,6 +109,15 @@ const TOAST_DATA = {
   },
 };
 
+// Toast actions render as a quiet "pill" by default. We only target direct
+// <a>/<button> children, so simple link/button actions pick up the pill look
+// automatically while richer custom action components style themselves.
+const TOAST_ACTION_WRAPPER = cn(
+  "flex flex-shrink-0 items-center gap-2",
+  "[&>a]:inline-flex [&>a]:cursor-pointer [&>a]:items-center [&>a]:rounded-full [&>a]:border [&>a]:border-subtle [&>a]:bg-surface-2 [&>a]:px-3 [&>a]:py-1 [&>a]:text-body-xs-medium [&>a]:text-secondary [&>a]:no-underline [&>a]:transition-colors [&>a]:hover:border-subtle-1 [&>a]:hover:text-primary [&>a]:hover:no-underline",
+  "[&>button]:inline-flex [&>button]:cursor-pointer [&>button]:items-center [&>button]:rounded-full [&>button]:border [&>button]:border-subtle [&>button]:bg-surface-2 [&>button]:px-3 [&>button]:py-1 [&>button]:text-body-xs-medium [&>button]:text-secondary [&>button]:transition-colors [&>button]:hover:border-subtle-1 [&>button]:hover:text-primary"
+);
+
 function ToastList() {
   const { toasts } = BaseToast.useToastManager();
   return toasts.map((toast) => <ToastRender key={toast.id} id={toast.id} toast={toast} />);
@@ -136,26 +132,27 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
     <BaseToast.Root
       toast={toast}
       key={id}
+      swipeDirection={["up", "right"]}
       className={cn(
-        // Base layout and positioning
-        "group flex w-[340px] max-w-[calc(100vw-2rem)] items-start rounded-lg border border-subtle-1 shadow-overlay-100",
-        "absolute right-3 bottom-3 z-[calc(1000-var(--toast-index))]",
+        // Base layout and positioning — anchored to the top-right corner
+        "group flex w-[360px] max-w-[calc(100vw-2rem)] items-center rounded-2xl border border-subtle-1 shadow-overlay-200",
+        "absolute right-3 top-3 z-[calc(1000-var(--toast-index))]",
         "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] select-none",
 
-        // Default transform with stacking and scaling
-        "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(-1*(var(--toast-swipe-movement-y)+calc(min(var(--toast-index),10)*10px))))_scale(calc(max(0,1-(var(--toast-index)*0.1))))]",
+        // Default transform: newest toast on top, older ones nudged down and scaled back
+        "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)+calc(min(var(--toast-index),10)*10px)))_scale(calc(max(0,1-(var(--toast-index)*0.1))))]",
 
-        // Pseudo-element for gap spacing
-        "after:absolute after:top-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
+        // Pseudo-element bridging the gap toward the anchor so hover doesn't drop between stacked toasts
+        "after:absolute after:bottom-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
 
         // State-based opacity
         "data-[ending-style]:opacity-0 data-[limited]:opacity-0",
 
-        // Starting animation
-        "data-[starting-style]:[transform:translateY(150%)]",
+        // Starting animation — slide in from above
+        "data-[starting-style]:[transform:translateY(-150%)]",
 
-        // Expanded state transform
-        "data-[expanded]:[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(-1*(var(--toast-offset-y)+calc(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y))))]",
+        // Expanded state transform — fan downward from the top edge
+        "data-[expanded]:[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-offset-y)+calc(var(--toast-index)*var(--gap))+var(--toast-swipe-movement-y)))]",
 
         // Swipe direction endings - consolidated
         "data-[ending-style]:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
@@ -163,8 +160,8 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         "data-[ending-style]:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
         "data-[ending-style]:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
 
-        // Default ending transform for non-limited toasts
-        "data-[ending-style]:[&:not([data-limited])]:[transform:translateY(150%)]",
+        // Default ending transform for non-limited toasts — exit upward
+        "data-[ending-style]:[&:not([data-limited])]:[transform:translateY(-150%)]",
 
         data.backgroundColorClassName,
         data.borderColorClassName
@@ -179,13 +176,10 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         e.preventDefault();
       }}
     >
-      <BaseToast.Close className="absolute top-2 right-2 cursor-pointer text-icon-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:text-icon-secondary">
-        <CloseIcon strokeWidth={1.5} width={14} height={14} />
-      </BaseToast.Close>
-      <div className="flex w-full items-start gap-2.5 p-3 pr-8">
-        <div className="flex-shrink-0 py-px">{data.icon}</div>
+      <div className="flex w-full items-center gap-3 p-3.5 pr-9">
+        <div className="flex-shrink-0">{data.icon}</div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <BaseToast.Title className="text-body-sm-medium text-primary">
+          <BaseToast.Title className="text-body-sm-semibold text-primary">
             {toastData.type === TOAST_TYPE.LOADING ? (toastData.title ?? "Loading...") : toastData.title}
           </BaseToast.Title>
           {toastData.type !== TOAST_TYPE.LOADING && toastData.message && (
@@ -193,11 +187,14 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
               {toastData.message}
             </BaseToast.Description>
           )}
-          {toastData.type !== TOAST_TYPE.LOADING && toastData.actionItems && (
-            <div className="mt-1 flex items-center gap-2">{toastData.actionItems}</div>
-          )}
         </div>
+        {toastData.type !== TOAST_TYPE.LOADING && toastData.actionItems && (
+          <div className={TOAST_ACTION_WRAPPER}>{toastData.actionItems}</div>
+        )}
       </div>
+      <BaseToast.Close className="absolute top-2.5 right-2.5 cursor-pointer text-icon-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:text-icon-secondary">
+        <CloseIcon strokeWidth={1.5} width={14} height={14} />
+      </BaseToast.Close>
     </BaseToast.Root>
   );
 }
@@ -219,28 +216,28 @@ export function ToastStatic({ type, title, message, actionItems, theme = "light"
       <div
         className={cn(
           // Base layout and positioning
-          "group flex w-[340px] items-start rounded-lg border border-subtle-1 shadow-overlay-100",
+          "group flex w-[360px] items-center rounded-2xl border border-subtle-1 shadow-overlay-200",
           "relative",
           data.backgroundColorClassName,
           data.borderColorClassName
         )}
       >
-        <div className="absolute top-2 right-2 cursor-default text-icon-tertiary">
-          <CloseIcon strokeWidth={1.5} width={14} height={14} />
-        </div>
-        <div className="flex w-full items-start gap-2.5 p-3 pr-8">
-          <div className="flex-shrink-0 py-px">{data.icon}</div>
+        <div className="flex w-full items-center gap-3 p-3.5 pr-9">
+          <div className="flex-shrink-0">{data.icon}</div>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <div className="text-body-sm-medium text-primary">
+            <div className="text-body-sm-semibold text-primary">
               {type === TOAST_TYPE.LOADING ? (title ?? "Loading...") : title}
             </div>
             {type !== TOAST_TYPE.LOADING && message && (
               <div className="text-body-xs-regular text-tertiary">{message}</div>
             )}
-            {type !== TOAST_TYPE.LOADING && actionItems && (
-              <div className="mt-1 flex items-center gap-2">{actionItems}</div>
-            )}
           </div>
+          {type !== TOAST_TYPE.LOADING && actionItems && (
+            <div className={TOAST_ACTION_WRAPPER}>{actionItems}</div>
+          )}
+        </div>
+        <div className="absolute top-2.5 right-2.5 cursor-default text-icon-tertiary">
+          <CloseIcon strokeWidth={1.5} width={14} height={14} />
         </div>
       </div>
     </div>

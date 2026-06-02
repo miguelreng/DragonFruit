@@ -19,10 +19,10 @@ struct MeetingPopoverView: View {
 
             if store.isRestoringSession {
                 loadingCard
-            } else if store.needsPermissionOnboarding {
-                permissionsOnboardingCard
             } else if !store.isAuthenticated {
                 loginCard
+            } else if store.needsPermissionOnboarding && !store.permissionsOnboardingDismissed {
+                permissionsOnboardingCard
             } else {
                 if store.meetingNotesEnabled {
                     upcomingCard
@@ -54,7 +54,11 @@ struct MeetingPopoverView: View {
             withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.40)) {
                 isPanelRevealed = true
             }
+            store.isPopoverOpen = true
             store.refreshPermissionStatuses()
+        }
+        .onDisappear {
+            store.isPopoverOpen = false
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             store.refreshPermissionStatuses()
@@ -195,8 +199,49 @@ struct MeetingPopoverView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Re-check permissions")
+
+                    Spacer(minLength: 0)
+
+                    Button("Skip for now") {
+                        store.permissionsOnboardingDismissed = true
+                    }
+                    .buttonStyle(.plain)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(theme.textTertiary)
+                }
+
+                if onboardingNeedsRestart(for: currentPermission) {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(theme.textTertiary)
+                        Text("Allowed it in System Settings? macOS needs Atlas to restart before it takes effect.")
+                            .font(.custom("Figtree", size: 10).weight(.medium))
+                            .foregroundStyle(theme.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    Button("Restart Atlas") {
+                        store.restartApp()
+                    }
+                    .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
                 }
             }
+        }
+    }
+
+    private func onboardingNeedsRestart(for permission: PermissionStatus) -> Bool {
+        switch permission.id {
+        // Screen Recording only activates after a relaunch.
+        case "system-audio":
+            return true
+        // Re-enabling a previously blocked mic/speech in Settings also needs a relaunch.
+        case "mic", "speech":
+            return permission.state == "Blocked"
+        // Accessibility updates live once toggled, so no restart needed.
+        default:
+            return false
         }
     }
 
@@ -247,10 +292,12 @@ struct MeetingPopoverView: View {
 
     private func onboardingButtonTitle(for permission: PermissionStatus) -> String {
         switch permission.id {
-        case "system-audio":
-            return "Allow"
         case "accessibility":
+            // Accessibility can only be toggled in System Settings.
             return "Open Settings"
+        case "mic", "speech":
+            // A blocked permission can't be re-prompted in-app — send to Settings.
+            return permission.state == "Blocked" ? "Open Settings" : "Allow"
         default:
             return "Allow"
         }

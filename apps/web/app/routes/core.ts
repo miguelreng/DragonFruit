@@ -59,9 +59,12 @@ export const coreRoutes: RouteConfigEntry[] = [
   route("legal/privacy", "./(public)/legal/privacy/page.tsx"),
   route("legal/terms", "./(public)/legal/terms/page.tsx"),
 
-  // Dev-only preview of the home Activity widget. No auth — mounts the
-  // section with mock data so the grid is viewable directly.
-  layout("./(all)/__preview/layout.tsx", [route("__preview/activity", "./(all)/__preview/activity/page.tsx")]),
+  // Dev-only previews. No auth — components are mounted directly so they
+  // can be inspected without a workspace login.
+  layout("./(all)/__preview/layout.tsx", [
+    route("__preview/activity", "./(all)/__preview/activity/page.tsx"),
+    route("__preview/toasts", "./(all)/__preview/toasts/page.tsx"),
+  ]),
 
   // Public published docs
   route("published/:workspaceSlug/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx"),

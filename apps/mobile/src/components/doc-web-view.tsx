@@ -1,54 +1,113 @@
-import { Linking } from "react-native";
+import { Image, Linking } from "react-native";
 import { WebView } from "react-native-webview";
+
+import { colors } from "@/lib/theme";
+
+const figtreeRegularUri = Image.resolveAssetSource(require("../../assets/fonts/Figtree-Regular.ttf")).uri;
+const figtreeMediumUri = Image.resolveAssetSource(require("../../assets/fonts/Figtree-Medium.ttf")).uri;
+const figtreeSemiBoldUri = Image.resolveAssetSource(require("../../assets/fonts/Figtree-SemiBold.ttf")).uri;
+const figtreeBoldUri = Image.resolveAssetSource(require("../../assets/fonts/Figtree-Bold.ttf")).uri;
+const figtreeItalicUri = Image.resolveAssetSource(require("../../assets/fonts/Figtree-Italic.ttf")).uri;
+const newsreaderRegularUri = Image.resolveAssetSource(require("../../assets/fonts/Newsreader-Regular.ttf")).uri;
+const newsreaderSemiBoldUri = Image.resolveAssetSource(require("../../assets/fonts/Newsreader-SemiBold.ttf")).uri;
+const newsreaderItalicUri = Image.resolveAssetSource(require("../../assets/fonts/Newsreader-Italic.ttf")).uri;
+
+// Font stacks mirroring the web editor's variables.css. We bundle Figtree and
+// Newsreader; Inter is NOT self-hosted on web either — it's declared first in
+// the stack and falls back to the system sans — so we mirror that exact stack
+// for faithful parity rather than shipping an Inter binary mobile-only.
+const FIGTREE = `"Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+const NEWSREADER = `"Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif`;
+const INTER = `"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+
+/** The four doc font choices a page can carry in `view_props.font_style`. */
+export type DocFontStyle = "font-default" | "font-figtree" | "font-newsreader" | "font-inter";
+
+// body = --font-style, display = h1–h3 + blockquote (--font-style-display),
+// displaySans = h4–h6 (--font-style-display-sans). See packages/editor variables.css.
+const FONT_STYLE_FAMILIES: Record<DocFontStyle, { body: string; display: string; displaySans: string }> = {
+  "font-default": { body: FIGTREE, display: NEWSREADER, displaySans: FIGTREE },
+  "font-figtree": { body: FIGTREE, display: FIGTREE, displaySans: FIGTREE },
+  "font-newsreader": { body: NEWSREADER, display: NEWSREADER, displaySans: NEWSREADER },
+  "font-inter": { body: INTER, display: INTER, displaySans: INTER },
+};
+
+const LEGACY_FONT_STYLE: Record<string, DocFontStyle> = {
+  "sans-serif": "font-default",
+  serif: "font-newsreader",
+  monospace: "font-inter",
+};
+
+/** Resolve the stored `view_props.font_style` to a known style, defaulting to "font-default". */
+function normalizeDocFontStyle(value: string | null | undefined): DocFontStyle {
+  if (value && value in FONT_STYLE_FAMILIES) return value as DocFontStyle;
+  if (value && value in LEGACY_FONT_STYLE) return LEGACY_FONT_STYLE[value];
+  return "font-default";
+}
 
 /**
  * Read-only renderer for a page's `description_html`. We hand the exact HTML the
  * web editor produces to a WebView with a clean typographic reset — far higher
  * fidelity (tables, code blocks, images, callouts) than re-implementing a
  * React Native HTML parser, and it scrolls as a natural reader.
+ *
+ * Typography honors the reader's per-page font choice (`view_props.font_style`)
+ * set on web, splitting body vs. heading/display families the same way.
  */
-function buildDocument(html: string): string {
+function buildDocument(html: string, fontStyle: DocFontStyle): string {
+  const { body, display, displaySans } = FONT_STYLE_FAMILIES[fontStyle];
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <style>
+    @font-face { font-family: "Figtree"; src: url("${figtreeRegularUri}") format("truetype"); font-weight: 400; font-style: normal; }
+    @font-face { font-family: "Figtree"; src: url("${figtreeMediumUri}") format("truetype"); font-weight: 500; font-style: normal; }
+    @font-face { font-family: "Figtree"; src: url("${figtreeSemiBoldUri}") format("truetype"); font-weight: 600; font-style: normal; }
+    @font-face { font-family: "Figtree"; src: url("${figtreeBoldUri}") format("truetype"); font-weight: 700; font-style: normal; }
+    @font-face { font-family: "Figtree"; src: url("${figtreeItalicUri}") format("truetype"); font-weight: 400; font-style: italic; }
+    @font-face { font-family: "Newsreader"; src: url("${newsreaderRegularUri}") format("truetype"); font-weight: 400; font-style: normal; }
+    @font-face { font-family: "Newsreader"; src: url("${newsreaderSemiBoldUri}") format("truetype"); font-weight: 500 600; font-style: normal; }
+    @font-face { font-family: "Newsreader"; src: url("${newsreaderItalicUri}") format("truetype"); font-weight: 400; font-style: italic; }
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 16px 18px 56px;
-      font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: #1f2230;
+      font: 16px/1.6 ${body};
+      color: ${colors.ink};
       -webkit-text-size-adjust: 100%;
       word-wrap: break-word;
     }
-    h1, h2, h3, h4 { line-height: 1.25; margin: 1.2em 0 .4em; font-weight: 600; }
+    h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin: 1.2em 0 .4em; }
+    /* h1–h3 use the display family (Newsreader serif by default), h4–h6 the sans, matching the web editor. */
+    h1, h2, h3 { font-family: ${display}; font-weight: 500; letter-spacing: 0; }
+    h4, h5, h6 { font-family: ${displaySans}; font-weight: 600; }
     h1 { font-size: 1.6em; } h2 { font-size: 1.35em; } h3 { font-size: 1.15em; }
     p { margin: .6em 0; }
     ul, ol { padding-left: 1.3em; margin: .6em 0; }
     li { margin: .2em 0; }
-    a { color: #e445a6; text-decoration: none; }
+    a { color: ${colors.brand}; text-decoration: none; }
     img { max-width: 100%; height: auto; border-radius: 8px; }
-    pre { background: #f4f5fb; padding: 12px; border-radius: 10px; overflow: auto; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; background: #f4f5fb; padding: .1em .3em; border-radius: 4px; }
+    pre { background: ${colors.raised}; padding: 12px; border-radius: 10px; overflow: auto; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; background: ${colors.raised}; padding: .1em .3em; border-radius: 4px; }
     pre code { background: none; padding: 0; }
-    blockquote { margin: .6em 0; padding-left: 12px; border-left: 3px solid #e6e6ef; color: #5d6274; }
+    blockquote { margin: .6em 0; padding-left: 12px; border-left: 3px solid ${colors.borderStrong}; color: ${colors.muted}; font-family: ${display}; font-style: italic; font-size: 1.0625em; }
     table { border-collapse: collapse; width: 100%; margin: .6em 0; font-size: .9em; }
-    th, td { border: 1px solid #e6e6ef; padding: 6px 8px; text-align: left; }
-    hr { border: none; border-top: 1px solid #e6e6ef; margin: 1.2em 0; }
+    th, td { border: 1px solid ${colors.borderStrong}; padding: 6px 8px; text-align: left; }
+    hr { border: none; border-top: 1px solid ${colors.borderStrong}; margin: 1.2em 0; }
   </style>
 </head>
 <body>${html}</body>
 </html>`;
 }
 
-export function DocWebView({ html }: { html: string }) {
+export function DocWebView({ html, fontStyle }: { html: string; fontStyle?: string | null }) {
   return (
     <WebView
       originWhitelist={["*"]}
-      source={{ html: buildDocument(html) }}
+      source={{ html: buildDocument(html, normalizeDocFontStyle(fontStyle)) }}
       style={{ flex: 1, backgroundColor: "transparent" }}
       // Read-only: open real links in the system browser instead of navigating
       // inside the reader. The initial in-memory document load is allowed.

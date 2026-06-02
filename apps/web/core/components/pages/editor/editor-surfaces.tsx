@@ -9,14 +9,13 @@ import { lazy } from "react";
 // Lazy-load the two heaviest editor surfaces.
 //   - PageEditorBody pulls in Tiptap + lowlight + every registered
 //     highlight.js language (~1.3 MB chunk).
-//   - TldrawEditor pulls in the tldraw canvas runtime + its CSS
-//     (~1.5 MB across two chunks).
+//   - ExcalidrawEditor pulls in the Excalidraw canvas runtime + its CSS.
 // Doc/whiteboard pages are reached from the sidebar; everything else
 // (issues list, projects, settings, calendar) shouldn't pay for them
 // on first paint.
 export const PageEditorBody = lazy(() => import("./editor-body").then((m) => ({ default: m.PageEditorBody })));
-export const TldrawEditor = lazy(() =>
-  import("../whiteboard/tldraw-editor").then((m) => ({ default: m.TldrawEditor }))
+export const ExcalidrawEditor = lazy(() =>
+  import("../whiteboard/excalidraw-editor").then((m) => ({ default: m.ExcalidrawEditor }))
 );
 
 // HMR (React Refresh + Vite) invalidates and re-evaluates chunks on every
@@ -29,7 +28,7 @@ export const TldrawEditor = lazy(() =>
 // warning never appears.
 if (import.meta.env.DEV) {
   void import("./editor-body");
-  void import("../whiteboard/tldraw-editor");
+  void import("../whiteboard/excalidraw-editor");
 }
 
 export const EditorFallback = () => (

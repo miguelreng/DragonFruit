@@ -17,6 +17,7 @@ import {
   type TAgentChatMessage,
   type TAgentChatSession,
   type TAtlasDocWriteEvent,
+  type TAtlasDocWriteIntent,
   type TAtlasDocWriteMode,
 } from "@/services/agent-chat.service";
 
@@ -24,6 +25,8 @@ type InvokeDetail = {
   paragraphText?: string;
   selectionText?: string;
   blockId?: string | null;
+  from?: number;
+  to?: number;
 };
 
 type TAIMode = "quick-ask" | "rewrite" | "plan" | "summarize";
@@ -151,16 +154,37 @@ function isEditorWritingRequest(text: string): boolean {
     return false;
   // Writing OR editing the current document (EN + ES) — kept broad on purpose so
   // "create/crea … / update my doc / actualiza el documento / amplía / continúa…" all land inline.
-  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|turn\s+this\s+into|create|make|crea\b|crear\w*|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
+  return /\b(help\s+me\s+(?:to\s+)?write|write|draft|compose|generate|prepare|rewrite|replace|change|fix|correct|translate|turn\s+this\s+into|create|make|crea\b|crear\w*|update|expand|extend|continue|revise|edit|improve|polish|append|insert|summari[sz]e|outline|escr[ií]b\w*|red[aá]ct\w*|reescrib\w*|reemplaz\w*|sustitu\w*|cambi\w*|corrige\w*|corregir|traduce\w*|traducir|convierte\w*|convertir|comp[oó]n|componer|prepara\w*|genera\b|generar|gen[eé]rame|actualiz\w*|ampl[ií]a\w*|ampliar|exti[eé]nd\w*|extender|contin[uú]a\w*|continuar|revisa\w*|revisar|edita\w*|editar|mejora\w*|mejorar|completa\w*|completar|resum\w*|desarroll\w*|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|agregar)\b/i.test(
     text
   );
 }
 
+function isSelectionEditRequest(text: string): boolean {
+  return /\b(replace|change|swap|rewrite|edit|revise|improve|polish|fix|correct|translate|make\s+it|turn\s+it\s+into|make\s+this|turn\s+this\s+into|reemplaz\w*|sustitu\w*|cambi\w*|pon\w*|haz(?:lo|la|le)?|hacerlo|vuelve\w*|convierte\w*|convertir|corrige\w*|corregir|traduce\w*|traducir|reescrib\w*|edita\w*|editar|mejora\w*|mejorar|otra\s+palabra|m[aá]s\s+(?:formal|claro|clara|breve|corto|corta|largo|larga|simple|natural))\b/i.test(
+    text
+  );
+}
+
+function inferDocWriteIntent(text: string): TAtlasDocWriteIntent {
+  if (/\b(delete|remove|erase|elimina\w*|borrar|borra\w*|quita\w*|remueve\w*)\b/i.test(text)) return "delete";
+  if (
+    /\b(replace|replace\s+entire|replace\s+all|swap|overwrite|change|reescrib\w*|reemplaz\w*|sustitu\w*|cambi\w*|otra\s+palabra)\b/i.test(
+      text
+    )
+  )
+    return "replace";
+  if (/\b(append|insert|add|continue|inserta\w*|insertar|a[ñn]ad\w*|agrega\w*|contin[uú]a\w*)\b/i.test(text))
+    return "insert";
+  return "update";
+}
+
 type TStreamDocReviewArgs = {
   activePageEditorRef: EditorRefApi;
+  anchorPos?: number;
   pageId: string;
   projectId?: string;
   prompt: string;
+  selectionText?: string;
   sessionId: string;
   setMessages: Dispatch<SetStateAction<TDocChatMessage[]>>;
   userMessageId: string;
@@ -168,11 +192,23 @@ type TStreamDocReviewArgs = {
 };
 
 async function streamDocReview(args: TStreamDocReviewArgs) {
-  const { activePageEditorRef, pageId, projectId, prompt, sessionId, setMessages, userMessageId, workspaceSlug } = args;
+  const {
+    activePageEditorRef,
+    anchorPos,
+    pageId,
+    projectId,
+    prompt,
+    selectionText,
+    sessionId,
+    setMessages,
+    userMessageId,
+    workspaceSlug,
+  } = args;
   const editorDocument = activePageEditorRef.getDocument();
   const documentMarkdown = activePageEditorRef.getMarkDown();
-  const cursorPosition = activePageEditorRef.getCurrentCursorPosition();
+  const cursorPosition = anchorPos ?? activePageEditorRef.getCurrentCursorPosition();
   const mode: TAtlasDocWriteMode = documentMarkdown.trim().length > 0 ? "update" : "create";
+  const intent = mode === "create" ? "insert" : inferDocWriteIntent(prompt);
   let streamError: string | null = null;
   let receivedProposal = false;
 
@@ -191,8 +227,9 @@ async function streamDocReview(args: TStreamDocReviewArgs) {
         project_id: projectId,
         prompt,
         mode,
+        intent,
         cursor_position: cursorPosition,
-        selection_text: activePageEditorRef.getSelectedText(),
+        selection_text: selectionText ?? activePageEditorRef.getSelectedText(),
         document_markdown: documentMarkdown,
         document_json: editorDocument.json,
       },
@@ -260,7 +297,7 @@ async function streamDocReview(args: TStreamDocReviewArgs) {
 }
 
 /**
- * Renders the always-available floating Atlas bar for page editors.
+ * Renders the floating Atlas bar for doc page editors.
  * Slash-command events can still prefill editor context, but the request
  * now goes through the app's first-party AI API instead of a workspace webhook.
  */
@@ -289,9 +326,12 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const projectPages = usePageStore(EPageStoreType.PROJECT);
   const activePage = pageId ? projectPages.getPageById(pageId) : undefined;
+  const isDocPage = activePage?.page_type === "doc";
   const activePageEditorRef = activePage?.editor.editorRef ?? null;
 
   useEffect(() => {
+    if (!isDocPage) return;
+
     function onInvoke(e: Event) {
       const ce = e as CustomEvent<InvokeDetail>;
       detailRef.current = ce.detail ?? {};
@@ -300,7 +340,30 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     }
     window.addEventListener("dragonfruit:agent-invoke", onInvoke);
     return () => window.removeEventListener("dragonfruit:agent-invoke", onInvoke);
-  }, []);
+  }, [isDocPage]);
+
+  useEffect(() => {
+    if (!isDocPage) return;
+
+    function onReplyToSelection(e: Event) {
+      const detail = (e as CustomEvent<{ text?: string; from?: number; to?: number }>).detail;
+      const text = detail?.text?.trim();
+      if (!text) return;
+
+      const nextContext: InvokeDetail = {
+        selectionText: text,
+        from: detail.from,
+        to: detail.to,
+      };
+      detailRef.current = nextContext;
+      setContext(nextContext);
+      setMode("quick-ask");
+      requestAnimationFrame(() => textareaRef.current?.focus());
+    }
+
+    window.addEventListener("dragonfruit:reply-to-selection", onReplyToSelection);
+    return () => window.removeEventListener("dragonfruit:reply-to-selection", onReplyToSelection);
+  }, [isDocPage]);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -320,7 +383,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   // Track how many Atlas proposals are still awaiting review so the bar can
   // surface bulk Accept all / Reject all only while there's something pending.
   useEffect(() => {
-    if (!activePageEditorRef) {
+    if (!isDocPage || !activePageEditorRef) {
       setPendingProposals(0);
       return;
     }
@@ -328,10 +391,10 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     sync();
     const unsubscribe = activePageEditorRef.onStateChange?.(sync);
     return () => unsubscribe?.();
-  }, [activePageEditorRef]);
+  }, [activePageEditorRef, isDocPage]);
 
   useEffect(() => {
-    if (!workspaceSlug || !projectId || !pageId) return;
+    if (!workspaceSlug || !projectId || !pageId || !isDocPage) return;
 
     let isActive = true;
 
@@ -376,7 +439,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     return () => {
       isActive = false;
     };
-  }, [pageId, projectId, workspaceSlug]);
+  }, [isDocPage, pageId, projectId, workspaceSlug]);
 
   const contextText = context.selectionText?.trim() || context.paragraphText?.trim() || "";
   const activeMode = AI_MODES.find((entry) => entry.id === mode) ?? AI_MODES[0]!;
@@ -385,7 +448,9 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
   // Live hint: when what's typed reads as a doc-writing action (and there's a
   // page to write into), the mode chip flips to "Writing" so the user knows it
   // will land in the document rather than answer in chat.
-  const isWriteIntent = Boolean(activePageEditorRef) && isEditorWritingRequest(prompt.trim());
+  const isWriteIntent =
+    Boolean(activePageEditorRef) &&
+    (isEditorWritingRequest(prompt.trim()) || Boolean(context.selectionText && isSelectionEditRequest(prompt.trim())));
 
   const handleSubmit = useCallback(async () => {
     const trimmed = prompt.trim();
@@ -402,15 +467,20 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
       },
     ]);
     try {
-      const shouldWriteIntoEditor = Boolean(activePageEditorRef && isEditorWritingRequest(trimmed));
+      const shouldWriteIntoEditor = Boolean(
+        activePageEditorRef &&
+        (isEditorWritingRequest(trimmed) || Boolean(context.selectionText && isSelectionEditRequest(trimmed)))
+      );
 
       if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
         setIsDrafting(true);
         await streamDocReview({
           activePageEditorRef,
+          anchorPos: context.from,
           pageId,
           projectId,
           prompt: trimmed,
+          selectionText: context.selectionText,
           sessionId: session.id,
           setMessages,
           userMessageId,
@@ -479,7 +549,19 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
       setIsSending(false);
       setIsDrafting(false);
     }
-  }, [activeMode, activePageEditorRef, contextText, mode, pageId, projectId, prompt, session, workspaceSlug]);
+  }, [
+    activeMode,
+    activePageEditorRef,
+    context.from,
+    context.selectionText,
+    contextText,
+    mode,
+    pageId,
+    projectId,
+    prompt,
+    session,
+    workspaceSlug,
+  ]);
 
   // Clear conversation — destructive. The chat messages go away for good
   // but whatever Atlas wrote lives in the document, so the result stays.
@@ -517,18 +599,18 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
     }
   }, [activePageEditorRef, pageId, projectId, session, workspaceSlug]);
 
-  if (!workspaceSlug || !projectId || !pageId) return null;
+  if (!workspaceSlug || !projectId || !pageId || !isDocPage) return null;
 
   return (
     <div aria-live="polite" className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
       <div className="relative isolate w-full">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-24 -bottom-10 h-auto [background:radial-gradient(150%_130%_at_50%_100%,var(--bg-surface-1)_45%,transparent_75%)]"
+          className="pointer-events-none absolute -inset-x-4 -top-24 -bottom-10 h-auto [background:linear-gradient(to_bottom,transparent_0%,var(--bg-surface-1)_68%,var(--bg-surface-1)_100%),radial-gradient(150%_130%_at_50%_100%,var(--bg-surface-1)_45%,transparent_75%)] dark:[background:linear-gradient(to_bottom,transparent_0%,rgba(12,10,10,0.7)_58%,oklch(0.17_0.01_0)_100%),radial-gradient(150%_130%_at_50%_100%,oklch(0.17_0.01_0)_34%,rgba(12,10,10,0.82)_54%,transparent_78%)]"
         />
         <div className="relative mx-auto flex w-full max-w-2xl flex-col items-stretch gap-2">
           <div className="relative">
-            <div className="pointer-events-auto flex max-h-[12vh] flex-col gap-1.5 overflow-y-auto px-1 pt-4 pb-1 [box-shadow:inset_0_18px_14px_-12px_rgba(255,255,255,0.95)]">
+            <div className="pointer-events-auto flex max-h-[12vh] flex-col gap-1.5 overflow-y-auto px-1 pt-4 pb-1 [box-shadow:inset_0_18px_14px_-12px_rgba(255,255,255,0.95)] dark:[box-shadow:inset_0_18px_16px_-12px_rgba(0,0,0,0.72)]">
               {shouldShowConversationLoader ? (
                 <div className="mr-auto flex max-w-[78%] items-center gap-2 rounded-full border border-subtle bg-surface-1 px-3 py-2 shadow-raised-100">
                   <Loader className="flex items-center gap-1.5">
@@ -543,7 +625,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                     return (
                       <div
                         key={message.id}
-                        className="mr-auto max-w-[80%] rounded-full border border-subtle bg-layer-1 px-3 py-2 text-[12px] leading-5 text-primary shadow-raised-100"
+                        className="mr-auto max-w-[80%] rounded-[18px] border border-subtle bg-layer-1 px-3 py-2 text-[12px] leading-5 break-words whitespace-pre-wrap text-primary shadow-raised-100"
                       >
                         {message.authorName && <span className="mr-1 text-tertiary">{message.authorName}</span>}
                         {message.content}
@@ -555,7 +637,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                     return (
                       <div
                         key={message.id}
-                        className="border-danger-primary/30 bg-red-500/5 ml-auto max-w-[85%] rounded-full border px-3 py-2 text-[12px] leading-5 text-danger-primary shadow-raised-100"
+                        className="border-danger-primary/30 bg-red-500/5 ml-auto max-w-[85%] rounded-[18px] border px-3 py-2 text-[12px] leading-5 break-words whitespace-pre-wrap text-danger-primary shadow-raised-100"
                       >
                         {message.content}
                       </div>
@@ -563,9 +645,9 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                   }
 
                   return (
-                    <div key={message.id} className="ml-auto flex max-w-[85%] flex-col items-end gap-2">
+                    <div key={message.id} className="ml-auto flex max-w-[85%] min-w-0 flex-col items-end gap-2">
                       {message.pills?.length ? (
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex w-full min-w-0 flex-col items-end gap-2">
                           {message.pills.map((_, index, pills) => {
                             const pill = pills[pills.length - 1 - index]!;
                             return (
@@ -580,7 +662,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                                     message: "The Atlas writing cue is ready to paste into your document.",
                                   });
                                 }}
-                                className="max-w-full rounded-full border border-subtle bg-surface-1 px-3 py-2 text-left text-[12px] text-secondary shadow-raised-100 transition-colors hover:bg-layer-1 hover:text-primary"
+                                className="max-w-full rounded-[18px] border border-subtle bg-surface-1 px-3 py-2 text-left text-[12px] break-words whitespace-pre-wrap text-secondary shadow-raised-100 transition-colors hover:bg-layer-1 hover:text-primary"
                               >
                                 {pill}
                               </button>
@@ -610,7 +692,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
             {messages.length > 1 && (
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-surface-1/0 via-surface-1/50 to-transparent"
+                className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-surface-1/0 via-surface-1/50 to-transparent dark:from-transparent dark:via-black/35"
               />
             )}
             {messages.length > 0 && !shouldShowConversationLoader && (
@@ -658,7 +740,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                 with `bottom-full`) gets clipped at the bar's top edge. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 rounded-[18px] bg-gradient-to-b from-surface-1/0 via-surface-1/35 to-surface-1/90"
+              className="pointer-events-none absolute inset-0 rounded-[18px] bg-gradient-to-b from-surface-1/0 via-surface-1/35 to-surface-1/90 dark:from-transparent dark:via-black/10 dark:to-black/30"
             />
             {isDrafting ? (
               <div className="relative mb-1 flex items-center gap-2 border-b border-subtle pb-1.5">
@@ -784,7 +866,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
 
             {contextText && (
               <div className="relative mt-1 truncate pl-0.5 text-[10px] text-tertiary">
-                Context: "{contextText.slice(0, 96)}"
+                Replying to selection: "{contextText.slice(0, 96)}"
               </div>
             )}
           </div>

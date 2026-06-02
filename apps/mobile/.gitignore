@@ -46,3 +46,8 @@ example
 /targets/*/generated.entitlements
 /targets/*/Info.plist
 /targets/*/Assets.xcassets/
+# ...but the share extension's Info.plist is hand-authored (custom URL
+# NSExtensionActivationRule). apple-targets only generates an Info.plist when one
+# is absent, so we must keep ours, or a clean prebuild falls back to TRUEPREDICATE
+# and the extension would offer to save every shared item, not just links.
+!/targets/share/Info.plist

@@ -98,6 +98,7 @@ Rules:
 - Create one proposal per paragraph or logical block.
 - For create mode, use only insert_after proposals and leave target_block_id empty.
 - For update mode, use replace/delete only when you are changing a provided block; use insert_after for new context.
+- If "Intent: replace" is present, prefer replace proposals against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - Preserve the user's intent and write production-ready document prose.
 - Do not include markdown fences, commentary, or any keys outside the JSON object.
 """.strip()
@@ -120,6 +121,7 @@ Rules:
 - One @@ATLAS block per paragraph, heading, or short list.
 - create mode: use only `op=insert_after` and leave target empty.
 - update mode: use `op=replace` or `op=delete` only against a provided block id; use `op=insert_after` with an empty target for brand-new content.
+- If "Intent: replace" is present, prefer `op=replace` against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - If a "Selected text" section is present, the user is editing exactly that passage: find the provided block id whose text matches the selection and emit a single `op=replace` against it. Do not rewrite, re-order, or touch other blocks unless the request clearly asks you to.
 - For `op=delete`, emit only the header line (no body).
 - Write production-ready prose. Do not restate the user's prompt.
@@ -367,8 +369,9 @@ def _text_from_pm_node(node) -> str:
     return " ".join(part for part in (_text_from_pm_node(child) for child in content) if part)
 
 
-def _normalise_doc_write_proposals(raw, *, mode: str, blocks: list[dict], fallback_text: str) -> list[dict]:
+def _normalise_doc_write_proposals(raw, *, mode: str, intent: str, blocks: list[dict], fallback_text: str) -> list[dict]:
     block_map = {block["id"]: block for block in blocks}
+    first_block_id = blocks[0]["id"] if blocks else ""
     proposals = raw.get("proposals") if isinstance(raw, dict) else None
     if not isinstance(proposals, list):
         proposals = []
@@ -381,6 +384,8 @@ def _normalise_doc_write_proposals(raw, *, mode: str, blocks: list[dict], fallba
         if operation not in {"insert_after", "replace", "delete"}:
             operation = "insert_after"
         target_block_id = str(proposal.get("target_block_id") or "").strip()
+        if mode == "update" and intent == "replace" and operation == "replace" and target_block_id not in block_map:
+            target_block_id = first_block_id
         if operation in {"replace", "delete"} and target_block_id not in block_map:
             operation = "insert_after"
             target_block_id = ""
@@ -405,17 +410,24 @@ def _normalise_doc_write_proposals(raw, *, mode: str, blocks: list[dict], fallba
         return clean
 
     fallback_parts = [part.strip() for part in re.split(r"\n{2,}", fallback_text or "") if part.strip()]
-    return [
-        {
-            "id": f"proposal-{index + 1}",
-            "operation": "insert_after",
-            "target_block_id": "",
-            "target_original_text": "",
-            "content_text": part[:4_000],
-            "content_html": _plain_text_to_html(part[:4_000]),
-        }
-        for index, part in enumerate(fallback_parts[:12])
-    ]
+    fallback: list[dict] = []
+    for index, part in enumerate(fallback_parts[:12]):
+        operation = "insert_after"
+        target_block_id = ""
+        if mode == "update" and intent == "replace" and first_block_id and index == 0:
+            operation = "replace"
+            target_block_id = first_block_id
+        fallback.append(
+            {
+                "id": f"proposal-{index + 1}",
+                "operation": operation,
+                "target_block_id": target_block_id,
+                "target_original_text": block_map.get(target_block_id, {}).get("text", ""),
+                "content_text": part[:4_000],
+                "content_html": _plain_text_to_html(part[:4_000]),
+            }
+        )
+    return fallback
 
 
 _DOC_WRITE_HEADER_RE = re.compile(
@@ -437,12 +449,14 @@ def _parse_doc_write_header(line: str):
     return operation, target
 
 
-def _normalise_stream_header(operation: str, target_block_id: str, *, mode: str, block_map: dict):
+def _normalise_stream_header(operation: str, target_block_id: str, *, mode: str, intent: str, block_map: dict):
     """Apply the same validity rules as the non-streaming path to one
     streamed header: clamp the operation, drop targets we don't recognise,
     and force insert_after in create mode."""
     if operation not in {"insert_after", "replace", "delete"}:
         operation = "insert_after"
+    if mode == "update" and intent == "replace" and operation == "replace" and target_block_id not in block_map:
+        target_block_id = next(iter(block_map), "")
     if operation in {"replace", "delete"} and target_block_id not in block_map:
         operation = "insert_after"
         target_block_id = ""
@@ -452,7 +466,7 @@ def _normalise_stream_header(operation: str, target_block_id: str, *, mode: str,
     return operation, target_block_id
 
 
-def _stream_doc_write_events(tokens, *, mode: str, block_map: dict):
+def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict):
     """Parse Atlas's `@@ATLAS` block protocol from a token iterable.
 
     Yields (event_name, payload) tuples — proposal_started / proposal_delta /
@@ -489,7 +503,9 @@ def _stream_doc_write_events(tokens, *, mode: str, block_map: dict):
                 if current is not None:
                     _finalise(current)
                     yield ("proposal_completed", _completed_payload(current))
-                operation, target = _normalise_stream_header(header[0], header[1], mode=mode, block_map=block_map)
+                operation, target = _normalise_stream_header(
+                    header[0], header[1], mode=mode, intent=intent, block_map=block_map
+                )
                 index += 1
                 current = {
                     "id": f"proposal-{index}",
@@ -1366,6 +1382,9 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
         mode = (request.data.get("mode") or "create").strip().lower()
         if mode not in {"create", "update"}:
             mode = "create"
+        intent = (request.data.get("intent") or ("insert" if mode == "create" else "update")).strip().lower()
+        if intent not in {"insert", "replace", "delete", "update"}:
+            intent = "insert" if mode == "create" else "update"
         if not content:
             return Response({"error": "prompt is required"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1422,6 +1441,7 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 part
                 for part in [
                     f"Mode: {mode}",
+                    f"Intent: {intent}",
                     f"User request:\n{content}",
                     f"Selected text:\n{selection_text}" if selection_text else "",
                     f"Document blocks with stable ids:\n{block_context}" if block_context else "",
@@ -1449,6 +1469,7 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                         reasoning_effort="minimal",
                     ),
                     mode=mode,
+                    intent=intent,
                     block_map=block_map,
                 ):
                     if name == "proposal_completed":
@@ -1470,6 +1491,7 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                     fallback = _normalise_doc_write_proposals(
                         _extract_json_object(result.final_text),
                         mode=mode,
+                        intent=intent,
                         blocks=blocks,
                         fallback_text=result.final_text,
                     )
@@ -1480,6 +1502,7 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                     fallback = _normalise_doc_write_proposals(
                         {},
                         mode=mode,
+                        intent=intent,
                         blocks=blocks,
                         fallback_text=_fallback_doc_write_text(content, mode=mode),
                     )

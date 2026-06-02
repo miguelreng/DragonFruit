@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 import useSWR from "swr";
 // plane imports
 import { ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
-import { EIssuesStoreType } from "@plane/types";
+import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 // components
 import { ProfileIssuesKanBanLayout } from "@/components/issues/issue-layouts/kanban/roots/profile-issues-root";
 import { ProfileIssuesListLayout } from "@/components/issues/issue-layouts/list/roots/profile-issues-root";
@@ -34,7 +34,7 @@ export const ProfileIssuesPage = observer(function ProfileIssuesPage(props: Prop
     issuesFilter: { issueFilters, fetchFilters, updateFilterExpression },
   } = useIssues(EIssuesStoreType.PROFILE);
   // derived values
-  const activeLayout = issueFilters?.displayFilters?.layout || undefined;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.LIST;
 
   useEffect(() => {
     if (setViewId) setViewId(type);

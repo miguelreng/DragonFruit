@@ -45,7 +45,7 @@ export function ProfileStats({ userProfile }: Props) {
     <section className="space-y-3">
       <h3 className="text-13 font-medium text-tertiary">{t("profile.stats.overview")}</h3>
       {userProfile ? (
-        <div className="bg-subtle grid grid-cols-1 gap-px overflow-hidden rounded-lg border-[0.5px] border-subtle md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border-[0.5px] border-subtle bg-[var(--border-color-subtle)] md:grid-cols-3">
           {overviewCards.map((card) => (
             <Link
               key={card.route}

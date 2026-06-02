@@ -30,12 +30,9 @@ const isCursorBuddyDocCreatedNotification = (notification: TNotification) => {
   );
 };
 
+// Styling comes from the toast's default action "pill" — keep this to the link itself.
 const openDocAction = (resource: Exclude<TCursorBuddyResource, undefined>) => (
-  <a
-    href={resource.url}
-    className="text-12 font-medium text-accent-primary hover:underline"
-    aria-label={`Open ${resource.name}`}
-  >
+  <a href={resource.url} aria-label={`Open ${resource.name}`}>
     Open doc
   </a>
 );

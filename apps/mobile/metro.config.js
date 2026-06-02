@@ -1,6 +1,5 @@
 // Learn more: https://docs.expo.dev/guides/monorepo/
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
 
 const projectRoot = __dirname;
@@ -18,4 +17,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
-module.exports = withNativeWind(config, { input: "./src/global.css" });
+// NativeWind 4 / react-native-css-interop's Metro integration crashes Metro 0.84
+// (Expo SDK 56 / RN 0.85) on file-change events — "Cannot read properties of
+// undefined (reading 'addedFiles')" — which kept killing the dev server on save.
+// The app styles with React Native StyleSheet (src/lib/theme.ts), not className,
+// so NativeWind is unused here and removed from the build.
+module.exports = config;

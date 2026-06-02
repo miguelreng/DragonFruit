@@ -153,7 +153,7 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
             >
               <Dialog.Panel
                 data-theme={surfaceTheme}
-                className="divide-opacity-10 relative flex w-full max-w-2xl transform flex-col items-center justify-center divide-y divide-subtle-1 rounded-[18px] border-[0.5px] border-strong bg-surface-1 text-primary shadow-raised-200 transition-all"
+                className="divide-opacity-10 t-modal is-open relative flex w-full max-w-2xl transform flex-col items-center justify-center divide-y divide-subtle-1 rounded-[18px] border-[0.5px] border-strong bg-surface-1 text-primary shadow-raised-200 transition-all"
               >
                 <Command
                   filter={(i18nValue: string, search: string) => {

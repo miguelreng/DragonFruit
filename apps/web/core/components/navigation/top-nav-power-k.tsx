@@ -244,9 +244,9 @@ export const TopNavPowerK = observer(() => {
       >
         <div
           className={cn(
-            "flex h-7 w-full items-center rounded-lg border border-white/10 bg-white/5 p-2 transition-colors duration-200",
+            "flex h-7 w-full items-center rounded-lg border border-[color:var(--power-k-ai-bar-border)] bg-[image:var(--power-k-ai-bar-bg)] p-2 text-[color:var(--power-k-ai-bar-text)] shadow-[var(--power-k-ai-bar-shadow)] transition-colors duration-200",
             {
-              "bg-white/10": isOpen,
+              "bg-[image:var(--power-k-ai-bar-bg-active)]": isOpen,
             }
           )}
           onClick={(e) => {
@@ -274,7 +274,7 @@ export const TopNavPowerK = observer(() => {
           role="button"
           tabIndex={-1}
         >
-          <SearchIcon className="mr-2 size-3.5 shrink-0 text-white/50" />
+          <SearchIcon className="mr-2 size-3.5 shrink-0 text-[color:var(--power-k-ai-bar-muted)]" />
           <input
             ref={inputRef}
             type="text"
@@ -291,77 +291,85 @@ export const TopNavPowerK = observer(() => {
             onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder="Search"
-            className="min-w-0 flex-1 bg-transparent text-13 text-white outline-none placeholder:text-white/50"
+            className="min-w-0 flex-1 bg-transparent text-13 text-[color:var(--power-k-ai-bar-text)] outline-none placeholder:text-[color:var(--power-k-ai-bar-placeholder)]"
           />
           {searchTerm ? (
             <button type="button" onClick={handleClear} className="ml-2 shrink-0">
-              <CloseIcon className="size-3.5 text-white/60 hover:text-white" />
+              <CloseIcon className="size-3.5 text-[color:var(--power-k-ai-bar-muted)] hover:text-[color:var(--power-k-ai-bar-text)]" />
             </button>
           ) : (
             !isOpen && (
-              <kbd className="font-sans ml-2 shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-11 text-white/60">⌘ K</kbd>
+              <kbd className="font-sans ml-2 shrink-0 rounded border border-[color:var(--power-k-ai-bar-border)] bg-layer-transparent-hover px-1.5 py-0.5 text-11 text-[color:var(--power-k-ai-bar-muted)]">
+                ⌘ K
+              </kbd>
             )
           )}
         </div>
       </div>
       <div
-        data-theme={surfaceTheme}
         className={cn(
-          "absolute -top-[6px] left-1/2 z-20 flex -translate-x-1/2 flex-col overflow-hidden rounded-[18px] border-[0.5px] border-strong bg-surface-1 px-2 pt-10 pb-2 text-primary shadow-raised-200 transition-all duration-300 ease-in-out",
+          "absolute -top-[6px] left-1/2 z-20 -translate-x-1/2 overflow-hidden transition-[width,max-height] duration-300 ease-in-out",
           {
-            "max-h-[80vh] w-[570px] opacity-100": isOpen,
-            "h-0 w-0 opacity-0": !isOpen,
+            "max-h-[80vh] w-[570px]": isOpen,
+            "max-h-0 w-0": !isOpen,
           }
         )}
       >
-        {isOpen && (
-          <Command
-            filter={(i18nValue: string, search: string) => {
-              if (i18nValue === "no-results") return 1;
-              if (i18nValue.toLowerCase().includes(search.toLowerCase())) return 1;
-              return 0;
-            }}
-            shouldFilter={searchTerm.length > 0}
-            className="flex h-full w-full flex-col"
-          >
-            <Command.Input value={searchTerm} hidden />
-            <PowerKScopeChips scope={scope} onChange={setScope} />
-            <Command.List className="vertical-scrollbar scrollbar-sm max-h-[60vh] overflow-y-auto px-2 pb-4 outline-none">
-              {searchTerm.trim() === "" && scope !== "ai" && (
-                <PowerKRecentsSection
-                  recents={recents}
-                  pins={pins}
-                  isPinned={isPinned}
-                  onSelect={handleRecentSelect}
-                  onTogglePin={togglePin}
-                />
-              )}
-              {(scope === "ai" || (searchTerm.trim() !== "" && scope === "all")) && (
-                <PowerKAskAISection workspaceSlug={params.workspaceSlug?.toString()} searchTerm={searchTerm} />
-              )}
-              {scope !== "ai" && (
-                <ProjectsAppPowerKCommandsList
-                  activePage={activePage}
-                  context={context}
-                  handleCommandSelect={handleCommandSelect}
-                  handlePageDataSelection={handlePageDataSelection}
-                  isWorkspaceLevel={isWorkspaceLevel}
-                  searchTerm={searchTerm}
-                  setSearchTerm={setSearchTerm}
-                  handleSearchMenuClose={() => closePanel()}
-                  scope={scope}
-                  onResultClick={handleResultClick}
-                  hideAskAI
-                />
-              )}
-            </Command.List>
-            <PowerKModalFooter
-              isWorkspaceLevel={isWorkspaceLevel}
-              projectId={context.params.projectId?.toString()}
-              onWorkspaceLevelChange={setIsWorkspaceLevel}
-            />
-          </Command>
-        )}
+        <div
+          data-theme={surfaceTheme}
+          data-open={isOpen ? true : undefined}
+          data-origin="top-center"
+          className="t-dropdown flex w-full flex-col overflow-hidden rounded-[18px] border-[0.5px] border-strong bg-surface-1 px-2 pt-10 pb-2 text-primary shadow-raised-200"
+        >
+          {isOpen && (
+            <Command
+              filter={(i18nValue: string, search: string) => {
+                if (i18nValue === "no-results") return 1;
+                if (i18nValue.toLowerCase().includes(search.toLowerCase())) return 1;
+                return 0;
+              }}
+              shouldFilter={searchTerm.length > 0}
+              className="flex h-full w-full flex-col"
+            >
+              <Command.Input value={searchTerm} hidden />
+              <PowerKScopeChips scope={scope} onChange={setScope} />
+              <Command.List className="vertical-scrollbar scrollbar-sm max-h-[60vh] overflow-y-auto px-2 pb-4 outline-none">
+                {searchTerm.trim() === "" && scope !== "ai" && (
+                  <PowerKRecentsSection
+                    recents={recents}
+                    pins={pins}
+                    isPinned={isPinned}
+                    onSelect={handleRecentSelect}
+                    onTogglePin={togglePin}
+                  />
+                )}
+                {(scope === "ai" || (searchTerm.trim() !== "" && scope === "all")) && (
+                  <PowerKAskAISection workspaceSlug={params.workspaceSlug?.toString()} searchTerm={searchTerm} />
+                )}
+                {scope !== "ai" && (
+                  <ProjectsAppPowerKCommandsList
+                    activePage={activePage}
+                    context={context}
+                    handleCommandSelect={handleCommandSelect}
+                    handlePageDataSelection={handlePageDataSelection}
+                    isWorkspaceLevel={isWorkspaceLevel}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    handleSearchMenuClose={() => closePanel()}
+                    scope={scope}
+                    onResultClick={handleResultClick}
+                    hideAskAI
+                  />
+                )}
+              </Command.List>
+              <PowerKModalFooter
+                isWorkspaceLevel={isWorkspaceLevel}
+                projectId={context.params.projectId?.toString()}
+                onWorkspaceLevelChange={setIsWorkspaceLevel}
+              />
+            </Command>
+          )}
+        </div>
       </div>
     </div>
   );

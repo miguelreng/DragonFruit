@@ -26,7 +26,7 @@ import { PageVersionsOverlay } from "../version";
 import { PagesVersionEditor } from "../version/editor";
 import { ContentLimitBanner } from "./content-limit-banner";
 import type { TEditorBodyConfig, TEditorBodyHandlers } from "./editor-body";
-import { EditorFallback, PageEditorBody, TldrawEditor } from "./editor-surfaces";
+import { EditorFallback, ExcalidrawEditor, PageEditorBody } from "./editor-surfaces";
 import { PageEditorToolbarRoot } from "./toolbar";
 
 export type TPageRootHandlers = {
@@ -194,7 +194,7 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
         {showContentTooLargeBanner && <ContentLimitBanner className="px-page-x" />}
         <Suspense fallback={<EditorFallback />}>
           {page.page_type === "whiteboard" ? (
-            <TldrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+            <ExcalidrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
           ) : (
             <PageEditorBody
               config={config}

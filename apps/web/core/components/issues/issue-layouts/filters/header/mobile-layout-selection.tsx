@@ -8,7 +8,7 @@ import { ISSUE_LAYOUTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { ChevronDownIcon } from "@plane/propel/icons";
-import type { EIssueLayoutTypes } from "@plane/types";
+import { EIssueLayoutTypes } from "@plane/types";
 import { CustomMenu } from "@plane/ui";
 import { IssueLayoutIcon } from "../../layout-icon";
 
@@ -23,6 +23,7 @@ export function MobileLayoutSelection({
   isMobile?: boolean;
 }) {
   const { t } = useTranslation();
+  const selectedLayout = activeLayout ?? EIssueLayoutTypes.LIST;
   return (
     <CustomMenu
       maxHeight={"md"}
@@ -30,9 +31,7 @@ export function MobileLayoutSelection({
       placement="bottom-start"
       customButton={
         <Button variant="secondary" className="relative px-2">
-          {activeLayout && (
-            <IssueLayoutIcon layout={activeLayout} size={14} strokeWidth={2} className={`h-3.5 w-3.5`} />
-          )}
+          <IssueLayoutIcon layout={selectedLayout} size={14} strokeWidth={2} className={`h-3.5 w-3.5`} />
           <ChevronDownIcon className="my-auto size-3 text-secondary" strokeWidth={2} />
         </Button>
       }

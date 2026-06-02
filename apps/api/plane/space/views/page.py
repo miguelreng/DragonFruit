@@ -77,7 +77,7 @@ def _resolve_public_embed(ref):
             "entity_id": entity_id,
             "available": True,
             "title": page.name or "Untitled whiteboard",
-            "snapshot": (page.description_json or {}).get("tldraw_snapshot"),
+            "snapshot": (page.description_json or {}).get("excalidraw_snapshot"),
             "updated_at": page.updated_at,
         }
 

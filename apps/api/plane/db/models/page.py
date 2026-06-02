@@ -52,10 +52,10 @@ class Page(BaseModel):
 
     ACCESS_CHOICES = ((PRIVATE_ACCESS, "Private"), (PUBLIC_ACCESS, "Public"))
 
-    # "whiteboard" pages render a tldraw canvas; "doc" pages use the
+    # "whiteboard" pages render an Excalidraw canvas; "doc" pages use the
     # collaborative rich-text editor. The renderer picks based on this field;
     # description_html / description_json carry the body in a type-specific
-    # shape (Yjs binary for docs, tldraw snapshot JSON for whiteboards).
+    # shape (Yjs binary for docs, Excalidraw snapshot JSON for whiteboards).
     PAGE_TYPE_DOC = "doc"
     PAGE_TYPE_WHITEBOARD = "whiteboard"
     PAGE_TYPE_CHOICES = (

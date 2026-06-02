@@ -134,7 +134,7 @@ export function EditorBubbleMenu(props: Props) {
     tippyOptions: {
       moveTransition: "transform 0.15s ease-out",
       duration: [300, 0],
-      zIndex: 9,
+      zIndex: 90,
       onShow: () => {
         if (editor.storage.link) {
           editor.storage.link.isBubbleMenuOpen = true;
@@ -259,10 +259,11 @@ export function EditorBubbleMenu(props: Props) {
                 );
               }}
               aria-label="Reply to selection with Atlas"
-              title="Ask Atlas"
-              className="grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
+              title="Reply with Atlas"
+              className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-12 font-medium text-accent-primary transition-colors hover:bg-accent-subtle hover:text-accent-secondary active:bg-accent-subtle"
             >
               <Sparkles className="size-4" />
+              <span>Reply with Atlas</span>
             </button>
           </div>
           <div className="flex gap-0.5 px-2">

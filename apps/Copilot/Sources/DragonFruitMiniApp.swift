@@ -33,6 +33,7 @@ struct DragonFruitMiniApp: App {
         } label: {
             if let icon = BrandTheme.menuBarIcon {
                 Image(nsImage: icon)
+                    .renderingMode(.template)
                     .onAppear {
                         toastController.bind(to: store)
                         cursorBuddyController.bind(to: store)
@@ -126,6 +127,15 @@ final class VoiceToastController: ObservableObject {
             }
             .store(in: &cancellables)
 
+        store.$isPopoverOpen
+            .combineLatest(store.$permissionsOnboardingDismissed, store.$isAuthenticated)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak store] _, _, _ in
+                guard let self, let store else { return }
+                self.update(for: store)
+            }
+            .store(in: &cancellables)
+
         NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak store] _ in
@@ -152,7 +162,10 @@ final class VoiceToastController: ObservableObject {
             nextKind = .error
         } else if store.isListening {
             nextKind = .listening
-        } else if let permission = store.currentMissingCopilotPermission, store.needsPermissionOnboarding {
+        } else if let permission = store.currentMissingCopilotPermission, store.needsPermissionOnboarding,
+                  store.isAuthenticated, !store.isPopoverOpen, !store.permissionsOnboardingDismissed {
+            // Only nudge from the menu bar after sign-in, when the popover isn't
+            // already showing the onboarding, and only until the user skips it.
             nextKind = .permissions(permission.id, store.completedCopilotPermissionCount)
         } else if let prompt = store.meetingStartPrompt, !store.isMeetingRecording {
             nextKind = .meetingPrompt(prompt.id)
@@ -553,17 +566,25 @@ struct PermissionOnboardingToast: View {
                 }
                 .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
 
-                Button {
-                    store.refreshPermissionStatuses()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(theme.textSecondary)
-                        .frame(width: 28, height: 28)
-                        .background(theme.layer1, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                if needsRestart {
+                    // Screen Recording / re-enabled mic only apply after a relaunch.
+                    Button("Restart") {
+                        store.restartApp()
+                    }
+                    .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+                } else {
+                    Button {
+                        store.refreshPermissionStatuses()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(theme.textSecondary)
+                            .frame(width: 28, height: 28)
+                            .background(theme.layer1, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Refresh permissions")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Refresh permissions")
             }
         }
         .padding(.horizontal, 14)
@@ -625,8 +646,21 @@ struct PermissionOnboardingToast: View {
         switch permission?.id {
         case "accessibility":
             return "Open Settings"
+        case "mic", "speech":
+            return permission?.state == "Blocked" ? "Open Settings" : "Allow"
         default:
             return "Allow"
+        }
+    }
+
+    private var needsRestart: Bool {
+        switch permission?.id {
+        case "system-audio":
+            return true
+        case "mic", "speech":
+            return permission?.state == "Blocked"
+        default:
+            return false
         }
     }
 }

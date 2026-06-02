@@ -60,7 +60,7 @@ export const AgentCostSection = observer(function AgentCostSection() {
   );
 
   const allTimeRuns = summary?.all_time.runs ?? 0;
-  const hasAnyRuns = allTimeRuns > 0;
+  const hasAnyUsage = allTimeRuns > 0;
 
   return (
     <section ref={sectionRef} id={SECTION_ID} className="flex scroll-mt-4 flex-col gap-2">
@@ -70,7 +70,7 @@ export const AgentCostSection = observer(function AgentCostSection() {
           <h3 className="text-14 font-semibold text-secondary">Agent cost</h3>
           {summary && summary.all_time.runs > 0 && (
             <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
-              {summary.all_time.runs} run{summary.all_time.runs === 1 ? "" : "s"}
+              {summary.all_time.runs} use{summary.all_time.runs === 1 ? "" : "s"}
             </span>
           )}
         </div>
@@ -78,9 +78,9 @@ export const AgentCostSection = observer(function AgentCostSection() {
       <div className="rounded-[18px] border border-subtle bg-surface-1">
         {!summary ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
-        ) : !hasAnyRuns ? (
+        ) : !hasAnyUsage ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">
-            No agent runs yet. Configure an agent and assign it to a task — costs will accumulate here.
+            No agent usage yet. Chat with Atlas or assign an agent to a task — costs will accumulate here.
           </div>
         ) : (
           <>

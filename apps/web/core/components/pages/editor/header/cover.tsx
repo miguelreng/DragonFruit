@@ -45,8 +45,8 @@ export const PageCover = observer(function PageCover({ page, logoOverlay }: Prop
         role="img"
         aria-label={`Cover: ${cover.label}`}
       />
-      {logoOverlay ? <div className="absolute bottom-0 left-4 z-50 translate-y-1/2">{logoOverlay}</div> : null}
-      <div className="absolute right-2 bottom-2 z-50 opacity-0 transition-opacity duration-150 group-hover/page-header:opacity-100">
+      {logoOverlay ? <div className="absolute bottom-0 left-4 z-10 translate-y-1/2">{logoOverlay}</div> : null}
+      <div className="absolute right-2 bottom-2 z-10 opacity-0 transition-opacity duration-150 group-hover/page-header:opacity-100">
         <div className="rounded-lg bg-black/40 px-1 backdrop-blur-sm">
           <PageCoverPicker page={page} variant="overlay" />
         </div>

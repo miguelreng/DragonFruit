@@ -15,8 +15,11 @@ export type TActivityDailyBucket = {
   date: string; // YYYY-MM-DD
   docs: number;
   work_items: number;
-  count: number;
+  count: number; // unweighted total — docs + work_items
+  score?: number; // weighted intensity — drives the cell shade; absent on responses predating weighting (falls back to count)
 };
+
+export type TActionType = "docs" | "work_items";
 
 export type TActivitySummary = {
   range: TActivityRange;
@@ -27,7 +30,8 @@ export type TActivitySummary = {
   current_streak: number;
   longest_streak: number;
   peak_hour: number | null;
-  top_type: "docs" | "work_items";
+  top_type: TActionType;
+  action_weights: Record<TActionType, number>;
   daily_buckets: TActivityDailyBucket[];
   hour_buckets: { hour: number; count: number }[];
 };

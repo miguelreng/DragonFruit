@@ -56,19 +56,13 @@ export function PasswordInput({
             onClick={() => setShowPassword(!showPassword)}
             className="absolute inset-y-0 right-0 flex items-center pr-3 text-secondary transition-colors duration-200 hover:text-primary"
           >
-            <div className="relative h-4 w-4">
-              <Eye
-                className={cn(
-                  "absolute inset-0 h-4 w-4 transition-all duration-300 ease-in-out",
-                  showPassword ? "scale-75 rotate-12 opacity-0" : "scale-100 rotate-0 opacity-100"
-                )}
-              />
-              <EyeClosed
-                className={cn(
-                  "absolute inset-0 h-4 w-4 transition-all duration-300 ease-in-out",
-                  showPassword ? "scale-100 rotate-0 opacity-100" : "scale-75 -rotate-12 opacity-0"
-                )}
-              />
+            <div className="t-icon-swap h-4 w-4" data-state={showPassword ? "b" : "a"}>
+              <span className="t-icon" data-icon="a">
+                <Eye className="h-4 w-4" />
+              </span>
+              <span className="t-icon" data-icon="b">
+                <EyeClosed className="h-4 w-4" />
+              </span>
             </div>
           </button>
         </Tooltip>

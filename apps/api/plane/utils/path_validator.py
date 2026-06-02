@@ -8,7 +8,7 @@ from django.conf import settings
 
 # Python imports
 import os
-from urllib.parse import urlparse, urlencode
+from urllib.parse import unquote, urlencode, urlparse
 
 
 # Custom URL schemes we allow as native auth-handoff callback targets.
@@ -159,11 +159,14 @@ def validate_next_path(next_path: str) -> str:
         return ""
 
     # Prevent path traversal
-    if ".." in next_path:
+    if ".." in parsed_url.path:
         return ""
 
-    # Additional security checks
-    if _contains_suspicious_patterns(next_path):
+    # Additional security checks. Query strings may safely contain encoded
+    # callback URLs, so encoded slashes are only suspicious in the path itself.
+    if _contains_suspicious_patterns(parsed_url.path):
+        return ""
+    if parsed_url.query and _contains_suspicious_patterns(unquote(parsed_url.query)):
         return ""
 
     return next_path
@@ -200,16 +203,16 @@ def get_safe_redirect_url(base_url: str, next_path: str = "", params: dict = {})
 
     # Add the next path to the parameters
     if validated_path:
-        query_parts.append(f"next_path={validated_path}")
+        query_parts.append(("next_path", validated_path))
 
     # Add additional parameters
     if params:
         encoded_params = urlencode(params)
-        query_parts.append(encoded_params)
+        query_parts.extend(params.items())
 
     # Construct the url query string
     if query_parts:
-        query_string = "&".join(query_parts)
+        query_string = urlencode(query_parts)
         url = f"{base_url}/?{query_string}"
     else:
         url = base_url

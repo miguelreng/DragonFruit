@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { GlobeIcon } from "@hugeicons/core-free-icons";
 
+import { AppIcon } from "@/components/app-icon";
 import { DocWebView } from "@/components/doc-web-view";
 import { ScreenHeader } from "@/components/screen-header";
 import { getPage, isAuthError, type PageDetail } from "@/lib/api";
+import { openWeb } from "@/lib/open-web";
 import { useSession } from "@/lib/session";
+import { colors, font, radius, spacing } from "@/lib/theme";
 
 export default function DocScreen() {
   const { workspaceSlug, pageId, projectId, name, pageType } = useLocalSearchParams<{
@@ -50,25 +54,68 @@ export default function DocScreen() {
   const isWhiteboard = (page?.page_type ?? pageType) === "whiteboard";
   const html = page?.description_html?.trim() ?? "";
 
+  const webUrl = projectId
+    ? `/${workspaceSlug}/projects/${projectId}/pages/${pageId}`
+    : `/${workspaceSlug}/pages/${pageId}`;
+
   return (
-    <View className="flex-1 bg-canvas">
-      <ScreenHeader title={name || "Doc"} subtitle="Read-only" />
+    <View style={styles.safe}>
+      <ScreenHeader title={name || "Doc"} />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#e445a6" />
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.brand} />
         </View>
       ) : error ? (
-        <Text className="text-sm text-muted mt-10 px-6 text-center">{error}</Text>
+        <WebFallback message={error} onOpen={() => openWeb(webUrl)} />
       ) : isWhiteboard ? (
-        <Text className="text-sm text-muted mt-10 px-6 text-center">
-          This is a whiteboard. Open it on web to view the canvas.
-        </Text>
+        <WebFallback message="This is a whiteboard. Open it on web to view the canvas." onOpen={() => openWeb(webUrl)} />
       ) : html ? (
-        <DocWebView html={html} />
+        <DocWebView html={html} fontStyle={page?.view_props?.font_style} />
       ) : (
-        <Text className="text-sm text-muted mt-10 px-6 text-center">This page is empty.</Text>
+        <Text style={styles.message}>This page is empty.</Text>
       )}
     </View>
   );
 }
+
+function WebFallback({ message, onOpen }: { message: string; onOpen: () => void }) {
+  return (
+    <View style={styles.fallback}>
+      <Text style={styles.message}>{message}</Text>
+      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel="Open on web">
+        {({ pressed }) => (
+          <View style={[styles.webBtn, pressed && styles.webBtnPressed]}>
+            <AppIcon icon={GlobeIcon} size={18} color={colors.white} strokeWidth={1.9} />
+            <Text style={styles.webBtnText}>Open on web</Text>
+          </View>
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.canvas },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  fallback: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
+  message: {
+    textAlign: "center",
+    color: colors.muted,
+    fontSize: font.size.sm,
+    lineHeight: 21,
+    fontFamily: "Figtree_400Regular",
+  },
+  webBtn: {
+    marginTop: spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.accentPrimary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  webBtnPressed: { backgroundColor: colors.accentPrimaryHover },
+  webBtnText: { fontSize: font.size.sm, color: colors.white, fontFamily: "Figtree_600SemiBold" },
+});

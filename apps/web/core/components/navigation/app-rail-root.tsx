@@ -17,12 +17,11 @@ import {
   ExternalLink,
   FileText,
   Folder,
-  Globe,
+  FolderOpen,
   Info,
   Settings,
   Layers,
   ListTodo,
-  Monitor,
   Star,
   Search,
   Sparkles,
@@ -288,7 +287,7 @@ const RailCategory = (props: {
             aria-expanded={isOpen}
           >
             <span className="flex size-5 flex-shrink-0 items-center justify-center text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current">
-              <Folder />
+              {isOpen ? <FolderOpen /> : <Folder />}
             </span>
             <span className="min-w-0 flex-1 truncate">{title}</span>
           </button>
@@ -584,6 +583,18 @@ const ProjectRailTree = (props: { projects: TProjectRailItem[]; pathname: string
   );
 };
 
+const AppleIcon = () => (
+  <svg fill="currentColor" role="img" viewBox="0 0 24 24" aria-label="Apple">
+    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+  </svg>
+);
+
+const ChromeWebStoreIcon = () => (
+  <svg fill="currentColor" role="img" viewBox="0 0 24 24" aria-label="Chrome Web Store">
+    <path d="M0 1.637v19.09c0 .9.736 1.636 1.636 1.636h.131a10.4 10.4 0 0 1-.13-1.636 10.3 10.3 0 0 1 1.667-5.64l4.202 7.276h1.128A3.77 3.77 0 0 1 12 16.958a3.77 3.77 0 0 1 3.366 5.406h1.048a4.7 4.7 0 0 0-1.587-5.406h6.83a10.34 10.34 0 0 1 .577 5.406h.13c.9 0 1.636-.737 1.636-1.637V1.637Zm9.273 2.181h5.454a1.09 1.09 0 1 1 0 2.182H9.273a1.09 1.09 0 1 1 0-2.182M12 10.364a10.36 10.36 0 0 1 9.233 5.652H12a4.71 4.71 0 0 0-4.677 4.149L3.91 14.25A10.34 10.34 0 0 1 12 10.364" />
+  </svg>
+);
+
 // Distribution links for the downloadable clients. Update these once the Mac
 // build is hosted and the extension is published to the Chrome Web Store.
 const ATLAS_MAC_DOWNLOAD_URL = "https://dl.dragonfruit.sh/atlas/DragonFruit%20Atlas.dmg";
@@ -607,7 +618,7 @@ const DOWNLOAD_APPS: {
     title: "Atlas for Mac",
     description: "Voice, dictation, and meeting notes from your menu bar.",
     href: ATLAS_MAC_DOWNLOAD_URL,
-    icon: <Monitor />,
+    icon: <AppleIcon />,
     cta: "Download",
     ctaIcon: <Download />,
     variant: "primary",
@@ -623,7 +634,7 @@ const DOWNLOAD_APPS: {
     title: "Chrome extension",
     description: "Save pages, images, and tweets straight to DragonFruit.",
     href: CHROME_EXTENSION_URL,
-    icon: <Globe />,
+    icon: <ChromeWebStoreIcon />,
     cta: "Get extension",
     ctaIcon: <ExternalLink />,
     variant: "secondary",
@@ -674,7 +685,7 @@ const DownloadAppsModal = (props: { isOpen: boolean; onClose: () => void }) => {
             {DOWNLOAD_APPS.map((app) => (
               <div key={app.id} className="flex flex-col gap-3 rounded-lg border border-subtle bg-layer-1 p-4">
                 <div className="flex items-start gap-3">
-                  <span className="grid size-9 flex-shrink-0 place-items-center rounded-lg bg-layer-transparent-hover text-icon-secondary [&_svg]:size-4">
+                  <span className="grid size-9 flex-shrink-0 place-items-center rounded-lg bg-layer-transparent-hover text-[color:var(--download-app-icon-color)] [&_svg]:size-4">
                     {app.icon}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col">
@@ -808,7 +819,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
       data-theme={surfaceTheme}
       className={cn(
         "z-[26] h-full flex-shrink-0 overflow-hidden rounded-[18px] transition-all duration-300 ease-in-out",
-        "bg-gray-200 shadow-sm text-secondary dark:bg-[#09090a] dark:text-white/75",
+        "bg-gray-200 shadow-sm text-secondary dark:bg-[oklch(0.17_0.01_0)] dark:text-white/75",
         // Drawer mode: flush left edge, fill the panel, no width animation.
         isMobile && "rounded-l-none transition-none"
       )}
@@ -817,9 +828,9 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
         display: "block",
       }}
     >
-      <div className="flex h-full flex-col justify-between gap-2 px-2 py-3">
+      <div className="flex h-full flex-col px-2 py-3">
         <div
-          className={cn("min-h-0 flex-1 overflow-x-hidden overflow-y-auto", {
+          className={cn("relative z-10 flex-shrink-0", {
             "flex flex-col items-start gap-2": isRailExpanded,
             "flex flex-col items-center gap-2": !isRailExpanded,
           })}
@@ -857,6 +868,19 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               }}
             />
           </div>
+        </div>
+        <div
+          className={cn("min-h-0 flex-1 overflow-x-hidden overflow-y-auto pt-3 pb-[22px]", {
+            "flex flex-col items-start gap-1.5": isRailExpanded,
+            "flex flex-col items-center gap-1.5": !isRailExpanded,
+          })}
+          style={{
+            WebkitMaskImage:
+              "linear-gradient(to bottom, transparent 0, black 22px, black calc(100% - 22px), transparent 100%)",
+            maskImage:
+              "linear-gradient(to bottom, transparent 0, black 22px, black calc(100% - 22px), transparent 100%)",
+          }}
+        >
           <div
             className={cn({
               "flex w-full flex-col items-start gap-1.5": isRailExpanded,
@@ -924,9 +948,9 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
           </div>
         </div>
         <div
-          className={cn({
+          className={cn("relative z-10 flex-shrink-0", {
             "flex flex-col items-center gap-1 pt-2": !isRailExpanded,
-            "flex w-full flex-col items-start gap-1 border-t border-subtle pt-3": isRailExpanded,
+            "flex w-full flex-col items-start gap-1 pt-3": isRailExpanded,
           })}
         >
           <AppSidebarItem

@@ -92,9 +92,22 @@ class WorkspaceActivitySummaryEndpoint(BaseAPIView):
     `range` query param: "all" (default), "30d", or "7d". "all" caps at
     365 days of buckets so the response stays bounded on long-lived
     workspaces.
+
+    Each action type contributes a weighted amount to a day's intensity
+    `score`, so the heatmap shade reflects the *kind* of work done and not
+    just the raw event count. `count` stays the unweighted total (used for
+    streaks, stat cards, and tooltips); `score` drives the cell shade. The
+    weights are echoed back as `action_weights` so the client can explain
+    the grading. Keep every weight positive so a day with any activity
+    still grades non-empty (score > 0 iff count > 0, which keeps streak
+    math identical).
     """
 
     _RANGE_DAYS = {"7d": 7, "30d": 30, "all": 365}
+
+    # Docs (pages) tend to represent more substantial effort than a single
+    # work item, so they weigh heavier. Tunable.
+    _ACTION_WEIGHTS = {"docs": 2, "work_items": 1}
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
@@ -145,6 +158,8 @@ class WorkspaceActivitySummaryEndpoint(BaseAPIView):
                     "docs": docs,
                     "work_items": tasks,
                     "count": docs + tasks,
+                    "score": docs * self._ACTION_WEIGHTS["docs"]
+                    + tasks * self._ACTION_WEIGHTS["work_items"],
                 }
             )
 
@@ -202,6 +217,7 @@ class WorkspaceActivitySummaryEndpoint(BaseAPIView):
                 "longest_streak": longest,
                 "peak_hour": peak_hour,
                 "top_type": "docs" if total_docs >= total_tasks else "work_items",
+                "action_weights": self._ACTION_WEIGHTS,
                 "daily_buckets": daily_buckets,
                 "hour_buckets": [{"hour": h, "count": c} for h, c in enumerate(hour_buckets)],
             },

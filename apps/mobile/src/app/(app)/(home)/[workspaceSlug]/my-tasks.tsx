@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
 
+import { EmptyState } from "@/components/empty-state";
+import { IssueRow } from "@/components/issue-row";
 import { ScreenHeader } from "@/components/screen-header";
+import { ScrollFade } from "@/components/scroll-fade";
 import { getMyIssues, getProjects, isAuthError, type IssueListItem } from "@/lib/api";
-import { PRIORITY_COLOR } from "@/lib/format";
 import { useSession } from "@/lib/session";
+import { colors } from "@/lib/theme";
 
 export default function MyTasksScreen() {
   const { workspaceSlug } = useLocalSearchParams<{ workspaceSlug: string }>();
@@ -53,46 +57,42 @@ export default function MyTasksScreen() {
     });
 
   return (
-    <View className="flex-1 bg-canvas">
-      <ScreenHeader title="My tasks" subtitle="Assigned to you" />
+    <View style={styles.safe}>
+      <ScreenHeader title="My tasks" />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#e445a6" />
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.brand} />
         </View>
       ) : (
+        <ScrollFade bottomHeight={64}>
         <FlatList
           data={issues}
           keyExtractor={(issue) => issue.id}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e445a6" />}
+          contentContainerStyle={issues.length === 0 ? styles.listContentEmpty : styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />}
           ListEmptyComponent={
-            <Text className="text-sm text-muted mt-10 text-center">{error ?? "Nothing assigned to you here."}</Text>
+            <EmptyState
+              icon={CheckmarkCircle02Icon}
+              title={error ? "Couldn't load your tasks" : "You're all caught up"}
+              body={error ? "Pull to retry." : "Work items assigned to you across this workspace show up here."}
+            />
           }
           renderItem={({ item }) => {
             const code = identifiers[item.project_id];
             const ref = code ? `${code}-${item.sequence_id}` : `#${item.sequence_id}`;
-            return (
-              <Pressable
-                onPress={() => openIssue(item)}
-                className="mb-2 flex-row items-center gap-3 rounded-xl border border-black/5 bg-white p-4 active:opacity-70"
-              >
-                <View
-                  style={{ backgroundColor: PRIORITY_COLOR[item.priority] ?? PRIORITY_COLOR.none }}
-                  className="h-2.5 w-2.5 rounded-full"
-                />
-                <View className="flex-1">
-                  <Text className="text-base text-ink font-medium" numberOfLines={2}>
-                    {item.name}
-                  </Text>
-                  <Text className="text-xs text-muted mt-0.5">{ref}</Text>
-                </View>
-                <Text className="text-xl text-muted">›</Text>
-              </Pressable>
-            );
+            return <IssueRow issue={item} reference={ref} onPress={() => openIssue(item)} />;
           }}
         />
+        </ScrollFade>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.canvas },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  listContent: { paddingHorizontal: 20, paddingBottom: 32 },
+  listContentEmpty: { flexGrow: 1, paddingHorizontal: 20 },
+});

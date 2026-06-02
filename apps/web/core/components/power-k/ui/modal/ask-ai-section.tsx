@@ -67,7 +67,7 @@ export function PowerKAskAISection(props: Props) {
         forceMount
         onSelect={ask}
         disabled={!hasQuery || pending}
-        className="focus:outline-none"
+        className="rounded-lg border border-[color:var(--power-k-ai-bar-border)] bg-[image:var(--power-k-ai-bar-bg)] shadow-[var(--power-k-ai-bar-shadow)] focus:outline-none"
       >
         <div className="flex min-w-0 items-center gap-2 text-secondary">
           {pending ? (

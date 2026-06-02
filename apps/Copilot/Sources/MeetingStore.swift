@@ -684,6 +684,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
     @Published private(set) var permissionsRefreshCounter = 0
+    /// True while the menu bar popover is on screen — used to suppress the
+    /// redundant permission toast so onboarding isn't shown twice at once.
+    @Published var isPopoverOpen = false
+    /// Set when the user taps "Skip for now" in onboarding, so permissions are
+    /// no longer forced up front (they can still grant them later from Settings).
+    @Published var permissionsOnboardingDismissed = false
 
     private var oauthSession: ASWebAuthenticationSession?
     private var calendarPollTask: Task<Void, Never>?
@@ -907,19 +913,28 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             Task { await beginDragonFruitLogin() }
         case "mic":
             Task { @MainActor in
+                // Bring Atlas to the front first: as a menu-bar app the popover
+                // can lose focus and macOS then never presents the prompt.
+                NSApplication.shared.activate(ignoringOtherApps: true)
                 _ = await Self.requestMicrophonePermission()
                 refreshPermissionStatuses()
                 refreshPermissionStatusesAfterSystemPrompt()
-                if AVCaptureDevice.authorizationStatus(for: .audio) != .authorized {
+                // Only send to System Settings when the user has actually blocked
+                // it. For "not determined" the in-app prompt is the right path —
+                // opening Settings there just hides the prompt and confuses things.
+                let status = AVCaptureDevice.authorizationStatus(for: .audio)
+                if status == .denied || status == .restricted {
                     openPrivacySettings(anchor: "Privacy_Microphone")
                 }
             }
         case "speech":
             Task { @MainActor in
+                NSApplication.shared.activate(ignoringOtherApps: true)
                 _ = await Self.requestSpeechAuthorization()
                 refreshPermissionStatuses()
                 refreshPermissionStatusesAfterSystemPrompt()
-                if SFSpeechRecognizer.authorizationStatus() != .authorized {
+                let status = SFSpeechRecognizer.authorizationStatus()
+                if status == .denied || status == .restricted {
                     openPrivacySettings(anchor: "Privacy_SpeechRecognition")
                 }
             }
@@ -941,6 +956,20 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         Self.requestAccessibilityPermissionIfNeeded()
         openPrivacySettings(anchor: "Privacy_Accessibility")
         refreshPermissionStatuses()
+    }
+
+    /// Screen Recording (and re-enabling mic/speech from System Settings) only
+    /// takes effect after a relaunch — that's the macOS "Quit & Reopen" dialog.
+    /// Relaunch cleanly so the freshly granted permission is detected.
+    func restartApp() {
+        let bundleURL = Bundle.main.bundleURL
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: bundleURL, configuration: configuration) { _, _ in
+            Task { @MainActor in
+                NSApp.terminate(nil)
+            }
+        }
     }
 
     private func refreshPermissionStatusesAfterSystemPrompt() {

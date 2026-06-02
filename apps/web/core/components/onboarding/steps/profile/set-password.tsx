@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { LockIcon, ChevronDownIcon } from "@plane/propel/icons";
 import { PasswordInput, PasswordStrengthIndicator } from "@plane/ui";
 import { cn } from "@plane/utils";
@@ -26,6 +26,7 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
     password: "",
     confirmPassword: "",
   });
+  const [isConfirmShaking, setIsConfirmShaking] = useState(false);
 
   const handleToggleExpand = useCallback(() => {
     if (disabled) return;
@@ -61,6 +62,25 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
     return confirmPassword.length > 0 && password !== confirmPassword;
   }, [passwordState]);
 
+  useEffect(() => {
+    if (!hasPasswordMismatch) {
+      setIsConfirmShaking(false);
+      return;
+    }
+
+    setIsConfirmShaking(false);
+    const frame = requestAnimationFrame(() => setIsConfirmShaking(true));
+    const styles = getComputedStyle(document.documentElement);
+    const segmentA = parseFloat(styles.getPropertyValue("--shake-dur-a")) || 80;
+    const segmentB = parseFloat(styles.getPropertyValue("--shake-dur-b")) || 60;
+    const timer = setTimeout(() => setIsConfirmShaking(false), segmentA * 2 + segmentB * 2 + 20);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [hasPasswordMismatch, passwordState.confirmPassword, passwordState.password]);
+
   const chevronIconClasses = useMemo(
     () =>
       `w-4 h-4 text-placeholder transition-transform duration-300 ease-in-out ${isExpanded ? "rotate-180" : "rotate-0"}`,
@@ -76,7 +96,7 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
   );
 
   return (
-    <div className={`flex flex-col overflow-hidden rounded-lg bg-surface-2 transition-all duration-300 ease-in-out`}>
+    <div className="t-resize flex flex-col overflow-hidden rounded-lg bg-surface-2 transition-all duration-300 ease-in-out">
       <div
         className={cn(
           "flex items-center justify-between px-3 py-2 text-13 transition-colors duration-200",
@@ -95,7 +115,7 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
         </div>
       </div>
 
-      <div className={expandedContentClasses}>
+      <div className={`t-resize ${expandedContentClasses}`}>
         {/* Password input */}
         <div className="flex transform flex-col gap-2 pt-1 transition-all duration-300 ease-in-out">
           <PasswordInput
@@ -115,15 +135,25 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
           </div>
 
           {/* Confirm password input */}
-          <div className="transform transition-all delay-100 duration-300 ease-in-out">
+          <div
+            className={cn(
+              "t-input-wrap transform transition-all delay-100 duration-300 ease-in-out",
+              hasPasswordMismatch && "is-error"
+            )}
+          >
             <PasswordInput
               id="confirm-password"
               value={passwordState.confirmPassword}
               onChange={(value) => handlePasswordChange("confirmPassword", value)}
               placeholder="Confirm password"
-              className="transition-all duration-200"
+              error={hasPasswordMismatch}
+              className={cn(
+                "t-input transition-all duration-200",
+                hasPasswordMismatch && "is-error",
+                isConfirmShaking && "is-shaking"
+              )}
             />
-            {hasPasswordMismatch && <p className="mt-1 text-11 text-danger-primary">Passwords do not match</p>}
+            <p className="t-error-msg mt-1 text-11 text-danger-primary">Passwords do not match</p>
             {isPasswordValid && <p className="mt-1 text-11 text-success-primary">✓ Passwords match</p>}
           </div>
         </div>

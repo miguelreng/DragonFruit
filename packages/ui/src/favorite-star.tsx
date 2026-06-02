@@ -16,11 +16,16 @@ type Props = {
   selected: boolean;
 };
 
-export function FavoriteStar(props: Props) {
+export const FavoriteStar = React.forwardRef<HTMLButtonElement, Props>(function FavoriteStar(props, ref) {
   const { buttonClassName, iconClassName, onClick, selected } = props;
 
   return (
-    <button type="button" className={cn("grid h-4 w-4 place-items-center", buttonClassName)} onClick={onClick}>
+    <button
+      ref={ref}
+      type="button"
+      className={cn("grid h-4 w-4 place-items-center", buttonClassName)}
+      onClick={onClick}
+    >
       <Star
         className={cn(
           "h-4 w-4 text-tertiary transition-all",
@@ -32,4 +37,4 @@ export function FavoriteStar(props: Props) {
       />
     </button>
   );
-}
+});

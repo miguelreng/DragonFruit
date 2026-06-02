@@ -10,7 +10,7 @@ import type { TPageExtended } from "./extended";
 
 /**
  * Page sub-type. "doc" is the collaborative rich-text editor;
- * "whiteboard" renders a tldraw canvas.
+ * "whiteboard" renders an Excalidraw canvas.
  */
 export type TPageType = "doc" | "whiteboard";
 

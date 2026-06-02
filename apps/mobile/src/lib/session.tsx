@@ -17,6 +17,7 @@ import * as WebBrowser from "expo-web-browser";
 import { AUTH_CALLBACK_URL, NATIVE_LOGIN_START_URL } from "./config";
 import { getCurrentUser, isAuthError, type CurrentUser } from "./api";
 import { clearCalendarWidget } from "./calendar-widget";
+import { clearShareBookmarkConfig, syncShareBookmarkConfig } from "./share-bookmark";
 import { clearToken, getToken, setToken } from "./secure-store";
 
 // Required so the auth session can settle when returning to the app (no-op on
@@ -57,6 +58,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       try {
         const me = await getCurrentUser();
         if (!cancelled) setUser(me);
+        void syncShareBookmarkConfig();
       } catch (error) {
         if (isAuthError(error)) await clearToken();
       } finally {
@@ -80,6 +82,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await setToken(token);
       const me = await getCurrentUser();
       setUser(me);
+      void syncShareBookmarkConfig();
       return { ok: true };
     } catch (error) {
       // A token that won't authenticate is as good as no token.
@@ -91,6 +94,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await clearToken();
     clearCalendarWidget();
+    clearShareBookmarkConfig();
     setUser(null);
   }, []);
 

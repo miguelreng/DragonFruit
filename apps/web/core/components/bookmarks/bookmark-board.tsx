@@ -890,7 +890,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
 
   return (
     <>
-      <AppHeader header={header} />
+      <AppHeader header={header} showContentEdgeFade />
       {canCreateBookmark && (
         <BookmarkFormModal
           isOpen={isFormModalOpen}

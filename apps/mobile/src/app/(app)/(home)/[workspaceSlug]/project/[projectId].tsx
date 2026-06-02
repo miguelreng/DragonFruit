@@ -1,88 +1,73 @@
-import { useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, FlatList, RefreshControl, Text, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { Task01Icon } from "@hugeicons/core-free-icons";
 
+import { EmptyState } from "@/components/empty-state";
+import { IssueRow } from "@/components/issue-row";
 import { ScreenHeader } from "@/components/screen-header";
-import { getCycles, type Cycle } from "@/lib/api";
+import { ScrollFade } from "@/components/scroll-fade";
+import { getProjectIssues, type IssueListItem } from "@/lib/api";
+import { colors } from "@/lib/theme";
 import { useApiList } from "@/lib/use-api-list";
 
-const STATUS_LABEL: Record<string, string> = {
-  active: "Active",
-  upcoming: "Upcoming",
-  completed: "Completed",
-  draft: "Draft",
-};
-
-// Manual formatting — Hermes' Intl is limited, so avoid toLocaleDateString.
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function formatDay(value: string): string {
-  const date = new Date(value);
-  return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
-}
-
-function formatRange(start: string | null, end: string | null): string | null {
-  if (start && end) return `${formatDay(start)} – ${formatDay(end)}`;
-  if (start || end) return formatDay((start ?? end) as string);
-  return null;
-}
-
-export default function CyclesScreen() {
+/** A project's landing screen: its work items. Reached by tapping a project
+ *  anywhere (home cards, sidebar) — `openProject` routes here with the
+ *  project's id + name. Tap a row to open the work item. */
+export default function ProjectWorkItemsScreen() {
   const { workspaceSlug, projectId, name } = useLocalSearchParams<{
     workspaceSlug: string;
     projectId: string;
     name?: string;
   }>();
   const {
-    data: cycles,
+    data: issues,
     loading,
     refreshing,
     error,
     onRefresh,
-  } = useApiList<Cycle>(() => getCycles(workspaceSlug, projectId), [workspaceSlug, projectId]);
+  } = useApiList<IssueListItem>(() => getProjectIssues(workspaceSlug, projectId), [workspaceSlug, projectId]);
+
+  const openIssue = (issue: IssueListItem) =>
+    router.push({
+      pathname: "/[workspaceSlug]/issue/[issueId]",
+      params: { workspaceSlug, issueId: issue.id, projectId: issue.project_id, name: issue.name },
+    });
 
   return (
-    <View className="flex-1 bg-canvas">
-      <ScreenHeader title={name ?? "Cycles"} subtitle={name ? "Cycles" : undefined} />
+    <View style={styles.safe}>
+      <ScreenHeader title={name ?? "Work items"} />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#e445a6" />
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.brand} />
         </View>
       ) : (
+        <ScrollFade bottomHeight={64}>
         <FlatList
-          data={cycles}
-          keyExtractor={(cycle) => cycle.id}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e445a6" />}
+          data={issues}
+          keyExtractor={(issue) => issue.id}
+          contentContainerStyle={issues.length === 0 ? styles.listContentEmpty : styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />}
           ListEmptyComponent={
-            <Text className="text-sm text-muted mt-10 text-center">{error ?? "No cycles in this project yet."}</Text>
+            <EmptyState
+              icon={Task01Icon}
+              title={error ? "Couldn't load work items" : "No work items yet"}
+              body={error ? "Pull to retry." : "Work items created in this project will appear here."}
+            />
           }
-          renderItem={({ item }) => {
-            const range = formatRange(item.start_date, item.end_date);
-            const pct = item.total_issues > 0 ? Math.round((item.completed_issues / item.total_issues) * 100) : 0;
-            return (
-              <View className="mb-2 rounded-xl border border-black/5 bg-white p-4">
-                <View className="flex-row items-center justify-between gap-2">
-                  <Text className="text-base text-ink flex-1 font-medium" numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  {item.status ? (
-                    <View className="bg-accent/10 rounded-full px-2 py-0.5">
-                      <Text className="text-accent text-[11px] font-medium">
-                        {STATUS_LABEL[item.status] ?? item.status}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-                {range ? <Text className="text-xs text-muted mt-1">{range}</Text> : null}
-                <Text className="text-xs text-muted mt-2">
-                  {item.completed_issues}/{item.total_issues} done · {pct}%
-                </Text>
-              </View>
-            );
-          }}
+          renderItem={({ item }) => (
+            <IssueRow issue={item} reference={`#${item.sequence_id}`} onPress={() => openIssue(item)} />
+          )}
         />
+        </ScrollFade>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.canvas },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  listContent: { paddingHorizontal: 20, paddingBottom: 32 },
+  listContentEmpty: { flexGrow: 1, paddingHorizontal: 20 },
+});

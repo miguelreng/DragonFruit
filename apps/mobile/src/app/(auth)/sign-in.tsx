@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { DragonMark } from "@/components/dragon-mark";
 import { useSession } from "@/lib/session";
-import { colors } from "@/lib/theme";
+import { colors, shadow } from "@/lib/theme";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
@@ -25,26 +27,70 @@ export default function SignInScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <View style={styles.logo}>
-          <Text style={styles.logoEmoji}>🐉</Text>
-        </View>
-
-        <Text style={styles.title}>DragonFruit</Text>
-        <Text style={styles.subtitle}>Your workspace, in your pocket.</Text>
-
-        <Pressable
-          onPress={onPress}
-          disabled={submitting}
-          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed, submitting && styles.buttonDisabled]}
-        >
-          <Text style={styles.buttonText}>{submitting ? "Opening sign-in…" : "Sign in"}</Text>
-        </Pressable>
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+    <View style={styles.safe}>
+      <View style={styles.imageHalf}>
+        <Image
+          source={require("../../../assets/images/login-header.png")}
+          style={styles.headerImage}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            "rgba(244,245,245,0)",
+            "rgba(244,245,245,0.35)",
+            "rgba(244,245,245,0.75)",
+            "rgba(244,245,245,0.95)",
+            colors.canvas,
+          ]}
+          locations={[0, 0.45, 0.72, 0.9, 1]}
+          style={styles.blend}
+        />
       </View>
-    </SafeAreaView>
+
+      <SafeAreaView style={styles.formHalf} edges={["bottom"]}>
+        <View style={styles.container}>
+          <DragonMark width={52} color={colors.ink} />
+
+          <Text style={styles.headline}>
+            <Text style={styles.headlineBold}>Where </Text>
+            <Text style={styles.headlineItalic}>ideas </Text>
+            <Text style={styles.headlineBold}>become </Text>
+            <Text style={styles.headlineItalic}>work</Text>
+            <Text style={styles.headlineBold}>.</Text>
+          </Text>
+          <Text style={styles.subtitle}>Welcome back to DragonFruit.</Text>
+
+          <Pressable
+            onPress={onPress}
+            disabled={submitting}
+            style={[styles.button, submitting && styles.buttonDisabled]}
+          >
+            <Text style={styles.buttonText}>{submitting ? "Opening sign-in…" : "Sign in"}</Text>
+          </Pressable>
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Text style={styles.legal}>
+            By signing in, you agree to our{" "}
+            <Text
+              style={styles.legalLink}
+              onPress={() => Linking.openURL("https://dragonfruit.sh/legal/terms")}
+            >
+              Terms of Service
+            </Text>{" "}
+            and{" "}
+            <Text
+              style={styles.legalLink}
+              onPress={() => Linking.openURL("https://dragonfruit.sh/legal/privacy")}
+            >
+              Privacy Policy
+            </Text>
+            .
+          </Text>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -53,54 +99,69 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.canvas,
   },
+  imageHalf: {
+    flex: 3,
+    backgroundColor: colors.brand,
+    overflow: "hidden",
+  },
+  headerImage: {
+    // Slightly wider than the frame and centered, then nudged right — the extra
+    // width keeps the left edge covered while the image pans toward the right.
+    width: "116%",
+    height: "100%",
+    marginLeft: "-8%",
+    transform: [{ translateX: 28 }],
+  },
+  blend: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "72%",
+  },
+  formHalf: {
+    flex: 2,
+    backgroundColor: colors.canvas,
+  },
   container: {
     flex: 1,
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "center",
     paddingHorizontal: 32,
   },
-  logo: {
-    height: 72,
-    width: 72,
-    borderRadius: 20,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  logoEmoji: {
-    fontSize: 34,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
+  headline: {
+    marginTop: 28,
+    fontSize: 28,
+    lineHeight: 34,
     color: colors.ink,
     letterSpacing: -0.3,
   },
+  headlineBold: {
+    fontSize: 28,
+    fontFamily: "Figtree_700Bold",
+    color: colors.ink,
+  },
+  headlineItalic: {
+    fontSize: 30,
+    fontFamily: "Newsreader",
+    fontStyle: "italic",
+    color: colors.ink,
+  },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: colors.muted,
-    marginTop: 8,
-    textAlign: "center",
+    fontFamily: "Figtree_500Medium",
+    marginTop: 12,
   },
   button: {
     marginTop: 40,
     width: "100%",
     maxWidth: 360,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.brand,
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
-    shadowColor: colors.accent,
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    ...shadow.button,
   },
   buttonPressed: {
     opacity: 0.85,
@@ -110,13 +171,25 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: "Figtree_600SemiBold",
     color: colors.white,
   },
   error: {
     fontSize: 14,
     color: colors.danger,
+    fontFamily: "Figtree_500Medium",
     marginTop: 16,
     textAlign: "center",
+  },
+  legal: {
+    marginTop: 18,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.faint,
+    fontFamily: "Figtree_400Regular",
+  },
+  legalLink: {
+    color: colors.muted,
+    fontFamily: "Figtree_600SemiBold",
   },
 });

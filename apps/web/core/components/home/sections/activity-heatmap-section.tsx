@@ -65,7 +65,7 @@ function intensityClass(count: number, max: number, dim = false): string {
   return "bg-accent-primary/55";
 }
 
-type GridCell = { date: string; count: number; docs: number; work_items: number } | null;
+type GridCell = { date: string; count: number; score?: number; docs: number; work_items: number } | null;
 type RenderGridCell = { key: string; cell: GridCell };
 
 /**
@@ -79,7 +79,7 @@ function buildGrid(buckets: TActivitySummary["daily_buckets"]): GridCell[][] {
   const startDow = first.getDay(); // 0..6
   const cells: GridCell[] = Array.from({ length: startDow }, () => null);
   for (const b of buckets) {
-    cells.push({ date: b.date, count: b.count, docs: b.docs, work_items: b.work_items });
+    cells.push({ date: b.date, count: b.count, score: b.score, docs: b.docs, work_items: b.work_items });
   }
   while (cells.length % 7 !== 0) cells.push(null);
   const weeks = cells.length / 7;
@@ -202,9 +202,15 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
 
   const visibleBuckets = useMemo(() => (summary?.daily_buckets ?? []).slice(-VISIBLE_DAYS), [summary?.daily_buckets]);
   const grid = useMemo(() => buildGrid(visibleBuckets), [visibleBuckets]);
-  const maxCount = useMemo(() => {
+  // Drives the intensity ramp. Overview grades on the weighted `score` so
+  // the shade reflects the *kind* of action, not just the raw event count.
+  // By-type grades on the single focused type, where weighting is a no-op
+  // (ratio normalizes it away), so we use the raw type count directly.
+  const maxValue = useMemo(() => {
     if (visibleBuckets.length === 0) return 0;
-    if (tab === "overview") return Math.max(0, ...visibleBuckets.map((b) => b.count));
+    // `score` is a newer field; fall back to the unweighted `count` for any
+    // response that predates it so the ramp never collapses to NaN.
+    if (tab === "overview") return Math.max(0, ...visibleBuckets.map((b) => b.score ?? b.count));
     return Math.max(0, ...visibleBuckets.map((b) => (typeFocus === "docs" ? b.docs : b.work_items)));
   }, [visibleBuckets, tab, typeFocus]);
 
@@ -226,7 +232,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
           <Activity className="size-4 text-tertiary" />
-          <h3 className="text-14 font-semibold text-secondary">Activity</h3>
+          <h3 className="text-14 font-semibold text-secondary">Activity Heatmap</h3>
         </div>
       </div>
 
@@ -320,6 +326,13 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                 viewport while staying perfectly square. */}
             {grid.length > 0 && (
               <div className="min-w-0 overflow-hidden pt-1">
+                {/* Grid label. The grid always shows the same fixed recent
+                    window regardless of the active range pill, so the
+                    window size is spelled out here to avoid confusion. */}
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-11 font-medium text-placeholder">Activity heatmap</span>
+                  <span className="text-11 text-placeholder tabular-nums">Last {VISIBLE_WEEKS} weeks</span>
+                </div>
                 <div className="flex w-full gap-[3px]">
                   {grid.map((week) => {
                     const weekKey = week.find((cell) => cell)?.date ?? "empty-week";
@@ -327,13 +340,22 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                       <div key={weekKey} className="flex flex-1 flex-col gap-[3px]">
                         {getRenderWeekCells(week, weekKey).map(({ key, cell }) => {
                           if (!cell) return <div key={key} className="aspect-square w-full" />;
-                          const value =
+                          // Tooltip shows the raw entry count; the shade is
+                          // graded on the weighted score (overview) or the
+                          // focused type's count (by type).
+                          const displayCount =
                             tab === "overview" ? cell.count : typeFocus === "docs" ? cell.docs : cell.work_items;
+                          const intensityValue =
+                            tab === "overview"
+                              ? cell.score ?? cell.count
+                              : typeFocus === "docs"
+                                ? cell.docs
+                                : cell.work_items;
                           return (
                             <div
                               key={key}
-                              title={`${cell.date} — ${value} ${value === 1 ? "entry" : "entries"}`}
-                              className={"aspect-square w-full rounded-[3px] " + intensityClass(value, maxCount)}
+                              title={`${cell.date} — ${displayCount} ${displayCount === 1 ? "entry" : "entries"}`}
+                              className={"aspect-square w-full rounded-[3px] " + intensityClass(intensityValue, maxValue)}
                             />
                           );
                         })}

@@ -32,6 +32,24 @@ body {
 
 /* transitions-dev — installed once for shared app motion. */
 :root {
+  --power-k-ai-bar-bg: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--bg-surface-1) 76%, var(--bg-accent-subtle) 24%),
+    color-mix(in oklch, var(--bg-surface-1) 88%, var(--bg-accent-primary) 12%)
+  );
+  --power-k-ai-bar-bg-active: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--bg-surface-1) 68%, var(--bg-accent-subtle) 32%),
+    color-mix(in oklch, var(--bg-surface-1) 82%, var(--bg-accent-primary) 18%)
+  );
+  --power-k-ai-bar-border: color-mix(in oklch, var(--border-accent-subtle) 46%, var(--border-subtle));
+  --power-k-ai-bar-shadow:
+    0 14px 34px -22px color-mix(in oklch, var(--bg-accent-primary) 44%, transparent),
+    0 1px 0 color-mix(in oklch, var(--neutral-white) 45%, transparent) inset;
+  --power-k-ai-bar-text: var(--txt-primary);
+  --power-k-ai-bar-placeholder: var(--txt-tertiary);
+  --power-k-ai-bar-muted: var(--txt-tertiary);
+  --download-app-icon-color: var(--txt-icon-secondary);
   --resize-dur: 300ms;
   --resize-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --digit-dur: 500ms;
@@ -110,6 +128,42 @@ body {
   --shake-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --revert-hold: 3000ms;
   --revert-dur: 280ms;
+}
+
+[data-theme="sepia"] {
+  --download-app-icon-color: var(--brand-default);
+  --power-k-ai-bar-bg: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--bg-canvas) 70%, var(--brand-200) 30%),
+    color-mix(in oklch, var(--bg-surface-1) 82%, var(--brand-300) 18%)
+  );
+  --power-k-ai-bar-bg-active: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--bg-canvas) 62%, var(--brand-300) 38%),
+    color-mix(in oklch, var(--bg-surface-1) 76%, var(--brand-400) 24%)
+  );
+  --power-k-ai-bar-border: color-mix(in oklch, var(--brand-400) 42%, var(--border-subtle));
+  --power-k-ai-bar-shadow:
+    0 18px 42px -28px color-mix(in oklch, var(--brand-600) 38%, transparent),
+    0 1px 0 color-mix(in oklch, var(--neutral-white) 62%, transparent) inset;
+}
+
+[data-theme*="dark"] {
+  --download-app-icon-color: var(--txt-accent-primary);
+  --power-k-ai-bar-bg: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--bg-canvas) 72%, var(--brand-200) 28%),
+    color-mix(in oklch, var(--bg-surface-1) 86%, var(--brand-300) 14%)
+  );
+  --power-k-ai-bar-bg-active: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--bg-canvas) 62%, var(--brand-300) 38%),
+    color-mix(in oklch, var(--bg-surface-1) 78%, var(--brand-400) 22%)
+  );
+  --power-k-ai-bar-border: color-mix(in oklch, var(--brand-400) 38%, var(--border-strong));
+  --power-k-ai-bar-shadow:
+    0 18px 44px -24px color-mix(in oklch, var(--brand-default) 30%, transparent),
+    0 1px 0 color-mix(in oklch, var(--neutral-white) 10%, transparent) inset;
 }
 
 .t-resize {
@@ -213,6 +267,29 @@ body {
     filter var(--panel-open-dur) var(--panel-ease);
 }
 
+.t-text-swap {
+  display: inline-block;
+  transform: translateY(0);
+  filter: blur(0);
+  opacity: 1;
+  transition:
+    transform var(--text-swap-dur) var(--text-swap-ease),
+    filter var(--text-swap-dur) var(--text-swap-ease),
+    opacity var(--text-swap-dur) var(--text-swap-ease);
+  will-change: transform, filter, opacity;
+}
+.t-text-swap.is-exit {
+  transform: translateY(calc(var(--text-swap-translate-y) * -1));
+  filter: blur(var(--text-swap-blur));
+  opacity: 0;
+}
+.t-text-swap.is-enter-start {
+  transform: translateY(var(--text-swap-translate-y));
+  filter: blur(var(--text-swap-blur));
+  opacity: 0;
+  transition: none;
+}
+
 .t-icon-swap {
   position: relative;
   display: inline-grid;
@@ -238,13 +315,67 @@ body {
   transform: scale(var(--icon-swap-start-scale));
 }
 
+.t-input {
+  transition: border-color 150ms ease-out;
+  will-change: transform;
+}
+.t-input.is-error {
+  transition: border-color var(--revert-dur, 280ms) ease-out;
+}
+
+.t-error-msg {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--revert-dur, 280ms) ease-out,
+    visibility 0s linear var(--revert-dur, 280ms);
+}
+.t-input-wrap.is-error .t-error-msg {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--revert-dur, 280ms) ease-out,
+    visibility 0s linear 0s;
+}
+
+.t-input.is-shaking {
+  animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear;
+}
+@keyframes t-input-shake {
+  0% {
+    transform: translateX(0);
+    animation-timing-function: var(--shake-ease);
+  }
+  28.57% {
+    transform: translateX(var(--shake-distance));
+    animation-timing-function: var(--shake-ease);
+  }
+  57.14% {
+    transform: translateX(calc(var(--shake-distance) * -1));
+    animation-timing-function: var(--shake-ease);
+  }
+  78.57% {
+    transform: translateX(var(--shake-overshoot));
+    animation-timing-function: var(--shake-ease);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .t-resize,
   .t-dropdown,
   .t-modal,
   .t-panel-slide,
+  .t-text-swap,
   .t-icon-swap .t-icon {
     transition: none !important;
+  }
+
+  .t-input {
+    animation: none !important;
+    transform: none !important;
   }
 }
 

@@ -2,7 +2,7 @@
   "name": "mobile",
   "version": "1.0.0",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "src/entry.ts",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -13,7 +13,10 @@
   },
   "dependencies": {
     "@bacons/apple-targets": "^4.0.7",
+    "@expo-google-fonts/newsreader": "^0.4.1",
     "@expo/ui": "~56.0.15",
+    "@hugeicons/core-free-icons": "^4.1.4",
+    "@hugeicons/react-native": "^1.0.13",
     "@react-navigation/native": "7.2.5",
     "expo": "~56.0.8",
     "expo-background-task": "~56.0.16",
@@ -22,6 +25,7 @@
     "expo-font": "~56.0.5",
     "expo-glass-effect": "~56.0.4",
     "expo-image": "~56.0.9",
+    "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.13",
     "expo-router": "~56.2.8",
     "expo-secure-store": "~56.0.4",
@@ -36,9 +40,11 @@
     "react-dom": "19.2.3",
     "react-native": "0.85.3",
     "react-native-gesture-handler": "~2.31.1",
+    "react-native-markdown-display": "7.0.2",
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
+    "react-native-svg": "^15.15.5",
     "react-native-web": "~0.21.0",
     "react-native-webview": "13.16.1",
     "react-native-worklets": "0.8.3"
@@ -46,6 +52,8 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "babel-preset-expo": "~56.0.14",
+    "eslint": "^9.39.4",
+    "eslint-config-expo": "~56.0.4",
     "tailwindcss": "^3.4.17",
     "typescript": "~6.0.3"
   }

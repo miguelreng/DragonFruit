@@ -74,6 +74,8 @@ export type TAgentChatPostResponse = {
 
 export type TAtlasDocWriteMode = "create" | "update";
 
+export type TAtlasDocWriteIntent = "insert" | "replace" | "delete" | "update";
+
 export type TAtlasDocEditOperation = "insert_after" | "replace" | "delete";
 
 export type TAtlasDocWriteEvent =
@@ -119,6 +121,7 @@ export type TAtlasDocWritePayload = {
   project_id?: string;
   prompt: string;
   mode: TAtlasDocWriteMode;
+  intent?: TAtlasDocWriteIntent;
   cursor_position?: number;
   selection_text?: string | null;
   document_markdown?: string;

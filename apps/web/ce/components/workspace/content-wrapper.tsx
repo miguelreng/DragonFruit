@@ -103,7 +103,10 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
             {children}
           </div>
           {agentChatOpen && (
-            <div className="shadow-sm min-[1920px]:shadow-sm absolute top-0 right-0 z-30 h-full w-[min(560px,calc(100%-24px))] overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300 transition-all duration-300 ease-in-out min-[1920px]:relative min-[1920px]:z-auto min-[1920px]:w-[420px] min-[1920px]:flex-shrink-0">
+            <div
+              className="shadow-sm t-panel-slide is-open min-[1920px]:shadow-sm absolute top-0 right-0 z-30 h-full w-[min(560px,calc(100%-24px))] overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300 transition-all duration-300 ease-in-out min-[1920px]:relative min-[1920px]:z-auto min-[1920px]:w-[420px] min-[1920px]:flex-shrink-0"
+              data-open="true"
+            >
               <AgentChatDrawer />
             </div>
           )}

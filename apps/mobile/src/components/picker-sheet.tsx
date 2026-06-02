@@ -1,4 +1,8 @@
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
+
+import { AppIcon } from "@/components/app-icon";
+import { colors, font, radius, spacing } from "@/lib/theme";
 
 export type PickerOption = { id: string; label: string; color?: string };
 
@@ -20,25 +24,25 @@ export function PickerSheet({
 }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end bg-black/40" onPress={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
         {/* Stop taps on the sheet itself from dismissing. */}
-        <Pressable className="max-h-[70%] rounded-t-2xl bg-white pt-2 pb-8" onPress={() => {}}>
-          <View className="mb-1 items-center pt-1">
-            <View className="h-1 w-10 rounded-full bg-black/15" />
+        <Pressable style={styles.sheet} onPress={() => {}}>
+          <View style={styles.grabberWrap}>
+            <View style={styles.grabber} />
           </View>
-          <Text className="text-xs text-muted px-5 py-2 font-medium uppercase">{title}</Text>
+          <Text style={styles.title}>{title}</Text>
           <ScrollView>
             {options.map((option) => (
-              <Pressable
-                key={option.id}
-                onPress={() => onSelect(option.id)}
-                className="flex-row items-center gap-3 px-5 py-3 active:bg-black/5"
-              >
-                {option.color ? (
-                  <View style={{ backgroundColor: option.color }} className="h-3 w-3 rounded-full" />
-                ) : null}
-                <Text className="text-base text-ink flex-1">{option.label}</Text>
-                {option.id === selectedId ? <Text className="text-base text-accent">✓</Text> : null}
+              <Pressable key={option.id} onPress={() => onSelect(option.id)} style={({ pressed }) => pressed && styles.pressedDim}>
+                <View style={styles.optionRow}>
+                  {option.color ? (
+                    <View style={[styles.optionDot, { backgroundColor: option.color }]} />
+                  ) : null}
+                  <Text style={styles.optionText}>{option.label}</Text>
+                  {option.id === selectedId ? (
+                    <AppIcon icon={CheckmarkCircle02Icon} size={18} color={colors.brandText} strokeWidth={1.9} />
+                  ) : null}
+                </View>
               </Pressable>
             ))}
           </ScrollView>
@@ -47,3 +51,36 @@ export function PickerSheet({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: colors.overlay },
+  sheet: {
+    maxHeight: "70%",
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    backgroundColor: colors.surface,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xl,
+  },
+  grabberWrap: { marginBottom: spacing.xs, alignItems: "center", paddingTop: 2 },
+  grabber: { height: 4, width: 40, borderRadius: 999, backgroundColor: "rgba(0, 0, 0, 0.15)" },
+  title: {
+    paddingHorizontal: 20,
+    paddingVertical: spacing.sm,
+    fontSize: font.size.xs,
+    color: colors.muted,
+    fontFamily: "Figtree_500Medium",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: 20,
+    paddingVertical: spacing.md,
+  },
+  optionDot: { height: 12, width: 12, borderRadius: 999 },
+  optionText: { flex: 1, fontSize: font.size.md, color: colors.ink, fontFamily: "Figtree_500Medium" },
+  pressedDim: { opacity: 0.6 },
+});

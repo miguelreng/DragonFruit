@@ -87,7 +87,7 @@
     --scrollbar-thumb-hover: var(--alpha-white-400);
     --scrollbar-thumb-active: var(--alpha-white-500);
     /* Background colors */
-    --bg-canvas: var(--neutral-black);
+    --bg-canvas: oklch(0.17 0.01 0);
     --bg-surface-1: var(--neutral-100);
     --bg-surface-2: var(--neutral-200);
     --bg-layer-1: var(--neutral-200);

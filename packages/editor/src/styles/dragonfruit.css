@@ -22,6 +22,19 @@
   /* Craft uses ~680px column — comfortable for reading without feeling cramped. */
   --normal-content-width: 680px;
   --wide-content-width: 1040px;
+  --dragonfruit-selection-bg: color-mix(in oklch, var(--brand-400, #ff7a8c) 32%, transparent);
+}
+
+:root.dark .editor-container.dragonfruit,
+.dark .editor-container.dragonfruit,
+[data-theme*="dark"] .editor-container.dragonfruit {
+  --dragonfruit-selection-bg: color-mix(in oklch, var(--brand-default, #f472b6) 42%, transparent);
+}
+
+:root.sepia .editor-container.dragonfruit,
+.sepia .editor-container.dragonfruit,
+[data-theme="sepia"] .editor-container.dragonfruit {
+  --dragonfruit-selection-bg: color-mix(in oklch, var(--brand-400, #cc705d) 36%, transparent);
 }
 
 /* ─── 2. Type scale & rhythm overrides ─────────────────────────────────── */
@@ -179,7 +192,7 @@
 /* ─── 9. Selection: soft peach instead of harsh blue ──────────────────── */
 
 .editor-container.dragonfruit .ProseMirror ::selection {
-  background-color: color-mix(in srgb, #ff7a8c 28%, transparent);
+  background-color: var(--dragonfruit-selection-bg);
 }
 
 /* ─── 10. Drop cap (optional, opt-in via .dragonfruit.drop-cap) ───────── */
@@ -227,6 +240,52 @@
   background-color: color-mix(in srgb, var(--background-color-accent-primary) 28%, transparent);
   border-bottom-style: solid;
 }
+:root {
+  --atlas-review-bg: color-mix(in oklch, var(--bg-surface-1, #fff) 84%, var(--brand-300, #e548a5) 16%);
+  --atlas-review-bg-strong: color-mix(in oklch, var(--bg-surface-1, #fff) 76%, var(--brand-400, #e548a5) 24%);
+  --atlas-review-text: var(--txt-primary, #111827);
+  --atlas-review-pending-text: oklch(0.98 0.01 30);
+  --atlas-review-border: color-mix(in oklch, var(--border-accent-subtle, #e548a5) 52%, transparent);
+  --atlas-review-button-bg: color-mix(in oklch, var(--bg-surface-1, #fff) 88%, transparent);
+  --atlas-review-button-bg-hover: color-mix(in oklch, var(--bg-surface-1, #fff) 82%, var(--brand-200, #e548a5) 18%);
+  --atlas-review-button-text: var(--txt-tertiary, #64748b);
+  --atlas-review-button-text-hover: var(--txt-primary, #111827);
+  --atlas-review-button-primary: var(--txt-accent-primary, #e548a5);
+  --atlas-review-shadow: 0 10px 28px color-mix(in oklch, var(--neutral-black, #0f172a) 8%, transparent);
+}
+
+:root.dark,
+.dark,
+[data-theme*="dark"] {
+  --atlas-review-bg: color-mix(in oklch, var(--bg-canvas, #111) 82%, var(--brand-default, #f472b6) 18%);
+  --atlas-review-bg-strong: color-mix(in oklch, var(--bg-surface-1, #181616) 70%, var(--brand-default, #f472b6) 30%);
+  --atlas-review-text: oklch(0.96 0.01 30);
+  --atlas-review-pending-text: oklch(0.98 0.01 30);
+  --atlas-review-border: color-mix(in oklch, var(--brand-default, #f472b6) 55%, var(--border-strong, #3a3333));
+  --atlas-review-button-bg: color-mix(in oklch, var(--bg-surface-2, #201d1d) 84%, var(--brand-400, #e548a5) 16%);
+  --atlas-review-button-bg-hover: color-mix(in oklch, var(--bg-surface-2, #201d1d) 70%, var(--brand-500, #e548a5) 30%);
+  --atlas-review-button-text: var(--txt-tertiary, #c8bebe);
+  --atlas-review-button-text-hover: var(--txt-primary, #f3eeee);
+  --atlas-review-button-primary: var(--txt-accent-primary, #f472b6);
+  --atlas-review-shadow: 0 12px 30px color-mix(in oklch, var(--neutral-black, #000) 42%, transparent);
+}
+
+:root.sepia,
+.sepia,
+[data-theme="sepia"] {
+  --atlas-review-bg: color-mix(in oklch, var(--bg-surface-1, #f8f0d8) 78%, var(--brand-400, #cc705d) 22%);
+  --atlas-review-bg-strong: color-mix(in oklch, var(--bg-surface-1, #f8f0d8) 68%, var(--brand-500, #cc705d) 32%);
+  --atlas-review-text: var(--txt-primary, #3c2f24);
+  --atlas-review-pending-text: oklch(0.98 0.01 30);
+  --atlas-review-border: color-mix(in oklch, var(--brand-500, #b85f4e) 48%, var(--border-subtle, #d9c9a8));
+  --atlas-review-button-bg: color-mix(in oklch, var(--bg-surface-1, #f8f0d8) 84%, var(--brand-200, #e8b3a7) 16%);
+  --atlas-review-button-bg-hover: color-mix(in oklch, var(--bg-surface-1, #f8f0d8) 72%, var(--brand-300, #d88a78) 28%);
+  --atlas-review-button-text: var(--txt-tertiary, #7a6754);
+  --atlas-review-button-text-hover: var(--txt-primary, #3c2f24);
+  --atlas-review-button-primary: var(--txt-accent-primary, #a9483d);
+  --atlas-review-shadow: 0 12px 30px color-mix(in oklch, var(--neutral-black, #2b2016) 12%, transparent);
+}
+
 .atlas-doc-review-toolbar {
   display: flex;
   align-items: center;
@@ -235,21 +294,35 @@
   width: min(100%, 720px);
   margin: 10px 0;
   padding: 8px 10px;
-  border: 1px solid rgba(229, 72, 165, 0.28);
+  border: 1px solid var(--atlas-review-border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--color-bg-base, #fff) 88%, #e548a5 12%);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  background: var(--atlas-review-bg);
+  box-shadow: var(--atlas-review-shadow);
+  color: var(--atlas-review-text);
   cursor: default;
 }
 
 /* Pending Atlas proposal text — an inline tint that hugs the words like a
    selection, wrapping cleanly per line rather than filling the block width. */
 .atlas-doc-review-pending {
+  position: relative;
+  z-index: 25;
   border-radius: 3px;
   padding: 0.08em 0.14em;
-  background: color-mix(in srgb, var(--color-bg-base, #fff) 84%, #e548a5 16%);
+  background: var(--atlas-review-bg);
+  color: var(--atlas-review-pending-text) !important;
+  opacity: 1 !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
+}
+
+.atlas-doc-review-pending,
+.atlas-doc-review-pending * {
+  color: var(--atlas-review-pending-text) !important;
+  -webkit-text-fill-color: var(--atlas-review-pending-text) !important;
+  opacity: 1 !important;
 }
 
 /* Zero-height anchor at the block boundary; the buttons themselves are pushed
@@ -280,12 +353,12 @@
   padding: 0;
   font-size: 12px;
   line-height: 1;
-  border: 1px solid transparent;
+  border: 1px solid var(--atlas-review-border);
   border-radius: 6px;
-  background: color-mix(in srgb, var(--color-bg-base, #fff) 75%, transparent);
-  color: var(--color-text-tertiary, #64748b);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-  opacity: 0.7;
+  background: var(--atlas-review-button-bg);
+  color: var(--atlas-review-button-text);
+  box-shadow: var(--atlas-review-shadow);
+  opacity: 0.82;
   transition:
     opacity 0.15s ease,
     color 0.15s ease,
@@ -295,24 +368,25 @@
 
 .atlas-doc-review-controls .atlas-doc-review-button:hover {
   opacity: 1;
-  border-color: rgba(148, 163, 184, 0.35);
-  color: var(--color-text-primary, #111827);
+  background: var(--atlas-review-button-bg-hover);
+  border-color: var(--atlas-review-border);
+  color: var(--atlas-review-button-text-hover);
 }
 
 .atlas-doc-review-controls .atlas-doc-review-button.is-primary {
-  background: color-mix(in srgb, var(--color-bg-base, #fff) 75%, transparent);
-  border-color: transparent;
-  color: #e548a5;
+  background: var(--atlas-review-button-bg);
+  border-color: var(--atlas-review-border);
+  color: var(--atlas-review-button-primary);
 }
 
 .atlas-doc-review-controls .atlas-doc-review-button.is-primary:hover {
-  background: color-mix(in srgb, var(--color-bg-base, #fff) 86%, #e548a5 14%);
-  border-color: rgba(229, 72, 165, 0.3);
-  color: #e548a5;
+  background: var(--atlas-review-button-bg-hover);
+  border-color: var(--atlas-review-border);
+  color: var(--atlas-review-button-primary);
 }
 
 .atlas-doc-review-toolbar-title {
-  color: var(--color-text-primary, #111827);
+  color: var(--atlas-review-text);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.2;

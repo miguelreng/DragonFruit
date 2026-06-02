@@ -31,7 +31,7 @@ export const ProfileIssuesFilter = observer(function ProfileIssuesFilter() {
     issuesFilter: { issueFilters, updateFilters },
   } = useIssues(EIssuesStoreType.PROFILE);
   // derived values
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.LIST;
 
   const handleLayoutChange = useCallback(
     (layout: EIssueLayoutTypes) => {
@@ -73,9 +73,7 @@ export const ProfileIssuesFilter = observer(function ProfileIssuesFilter() {
       {userId && <WorkItemFiltersToggle entityType={EIssuesStoreType.PROFILE} entityId={userId} />}
       <FiltersDropdown title={t("common.display")} placement="bottom-end">
         <DisplayFiltersSelection
-          layoutDisplayFiltersOptions={
-            activeLayout ? ISSUE_DISPLAY_FILTERS_BY_PAGE.profile_issues.layoutOptions[activeLayout] : undefined
-          }
+          layoutDisplayFiltersOptions={ISSUE_DISPLAY_FILTERS_BY_PAGE.profile_issues.layoutOptions[activeLayout]}
           displayFilters={issueFilters?.displayFilters ?? {}}
           handleDisplayFiltersUpdate={handleDisplayFilters}
           displayProperties={issueFilters?.displayProperties ?? {}}

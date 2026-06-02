@@ -24,7 +24,7 @@ from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers.agent import AgentAutomationSerializer, AgentMemorySerializer, AgentRunSerializer, AgentSerializer
-from plane.db.models import Agent, AgentAutomation, AgentMemory, AgentRun, Issue, Workspace, WorkspaceMember
+from plane.db.models import Agent, AgentAutomation, AgentChatMessage, AgentMemory, AgentRun, Issue, Workspace, WorkspaceMember
 from plane.license.utils.encryption import encrypt_data
 
 from ..base import BaseAPIView
@@ -355,41 +355,83 @@ class AgentCostSummaryEndpoint(BaseAPIView):
         week_start = now - timedelta(days=7)
         thirty_days_start = now - timedelta(days=30)
 
-        base = AgentRun.objects.filter(
+        run_base = AgentRun.objects.filter(
             agent__workspace__slug=slug,
             deleted_at__isnull=True,
         )
 
-        def aggregate(qs):
-            agg = qs.aggregate(runs=Count("id"), cost=Sum("cost_usd"), tokens=Sum("total_tokens"))
+        chat_base = AgentChatMessage.objects.filter(
+            session__workspace__slug=slug,
+            role="assistant",
+            deleted_at__isnull=True,
+        )
+
+        def aggregate_runs(qs):
+            agg = qs.aggregate(count=Count("id"), cost=Sum("cost_usd"), tokens=Sum("total_tokens"))
             return {
-                "runs": agg["runs"] or 0,
+                "count": agg["count"] or 0,
                 "cost_usd": float(agg["cost"] or 0),
                 "total_tokens": agg["tokens"] or 0,
             }
 
-        by_agent = (
-            base.filter(created_at__gte=thirty_days_start)
+        def aggregate(run_qs, chat_qs):
+            run = aggregate_runs(run_qs)
+            chat = aggregate_runs(chat_qs)
+            return {
+                "runs": run["count"] + chat["count"],
+                "cost_usd": run["cost_usd"] + chat["cost_usd"],
+                "total_tokens": run["total_tokens"] + chat["total_tokens"],
+            }
+
+        by_agent_totals = {}
+        for row in (
+            run_base.filter(created_at__gte=thirty_days_start)
             .values("agent_id", "agent__name")
             .annotate(runs=Count("id"), cost=Sum("cost_usd"), tokens=Sum("total_tokens"))
-            .order_by("-cost")[:10]
-        )
+        ):
+            agent_id = str(row["agent_id"])
+            by_agent_totals[agent_id] = {
+                "agent_id": agent_id,
+                "name": row["agent__name"],
+                "runs": row["runs"] or 0,
+                "cost_usd": float(row["cost"] or 0),
+                "total_tokens": row["tokens"] or 0,
+            }
+
+        for row in (
+            chat_base.filter(created_at__gte=thirty_days_start)
+            .values("session__agent_id", "session__agent__name")
+            .annotate(runs=Count("id"), cost=Sum("cost_usd"), tokens=Sum("total_tokens"))
+        ):
+            agent_id = str(row["session__agent_id"])
+            current = by_agent_totals.setdefault(
+                agent_id,
+                {
+                    "agent_id": agent_id,
+                    "name": row["session__agent__name"],
+                    "runs": 0,
+                    "cost_usd": 0.0,
+                    "total_tokens": 0,
+                },
+            )
+            current["runs"] += row["runs"] or 0
+            current["cost_usd"] += float(row["cost"] or 0)
+            current["total_tokens"] += row["tokens"] or 0
+
+        by_agent = sorted(by_agent_totals.values(), key=lambda row: row["cost_usd"], reverse=True)[:10]
 
         return Response(
             {
-                "all_time": aggregate(base),
-                "this_month": aggregate(base.filter(created_at__gte=month_start)),
-                "last_7_days": aggregate(base.filter(created_at__gte=week_start)),
-                "by_agent_last_30_days": [
-                    {
-                        "agent_id": str(row["agent_id"]),
-                        "name": row["agent__name"],
-                        "runs": row["runs"],
-                        "cost_usd": float(row["cost"] or 0),
-                        "total_tokens": row["tokens"] or 0,
-                    }
-                    for row in by_agent
-                ],
+                "all_time": aggregate(run_base, chat_base),
+                "this_month": aggregate(
+                    run_base.filter(created_at__gte=month_start),
+                    chat_base.filter(created_at__gte=month_start),
+                ),
+                "last_7_days": aggregate(
+                    run_base.filter(created_at__gte=week_start),
+                    chat_base.filter(created_at__gte=week_start),
+                ),
+                "by_agent_last_30_days": by_agent,
             },
             status=status.HTTP_200_OK,
         )

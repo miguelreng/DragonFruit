@@ -185,7 +185,10 @@ export function ResizableSidebar({
         aria-label="Main sidebar"
         data-prevent-outside-click={isMobile}
       >
-        <aside className="group/sidebar relative flex h-full w-full flex-col overflow-hidden bg-surface-1">
+        <aside
+          className="group/sidebar t-panel-slide relative flex h-full w-full flex-col overflow-hidden bg-surface-1 dark:bg-[oklch(0.17_0.01_0)]"
+          data-open={!isCollapsed ? "true" : "false"}
+        >
           {children}
 
           {/* Resize Handle */}
@@ -224,7 +227,7 @@ export function ResizableSidebar({
       >
         <aside
           className={cn(
-            "group/sidebar relative z-20 flex h-full w-full flex-col overflow-hidden bg-surface-1 pt-4",
+            "group/sidebar relative z-20 flex h-full w-full flex-col overflow-hidden bg-surface-1 pt-4 dark:bg-[oklch(0.17_0.01_0)]",
             "self-center rounded-lg rounded-tl-none rounded-bl-none border-r border-subtle"
           )}
         >

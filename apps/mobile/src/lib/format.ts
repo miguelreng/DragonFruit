@@ -55,3 +55,29 @@ export const PRIORITY_LABEL: Record<string, string> = {
   low: "Low",
   none: "No priority",
 };
+
+/**
+ * Compact due-date label relative to today: "Today", "Tomorrow", "Yesterday",
+ * else "Mar 5" (or "Mar 5, 2025" when not the current year). `overdue` is true
+ * when the date is strictly before today, so callers can flag it in red.
+ */
+export function formatDueDate(iso: string | null | undefined): { label: string; overdue: boolean } | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const dayMs = 86_400_000;
+  const diffDays = Math.round((startOfDay(date) - startOfDay(now)) / dayMs);
+
+  if (diffDays === 0) return { label: "Today", overdue: false };
+  if (diffDays === 1) return { label: "Tomorrow", overdue: false };
+  if (diffDays === -1) return { label: "Yesterday", overdue: true };
+
+  const sameYear = date.getFullYear() === now.getFullYear();
+  const label = sameYear
+    ? `${MONTHS[date.getMonth()]} ${date.getDate()}`
+    : `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  return { label, overdue: diffDays < 0 };
+}

@@ -48,7 +48,7 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
     issuesFilter: { issueFilters, updateFilters },
   } = useIssues(storeType);
   // derived values
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.LIST;
   const layoutDisplayFiltersOptions = ISSUE_STORE_TO_FILTERS_MAP[storeType]?.layoutOptions[activeLayout];
 
   const handleLayoutChange = useCallback(

@@ -120,7 +120,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
 
   const peekOverviewIssueClassName = cn(
     !embedIssue
-      ? "absolute z-[25] flex flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1 transition-all duration-300"
+      ? "t-panel-slide absolute z-[25] flex flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1 transition-all duration-300"
       : `h-full w-full`,
     !embedIssue && {
       "top-0 right-0 bottom-0 w-full border-0 border-l md:w-[50%]": peekMode === "side-peek",
@@ -138,6 +138,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
       {issueId && (
         <div
           ref={issuePeekOverviewRef}
+          data-open={!embedIssue ? "true" : undefined}
           className={peekOverviewIssueClassName}
           style={{
             boxShadow:
