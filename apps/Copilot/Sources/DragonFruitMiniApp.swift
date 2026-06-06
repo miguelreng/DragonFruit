@@ -16,6 +16,8 @@ struct DragonFruitMiniApp: App {
 
     init() {
         BrandTheme.registerFontsIfNeeded()
+        ProcessInfo.processInfo.disableAutomaticTermination("Atlas runs from the menu bar.")
+        ProcessInfo.processInfo.disableSuddenTermination()
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
@@ -29,21 +31,22 @@ struct DragonFruitMiniApp: App {
                 .frame(width: 360)
                 .onAppear {
                     toastController.bind(to: store)
+                    cursorBuddyController.bind(to: store)
                 }
         } label: {
-            if let icon = BrandTheme.menuBarIcon {
-                Image(nsImage: icon)
-                    .renderingMode(.template)
-                    .onAppear {
-                        toastController.bind(to: store)
-                        cursorBuddyController.bind(to: store)
-                    }
-            } else {
-                Image(systemName: "text.bubble")
-                    .onAppear {
-                        toastController.bind(to: store)
-                        cursorBuddyController.bind(to: store)
-                    }
+            Label {
+                Text("Atlas")
+            } icon: {
+                if let icon = BrandTheme.menuBarIcon {
+                    Image(nsImage: icon)
+                        .renderingMode(.template)
+                } else {
+                    Image(systemName: "text.bubble")
+                }
+            }
+            .onAppear {
+                toastController.bind(to: store)
+                cursorBuddyController.bind(to: store)
             }
         }
         .menuBarExtraStyle(.window)
@@ -520,7 +523,7 @@ struct PermissionOnboardingToast: View {
     }
 
     private var permission: PermissionStatus? {
-        store.currentMissingCopilotPermission
+        store.currentMissingRequiredPermission
     }
 
     var body: some View {
@@ -550,9 +553,10 @@ struct PermissionOnboardingToast: View {
             }
 
             HStack(spacing: 6) {
-                ForEach(store.copilotPermissionStatuses.indices, id: \.self) { index in
+                let progress = store.requiredPermissionProgress
+                ForEach(0..<max(progress.total, 1), id: \.self) { index in
                     Capsule()
-                        .fill(index < store.completedCopilotPermissionCount ? theme.accent : theme.borderStrong)
+                        .fill(index < progress.granted ? theme.accent : theme.borderStrong)
                         .frame(width: 18, height: 4)
                 }
                 Spacer(minLength: 0)
@@ -572,24 +576,14 @@ struct PermissionOnboardingToast: View {
                         store.restartApp()
                     }
                     .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
-                } else {
-                    Button {
-                        store.refreshPermissionStatuses()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(theme.textSecondary)
-                            .frame(width: 28, height: 28)
-                            .background(theme.layer1, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Refresh permissions")
                 }
+
+                Spacer(minLength: 0)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .frame(width: 340, height: 152)
+        .frame(width: 340)
         .background(toastBackground(theme: theme, cornerRadius: 14))
         .overlay(toastBorder(theme: theme, cornerRadius: 14))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -654,14 +648,7 @@ struct PermissionOnboardingToast: View {
     }
 
     private var needsRestart: Bool {
-        switch permission?.id {
-        case "system-audio":
-            return true
-        case "mic", "speech":
-            return permission?.state == "Blocked"
-        default:
-            return false
-        }
+        permission?.requiresRestart ?? false
     }
 }
 

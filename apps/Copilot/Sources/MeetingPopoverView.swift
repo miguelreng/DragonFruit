@@ -5,7 +5,7 @@ import SwiftUI
 struct MeetingPopoverView: View {
     @ObservedObject var store: MeetingStore
     var updater: SPUUpdater? = nil
-    @State private var isSettingsExpanded = true
+    @State private var isSettingsExpanded = false
     @State private var isPanelRevealed = false
     private let shellCornerRadius: CGFloat = 12
 
@@ -56,9 +56,13 @@ struct MeetingPopoverView: View {
             }
             store.isPopoverOpen = true
             store.refreshPermissionStatuses()
+            if store.needsPermissionOnboarding {
+                store.startPermissionPolling()
+            }
         }
         .onDisappear {
             store.isPopoverOpen = false
+            store.stopPermissionPolling()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             store.refreshPermissionStatuses()
@@ -80,6 +84,9 @@ struct MeetingPopoverView: View {
             Text("Atlas")
                 .font(.custom("Figtree", size: 10).weight(.medium))
                 .foregroundStyle(theme.textTertiary)
+            if store.isAuthenticated, let profile = store.userProfile {
+                AtlasProfileAvatar(profile: profile, theme: theme)
+            }
         }
     }
 
@@ -149,7 +156,10 @@ struct MeetingPopoverView: View {
 
     private var permissionsOnboardingCard: some View {
         card {
-            if let currentPermission = store.currentMissingCopilotPermission {
+            if let warning = store.permissionsEnvironmentWarning {
+                environmentWarningBanner(warning)
+            }
+            if let currentPermission = store.currentMissingRequiredPermission {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: onboardingIcon(for: currentPermission))
                         .font(.system(size: 14, weight: .semibold))
@@ -174,9 +184,10 @@ struct MeetingPopoverView: View {
                 }
 
                 HStack(spacing: 6) {
-                    ForEach(store.copilotPermissionStatuses.indices, id: \.self) { index in
+                    let progress = store.requiredPermissionProgress
+                    ForEach(0..<max(progress.total, 1), id: \.self) { index in
                         Capsule()
-                            .fill(index < store.completedCopilotPermissionCount ? theme.accent : theme.borderStrong)
+                            .fill(index < progress.granted ? theme.accent : theme.borderStrong)
                             .frame(width: 18, height: 4)
                     }
                     Spacer(minLength: 0)
@@ -188,30 +199,17 @@ struct MeetingPopoverView: View {
                     }
                     .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
 
-                    Button {
-                        store.refreshPermissionStatuses()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(theme.textSecondary)
-                            .frame(width: 28, height: 28)
-                            .background(theme.layer1)
-                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    if currentPermission.requiresRestart {
+                        Button("Restart") {
+                            store.restartApp()
+                        }
+                        .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Re-check permissions")
 
                     Spacer(minLength: 0)
-
-                    Button("Skip for now") {
-                        store.permissionsOnboardingDismissed = true
-                    }
-                    .buttonStyle(.plain)
-                    .font(.custom("Figtree", size: 11).weight(.medium))
-                    .foregroundStyle(theme.textTertiary)
                 }
 
-                if onboardingNeedsRestart(for: currentPermission) {
+                if currentPermission.requiresRestart {
                     HStack(alignment: .top, spacing: 6) {
                         Image(systemName: "info.circle")
                             .font(.system(size: 10, weight: .semibold))
@@ -222,27 +220,27 @@ struct MeetingPopoverView: View {
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
                     }
-                    Button("Restart Atlas") {
-                        store.restartApp()
-                    }
-                    .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
                 }
             }
         }
     }
 
-    private func onboardingNeedsRestart(for permission: PermissionStatus) -> Bool {
-        switch permission.id {
-        // Screen Recording only activates after a relaunch.
-        case "system-audio":
-            return true
-        // Re-enabling a previously blocked mic/speech in Settings also needs a relaunch.
-        case "mic", "speech":
-            return permission.state == "Blocked"
-        // Accessibility updates live once toggled, so no restart needed.
-        default:
-            return false
+    @ViewBuilder
+    private func environmentWarningBanner(_ message: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.orange)
+            Text(message)
+                .font(.custom("Figtree", size: 10).weight(.medium))
+                .foregroundStyle(theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.layer1)
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     private func onboardingIcon(for permission: PermissionStatus) -> String {
@@ -278,13 +276,17 @@ struct MeetingPopoverView: View {
     private func onboardingDetail(for permission: PermissionStatus) -> String {
         switch permission.id {
         case "mic":
-            return "Used when you start voice or dictation."
-        case "system-audio":
-            return "Lets meeting notes capture the people speaking in Meet, Zoom, and Teams."
+            return permission.state == "Blocked"
+                ? "Re-enable Microphone in System Settings, then restart Atlas."
+                : "Needed for Atlas voice and dictation. macOS will ask; keep this window open."
         case "speech":
-            return "Lets Atlas transcribe your voice."
+            return permission.state == "Blocked"
+                ? "Re-enable Speech Recognition in System Settings, then restart Atlas."
+                : "Needed to turn what you say into text."
+        case "system-audio":
+            return "Lets meeting notes hear others on Zoom, Meet, and Teams. Needs a quick restart."
         case "accessibility":
-            return "Lets dictation type into the active field."
+            return "Lets dictation type into the active field. Opens System Settings."
         default:
             return "Atlas opens the menu when setup is complete."
         }
@@ -296,7 +298,7 @@ struct MeetingPopoverView: View {
             // Accessibility can only be toggled in System Settings.
             return "Open Settings"
         case "mic", "speech":
-            // A blocked permission can't be re-prompted in-app — send to Settings.
+            // A blocked permission can't be re-prompted in-app; send to Settings.
             return permission.state == "Blocked" ? "Open Settings" : "Allow"
         default:
             return "Allow"
@@ -555,6 +557,9 @@ struct MeetingPopoverView: View {
     private var upcomingCard: some View {
         card {
             sectionLabel("Upcoming meeting")
+            if store.needsScreenRecordingForMeeting {
+                screenRecordingMeetingBanner
+            }
             if store.needsCalendarReconnect {
                 Text("Reconnect to load next meeting.")
                     .font(.custom("Figtree", size: 12).weight(.medium))
@@ -621,6 +626,35 @@ struct MeetingPopoverView: View {
                 .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
             }
         }
+    }
+
+    private var screenRecordingMeetingBanner: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(theme.accent)
+                Text("Meeting notes need Screen Recording to hear other people. Allow it, then restart Atlas.")
+                    .font(.custom("Figtree", size: 10).weight(.medium))
+                    .foregroundStyle(theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            HStack(spacing: 8) {
+                Button("Allow Screen Recording") {
+                    store.requestScreenRecording()
+                }
+                .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
+                Button("Restart") {
+                    store.restartApp()
+                }
+                .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.layer1)
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     private var footer: some View {
@@ -802,6 +836,46 @@ private struct MenuWindowBorderCleaner: NSViewRepresentable {
         view.layer?.borderColor = NSColor.clear.cgColor
         for subview in view.subviews {
             clearBorders(in: subview)
+        }
+    }
+}
+
+/// The signed-in user's profile picture, configured in the web app's settings.
+/// Falls back to their initials while loading or when no avatar is set.
+struct AtlasProfileAvatar: View {
+    let profile: AtlasUserProfile
+    let theme: CopilotThemeTokens
+    var size: CGFloat = 18
+
+    var body: some View {
+        avatar
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(theme.borderStrong, lineWidth: 1))
+            .help(profile.displayName.isEmpty ? profile.email : profile.displayName)
+    }
+
+    @ViewBuilder
+    private var avatar: some View {
+        if let url = profile.avatarURL {
+            AsyncImage(url: url) { phase in
+                if case let .success(image) = phase {
+                    image.resizable().scaledToFill()
+                } else {
+                    initials
+                }
+            }
+        } else {
+            initials
+        }
+    }
+
+    private var initials: some View {
+        ZStack {
+            theme.accentSubtle
+            Text(profile.initials)
+                .font(.custom("Figtree", size: size * 0.44).weight(.semibold))
+                .foregroundStyle(theme.accent)
         }
     }
 }

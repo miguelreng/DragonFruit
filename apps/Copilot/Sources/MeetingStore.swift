@@ -317,10 +317,35 @@ struct WorkspaceOption: Identifiable, Hashable {
     let slug: String
 }
 
+/// The signed-in user as configured in the web app's profile settings.
+struct AtlasUserProfile: Equatable {
+    let displayName: String
+    let email: String
+    let avatarURL: URL?
+
+    /// Up to two initials for the avatar fallback, derived from the name or email.
+    var initials: String {
+        let letters = displayName
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap(\.first)
+            .map(String.init)
+            .joined()
+        if !letters.isEmpty { return letters.uppercased() }
+        return String(email.prefix(1)).uppercased()
+    }
+}
+
 struct PermissionStatus: Identifiable {
     let id: String
     let name: String
     let state: String
+    /// Required permissions gate entry to the app; optional ones are recommended
+    /// but never block (requested contextually or from Settings).
+    var isRequired: Bool = false
+    /// True when macOS only honors a fresh grant after the app relaunches
+    /// (Screen Recording, and re-enabling a previously blocked mic/speech).
+    var requiresRestart: Bool = false
 }
 
 enum SpeechLanguage: String, CaseIterable, Identifiable {
@@ -612,6 +637,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     @Published var isRestoringSession = false
     @Published var isAuthenticated = false
+    /// Profile (name + avatar) of the signed-in user, sourced from web settings.
+    @Published var userProfile: AtlasUserProfile?
     @Published var googleConnected = false
     @Published var needsCalendarReconnect = false
 
@@ -684,12 +711,19 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
     @Published private(set) var permissionsRefreshCounter = 0
-    /// True while the menu bar popover is on screen — used to suppress the
+    /// True while the menu bar popover is on screen; used to suppress the
     /// redundant permission toast so onboarding isn't shown twice at once.
     @Published var isPopoverOpen = false
-    /// Set when the user taps "Skip for now" in onboarding, so permissions are
+    /// Set when the user taps "Do this later" in onboarding, so permissions are
     /// no longer forced up front (they can still grant them later from Settings).
     @Published var permissionsOnboardingDismissed = false
+    /// One-line explanation shown when macOS is tracking permissions for a
+    /// different / unverified copy of Atlas (e.g. a dev build alongside the
+    /// installed app), which silently breaks the grant flow. Nil when healthy.
+    @Published var permissionsEnvironmentWarning: String?
+    /// Set when starting meeting notes is blocked only by missing Screen
+    /// Recording, so the popover can show an inline "Allow + Restart" banner.
+    @Published var needsScreenRecordingForMeeting = false
 
     private var oauthSession: ASWebAuthenticationSession?
     private var calendarPollTask: Task<Void, Never>?
@@ -727,6 +761,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var dictationTargetElement: AXUIElement?
     private var isOptionDictationHeld = false
     private var optionDictationStartTask: Task<Void, Never>?
+    /// Guards against the onboarding card and the menu-bar toast both firing the
+    /// same permission action. One tap must yield one prompt or one Settings
+    /// window, never both.
+    private var isHandlingPermissionAction = false
+    /// Last privacy-pane open (anchor + monotonic time) to debounce repeats so
+    /// taps / re-renders can't stack multiple System Settings windows.
+    private var lastPrivacySettingsOpen: (anchor: String, at: TimeInterval)?
+    /// Repeating timer that re-checks permission status while onboarding is
+    /// visible; auto-stops once the blocking gate is satisfied.
+    private var permissionPollTimer: Timer?
+    private var lastLoggedPermissionSnapshot = ""
 
     override init() {
         super.init()
@@ -744,6 +789,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         selectedAgentId = defaults.string(forKey: "df_selected_agent_id") ?? ""
         isRestoringSession = !apiToken.isEmpty
         Self.logger.info("DragonFruit store initialized. savedToken=\(!self.apiToken.isEmpty, privacy: .public)")
+        detectPermissionsEnvironment()
+        logPermissionSnapshot(reason: "launch")
         setupHotkey()
         if !apiToken.isEmpty {
             Task { @MainActor in
@@ -801,12 +848,23 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     var permissionStatuses: [PermissionStatus] {
-        [
+        let micLabel = microphonePermissionLabel
+        let speechLabel = speechPermissionLabel
+        return [
             PermissionStatus(id: "login", name: "DragonFruit", state: isAuthenticated ? "Connected" : "Sign in"),
-            PermissionStatus(id: "mic", name: "Microphone", state: microphonePermissionLabel),
-            PermissionStatus(id: "system-audio", name: "System audio", state: systemAudioPermissionLabel),
-            PermissionStatus(id: "speech", name: "Atlas voice", state: speechPermissionLabel),
-            PermissionStatus(id: "accessibility", name: "Cursor context & dictation", state: accessibilityPermissionLabel),
+            // Required: the floor for Atlas voice + dictation, both grantable via
+            // an in-app system prompt. Re-enabling a previously blocked one needs
+            // a relaunch, so flag that for the restart hint.
+            PermissionStatus(id: "mic", name: "Microphone", state: micLabel,
+                             isRequired: true, requiresRestart: micLabel == "Blocked"),
+            PermissionStatus(id: "speech", name: "Atlas voice", state: speechLabel,
+                             isRequired: true, requiresRestart: speechLabel == "Blocked"),
+            // Optional: only specific features need these, so they never block
+            // entry. Accessibility toggles live; Screen Recording needs a relaunch.
+            PermissionStatus(id: "accessibility", name: "Cursor context & dictation", state: accessibilityPermissionLabel,
+                             isRequired: false, requiresRestart: false),
+            PermissionStatus(id: "system-audio", name: "System audio", state: systemAudioPermissionLabel,
+                             isRequired: false, requiresRestart: true),
         ]
     }
 
@@ -814,19 +872,44 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         permissionStatuses.filter { $0.id != "login" }
     }
 
+    /// Required permissions still missing; these gate entry to the app.
+    var requiredMissingPermissions: [PermissionStatus] {
+        copilotPermissionStatuses.filter { $0.isRequired && $0.state != "Allowed" }
+    }
+
+    /// Optional/recommended permissions still missing; surfaced but never blocking.
+    var optionalMissingPermissions: [PermissionStatus] {
+        copilotPermissionStatuses.filter { !$0.isRequired && $0.state != "Allowed" }
+    }
+
+    /// First missing required permission; drives the blocking onboarding step.
+    var currentMissingRequiredPermission: PermissionStatus? {
+        requiredMissingPermissions.first
+    }
+
+    /// First missing permission overall (required first, then optional); used by
+    /// the onboarding card / toast to point at the next actionable step.
     var currentMissingCopilotPermission: PermissionStatus? {
-        copilotPermissionStatuses.first { $0.state != "Allowed" }
+        currentMissingRequiredPermission ?? optionalMissingPermissions.first
     }
 
     var completedCopilotPermissionCount: Int {
         copilotPermissionStatuses.filter { $0.state == "Allowed" }.count
     }
 
+    /// Granted / total required permissions, for the onboarding progress dots.
+    var requiredPermissionProgress: (granted: Int, total: Int) {
+        let required = copilotPermissionStatuses.filter { $0.isRequired }
+        return (required.filter { $0.state == "Allowed" }.count, required.count)
+    }
+
+    /// Onboarding only blocks on REQUIRED permissions (mic + speech). Screen
+    /// Recording and Accessibility are recommended and requested contextually, so
+    /// a user who just wants Atlas voice is never stuck behind a relaunch-gated
+    /// grant. Both feature entry points still enforce their own permissions
+    /// just-in-time (startMeetingRecording / startVoiceCapture).
     var needsPermissionOnboarding: Bool {
-        AVCaptureDevice.authorizationStatus(for: .audio) != .authorized ||
-            SFSpeechRecognizer.authorizationStatus() != .authorized ||
-            !Self.hasSystemAudioPermission() ||
-            !AXIsProcessTrusted()
+        !requiredMissingPermissions.isEmpty
     }
 
     private var microphonePermissionLabel: String {
@@ -872,79 +955,122 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     func refreshPermissionStatuses() {
+        logPermissionSnapshot(reason: "refresh")
         permissionsRefreshCounter += 1
     }
 
-    func requestVoicePermissions() {
-        Task { @MainActor in
-            _ = await Self.requestSpeechAuthorization()
-            _ = await Self.requestMicrophonePermission()
-            Self.requestSystemAudioPermissionIfNeeded()
-            refreshPermissionStatuses()
-        }
+    private func logPermissionSnapshot(reason: String) {
+        let requiredMissing = requiredMissingPermissions.map(\.id).joined(separator: ",")
+        let snapshot = [
+            "mic=\(microphonePermissionLabel)",
+            "speech=\(speechPermissionLabel)",
+            "accessibility=\(accessibilityPermissionLabel)",
+            "systemAudio=\(systemAudioPermissionLabel)",
+            "requiredMissing=\(requiredMissing.isEmpty ? "none" : requiredMissing)",
+        ].joined(separator: " ")
+
+        guard snapshot != lastLoggedPermissionSnapshot else { return }
+        lastLoggedPermissionSnapshot = snapshot
+        Self.logger.info(
+            "Permission state (\(reason, privacy: .public)): \(snapshot, privacy: .public) bundle=\(Bundle.main.bundleURL.path, privacy: .public)"
+        )
     }
 
-    func requestDictationPermissions() {
-        Self.requestAccessibilityPermissionIfNeeded()
-        Task { @MainActor in
-            _ = await Self.requestSpeechAuthorization()
-            _ = await Self.requestMicrophonePermission()
-            Self.requestSystemAudioPermissionIfNeeded()
-            refreshPermissionStatuses()
-        }
-    }
-
-    func requestCopilotPermissions() {
-        Self.requestAccessibilityPermissionIfNeeded()
-        Task { @MainActor in
-            _ = await Self.requestSpeechAuthorization()
-            _ = await Self.requestMicrophonePermission()
-            Self.requestSystemAudioPermissionIfNeeded()
-            refreshPermissionStatuses()
-            if !AXIsProcessTrusted() {
-                openPrivacySettings(anchor: "Privacy_Accessibility")
+    /// Re-checks permission status on a gentle 1s timer while the onboarding card
+    /// or the menu-bar toast is visible. This is the safety net for the case
+    /// where the user grants in System Settings while Atlas is already active (so
+    /// there's no app-activation event to trigger a refresh). Auto-stops once the
+    /// blocking gate is satisfied; optional grants are picked up on reactivation.
+    func startPermissionPolling() {
+        guard permissionPollTimer == nil else { return }
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.refreshPermissionStatuses()
+                if !self.needsPermissionOnboarding {
+                    self.stopPermissionPolling()
+                }
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        permissionPollTimer = timer
+    }
+
+    func stopPermissionPolling() {
+        permissionPollTimer?.invalidate()
+        permissionPollTimer = nil
+    }
+
+    /// Detects the silent TCC failure mode where macOS grants permissions to a
+    /// different Atlas copy with the same bundle id.
+    func detectPermissionsEnvironment() {
+        let installedPath = "/Applications/DragonFruit Atlas.app"
+        let runningPath = Bundle.main.bundleURL.standardizedFileURL.path
+        if runningPath != installedPath, FileManager.default.fileExists(atPath: installedPath) {
+            permissionsEnvironmentWarning =
+                "Permissions may belong to the Atlas copy in /Applications. Quit that copy before granting access here."
+            return
+        }
+        permissionsEnvironmentWarning = nil
+    }
+
+    /// Dictation needs Accessibility (to type into the focused field); speech and
+    /// mic are requested just-in-time when capture starts. Pre-prompt only
+    /// Accessibility here so enabling dictation doesn't fire a stack of unrelated
+    /// permission modals.
+    func requestDictationPermissions() {
+        Self.requestAccessibilityPermissionIfNeeded()
+        refreshPermissionStatuses()
     }
 
     func handlePermissionAction(_ permission: PermissionStatus) {
+        // Re-entrancy guard: the onboarding card and the menu-bar toast both bind
+        // "Allow" to this, and SwiftUI re-renders can fire it twice. One tap must
+        // produce exactly one prompt OR one Settings window, never both.
+        guard !isHandlingPermissionAction else { return }
+        isHandlingPermissionAction = true
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            isHandlingPermissionAction = false
+        }
+
         switch permission.id {
         case "login":
             Task { await beginDragonFruitLogin() }
         case "mic":
-            Task { @MainActor in
-                // Bring Atlas to the front first: as a menu-bar app the popover
-                // can lose focus and macOS then never presents the prompt.
-                NSApplication.shared.activate(ignoringOtherApps: true)
-                _ = await Self.requestMicrophonePermission()
-                refreshPermissionStatuses()
-                refreshPermissionStatusesAfterSystemPrompt()
-                // Only send to System Settings when the user has actually blocked
-                // it. For "not determined" the in-app prompt is the right path —
-                // opening Settings there just hides the prompt and confuses things.
-                let status = AVCaptureDevice.authorizationStatus(for: .audio)
-                if status == .denied || status == .restricted {
-                    openPrivacySettings(anchor: "Privacy_Microphone")
+            // Not-yet-asked: in-app system prompt (no Settings window). Already
+            // blocked: Settings, since macOS won't re-prompt a denied permission.
+            switch AVCaptureDevice.authorizationStatus(for: .audio) {
+            case .notDetermined:
+                Task { @MainActor in
+                    // Bring Atlas to the front first: as a menu-bar app the popover
+                    // can lose focus and macOS then never presents the prompt.
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    _ = await Self.requestMicrophonePermission()
+                    refreshPermissionStatuses()
+                    refreshPermissionStatusesAfterSystemPrompt()
                 }
+            case .denied, .restricted:
+                openPrivacySettings(anchor: "Privacy_Microphone")
+            default:
+                refreshPermissionStatuses()
             }
         case "speech":
-            Task { @MainActor in
-                NSApplication.shared.activate(ignoringOtherApps: true)
-                _ = await Self.requestSpeechAuthorization()
-                refreshPermissionStatuses()
-                refreshPermissionStatusesAfterSystemPrompt()
-                let status = SFSpeechRecognizer.authorizationStatus()
-                if status == .denied || status == .restricted {
-                    openPrivacySettings(anchor: "Privacy_SpeechRecognition")
+            switch SFSpeechRecognizer.authorizationStatus() {
+            case .notDetermined:
+                Task { @MainActor in
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    _ = await Self.requestSpeechAuthorization()
+                    refreshPermissionStatuses()
+                    refreshPermissionStatusesAfterSystemPrompt()
                 }
+            case .denied, .restricted:
+                openPrivacySettings(anchor: "Privacy_SpeechRecognition")
+            default:
+                refreshPermissionStatuses()
             }
         case "system-audio":
-            Self.requestSystemAudioPermissionIfNeeded()
-            refreshPermissionStatuses()
-            refreshPermissionStatusesAfterSystemPrompt()
-            if !Self.hasSystemAudioPermission() {
-                openPrivacySettings(anchor: "Privacy_ScreenCapture")
-            }
+            requestScreenRecording()
         case "accessibility":
             openAccessibilitySettings()
         default:
@@ -952,24 +1078,58 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
+    /// Requests Screen Recording with a one-prompt-then-Settings discipline. The
+    /// macOS capture prompt (CGRequestScreenCaptureAccess) only ever appears the
+    /// first time it's requested; after that it's silent — so firing it again
+    /// while also opening Settings produced the duplicated modals the user saw.
+    /// Here: prompt once (which also registers Atlas in the Screen Recording
+    /// list), then fall back to Settings on later taps.
+    func requestScreenRecording() {
+        guard !Self.hasSystemAudioPermission() else {
+            needsScreenRecordingForMeeting = false
+            refreshPermissionStatuses()
+            return
+        }
+        if !Self.hasRequestedScreenCapture {
+            Self.hasRequestedScreenCapture = true
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            Self.requestSystemAudioPermissionIfNeeded()
+            refreshPermissionStatuses()
+            refreshPermissionStatusesAfterSystemPrompt()
+        } else {
+            openPrivacySettings(anchor: "Privacy_ScreenCapture")
+        }
+    }
+
     func openAccessibilitySettings() {
+        // Prompt only. The macOS Accessibility dialog already carries an "Open
+        // System Settings" button and adds Atlas to the list, so opening Settings
+        // on top of it just stacks a second modal.
         Self.requestAccessibilityPermissionIfNeeded()
-        openPrivacySettings(anchor: "Privacy_Accessibility")
         refreshPermissionStatuses()
+        refreshPermissionStatusesAfterSystemPrompt()
     }
 
     /// Screen Recording (and re-enabling mic/speech from System Settings) only
-    /// takes effect after a relaunch — that's the macOS "Quit & Reopen" dialog.
+    /// takes effect after a relaunch. That's the macOS "Quit & Reopen" dialog.
     /// Relaunch cleanly so the freshly granted permission is detected.
     func restartApp() {
-        let bundleURL = Bundle.main.bundleURL
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.createsNewApplicationInstance = true
-        NSWorkspace.shared.openApplication(at: bundleURL, configuration: configuration) { _, _ in
-            Task { @MainActor in
-                NSApp.terminate(nil)
-            }
+        let bundlePath = Bundle.main.bundleURL.path
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = [
+            "-c",
+            "sleep 1.2; /usr/bin/open \"$1\"",
+            "atlas-relaunch",
+            bundlePath,
+        ]
+        do {
+            try process.run()
+        } catch {
+            statusMessage = "Restart Atlas from the menu bar."
+            return
         }
+        NSApp.terminate(nil)
     }
 
     private func refreshPermissionStatusesAfterSystemPrompt() {
@@ -977,6 +1137,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             try? await Task.sleep(nanoseconds: 250_000_000)
             refreshPermissionStatuses()
             NSApplication.shared.activate(ignoringOtherApps: true)
+            try? await Task.sleep(nanoseconds: 1_250_000_000)
+            refreshPermissionStatuses()
         }
     }
 
@@ -1015,6 +1177,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func openPrivacySettings(anchor: String) {
+        // Debounce: ignore a repeat open of the same pane within 2s so taps /
+        // re-renders can't stack multiple System Settings windows.
+        let now = ProcessInfo.processInfo.systemUptime
+        if let last = lastPrivacySettingsOpen, last.anchor == anchor, now - last.at < 2 {
+            return
+        }
+        lastPrivacySettingsOpen = (anchor, now)
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)") else { return }
         NSWorkspace.shared.open(url)
     }
@@ -1024,8 +1193,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         Self.logger.info("Restoring DragonFruit session")
         do {
             let client = try makeClient()
-            _ = try await client.getCurrentUser()
+            let user = try await client.getCurrentUser()
             isAuthenticated = true
+            applyCurrentUserProfile(user)
             isRestoringSession = false
             statusMessage = "Signed in to DragonFruit"
             startPostLoginRefresh()
@@ -1076,6 +1246,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     func logout() {
         calendarPollTask?.cancel()
         meetingRefreshTask?.cancel()
+        stopPermissionPolling()
         if isListening {
             stopVoiceCapture()
         }
@@ -1248,8 +1419,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             apiToken = token
             KeychainStore.save(account: Self.apiTokenKeychainAccount, value: token)
             let client = try makeClient()
-            _ = try await client.getCurrentUser()
+            let user = try await client.getCurrentUser()
             isAuthenticated = true
+            applyCurrentUserProfile(user)
             persistSettings()
             statusMessage = "Signed in to DragonFruit"
             startPostLoginRefresh()
@@ -1506,9 +1678,44 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         persistCredentials()
     }
 
+    /// Maps the `api/users/me/` payload into the published profile used by the UI.
+    private func applyCurrentUserProfile(_ json: [String: Any]) {
+        func value(_ key: String) -> String {
+            (json[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        }
+        let fullName = [value("first_name"), value("last_name")]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let displayName = !fullName.isEmpty ? fullName : value("display_name")
+        let email = value("email")
+        userProfile = AtlasUserProfile(
+            displayName: displayName.isEmpty ? email : displayName,
+            email: email,
+            avatarURL: resolveAvatarURL(value("avatar_url"))
+        )
+    }
+
+    /// `avatar_url` is either an absolute URL (generated avatars) or an
+    /// API-relative asset path like `/api/assets/v2/static/<id>/` that must be
+    /// resolved against `baseURL`. DiceBear's default avatars are SVG, which
+    /// `NSImage` can't render, so we ask the same endpoint for a PNG instead.
+    private func resolveAvatarURL(_ raw: String) -> URL? {
+        guard !raw.isEmpty else { return nil }
+        if raw.hasPrefix("http://") || raw.hasPrefix("https://") {
+            let normalized = raw.contains("api.dicebear.com")
+                ? raw.replacingOccurrences(of: "/svg?", with: "/png?")
+                : raw
+            return URL(string: normalized)
+        }
+        guard let base = URL(string: baseURL) else { return nil }
+        let trimmed = raw.hasPrefix("/") ? String(raw.dropFirst()) : raw
+        return URL(string: trimmed, relativeTo: base)?.absoluteURL
+    }
+
     private func clearSavedSession(message: String) {
         apiToken = ""
         isAuthenticated = false
+        userProfile = nil
         googleConnected = false
         needsCalendarReconnect = false
         meeting = .empty
@@ -1867,6 +2074,14 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         _ = CGRequestScreenCaptureAccess()
     }
 
+    /// Screen Recording's macOS prompt (CGRequestScreenCaptureAccess) only ever
+    /// appears once; afterward it's silent. Persist whether we've fired it so we
+    /// can fall back to opening Settings instead of a no-op prompt.
+    private static var hasRequestedScreenCapture: Bool {
+        get { UserDefaults.standard.bool(forKey: "df_did_request_screen_capture") }
+        set { UserDefaults.standard.set(newValue, forKey: "df_did_request_screen_capture") }
+    }
+
     nonisolated private static func copyAXStringAttribute(_ attribute: String, from element: AXUIElement) -> String? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
@@ -1977,12 +2192,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 statusMessage = "Speech recognition is unavailable right now."
                 return
             }
-            Self.requestSystemAudioPermissionIfNeeded()
             guard Self.hasSystemAudioPermission() else {
                 statusMessage = "Allow Screen & System Audio Recording to capture meeting text."
-                openPrivacySettings(anchor: "Privacy_ScreenCapture")
+                needsScreenRecordingForMeeting = true
+                requestScreenRecording()
                 return
             }
+            needsScreenRecordingForMeeting = false
 
             recognitionTask?.cancel()
             recognitionTask = nil
@@ -2295,7 +2511,6 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             return
         }
         if mode == .dictation {
-            Self.requestAccessibilityPermissionIfNeeded()
             guard AXIsProcessTrusted() else {
                 statusMessage = "Allow Accessibility access to use dictation."
                 openAccessibilitySettings()
