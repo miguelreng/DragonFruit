@@ -15,6 +15,8 @@ export type TProjectBookmarkMetadata = {
   source_app?: string;
   captured_text?: string;
   screenshot_source?: string;
+  /** AI-generated tags awaiting the user's accept/dismiss. Kept separate from `tags`. */
+  suggested_tags?: string[];
   [key: string]: unknown;
 };
 

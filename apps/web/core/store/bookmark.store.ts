@@ -23,6 +23,7 @@ export interface IBookmarkStore {
   ) => Promise<TProjectBookmark[]>;
   fetchWorkspaceBookmarks: (workspaceSlug: string, params?: TBookmarkQueryParams) => Promise<TProjectBookmark[]>;
   fetchUrlMetadata: (workspaceSlug: string, url: string) => Promise<TBookmarkUrlMetadata>;
+  fetchBookmark: (workspaceSlug: string, projectId: string, bookmarkId: string) => Promise<TProjectBookmark>;
   createBookmark: (
     workspaceSlug: string,
     projectId: string,
@@ -56,6 +57,7 @@ export class BookmarkStore implements IBookmarkStore {
       allBookmarks: computed,
       fetchProjectBookmarks: action,
       fetchWorkspaceBookmarks: action,
+      fetchBookmark: action,
       createBookmark: action,
       importBookmarks: action,
       updateBookmark: action,
@@ -100,6 +102,14 @@ export class BookmarkStore implements IBookmarkStore {
   };
 
   fetchUrlMetadata = (workspaceSlug: string, url: string) => this.service.fetchUrlMetadata(workspaceSlug, url);
+
+  fetchBookmark = async (workspaceSlug: string, projectId: string, bookmarkId: string) => {
+    const bookmark = await this.service.retrieveBookmark(workspaceSlug, projectId, bookmarkId);
+    runInAction(() => {
+      this.bookmarkMap[bookmark.id] = bookmark;
+    });
+    return bookmark;
+  };
 
   createBookmark = async (workspaceSlug: string, projectId: string, payload: TProjectBookmarkCreatePayload) => {
     const tempId = uuidv4();

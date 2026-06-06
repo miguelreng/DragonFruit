@@ -57,6 +57,18 @@ export class BookmarkService extends APIService {
       });
   }
 
+  async retrieveBookmark(
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string
+  ): Promise<TProjectBookmark> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async createBookmark(
     workspaceSlug: string,
     projectId: string,

@@ -214,6 +214,15 @@ class ProjectBookmarkViewSet(BaseViewSet):
                     {"error": "Bookmark storage is not ready. Run API database migrations and try again."},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
+            # Kick off AI tag suggestions in the background. No-op if no LLM is
+            # configured; never blocks or fails the create response.
+            if bookmark.url:
+                try:
+                    from plane.bgtasks.auto_tag_bookmark_task import auto_tag_bookmark_task
+
+                    auto_tag_bookmark_task.delay(str(bookmark.id))
+                except Exception as exc:
+                    log_exception(exc)
             return Response(ProjectBookmarkSerializer(bookmark).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

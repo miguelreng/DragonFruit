@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
   Bookmark as BookmarkIcon,
   CancelCircleIcon,
@@ -140,6 +140,16 @@ const bookmarkPreviewImage = (bookmark: TProjectBookmark) => {
   return "";
 };
 
+const bookmarkSuggestedTags = (bookmark: TProjectBookmark): string[] => {
+  const raw = bookmark.metadata?.suggested_tags;
+  if (!Array.isArray(raw)) return [];
+  const existing = new Set(bookmark.tags.map((tag) => tag.toLowerCase()));
+  return raw.filter(
+    (tag): tag is string =>
+      typeof tag === "string" && tag.trim().length > 0 && !existing.has(tag.toLowerCase())
+  );
+};
+
 const bookmarkHasTwitterScreenshot = (bookmark: TProjectBookmark, imageUrl: string) =>
   Boolean(imageUrl) && isTweetUrl(bookmark.url) && bookmark.metadata?.screenshot_source === "chrome_extension";
 
@@ -192,6 +202,9 @@ function BookmarkForm(props: {
   submitLabel: string;
   showProjectSelect: boolean;
   isEditing: boolean;
+  suggestedTags: string[];
+  onAcceptSuggestedTag: (tag: string) => void;
+  onDismissSuggestedTag: (tag: string) => void;
 }) {
   const {
     draft,
@@ -206,6 +219,9 @@ function BookmarkForm(props: {
     submitLabel,
     showProjectSelect,
     isEditing,
+    suggestedTags,
+    onAcceptSuggestedTag,
+    onDismissSuggestedTag,
   } = props;
   return (
     <form
@@ -291,6 +307,12 @@ function BookmarkForm(props: {
           value={draft.tags}
           onChange={(event) => setDraft({ ...draft, tags: event.target.value })}
         />
+        <SuggestedTagChips
+          tags={suggestedTags}
+          onAccept={onAcceptSuggestedTag}
+          onDismiss={onDismissSuggestedTag}
+          className="mt-2"
+        />
       </label>
       <div className="flex justify-end gap-2 border-t border-subtle pt-4">
         <button
@@ -328,6 +350,9 @@ function BookmarkFormModal(props: {
   submitLabel: string;
   showProjectSelect: boolean;
   isEditing: boolean;
+  suggestedTags: string[];
+  onAcceptSuggestedTag: (tag: string) => void;
+  onDismissSuggestedTag: (tag: string) => void;
 }) {
   const { isOpen, title, onCancel, ...formProps } = props;
 
@@ -356,14 +381,59 @@ function BookmarkFormModal(props: {
   );
 }
 
+function SuggestedTagChips(props: {
+  tags: string[];
+  onAccept: (tag: string) => void;
+  onDismiss: (tag: string) => void;
+  className?: string;
+  // When rendered inside a clickable card/row, swallow the click so accepting a
+  // tag doesn't also navigate to the bookmark.
+  stopPropagation?: boolean;
+}) {
+  const { tags, onAccept, onDismiss, className, stopPropagation } = props;
+  if (tags.length === 0) return null;
+  const guard = (handler: (tag: string) => void, tag: string) => (event: MouseEvent) => {
+    if (stopPropagation) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    handler(tag);
+  };
+  return (
+    <div className={cn("flex flex-wrap items-center gap-1", className)}>
+      <span className="text-11 font-medium tracking-wide text-tertiary uppercase">Suggested</span>
+      {tags.map((tag) => (
+        <span
+          key={tag}
+          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-strong px-1.5 py-0.5 text-11 text-secondary"
+        >
+          <button type="button" title="Add tag" onClick={guard(onAccept, tag)} className="hover:text-primary">
+            {tag}
+          </button>
+          <button
+            type="button"
+            aria-label={`Dismiss ${tag}`}
+            onClick={guard(onDismiss, tag)}
+            className="grid place-items-center text-tertiary hover:text-red-500"
+          >
+            <HugeiconsIcon icon={CancelCircleIcon} className="size-3" color="currentColor" strokeWidth={1.5} />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function BookmarkCard(props: {
   bookmark: TProjectBookmark;
   workspaceSlug: string;
   showProject: boolean;
   onEdit: (bookmark: TProjectBookmark) => void;
   onDelete: (bookmark: TProjectBookmark) => void;
+  onAcceptTag: (bookmark: TProjectBookmark, tag: string) => void;
+  onDismissTag: (bookmark: TProjectBookmark, tag: string) => void;
 }) {
-  const { bookmark, workspaceSlug, showProject, onEdit, onDelete } = props;
+  const { bookmark, workspaceSlug, showProject, onEdit, onDelete, onAcceptTag, onDismissTag } = props;
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
   const imageUrl = bookmarkPreviewImage(bookmark);
@@ -502,6 +572,13 @@ function BookmarkCard(props: {
           </div>
         </div>
       )}
+      <SuggestedTagChips
+        tags={bookmarkSuggestedTags(bookmark)}
+        onAccept={(tag) => onAcceptTag(bookmark, tag)}
+        onDismiss={(tag) => onDismissTag(bookmark, tag)}
+        className="px-4 pt-2 pb-3"
+        stopPropagation
+      />
     </div>
   );
 
@@ -534,8 +611,10 @@ function BookmarkListItem(props: {
   showProject: boolean;
   onEdit: (bookmark: TProjectBookmark) => void;
   onDelete: (bookmark: TProjectBookmark) => void;
+  onAcceptTag: (bookmark: TProjectBookmark, tag: string) => void;
+  onDismissTag: (bookmark: TProjectBookmark, tag: string) => void;
 }) {
-  const { bookmark, workspaceSlug, showProject, onEdit, onDelete } = props;
+  const { bookmark, workspaceSlug, showProject, onEdit, onDelete, onAcceptTag, onDismissTag } = props;
   const parentRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatformOS();
   const href = bookmarkHref(workspaceSlug, bookmark);
@@ -561,6 +640,12 @@ function BookmarkListItem(props: {
       }
       actionableItems={
         <div className="flex items-center gap-3 text-13 text-tertiary">
+          <SuggestedTagChips
+            tags={bookmarkSuggestedTags(bookmark)}
+            onAccept={(tag) => onAcceptTag(bookmark, tag)}
+            onDismiss={(tag) => onDismissTag(bookmark, tag)}
+            stopPropagation
+          />
           <div className="flex items-center gap-1.5">
             {showProject && bookmark.project_name && (
               <span className="rounded-lg bg-layer-1 px-1.5 py-0.5 text-11 text-secondary">
@@ -768,6 +853,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const lastFetchedUrlRef = useRef("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Pending AI suggestions for the bookmark currently open in the edit modal.
+  const [editingSuggestions, setEditingSuggestions] = useState<string[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
   const { storedValue: storedViewMode, setValue: setViewMode } = useLocalStorage<ViewMode>(
     `bookmarks_view_mode_${mode}`,
@@ -893,6 +980,16 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     }
   };
 
+  // AI tag suggestions land asynchronously, so re-fetch the bookmark a couple of
+  // times after creation to surface them without making the user reload the page.
+  const scheduleSuggestionRefetch = (targetProjectId: string, bookmarkId: string) => {
+    [3000, 8000].forEach((delay) => {
+      window.setTimeout(() => {
+        void bookmarkStore.fetchBookmark(workspaceSlug, targetProjectId, bookmarkId).catch(() => {});
+      }, delay);
+    });
+  };
+
   const handleSubmit = async () => {
     const targetProjectId = editingId
       ? (bookmarkStore.bookmarkMap[editingId]?.project_id ?? selectedProjectId)
@@ -902,15 +999,58 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     if (!targetProjectId) return;
     try {
       if (editingId) {
-        await bookmarkStore.updateBookmark(workspaceSlug, targetProjectId, editingId, toPayload(draft));
+        // toPayload already carries draft.metadata (incl. any re-fetched preview);
+        // just persist whatever suggestions remain after accept/dismiss in the modal.
+        await bookmarkStore.updateBookmark(workspaceSlug, targetProjectId, editingId, {
+          ...toPayload(draft),
+          metadata: { ...(draft.metadata ?? {}), suggested_tags: editingSuggestions },
+        });
       } else {
-        await bookmarkStore.createBookmark(workspaceSlug, targetProjectId, toPayload(draft));
+        const created = await bookmarkStore.createBookmark(workspaceSlug, targetProjectId, toPayload(draft));
+        if (created.url) scheduleSuggestionRefetch(created.project_id, created.id);
       }
       setDraft(EMPTY_DRAFT);
       setEditingId(null);
+      setEditingSuggestions([]);
       setIsFormModalOpen(false);
     } catch {
       setToast({ type: TOAST_TYPE.ERROR, title: "Bookmark could not be saved" });
+    }
+  };
+
+  // Modal accept/dismiss work against local state; nothing persists until the
+  // user saves the form (then handleSubmit writes both tags and suggestions).
+  const handleDraftAcceptTag = (tag: string) => {
+    const current = normalizeTags(draft.tags);
+    if (!current.includes(tag)) setDraft({ ...draft, tags: [...current, tag].join(", ") });
+    setEditingSuggestions((prev) => prev.filter((value) => value !== tag));
+  };
+
+  const handleDraftDismissTag = (tag: string) => {
+    setEditingSuggestions((prev) => prev.filter((value) => value !== tag));
+  };
+
+  const handleAcceptTag = async (bookmark: TProjectBookmark, tag: string) => {
+    const remaining = bookmarkSuggestedTags(bookmark).filter((value) => value !== tag);
+    const nextTags = bookmark.tags.includes(tag) ? bookmark.tags : [...bookmark.tags, tag];
+    try {
+      await bookmarkStore.updateBookmark(workspaceSlug, bookmark.project_id, bookmark.id, {
+        tags: nextTags,
+        metadata: { ...bookmark.metadata, suggested_tags: remaining },
+      });
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Tag could not be saved" });
+    }
+  };
+
+  const handleDismissTag = async (bookmark: TProjectBookmark, tag: string) => {
+    const remaining = bookmarkSuggestedTags(bookmark).filter((value) => value !== tag);
+    try {
+      await bookmarkStore.updateBookmark(workspaceSlug, bookmark.project_id, bookmark.id, {
+        metadata: { ...bookmark.metadata, suggested_tags: remaining },
+      });
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Suggestion could not be dismissed" });
     }
   };
 
@@ -925,6 +1065,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       metadata: bookmark.metadata ?? {},
     });
     lastFetchedUrlRef.current = bookmark.url;
+    setEditingSuggestions(bookmarkSuggestedTags(bookmark));
     setIsFormModalOpen(true);
   };
 
@@ -940,6 +1081,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     setEditingId(null);
     setDraft(EMPTY_DRAFT);
     lastFetchedUrlRef.current = "";
+    setEditingSuggestions([]);
     setSelectedProjectId(
       projectId && writableProjectIds.includes(projectId) ? projectId : (writableProjectIds[0] ?? "")
     );
@@ -1046,10 +1188,14 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
             setIsFormModalOpen(false);
             setEditingId(null);
             setDraft(EMPTY_DRAFT);
+            setEditingSuggestions([]);
           }}
           submitLabel={editingId ? "Save" : "Add bookmark"}
           showProjectSelect={mode === "workspace"}
           isEditing={!!editingId}
+          suggestedTags={editingSuggestions}
+          onAcceptSuggestedTag={handleDraftAcceptTag}
+          onDismissSuggestedTag={handleDraftDismissTag}
         />
       )}
       {canCreateBookmark && (
@@ -1131,6 +1277,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                     showProject={mode === "workspace"}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onAcceptTag={handleAcceptTag}
+                    onDismissTag={handleDismissTag}
                   />
                 </div>
               ))}
@@ -1146,6 +1294,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                 showProject={mode === "workspace"}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onAcceptTag={handleAcceptTag}
+                onDismissTag={handleDismissTag}
               />
             ))}
           </ListLayout>
