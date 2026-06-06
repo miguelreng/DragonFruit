@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
@@ -12,8 +12,9 @@ import useSWR from "swr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { PriorityIcon, YourWorkIcon } from "@plane/propel/icons";
 import type { TBaseIssue, TIssuePriorities, TIssuesResponse } from "@plane/types";
-import { cn, getDate, renderFormattedDate } from "@plane/utils";
-import { Check, ChevronRight } from "@/components/icons/lucide-shim";
+import { cn, createIssuePayload, getDate, renderFormattedDate } from "@plane/utils";
+import { Check, ChevronRight, Loader, Plus } from "@/components/icons/lucide-shim";
+import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
 import { useUser } from "@/hooks/store/user";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
@@ -48,12 +49,22 @@ export const MyTasksSection = observer(function MyTasksSection({
   const { workspaceSlug } = useParams();
   const { data: currentUser } = useUser();
   const { getStateById, getProjectStates, fetchWorkspaceStates, fetchProjectStates } = useProjectState();
-  const { getProjectById, getProjectIdentifierById } = useProject();
+  const { getProjectById, getProjectIdentifierById, joinedProjectIds } = useProject();
 
   const slug = workspaceSlug?.toString();
   const userId = userIdProp ?? currentUser?.id;
   const resolvedViewAllHref =
     viewAllHref === undefined ? (userId ? `/${slug}/profile/${userId}` : null) : viewAllHref;
+
+  // Inline create (Reminders-style): only on your own list, and only if there's
+  // a project to drop the new task into.
+  const isOwnList = !!currentUser?.id && userId === currentUser.id;
+  const [newTaskName, setNewTaskName] = useState("");
+  const [addProjectId, setAddProjectId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const newTaskInputRef = useRef<HTMLInputElement>(null);
+  const resolvedAddProjectId = addProjectId ?? joinedProjectIds[0] ?? null;
+  const canAdd = isOwnList && !!resolvedAddProjectId;
 
   // `checking` → row is mid-completion (shows the filled check + strike-through).
   // `completed` → completion confirmed, row is removed from the list.
@@ -126,6 +137,39 @@ export const MyTasksSection = observer(function MyTasksSection({
     [slug, checkingIds, completedIds, resolveCompletedStateId, mutate]
   );
 
+  const handleCreate = useCallback(async () => {
+    const trimmed = newTaskName.trim();
+    if (!slug || !resolvedAddProjectId || !trimmed || isCreating) return;
+    setIsCreating(true);
+    try {
+      const payload = createIssuePayload(resolvedAddProjectId, {
+        name: trimmed,
+        assignee_ids: userId ? [userId] : [],
+      });
+      const created = await issueService.createIssue(slug, resolvedAddProjectId, payload);
+      // Optimistically surface the new task without a full refetch.
+      mutate((prev) => {
+        const results = Array.isArray(prev?.results) ? (prev!.results as TBaseIssue[]) : [];
+        return {
+          ...prev,
+          results: [created as TBaseIssue, ...results],
+          total_count: ((prev?.total_count as number | undefined) ?? 0) + 1,
+        } as TIssuesResponse;
+      }, { revalidate: false });
+      // Clear and keep focus for rapid continuous entry, like Reminders.
+      setNewTaskName("");
+      newTaskInputRef.current?.focus();
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't add task",
+        message: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  }, [slug, resolvedAddProjectId, newTaskName, isCreating, userId, mutate]);
+
   const allIssues: TBaseIssue[] = Array.isArray(data?.results) ? (data!.results as TBaseIssue[]) : [];
 
   // Only open work belongs on a todo list — drop anything done or cancelled.
@@ -175,9 +219,16 @@ export const MyTasksSection = observer(function MyTasksSection({
       <div className="rounded-[18px] border border-subtle bg-surface-1">
         {isLoading ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
-        ) : tasks.length === 0 ? (
-          <div className="px-3 py-8 text-center text-12 text-placeholder">All caught up — nothing on your list.</div>
         ) : (
+          <>
+            {tasks.length === 0
+              ? !canAdd && (
+                  <div className="px-3 py-8 text-center text-12 text-placeholder">
+                    All caught up — nothing on your list.
+                  </div>
+                )
+              : null}
+            {tasks.length > 0 && (
           <ul className="scrollbar-hide max-h-[420px] divide-y divide-subtle overflow-y-auto">
             {tasks.map((issue) => {
               const isChecked = checkingIds.has(issue.id);
@@ -242,6 +293,49 @@ export const MyTasksSection = observer(function MyTasksSection({
               );
             })}
           </ul>
+            )}
+            {canAdd && (
+              <div
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5",
+                  tasks.length > 0 && "border-t border-subtle"
+                )}
+              >
+                <span className="flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-strong text-tertiary">
+                  <Plus className="size-3" />
+                </span>
+                <input
+                  ref={newTaskInputRef}
+                  value={newTaskName}
+                  onChange={(e) => setNewTaskName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCreate();
+                    } else if (e.key === "Escape") {
+                      setNewTaskName("");
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="Add a task"
+                  className="min-w-0 flex-1 bg-transparent text-13 text-secondary outline-none placeholder:text-placeholder"
+                />
+                {isCreating && <Loader className="size-3.5 flex-shrink-0 animate-spin text-placeholder" />}
+                {joinedProjectIds.length > 1 && resolvedAddProjectId && (
+                  <div className="flex-shrink-0">
+                    <ProjectDropdown
+                      value={resolvedAddProjectId}
+                      onChange={(id) => setAddProjectId(id)}
+                      multiple={false}
+                      buttonVariant="transparent-with-text"
+                      buttonClassName="text-11 text-tertiary"
+                      dropdownArrow={false}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>
