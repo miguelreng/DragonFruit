@@ -22,7 +22,6 @@ import { UserService } from "@/services/user.service";
 import type { Route } from "./+types/layout";
 import { UserProfileHeader } from "./header";
 import { ProfileIssuesMobileHeader } from "./mobile-header";
-import { ProfileNavbar } from "./navbar";
 
 const userService = new UserService();
 
@@ -67,7 +66,6 @@ function UseProfileLayout({ params }: Route.ComponentProps) {
         />
         <ContentWrapper>
           <div className="flex h-full w-full flex-col md:overflow-hidden">
-            <ProfileNavbar isAuthorized={!!isAuthorized} />
             {isAuthorized || !isAuthorizedPath ? (
               <div className="h-full w-full overflow-hidden">
                 <Outlet />

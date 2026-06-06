@@ -137,7 +137,8 @@ export const MyTasksSection = observer(function MyTasksSection({
   });
 
   // Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent.
-  const tasks = openIssues.toSorted((a, b) => {
+  // Copy before sorting (toSorted needs es2023 lib, which this project's tsc target predates).
+  const tasks = [...openIssues].sort((a, b) => {
     const aDue = a.target_date ? (getDate(a.target_date)?.getTime() ?? Infinity) : Infinity;
     const bDue = b.target_date ? (getDate(b.target_date)?.getTime() ?? Infinity) : Infinity;
     if (aDue !== bDue) return aDue - bDue;
