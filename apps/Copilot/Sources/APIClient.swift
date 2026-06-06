@@ -37,6 +37,13 @@ struct CalendarEvent: Codable, Identifiable {
     let has_other_attendees: Bool?
 }
 
+struct CalendarServiceError: LocalizedError {
+    let statusCode: Int
+    let message: String
+
+    var errorDescription: String? { message }
+}
+
 struct WorkspaceSummary: Codable, Identifiable {
     let id: String
     let slug: String
@@ -195,7 +202,7 @@ struct APIClient {
         var request = authorizedRequest(url: url)
         request.timeoutInterval = Self.calendarReadTimeout
         let (data, response) = try await send(request, endpoint: "GET calendar-accounts", retryOnTimeout: true)
-        try ensureStatus(response, allowed: [200])
+        try ensureCalendarStatus(response, data: data, allowed: [200])
         return try JSONDecoder().decode([CalendarAccount].self, from: data)
     }
 
@@ -226,7 +233,7 @@ struct APIClient {
         }
         let request = authorizedRequest(url: url)
         let (data, response) = try await send(request, endpoint: "GET calendar events")
-        try ensureStatus(response, allowed: [200])
+        try ensureCalendarStatus(response, data: data, allowed: [200])
 
         struct EventsResponse: Codable {
             let events: [CalendarEvent]
@@ -247,7 +254,7 @@ struct APIClient {
         var request = authorizedRequest(url: url)
         request.timeoutInterval = Self.calendarReadTimeout
         let (data, response) = try await send(request, endpoint: "GET upcoming meetings", retryOnTimeout: true)
-        try ensureStatus(response, allowed: [200])
+        try ensureCalendarStatus(response, data: data, allowed: [200])
 
         struct EventsResponse: Codable {
             let events: [CalendarEvent]
@@ -527,6 +534,20 @@ struct APIClient {
             }
             throw NSError(domain: "DragonFruitNative", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: message])
         }
+    }
+
+    private func ensureCalendarStatus(_ response: URLResponse, data: Data? = nil, allowed: Set<Int>) throws {
+        guard let http = response as? HTTPURLResponse else {
+            try ensureStatus(response, data: data, allowed: allowed)
+            return
+        }
+        guard !allowed.contains(http.statusCode), [502, 503, 504].contains(http.statusCode) else {
+            try ensureStatus(response, data: data, allowed: allowed)
+            return
+        }
+
+        let message = errorMessage(from: data) ?? "Calendar sync paused. Atlas will retry shortly."
+        throw CalendarServiceError(statusCode: http.statusCode, message: message)
     }
 
     private func errorMessage(from data: Data?) -> String? {

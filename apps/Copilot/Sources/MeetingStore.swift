@@ -1736,6 +1736,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 meetingState = "Clear"
                 statusMessage = "No meetings found for the next 7 days."
             }
+        } catch let error as CalendarServiceError {
+            needsCalendarReconnect = false
+            if meeting.id == "empty" {
+                meetingState = googleConnected ? "Syncing" : "Connect"
+            }
+            statusMessage = "Calendar sync paused. Atlas will retry shortly."
+            Self.logger.error("Calendar refresh failed with status \(error.statusCode, privacy: .public): \(error.message, privacy: .public)")
         } catch {
             statusMessage = error.localizedDescription
         }

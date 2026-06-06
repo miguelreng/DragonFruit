@@ -5,6 +5,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+import requests
 from django.urls import reverse
 from rest_framework import status
 
@@ -272,3 +273,33 @@ class TestCalendarAppEndpoint:
         account.refresh_from_db()
         assert decrypt_data(account.access_token_encrypted) == "fresh-access-token"
         assert decrypt_data(account.refresh_token_encrypted) == "rotated-refresh-token"
+
+    @pytest.mark.django_db
+    def test_upcoming_meetings_returns_error_event_for_google_network_failure(
+        self, session_client, create_user, monkeypatch
+    ):
+        account = UserCalendarAccount.objects.create(
+            user=create_user,
+            provider=UserCalendarAccount.PROVIDER_GOOGLE,
+            account_email="test@plane.so",
+            primary_calendar_id="primary",
+            access_token_encrypted=encrypt_data("access-token"),
+            refresh_token_encrypted=encrypt_data("refresh-token"),
+            token_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            is_active=True,
+        )
+
+        def mock_request(method, url, params=None, json=None, headers=None, timeout=10):
+            raise requests.Timeout("calendar timeout")
+
+        monkeypatch.setattr("plane.app.views.calendar.base.requests.request", mock_request)
+
+        response = session_client.get(
+            reverse("calendar-upcoming-meetings"),
+            {"from": "2026-05-01T00:00:00Z", "to": "2026-05-08T00:00:00Z"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["events"][0]["status"] == "error"
+        assert response.data["events"][0]["account_id"] == str(account.id)
+        assert "calendar timeout" in response.data["events"][0]["description"]

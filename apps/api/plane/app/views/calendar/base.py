@@ -320,6 +320,32 @@ def _calendar_to_dict(calendar: dict) -> dict:
     }
 
 
+def _calendar_error_event(
+    *,
+    account: UserCalendarAccount,
+    time_min: str,
+    details: str,
+    calendar_id: str = "",
+    calendar_name: str = "",
+) -> dict:
+    return {
+        "id": f"error-{account.id}-{calendar_id or 'calendar'}",
+        "title": "Google Calendar needs reconnect",
+        "description": details,
+        "location": "",
+        "start": time_min,
+        "end": time_min,
+        "all_day": False,
+        "html_link": "",
+        "status": "error",
+        "account_id": str(account.id),
+        "account_email": account.account_email,
+        "calendar_id": calendar_id,
+        "calendar_name": calendar_name or account.account_email,
+        "source": "google_calendar",
+    }
+
+
 class CalendarAccountsListEndpoint(BaseAPIView):
     """List the calendar accounts the current user has connected."""
 
@@ -604,7 +630,11 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
         )
         if resp.status_code != 200:
             return Response(
-                {"error": "Failed to fetch events", "status": resp.status_code, "details": _details_from_response(resp)},
+                {
+                    "error": "Failed to fetch events",
+                    "status": resp.status_code,
+                    "details": _details_from_response(resp),
+                },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
@@ -630,13 +660,23 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
         events: list[dict] = []
 
         for account in accounts:
-            calendars_resp = _google_api_request(
-                account=account,
-                method="GET",
-                url=f"{GOOGLE_CAL_API}/users/me/calendarList",
-                params={"maxResults": 250, "minAccessRole": "reader"},
-                timeout=10,
-            )
+            try:
+                calendars_resp = _google_api_request(
+                    account=account,
+                    method="GET",
+                    url=f"{GOOGLE_CAL_API}/users/me/calendarList",
+                    params={"maxResults": 250, "minAccessRole": "reader"},
+                    timeout=10,
+                )
+            except requests.RequestException as exc:
+                events.append(
+                    _calendar_error_event(
+                        account=account,
+                        time_min=time_min,
+                        details=f"Google Calendar request failed: {exc}",
+                    )
+                )
+                continue
 
             if calendars_resp.status_code == 200:
                 calendars = [
@@ -649,37 +689,40 @@ class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
 
             for calendar in calendars:
                 calendar_id = calendar.get("id") or account.primary_calendar_id or "primary"
-                resp = _google_api_request(
-                    account=account,
-                    method="GET",
-                    url=_google_calendar_url(calendar_id, "events"),
-                    params={
-                        "timeMin": time_min,
-                        "timeMax": time_max,
-                        "singleEvents": "true",
-                        "orderBy": "startTime",
-                        "maxResults": 20,
-                    },
-                    timeout=10,
-                )
+                try:
+                    resp = _google_api_request(
+                        account=account,
+                        method="GET",
+                        url=_google_calendar_url(calendar_id, "events"),
+                        params={
+                            "timeMin": time_min,
+                            "timeMax": time_max,
+                            "singleEvents": "true",
+                            "orderBy": "startTime",
+                            "maxResults": 20,
+                        },
+                        timeout=10,
+                    )
+                except requests.RequestException as exc:
+                    events.append(
+                        _calendar_error_event(
+                            account=account,
+                            time_min=time_min,
+                            details=f"Google Calendar request failed: {exc}",
+                            calendar_id=calendar_id,
+                            calendar_name=calendar.get("summary") or account.account_email,
+                        )
+                    )
+                    continue
                 if resp.status_code != 200:
                     events.append(
-                        {
-                            "id": f"error-{account.id}",
-                            "title": "Google Calendar needs reconnect",
-                            "description": _details_from_response(resp),
-                            "location": "",
-                            "start": time_min,
-                            "end": time_min,
-                            "all_day": False,
-                            "html_link": "",
-                            "status": "error",
-                            "account_id": str(account.id),
-                            "account_email": account.account_email,
-                            "calendar_id": calendar_id,
-                            "calendar_name": calendar.get("summary") or account.account_email,
-                            "source": "google_calendar",
-                        }
+                        _calendar_error_event(
+                            account=account,
+                            time_min=time_min,
+                            details=_details_from_response(resp),
+                            calendar_id=calendar_id,
+                            calendar_name=calendar.get("summary") or account.account_email,
+                        )
                     )
                     continue
                 for raw_event in resp.json().get("items", []):
@@ -905,7 +948,11 @@ fences, no commentary) matching exactly this shape:
   ],
   "decisions": ["A concrete decision that was made", "..."],
   "next_steps": [
-    {"owner": "Person responsible or empty string", "action": "What to do", "detail": "Optional extra context or empty string"}
+    {
+      "owner": "Person responsible or empty string",
+      "action": "What to do",
+      "detail": "Optional extra context or empty string"
+    }
   ],
   "details": [
     {"topic": "Discussion topic", "body": "What was said about it, in prose."}
@@ -1002,7 +1049,9 @@ def _meeting_notes_html(
     if account_email:
         metadata.append(f"<li><strong>Calendar:</strong> {escape(account_email)}</li>")
     if meeting_url:
-        metadata.append(f'<li><strong>Join link:</strong> <a href="{escape(meeting_url)}">{escape(meeting_url)}</a></li>')
+        metadata.append(
+            f'<li><strong>Join link:</strong> <a href="{escape(meeting_url)}">{escape(meeting_url)}</a></li>'
+        )
 
     transcript_paragraphs = "".join(
         f"<p>{escape(line)}</p>" for line in notes.splitlines() if line.strip()
@@ -1128,7 +1177,9 @@ def _transcribe_meeting_audio(*, request, workspace: Workspace) -> tuple[str, st
     return "\n\n".join(parts).strip(), None
 
 
-def _upsert_google_event_for_issue(*, account: UserCalendarAccount, issue: Issue, calendar_id: str | None = None) -> str:
+def _upsert_google_event_for_issue(
+    *, account: UserCalendarAccount, issue: Issue, calendar_id: str | None = None
+) -> str:
     """Create/update a Google Calendar event for one issue and return event id."""
     calendar_id = calendar_id or account.primary_calendar_id or "primary"
     start_date = issue.start_date or issue.target_date
@@ -1273,7 +1324,11 @@ class CalendarImportGoogleEventsEndpoint(BaseAPIView):
         )
         if resp.status_code != 200:
             return Response(
-                {"error": "Failed to fetch events", "status": resp.status_code, "details": _details_from_response(resp)},
+                {
+                    "error": "Failed to fetch events",
+                    "status": resp.status_code,
+                    "details": _details_from_response(resp),
+                },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
