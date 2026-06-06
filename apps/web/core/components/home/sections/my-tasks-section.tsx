@@ -12,10 +12,11 @@ import useSWR from "swr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { PriorityIcon, YourWorkIcon } from "@plane/propel/icons";
 import type { TBaseIssue, TIssuePriorities, TIssuesResponse } from "@plane/types";
-import { cn, createIssuePayload, getDate, renderFormattedDate } from "@plane/utils";
+import { cn, createIssuePayload, getDate, renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
 import { Check, ChevronRight, Loader, Plus } from "@/components/icons/lucide-shim";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
 import { useUser } from "@/hooks/store/user";
+import { useLabel } from "@/hooks/store/use-label";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { IssueService } from "@/services/issue";
@@ -28,6 +29,92 @@ const PAGE_SIZE = 50;
 const COMPLETE_ANIMATION_MS = 320;
 
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
+
+// --- Inline natural-language parsing (Todoist/Things-style) -----------------
+// `#label` → labels, `@date` → due date, `*priority` → priority.
+const LABEL_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6"];
+const randomLabelColor = () => LABEL_COLORS[Math.floor(Math.random() * LABEL_COLORS.length)];
+
+const PRIORITY_TOKENS: Record<string, TIssuePriorities> = {
+  urgent: "urgent", u: "urgent", p1: "urgent",
+  high: "high", h: "high", p2: "high",
+  medium: "medium", med: "medium", m: "medium", p3: "medium",
+  low: "low", l: "low", p4: "low",
+};
+
+const WEEKDAYS: Record<string, number> = {
+  sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2,
+  wednesday: 3, wed: 3, thursday: 4, thu: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6,
+};
+
+/** Resolve an `@date` token (today/tomorrow/weekday/`3d`/`2w`/ISO/`M/D`) to a Date. */
+function parseDueToken(token: string): Date | undefined {
+  const t = token.toLowerCase();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const addDays = (n: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + n);
+    return d;
+  };
+  if (t === "today" || t === "tod") return today;
+  if (t === "tomorrow" || t === "tom" || t === "tmr") return addDays(1);
+  if (t in WEEKDAYS) return addDays((WEEKDAYS[t] - today.getDay() + 7) % 7 || 7);
+  const rel = /^(\d+)([dw])$/.exec(t);
+  if (rel) return addDays(rel[2] === "w" ? parseInt(rel[1], 10) * 7 : parseInt(rel[1], 10));
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
+  if (iso) {
+    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    return Number.isNaN(d.getTime()) ? undefined : d;
+  }
+  const md = /^(\d{1,2})\/(\d{1,2})$/.exec(t);
+  if (md) {
+    const month = Number(md[1]) - 1;
+    const day = Number(md[2]);
+    let d = new Date(today.getFullYear(), month, day);
+    if (Number.isNaN(d.getTime())) return undefined;
+    if (d < today) d = new Date(today.getFullYear() + 1, month, day);
+    return d;
+  }
+  return undefined;
+}
+
+type ParsedQuickInput = {
+  name: string;
+  labelNames: string[];
+  priority?: TIssuePriorities;
+  dueDate?: Date;
+};
+
+/** Strip recognized `#`/`@`/`*` tokens out of the title and return the rest. */
+function parseQuickInput(raw: string): ParsedQuickInput {
+  const labelNames: string[] = [];
+  let priority: TIssuePriorities | undefined;
+  let dueDate: Date | undefined;
+  const kept: string[] = [];
+  for (const part of raw.split(/\s+/)) {
+    if (/^#[A-Za-z][\w-]*$/.test(part)) {
+      labelNames.push(part.slice(1));
+      continue;
+    }
+    if (part.length > 1 && part.startsWith("@")) {
+      const parsed = parseDueToken(part.slice(1));
+      if (parsed) {
+        dueDate = parsed;
+        continue;
+      }
+    }
+    if (part.length > 1 && part.startsWith("*")) {
+      const parsed = PRIORITY_TOKENS[part.slice(1).toLowerCase()];
+      if (parsed) {
+        priority = parsed;
+        continue;
+      }
+    }
+    kept.push(part);
+  }
+  return { name: kept.join(" ").replace(/\s+/g, " ").trim(), labelNames, priority, dueDate };
+}
 
 const userService = new UserService();
 const issueService = new IssueService();
@@ -50,6 +137,7 @@ export const MyTasksSection = observer(function MyTasksSection({
   const { data: currentUser } = useUser();
   const { getStateById, getProjectStates, fetchWorkspaceStates, fetchProjectStates } = useProjectState();
   const { getProjectById, getProjectIdentifierById, joinedProjectIds } = useProject();
+  const { getProjectLabels, fetchProjectLabels, createLabel } = useLabel();
 
   const slug = workspaceSlug?.toString();
   const userId = userIdProp ?? currentUser?.id;
@@ -137,14 +225,44 @@ export const MyTasksSection = observer(function MyTasksSection({
     [slug, checkingIds, completedIds, resolveCompletedStateId, mutate]
   );
 
+  // Resolve `#label` names to label ids in the target project, creating any
+  // that don't exist yet (case-insensitive match).
+  const resolveLabelIds = useCallback(
+    async (projectId: string, names: string[]): Promise<string[]> => {
+      if (!slug || names.length === 0) return [];
+      let labels = getProjectLabels(projectId);
+      if (!labels) labels = await fetchProjectLabels(slug, projectId).catch(() => [] as typeof labels);
+      const ids: string[] = [];
+      for (const name of names) {
+        const existing = labels?.find((label) => label.name.toLowerCase() === name.toLowerCase());
+        if (existing) {
+          ids.push(existing.id);
+          continue;
+        }
+        try {
+          const created = await createLabel(slug, projectId, { name, color: randomLabelColor() });
+          if (created?.id) ids.push(created.id);
+        } catch {
+          // Skip a label we couldn't create rather than failing the whole task.
+        }
+      }
+      return ids;
+    },
+    [slug, getProjectLabels, fetchProjectLabels, createLabel]
+  );
+
   const handleCreate = useCallback(async () => {
-    const trimmed = newTaskName.trim();
-    if (!slug || !resolvedAddProjectId || !trimmed || isCreating) return;
+    const parsed = parseQuickInput(newTaskName);
+    if (!slug || !resolvedAddProjectId || !parsed.name || isCreating) return;
     setIsCreating(true);
     try {
+      const labelIds = await resolveLabelIds(resolvedAddProjectId, parsed.labelNames);
       const payload = createIssuePayload(resolvedAddProjectId, {
-        name: trimmed,
+        name: parsed.name,
         assignee_ids: userId ? [userId] : [],
+        ...(parsed.priority ? { priority: parsed.priority } : {}),
+        ...(parsed.dueDate ? { target_date: renderFormattedPayloadDate(parsed.dueDate) } : {}),
+        ...(labelIds.length > 0 ? { label_ids: labelIds } : {}),
       });
       const created = await issueService.createIssue(slug, resolvedAddProjectId, payload);
       // Optimistically surface the new task without a full refetch.
@@ -168,7 +286,7 @@ export const MyTasksSection = observer(function MyTasksSection({
     } finally {
       setIsCreating(false);
     }
-  }, [slug, resolvedAddProjectId, newTaskName, isCreating, userId, mutate]);
+  }, [slug, resolvedAddProjectId, newTaskName, isCreating, userId, mutate, resolveLabelIds]);
 
   const allIssues: TBaseIssue[] = Array.isArray(data?.results) ? (data!.results as TBaseIssue[]) : [];
 
@@ -193,6 +311,11 @@ export const MyTasksSection = observer(function MyTasksSection({
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
+
+  // Live preview of what the inline tokens in the add input will resolve to.
+  const inputPreview = parseQuickInput(newTaskName);
+  const hasInputPreview =
+    !!inputPreview.dueDate || !!inputPreview.priority || inputPreview.labelNames.length > 0;
 
   return (
     <section className="flex flex-col gap-2">
@@ -295,42 +418,56 @@ export const MyTasksSection = observer(function MyTasksSection({
           </ul>
             )}
             {canAdd && (
-              <div
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5",
-                  tasks.length > 0 && "border-t border-subtle"
-                )}
-              >
-                <span className="flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-strong text-tertiary">
-                  <Plus className="size-3" />
-                </span>
-                <input
-                  ref={newTaskInputRef}
-                  value={newTaskName}
-                  onChange={(e) => setNewTaskName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleCreate();
-                    } else if (e.key === "Escape") {
-                      setNewTaskName("");
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  placeholder="Add a task"
-                  className="min-w-0 flex-1 bg-transparent text-13 text-secondary outline-none placeholder:text-placeholder"
-                />
-                {isCreating && <Loader className="size-3.5 flex-shrink-0 animate-spin text-placeholder" />}
-                {joinedProjectIds.length > 1 && resolvedAddProjectId && (
-                  <div className="flex-shrink-0">
-                    <ProjectDropdown
-                      value={resolvedAddProjectId}
-                      onChange={(id) => setAddProjectId(id)}
-                      multiple={false}
-                      buttonVariant="transparent-with-text"
-                      buttonClassName="text-11 text-tertiary"
-                      dropdownArrow={false}
-                    />
+              <div className={cn("px-3 py-2.5", tasks.length > 0 && "border-t border-subtle")}>
+                <div className="flex items-center gap-3">
+                  <span className="flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-strong text-tertiary">
+                    <Plus className="size-3" />
+                  </span>
+                  <input
+                    ref={newTaskInputRef}
+                    value={newTaskName}
+                    onChange={(e) => setNewTaskName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCreate();
+                      } else if (e.key === "Escape") {
+                        setNewTaskName("");
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    placeholder="Add a task —  #label  @date  *priority"
+                    className="min-w-0 flex-1 bg-transparent text-13 text-secondary outline-none placeholder:text-placeholder"
+                  />
+                  {isCreating && <Loader className="size-3.5 flex-shrink-0 animate-spin text-placeholder" />}
+                  {joinedProjectIds.length > 1 && resolvedAddProjectId && (
+                    <div className="flex-shrink-0">
+                      <ProjectDropdown
+                        value={resolvedAddProjectId}
+                        onChange={(id) => setAddProjectId(id)}
+                        multiple={false}
+                        buttonVariant="transparent-with-text"
+                        buttonClassName="text-11 text-tertiary"
+                        dropdownArrow={false}
+                      />
+                    </div>
+                  )}
+                </div>
+                {hasInputPreview && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-[30px] text-11 text-tertiary">
+                    {inputPreview.dueDate && (
+                      <span className="rounded bg-layer-2 px-1.5 py-0.5">
+                        {renderFormattedDate(inputPreview.dueDate, "MMM d")}
+                      </span>
+                    )}
+                    {inputPreview.priority && (
+                      <span className="rounded bg-layer-2 px-1.5 py-0.5 capitalize">{inputPreview.priority}</span>
+                    )}
+                    {inputPreview.labelNames.map((labelName) => (
+                      <span key={labelName} className="rounded bg-layer-2 px-1.5 py-0.5">
+                        #{labelName}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>
