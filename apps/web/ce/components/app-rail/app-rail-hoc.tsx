@@ -50,7 +50,7 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
       return {
         label:
           item.key === "your_work"
-            ? "On my plate"
+            ? "My tasks"
             : item.key === "whiteboards"
               ? "Whiteboard"
               : t(item.labelTranslationKey),

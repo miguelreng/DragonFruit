@@ -56,7 +56,7 @@ export const ProfileIssuesPage = observer(function ProfileIssuesPage(props: Prop
         NOTE: switched from WorkspaceLevelWorkItemFiltersHOC to the base
         WorkItemFiltersHOC when workspace-views was removed. The save-view
         controls that the workspace-level wrapper added don't apply to
-        profile (On my plate) — only the filter UI itself.
+        profile (My tasks) — only the filter UI itself.
       */}
       <WorkItemFiltersHOC
         entityId={userId?.toString() ?? ""}

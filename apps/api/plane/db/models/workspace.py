@@ -401,12 +401,15 @@ class WorkspaceHomePreference(BaseModel):
     class HomeWidgetKeys(models.TextChoices):
         # New section-based home page (drag-and-drop reorderable).
         INBOX = "inbox", "Inbox"
-        ON_MY_PLATE = "on_my_plate", "On my plate"
+        MY_TASKS = "my_tasks", "My tasks"
         FAVORITES = "favorites", "Favorites"
         AGENT_COST = "agent_cost", "Agent cost"
         # Legacy widget keys — left in place so existing rows still
         # resolve to a valid choice, but no longer seeded by the GET
-        # handler.
+        # handler. `on_my_plate` was the pre-rename key for "my_tasks";
+        # the data migration renames existing rows, this stays for
+        # back-compat during rollout.
+        ON_MY_PLATE = "on_my_plate", "On my plate"
         QUICK_LINKS = "quick_links", "Quick Links"
         RECENTS = "recents", "Recents"
         MY_STICKIES = "my_stickies", "My Stickies"
@@ -454,7 +457,7 @@ class WorkspaceUserPreference(BaseModel):
         ACTIVE_CYCLES = "active_cycles", "Active Cycles"
         ANALYTICS = "analytics", "Analytics"
         DRAFTS = "drafts", "Drafts"
-        YOUR_WORK = "your_work", "On my plate"
+        YOUR_WORK = "your_work", "My tasks"
         ARCHIVES = "archives", "Archives"
         STICKIES = "stickies", "Stickies"
 

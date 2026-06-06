@@ -12,6 +12,7 @@ import {
   BriefcaseIcon,
   Calendar01Icon,
   ChartBarLineIcon,
+  CheckListIcon,
   File02Icon,
   Home01Icon,
   InboxIcon,
@@ -19,7 +20,6 @@ import {
   PencilEdit01Icon,
   RepeatIcon,
   StickyNote02Icon,
-  UserAdd01Icon,
 } from "@hugeicons/core-free-icons";
 import { cn } from "@plane/utils";
 
@@ -41,7 +41,7 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
     case "analytics":
       return <SidebarNavIcon icon={ChartBarLineIcon} className={cls} />;
     case "your_work":
-      return <SidebarNavIcon icon={UserAdd01Icon} className={cls} />;
+      return <SidebarNavIcon icon={CheckListIcon} className={cls} />;
     case "drafts":
       return <SidebarNavIcon icon={PencilEdit01Icon} className={cls} />;
     case "archives":
