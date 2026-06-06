@@ -47,7 +47,7 @@ const WEEKDAYS: Record<string, number> = {
   wednesday: 3, wed: 3, thursday: 4, thu: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6,
 };
 
-/** Resolve an `@date` token (today/tomorrow/weekday/`3d`/`2w`/ISO/`M/D`) to a Date. */
+/** Resolve an `@date` token (today/tomorrow/eod/eow/weekday/`3d`/`2w`/ISO/`M/D`) to a Date. */
 function parseDueToken(token: string): Date | undefined {
   const t = token.toLowerCase();
   const today = new Date();
@@ -57,8 +57,10 @@ function parseDueToken(token: string): Date | undefined {
     d.setDate(d.getDate() + n);
     return d;
   };
-  if (t === "today" || t === "tod") return today;
+  if (t === "today" || t === "tod" || t === "eod") return today;
   if (t === "tomorrow" || t === "tom" || t === "tmr") return addDays(1);
+  // End of week → this week's upcoming Friday (or today if it's Friday).
+  if (t === "eow") return addDays((5 - today.getDay() + 7) % 7);
   if (t in WEEKDAYS) return addDays((WEEKDAYS[t] - today.getDay() + 7) % 7 || 7);
   const rel = /^(\d+)([dw])$/.exec(t);
   if (rel) return addDays(rel[2] === "w" ? parseInt(rel[1], 10) * 7 : parseInt(rel[1], 10));
@@ -92,19 +94,36 @@ function parseQuickInput(raw: string): ParsedQuickInput {
   let priority: TIssuePriorities | undefined;
   let dueDate: Date | undefined;
   const kept: string[] = [];
-  for (const part of raw.split(/\s+/)) {
+  const parts = raw.split(/\s+/);
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
     if (/^#[A-Za-z][\w-]*$/.test(part)) {
       labelNames.push(part.slice(1));
       continue;
     }
     if (part.length > 1 && part.startsWith("@")) {
-      const parsed = parseDueToken(part.slice(1));
+      const head = part.slice(1).toLowerCase();
+      // Multi-word: "@next monday" / "@this fri" consumes the following token.
+      if ((head === "next" || head === "this") && i + 1 < parts.length) {
+        const parsed = parseDueToken(parts[i + 1]);
+        if (parsed) {
+          dueDate = parsed;
+          i += 1;
+          continue;
+        }
+      }
+      const parsed = parseDueToken(head);
       if (parsed) {
         dueDate = parsed;
         continue;
       }
     }
-    if (part.length > 1 && part.startsWith("*")) {
+    if (part.startsWith("*")) {
+      // Bare asterisks: "*" → high, "**"+ → urgent. Or "*high" / "*p2" keywords.
+      if (/^\*+$/.test(part)) {
+        priority = part.length >= 2 ? "urgent" : "high";
+        continue;
+      }
       const parsed = PRIORITY_TOKENS[part.slice(1).toLowerCase()];
       if (parsed) {
         priority = parsed;
@@ -137,7 +156,7 @@ export const MyTasksSection = observer(function MyTasksSection({
   const { data: currentUser } = useUser();
   const { getStateById, getProjectStates, fetchWorkspaceStates, fetchProjectStates } = useProjectState();
   const { getProjectById, getProjectIdentifierById, joinedProjectIds } = useProject();
-  const { getProjectLabels, fetchProjectLabels, createLabel } = useLabel();
+  const { getProjectLabels, fetchProjectLabels, createLabel, getWorkspaceLabels, fetchWorkspaceLabels } = useLabel();
 
   const slug = workspaceSlug?.toString();
   const userId = userIdProp ?? currentUser?.id;
@@ -176,6 +195,14 @@ export const MyTasksSection = observer(function MyTasksSection({
   useEffect(() => {
     if (slug) fetchWorkspaceStates(slug).catch(() => {});
   }, [slug, fetchWorkspaceStates]);
+
+  // Load workspace labels so we can render label chips on each task row.
+  useEffect(() => {
+    if (slug) fetchWorkspaceLabels(slug).catch(() => {});
+  }, [slug, fetchWorkspaceLabels]);
+
+  // id → label lookup for rendering chips (labels are workspace-wide here).
+  const labelById = new Map((slug ? (getWorkspaceLabels(slug) ?? []) : []).map((label) => [label.id, label]));
 
   const resolveCompletedStateId = useCallback(
     async (projectId: string): Promise<string | undefined> => {
@@ -363,6 +390,8 @@ export const MyTasksSection = observer(function MyTasksSection({
               const isOverdue = !!dueDate && dueDate < todayStart;
               const priority = (issue.priority ?? "none") as TIssuePriorities | "none";
               const showPriority = priority === "urgent" || priority === "high";
+              const labels = (issue.label_ids ?? []).map((id) => labelById.get(id)).filter(Boolean);
+              const hasSubtitle = !!project?.name || !!dueLabel || labels.length > 0;
 
               return (
                 <li key={issue.id}>
@@ -398,13 +427,25 @@ export const MyTasksSection = observer(function MyTasksSection({
                       >
                         {issue.name}
                       </span>
-                      {(project?.name || dueLabel) && (
-                        <span className="mt-0.5 flex items-center gap-1.5 text-11 text-placeholder">
+                      {hasSubtitle && (
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-11 text-placeholder">
                           {project?.name && <span className="truncate">{project.name}</span>}
                           {project?.name && dueLabel && <span aria-hidden>·</span>}
                           {dueLabel && (
                             <span className={cn("flex-shrink-0", isOverdue && "text-danger-primary")}>{dueLabel}</span>
                           )}
+                          {labels.map((label) => (
+                            <span
+                              key={label!.id}
+                              className="inline-flex flex-shrink-0 items-center gap-1 rounded bg-layer-2 px-1.5 py-px text-tertiary"
+                            >
+                              <span
+                                className="size-1.5 rounded-full"
+                                style={{ backgroundColor: label!.color || "#9ca3af" }}
+                              />
+                              {label!.name}
+                            </span>
+                          ))}
                         </span>
                       )}
                     </Link>
