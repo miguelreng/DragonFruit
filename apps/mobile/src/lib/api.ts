@@ -456,12 +456,21 @@ export function deleteSticky(workspaceSlug: string, id: string): Promise<void> {
 // Bookmarks — saved links across the workspace.
 // ---------------------------------------------------------------------------
 
+export type BookmarkMetadata = {
+  image_url?: string;
+  og_image_url?: string;
+  image_width?: number;
+  image_height?: number;
+  site_name?: string;
+};
+
 export type Bookmark = {
   id: string;
   title: string;
   url: string;
   description?: string;
   project_id?: string;
+  metadata?: BookmarkMetadata;
 };
 
 export async function getBookmarks(workspaceSlug: string): Promise<Bookmark[]> {

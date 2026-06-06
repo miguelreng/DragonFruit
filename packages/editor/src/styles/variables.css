@@ -117,14 +117,14 @@
   &.font-default {
     --font-style: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-style-display: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
-    --font-style-display-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-      sans-serif;
+    --font-style-display-sans:
+      "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   &.font-figtree {
     --font-style: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-style-display: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --font-style-display-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-      sans-serif;
+    --font-style-display-sans:
+      "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   &.font-newsreader {
     --font-style: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;

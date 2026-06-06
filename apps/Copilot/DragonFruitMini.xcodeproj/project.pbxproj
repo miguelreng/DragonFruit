@@ -23,6 +23,7 @@
 		C11111111111111111111111 /* logo.svg in Resources */ = {isa = PBXBuildFile; fileRef = C22222222222222222222222 /* logo.svg */; };
 		C33333333333333333333333 /* Newsreader-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C44444444444444444444444 /* Newsreader-Variable.ttf */; };
 		C55555555555555555555555 /* Newsreader-Italic-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C66666666666666666666666 /* Newsreader-Italic-Variable.ttf */; };
+		D1C01A01D1C01A01D1C01A01 /* AtlasIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C01A02D1C01A02D1C01A02 /* AtlasIcons.swift */; };
 		E58AAD9ECAD2715B24ED024C /* Figtree-Italic-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 214DFB6B0E078E8A48EC8B62 /* Figtree-Italic-Variable.ttf */; };
 		EE6671AF86A63012AD284866 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B04CD6FAED4D3BFBB42E3F /* Cocoa.framework */; };
 		F198E166AA247FD55AD7E659 /* Figtree-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 651B4B6B23FAB0DE26FAB0D6 /* Figtree-Variable.ttf */; };
@@ -50,6 +51,7 @@
 		C22222222222222222222222 /* logo.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = logo.svg; path = Resources/logo.svg; sourceTree = "<group>"; };
 		C44444444444444444444444 /* Newsreader-Variable.ttf */ = {isa = PBXFileReference; includeInIndex = 1; name = "Newsreader-Variable.ttf"; path = "Resources/Fonts/Newsreader-Variable.ttf"; sourceTree = "<group>"; };
 		C66666666666666666666666 /* Newsreader-Italic-Variable.ttf */ = {isa = PBXFileReference; includeInIndex = 1; name = "Newsreader-Italic-Variable.ttf"; path = "Resources/Fonts/Newsreader-Italic-Variable.ttf"; sourceTree = "<group>"; };
+		D1C01A02D1C01A02D1C01A02 /* AtlasIcons.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AtlasIcons.swift; path = Sources/AtlasIcons.swift; sourceTree = "<group>"; };
 		E06D59E36CF901D0B7D7D1F7 /* BrandTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BrandTheme.swift; path = Sources/BrandTheme.swift; sourceTree = "<group>"; };
 		E9FE87AD39CD1B7DFD71E943 /* KeychainStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KeychainStore.swift; path = Sources/KeychainStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -87,6 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				7B45BE7E39368D6CF23462F3 /* APIClient.swift */,
+				D1C01A02D1C01A02D1C01A02 /* AtlasIcons.swift */,
 				3B84AE484ECA88FD34BA5FAF /* MeetingPopoverView.swift */,
 				E06D59E36CF901D0B7D7D1F7 /* BrandTheme.swift */,
 				524259350CB3D5744DA747A2 /* DragonFruitMiniApp.swift */,
@@ -223,6 +226,7 @@
 				B84006C53657D2C4554A2C72 /* DragonFruitMiniApp.swift in Sources */,
 				A0FA574165E93ABF1AA26DF8 /* MeetingStore.swift in Sources */,
 				FA9FE80C9FF2B5CD517F12E5 /* KeychainStore.swift in Sources */,
+				D1C01A01D1C01A01D1C01A01 /* AtlasIcons.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -5,7 +5,7 @@
  */
 
 import { useMemo, useCallback } from "react";
-import { PenTool, Star } from "@/components/icons/lucide-shim";
+import { FileText, PenTool, Star } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@plane/propel/icons";
@@ -33,6 +33,16 @@ export const useNavigationItems = ({
   // Base navigation items
   const baseNavigation = useCallback(
     (): TNavigationItem[] => [
+      {
+        i18n_key: "sidebar.brief",
+        key: "brief",
+        name: "Brief",
+        href: `/${workspaceSlug}/projects/${projectId}/brief`,
+        icon: FileText,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: true,
+        sortOrder: 0,
+      },
       {
         i18n_key: "sidebar.work_items",
         key: "work_items",

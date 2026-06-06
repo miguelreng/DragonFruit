@@ -29,7 +29,7 @@ import {
   type AgentMessage,
 } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import { colors, font, radius, spacing } from "@/lib/theme";
+import { colors, font, radius, shadow, spacing } from "@/lib/theme";
 
 let tempCounter = 0;
 const tempId = () => `temp-${++tempCounter}`;
@@ -39,9 +39,9 @@ const tempId = () => `temp-${++tempCounter}`;
 const FADE_SOLID = colors.canvas;
 const FADE_CLEAR = "rgba(244, 245, 245, 0)";
 
-// Resting height matches the send button (16 + 20 line-height + 16). The field
-// grows with content up to the max, then scrolls.
-const INPUT_MIN_HEIGHT = 52;
+// Resting height matches the send button (14 + 20 line-height + 14 = 48). The
+// field grows with content up to the max, then scrolls.
+const INPUT_MIN_HEIGHT = 48;
 const INPUT_MAX_HEIGHT = 120;
 
 /**
@@ -62,6 +62,7 @@ export function AtlasChat({ onClose }: { onClose?: () => void } = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const [focused, setFocused] = useState(false);
   const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -124,11 +125,7 @@ export function AtlasChat({ onClose }: { onClose?: () => void } = {}) {
     setMessages((prev) => [...prev, optimistic]);
     try {
       const res = await sendAgentMessage(workspaceSlug, sessionId, text);
-      setMessages((prev) => [
-        ...prev.filter((m) => m.id !== optimistic.id),
-        res.user_message,
-        res.assistant_message,
-      ]);
+      setMessages((prev) => [...prev.filter((m) => m.id !== optimistic.id), res.user_message, res.assistant_message]);
     } catch (err) {
       if (isAuthError(err)) {
         await signOut();
@@ -178,9 +175,7 @@ export function AtlasChat({ onClose }: { onClose?: () => void } = {}) {
                     <AppIcon icon={SparklesIcon} size={26} color={colors.brand} strokeWidth={1.9} />
                   </View>
                   <Text style={styles.introTitle}>Ask Atlas anything</Text>
-                  <Text style={styles.introSub}>
-                    Summarize an issue, draft an update, or ask about your projects.
-                  </Text>
+                  <Text style={styles.introSub}>Summarize an issue, draft an update, or ask about your projects.</Text>
                 </View>
               ) : (
                 messages.map((m) => {
@@ -221,6 +216,8 @@ export function AtlasChat({ onClose }: { onClose?: () => void } = {}) {
               <TextInput
                 value={input}
                 onChangeText={setInput}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
                 placeholder="Message Atlas…"
                 placeholderTextColor={colors.textPlaceholder}
                 multiline
@@ -228,7 +225,10 @@ export function AtlasChat({ onClose }: { onClose?: () => void } = {}) {
                   const h = e.nativeEvent.contentSize.height;
                   setInputHeight(Math.min(INPUT_MAX_HEIGHT, Math.max(INPUT_MIN_HEIGHT, h)));
                 }}
-                style={[styles.input, { height: inputHeight }]}
+                style={[
+                  styles.input,
+                  { height: inputHeight, borderColor: focused ? colors.accentPrimary : colors.borderStrong },
+                ]}
                 accessibilityLabel="Message Atlas"
               />
               <Pressable
@@ -238,11 +238,20 @@ export function AtlasChat({ onClose }: { onClose?: () => void } = {}) {
                 accessibilityLabel="Send message"
                 style={({ pressed }) => [
                   styles.sendBtn,
+                  input.trim().length === 0 && !sending && styles.sendBtnDisabled,
                   pressed && styles.sendBtnPressed,
-                  (sending || input.trim().length === 0) && styles.sendBtnDisabled,
                 ]}
               >
-                <AppIcon icon={SentIcon} size={18} color={colors.white} strokeWidth={1.9} />
+                {sending ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <AppIcon
+                    icon={SentIcon}
+                    size={20}
+                    color={input.trim().length === 0 ? colors.textTertiary : colors.white}
+                    strokeWidth={1.9}
+                  />
+                )}
               </Pressable>
             </View>
           </View>
@@ -256,7 +265,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvas },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  errorText: { marginTop: 40, textAlign: "center", fontSize: font.size.sm, color: colors.muted, fontFamily: "Figtree_400Regular" },
+  errorText: {
+    marginTop: 40,
+    textAlign: "center",
+    fontSize: font.size.sm,
+    color: colors.muted,
+    fontFamily: "Figtree_400Regular",
+  },
   scrollArea: { flex: 1 },
   scroll: { paddingHorizontal: 20, paddingTop: spacing.md, paddingBottom: spacing.md, gap: spacing.xl },
   intro: { alignItems: "center", paddingTop: 56, paddingHorizontal: 24 },
@@ -270,7 +285,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   introTitle: { fontSize: font.size.lg, color: colors.ink, fontFamily: "Figtree_600SemiBold" },
-  introSub: { marginTop: spacing.xs, textAlign: "center", fontSize: font.size.sm, lineHeight: 20, color: colors.muted, fontFamily: "Figtree_400Regular" },
+  introSub: {
+    marginTop: spacing.xs,
+    textAlign: "center",
+    fontSize: font.size.sm,
+    lineHeight: 20,
+    color: colors.muted,
+    fontFamily: "Figtree_400Regular",
+  },
   bubbleRow: { flexDirection: "row" },
   rowUser: { justifyContent: "flex-end" },
   rowAssistant: { justifyContent: "flex-start" },
@@ -299,48 +321,52 @@ const styles = StyleSheet.create({
   topFade: { position: "absolute", top: 0, left: 0, right: 0, height: 32 },
   bottomFade: { position: "absolute", bottom: 0, left: 0, right: 0, height: 48 },
   composerSafe: { backgroundColor: colors.canvas },
-  composerRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm },
+  composerRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
   input: {
     flex: 1,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
     borderWidth: 1,
+    // borderColor is overridden inline so it can shift to the accent on focus.
     borderColor: colors.borderStrong,
     paddingHorizontal: spacing.lg,
     // Symmetric vertical padding + matched lineHeight keeps the text vertically
     // centered; the field's height is driven by onContentSizeChange so it hugs
     // a single line at rest and grows with content (see INPUT_MIN/MAX_HEIGHT).
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
     fontSize: font.size.sm,
     lineHeight: 20,
     textAlignVertical: "center",
     includeFontPadding: false,
     color: colors.ink,
     fontFamily: "Figtree_400Regular",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    ...shadow.card,
   },
   sendBtn: {
-    height: 52,
-    width: 52,
+    height: 48,
+    width: 48,
     borderRadius: radius.pill,
     backgroundColor: colors.accentPrimary,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentPrimaryHover,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
+    // Brand-tinted lift so the primary action reads as elevated; toned off in
+    // the empty/disabled state below.
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  sendBtnPressed: { backgroundColor: colors.accentPrimaryHover },
-  sendBtnDisabled: { opacity: 0.4 },
+  sendBtnPressed: { backgroundColor: colors.accentPrimaryActive },
+  sendBtnDisabled: { backgroundColor: colors.layer1Active, shadowOpacity: 0, elevation: 0 },
 });
 
 // Markdown rendering for assistant bubbles — mapped to the app's theme.
@@ -348,9 +374,30 @@ const styles = StyleSheet.create({
 const markdownStyles = StyleSheet.create({
   body: { fontSize: font.size.sm, lineHeight: 21, color: colors.ink, fontFamily: "Figtree_400Regular" },
   paragraph: { marginTop: 0, marginBottom: spacing.sm },
-  heading1: { fontSize: font.size.lg, lineHeight: 26, color: colors.ink, fontFamily: "Figtree_600SemiBold", marginTop: spacing.xs, marginBottom: spacing.xs },
-  heading2: { fontSize: font.size.md, lineHeight: 24, color: colors.ink, fontFamily: "Figtree_600SemiBold", marginTop: spacing.xs, marginBottom: spacing.xs },
-  heading3: { fontSize: font.size.sm, lineHeight: 22, color: colors.ink, fontFamily: "Figtree_600SemiBold", marginTop: spacing.xs, marginBottom: spacing.xs },
+  heading1: {
+    fontSize: font.size.lg,
+    lineHeight: 26,
+    color: colors.ink,
+    fontFamily: "Figtree_600SemiBold",
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  heading2: {
+    fontSize: font.size.md,
+    lineHeight: 24,
+    color: colors.ink,
+    fontFamily: "Figtree_600SemiBold",
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  heading3: {
+    fontSize: font.size.sm,
+    lineHeight: 22,
+    color: colors.ink,
+    fontFamily: "Figtree_600SemiBold",
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
   strong: { fontFamily: "Figtree_600SemiBold" },
   em: { fontStyle: "italic" },
   link: { color: colors.brand, textDecorationLine: "underline" },

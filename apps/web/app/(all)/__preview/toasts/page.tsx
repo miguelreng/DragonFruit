@@ -3,355 +3,389 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  *
- * Dev-only preview of the toast system — no auth. Trigger every toast
- * type from here to see the top-right placement and styling in context,
- * and compare the candidate style directions side by side.
+ * Notification source-of-truth preview.
  *
  * Route: /__preview/toasts
  */
 
 import type { ReactNode } from "react";
-import { AlertTriangle, CircleCheck, Info, X } from "@plane/icons";
 import { Button } from "@plane/propel/button";
 import { ToastStatic, setPromiseToast, setToast, TOAST_TYPE, updateToast } from "@plane/propel/toast";
 import { cn } from "@plane/utils";
 
-// ---------------------------------------------------------------------------
-// Per-type presentation for the static style mockups below. Colors come from
-// the raw palette so the saturated fills/glows read on a dark stage; we use
-// the real toast types (no separate blue/orange palette in the system).
-// ---------------------------------------------------------------------------
-const toneVar = (base: string, step: number) => `var(--${base}-${step})`;
+const NOTIFICATION_SPEC = [
+  ["Width", "360px"],
+  ["Corner radius", "16px"],
+  ["Placement", "Top right, 12px inset"],
+  ["Icon", "22px filled status badge"],
+  ["Content", "14px title, 13px message"],
+  ["CTA", "Quiet bordered pill"],
+  ["Close", "Top-right hover control"],
+] as const;
 
-const PALETTE = {
-  success: {
-    base: "green",
-    Icon: CircleCheck,
-    title: "Success toast",
-    desc: "Notification description will be here",
-    label: "Success",
-    line: "Workspace deleted successfully. All associated data has been permanently removed.",
+const WEB_EXAMPLES = [
+  {
+    type: TOAST_TYPE.SUCCESS,
+    title: "Action created",
+    message: "Open it in Atlas when you are ready.",
+    action: "View",
   },
-  error: {
-    base: "red",
-    Icon: AlertTriangle,
-    title: "Error toast",
-    desc: "Notification description will be here",
-    label: "Warning",
-    line: "This action cannot be undone. Any test, config, insights, and more will be permanently lost.",
+  {
+    type: TOAST_TYPE.INFO,
+    title: "Meeting starts soon",
+    message: "Design sync begins in 5 minutes.",
+    action: "Join",
   },
-  warning: {
-    base: "amber",
-    Icon: AlertTriangle,
-    title: "Warning toast",
-    desc: "Proceed with caution",
-    label: "Warning",
-    line: "This action is irreversible. Deleting a workspace will permanently remove all its data.",
+  {
+    type: TOAST_TYPE.WARNING,
+    title: "Recording paused",
+    message: "Audio input is temporarily unavailable.",
   },
-  info: {
-    base: "brand",
-    Icon: Info,
-    title: "Info toast",
-    desc: "A new version is available",
-    label: "Info",
-    line: "Workspace deletion scheduled. You can cancel this action from settings within 24 hours.",
+  {
+    type: TOAST_TYPE.ERROR,
+    title: "Could not create action",
+    message: "Check your connection and try again.",
   },
-  neutral: {
-    base: "neutral",
-    Icon: Info,
-    title: "Neutral toast",
-    desc: "It's a default notification state",
-    label: "Neutral",
-    line: "It's a default notification state.",
+  {
+    type: TOAST_TYPE.LOADING,
+    title: "Creating action...",
   },
-} as const;
+] as const;
 
-type TypeKey = keyof typeof PALETTE;
+const CHROME_EXAMPLES = [
+  {
+    state: "success",
+    title: "Added to Atlas",
+    message: "This page was saved as an action.",
+    action: "View",
+  },
+  {
+    state: "loading",
+    title: "Creating action...",
+    message: "",
+  },
+  {
+    state: "error",
+    title: "Connect your DragonFruit account",
+    message: "Sign in before saving from Chrome.",
+  },
+] as const;
 
-/** Style 1 — dark card, a single colored mark, an optional action pill (your image 1). */
-function ActionPillToast({ typeKey, action, solid }: { typeKey: TypeKey; action: string; solid?: boolean }) {
-  const m = PALETTE[typeKey];
-  const { Icon } = m;
-  return (
-    <div className="flex w-full items-center gap-3.5 rounded-2xl border border-subtle bg-surface-2 px-4 py-3.5">
-      <Icon width={26} height={26} strokeWidth={2.25} className="shrink-0 text-white" style={{ fill: toneVar(m.base, 500) }} />
-      <div className="min-w-0 flex-1">
-        <div className="text-body-sm-semibold text-primary">{m.title}</div>
-        <div className="text-body-xs-regular text-tertiary">{m.desc}</div>
-      </div>
-      <button
-        type="button"
-        className={cn(
-          "shrink-0 rounded-full px-3.5 py-1.5 text-body-xs-semibold transition-colors",
-          solid ? "bg-white text-black hover:bg-white/90" : "bg-white/10 text-white/90 hover:bg-white/15"
-        )}
-      >
-        {action}
-      </button>
-    </div>
-  );
-}
-
-/** Style 2 — a bright rail with a soft type-colored halo (your image 2). */
-function GlowToast({ typeKey }: { typeKey: TypeKey }) {
-  const m = PALETTE[typeKey];
-  const c = toneVar(m.base, 500);
-  return (
-    <div
-      className="relative w-full overflow-hidden rounded-xl border px-4 py-3.5"
-      style={{
-        background: "rgba(255,255,255,0.03)",
-        borderColor: `color-mix(in oklch, ${c} 32%, transparent)`,
-        boxShadow: `0 0 30px -10px color-mix(in oklch, ${c} 70%, transparent)`,
-      }}
-    >
-      <span
-        aria-hidden
-        className="absolute top-3.5 bottom-3.5 left-3.5 w-[3px] rounded-full"
-        style={{ background: c, boxShadow: `0 0 8px ${c}` }}
-      />
-      <p className="pl-6 text-body-sm-regular leading-relaxed text-white/65">
-        <span className="font-semibold text-white">{m.label}:</span> {m.line}
-      </p>
-    </div>
-  );
-}
-
-/** Style 3 — saturated solid fill with a dark glyph chip (your image 3). */
-function SolidToast({ typeKey }: { typeKey: TypeKey }) {
-  const m = PALETTE[typeKey];
-  const { Icon } = m;
-  return (
-    <div className="flex w-full items-center gap-3 rounded-2xl px-3.5 py-3" style={{ background: toneVar(m.base, 500) }}>
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-black/20">
-        <Icon width={20} height={20} strokeWidth={2.25} className="text-white" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="text-body-sm-semibold text-black">{m.title}</div>
-        <div className="text-body-xs-regular text-black/65">{m.desc}</div>
-      </div>
-      <X width={18} height={18} className="shrink-0 text-black/55" />
-    </div>
-  );
-}
-
-/** Dark backdrop so the glow/contrast reads the way it does in the reference mocks. */
-function DarkStage({ children }: { children: ReactNode }) {
-  return (
-    <div data-theme="dark" className="flex flex-col gap-3 rounded-2xl bg-surface-1 p-6">
-      {children}
-    </div>
-  );
-}
-
-function StyleBlock({ name, note, tag, children }: { name: string; note: string; tag?: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <span className="text-body-sm-semibold text-primary">{name}</span>
-        {tag && (
-          <span className="rounded-full bg-accent-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-accent-primary">
-            {tag}
-          </span>
-        )}
-      </div>
-      {children}
-      <p className="text-body-xs-regular text-tertiary">{note}</p>
-    </div>
-  );
-}
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-0.5">
-        <h2 className="text-body-sm-semibold text-primary">{title}</h2>
-        {subtitle && <p className="max-w-[70ch] text-body-xs-regular text-tertiary">{subtitle}</p>}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Live triggers — these fire real toasts into the top-right viewport.
-// ---------------------------------------------------------------------------
 function fakeRequest(ms: number, shouldReject = false) {
   return new Promise<{ name: string }>((resolve, reject) => {
-    setTimeout(() => (shouldReject ? reject(new Error("failed")) : resolve({ name: "Report.pdf" })), ms);
+    setTimeout(() => {
+      if (shouldReject) {
+        reject(new Error("failed"));
+        return;
+      }
+      resolve({ name: "Action" });
+    }, ms);
   });
 }
 
 const LIVE_TRIGGERS: { label: string; run: () => void }[] = [
   {
     label: "Success",
-    run: () => setToast({ type: TOAST_TYPE.SUCCESS, title: "Changes saved", message: "Your document is up to date." }),
+    run: () =>
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Action created",
+        message: "Open it in Atlas when you are ready.",
+      }),
+  },
+  {
+    label: "Meeting",
+    run: () =>
+      setToast({
+        type: TOAST_TYPE.INFO,
+        title: "Meeting starts soon",
+        message: "Design sync begins in 5 minutes.",
+        actionItems: <button type="button">Join</button>,
+      }),
   },
   {
     label: "Error",
     run: () =>
-      setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't save", message: "Something went wrong. Please try again." }),
-  },
-  {
-    label: "Warning",
-    run: () =>
-      setToast({ type: TOAST_TYPE.WARNING, title: "Unsaved changes", message: "Leaving now will discard your edits." }),
-  },
-  {
-    label: "Info",
-    run: () => setToast({ type: TOAST_TYPE.INFO, title: "Heads up", message: "A new version is available." }),
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Could not create action",
+        message: "Check your connection and try again.",
+      }),
   },
   {
     label: "Loading",
-    run: () => setToast({ type: TOAST_TYPE.LOADING, title: "Syncing your workspace…" }),
+    run: () => setToast({ type: TOAST_TYPE.LOADING, title: "Creating action..." }),
   },
   {
-    label: "With action",
+    label: "With CTA",
     run: () =>
       setToast({
         type: TOAST_TYPE.SUCCESS,
-        title: "Item archived",
-        message: "You can still find it in the archive.",
-        // No styling here — the toast renders simple actions as a pill by default.
-        actionItems: (
-          <button type="button" onClick={() => setToast({ type: TOAST_TYPE.INFO, title: "Restored" })}>
-            Undo
-          </button>
-        ),
+        title: "Added to Atlas",
+        message: "This page was saved as an action.",
+        actionItems: <button type="button">View</button>,
       }),
   },
 ];
 
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-body-sm-semibold text-primary">{title}</h2>
+        {subtitle && <p className="max-w-[72ch] text-body-xs-regular text-tertiary">{subtitle}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function SpecList() {
+  return (
+    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      {NOTIFICATION_SPEC.map(([label, value]) => (
+        <div key={label} className="rounded-lg border border-subtle bg-surface-1 px-3 py-2">
+          <div className="text-[11px] leading-4 font-medium text-placeholder">{label}</div>
+          <div className="text-body-xs-medium text-secondary">{value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WebToastColumn({ theme }: { theme: "light" | "dark" }) {
+  return (
+    <div data-theme={theme} className="flex min-w-0 flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-body-xs-medium text-placeholder capitalize">{theme}</span>
+        <span className="text-[11px] font-medium text-tertiary">Web app</span>
+      </div>
+      <div className="flex flex-col gap-3">
+        {WEB_EXAMPLES.map((example) => (
+          <ToastStatic
+            key={`${theme}-${example.title}`}
+            theme={theme}
+            type={example.type}
+            title={example.title}
+            message={"message" in example ? example.message : undefined}
+            actionItems={"action" in example ? <button type="button">{example.action}</button> : undefined}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChromeStatusIcon({ state }: { state: "success" | "loading" | "error" }) {
+  if (state === "loading") {
+    return (
+      <svg className="size-[22px] shrink-0 text-tertiary" viewBox="0 0 24 24" aria-hidden="true">
+        <g>
+          <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.14" />
+          <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.29" transform="rotate(30 12 12)" />
+          <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.43" transform="rotate(60 12 12)" />
+          <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.57" transform="rotate(90 12 12)" />
+          <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.71" transform="rotate(120 12 12)" />
+          <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.86" transform="rotate(150 12 12)" />
+          <rect width="2" height="5" x="11" y="1" fill="currentColor" transform="rotate(180 12 12)" />
+          <animateTransform
+            attributeName="transform"
+            calcMode="discrete"
+            dur="0.75s"
+            repeatCount="indefinite"
+            type="rotate"
+            values="0 12 12;30 12 12;60 12 12;90 12 12;120 12 12;150 12 12;180 12 12;210 12 12;240 12 12;270 12 12;300 12 12;330 12 12;360 12 12"
+          />
+        </g>
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      className="size-[22px] shrink-0 text-white"
+      viewBox="0 0 24 24"
+      fill={state === "success" ? "var(--bg-success-primary)" : "var(--bg-danger-primary)"}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {state === "success" ? (
+        <>
+          <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+          <path d="m9 12 2 2 4-4" fill="none" />
+        </>
+      ) : (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" x2="12" y1="8" y2="12" />
+          <line x1="12" x2="12.01" y1="16" y2="16" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function ChromeExtensionToast({
+  title,
+  message,
+  state,
+  action,
+  theme,
+}: {
+  title: string;
+  message?: string;
+  state: "success" | "loading" | "error";
+  action?: string;
+  theme: "light" | "dark";
+}) {
+  return (
+    <div data-theme={theme} className="w-[360px] max-w-full">
+      <div
+        className={cn(
+          "group relative flex h-[68px] w-full items-center gap-3 overflow-hidden rounded-2xl border border-subtle-1 bg-surface-1",
+          "px-3.5 py-3.5 pr-9 shadow-overlay-200"
+        )}
+      >
+        <ChromeStatusIcon state={state} />
+        <div className="min-w-0 flex-1">
+          <div className="text-body-sm-semibold text-primary">{title}</div>
+          {message && <div className="truncate text-body-xs-regular text-tertiary">{message}</div>}
+        </div>
+        {action && (
+          <button
+            type="button"
+            className="inline-flex shrink-0 items-center rounded-full border border-subtle bg-surface-2 px-3 py-1 text-body-xs-medium text-secondary transition-colors hover:border-subtle-1 hover:text-primary"
+          >
+            {action}
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label="Dismiss"
+          className="absolute top-2.5 right-2.5 grid size-[18px] place-items-center text-icon-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:text-icon-secondary"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ChromeColumn({ theme }: { theme: "light" | "dark" }) {
+  return (
+    <div data-theme={theme} className="flex min-w-0 flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-body-xs-medium text-placeholder capitalize">{theme}</span>
+        <span className="text-[11px] font-medium text-tertiary">Chrome extension</span>
+      </div>
+      <div className="flex flex-col gap-3">
+        {CHROME_EXAMPLES.map((example) => (
+          <ChromeExtensionToast key={`${theme}-${example.title}`} theme={theme} {...example} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ComparisonBand({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-6 rounded-xl border border-subtle bg-surface-1 p-5 lg:grid-cols-2">
+      {children}
+    </div>
+  );
+}
+
 export default function ToastPreviewPage() {
   const triggerPromise = () =>
     setPromiseToast(fakeRequest(2200), {
-      loading: "Uploading file…",
-      success: { title: "Upload complete", message: (d) => `${d.name} is ready.` },
-      error: { title: "Upload failed", message: () => "Please try again." },
+      loading: "Creating action...",
+      success: {
+        title: "Action created",
+        message: (data) => `${data.name} is ready.`,
+        actionItems: () => <button type="button">View</button>,
+      },
+      error: { title: "Action failed", message: () => "Please try again." },
     });
 
   const triggerUpdate = () => {
-    const id = setToast({ type: TOAST_TYPE.LOADING, title: "Generating summary…" });
-    if (typeof id === "string") {
-      setTimeout(() => {
-        updateToast(id, { type: TOAST_TYPE.SUCCESS, title: "Summary ready", message: "Open it from the sidebar." });
-      }, 2200);
-    }
-  };
+    const id = setToast({ type: TOAST_TYPE.LOADING, title: "Listening..." });
+    if (typeof id !== "string") return;
 
-  const triggerStack = () => {
-    setToast({ type: TOAST_TYPE.INFO, title: "Queued", message: "Three items lined up." });
-    setTimeout(() => setToast({ type: TOAST_TYPE.WARNING, title: "Almost there", message: "Finishing up." }), 350);
-    setTimeout(() => setToast({ type: TOAST_TYPE.SUCCESS, title: "All done", message: "Everything synced." }), 700);
+    setTimeout(() => {
+      updateToast(id, {
+        type: TOAST_TYPE.SUCCESS,
+        title: "Action captured",
+        message: "Atlas turned your note into a task.",
+        actionItems: <button type="button">View</button>,
+      });
+    }, 2200);
   };
 
   return (
-    <div className="min-h-screen bg-surface-2 px-6 py-12">
-      <div className="mx-auto flex max-w-[860px] flex-col gap-12">
-        {/* Header */}
-        <header className="flex flex-col gap-1">
+    <div className="min-h-screen bg-surface-2 px-6 py-10">
+      <div className="mx-auto flex max-w-[1120px] flex-col gap-10">
+        <header className="flex flex-col gap-2">
           <span className="text-body-xs-medium text-placeholder">Dev preview</span>
-          <h1 className="text-xl font-semibold text-primary">Toasts</h1>
-          <p className="max-w-[60ch] text-body-sm-regular text-tertiary">
-            Notifications now anchor to the <span className="text-secondary">top-right</span>. Trigger a few below — they
-            appear in the corner of this page — then compare the style directions and pick one to ship.
-          </p>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-xl font-semibold text-primary">Notification source of truth</h1>
+            <p className="max-w-[76ch] text-body-sm-regular text-tertiary">
+              Web app and Chrome extension notification states in one place. Use this page to tune the canonical toast
+              shape, spacing, CTA treatment, and light/dark behavior before applying the same decisions elsewhere.
+            </p>
+          </div>
         </header>
 
-        {/* Live triggers */}
+        <Section title="Contract">
+          <SpecList />
+        </Section>
+
         <Section
-          title="Trigger live toasts"
-          subtitle="Fires into the real top-right viewport. Hover to expand the stack; swipe up or right to dismiss."
+          title="Live web toast"
+          subtitle="These buttons fire the actual web app toast manager into the top-right viewport."
         >
           <div className="flex flex-wrap gap-2">
-            {LIVE_TRIGGERS.map((t) => (
-              <Button key={t.label} variant="secondary" size="sm" onClick={t.run}>
-                {t.label}
+            {LIVE_TRIGGERS.map((trigger) => (
+              <Button key={trigger.label} variant="secondary" size="sm" onClick={trigger.run}>
+                {trigger.label}
               </Button>
             ))}
             <Button variant="secondary" size="sm" onClick={triggerPromise}>
               Promise
             </Button>
             <Button variant="secondary" size="sm" onClick={triggerUpdate}>
-              Loading → success
-            </Button>
-            <Button variant="secondary" size="sm" onClick={triggerStack}>
-              Stack of three
+              Listening to success
             </Button>
           </div>
         </Section>
 
-        {/* Style directions — from the reference mocks */}
-        <Section
-          title="Style directions"
-          subtitle="Three takes from your references, rendered with our own tokens on a dark surface. Say the word and I'll wire whichever you pick into the live toast above."
-        >
-          <div className="flex flex-col gap-8">
-            <StyleBlock
-              name="Action pill"
-              tag="Live"
-              note="Dark card, one colored badge, an optional action on the right. Calm and premium — now wired into the live toast above."
-            >
-              <DarkStage>
-                <ActionPillToast typeKey="success" action="Got It!" />
-                <ActionPillToast typeKey="error" action="Fixing!" solid />
-              </DarkStage>
-            </StyleBlock>
-
-            <StyleBlock
-              name="Accent glow"
-              note="A bright rail with a soft type-colored halo. Catches the eye, stays subtle."
-            >
-              <DarkStage>
-                <GlowToast typeKey="error" />
-                <GlowToast typeKey="success" />
-                <GlowToast typeKey="warning" />
-                <GlowToast typeKey="info" />
-              </DarkStage>
-            </StyleBlock>
-
-            <StyleBlock
-              name="Solid fill"
-              note="Saturated and high-contrast — impossible to miss, but the least “less is more” of the set."
-            >
-              <DarkStage>
-                <SolidToast typeKey="neutral" />
-                <SolidToast typeKey="success" />
-                <SolidToast typeKey="warning" />
-                <SolidToast typeKey="error" />
-              </DarkStage>
-            </StyleBlock>
-          </div>
+        <Section title="Web app" subtitle="Static states rendered by the shared `@plane/propel/toast` component.">
+          <ComparisonBand>
+            <WebToastColumn theme="light" />
+            <WebToastColumn theme="dark" />
+          </ComparisonBand>
         </Section>
 
-        {/* Current live style — all types in both themes */}
         <Section
-          title="Current live style"
-          subtitle="What ships today: the Action pill style — a filled type badge with the message and an optional action, in light and dark."
+          title="Chrome extension"
+          subtitle="Static replica of the injected toast in `apps/chrome-extension/src/background.js`."
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {(["light", "dark"] as const).map((theme) => (
-              <div
-                key={theme}
-                data-theme={theme}
-                className="flex flex-col items-center gap-3 rounded-xl border border-subtle bg-surface-2 p-5"
-              >
-                <span className="text-body-xs-medium text-placeholder capitalize">{theme}</span>
-                <ToastStatic theme={theme} type={TOAST_TYPE.SUCCESS} title="Changes saved" message="Your document is up to date." />
-                <ToastStatic theme={theme} type={TOAST_TYPE.ERROR} title="Couldn't save" message="Something went wrong. Please try again." />
-                <ToastStatic theme={theme} type={TOAST_TYPE.WARNING} title="Unsaved changes" message="Leaving now will discard your edits." />
-                <ToastStatic theme={theme} type={TOAST_TYPE.INFO} title="Heads up" message="A new version is available." />
-                <ToastStatic
-                  theme={theme}
-                  type={TOAST_TYPE.SUCCESS}
-                  title="Item archived"
-                  message="You can still find it in the archive."
-                  actionItems={<button type="button">Undo</button>}
-                />
-                <ToastStatic theme={theme} type={TOAST_TYPE.LOADING} title="Syncing your workspace…" />
-              </div>
-            ))}
-          </div>
+          <ComparisonBand>
+            <ChromeColumn theme="light" />
+            <ChromeColumn theme="dark" />
+          </ComparisonBand>
         </Section>
       </div>
     </div>

@@ -9,29 +9,35 @@ struct DragonFruitMiniApp: App {
     @StateObject private var store = MeetingStore()
     @StateObject private var toastController = VoiceToastController()
     @StateObject private var cursorBuddyController = CursorBuddyOverlayController()
+    @StateObject private var meetingNotesOverlayController = MeetingNotesOverlayController()
 
-    // Drives Sparkle auto-updates. Created once at launch; starts the updater so
-    // scheduled background checks run per the SUFeedURL / interval in Info.plist.
-    private let updaterController: SPUStandardUpdaterController
+    // Drives Sparkle auto-updates in release builds. Debug builds skip Sparkle
+    // so an unavailable appcast cannot show native updater error dialogs.
+    private let updaterController: SPUStandardUpdaterController?
 
     init() {
         BrandTheme.registerFontsIfNeeded()
         ProcessInfo.processInfo.disableAutomaticTermination("Atlas runs from the menu bar.")
         ProcessInfo.processInfo.disableSuddenTermination()
-        updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
+        #if DEBUG
+            updaterController = nil
+        #else
+            updaterController = SPUStandardUpdaterController(
+                startingUpdater: true,
+                updaterDelegate: nil,
+                userDriverDelegate: nil
+            )
+        #endif
     }
 
     var body: some Scene {
         MenuBarExtra {
-            MeetingPopoverView(store: store, updater: updaterController.updater)
+            MeetingPopoverView(store: store, updater: updaterController?.updater)
                 .frame(width: 360)
                 .onAppear {
                     toastController.bind(to: store)
                     cursorBuddyController.bind(to: store)
+                    meetingNotesOverlayController.bind(to: store)
                 }
         } label: {
             Label {
@@ -41,15 +47,44 @@ struct DragonFruitMiniApp: App {
                     Image(nsImage: icon)
                         .renderingMode(.template)
                 } else {
-                    Image(systemName: "text.bubble")
+                    AtlasIcon(.bubbleChat)
+                        .frame(width: 16, height: 16)
                 }
             }
             .onAppear {
                 toastController.bind(to: store)
                 cursorBuddyController.bind(to: store)
+                meetingNotesOverlayController.bind(to: store)
             }
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+private final class TransparentHostingView<Content: View>: NSHostingView<Content> {
+    override var isOpaque: Bool { false }
+
+    required init(rootView: Content) {
+        super.init(rootView: rootView)
+        makeTransparent()
+    }
+
+    @MainActor @preconcurrency required dynamic init?(coder: NSCoder) {
+        super.init(coder: coder)
+        makeTransparent()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        makeTransparent()
+        window?.backgroundColor = .clear
+        window?.isOpaque = false
+    }
+
+    private func makeTransparent() {
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+        layer?.isOpaque = false
     }
 }
 
@@ -237,7 +272,7 @@ final class VoiceToastController: ObservableObject {
         panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
-            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
+            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
                 PermissionOnboardingToast(store: store)
             })
             currentKind = kind
@@ -248,7 +283,7 @@ final class VoiceToastController: ObservableObject {
 
     private func showMeetingPromptToast(for store: MeetingStore) {
         let kind = ToastKind.meetingPrompt(store.meetingStartPrompt?.id ?? "")
-        let size = NSSize(width: 340, height: 118)
+        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.standardHeight)
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         hideTask?.cancel()
@@ -256,7 +291,7 @@ final class VoiceToastController: ObservableObject {
         panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
-            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
+            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
                 MeetingStartToast(store: store) { [weak self] in
                     self?.dismissCurrentToast()
                 }
@@ -269,7 +304,7 @@ final class VoiceToastController: ObservableObject {
 
     private func showProcessingToast(for store: MeetingStore) {
         let kind = ToastKind.processing
-        let size = NSSize(width: 300, height: 64)
+        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.loadingHeight)
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         hideTask?.cancel()
@@ -277,7 +312,7 @@ final class VoiceToastController: ObservableObject {
         panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
-            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
+            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
                 VoiceProcessingToast(store: store) { [weak self] in
                     self?.dismissCurrentToast()
                 }
@@ -290,7 +325,7 @@ final class VoiceToastController: ObservableObject {
 
     private func showToast(for store: MeetingStore) {
         let kind = ToastKind.listening
-        let size = NSSize(width: 300, height: 78)
+        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.standardHeight)
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         hideTask?.cancel()
@@ -298,7 +333,7 @@ final class VoiceToastController: ObservableObject {
         panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
-            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
+            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
                 VoiceRecordingToast(store: store) { [weak self] in
                     self?.dismissCurrentToast()
                 }
@@ -311,14 +346,14 @@ final class VoiceToastController: ObservableObject {
 
     private func showAgentResponseToast(for store: MeetingStore) {
         let kind = ToastKind.agentResponse
-        let size = NSSize(width: 320, height: 132)
+        let size = NSSize(width: AtlasToastMetrics.width, height: 124)
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         closeTask?.cancel()
         panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
-            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
+            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
                 VoiceAgentResponseToast(store: store) { [weak self] in
                     self?.dismissCurrentToast()
                 }
@@ -331,7 +366,7 @@ final class VoiceToastController: ObservableObject {
 
     private func showStatusToast(for store: MeetingStore) {
         let kind = ToastKind.error
-        let size = NSSize(width: 320, height: 76)
+        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.standardHeight)
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         hideTask?.cancel()
@@ -339,7 +374,7 @@ final class VoiceToastController: ObservableObject {
         panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
-            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: true) {
+            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: true) {
                 VoiceStatusToast(store: store) { [weak self] in
                     self?.dismissCurrentToast()
                 }
@@ -352,14 +387,14 @@ final class VoiceToastController: ObservableObject {
 
     private func showResultToast(_ result: VoiceActionResult, theme: CopilotThemeTokens) {
         let kind = ToastKind.result(result.id)
-        let size = NSSize(width: 320, height: 104)
+        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.standardHeight)
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         closeTask?.cancel()
         panel.ignoresMouseEvents = false
         let shouldReveal = prepare(panel: panel, for: kind)
         if currentKind != kind {
-            panel.contentView = NSHostingView(rootView: ToastMotionContainer(isError: false) {
+            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
                 VoiceCreatedToast(result: result, theme: theme) { [weak self] in
                     self?.dismissCurrentToast()
                 }
@@ -430,7 +465,7 @@ final class VoiceToastController: ObservableObject {
         )
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         return panel
@@ -439,10 +474,161 @@ final class VoiceToastController: ObservableObject {
     private func position(panel: NSPanel, size: NSSize) {
         let screenFrame = NSScreen.main?.visibleFrame ?? .zero
         let origin = NSPoint(
-            x: screenFrame.maxX - size.width - 18,
-            y: screenFrame.maxY - size.height - 8
+            x: screenFrame.maxX - size.width - 12,
+            y: screenFrame.maxY - size.height - 12
         )
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
+    }
+}
+
+private enum AtlasToastMetrics {
+    static let width: CGFloat = 360
+    static let cornerRadius: CGFloat = 16
+    static let leadingPadding: CGFloat = 14
+    static let trailingPadding: CGFloat = 14
+    static let trailingPaddingWithClose: CGFloat = 36
+    static let verticalPadding: CGFloat = 14
+    static let closePadding: CGFloat = 10
+    static let standardHeight: CGFloat = 68
+    static let loadingHeight: CGFloat = 50
+    static let titleTracking: CGFloat = 0.14
+    static let bodyTracking: CGFloat = 0.13
+    static let actionTracking: CGFloat = 0.13
+    static let onboardingActionTracking: CGFloat = 0.14
+}
+
+private enum AtlasToastStatusIconKind {
+    case success
+    case error
+    case warning
+    case info
+    case loading
+}
+
+private struct AtlasToastCard<Content: View>: View {
+    let theme: CopilotThemeTokens
+    let height: CGFloat?
+    let verticalPadding: CGFloat
+    let alignment: Alignment
+    let onClose: (() -> Void)?
+    let content: Content
+    @State private var isHovered = false
+
+    init(
+        theme: CopilotThemeTokens,
+        height: CGFloat? = nil,
+        verticalPadding: CGFloat = AtlasToastMetrics.verticalPadding,
+        alignment: Alignment = .center,
+        onClose: (() -> Void)? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.theme = theme
+        self.height = height
+        self.verticalPadding = verticalPadding
+        self.alignment = alignment
+        self.onClose = onClose
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(.leading, AtlasToastMetrics.leadingPadding)
+            .padding(.trailing, onClose == nil ? AtlasToastMetrics.trailingPadding : AtlasToastMetrics.trailingPaddingWithClose)
+            .padding(.vertical, verticalPadding)
+            .frame(width: AtlasToastMetrics.width, height: height, alignment: alignment)
+            .background(toastBackground(theme: theme))
+            .overlay(alignment: .topTrailing) {
+                if let onClose {
+                    ToastCloseButton(theme: theme, isVisible: isHovered, action: onClose)
+                        .padding(AtlasToastMetrics.closePadding)
+                }
+            }
+            .overlay(toastBorder(theme: theme))
+            .clipShape(RoundedRectangle(cornerRadius: AtlasToastMetrics.cornerRadius, style: .continuous))
+            .compositingGroup()
+            .shadow(color: theme.toastShadowSoft, radius: 5, y: 10)
+            .shadow(color: theme.toastShadowLift, radius: 30, y: 30)
+            .onHover { isHovered = $0 }
+    }
+}
+
+private struct AtlasToastStatusIcon: View {
+    let kind: AtlasToastStatusIconKind
+    let theme: CopilotThemeTokens
+
+    var body: some View {
+        Group {
+            switch kind {
+            case .loading:
+                AtlasToastLoadingIcon(theme: theme)
+            case .success:
+                badge(fill: theme.success, icon: .check)
+            case .error:
+                badge(fill: theme.danger, icon: .alertCircle)
+            case .warning:
+                badge(fill: theme.warning, icon: .warning)
+            case .info:
+                badge(fill: theme.accent, icon: .info)
+            }
+        }
+        .frame(width: 22, height: 22)
+        .flexibilityShrinkDisabled()
+    }
+
+    private func badge(fill: Color, icon: AtlasIconName) -> some View {
+        Circle()
+            .fill(fill)
+            .overlay {
+                AtlasIcon(icon)
+                    .frame(width: 13, height: 13)
+                    .foregroundStyle(Color.white)
+            }
+    }
+}
+
+private struct AtlasToastLoadingIcon: View {
+    let theme: CopilotThemeTokens
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            let activeIndex = Int((timeline.date.timeIntervalSinceReferenceDate * 13.33).rounded(.down)) % 12
+            ZStack {
+                ForEach(0..<12, id: \.self) { index in
+                    let distance = (index - activeIndex + 12) % 12
+                    let opacity = max(0.14, 1 - (Double(distance) * 0.075))
+                    Capsule()
+                        .fill(theme.textTertiary.opacity(opacity))
+                        .frame(width: 2, height: 5)
+                        .offset(y: -8)
+                        .rotationEffect(.degrees(Double(index) * 30))
+                }
+            }
+        }
+        .frame(width: 22, height: 22)
+    }
+}
+
+private struct AtlasToastActionButtonStyle: ButtonStyle {
+    let theme: CopilotThemeTokens
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.custom("Figtree", size: 13).weight(.medium))
+            .foregroundStyle(configuration.isPressed ? theme.textPrimary : theme.textSecondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(theme.surface2.opacity(configuration.isPressed ? 0.72 : 1), in: Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(configuration.isPressed ? theme.borderStrong : theme.border, lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.99 : 1)
+    }
+}
+
+private extension View {
+    func flexibilityShrinkDisabled() -> some View {
+        fixedSize()
     }
 }
 
@@ -461,57 +647,38 @@ struct MeetingStartToast: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Image(systemName: "waveform.badge.mic")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(theme.accent)
-                .frame(width: 32, height: 32)
-                .background(theme.accentSubtle, in: Circle())
+        AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: {
+            store.dismissMeetingStartPrompt()
+            onClose()
+        }) {
+            HStack(alignment: .center, spacing: 12) {
+                AtlasToastStatusIcon(kind: .info, theme: theme)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Meeting starting")
-                    .font(.custom("Figtree", size: 11).weight(.semibold))
-                    .foregroundStyle(theme.accent)
-                Text(meetingTitle)
-                    .font(.custom("Figtree", size: 13).weight(.semibold))
-                    .foregroundStyle(theme.textPrimary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Meeting starting")
+                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .tracking(AtlasToastMetrics.titleTracking)
+                        .foregroundStyle(theme.textPrimary)
+                    Text(meetingTitle)
+                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .tracking(AtlasToastMetrics.bodyTracking)
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+
                 Button {
                     store.startPromptedMeetingNotes()
                     onClose()
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "record.circle")
-                            .font(.system(size: 11, weight: .bold))
-                        Text("Start notes")
-                            .font(.custom("Figtree", size: 11).weight(.semibold))
-                    }
-                    .foregroundStyle(theme.textOnAccent)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(theme.accent, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    Text("Start notes")
+                        .tracking(AtlasToastMetrics.actionTracking)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(AtlasToastActionButtonStyle(theme: theme))
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(width: 340, height: 118)
-        .background(toastBackground(theme: theme, cornerRadius: 14))
-        .overlay(alignment: .topTrailing) {
-            ToastCloseButton(theme: theme) {
-                store.dismissMeetingStartPrompt()
-                onClose()
-            }
-            .padding(7)
-        }
-        .overlay(toastBorder(theme: theme, cornerRadius: 14))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .compositingGroup()
-        .shadow(color: theme.shadow, radius: 12, y: 6)
     }
 }
 
@@ -528,23 +695,20 @@ struct PermissionOnboardingToast: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 11) {
-                Image(systemName: iconName)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(theme.accent)
-                    .frame(width: 30, height: 30)
-                    .background(theme.accentSubtle, in: Circle())
+            HStack(alignment: .center, spacing: 12) {
+                permissionIcon
+                    .foregroundStyle(theme.textTertiary)
+                    .frame(width: 22, height: 22)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Set up Atlas")
-                        .font(.custom("Figtree", size: 11).weight(.semibold))
-                        .foregroundStyle(theme.accent)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.custom("Figtree", size: 13).weight(.semibold))
+                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .tracking(AtlasToastMetrics.titleTracking)
                         .foregroundStyle(theme.textPrimary)
                     Text(detail)
-                        .font(.custom("Figtree", size: 11).weight(.medium))
-                        .foregroundStyle(theme.textSecondary)
+                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .tracking(AtlasToastMetrics.bodyTracking)
+                        .foregroundStyle(theme.textTertiary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -563,17 +727,23 @@ struct PermissionOnboardingToast: View {
             }
 
             HStack(spacing: 8) {
-                Button(buttonTitle) {
+                Button {
                     if let permission {
                         store.handlePermissionAction(permission)
                     }
+                } label: {
+                    Text(buttonTitle)
+                        .tracking(AtlasToastMetrics.onboardingActionTracking)
                 }
                 .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
 
                 if needsRestart {
-                    // Screen Recording / re-enabled mic only apply after a relaunch.
-                    Button("Restart") {
+                    // Re-enabled macOS permissions can apply only after a relaunch.
+                    Button {
                         store.restartApp()
+                    } label: {
+                        Text("Restart")
+                            .tracking(AtlasToastMetrics.onboardingActionTracking)
                     }
                     .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
                 }
@@ -584,25 +754,37 @@ struct PermissionOnboardingToast: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .frame(width: 340)
-        .background(toastBackground(theme: theme, cornerRadius: 14))
-        .overlay(toastBorder(theme: theme, cornerRadius: 14))
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(theme.surface.opacity(0.97))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(theme.borderStrong, lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .compositingGroup()
         .shadow(color: theme.shadow, radius: 12, y: 6)
     }
 
-    private var iconName: String {
+    @ViewBuilder
+    private var permissionIcon: some View {
+        AtlasIcon(iconName)
+            .frame(width: 22, height: 22)
+    }
+
+    private var iconName: AtlasIconName {
         switch permission?.id {
         case "mic":
-            return "mic.fill"
+            return .mic01
         case "system-audio":
-            return "speaker.wave.2.fill"
+            return .volumeHigh
         case "speech":
-            return "waveform"
+            return .voice
         case "accessibility":
-            return "cursorarrow.motionlines"
+            return .cursor
         default:
-            return "checkmark.circle.fill"
+            return .checkCircle
         }
     }
 
@@ -673,35 +855,19 @@ struct VoiceProcessingToast: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Thinking")
-                    .font(.custom("Figtree", size: 11).weight(.semibold))
+        AtlasToastCard(theme: theme, height: AtlasToastMetrics.loadingHeight, onClose: onClose) {
+            HStack(spacing: 12) {
+                AtlasToastStatusIcon(kind: .loading, theme: theme)
+
+                Text(subtitle == "Working on it" ? "Thinking" : subtitle)
+                    .font(.custom("Figtree", size: 14).weight(.semibold))
+                    .tracking(AtlasToastMetrics.titleTracking)
                     .foregroundStyle(theme.textPrimary)
-                Text(subtitle)
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(theme.textSecondary)
                     .lineLimit(1)
-                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 0)
             }
-            .padding(.trailing, 54)
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14)
-        .frame(width: 320, height: 64)
-        .background(toastBackground(theme: theme, cornerRadius: 14))
-        .overlay(alignment: .trailing) {
-            DragonThinkingWatermark(size: 68)
-                .padding(.trailing, -6)
-        }
-        .overlay(alignment: .topTrailing) {
-            ToastCloseButton(theme: theme, action: onClose)
-                .padding(7)
-        }
-        .overlay(toastBorder(theme: theme, cornerRadius: 14))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .compositingGroup()
-        .shadow(color: theme.shadow, radius: 12, y: 6)
     }
 }
 
@@ -722,42 +888,30 @@ struct VoiceAgentResponseToast: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 8) {
-                if !userText.isEmpty {
-                    Text(userText)
-                        .font(.custom("Figtree", size: 12).weight(.medium))
-                        .foregroundStyle(theme.textSecondary)
+        AtlasToastCard(theme: theme, height: 124, verticalPadding: 14, alignment: .topLeading, onClose: onClose) {
+            HStack(alignment: .top, spacing: 12) {
+                AtlasToastStatusIcon(kind: .info, theme: theme)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(userText.isEmpty ? "Atlas" : userText)
+                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .tracking(AtlasToastMetrics.titleTracking)
+                        .foregroundStyle(theme.textPrimary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
+                    Text(responseText)
+                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .tracking(AtlasToastMetrics.bodyTracking)
+                        .foregroundStyle(theme.textTertiary)
+                        .lineSpacing(2)
+                        .lineLimit(4)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(responseText)
-                    .font(.custom("Newsreader", size: 15).weight(.regular))
-                    .foregroundStyle(theme.textPrimary)
-                    .lineSpacing(2)
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
+                .padding(.trailing, 20)
+
+                Spacer(minLength: 0)
             }
-            .padding(.trailing, 48)
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
-        .frame(width: 320, height: 124, alignment: .topLeading)
-        .background(toastBackground(theme: theme, cornerRadius: 14))
-        .overlay(alignment: .trailing) {
-            DragonToastWatermark(theme: theme, size: 86)
-                .padding(.trailing, -8)
-        }
-        .overlay(alignment: .topTrailing) {
-            ToastCloseButton(theme: theme, action: onClose)
-                .padding(7)
-        }
-        .overlay(toastBorder(theme: theme, cornerRadius: 14))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .compositingGroup()
-        .shadow(color: theme.shadow, radius: 12, y: 6)
     }
 }
 
@@ -804,54 +958,6 @@ struct AgentDragonMark: View {
     }
 }
 
-struct DragonToastWatermark: View {
-    let theme: CopilotThemeTokens
-    let size: CGFloat
-
-    var body: some View {
-        if let dragon = BrandTheme.dragonLogo {
-            Image(nsImage: dragon)
-                .resizable()
-                .scaledToFit()
-                .frame(width: size, height: size)
-                .foregroundStyle(theme.accent)
-                .opacity(0.10)
-                .allowsHitTesting(false)
-        }
-    }
-}
-
-struct DragonThinkingWatermark: View {
-    let size: CGFloat
-
-    var body: some View {
-        TimelineView(.animation) { timeline in
-            let pulse = (sin(timeline.date.timeIntervalSinceReferenceDate * 2.8) + 1) / 2
-            ZStack {
-                dragonImage
-                    .foregroundStyle(Color(red: 0.62, green: 0.62, blue: 0.64))
-                    .opacity(0.16 - (0.06 * pulse))
-                dragonImage
-                    .foregroundStyle(Color(red: 0.26, green: 0.26, blue: 0.28))
-                    .opacity(0.06 + (0.10 * pulse))
-            }
-            .allowsHitTesting(false)
-        }
-    }
-
-    private var dragonImage: some View {
-        Group {
-            if let dragon = BrandTheme.dragonLogo {
-                Image(nsImage: dragon)
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-            }
-        }
-        .frame(width: size, height: size)
-    }
-}
-
 struct VoiceRecordingToast: View {
     @ObservedObject var store: MeetingStore
     let onClose: () -> Void
@@ -866,38 +972,26 @@ struct VoiceRecordingToast: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(theme.accent)
-                        .frame(width: 6, height: 6)
+        AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: onClose) {
+            HStack(spacing: 12) {
+                AtlasToastStatusIcon(kind: .loading, theme: theme)
+
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Listening")
-                        .font(.custom("Figtree", size: 11).weight(.semibold))
-                        .foregroundStyle(theme.accent)
+                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .tracking(AtlasToastMetrics.titleTracking)
+                        .foregroundStyle(theme.textPrimary)
+                    Text(transcriptPreview)
+                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .tracking(AtlasToastMetrics.bodyTracking)
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(transcriptPreview)
-                    .font(.custom("Figtree", size: 12).weight(.medium))
-                    .foregroundStyle(theme.textSecondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 12)
-            SoundWaveView(level: store.audioLevel, theme: theme)
-                .frame(width: 48, height: 28)
         }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 10)
-        .frame(width: 300, height: 78)
-        .background(toastBackground(theme: theme, cornerRadius: 14))
-        .overlay(alignment: .topTrailing) {
-            ToastCloseButton(theme: theme, action: onClose)
-                .padding(7)
-        }
-        .overlay(toastBorder(theme: theme, cornerRadius: 14))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .compositingGroup()
-        .shadow(color: theme.shadow, radius: 12, y: 6)
     }
 }
 
@@ -910,37 +1004,20 @@ struct VoiceStatusToast: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color(red: 0.95, green: 0.30, blue: 0.38))
-                .frame(width: 22, height: 22)
-                .background(Color(red: 0.95, green: 0.30, blue: 0.38).opacity(0.14), in: Circle())
+        AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: onClose) {
+            HStack(spacing: 12) {
+                AtlasToastStatusIcon(kind: .error, theme: theme)
 
-            Text(store.statusMessage)
-                .font(.custom("Figtree", size: 12).weight(.medium))
-                .foregroundStyle(theme.textPrimary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.trailing, 46)
+                Text(store.statusMessage)
+                    .font(.custom("Figtree", size: 14).weight(.semibold))
+                    .tracking(AtlasToastMetrics.titleTracking)
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            }
         }
-        .padding(.horizontal, 14)
-        .frame(width: 320, height: 76)
-        .background(toastBackground(theme: theme, cornerRadius: 14))
-        .overlay(alignment: .trailing) {
-            DragonToastWatermark(theme: theme, size: 68)
-                .padding(.trailing, -6)
-        }
-        .overlay(alignment: .topTrailing) {
-            ToastCloseButton(theme: theme, action: onClose)
-                .padding(7)
-        }
-        .overlay(toastBorder(theme: theme, cornerRadius: 14))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .compositingGroup()
-        .shadow(color: theme.shadow, radius: 12, y: 6)
     }
 }
 
@@ -950,89 +1027,56 @@ struct VoiceCreatedToast: View {
     let onClose: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(theme.accentSubtle)
-                SuccessCheckIcon(theme: theme)
-            }
-            .frame(width: 34, height: 34)
+        AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: onClose) {
+            HStack(spacing: 12) {
+                AtlasToastStatusIcon(kind: .success, theme: theme)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text("\(result.type.rawValue) created")
-                    .font(.custom("Figtree", size: 11).weight(.semibold))
-                    .foregroundStyle(theme.accent)
-                Text(result.title)
-                    .font(.custom("Figtree", size: 13).weight(.semibold))
-                    .foregroundStyle(theme.textPrimary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(result.detail)
-                    .font(.custom("Figtree", size: 10))
-                    .foregroundStyle(theme.textTertiary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 0)
-
-            if let url = result.resourceURL {
-                Button {
-                    NSWorkspace.shared.open(url)
-                } label: {
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(theme.textOnAccent)
-                        .frame(width: 26, height: 26)
-                        .background(theme.accent, in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(result.type.rawValue) created")
+                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .tracking(AtlasToastMetrics.titleTracking)
+                        .foregroundStyle(theme.textPrimary)
+                    Text(result.title)
+                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .tracking(AtlasToastMetrics.bodyTracking)
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.plain)
+
+                Spacer(minLength: 8)
+
+                if let url = result.resourceURL {
+                    Button {
+                        NSWorkspace.shared.open(url)
+                    } label: {
+                        Text("View")
+                            .tracking(AtlasToastMetrics.actionTracking)
+                    }
+                    .buttonStyle(AtlasToastActionButtonStyle(theme: theme))
+                }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .frame(width: 320, height: 104)
-        .background(toastBackground(theme: theme, cornerRadius: 14))
-        .overlay(alignment: .topTrailing) {
-            ToastCloseButton(theme: theme, action: onClose)
-                .padding(7)
-        }
-        .overlay(toastBorder(theme: theme, cornerRadius: 14))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .compositingGroup()
-        .shadow(color: theme.shadow, radius: 12, y: 6)
     }
 
-    private var iconName: String {
-        switch result.type {
-        case .task:
-            return "checklist"
-        case .doc:
-            return "doc.text"
-        case .sticky:
-            return "note.text"
-        case .bookmark:
-            return "bookmark.fill"
-        case .agent:
-            return "message.fill"
-        }
-    }
 }
 
 struct ToastCloseButton: View {
     let theme: CopilotThemeTokens
+    var isVisible = true
     let action: () -> Void
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "xmark")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(isHovered ? theme.textPrimary : theme.textTertiary)
-                .frame(width: 20, height: 20)
-                .background(isHovered ? theme.layer2 : theme.layer1.opacity(0.86), in: Circle())
+            AtlasIcon(.cancel)
+                .frame(width: 14, height: 14)
+                .foregroundStyle(isHovered ? theme.textSecondary : theme.textTertiary)
+                .frame(width: 18, height: 18)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Close toast")
+        .opacity(isVisible || isHovered ? 1 : 0)
         .onHover { isHovered = $0 }
     }
 }
@@ -1045,7 +1089,7 @@ struct ToastMotionContainer<Content: View>: View {
 
     var body: some View {
         content()
-            .scaleEffect(isOpen ? 1 : 0.96)
+            .offset(y: isOpen ? 0 : -80)
             .opacity(isOpen ? 1 : 0)
             .modifier(ShakeEffect(animatableData: shakeTrigger))
             .onAppear {
@@ -1076,8 +1120,8 @@ struct SuccessCheckIcon: View {
     @State private var isVisible = false
 
     var body: some View {
-        Image(systemName: "checkmark")
-            .font(.system(size: size, weight: .bold))
+        AtlasIcon(.check)
+            .frame(width: size, height: size)
             .foregroundStyle(color ?? theme.accent)
             .rotationEffect(.degrees(isVisible ? 0 : 80))
             .offset(y: isVisible ? 0 : 10)
@@ -1118,14 +1162,14 @@ struct ShakeEffect: GeometryEffect {
     }
 }
 
-private func toastBackground(theme: CopilotThemeTokens, cornerRadius: CGFloat) -> some View {
+private func toastBackground(theme: CopilotThemeTokens, cornerRadius: CGFloat = AtlasToastMetrics.cornerRadius) -> some View {
     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        .fill(theme.surface.opacity(0.97))
+        .fill(theme.surface)
 }
 
-private func toastBorder(theme: CopilotThemeTokens, cornerRadius: CGFloat) -> some View {
+private func toastBorder(theme: CopilotThemeTokens, cornerRadius: CGFloat = AtlasToastMetrics.cornerRadius) -> some View {
     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        .stroke(theme.borderStrong, lineWidth: 1)
+        .stroke(theme.border, lineWidth: 1)
 }
 
 private func isErrorStatus(_ message: String) -> Bool {
@@ -1139,6 +1183,162 @@ private func isErrorStatus(_ message: String) -> Bool {
         || text.contains("missing")
         || text.contains("not allowed")
         || text.contains("try again")
+}
+
+@MainActor
+final class MeetingNotesOverlayController: ObservableObject {
+    private var panel: NSPanel?
+    private var timer: Timer?
+    private var cancellables: Set<AnyCancellable> = []
+    private weak var store: MeetingStore?
+
+    func bind(to store: MeetingStore) {
+        guard self.store !== store else { return }
+        self.store = store
+        cancellables.removeAll()
+
+        store.$isMeetingRecording
+            .combineLatest(store.$copilotTheme)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak store] _, _ in
+                guard let self, let store else { return }
+                self.update(for: store)
+            }
+            .store(in: &cancellables)
+
+        update(for: store)
+    }
+
+    private func update(for store: MeetingStore) {
+        guard store.isMeetingRecording else {
+            hideOverlay()
+            return
+        }
+        showOverlay(for: store)
+    }
+
+    private func showOverlay(for store: MeetingStore) {
+        let size = NSSize(width: 56, height: 112)
+        let panel = panel ?? makePanel(size: size)
+        self.panel = panel
+        panel.contentView = TransparentHostingView(rootView: MeetingNotesRecordingOverlayView(store: store))
+        position(panel: panel, size: size)
+
+        if !panel.isVisible {
+            panel.orderFrontRegardless()
+        }
+        startTracking()
+    }
+
+    private func hideOverlay() {
+        timer?.invalidate()
+        timer = nil
+        panel?.orderOut(nil)
+    }
+
+    private func startTracking() {
+        guard timer == nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, let panel = self.panel else { return }
+                self.position(panel: panel, size: panel.frame.size)
+            }
+        }
+        RunLoop.main.add(timer!, forMode: .common)
+    }
+
+    private func makePanel(size: NSSize) -> NSPanel {
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = false
+        panel.ignoresMouseEvents = true
+        panel.level = .statusBar
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
+        return panel
+    }
+
+    private func position(panel: NSPanel, size: NSSize) {
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
+        let frame = screen?.visibleFrame ?? .zero
+        let origin = NSPoint(
+            x: frame.maxX - size.width - 18,
+            y: frame.midY - (size.height / 2)
+        )
+        panel.setFrame(NSRect(origin: origin, size: size), display: true)
+    }
+}
+
+struct MeetingNotesRecordingOverlayView: View {
+    @ObservedObject var store: MeetingStore
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            VStack(spacing: 18) {
+                recordingLogo
+                    .frame(width: 24, height: 24)
+
+                MeetingNotesRecordingBars(date: timeline.date)
+                    .frame(width: 24, height: 22)
+            }
+            .frame(width: 56, height: 112)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color(red: 0.13, green: 0.13, blue: 0.13).opacity(0.96))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.24), radius: 8, y: 6)
+            .shadow(color: Color.black.opacity(0.22), radius: 24, y: 18)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Atlas meeting notes active")
+    }
+
+    @ViewBuilder
+    private var recordingLogo: some View {
+        if let icon = BrandTheme.menuBarIcon {
+            Image(nsImage: icon)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(Color.white.opacity(0.90))
+        } else {
+            AtlasIcon(.bubbleChat)
+                .foregroundStyle(Color.white.opacity(0.90))
+        }
+    }
+}
+
+struct MeetingNotesRecordingBars: View {
+    let date: Date
+
+    private let color = Color(red: 0.47, green: 0.84, blue: 0.08)
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 4) {
+            ForEach(0..<3, id: \.self) { index in
+                Capsule(style: .continuous)
+                    .fill(color)
+                    .frame(width: 4, height: barHeight(index: index))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func barHeight(index: Int) -> CGFloat {
+        let offsets: [Double] = [0, 1.35, 2.7]
+        let base = (sin(date.timeIntervalSinceReferenceDate * 4.8 + offsets[index]) + 1) / 2
+        return 7 + CGFloat(base) * 10
+    }
 }
 
 @MainActor
@@ -1338,8 +1538,8 @@ struct CursorBuddyDot: View {
                 if isComplete {
                     SuccessCheckIcon(theme: theme, size: 8, color: theme.surface.opacity(0.95))
                 } else if isError {
-                    Image(systemName: "exclamationmark")
-                        .font(.system(size: 8, weight: .bold))
+                    AtlasIcon(.warning)
+                        .frame(width: 8, height: 8)
                         .foregroundStyle(theme.surface.opacity(0.95))
                 }
             }

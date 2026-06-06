@@ -8,7 +8,7 @@ import React, { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { PenTool, Star } from "@/components/icons/lucide-shim";
+import { FileText, PenTool, Star } from "@/components/icons/lucide-shim";
 import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@plane/propel/icons";
@@ -67,6 +67,16 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
 
   const baseNavigation = useCallback(
     (): TNavigationItem[] => [
+      {
+        i18n_key: "sidebar.brief",
+        key: "brief",
+        name: "Brief",
+        href: `/${workspaceSlug}/projects/${projectId}/brief`,
+        icon: FileText,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: true,
+        sortOrder: 0,
+      },
       {
         i18n_key: "sidebar.work_items",
         key: "work_items",

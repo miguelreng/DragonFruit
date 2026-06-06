@@ -2,10 +2,10 @@ import AuthenticationServices
 import ApplicationServices
 import AppKit
 import AVFoundation
+import AudioToolbox
 import Carbon
 import Foundation
 import os
-import ScreenCaptureKit
 import Speech
 import SwiftUI
 import UserNotifications
@@ -116,122 +116,304 @@ struct VoiceActionResult: Identifiable {
     let resourceURL: URL?
 }
 
-private final class SystemAudioCapture: NSObject, SCStreamOutput, SCStreamDelegate {
+private final class SystemAudioCapture {
     private let sampleQueue = DispatchQueue(label: "sh.dragonfruit.copilot.system-audio")
-    private var stream: SCStream?
-    private var assetWriter: AVAssetWriter?
-    private var assetWriterInput: AVAssetWriterInput?
-    private var didStartWriting = false
-    private var onAudioSampleBuffer: ((CMSampleBuffer) -> Void)?
+    private var processTapID = AudioObjectID(kAudioObjectUnknown)
+    private var aggregateDeviceID = AudioObjectID(kAudioObjectUnknown)
+    private var deviceProcID: AudioDeviceIOProcID?
+    private var audioFile: AVAudioFile?
+    private var onAudioPCMBuffer: ((AVAudioPCMBuffer) -> Void)?
     private var onError: ((Error) -> Void)?
 
     func start(
         recordingTo fileURL: URL? = nil,
-        onAudioSampleBuffer: @escaping (CMSampleBuffer) -> Void,
+        onAudioPCMBuffer: @escaping (AVAudioPCMBuffer) -> Void,
         onError: @escaping (Error) -> Void
     ) async throws {
-        self.onAudioSampleBuffer = onAudioSampleBuffer
+        self.onAudioPCMBuffer = onAudioPCMBuffer
         self.onError = onError
-        if let fileURL {
-            try? FileManager.default.removeItem(at: fileURL)
-            let writer = try AVAssetWriter(outputURL: fileURL, fileType: .m4a)
-            let input = AVAssetWriterInput(
-                mediaType: .audio,
-                outputSettings: [
-                    AVFormatIDKey: kAudioFormatMPEG4AAC,
-                    AVSampleRateKey: 48_000,
-                    AVNumberOfChannelsKey: 2,
-                    AVEncoderBitRateKey: 128_000,
-                ]
-            )
-            input.expectsMediaDataInRealTime = true
-            guard writer.canAdd(input) else {
-                throw NSError(
-                    domain: "DragonFruitNative",
-                    code: 1302,
-                    userInfo: [NSLocalizedDescriptionKey: "System audio recorder is unavailable."]
-                )
-            }
-            writer.add(input)
-            assetWriter = writer
-            assetWriterInput = input
-            didStartWriting = false
-        }
 
-        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-        guard let display = content.displays.first else {
+        if #available(macOS 14.2, *) {
+            try startCoreAudioTap(recordingTo: fileURL)
+        } else {
             throw NSError(
                 domain: "DragonFruitNative",
-                code: 1301,
-                userInfo: [NSLocalizedDescriptionKey: "No display available for system audio capture."]
+                code: 1300,
+                userInfo: [NSLocalizedDescriptionKey: "System Audio Recording Only requires macOS 14.2 or later."]
             )
         }
+    }
 
-        let configuration = SCStreamConfiguration()
-        configuration.capturesAudio = true
-        configuration.excludesCurrentProcessAudio = true
-        configuration.sampleRate = 48_000
-        configuration.channelCount = 2
-        configuration.width = 2
-        configuration.height = 2
-        configuration.minimumFrameInterval = CMTime(value: 1, timescale: 1)
-        configuration.queueDepth = 1
-        configuration.showsCursor = false
-
-        let stream = SCStream(
-            filter: SCContentFilter(display: display, excludingWindows: []),
-            configuration: configuration,
-            delegate: self
-        )
-        try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
-        self.stream = stream
-        try await stream.startCapture()
+    func requestPermission() async throws {
+        try await start(recordingTo: nil, onAudioPCMBuffer: { _ in }, onError: { _ in })
+        try? await Task.sleep(nanoseconds: 350_000_000)
+        await stop()
     }
 
     func stop() async {
-        let activeStream = stream
-        let writer = assetWriter
-        let input = assetWriterInput
-        stream = nil
-        assetWriter = nil
-        assetWriterInput = nil
-        didStartWriting = false
-        onAudioSampleBuffer = nil
+        let activeAggregateDeviceID = aggregateDeviceID
+        let activeDeviceProcID = deviceProcID
+        let activeProcessTapID = processTapID
+        aggregateDeviceID = AudioObjectID(kAudioObjectUnknown)
+        deviceProcID = nil
+        processTapID = AudioObjectID(kAudioObjectUnknown)
+        audioFile = nil
+        onAudioPCMBuffer = nil
         onError = nil
-        try? await activeStream?.stopCapture()
-        await withCheckedContinuation { continuation in
-            sampleQueue.async {
-                guard let writer, writer.status == .writing else {
-                    continuation.resume()
-                    return
+
+        guard activeAggregateDeviceID.isValidAudioObject else {
+            if #available(macOS 14.2, *), activeProcessTapID.isValidAudioObject {
+                AudioHardwareDestroyProcessTap(activeProcessTapID)
+            }
+            return
+        }
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            sampleQueue.async { [activeAggregateDeviceID, activeDeviceProcID, activeProcessTapID] in
+                if let activeDeviceProcID {
+                    AudioDeviceStop(activeAggregateDeviceID, activeDeviceProcID)
+                    AudioDeviceDestroyIOProcID(activeAggregateDeviceID, activeDeviceProcID)
                 }
-                input?.markAsFinished()
-                writer.finishWriting {
-                    continuation.resume()
+                AudioHardwareDestroyAggregateDevice(activeAggregateDeviceID)
+                if #available(macOS 14.2, *), activeProcessTapID.isValidAudioObject {
+                    AudioHardwareDestroyProcessTap(activeProcessTapID)
                 }
+                continuation.resume()
             }
         }
     }
 
-    func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of outputType: SCStreamOutputType) {
-        guard outputType == .audio, sampleBuffer.isValid else { return }
-        appendToRecording(sampleBuffer)
-        onAudioSampleBuffer?(sampleBuffer)
-    }
+    @available(macOS 14.2, *)
+    private func startCoreAudioTap(recordingTo fileURL: URL?) throws {
+        try stopExistingCaptureSynchronously()
 
-    func stream(_ stream: SCStream, didStopWithError error: Error) {
-        onError?(error)
-    }
+        let currentProcessObjectID = try? AudioObjectID.translateCurrentProcessObjectID()
+        let excludedProcesses = currentProcessObjectID.map { [$0] } ?? []
+        let tapDescription = CATapDescription(stereoGlobalTapButExcludeProcesses: excludedProcesses)
+        tapDescription.uuid = UUID()
+        tapDescription.name = "DragonFruit Atlas System Audio"
+        tapDescription.isPrivate = true
+        tapDescription.muteBehavior = .unmuted
 
-    private func appendToRecording(_ sampleBuffer: CMSampleBuffer) {
-        guard let writer = assetWriter, let input = assetWriterInput else { return }
-        if !didStartWriting {
-            guard writer.startWriting() else { return }
-            writer.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
-            didStartWriting = true
+        var newProcessTapID = AudioObjectID(kAudioObjectUnknown)
+        var status = AudioHardwareCreateProcessTap(tapDescription, &newProcessTapID)
+        guard status == noErr else {
+            throw Self.makeAudioError(
+                code: status,
+                message: "System audio recording could not start. Allow Atlas under System Audio Recording Only."
+            )
         }
-        guard writer.status == .writing, input.isReadyForMoreMediaData else { return }
-        input.append(sampleBuffer)
+        processTapID = newProcessTapID
+
+        var streamDescription = try newProcessTapID.readAudioTapStreamBasicDescription()
+        guard let audioFormat = AVAudioFormat(streamDescription: &streamDescription) else {
+            throw Self.makeAudioError(code: -1, message: "System audio format is unavailable.")
+        }
+
+        if let fileURL {
+            try? FileManager.default.removeItem(at: fileURL)
+            audioFile = try AVAudioFile(
+                forWriting: fileURL,
+                settings: audioFormat.settings,
+                commonFormat: audioFormat.commonFormat,
+                interleaved: audioFormat.isInterleaved
+            )
+        }
+
+        let systemOutputID = try AudioObjectID.readDefaultSystemOutputDevice()
+        let outputUID = try systemOutputID.readDeviceUID()
+        let aggregateDescription: [String: Any] = [
+            kAudioAggregateDeviceNameKey: "DragonFruit Atlas System Audio",
+            kAudioAggregateDeviceUIDKey: "sh.dragonfruit.copilot.system-audio.\(UUID().uuidString)",
+            kAudioAggregateDeviceMainSubDeviceKey: outputUID,
+            kAudioAggregateDeviceIsPrivateKey: true,
+            kAudioAggregateDeviceIsStackedKey: false,
+            kAudioAggregateDeviceSubDeviceListKey: [
+                [
+                    kAudioSubDeviceUIDKey: outputUID,
+                ],
+            ],
+            kAudioAggregateDeviceTapListKey: [
+                [
+                    kAudioSubTapUIDKey: tapDescription.uuid.uuidString,
+                    kAudioSubTapDriftCompensationKey: true,
+                ],
+            ],
+        ]
+
+        var newAggregateDeviceID = AudioObjectID(kAudioObjectUnknown)
+        status = AudioHardwareCreateAggregateDevice(aggregateDescription as CFDictionary, &newAggregateDeviceID)
+        guard status == noErr else {
+            throw Self.makeAudioError(code: status, message: "System audio device could not be created.")
+        }
+        aggregateDeviceID = newAggregateDeviceID
+
+        let callback: AudioDeviceIOBlock = { [weak self] _, inputData, _, _, _ in
+            guard let self else { return }
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: audioFormat, bufferListNoCopy: inputData, deallocator: nil) else {
+                self.onError?(Self.makeAudioError(code: -1, message: "System audio buffer is unavailable."))
+                return
+            }
+            do {
+                try self.audioFile?.write(from: buffer)
+            } catch {
+                self.onError?(error)
+            }
+            self.onAudioPCMBuffer?(buffer)
+        }
+
+        var newDeviceProcID: AudioDeviceIOProcID?
+        status = AudioDeviceCreateIOProcIDWithBlock(&newDeviceProcID, newAggregateDeviceID, sampleQueue, callback)
+        guard status == noErr else {
+            throw Self.makeAudioError(code: status, message: "System audio recorder is unavailable.")
+        }
+        deviceProcID = newDeviceProcID
+
+        status = AudioDeviceStart(newAggregateDeviceID, newDeviceProcID)
+        guard status == noErr else {
+            throw Self.makeAudioError(
+                code: status,
+                message: "System audio recording could not start. Allow Atlas under System Audio Recording Only."
+            )
+        }
+
+        UserDefaults.standard.set(true, forKey: "df_system_audio_permission_granted")
+    }
+
+    @available(macOS 14.2, *)
+    private func stopExistingCaptureSynchronously() throws {
+        guard aggregateDeviceID.isValidAudioObject else {
+            if processTapID.isValidAudioObject {
+                AudioHardwareDestroyProcessTap(processTapID)
+                processTapID = AudioObjectID(kAudioObjectUnknown)
+            }
+            return
+        }
+
+        let activeAggregateDeviceID = aggregateDeviceID
+        let activeDeviceProcID = deviceProcID
+        let activeProcessTapID = processTapID
+        aggregateDeviceID = AudioObjectID(kAudioObjectUnknown)
+        deviceProcID = nil
+        processTapID = AudioObjectID(kAudioObjectUnknown)
+        audioFile = nil
+
+        if let activeDeviceProcID {
+            AudioDeviceStop(activeAggregateDeviceID, activeDeviceProcID)
+            AudioDeviceDestroyIOProcID(activeAggregateDeviceID, activeDeviceProcID)
+        }
+        AudioHardwareDestroyAggregateDevice(activeAggregateDeviceID)
+        if activeProcessTapID.isValidAudioObject {
+            AudioHardwareDestroyProcessTap(activeProcessTapID)
+        }
+    }
+
+    private static func makeAudioError(code: OSStatus, message: String) -> NSError {
+        NSError(
+            domain: "DragonFruitNative",
+            code: Int(code),
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
+    }
+}
+
+private extension AudioObjectID {
+    static var systemObject: AudioObjectID {
+        AudioObjectID(kAudioObjectSystemObject)
+    }
+
+    var isValidAudioObject: Bool {
+        self != AudioObjectID(kAudioObjectUnknown)
+    }
+
+    static func readDefaultSystemOutputDevice() throws -> AudioDeviceID {
+        try systemObject.readAudioObjectProperty(
+            kAudioHardwarePropertyDefaultSystemOutputDevice,
+            defaultValue: AudioDeviceID(kAudioObjectUnknown)
+        )
+    }
+
+    static func translateCurrentProcessObjectID() throws -> AudioObjectID {
+        try systemObject.readAudioObjectProperty(
+            kAudioHardwarePropertyTranslatePIDToProcessObject,
+            defaultValue: AudioObjectID(kAudioObjectUnknown),
+            qualifier: getpid()
+        )
+    }
+
+    func readDeviceUID() throws -> String {
+        try readAudioObjectProperty(kAudioDevicePropertyDeviceUID, defaultValue: "" as CFString) as String
+    }
+
+    func readAudioTapStreamBasicDescription() throws -> AudioStreamBasicDescription {
+        try readAudioObjectProperty(kAudioTapPropertyFormat, defaultValue: AudioStreamBasicDescription())
+    }
+
+    private func readAudioObjectProperty<T>(
+        _ selector: AudioObjectPropertySelector,
+        defaultValue: T
+    ) throws -> T {
+        try readAudioObjectProperty(
+            AudioObjectPropertyAddress(
+                mSelector: selector,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            ),
+            defaultValue: defaultValue,
+            qualifierSize: 0,
+            qualifierData: nil
+        )
+    }
+
+    private func readAudioObjectProperty<T, Q>(
+        _ selector: AudioObjectPropertySelector,
+        defaultValue: T,
+        qualifier: Q
+    ) throws -> T {
+        var mutableQualifier = qualifier
+        return try withUnsafeMutablePointer(to: &mutableQualifier) { pointer in
+            try readAudioObjectProperty(
+                AudioObjectPropertyAddress(
+                    mSelector: selector,
+                    mScope: kAudioObjectPropertyScopeGlobal,
+                    mElement: kAudioObjectPropertyElementMain
+                ),
+                defaultValue: defaultValue,
+                qualifierSize: UInt32(MemoryLayout<Q>.size(ofValue: qualifier)),
+                qualifierData: pointer
+            )
+        }
+    }
+
+    private func readAudioObjectProperty<T>(
+        _ address: AudioObjectPropertyAddress,
+        defaultValue: T,
+        qualifierSize: UInt32,
+        qualifierData: UnsafeRawPointer?
+    ) throws -> T {
+        var mutableAddress = address
+        var dataSize: UInt32 = 0
+        var status = AudioObjectGetPropertyDataSize(self, &mutableAddress, qualifierSize, qualifierData, &dataSize)
+        guard status == noErr else {
+            throw NSError(
+                domain: "DragonFruitNative",
+                code: Int(status),
+                userInfo: [NSLocalizedDescriptionKey: "Could not read system audio property."]
+            )
+        }
+
+        var value = defaultValue
+        status = withUnsafeMutablePointer(to: &value) { pointer in
+            AudioObjectGetPropertyData(self, &mutableAddress, qualifierSize, qualifierData, &dataSize, pointer)
+        }
+        guard status == noErr else {
+            throw NSError(
+                domain: "DragonFruitNative",
+                code: Int(status),
+                userInfo: [NSLocalizedDescriptionKey: "Could not read system audio property."]
+            )
+        }
+        return value
     }
 }
 
@@ -344,7 +526,7 @@ struct PermissionStatus: Identifiable {
     /// but never block (requested contextually or from Settings).
     var isRequired: Bool = false
     /// True when macOS only honors a fresh grant after the app relaunches
-    /// (Screen Recording, and re-enabling a previously blocked mic/speech).
+    /// (re-enabling a previously blocked mic/speech).
     var requiresRestart: Bool = false
 }
 
@@ -823,7 +1005,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let delta = Int(meeting.startAt.timeIntervalSinceNow)
         if Date() >= meeting.startAt && Date() <= meeting.endAt { return "Happening now" }
         if delta <= 0 { return "Starting now" }
-        return "in \(max(1, delta / 60))m"
+        return Self.relativeStartLabel(seconds: delta)
     }
 
     var nextUpCountdownLabel: String {
@@ -833,7 +1015,21 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let delta = Int(meeting.startAt.timeIntervalSinceNow)
         if Date() >= meeting.startAt && Date() <= meeting.endAt { return "Happening now" }
         if delta <= 0 { return "Starting now" }
-        return "in \(max(1, delta / 60))m"
+        return Self.relativeStartLabel(seconds: delta)
+    }
+
+    private static func relativeStartLabel(seconds: Int) -> String {
+        let minutes = max(1, seconds / 60)
+        guard minutes >= 60 else {
+            return "in \(minutes)m"
+        }
+
+        let hours = minutes / 60
+        let remainingMinutes = minutes % 60
+        if remainingMinutes == 0 {
+            return "in \(hours)h"
+        }
+        return "in \(hours)h \(remainingMinutes)m"
     }
 
     var selectedWorkspaceName: String {
@@ -860,11 +1056,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             PermissionStatus(id: "speech", name: "Atlas voice", state: speechLabel,
                              isRequired: true, requiresRestart: speechLabel == "Blocked"),
             // Optional: only specific features need these, so they never block
-            // entry. Accessibility toggles live; Screen Recording needs a relaunch.
+            // entry. Accessibility toggles live; system audio is requested when
+            // the Core Audio tap starts.
             PermissionStatus(id: "accessibility", name: "Cursor context & dictation", state: accessibilityPermissionLabel,
                              isRequired: false, requiresRestart: false),
             PermissionStatus(id: "system-audio", name: "System audio", state: systemAudioPermissionLabel,
-                             isRequired: false, requiresRestart: true),
+                             isRequired: false, requiresRestart: false),
         ]
     }
 
@@ -943,7 +1140,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private var systemAudioPermissionLabel: String {
-        Self.hasSystemAudioPermission() ? "Allowed" : "Needed"
+        if #available(macOS 14.2, *) {
+            return UserDefaults.standard.bool(forKey: "df_system_audio_permission_granted") ? "Allowed" : "Ask"
+        }
+        return "Unsupported"
     }
 
     private var speechRecognizer: SFSpeechRecognizer? {
@@ -1070,7 +1270,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 refreshPermissionStatuses()
             }
         case "system-audio":
-            requestScreenRecording()
+            requestSystemAudioRecording()
         case "accessibility":
             openAccessibilitySettings()
         default:
@@ -1078,26 +1278,22 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
-    /// Requests Screen Recording with a one-prompt-then-Settings discipline. The
-    /// macOS capture prompt (CGRequestScreenCaptureAccess) only ever appears the
-    /// first time it's requested; after that it's silent — so firing it again
-    /// while also opening Settings produced the duplicated modals the user saw.
-    /// Here: prompt once (which also registers Atlas in the Screen Recording
-    /// list), then fall back to Settings on later taps.
-    func requestScreenRecording() {
-        guard !Self.hasSystemAudioPermission() else {
-            needsScreenRecordingForMeeting = false
-            refreshPermissionStatuses()
-            return
-        }
-        if !Self.hasRequestedScreenCapture {
-            Self.hasRequestedScreenCapture = true
-            NSApplication.shared.activate(ignoringOtherApps: true)
-            Self.requestSystemAudioPermissionIfNeeded()
-            refreshPermissionStatuses()
-            refreshPermissionStatusesAfterSystemPrompt()
-        } else {
-            openPrivacySettings(anchor: "Privacy_ScreenCapture")
+    /// Requests System Audio Recording Only by starting a short Core Audio tap.
+    /// Apple doesn't expose a public preflight API for this permission; the
+    /// system prompt appears when the tap-backed aggregate device starts.
+    func requestSystemAudioRecording() {
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await systemAudioCapture.requestPermission()
+                needsScreenRecordingForMeeting = false
+                statusMessage = "System audio recording is ready."
+                refreshPermissionStatuses()
+            } catch {
+                statusMessage = "Allow Atlas under System Audio Recording Only, then try again."
+                refreshPermissionStatuses()
+            }
         }
     }
 
@@ -1110,8 +1306,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         refreshPermissionStatusesAfterSystemPrompt()
     }
 
-    /// Screen Recording (and re-enabling mic/speech from System Settings) only
-    /// takes effect after a relaunch. That's the macOS "Quit & Reopen" dialog.
+    /// Re-enabling mic/speech from System Settings only takes effect after a
+    /// relaunch. That's the macOS "Quit & Reopen" dialog.
     /// Relaunch cleanly so the freshly granted permission is detected.
     func restartApp() {
         let bundlePath = Bundle.main.bundleURL.path
@@ -2065,23 +2261,6 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
-    nonisolated private static func hasSystemAudioPermission() -> Bool {
-        CGPreflightScreenCaptureAccess()
-    }
-
-    nonisolated private static func requestSystemAudioPermissionIfNeeded() {
-        guard !CGPreflightScreenCaptureAccess() else { return }
-        _ = CGRequestScreenCaptureAccess()
-    }
-
-    /// Screen Recording's macOS prompt (CGRequestScreenCaptureAccess) only ever
-    /// appears once; afterward it's silent. Persist whether we've fired it so we
-    /// can fall back to opening Settings instead of a no-op prompt.
-    private static var hasRequestedScreenCapture: Bool {
-        get { UserDefaults.standard.bool(forKey: "df_did_request_screen_capture") }
-        set { UserDefaults.standard.set(newValue, forKey: "df_did_request_screen_capture") }
-    }
-
     nonisolated private static func copyAXStringAttribute(_ attribute: String, from element: AXUIElement) -> String? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
@@ -2192,12 +2371,6 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 statusMessage = "Speech recognition is unavailable right now."
                 return
             }
-            guard Self.hasSystemAudioPermission() else {
-                statusMessage = "Allow Screen & System Audio Recording to capture meeting text."
-                needsScreenRecordingForMeeting = true
-                requestScreenRecording()
-                return
-            }
             needsScreenRecordingForMeeting = false
 
             recognitionTask?.cancel()
@@ -2205,18 +2378,15 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             recognitionRequest?.shouldReportPartialResults = true
             let previewRequest = recognitionRequest
-            let appendQueue = speechAppendQueue
             let recordingId = UUID().uuidString
             let tempDirectory = FileManager.default.temporaryDirectory
-            let systemAudioURL = tempDirectory.appendingPathComponent("dragonfruit-meeting-system-\(recordingId).m4a")
+            let systemAudioURL = tempDirectory.appendingPathComponent("dragonfruit-meeting-system-\(recordingId).caf")
             await systemAudioCapture.stop()
             try await systemAudioCapture.start(
                 recordingTo: systemAudioURL,
-                onAudioSampleBuffer: { sampleBuffer in
+                onAudioPCMBuffer: { buffer in
                     if let request = previewRequest {
-                        appendQueue.async {
-                            request.appendAudioSampleBuffer(sampleBuffer)
-                        }
+                        request.append(buffer)
                     }
                 },
                 onError: { [weak self] error in
@@ -2255,6 +2425,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             }
         } catch {
             statusMessage = "Meeting recording failed: \(error.localizedDescription)"
+            if error.localizedDescription.lowercased().contains("system audio") {
+                needsScreenRecordingForMeeting = true
+            }
             stopAudioCapture()
         }
     }
@@ -2295,7 +2468,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         do {
             let client = try makeClient()
             let workspaces = try await client.listWorkspaces()
-            let workspace = workspaces.first
+            let workspace = workspaces.first { $0.slug == selectedWorkspaceSlug } ?? workspaces.first
             guard let workspace else {
                 statusMessage = "No workspace available for meeting notes."
                 meetingState = "Summary"

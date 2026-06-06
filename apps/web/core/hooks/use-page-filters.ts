@@ -47,10 +47,7 @@ export const usePageFilters = () => {
     () => pagesConfig?.font_size ?? DEFAULT_PERSONALIZATION_VALUES.font_size,
     [pagesConfig?.font_size]
   );
-  const fontStyle = useMemo(
-    () => normalizeDocFontStyle(pagesConfig?.font_style),
-    [pagesConfig?.font_style]
-  );
+  const fontStyle = useMemo(() => normalizeDocFontStyle(pagesConfig?.font_style), [pagesConfig?.font_style]);
   // update action
   const handleUpdateConfig = useCallback(
     (payload: Partial<TPagesPersonalizationConfig>) => {

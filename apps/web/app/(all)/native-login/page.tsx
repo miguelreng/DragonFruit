@@ -52,15 +52,24 @@ function extractApiTokenFromHtml(html: string) {
   return callbackMatch ? extractApiToken(callbackMatch[0]) : "";
 }
 
+async function getJsonBody(response: Response) {
+  if (!response.headers.get("content-type")?.includes("application/json")) return null;
+  return response.json().catch(() => null);
+}
+
 // Send the user through the normal web sign-in and return here afterwards so the
 // extension handoff can complete once a session exists. `relogin=1` marks the
 // return trip so a session that still can't mint a token shows an error instead
 // of bouncing back to login forever.
-function redirectToWebLogin(callback: string) {
+function redirectToWebLogin(callback: string, loginUrl?: string) {
+  if (loginUrl) {
+    window.location.assign(loginUrl);
+    return;
+  }
   const returnPath = `/native-login?relogin=1&callback=${encodeURIComponent(callback)}`;
-  const loginUrl = new URL("/", window.location.origin);
-  loginUrl.searchParams.set("next_path", returnPath);
-  window.location.assign(loginUrl.toString());
+  const loginPageUrl = new URL("/login", window.location.origin);
+  loginPageUrl.searchParams.set("next_path", returnPath);
+  window.location.assign(loginPageUrl.toString());
 }
 
 export default function NativeLoginPage() {
@@ -97,20 +106,27 @@ export default function NativeLoginPage() {
         const response = await fetch(url.toString(), {
           credentials: "include",
           headers: { Accept: "application/json" },
+          redirect: "manual",
         });
+        const isManualRedirect = response.type === "opaqueredirect" || response.status === 0;
 
-        // A logged-out session makes the API redirect this fetch to the web
-        // sign-in page rather than returning a token. Send the user through the
-        // normal login and come back here to finish the handoff.
-        if (response.redirected || response.status === 401 || response.status === 403) {
+        // Older API builds redirect logged-out JSON requests to the web sign-in
+        // page. Keep the fetch from following that redirect so CORS never checks
+        // the login document response.
+        if (isManualRedirect || response.redirected) {
           if (hasAttemptedLogin) throw new Error("Sign in to DragonFruit, then connect the extension again.");
           redirectToWebLogin(callback);
           return;
         }
+        const data = await getJsonBody(response);
+        if (response.status === 401 || response.status === 403) {
+          if (hasAttemptedLogin) throw new Error("Sign in to DragonFruit, then connect the extension again.");
+          redirectToWebLogin(callback, typeof data?.login_url === "string" ? data.login_url : undefined);
+          return;
+        }
         if (!response.ok) throw new Error(`Token handoff failed: ${response.status}`);
         let apiToken = "";
-        if (response.headers.get("content-type")?.includes("application/json")) {
-          const data = await response.json();
+        if (data) {
           apiToken = data?.api_token || (data?.callback ? extractApiToken(data.callback) : "");
         } else {
           apiToken = extractApiToken(response.url) || extractApiTokenFromHtml(await response.text());

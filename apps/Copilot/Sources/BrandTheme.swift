@@ -50,7 +50,12 @@ struct CopilotThemeTokens {
     let textOnAccent: Color
     let accent: Color
     let accentSubtle: Color
+    let success: Color
+    let warning: Color
+    let danger: Color
     let shadow: Color
+    let toastShadowSoft: Color
+    let toastShadowLift: Color
 
     static let light = CopilotThemeTokens(
         canvas: Color(red: 0.954, green: 0.955, blue: 0.956),
@@ -66,7 +71,12 @@ struct CopilotThemeTokens {
         textOnAccent: Color(red: 0.985, green: 0.985, blue: 0.986),
         accent: Color(red: 0.91, green: 0.30, blue: 0.66),
         accentSubtle: Color(red: 0.995, green: 0.925, blue: 0.965),
-        shadow: Color.black.opacity(0.16)
+        success: Color(red: 0.18, green: 0.55, blue: 0.44),
+        warning: Color(red: 0.91, green: 0.57, blue: 0.14),
+        danger: Color(red: 0.95, green: 0.30, blue: 0.38),
+        shadow: Color.black.opacity(0.16),
+        toastShadowSoft: Color(red: 0.16, green: 0.18, blue: 0.24).opacity(0.04),
+        toastShadowLift: Color(red: 0.16, green: 0.18, blue: 0.24).opacity(0.10)
     )
 
     static let dark = CopilotThemeTokens(
@@ -83,7 +93,12 @@ struct CopilotThemeTokens {
         textOnAccent: Color(red: 0.145, green: 0.141, blue: 0.139),
         accent: Color(red: 0.93, green: 0.37, blue: 0.70),
         accentSubtle: Color(red: 0.26, green: 0.10, blue: 0.20),
-        shadow: Color.black.opacity(0.34)
+        success: Color(red: 0.39, green: 0.82, blue: 0.62),
+        warning: Color(red: 0.93, green: 0.67, blue: 0.22),
+        danger: Color(red: 0.96, green: 0.37, blue: 0.44),
+        shadow: Color.black.opacity(0.34),
+        toastShadowSoft: Color.black.opacity(0.18),
+        toastShadowLift: Color.black.opacity(0.28)
     )
 }
 

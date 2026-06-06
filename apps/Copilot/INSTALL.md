@@ -35,7 +35,7 @@ you use each feature it asks for a macOS permission — approve them so it works
 
 - **Accessibility** — for global hotkeys and dictation into the focused app.
 - **Microphone** + **Speech Recognition** — for voice capture and dictation.
-- **Screen Recording** — only for Meeting Notes (capturing system audio from calls).
+- **System Audio Recording Only** — only for Meeting Notes (capturing call audio).
 
 You can re-check any of these from the panel (**Reset Accessibility access**) or in
 **System Settings → Privacy & Security**.

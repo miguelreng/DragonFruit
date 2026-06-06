@@ -54,6 +54,7 @@ type BookmarkDraft = {
   url: string;
   description: string;
   tags: string;
+  metadata: TProjectBookmark["metadata"];
 };
 
 type ViewMode = "list" | "grid";
@@ -63,6 +64,7 @@ const EMPTY_DRAFT: BookmarkDraft = {
   url: "",
   description: "",
   tags: "",
+  metadata: {},
 };
 
 const normalizeTags = (tags: string) =>
@@ -110,6 +112,27 @@ const bookmarkHref = (workspaceSlug: string, bookmark: TProjectBookmark) =>
 const bookmarkSource = (bookmark: TProjectBookmark) =>
   bookmark.metadata?.site_name || domainFromUrl(bookmark.url) || bookmark.entity_type || "DragonFruit";
 
+// Imported image/file saves often carry the raw filename as their title
+// (e.g. Facebook CDN names like "706873799_15204..._n.jpg"). Those add nothing
+// over the preview image, so we treat them as "no title" and hide them.
+const MEDIA_FILE_TITLE_RE = /\.(jpe?g|png|gif|webp|heic|heif|bmp|svg|tiff?|avif|mp4|mov|webm|pdf)$/i;
+
+const isJunkTitle = (rawTitle: string) => {
+  const title = (rawTitle ?? "").trim();
+  if (!title) return true;
+  const base = title.replace(MEDIA_FILE_TITLE_RE, "");
+  if (base !== title) return true; // a bare filename used as a title
+  const tokens = base.split(/[\s._-]+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  // machine IDs: long digit runs, hex blobs, or the lone trailing letters FB appends
+  const idLike = tokens.filter(
+    (token) => /^\d{4,}$/.test(token) || /^[0-9a-f]{8,}$/i.test(token) || /^[a-z]$/i.test(token)
+  );
+  return idLike.length / tokens.length >= 0.7;
+};
+
+const bookmarkDisplayTitle = (bookmark: TProjectBookmark) => (isJunkTitle(bookmark.title) ? "" : bookmark.title.trim());
+
 const bookmarkPreviewImage = (bookmark: TProjectBookmark) => {
   const metadata = bookmark.metadata ?? {};
   if (typeof metadata.image_url === "string" && metadata.image_url) return metadata.image_url;
@@ -149,11 +172,11 @@ const openImageUrl = async (imageUrl: string) => {
 };
 
 const toPayload = (draft: BookmarkDraft): TProjectBookmarkCreatePayload => ({
-  title: draft.title.trim() || domainFromUrl(draft.url) || "Untitled bookmark",
+  title: draft.title.trim() || draft.metadata?.og_title || domainFromUrl(draft.url) || "Untitled bookmark",
   url: draft.url.trim(),
   description: draft.description.trim(),
   tags: normalizeTags(draft.tags),
-  metadata: {},
+  metadata: draft.metadata ?? {},
 });
 
 function BookmarkForm(props: {
@@ -164,6 +187,8 @@ function BookmarkForm(props: {
   setSelectedProjectId: (projectId: string) => void;
   onSubmit: () => void | Promise<void>;
   onCancel: () => void;
+  onFetchMetadata?: (url: string) => void;
+  isFetchingMetadata?: boolean;
   submitLabel: string;
   showProjectSelect: boolean;
   isEditing: boolean;
@@ -176,6 +201,8 @@ function BookmarkForm(props: {
     setSelectedProjectId,
     onSubmit,
     onCancel,
+    onFetchMetadata,
+    isFetchingMetadata,
     submitLabel,
     showProjectSelect,
     isEditing,
@@ -222,9 +249,31 @@ function BookmarkForm(props: {
             placeholder="https://..."
             value={draft.url}
             onChange={(event) => setDraft({ ...draft, url: event.target.value })}
+            onBlur={() => onFetchMetadata?.(draft.url)}
           />
         </label>
       </div>
+      {(isFetchingMetadata || draft.metadata?.image_url || draft.metadata?.site_name) && (
+        <div className="flex items-center gap-3 rounded-lg border border-subtle bg-layer-1/40 p-2.5">
+          {draft.metadata?.image_url ? (
+            <img src={draft.metadata.image_url} alt="" className="h-12 w-20 shrink-0 rounded-md object-cover" />
+          ) : (
+            <div className="grid h-12 w-20 shrink-0 place-items-center rounded-md bg-layer-1 text-tertiary">
+              <HugeiconsIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+            </div>
+          )}
+          <div className="min-w-0 flex-1 text-12 text-secondary">
+            {isFetchingMetadata ? (
+              <span className="text-tertiary">Fetching preview…</span>
+            ) : (
+              <span className="line-clamp-2">
+                {draft.metadata?.site_name || domainFromUrl(draft.url)}
+                {draft.metadata?.image_url ? "" : " · no preview image found"}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
       <label className="block">
         <span className="mb-1.5 block text-11 font-medium text-secondary">Note</span>
         <textarea
@@ -274,6 +323,8 @@ function BookmarkFormModal(props: {
   setSelectedProjectId: (projectId: string) => void;
   onSubmit: () => void | Promise<void>;
   onCancel: () => void;
+  onFetchMetadata?: (url: string) => void;
+  isFetchingMetadata?: boolean;
   submitLabel: string;
   showProjectSelect: boolean;
   isEditing: boolean;
@@ -317,9 +368,20 @@ function BookmarkCard(props: {
   const isExternal = !!bookmark.url;
   const imageUrl = bookmarkPreviewImage(bookmark);
   const hasTwitterScreenshot = bookmarkHasTwitterScreenshot(bookmark, imageUrl);
+  const displayTitle = bookmarkDisplayTitle(bookmark);
+  const storedWidth = Number(bookmark.metadata?.image_width);
+  const storedHeight = Number(bookmark.metadata?.image_height);
+  const storedRatio =
+    Number.isFinite(storedWidth) && Number.isFinite(storedHeight) && storedWidth > 0 && storedHeight > 0
+      ? `${storedWidth} / ${storedHeight}`
+      : undefined;
+  // Reserve space from known dimensions (no reflow); otherwise hold a neutral
+  // ratio until the image loads, then lock to its measured ratio.
+  const [measuredRatio, setMeasuredRatio] = useState<string | undefined>(undefined);
+  const imageRatio = storedRatio ?? measuredRatio ?? "4 / 5";
   const cardBody = (
-    <div className="group relative flex h-[312px] flex-col gap-2 rounded-2xl border border-subtle bg-surface-1 p-4 shadow-none transition-colors hover:border-strong">
-      <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+    <div className="group relative overflow-hidden rounded-2xl border border-subtle bg-surface-1 transition-colors hover:border-strong">
+      <div className="absolute top-2 right-2 z-20 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
         <CustomMenu
           placement="bottom-end"
           closeOnSelect
@@ -363,48 +425,83 @@ function BookmarkCard(props: {
           </CustomMenu.MenuItem>
         </CustomMenu>
       </div>
-      <div className="flex h-[72px] items-start gap-2.5 overflow-hidden">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
-          <HugeiconsIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
-        </span>
-        <div className="min-w-0 flex-1 pr-8">
-          <h3 className="line-clamp-2 text-14 leading-snug font-medium text-primary">{bookmark.title}</h3>
-          <p className="mt-1 line-clamp-1 text-12 leading-relaxed text-secondary">
-            {bookmark.description || bookmarkSource(bookmark)}
-          </p>
-        </div>
-      </div>
-      <div className="relative min-h-[126px] flex-1 overflow-hidden rounded-xl bg-layer-1/40">
-        {imageUrl ? (
-          <>
-            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-            {hasTwitterScreenshot && (
-              <button
-                type="button"
-                className="shadow-sm absolute top-2 right-2 grid size-7 place-items-center rounded-lg border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  void openImageUrl(imageUrl);
-                }}
-                aria-label="Open Twitter screenshot"
-              >
-                <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-              </button>
+      {imageUrl ? (
+        <>
+          <img
+            src={imageUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="block h-auto w-full bg-layer-1/40"
+            style={{ aspectRatio: imageRatio }}
+            onLoad={
+              storedRatio
+                ? undefined
+                : (event) => {
+                    const img = event.currentTarget;
+                    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                      setMeasuredRatio(`${img.naturalWidth} / ${img.naturalHeight}`);
+                    }
+                  }
+            }
+          />
+          {hasTwitterScreenshot && (
+            <button
+              type="button"
+              className="shadow-sm absolute top-2 left-2 z-20 grid size-7 place-items-center rounded-lg border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void openImageUrl(imageUrl);
+              }}
+              aria-label="Open Twitter screenshot"
+            >
+              <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            </button>
+          )}
+          <div
+            className="absolute inset-x-0 bottom-0 z-10 px-4 pt-14 pb-3 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
+            style={{
+              // Sigmoid-eased scrim: the long, finely-stepped tail lets the dark
+              // fade to fully transparent without a visible banding edge.
+              backgroundImage:
+                "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.69) 8.1%, rgba(0,0,0,0.665) 15.5%, rgba(0,0,0,0.627) 22.5%, rgba(0,0,0,0.578) 29%, rgba(0,0,0,0.519) 35.3%, rgba(0,0,0,0.454) 41.2%, rgba(0,0,0,0.385) 47.1%, rgba(0,0,0,0.315) 52.9%, rgba(0,0,0,0.246) 58.8%, rgba(0,0,0,0.181) 64.7%, rgba(0,0,0,0.123) 71%, rgba(0,0,0,0.073) 77.5%, rgba(0,0,0,0.034) 84.5%, rgba(0,0,0,0.009) 91.9%, rgba(0,0,0,0) 100%)",
+            }}
+          >
+            {displayTitle && (
+              <h3 className="line-clamp-2 text-14 leading-snug font-medium text-white">{displayTitle}</h3>
             )}
-          </>
-        ) : (
-          <div className="absolute inset-0 grid place-items-center px-6 text-center text-12 leading-relaxed text-tertiary/40">
-            <span>{bookmark.description ? "Preview unavailable" : "No preview available"}</span>
+            <div className="mt-1 flex items-center justify-between gap-2 text-11 text-white/70">
+              <span className="min-w-0 truncate">
+                {showProject && bookmark.project_name ? bookmark.project_name : bookmarkSource(bookmark)}
+              </span>
+              {bookmark.updated_at && <span className="shrink-0">{renderFormattedDate(bookmark.updated_at)}</span>}
+            </div>
           </div>
-        )}
-      </div>
-      <div className="mt-auto flex items-center justify-between gap-2 pt-1 text-11 text-tertiary">
-        <div className="min-w-0 truncate">
-          {showProject && bookmark.project_name ? bookmark.project_name : (bookmark.tags[0] ?? "")}
+        </>
+      ) : (
+        <div className="flex flex-col gap-2 p-4">
+          <div className="flex items-start gap-2.5">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
+              <HugeiconsIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+            </span>
+            <div className="min-w-0 flex-1 pr-8">
+              <h3 className="line-clamp-2 text-14 leading-snug font-medium text-primary">
+                {displayTitle || bookmarkSource(bookmark)}
+              </h3>
+            </div>
+          </div>
+          {bookmark.description && (
+            <p className="line-clamp-4 text-12 leading-relaxed text-secondary">{bookmark.description}</p>
+          )}
+          <div className="flex items-center justify-between gap-2 pt-1 text-11 text-tertiary">
+            <div className="min-w-0 truncate">
+              {showProject && bookmark.project_name ? bookmark.project_name : (bookmark.tags[0] ?? "")}
+            </div>
+            {bookmark.updated_at && <span className="shrink-0">{renderFormattedDate(bookmark.updated_at)}</span>}
+          </div>
         </div>
-        {bookmark.updated_at && <span className="shrink-0">{renderFormattedDate(bookmark.updated_at)}</span>}
-      </div>
+      )}
     </div>
   );
 
@@ -446,7 +543,7 @@ function BookmarkListItem(props: {
 
   return (
     <ListItem
-      title={bookmark.title}
+      title={bookmarkDisplayTitle(bookmark) || bookmarkSource(bookmark)}
       itemLink={href || "#"}
       disableLink={!href}
       onItemClick={
@@ -668,6 +765,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [draft, setDraft] = useState<BookmarkDraft>(EMPTY_DRAFT);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const lastFetchedUrlRef = useRef("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
   const { storedValue: storedViewMode, setValue: setViewMode } = useLocalStorage<ViewMode>(
@@ -774,6 +873,26 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     );
   }, [editingId, isFormModalOpen, projectId, selectedProjectId, writableProjectIds]);
 
+  const fetchMetadata = async (rawUrl: string) => {
+    const url = rawUrl.trim();
+    if (!url || url === lastFetchedUrlRef.current) return;
+    lastFetchedUrlRef.current = url;
+    setIsFetchingMetadata(true);
+    try {
+      const data = await bookmarkStore.fetchUrlMetadata(workspaceSlug, url);
+      setDraft((prev) => ({
+        ...prev,
+        title: prev.title.trim() ? prev.title : (data.title ?? ""),
+        description: prev.description.trim() ? prev.description : (data.description ?? ""),
+        metadata: data.metadata ?? {},
+      }));
+    } catch {
+      // best-effort preview; ignore failures so manual entry still works
+    } finally {
+      setIsFetchingMetadata(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const targetProjectId = editingId
       ? (bookmarkStore.bookmarkMap[editingId]?.project_id ?? selectedProjectId)
@@ -803,7 +922,9 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       url: bookmark.url,
       description: bookmark.description,
       tags: bookmark.tags.join(", "),
+      metadata: bookmark.metadata ?? {},
     });
+    lastFetchedUrlRef.current = bookmark.url;
     setIsFormModalOpen(true);
   };
 
@@ -818,6 +939,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const openCreateModal = () => {
     setEditingId(null);
     setDraft(EMPTY_DRAFT);
+    lastFetchedUrlRef.current = "";
     setSelectedProjectId(
       projectId && writableProjectIds.includes(projectId) ? projectId : (writableProjectIds[0] ?? "")
     );
@@ -918,6 +1040,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
           selectedProjectId={selectedProjectId}
           setSelectedProjectId={setSelectedProjectId}
           onSubmit={handleSubmit}
+          onFetchMetadata={fetchMetadata}
+          isFetchingMetadata={isFetchingMetadata}
           onCancel={() => {
             setIsFormModalOpen(false);
             setEditingId(null);
@@ -943,32 +1067,22 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
           isLoading ? (
             viewMode === "grid" ? (
               <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {Array.from({ length: 8 }).map((_, index) => (
-                    <Loader
-                      key={index}
-                      className="flex h-[312px] flex-col gap-2 rounded-2xl border border-subtle bg-surface-1 p-4"
-                    >
-                      <div className="flex h-[72px] items-start gap-2.5">
-                        <Loader.Item height="32px" width="32px" />
-                        <div className="flex-1 space-y-2 pt-1">
-                          <Loader.Item height="14px" width="90%" />
-                          <Loader.Item height="12px" width="60%" />
-                        </div>
+                <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
+                  {["180", "260", "320", "210", "290", "240", "181", "261", "321", "211", "291", "241"].map(
+                    (height) => (
+                      <div key={height} className="mb-4 break-inside-avoid">
+                        <Loader className="block overflow-hidden rounded-2xl border border-subtle bg-surface-1">
+                          <Loader.Item width="100%" height={`${height}px`} />
+                        </Loader>
                       </div>
-                      <Loader.Item width="100%" className="min-h-[126px] flex-1 rounded-xl" />
-                      <div className="flex items-center justify-between pt-1">
-                        <Loader.Item height="10px" width="30%" />
-                        <Loader.Item height="10px" width="18%" />
-                      </div>
-                    </Loader>
-                  ))}
+                    )
+                  )}
                 </div>
               </div>
             ) : (
               <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto">
-                {Array.from({ length: 10 }).map((_, index) => (
-                  <Loader key={index} className="flex items-center gap-3 border-b border-subtle px-4 py-3">
+                {Array.from({ length: 10 }, (_, index) => `bookmark-row-skeleton-${index}`).map((key) => (
+                  <Loader key={key} className="flex items-center gap-3 border-b border-subtle px-4 py-3">
                     <Loader.Item height="28px" width="28px" />
                     <div className="flex-1 space-y-1.5">
                       <Loader.Item height="13px" width="35%" />
@@ -982,42 +1096,43 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
           ) : (
             <EmptyStateDetailed
               assetKey={hasFilters ? "search" : "page"}
-            title={hasFilters ? "No bookmarks match your filters" : "No bookmarks yet"}
-            description={
-              hasFilters
-                ? "Try clearing the search, project, or tag filters."
-                : "Save useful links, docs, pages, and references so they are easy to find later."
-            }
-            actions={
-              !hasFilters && canCreateBookmark
-                ? [
-                    {
-                      label: "New bookmark",
-                      variant: "primary",
-                      onClick: openCreateModal,
-                    },
-                    {
-                      label: "Import CSV",
-                      variant: "secondary",
-                      onClick: () => setIsImportModalOpen(true),
-                    },
-                  ]
-                : undefined
-            }
+              title={hasFilters ? "No bookmarks match your filters" : "No bookmarks yet"}
+              description={
+                hasFilters
+                  ? "Try clearing the search, project, or tag filters."
+                  : "Save useful links, docs, pages, and references so they are easy to find later."
+              }
+              actions={
+                !hasFilters && canCreateBookmark
+                  ? [
+                      {
+                        label: "New bookmark",
+                        variant: "primary",
+                        onClick: openCreateModal,
+                      },
+                      {
+                        label: "Import CSV",
+                        variant: "secondary",
+                        onClick: () => setIsImportModalOpen(true),
+                      },
+                    ]
+                  : undefined
+              }
             />
           )
         ) : viewMode === "grid" ? (
           <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
               {filteredBookmarks.map((bookmark) => (
-                <BookmarkCard
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  workspaceSlug={workspaceSlug}
-                  showProject={mode === "workspace"}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
+                <div key={bookmark.id} className="mb-4 break-inside-avoid">
+                  <BookmarkCard
+                    bookmark={bookmark}
+                    workspaceSlug={workspaceSlug}
+                    showProject={mode === "workspace"}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                </div>
               ))}
             </div>
           </div>

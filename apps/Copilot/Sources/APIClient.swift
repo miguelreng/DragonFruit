@@ -298,7 +298,7 @@ struct APIClient {
             request.httpBody = try makeMultipartBody(fields: fields, files: files, boundary: boundary)
         }
         let (data, response) = try await send(request, endpoint: "POST meeting notes")
-        try ensureStatus(response, allowed: [200, 201])
+        try ensureStatus(response, data: data, allowed: [200, 201])
         return try JSONDecoder().decode(MeetingNotesDraftResponse.self, from: data)
     }
 
@@ -507,22 +507,42 @@ struct APIClient {
         )
     }
 
-    private func ensureStatus(_ response: URLResponse, allowed: Set<Int>) throws {
+    private func ensureStatus(_ response: URLResponse, data: Data? = nil, allowed: Set<Int>) throws {
         guard let http = response as? HTTPURLResponse else {
             throw NSError(domain: "DragonFruitNative", code: 900, userInfo: [NSLocalizedDescriptionKey: "Non-HTTP response"])
         }
         guard allowed.contains(http.statusCode) else {
             let message: String
-            switch http.statusCode {
-            case 401:
-                message = "Session expired. Please sign in again."
-            case 502, 503, 504:
-                message = "Calendar service is temporarily unavailable (\(http.statusCode)). Please try again."
-            default:
-                message = "Request failed with status \(http.statusCode)"
+            if let serverMessage = errorMessage(from: data) {
+                message = serverMessage
+            } else {
+                switch http.statusCode {
+                case 401:
+                    message = "Session expired. Please sign in again."
+                case 502, 503, 504:
+                    message = "Calendar service is temporarily unavailable (\(http.statusCode)). Please try again."
+                default:
+                    message = "Request failed with status \(http.statusCode)"
+                }
             }
             throw NSError(domain: "DragonFruitNative", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: message])
         }
+    }
+
+    private func errorMessage(from data: Data?) -> String? {
+        guard let data,
+              let object = try? JSONSerialization.jsonObject(with: data)
+        else { return nil }
+
+        if let json = object as? [String: Any] {
+            for key in ["error", "detail", "message"] {
+                if let value = json[key] as? String {
+                    let message = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !message.isEmpty { return message }
+                }
+            }
+        }
+        return nil
     }
 
     private func formEncode(_ values: [String: String]) -> String {

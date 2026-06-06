@@ -80,7 +80,9 @@ function PublishedPage({ params }: Route.ComponentProps) {
             This published page type is not supported in public view yet.
           </div>
         ) : (
-          <div className={`published-doc-surface ${normalizeDocFontStyle(data.view_props?.font_style)} mx-auto w-full max-w-[680px]`}>
+          <div
+            className={`published-doc-surface ${normalizeDocFontStyle(data.view_props?.font_style)} mx-auto w-full max-w-[680px]`}
+          >
             <PublicDocIndex headings={docHeadings} />
             <div className="mb-10">
               <p className="tracking-normal text-12 font-medium text-tertiary">

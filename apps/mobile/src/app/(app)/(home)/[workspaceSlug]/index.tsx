@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
-import { ActivityIndicator, ImageBackground, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import {
+  ActivityIndicator,
+  ImageBackground,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DrawerActions } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,19 +23,28 @@ import { AtlasPeek } from "@/components/atlas-peek";
 import {
   getActivitySummary,
   getMyIssues,
-  getProjects,
   getUpcomingMeetings,
   isAuthError,
   type CalendarEvent,
   type IssueListItem,
-  type Project,
 } from "@/lib/api";
-import { PRIORITY_COLOR } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { colors, font, radius, spacing } from "@/lib/theme";
 
-const MONTHS = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
-const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = [
+  "JANUARY",
+  "FEBRUARY",
+  "MARCH",
+  "APRIL",
+  "MAY",
+  "JUNE",
+  "JULY",
+  "AUGUST",
+  "SEPTEMBER",
+  "OCTOBER",
+  "NOVEMBER",
+  "DECEMBER",
+];
 // Calendar grid is Monday-first to match the reference layout.
 const WEEKDAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -53,19 +72,6 @@ function homeBackdrop(date: Date) {
   return HOME_BACKDROPS.night;
 }
 
-/** Compact "when" for a meeting: "Today · 2:30 PM" / "Tue · 9:00 AM". */
-function meetingWhen(event: CalendarEvent): string {
-  const d = new Date(event.start);
-  if (Number.isNaN(d.getTime())) return "";
-  const day = d.toDateString() === new Date().toDateString() ? "Today" : DAY_ABBR[d.getDay()];
-  if (event.all_day) return `${day} · All day`;
-  let h = d.getHours();
-  const m = d.getMinutes();
-  const suffix = h >= 12 ? "PM" : "AM";
-  h = h % 12 || 12;
-  return `${day} · ${h}:${m.toString().padStart(2, "0")} ${suffix}`;
-}
-
 type DayCell = { count: number; isToday: boolean; isFuture: boolean } | null;
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
@@ -76,7 +82,10 @@ const pad2 = (n: number) => n.toString().padStart(2, "0");
  * today are flagged as future (rendered faint). `maxCount` drives the
  * intensity ramp so the busiest day in the month is fully saturated.
  */
-function useMonthGrid(now: Date, activity: Record<string, number>): { rows: DayCell[][]; todayColumn: number; maxCount: number } {
+function useMonthGrid(
+  now: Date,
+  activity: Record<string, number>
+): { rows: DayCell[][]; todayColumn: number; maxCount: number } {
   return useMemo(() => {
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -149,8 +158,6 @@ export default function WorkspaceHomeScreen() {
   const { user, signOut } = useSession();
 
   const [issues, setIssues] = useState<IssueListItem[]>([]);
-  // project_id -> identifier, so "On my plate" can render "PROJ-123" across projects.
-  const [identifiers, setIdentifiers] = useState<Record<string, string>>({});
   const [meetings, setMeetings] = useState<CalendarEvent[]>([]);
   // date (YYYY-MM-DD) -> weighted activity score, drives the heatmap dots.
   const [activity, setActivity] = useState<Record<string, number>>({});
@@ -164,20 +171,16 @@ export default function WorkspaceHomeScreen() {
       setError(null);
       // Meetings and activity are optional (no calendar / empty workspace → []),
       // so a failure in either must not blank out the rest of the home screen.
-      const [projectList, myIssues, upcoming, summary] = await Promise.all([
-        getProjects(workspaceSlug),
+      const [myIssues, upcoming, summary] = await Promise.all([
         getMyIssues(workspaceSlug, user.id),
         getUpcomingMeetings().catch(() => [] as CalendarEvent[]),
         getActivitySummary(workspaceSlug).catch(() => null),
       ]);
       setIssues(myIssues);
       setMeetings(upcoming);
-      setIdentifiers(Object.fromEntries(projectList.map((project: Project) => [project.id, project.identifier])));
       // Dots grade on the weighted `score` (docs weigh heavier than work
       // items) so the shade reflects the kind of action, not a flat count.
-      setActivity(
-        summary ? Object.fromEntries(summary.daily_buckets.map((b) => [b.date, b.score])) : {}
-      );
+      setActivity(summary ? Object.fromEntries(summary.daily_buckets.map((b) => [b.date, b.score])) : {});
     } catch (err) {
       if (isAuthError(err)) {
         await signOut();
@@ -222,163 +225,169 @@ export default function WorkspaceHomeScreen() {
     // Swipe in from the right edge to peek Ask Atlas across — the mirror of the
     // left-edge sidebar drawer, tracking the finger as it slides over home.
     <AtlasPeek>
-    <ImageBackground
-      source={homeBackdrop(today)}
-      style={styles.bg}
-      imageStyle={styles.bgImage}
-      resizeMode="cover"
-    >
-      {/* Glass fading to clear at center — strong at the bottom, softer at the top. */}
-      <LinearGradient
-        colors={[
-          "rgba(6, 7, 10, 0.7)",
-          "rgba(6, 7, 10, 0.4)",
-          "transparent",
-          "rgba(6, 7, 10, 0.78)",
-          "rgba(6, 7, 10, 0.97)",
-        ]}
-        locations={[0, 0.32, 0.5, 0.7, 1]}
-        style={styles.glass}
-        pointerEvents="none"
-      />
-      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={openMenu}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Open menu"
-          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressedDim]}
-        >
-          <AppIcon icon={SidebarLeftIcon} size={20} color="#fff" strokeWidth={1.9} />
-        </Pressable>
-        <View style={styles.flex} />
-        <BrandLogo width={104} color="rgba(255, 255, 255, 0.55)" />
-        <View style={styles.flex} />
-        <Pressable
-          onPress={openNewTask}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="New task"
-          style={({ pressed }) => [styles.newTaskBtn, pressed && styles.pressedDim]}
-        >
-          <AppIcon icon={Add01Icon} size={20} color={colors.white} strokeWidth={1.9} />
-        </Pressable>
-      </View>
+      <ImageBackground source={homeBackdrop(today)} style={styles.bg} imageStyle={styles.bgImage} resizeMode="cover">
+        {/* Glass fading to clear at center — strong at the bottom, softer at the top. */}
+        <LinearGradient
+          colors={[
+            "rgba(6, 7, 10, 0.7)",
+            "rgba(6, 7, 10, 0.4)",
+            "transparent",
+            "rgba(6, 7, 10, 0.78)",
+            "rgba(6, 7, 10, 0.97)",
+          ]}
+          locations={[0, 0.32, 0.5, 0.7, 1]}
+          style={styles.glass}
+          pointerEvents="none"
+        />
+        <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+          <View style={styles.topBar}>
+            <Pressable
+              onPress={openMenu}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Open menu"
+              style={({ pressed }) => [styles.iconBtn, pressed && styles.pressedDim]}
+            >
+              <AppIcon icon={SidebarLeftIcon} size={20} color="#fff" strokeWidth={1.9} />
+            </Pressable>
+            <View style={styles.flex} />
+            <BrandLogo width={104} color="rgba(255, 255, 255, 0.55)" />
+            <View style={styles.flex} />
+            <Pressable
+              onPress={openNewTask}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="New task"
+              style={({ pressed }) => [styles.newTaskBtn, pressed && styles.pressedDim]}
+            >
+              <AppIcon icon={Add01Icon} size={20} color={colors.white} strokeWidth={1.9} />
+            </Pressable>
+          </View>
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.brand} />
-        </View>
-      ) : (
-        <>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />}
-        >
-          {/* Feed: On my plate + Up next on the right column. The date and
+          {loading ? (
+            <View style={styles.center}>
+              <ActivityIndicator color={colors.brand} />
+            </View>
+          ) : (
+            <>
+              <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />
+                }
+              >
+                {/* Feed: On my plate + Up next on the right column. The date and
               greeting are docked just above the heatmap (see calendarFooter). */}
-          <View style={styles.heroRow}>
-            <View style={styles.heroLeft} />
-            <View style={styles.heroRight}>
-              <SectionHeader
-                flush
-                label="On my plate"
-                action={topIssues.length > 0 ? { icon: ArrowRight01Icon, label: "See all tasks", onPress: openMyTasks } : undefined}
-              />
-              {topIssues.length > 0 ? (
-                <View style={styles.list}>
-                  {topIssues.map((issue) => (
-                    <Pressable
-                      key={issue.id}
-                      onPress={() => openIssue(issue)}
-                      accessibilityRole="button"
-                      accessibilityLabel={issue.name}
-                      style={({ pressed }) => pressed && styles.pressedDim}
-                    >
-                      <View style={styles.listRow}>
-                        <Text style={styles.rowTitle} numberOfLines={1}>
-                          {issue.name}
-                        </Text>
+                <View style={styles.heroRow}>
+                  <View style={styles.heroLeft} />
+                  <View style={styles.heroRight}>
+                    <SectionHeader
+                      flush
+                      label="On my plate"
+                      action={
+                        topIssues.length > 0
+                          ? { icon: ArrowRight01Icon, label: "See all tasks", onPress: openMyTasks }
+                          : undefined
+                      }
+                    />
+                    {topIssues.length > 0 ? (
+                      <View style={styles.list}>
+                        {topIssues.map((issue) => (
+                          <Pressable
+                            key={issue.id}
+                            onPress={() => openIssue(issue)}
+                            accessibilityRole="button"
+                            accessibilityLabel={issue.name}
+                            style={({ pressed }) => pressed && styles.pressedDim}
+                          >
+                            <View style={styles.listRow}>
+                              <Text style={styles.rowTitle} numberOfLines={1}>
+                                {issue.name}
+                              </Text>
+                            </View>
+                          </Pressable>
+                        ))}
                       </View>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyText}>You&apos;re all caught up.</Text>
-              )}
+                    ) : (
+                      <Text style={styles.emptyText}>You&apos;re all caught up.</Text>
+                    )}
 
-              {/* Up next — same column / width as On my plate */}
-              <SectionHeader
-                label="Up next"
-                action={topMeetings.length > 0 ? { icon: Calendar01Icon, label: "Open calendar", onPress: openCalendar } : undefined}
-              />
-              {topMeetings.length > 0 ? (
-                <View style={styles.list}>
-                  {topMeetings.map((meeting) => (
-                    <Pressable
-                      key={meeting.id}
-                      onPress={openCalendar}
-                      accessibilityRole="button"
-                      accessibilityLabel={meeting.title || "Untitled event"}
-                      style={({ pressed }) => pressed && styles.pressedDim}
-                    >
-                      <View style={styles.listRow}>
-                        <Text style={styles.rowTitle} numberOfLines={1}>
-                          {meeting.title || "Untitled event"}
-                        </Text>
+                    {/* Up next — same column / width as On my plate */}
+                    <SectionHeader
+                      label="Up next"
+                      action={
+                        topMeetings.length > 0
+                          ? { icon: Calendar01Icon, label: "Open calendar", onPress: openCalendar }
+                          : undefined
+                      }
+                    />
+                    {topMeetings.length > 0 ? (
+                      <View style={styles.list}>
+                        {topMeetings.map((meeting) => (
+                          <Pressable
+                            key={meeting.id}
+                            onPress={openCalendar}
+                            accessibilityRole="button"
+                            accessibilityLabel={meeting.title || "Untitled event"}
+                            style={({ pressed }) => pressed && styles.pressedDim}
+                          >
+                            <View style={styles.listRow}>
+                              <Text style={styles.rowTitle} numberOfLines={1}>
+                                {meeting.title || "Untitled event"}
+                              </Text>
+                            </View>
+                          </Pressable>
+                        ))}
                       </View>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyText}>{error ?? "No upcoming events."}</Text>
-              )}
-            </View>
-          </View>
-        </ScrollView>
-
-        {/* Activity heatmap — docked at the bottom, always visible */}
-        <View style={styles.calendarFooter}>
-          {/* Editorial date + greeting, sitting just above the heatmap:
-              "27 June" with the greeting beneath it in Newsreader italic. */}
-          <View style={styles.footerDate}>
-            <Text style={styles.dateLine}>
-              {today.getDate()} {MONTHS[today.getMonth()].charAt(0) + MONTHS[today.getMonth()].slice(1).toLowerCase()}
-            </Text>
-            <Text style={styles.footerGreeting}>
-              {greeting(today)}, {firstName}
-            </Text>
-          </View>
-          <SectionHeader flush label="Heatmap activity" />
-          <View style={styles.calendar}>
-            <View style={styles.weekRow}>
-              {WEEKDAY_LETTERS.map((letter, index) => (
-                <Text
-                  key={`h-${index}`}
-                  style={[styles.weekdayLetter, index === todayColumn && styles.weekdayLetterToday]}
-                >
-                  {letter}
-                </Text>
-              ))}
-            </View>
-            {rows.map((week, weekIndex) => (
-              <View key={`w-${weekIndex}`} style={styles.weekRow}>
-                {week.map((cell, dayIndex) => (
-                  <View key={`d-${weekIndex}-${dayIndex}`} style={styles.dayCell}>
-                    {cell ? <View style={dotStyles(cell, maxCount)} /> : null}
+                    ) : (
+                      <Text style={styles.emptyText}>{error ?? "No upcoming events."}</Text>
+                    )}
                   </View>
-                ))}
+                </View>
+              </ScrollView>
+
+              {/* Activity heatmap — docked at the bottom, always visible */}
+              <View style={styles.calendarFooter}>
+                {/* Editorial date + greeting, sitting just above the heatmap:
+              "27 June" with the greeting beneath it in Newsreader italic. */}
+                <View style={styles.footerDate}>
+                  <Text style={styles.dateLine}>
+                    {today.getDate()}{" "}
+                    {MONTHS[today.getMonth()].charAt(0) + MONTHS[today.getMonth()].slice(1).toLowerCase()}
+                  </Text>
+                  <Text style={styles.footerGreeting}>
+                    {greeting(today)}, {firstName}
+                  </Text>
+                </View>
+                <SectionHeader flush label="Heatmap activity" />
+                <View style={styles.calendar}>
+                  <View style={styles.weekRow}>
+                    {WEEKDAY_LETTERS.map((letter, index) => (
+                      <Text
+                        key={`h-${index}`}
+                        style={[styles.weekdayLetter, index === todayColumn && styles.weekdayLetterToday]}
+                      >
+                        {letter}
+                      </Text>
+                    ))}
+                  </View>
+                  {rows.map((week, weekIndex) => (
+                    <View key={`w-${weekIndex}`} style={styles.weekRow}>
+                      {week.map((cell, dayIndex) => (
+                        <View key={`d-${weekIndex}-${dayIndex}`} style={styles.dayCell}>
+                          {cell ? <View style={dotStyles(cell, maxCount)} /> : null}
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </View>
               </View>
-            ))}
-          </View>
-        </View>
-        </>
-      )}
-    </SafeAreaView>
-    </ImageBackground>
+            </>
+          )}
+        </SafeAreaView>
+      </ImageBackground>
     </AtlasPeek>
   );
 }
@@ -437,7 +446,12 @@ const styles = StyleSheet.create({
   dateLine: { fontSize: font.size.xxl, color: "#fff", fontFamily: "Figtree_700Bold" },
   // Greeting beneath the date — Newsreader serif. iOS matches by the ttf's
   // internal family name ("Newsreader") + fontStyle, not the useFonts key.
-  footerGreeting: { marginTop: spacing.xs, fontSize: font.size.xl, color: "rgba(255, 255, 255, 0.85)", fontFamily: "Newsreader" },
+  footerGreeting: {
+    marginTop: spacing.xs,
+    fontSize: font.size.xl,
+    color: "rgba(255, 255, 255, 0.85)",
+    fontFamily: "Newsreader",
+  },
 
   // Dot-grid calendar
   // Heatmap is docked at the bottom of the screen (outside the ScrollView), so
@@ -451,16 +465,22 @@ const styles = StyleSheet.create({
   },
   calendar: { gap: spacing.sm, marginTop: spacing.sm },
   weekRow: { flexDirection: "row", gap: spacing.sm },
-  weekdayLetter: { flex: 1, textAlign: "center", fontSize: font.size.xs, color: "rgba(255, 255, 255, 0.5)", fontFamily: "Figtree_600SemiBold" },
+  weekdayLetter: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: font.size.xs,
+    color: "rgba(255, 255, 255, 0.5)",
+    fontFamily: "Figtree_600SemiBold",
+  },
   weekdayLetterToday: { color: colors.brand },
   dayCell: { flex: 1, aspectRatio: 1, alignItems: "center", justifyContent: "center" },
   dot: { width: "100%", aspectRatio: 1, borderRadius: radius.pill, backgroundColor: "rgba(255, 255, 255, 0.12)" },
   // Empty (no activity) vs future (after today) vs the brand intensity ramp.
   dotEmpty: { backgroundColor: "rgba(255, 255, 255, 0.12)" },
   dotFuture: { backgroundColor: "rgba(255, 255, 255, 0.06)" },
-  dotL1: { backgroundColor: "rgba(170, 2, 118, 0.32)" },
-  dotL2: { backgroundColor: "rgba(170, 2, 118, 0.62)" },
-  dotL3: { backgroundColor: colors.brand },
+  dotL1: { backgroundColor: "rgba(170, 2, 118, 0.20)" },
+  dotL2: { backgroundColor: "rgba(170, 2, 118, 0.42)" },
+  dotL3: { backgroundColor: "rgba(170, 2, 118, 0.68)" },
   // Today always gets a ring so it's locatable even on a zero-activity day.
   dotToday: { borderWidth: 2, borderColor: colors.brand },
 
@@ -473,7 +493,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   sectionHeaderFlush: { marginTop: 0 },
-  sectionLabel: { fontSize: font.size.xs, color: "rgba(255, 255, 255, 0.5)", fontFamily: "Figtree_600SemiBold", letterSpacing: 1, textTransform: "uppercase" },
+  sectionLabel: {
+    fontSize: font.size.xs,
+    color: "rgba(255, 255, 255, 0.5)",
+    fontFamily: "Figtree_600SemiBold",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
   sectionActionBtn: { alignItems: "center", justifyContent: "center" },
 
   list: { gap: spacing.xs },
@@ -483,5 +509,10 @@ const styles = StyleSheet.create({
   rowMeta: { fontSize: font.size.xs, color: "rgba(255, 255, 255, 0.5)", fontFamily: "Figtree_500Medium" },
   rowMetaAccent: { fontSize: font.size.xs, color: colors.brandText, fontFamily: "Figtree_600SemiBold" },
 
-  emptyText: { fontSize: font.size.sm, color: "rgba(255, 255, 255, 0.7)", fontFamily: "Figtree_400Regular", paddingVertical: spacing.sm },
+  emptyText: {
+    fontSize: font.size.sm,
+    color: "rgba(255, 255, 255, 0.7)",
+    fontFamily: "Figtree_400Regular",
+    paddingVertical: spacing.sm,
+  },
 });

@@ -109,7 +109,7 @@ export const List = observer(function List(props: IList) {
 
   const getGroupIndex = (groupId: string | undefined) => groups.findIndex(({ id }) => id === groupId);
 
-  const is_list = group_by === null ? true : false;
+  const is_list = group_by === null;
 
   // In the ungrouped ("All tasks") view the single column reads the ALL_ISSUES
   // bucket. If a racing/superseded fetch stored issues under group buckets
@@ -121,7 +121,9 @@ export const List = observer(function List(props: IList) {
   const ungroupedIssueIds: string[] | undefined = is_list
     ? groupedIssueIds?.[ALL_ISSUES]?.length
       ? (groupedIssueIds[ALL_ISSUES] as string[])
-      : Array.from(new Set((Object.values(groupedIssueIds ?? {}) as unknown[]).filter(Array.isArray).flat() as string[]))
+      : Array.from(
+          new Set((Object.values(groupedIssueIds ?? {}) as unknown[]).filter(Array.isArray).flat() as string[])
+        )
     : undefined;
 
   // create groupIds array and entities object for bulk ops

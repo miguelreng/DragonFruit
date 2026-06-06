@@ -347,7 +347,7 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                             tab === "overview" ? cell.count : typeFocus === "docs" ? cell.docs : cell.work_items;
                           const intensityValue =
                             tab === "overview"
-                              ? cell.score ?? cell.count
+                              ? (cell.score ?? cell.count)
                               : typeFocus === "docs"
                                 ? cell.docs
                                 : cell.work_items;
@@ -355,7 +355,9 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                             <div
                               key={key}
                               title={`${cell.date} — ${displayCount} ${displayCount === 1 ? "entry" : "entries"}`}
-                              className={"aspect-square w-full rounded-[3px] " + intensityClass(intensityValue, maxValue)}
+                              className={
+                                "aspect-square w-full rounded-[3px] " + intensityClass(intensityValue, maxValue)
+                              }
                             />
                           );
                         })}

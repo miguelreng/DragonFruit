@@ -32,6 +32,10 @@ from plane.authentication.utils.native_handoff import (
 )
 
 
+def _wants_native_login_json(request) -> bool:
+    return request.GET.get("format") == "json" or "application/json" in request.headers.get("Accept", "")
+
+
 class NativeLoginStartEndpoint(APIView):
     permission_classes = [AllowAny]
 
@@ -40,10 +44,12 @@ class NativeLoginStartEndpoint(APIView):
         if not is_native_callback(callback):
             callback = "dragonfruitmini://auth/login-callback"
 
+        wants_json = _wants_native_login_json(request)
+
         if request.user.is_authenticated:
             separator = "&" if "?" in callback else "?"
             token = create_native_api_token(request.user)
-            if request.GET.get("format") == "json" or "application/json" in request.headers.get("Accept", ""):
+            if wants_json:
                 return Response(
                     {"api_token": token, "callback": f"{callback}{separator}api_token={quote(token)}"},
                     status=status.HTTP_200_OK,
@@ -52,7 +58,13 @@ class NativeLoginStartEndpoint(APIView):
 
         app_host = base_host(request=request, is_app=True).rstrip("/")
         native_login_path = f"/auth/native/start/?{urlencode({'callback': callback})}"
-        return HttpResponseRedirect(f"{app_host}/login?{urlencode({'next_path': native_login_path})}")
+        login_url = f"{app_host}/login?{urlencode({'next_path': native_login_path})}"
+        if wants_json:
+            return Response(
+                {"login_url": login_url, "next_path": native_login_path},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        return HttpResponseRedirect(login_url)
 
 
 class CSRFTokenEndpoint(APIView):

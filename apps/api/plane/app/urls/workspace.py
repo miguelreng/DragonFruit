@@ -39,6 +39,7 @@ from plane.app.views import (
     WorkspaceUserPreferenceViewSet,
     WorkspaceProjectBookmarkViewSet,
     BookmarkExtensionContextEndpoint,
+    BookmarkMetadataEndpoint,
 )
 
 
@@ -268,6 +269,11 @@ urlpatterns = [
         "workspaces/<str:slug>/bookmark-extension/context/",
         BookmarkExtensionContextEndpoint.as_view(),
         name="bookmark-extension-context",
+    ),
+    path(
+        "workspaces/<str:slug>/bookmark-metadata/",
+        BookmarkMetadataEndpoint.as_view(),
+        name="bookmark-metadata",
     ),
     # User Preference
     path(

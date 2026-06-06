@@ -408,6 +408,10 @@ async function saveUrlBookmark(url, tab) {
     site_name: isTweet ? "Tweet" : pageMetadata.site_name || domainFromUrl(url),
   };
   if (pageMetadata.image_url) metadata.image_url = pageMetadata.image_url;
+  if (pageMetadata.image_width && pageMetadata.image_height) {
+    metadata.image_width = pageMetadata.image_width;
+    metadata.image_height = pageMetadata.image_height;
+  }
   if (pageMetadata.title) metadata.og_title = pageMetadata.title;
   if (pageMetadata.description) metadata.og_description = pageMetadata.description;
   if (pageMetadata.url) metadata.og_url = pageMetadata.url;
@@ -419,6 +423,8 @@ async function saveUrlBookmark(url, tab) {
     if (screenshot) {
       metadata.image_url = screenshot;
       metadata.screenshot_source = "chrome_extension";
+      delete metadata.image_width;
+      delete metadata.image_height;
     }
   }
 
@@ -440,9 +446,7 @@ async function saveUrlBookmark(url, tab) {
 // saved-state cache and resets the toolbar icon. Returns the number removed.
 async function removeUrlBookmark(url, tab) {
   const matches = await findSavedBookmarksForUrl(url);
-  for (const bookmark of matches) {
-    await deleteBookmark(bookmark);
-  }
+  await Promise.all(matches.map((bookmark) => deleteBookmark(bookmark)));
   await removeSavedPageUrlKeys(getSavedPageUrlKeysForUrl(url));
   if (tab?.id) await setActionIcon("idle", tab.id);
   return matches.length;
@@ -492,6 +496,8 @@ async function extractPageMetadata(tabId, fallbackUrl) {
         'meta[name="twitter:image"]',
         'meta[name="twitter:image:src"]'
       );
+      const imageWidth = content('meta[property="og:image:width"]');
+      const imageHeight = content('meta[property="og:image:height"]');
       const canonicalUrl = content('meta[property="og:url"]', 'link[rel="canonical"]');
       const faviconUrl = content(
         'link[rel="apple-touch-icon"]',
@@ -504,6 +510,8 @@ async function extractPageMetadata(tabId, fallbackUrl) {
         title,
         description,
         image_url: absoluteUrl(imageUrl),
+        image_width: imageWidth,
+        image_height: imageHeight,
         favicon_url: absoluteUrl(faviconUrl),
         site_name: siteName,
         url: absoluteUrl(canonicalUrl),
@@ -519,6 +527,8 @@ function normalizePageMetadata(value) {
     title: stringValue(value.title),
     description: stringValue(value.description),
     image_url: stringValue(value.image_url),
+    image_width: positiveInt(value.image_width),
+    image_height: positiveInt(value.image_height),
     favicon_url: stringValue(value.favicon_url),
     site_name: stringValue(value.site_name),
     url: stringValue(value.url),
@@ -527,6 +537,11 @@ function normalizePageMetadata(value) {
 
 function stringValue(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function positiveInt(value) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 async function saveBookmark(payload) {

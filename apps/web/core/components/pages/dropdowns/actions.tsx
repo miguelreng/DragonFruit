@@ -295,11 +295,13 @@ export const PageActions = observer(function PageActions(props: Props) {
       );
     }
 
-    return item.customContent ?? (
-      <>
-        {item.icon && <item.icon className="size-3" />}
-        {item.title}
-      </>
+    return (
+      item.customContent ?? (
+        <>
+          {item.icon && <item.icon className="size-3" />}
+          {item.title}
+        </>
+      )
     );
   };
 

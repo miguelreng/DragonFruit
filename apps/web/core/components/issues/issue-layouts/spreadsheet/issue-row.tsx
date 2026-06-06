@@ -181,7 +181,6 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
     updateIssue,
     quickActions,
     canEditProperties,
-    isScrolled,
     isExpanded,
     setExpanded,
     spreadsheetColumnsList,
@@ -274,11 +273,11 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
           disabled={!!issueDetail?.tempId}
         >
           <Row
-              className={cn(
-                // Tightened the row from h-11 (44px) → h-9 (36px) for a denser
-                // spreadsheet — scanning a long task list, the extra 8px per row
-                // was wasted breathing room. Cells in IssueColumn match.
-            "group clickable z-10 flex h-9 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
+            className={cn(
+              // Tightened the row from h-11 (44px) → h-9 (36px) for a denser
+              // spreadsheet — scanning a long task list, the extra 8px per row
+              // was wasted breathing room. Cells in IssueColumn match.
+              "group clickable z-10 flex h-9 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
               {
                 "border-b-[0.5px]": !getIsIssuePeeked(issueDetail.id),
                 "border border-accent-strong hover:border-accent-strong":
@@ -292,8 +291,8 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                 Unchecked state is faded so it doesn't compete with content;
                 hover and selected states bring it to full opacity. Sits
                 BEFORE the identifier so it lines up top-to-bottom. */}
-              {projectId && canSelectIssues && (
-                <Tooltip
+            {projectId && canSelectIssues && (
+              <Tooltip
                 tooltipContent={
                   <>
                     Only tasks within the current

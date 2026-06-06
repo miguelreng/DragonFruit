@@ -80,7 +80,9 @@ function ItemRow({ icon, leading, label, active, onPress, trailing }: ItemRowPro
     >
       <View style={styles.itemRow}>
         {leading ??
-          (icon ? <AppIcon icon={icon} size={ICON_SIZE} color={active ? colors.ink : colors.faint} strokeWidth={1.9} /> : null)}
+          (icon ? (
+            <AppIcon icon={icon} size={ICON_SIZE} color={active ? colors.ink : colors.faint} strokeWidth={1.9} />
+          ) : null)}
         <Text style={[styles.itemLabel, active && styles.itemLabelActive]} numberOfLines={1}>
           {label}
         </Text>
@@ -123,12 +125,11 @@ export function AppSidebar({ navigation }: SidebarProps) {
   // or the slug (de-slugified) until the workspaces list loads.
   const workspaceName =
     currentWorkspace?.name ??
-    (typeof name === "string" && name.trim().length > 0 ? name : workspaceSlug ?? "Workspace").replace(/-/g, " ");
+    (typeof name === "string" && name.trim().length > 0 ? name : (workspaceSlug ?? "Workspace")).replace(/-/g, " ");
 
   // Which top-level destination the current route maps to, so the matching
   // sidebar row shows as active when the drawer is opened from that screen.
   const isDocs = pathname.endsWith("/docs") || pathname.includes("/doc/");
-  const isMyTasks = pathname.endsWith("/my-tasks");
   const isBookmarks = pathname.endsWith("/bookmarks");
   const isStickies = pathname.endsWith("/stickies");
   const isCalendar = pathname.endsWith("/calendar");
@@ -242,9 +243,24 @@ export function AppSidebar({ navigation }: SidebarProps) {
         <ItemRow icon={SparklesIcon} label="Ask Atlas" active={isAtlas} onPress={() => go("/[workspaceSlug]/atlas")} />
 
         <ItemRow icon={File02Icon} label="Docs" active={isDocs} onPress={() => go("/[workspaceSlug]/docs")} />
-        <ItemRow icon={Bookmark} label="Bookmarks" active={isBookmarks} onPress={() => go("/[workspaceSlug]/bookmarks")} />
-        <ItemRow icon={StickyNote02Icon} label="Stickies" active={isStickies} onPress={() => go("/[workspaceSlug]/stickies")} />
-        <ItemRow icon={Calendar01Icon} label="Calendar" active={isCalendar} onPress={() => go("/[workspaceSlug]/calendar")} />
+        <ItemRow
+          icon={Bookmark}
+          label="Bookmarks"
+          active={isBookmarks}
+          onPress={() => go("/[workspaceSlug]/bookmarks")}
+        />
+        <ItemRow
+          icon={StickyNote02Icon}
+          label="Stickies"
+          active={isStickies}
+          onPress={() => go("/[workspaceSlug]/stickies")}
+        />
+        <ItemRow
+          icon={Calendar01Icon}
+          label="Calendar"
+          active={isCalendar}
+          onPress={() => go("/[workspaceSlug]/calendar")}
+        />
         <ItemRow
           icon={favsOpen ? Folder02Icon : Folder01Icon}
           label="Favs"
@@ -260,31 +276,36 @@ export function AppSidebar({ navigation }: SidebarProps) {
         />
 
         {favsOpen && (
-        <View style={styles.projectRailSection}>
-          <View style={styles.projectRail} />
-          <View style={styles.projectRailContent}>
-            {favorites.length === 0 ? (
-              <Text style={styles.railEmpty}>No favorites yet</Text>
-            ) : (
-              favorites.map((fav) => (
-                <Pressable
-                  key={fav.id}
-                  onPress={() => openFavorite(fav)}
-                  accessibilityRole="button"
-                  accessibilityLabel={favoriteLabel(fav)}
-                  style={({ pressed }) => pressed && styles.pressedDim}
-                >
-                  <View style={styles.projectHeaderRow}>
-                    <AppIcon icon={favoriteIcon(fav.entity_type)} size={ICON_SIZE} color={colors.faint} strokeWidth={1.9} />
-                    <Text style={styles.projectHeaderText} numberOfLines={1}>
-                      {favoriteLabel(fav)}
-                    </Text>
-                  </View>
-                </Pressable>
-              ))
-            )}
+          <View style={styles.projectRailSection}>
+            <View style={styles.projectRail} />
+            <View style={styles.projectRailContent}>
+              {favorites.length === 0 ? (
+                <Text style={styles.railEmpty}>No favorites yet</Text>
+              ) : (
+                favorites.map((fav) => (
+                  <Pressable
+                    key={fav.id}
+                    onPress={() => openFavorite(fav)}
+                    accessibilityRole="button"
+                    accessibilityLabel={favoriteLabel(fav)}
+                    style={({ pressed }) => pressed && styles.pressedDim}
+                  >
+                    <View style={styles.projectHeaderRow}>
+                      <AppIcon
+                        icon={favoriteIcon(fav.entity_type)}
+                        size={ICON_SIZE}
+                        color={colors.faint}
+                        strokeWidth={1.9}
+                      />
+                      <Text style={styles.projectHeaderText} numberOfLines={1}>
+                        {favoriteLabel(fav)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))
+              )}
+            </View>
           </View>
-        </View>
         )}
 
         <ItemRow
@@ -302,75 +323,80 @@ export function AppSidebar({ navigation }: SidebarProps) {
         />
 
         {projectsOpen && (
-        <View style={styles.projectRailSection}>
-          <View style={styles.projectRail} />
-          <View style={styles.projectRailContent}>
-            {visibleProjects.map((project) => {
-              const isOpen = openProjects.has(project.id);
-              return (
-                <View key={project.id}>
-                  {/* Pressing the project name expands/collapses its children
+          <View style={styles.projectRailSection}>
+            <View style={styles.projectRail} />
+            <View style={styles.projectRailContent}>
+              {visibleProjects.map((project) => {
+                const isOpen = openProjects.has(project.id);
+                return (
+                  <View key={project.id}>
+                    {/* Pressing the project name expands/collapses its children
                       rather than navigating — drill in via "Tasks"/"Docs" below. */}
-                  <Pressable
-                    onPress={() => toggleProject(project.id)}
-                    accessibilityRole="button"
-                    accessibilityLabel={project.name}
-                    accessibilityState={{ expanded: isOpen }}
-                    style={({ pressed }) => pressed && styles.pressedDim}
-                  >
-                    <View style={styles.projectHeaderRow}>
-                      <ProjectLogo logo={project.logo_props} name={project.name} size={ICON_SIZE} />
-                      <Text style={styles.projectHeaderText} numberOfLines={1}>
-                        {project.name}
-                      </Text>
-                      <AppIcon
-                        icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon}
-                        size={ICON_SIZE}
-                        color={colors.faint}
-                        strokeWidth={1.9}
-                      />
-                    </View>
-                  </Pressable>
-
-                  {isOpen && (
-                    <View style={styles.projectChildrenWrap}>
-                      <View style={styles.projectChildrenRail} />
-                      <View style={styles.projectChildrenList}>
-                        <Pressable
-                          onPress={() => openProject(project)}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${project.name} tasks`}
-                          style={({ pressed }) => pressed && styles.pressedDim}
-                        >
-                          <View style={styles.projectChildRow}>
-                            <AppIcon icon={Task01Icon} size={ICON_SIZE} color={colors.faint} strokeWidth={1.9} />
-                            <Text style={styles.projectChildText}>Tasks</Text>
-                          </View>
-                        </Pressable>
-                        <Pressable
-                          onPress={() => openProjectDocs(project)}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${project.name} docs`}
-                          style={({ pressed }) => pressed && styles.pressedDim}
-                        >
-                          <View style={styles.projectChildRow}>
-                            <AppIcon icon={File02Icon} size={ICON_SIZE} color={colors.faint} strokeWidth={1.9} />
-                            <Text style={styles.projectChildText}>Docs</Text>
-                          </View>
-                        </Pressable>
+                    <Pressable
+                      onPress={() => toggleProject(project.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={project.name}
+                      accessibilityState={{ expanded: isOpen }}
+                      style={({ pressed }) => pressed && styles.pressedDim}
+                    >
+                      <View style={styles.projectHeaderRow}>
+                        <ProjectLogo logo={project.logo_props} name={project.name} size={ICON_SIZE} />
+                        <Text style={styles.projectHeaderText} numberOfLines={1}>
+                          {project.name}
+                        </Text>
+                        <AppIcon
+                          icon={isOpen ? ArrowDown01Icon : ArrowRight01Icon}
+                          size={ICON_SIZE}
+                          color={colors.faint}
+                          strokeWidth={1.9}
+                        />
                       </View>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+                    </Pressable>
+
+                    {isOpen && (
+                      <View style={styles.projectChildrenWrap}>
+                        <View style={styles.projectChildrenRail} />
+                        <View style={styles.projectChildrenList}>
+                          <Pressable
+                            onPress={() => openProject(project)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${project.name} tasks`}
+                            style={({ pressed }) => pressed && styles.pressedDim}
+                          >
+                            <View style={styles.projectChildRow}>
+                              <AppIcon icon={Task01Icon} size={ICON_SIZE} color={colors.faint} strokeWidth={1.9} />
+                              <Text style={styles.projectChildText}>Tasks</Text>
+                            </View>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => openProjectDocs(project)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${project.name} docs`}
+                            style={({ pressed }) => pressed && styles.pressedDim}
+                          >
+                            <View style={styles.projectChildRow}>
+                              <AppIcon icon={File02Icon} size={ICON_SIZE} color={colors.faint} strokeWidth={1.9} />
+                              <Text style={styles.projectChildText}>Docs</Text>
+                            </View>
+                          </Pressable>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
           </View>
-        </View>
         )}
 
         <View style={styles.divider} />
 
-        <ItemRow icon={Bell} label="Notifications" active={isNotifications} onPress={() => go("/[workspaceSlug]/notifications")} />
+        <ItemRow
+          icon={Bell}
+          label="Notifications"
+          active={isNotifications}
+          onPress={() => go("/[workspaceSlug]/notifications")}
+        />
 
         <Pressable
           onPress={() => go("/[workspaceSlug]/profile")}
@@ -425,8 +451,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.canvas,
     // Drawer sits on the left; round its right edge (top + bottom corners).
-    borderTopRightRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
+    borderTopRightRadius: radius["2xl"],
+    borderBottomRightRadius: radius["2xl"],
     overflow: "hidden",
   },
   scroll: { flex: 1 },
@@ -480,7 +506,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   projectChildText: { fontSize: font.size.base, color: colors.muted, fontFamily: "Figtree_500Medium" },
-  railEmpty: { paddingVertical: spacing.xs, paddingHorizontal: spacing.xs, fontSize: font.size.base, color: colors.muted, fontFamily: "Figtree_400Regular" },
+  railEmpty: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    fontSize: font.size.base,
+    color: colors.muted,
+    fontFamily: "Figtree_400Regular",
+  },
 
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong, marginVertical: spacing.md },
 

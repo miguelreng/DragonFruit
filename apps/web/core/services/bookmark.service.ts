@@ -14,9 +14,24 @@ export type TBookmarkQueryParams = {
   project_id?: string;
 };
 
+export type TBookmarkUrlMetadata = {
+  title: string;
+  description: string;
+  url: string;
+  metadata: TProjectBookmark["metadata"];
+};
+
 export class BookmarkService extends APIService {
   constructor() {
     super(API_BASE_URL);
+  }
+
+  async fetchUrlMetadata(workspaceSlug: string, url: string): Promise<TBookmarkUrlMetadata> {
+    return this.post(`/api/workspaces/${workspaceSlug}/bookmark-metadata/`, { url })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
   }
 
   async listProjectBookmarks(

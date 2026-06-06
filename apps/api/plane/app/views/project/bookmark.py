@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from urllib.parse import urljoin, urlparse
+
+import requests
+from bs4 import BeautifulSoup
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DatabaseError
 from django.db.models import Q
@@ -11,8 +15,134 @@ from rest_framework.response import Response
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import ProjectBookmarkSerializer
 from plane.app.views.base import BaseAPIView, BaseViewSet
+from plane.bgtasks.work_item_link_task import find_favicon_url, safe_get, validate_url_ip
 from plane.db.models import Project, ProjectBookmark, ProjectMember, WorkspaceMember
 from plane.utils.exception_logger import log_exception
+
+# Mirrors the og:/twitter: selectors the browser extension reads, so in-app
+# bookmarks and extension-captured bookmarks resolve the same preview image.
+BOOKMARK_FETCH_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+}
+MAX_BOOKMARK_HTML_BYTES = 2_000_000
+
+
+def _meta_content(soup, *selectors):
+    """Return the first non-empty content/href among the given CSS selectors."""
+    for selector in selectors:
+        tag = soup.select_one(selector)
+        if tag:
+            value = (tag.get("content") or tag.get("href") or "").strip()
+            if value:
+                return value
+    return ""
+
+
+def _positive_int(value):
+    """Coerce an OG width/height string to a positive int, or None."""
+    try:
+        number = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None
+
+
+def fetch_bookmark_metadata(url):
+    """
+    Fetch a URL server-side and extract Open Graph / Twitter card metadata.
+
+    SSRF is handled by safe_get/validate_url_ip (scheme allow-list + per-hop
+    private/loopback/reserved/link-local IP checks). Raises ValueError for
+    blocked URLs and requests.RequestException/RuntimeError on network issues.
+    """
+    response, final_url = safe_get(url, headers=BOOKMARK_FETCH_HEADERS, timeout=5)
+    netloc = urlparse(final_url).netloc
+
+    if response.status_code >= 400:
+        return {
+            "title": "",
+            "description": "",
+            "url": final_url,
+            "metadata": {"site_name": netloc, "source_app": "web"},
+        }
+
+    content_type = response.headers.get("content-type", "").lower()
+
+    # A direct link to an image is its own preview.
+    if content_type.startswith("image/"):
+        return {
+            "title": "",
+            "description": "",
+            "url": final_url,
+            "metadata": {
+                "site_name": netloc,
+                "source_app": "web",
+                "image_url": final_url,
+                "og_image_url": final_url,
+            },
+        }
+
+    if "html" not in content_type:
+        return {
+            "title": "",
+            "description": "",
+            "url": final_url,
+            "metadata": {"site_name": netloc, "source_app": "web"},
+        }
+
+    soup = BeautifulSoup(response.content[:MAX_BOOKMARK_HTML_BYTES], "html.parser")
+
+    def absolute(value):
+        return urljoin(final_url, value) if value else ""
+
+    image_url = _meta_content(
+        soup,
+        'meta[property="og:image:secure_url"]',
+        'meta[property="og:image:url"]',
+        'meta[property="og:image"]',
+        'meta[name="twitter:image"]',
+        'meta[name="twitter:image:src"]',
+    )
+    image_width = _positive_int(_meta_content(soup, 'meta[property="og:image:width"]'))
+    image_height = _positive_int(_meta_content(soup, 'meta[property="og:image:height"]'))
+    title = _meta_content(soup, 'meta[property="og:title"]', 'meta[name="twitter:title"]')
+    if not title:
+        title_tag = soup.find("title")
+        title = title_tag.get_text().strip() if title_tag else ""
+    description = _meta_content(
+        soup,
+        'meta[property="og:description"]',
+        'meta[name="twitter:description"]',
+        'meta[name="description"]',
+    )
+    site_name = _meta_content(soup, 'meta[property="og:site_name"]', 'meta[name="application-name"]')
+    canonical = _meta_content(soup, 'meta[property="og:url"]', 'link[rel="canonical"]')
+
+    try:
+        favicon_url = find_favicon_url(soup, final_url) or ""
+    except (ValueError, requests.RequestException, RuntimeError):
+        favicon_url = ""
+
+    metadata = {"site_name": site_name or netloc, "source_app": "web"}
+    image_absolute = absolute(image_url)
+    if image_absolute:
+        metadata["image_url"] = image_absolute
+        metadata["og_image_url"] = image_absolute
+        if image_width and image_height:
+            metadata["image_width"] = image_width
+            metadata["image_height"] = image_height
+    if title:
+        metadata["og_title"] = title
+    if description:
+        metadata["og_description"] = description
+    canonical_absolute = absolute(canonical)
+    if canonical_absolute:
+        metadata["og_url"] = canonical_absolute
+    if favicon_url:
+        metadata["favicon_url"] = favicon_url
+
+    return {"title": title, "description": description, "url": final_url, "metadata": metadata}
 
 
 class ProjectBookmarkViewSet(BaseViewSet):
@@ -245,3 +375,32 @@ class BookmarkExtensionContextEndpoint(BaseAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class BookmarkMetadataEndpoint(BaseAPIView):
+    """Unfurl a URL server-side and return Open Graph metadata for the add-bookmark form."""
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def post(self, request, slug):
+        url = (request.data.get("url") or "").strip()
+        if not url:
+            return Response({"error": "A url is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Default to https when the user pastes a bare domain (example.com).
+        if not urlparse(url).scheme:
+            url = f"https://{url}"
+
+        try:
+            data = fetch_bookmark_metadata(url)
+        except ValueError as exc:
+            # Blocked by the SSRF guard or an otherwise invalid/unresolvable URL.
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except (requests.RequestException, RuntimeError) as exc:
+            # Network/timeout/too-many-redirects: best-effort, let manual entry continue.
+            log_exception(exc)
+            return Response(
+                {"title": "", "description": "", "url": url, "metadata": {}},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(data, status=status.HTTP_200_OK)

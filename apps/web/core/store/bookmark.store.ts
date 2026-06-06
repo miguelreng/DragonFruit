@@ -7,7 +7,7 @@
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import type { TProjectBookmark, TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } from "@plane/types";
-import { BookmarkService, type TBookmarkQueryParams } from "@/services/bookmark.service";
+import { BookmarkService, type TBookmarkQueryParams, type TBookmarkUrlMetadata } from "@/services/bookmark.service";
 
 export interface IBookmarkStore {
   bookmarkMap: Record<string, TProjectBookmark>;
@@ -22,6 +22,7 @@ export interface IBookmarkStore {
     params?: TBookmarkQueryParams
   ) => Promise<TProjectBookmark[]>;
   fetchWorkspaceBookmarks: (workspaceSlug: string, params?: TBookmarkQueryParams) => Promise<TProjectBookmark[]>;
+  fetchUrlMetadata: (workspaceSlug: string, url: string) => Promise<TBookmarkUrlMetadata>;
   createBookmark: (
     workspaceSlug: string,
     projectId: string,
@@ -97,6 +98,8 @@ export class BookmarkStore implements IBookmarkStore {
     });
     return bookmarks;
   };
+
+  fetchUrlMetadata = (workspaceSlug: string, url: string) => this.service.fetchUrlMetadata(workspaceSlug, url);
 
   createBookmark = async (workspaceSlug: string, projectId: string, payload: TProjectBookmarkCreatePayload) => {
     const tempId = uuidv4();

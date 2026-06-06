@@ -47,4 +47,3 @@ export function normalizeDocFontStyle(value: unknown): TDocFontStyle {
 
   return DEFAULT_DOC_FONT_STYLE;
 }
-

@@ -52,6 +52,112 @@ export default defineConfig(({ mode }) => {
     build: {
       assetsInlineLimit: 0,
     },
+    // Dev-only: pre-bundle the heavy dependencies that are reached only on
+    // specific routes (drag-and-drop boards, the rich-text editor, charts, PDF
+    // export, the command palette, etc.). Many sit behind code-split / React.lazy
+    // boundaries or come transitively through linked @plane/* packages, so Vite's
+    // cold-start crawl doesn't see them. Without this, the FIRST navigation into
+    // such a route makes Vite discover the deps, run a fresh optimize pass, and
+    // emit "optimized dependencies changed. reloading" — which invalidates the
+    // chunks the current page already loaded (504 Outdated Optimize Dep), aborts
+    // the in-flight route module import, and strands the page on a loading
+    // skeleton until a manual reload. Listing them up front folds all that work
+    // into one cold-start optimize so navigation never triggers a reload.
+    //
+    // This list mirrors the deps Vite logged as "newly optimized" mid-session,
+    // so every entry is known to resolve. If a new heavy dep ever causes the same
+    // stall, add its entry point here. No effect on the production build, where
+    // Rollup bundles everything ahead of time.
+    optimizeDeps: {
+      include: [
+        // Drag-and-drop — stickies, kanban / issue boards
+        "@atlaskit/pragmatic-drag-and-drop/combine",
+        "@atlaskit/pragmatic-drag-and-drop/element/adapter",
+        "@atlaskit/pragmatic-drag-and-drop/element/pointer-outside-of-preview",
+        "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview",
+        "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge",
+        "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item",
+        "@atlaskit/pragmatic-drag-and-drop-auto-scroll/element",
+        // Rich-text editor (TipTap / ProseMirror) — pages, docs, descriptions, comments
+        "@tiptap/core",
+        "@tiptap/react",
+        "@tiptap/html",
+        "@tiptap/starter-kit",
+        "@tiptap/suggestion",
+        "@tiptap/pm/model",
+        "@tiptap/pm/state",
+        "@tiptap/pm/view",
+        "@tiptap/pm/tables",
+        "@tiptap/pm/transform",
+        "@tiptap/extension-collaboration",
+        "@tiptap/extension-task-item",
+        "@tiptap/extension-task-list",
+        "@tiptap/extension-text-style",
+        "@tiptap/extension-underline",
+        "@tiptap/extension-character-count",
+        "@tiptap/extension-placeholder",
+        "@tiptap/extension-image",
+        "@tiptap/extension-mention",
+        "@tiptap/extension-emoji",
+        "@tiptap/extension-blockquote",
+        "@tiptap/extension-text-align",
+        "@tiptap/extension-document",
+        "@tiptap/extension-heading",
+        "@tiptap/extension-text",
+        "tiptap-markdown",
+        "prosemirror-codemark",
+        // Collaborative editing (Yjs)
+        "yjs",
+        "y-prosemirror",
+        "y-indexeddb",
+        "@hocuspocus/provider",
+        // Syntax highlighting (editor code blocks)
+        "lowlight",
+        "highlight.js/lib/core",
+        "highlight.js/lib/languages/bash",
+        "highlight.js/lib/languages/css",
+        "highlight.js/lib/languages/diff",
+        "highlight.js/lib/languages/go",
+        "highlight.js/lib/languages/java",
+        "highlight.js/lib/languages/javascript",
+        "highlight.js/lib/languages/json",
+        "highlight.js/lib/languages/markdown",
+        "highlight.js/lib/languages/python",
+        "highlight.js/lib/languages/rust",
+        "highlight.js/lib/languages/shell",
+        "highlight.js/lib/languages/sql",
+        "highlight.js/lib/languages/typescript",
+        "highlight.js/lib/languages/xml",
+        "highlight.js/lib/languages/yaml",
+        // Editor UI helpers
+        "tippy.js",
+        "@floating-ui/dom",
+        "@floating-ui/react",
+        "linkifyjs",
+        "jsx-dom-cjs",
+        "emoji-regex",
+        "is-emoji-supported",
+        "frimousse",
+        "smooth-scroll-into-view-if-needed",
+        "use-font-face-observer",
+        "buffer",
+        // Charts & PDF export
+        "recharts",
+        "@react-pdf/renderer",
+        // Shared UI / forms
+        "cmdk",
+        "react-hook-form",
+        "framer-motion",
+        "react-day-picker",
+        "@base-ui-components/react",
+        "@base-ui-components/react/context-menu",
+        "@base-ui-components/react/menu",
+        "@base-ui-components/react/popover",
+        "@base-ui-components/react/scroll-area",
+        // Top-loading navigation progress bar
+        "@bprogress/core",
+      ],
+    },
     plugins: [reactRouter(), tsconfigPaths({ projects: [path.resolve(__dirname, "tsconfig.json")] })],
     resolve: {
       alias: {

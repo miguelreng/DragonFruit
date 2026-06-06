@@ -22,6 +22,42 @@ class MockResponse:
         return self.payload
 
 
+def test_summarize_meeting_notes_preserves_json_schema_braces(monkeypatch):
+    from plane.app.views.calendar import base as calendar_base
+
+    captured = {}
+
+    def mock_call_llm_chat(**kwargs):
+        captured.update(kwargs)
+        return (
+            """
+            {
+              "summary": "Done",
+              "summary_sections": [{"heading": "Plan", "body": "They discussed the launch."}],
+              "decisions": [],
+              "next_steps": [],
+              "details": []
+            }
+            """,
+            None,
+        )
+
+    monkeypatch.setattr(calendar_base, "get_llm_config", lambda workspace: ("api-key", "gpt-4.1-mini", "openai"))
+    monkeypatch.setattr(calendar_base, "call_llm_chat", mock_call_llm_chat)
+
+    result = calendar_base._summarize_meeting_notes(
+        workspace=object(),
+        meeting_title="KickOff: DragonFruit",
+        transcript="Miguel: Start notes.",
+    )
+
+    assert result["summary"] == "Done"
+    assert '"summary": "one or two sentence overview of the meeting"' in captured["user"]
+    assert '{"heading": "Short thematic heading", "body": "One short paragraph of prose."}' in captured["user"]
+    assert "Meeting title: KickOff: DragonFruit" in captured["user"]
+    assert "Miguel: Start notes." in captured["user"]
+
+
 @pytest.mark.contract
 class TestCalendarAppEndpoint:
     @pytest.mark.django_db

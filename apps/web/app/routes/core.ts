@@ -245,6 +245,11 @@ export const coreRoutes: RouteConfigEntry[] = [
               "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/pages/(list)/page.tsx"
             ),
           ]),
+          // Brief
+          route(
+            ":workspaceSlug/projects/:projectId/brief",
+            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/brief/page.tsx"
+          ),
           // Bookmarks
           route(
             ":workspaceSlug/projects/:projectId/bookmarks",

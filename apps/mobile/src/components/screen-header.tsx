@@ -16,7 +16,15 @@ import { colors, font, radius, spacing } from "@/lib/theme";
  * this stack and never throws, unlike `useNavigationState` which can fault when
  * the screen renders outside an active navigator (e.g. during a drawer reveal).
  */
-export function ScreenHeader({ title, right, onClose }: { title: string; right?: React.ReactNode; onClose?: () => void }) {
+export function ScreenHeader({
+  title,
+  right,
+  onClose,
+}: {
+  title: string;
+  right?: React.ReactNode;
+  onClose?: () => void;
+}) {
   const navigation = useNavigation();
   // A supplied `onClose` (e.g. the Atlas peek dismissing itself) takes the
   // leading slot with a back arrow; otherwise pushed screens go back and
@@ -60,7 +68,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
   },
   // Subtle gray chip — the light-surface variant of the home top-bar chips, so
   // the header action reads as the same button across the app.

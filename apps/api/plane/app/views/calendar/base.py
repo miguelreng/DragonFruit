@@ -19,6 +19,7 @@ import json
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
+from string import Template
 from urllib.parse import quote, urlencode
 
 import requests
@@ -892,7 +893,8 @@ _MEETING_SUMMARY_SYSTEM = (
     "transcript (English or Spanish)."
 )
 
-_MEETING_SUMMARY_INSTRUCTIONS = """\
+_MEETING_SUMMARY_INSTRUCTIONS = Template(
+    """\
 Summarize the meeting transcript below. Respond with ONLY a JSON object (no markdown
 fences, no commentary) matching exactly this shape:
 
@@ -917,11 +919,12 @@ Rules:
 - details: the substantive discussion points, in the order they came up.
 - Keep prose tight. No filler.
 
-Meeting title: {meeting_title}
+Meeting title: $meeting_title
 
 Transcript:
-{transcript}
+$transcript
 """
+)
 
 
 def _summarize_meeting_notes(*, workspace: Workspace, meeting_title: str, transcript: str) -> dict | None:
@@ -938,7 +941,7 @@ def _summarize_meeting_notes(*, workspace: Workspace, meeting_title: str, transc
     if not (api_key and model and provider):
         return None
 
-    user_prompt = _MEETING_SUMMARY_INSTRUCTIONS.format(
+    user_prompt = _MEETING_SUMMARY_INSTRUCTIONS.substitute(
         meeting_title=meeting_title or "Meeting",
         transcript=transcript[:120_000],
     )

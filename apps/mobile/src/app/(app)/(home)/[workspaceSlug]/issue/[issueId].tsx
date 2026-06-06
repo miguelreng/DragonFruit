@@ -33,11 +33,11 @@ import {
 } from "@/lib/api";
 import { escapeHtml, formatDueDate, PRIORITY_COLOR, PRIORITY_LABEL, stripHtml, timeAgo } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { colors, font, radius, spacing } from "@/lib/theme";
+import { colors, font, radius, shadow, spacing } from "@/lib/theme";
 
-// Resting height matches the send button (16 + 20 line-height + 16). The field
-// grows with content up to the max, then scrolls. Mirrors Ask Atlas.
-const INPUT_MIN_HEIGHT = 52;
+// Resting height matches the send button (14 + 20 line-height + 14 = 48). The
+// field grows with content up to the max, then scrolls. Mirrors Ask Atlas.
+const INPUT_MIN_HEIGHT = 48;
 const INPUT_MAX_HEIGHT = 120;
 
 export default function IssueDetailScreen() {
@@ -63,6 +63,7 @@ export default function IssueDetailScreen() {
   const [savingPriority, setSavingPriority] = useState(false);
   const [savingAssignee, setSavingAssignee] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [commentFocused, setCommentFocused] = useState(false);
   const [commentHeight, setCommentHeight] = useState(INPUT_MIN_HEIGHT);
   const [postingComment, setPostingComment] = useState(false);
 
@@ -194,125 +195,123 @@ export default function IssueDetailScreen() {
           keyboardVerticalOffset={0}
         >
           <ScrollFade>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.issueRef}>#{issue.sequence_id}</Text>
-            <Text style={styles.issueName}>{issue.name}</Text>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              <Text style={styles.issueRef}>#{issue.sequence_id}</Text>
+              <Text style={styles.issueName}>{issue.name}</Text>
 
-            {/* Editable meta */}
-            <View style={styles.metaCard}>
-              <Pressable onPress={() => setStatePickerOpen(true)}>
-                {({ pressed }) => (
-                  <View style={[styles.metaRowPressable, pressed && styles.metaRowPressed]}>
-                    <Text style={styles.metaLabel}>Status</Text>
-                    <View style={styles.metaValueRow}>
-                      {savingState ? <ActivityIndicator size="small" color={colors.brand} /> : null}
-                      {currentState ? (
-                        <View style={[styles.stateDot, { backgroundColor: currentState.color }]} />
-                      ) : null}
-                      <Text style={styles.metaValue}>{currentState?.name ?? "—"}</Text>
-                      <AppIcon icon={ArrowRight01Icon} size={16} color={colors.faint} strokeWidth={1.9} />
-                    </View>
-                  </View>
-                )}
-              </Pressable>
-
-              <View style={styles.divider} />
-
-              <Pressable onPress={() => setPriorityPickerOpen(true)}>
-                {({ pressed }) => (
-                  <View style={[styles.metaRowPressable, pressed && styles.metaRowPressed]}>
-                    <Text style={styles.metaLabel}>Priority</Text>
-                    <View style={styles.metaValueRow}>
-                      {savingPriority ? <ActivityIndicator size="small" color={colors.brand} /> : null}
-                      <View
-                        style={[styles.stateDot, { backgroundColor: PRIORITY_COLOR[priority] ?? PRIORITY_COLOR.none }]}
-                      />
-                      <Text style={styles.metaValue}>{PRIORITY_LABEL[priority] ?? "No priority"}</Text>
-                      <AppIcon icon={ArrowRight01Icon} size={16} color={colors.faint} strokeWidth={1.9} />
-                    </View>
-                  </View>
-                )}
-              </Pressable>
-
-              <View style={styles.divider} />
-
-              <View style={styles.metaRow}>
-                <View>
-                  <Text style={styles.metaLabel}>Assignee</Text>
-                  {otherAssignees > 0 ? (
-                    <Text style={styles.metaSubLabel}>
-                      +{otherAssignees} other{otherAssignees === 1 ? "" : "s"}
-                    </Text>
-                  ) : null}
-                </View>
-                <Pressable
-                  onPress={() => void toggleAssignMe()}
-                  disabled={savingAssignee}
-                  style={savingAssignee && styles.assignButtonDisabled}
-                >
+              {/* Editable meta */}
+              <View style={styles.metaCard}>
+                <Pressable onPress={() => setStatePickerOpen(true)}>
                   {({ pressed }) => (
-                    <View style={[styles.assignButton, pressed && styles.assignButtonPressed]}>
-                      {savingAssignee ? <ActivityIndicator size="small" color={colors.brand} /> : null}
-                      <Text style={styles.assignButtonText}>{isAssignedToMe ? "Unassign me" : "Assign to me"}</Text>
+                    <View style={[styles.metaRowPressable, pressed && styles.metaRowPressed]}>
+                      <Text style={styles.metaLabel}>Status</Text>
+                      <View style={styles.metaValueRow}>
+                        {savingState ? <ActivityIndicator size="small" color={colors.brand} /> : null}
+                        {currentState ? (
+                          <View style={[styles.stateDot, { backgroundColor: currentState.color }]} />
+                        ) : null}
+                        <Text style={styles.metaValue}>{currentState?.name ?? "—"}</Text>
+                        <AppIcon icon={ArrowRight01Icon} size={16} color={colors.faint} strokeWidth={1.9} />
+                      </View>
                     </View>
                   )}
                 </Pressable>
+
+                <View style={styles.divider} />
+
+                <Pressable onPress={() => setPriorityPickerOpen(true)}>
+                  {({ pressed }) => (
+                    <View style={[styles.metaRowPressable, pressed && styles.metaRowPressed]}>
+                      <Text style={styles.metaLabel}>Priority</Text>
+                      <View style={styles.metaValueRow}>
+                        {savingPriority ? <ActivityIndicator size="small" color={colors.brand} /> : null}
+                        <View
+                          style={[
+                            styles.stateDot,
+                            { backgroundColor: PRIORITY_COLOR[priority] ?? PRIORITY_COLOR.none },
+                          ]}
+                        />
+                        <Text style={styles.metaValue}>{PRIORITY_LABEL[priority] ?? "No priority"}</Text>
+                        <AppIcon icon={ArrowRight01Icon} size={16} color={colors.faint} strokeWidth={1.9} />
+                      </View>
+                    </View>
+                  )}
+                </Pressable>
+
+                <View style={styles.divider} />
+
+                <View style={styles.metaRow}>
+                  <View>
+                    <Text style={styles.metaLabel}>Assignee</Text>
+                    {otherAssignees > 0 ? (
+                      <Text style={styles.metaSubLabel}>
+                        +{otherAssignees} other{otherAssignees === 1 ? "" : "s"}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Pressable
+                    onPress={() => void toggleAssignMe()}
+                    disabled={savingAssignee}
+                    style={savingAssignee && styles.assignButtonDisabled}
+                  >
+                    {({ pressed }) => (
+                      <View style={[styles.assignButton, pressed && styles.assignButtonPressed]}>
+                        {savingAssignee ? <ActivityIndicator size="small" color={colors.brand} /> : null}
+                        <Text style={styles.assignButtonText}>{isAssignedToMe ? "Unassign me" : "Assign to me"}</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                </View>
+
+                {due ? (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={styles.metaRow}>
+                      <Text style={styles.metaLabel}>Due date</Text>
+                      <View style={styles.metaValueRow}>
+                        <AppIcon
+                          icon={Calendar03Icon}
+                          size={14}
+                          color={due.overdue ? colors.danger : colors.faint}
+                          strokeWidth={1.9}
+                        />
+                        <Text style={[styles.metaValue, due.overdue && styles.metaValueOverdue]}>{due.label}</Text>
+                      </View>
+                    </View>
+                  </>
+                ) : null}
               </View>
 
-              {due ? (
-                <>
-                  <View style={styles.divider} />
-                  <View style={styles.metaRow}>
-                    <Text style={styles.metaLabel}>Due date</Text>
-                    <View style={styles.metaValueRow}>
-                      <AppIcon
-                        icon={Calendar03Icon}
-                        size={14}
-                        color={due.overdue ? colors.danger : colors.faint}
-                        strokeWidth={1.9}
-                      />
-                      <Text style={[styles.metaValue, due.overdue && styles.metaValueOverdue]}>{due.label}</Text>
+              {/* Description */}
+              <Text style={styles.sectionLabel}>Description</Text>
+              <Text style={[styles.description, !description && styles.descriptionEmpty]}>
+                {description || "No description."}
+              </Text>
+
+              {/* Comments */}
+              <Text style={styles.sectionLabel}>Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</Text>
+              {comments.length === 0 ? (
+                <Text style={styles.commentsEmpty}>No comments yet.</Text>
+              ) : (
+                comments.map((comment) => {
+                  const author = comment.actor_detail?.display_name ?? "Someone";
+                  return (
+                    <View key={comment.id} style={styles.commentCard}>
+                      <View style={styles.commentHeader}>
+                        <Avatar name={author} size={22} circle imageUrl={comment.actor_detail?.avatar_url} />
+                        <Text style={styles.commentActor}>{author}</Text>
+                        <Text style={styles.commentTime}>{timeAgo(comment.created_at)}</Text>
+                      </View>
+                      <Text style={styles.commentBody}>
+                        {comment.comment_stripped?.trim() || stripHtml(comment.comment_html)}
+                      </Text>
                     </View>
-                  </View>
-                </>
-              ) : null}
-            </View>
+                  );
+                })
+              )}
 
-            {/* Description */}
-            <Text style={styles.sectionLabel}>Description</Text>
-            <Text style={[styles.description, !description && styles.descriptionEmpty]}>
-              {description || "No description."}
-            </Text>
-
-            {/* Comments */}
-            <Text style={styles.sectionLabel}>Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</Text>
-            {comments.length === 0 ? (
-              <Text style={styles.commentsEmpty}>No comments yet.</Text>
-            ) : (
-              comments.map((comment) => {
-                const author = comment.actor_detail?.display_name ?? "Someone";
-                return (
-                  <View key={comment.id} style={styles.commentCard}>
-                    <View style={styles.commentHeader}>
-                      <Avatar
-                        name={author}
-                        size={22}
-                        circle
-                        imageUrl={comment.actor_detail?.avatar_url}
-                      />
-                      <Text style={styles.commentActor}>{author}</Text>
-                      <Text style={styles.commentTime}>{timeAgo(comment.created_at)}</Text>
-                    </View>
-                    <Text style={styles.commentBody}>
-                      {comment.comment_stripped?.trim() || stripHtml(comment.comment_html)}
-                    </Text>
-                  </View>
-                );
-              })
-            )}
-
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          </ScrollView>
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            </ScrollView>
           </ScrollFade>
 
           {/* Floating comment composer — mirrors Ask Atlas */}
@@ -321,6 +320,8 @@ export default function IssueDetailScreen() {
               <TextInput
                 value={commentText}
                 onChangeText={setCommentText}
+                onFocus={() => setCommentFocused(true)}
+                onBlur={() => setCommentFocused(false)}
                 placeholder="Add a comment…"
                 placeholderTextColor={colors.textPlaceholder}
                 multiline
@@ -328,7 +329,10 @@ export default function IssueDetailScreen() {
                   const h = e.nativeEvent.contentSize.height;
                   setCommentHeight(Math.min(INPUT_MAX_HEIGHT, Math.max(INPUT_MIN_HEIGHT, h)));
                 }}
-                style={[styles.composerInput, { height: commentHeight }]}
+                style={[
+                  styles.composerInput,
+                  { height: commentHeight, borderColor: commentFocused ? colors.accentPrimary : colors.borderStrong },
+                ]}
                 accessibilityLabel="Add a comment"
               />
               <Pressable
@@ -338,14 +342,19 @@ export default function IssueDetailScreen() {
                 accessibilityLabel="Post comment"
                 style={({ pressed }) => [
                   styles.sendButton,
+                  commentText.trim().length === 0 && !postingComment && styles.sendButtonDisabled,
                   pressed && styles.sendButtonPressed,
-                  (postingComment || commentText.trim().length === 0) && styles.sendButtonDisabled,
                 ]}
               >
                 {postingComment ? (
                   <ActivityIndicator size="small" color={colors.white} />
                 ) : (
-                  <AppIcon icon={SentIcon} size={18} color={colors.white} strokeWidth={1.9} />
+                  <AppIcon
+                    icon={SentIcon}
+                    size={20}
+                    color={commentText.trim().length === 0 ? colors.textTertiary : colors.white}
+                    strokeWidth={1.9}
+                  />
                 )}
               </Pressable>
             </View>
@@ -500,7 +509,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
   },
@@ -509,40 +518,37 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
     borderWidth: 1,
+    // borderColor is overridden inline so it can shift to the accent on focus.
     borderColor: colors.borderStrong,
     paddingHorizontal: spacing.lg,
     // Symmetric vertical padding + matched lineHeight keeps the text vertically
     // centered; height is driven by onContentSizeChange so it hugs a single line
     // at rest and grows with content (see INPUT_MIN/MAX_HEIGHT).
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
     fontSize: font.size.sm,
     lineHeight: 20,
     textAlignVertical: "center",
     includeFontPadding: false,
     color: colors.ink,
     fontFamily: "Figtree_400Regular",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    ...shadow.card,
   },
   sendButton: {
-    height: 52,
-    width: 52,
+    height: 48,
+    width: 48,
     borderRadius: radius.pill,
     backgroundColor: colors.accentPrimary,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentPrimaryHover,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 3,
+    // Brand-tinted lift so the primary action reads as elevated; toned off in
+    // the empty/disabled state below.
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  sendButtonPressed: { backgroundColor: colors.accentPrimaryHover },
-  sendButtonDisabled: { opacity: 0.4 },
+  sendButtonPressed: { backgroundColor: colors.accentPrimaryActive },
+  sendButtonDisabled: { backgroundColor: colors.layer1Active, shadowOpacity: 0, elevation: 0 },
 });

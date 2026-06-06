@@ -73,27 +73,67 @@ export function Toast(props: ToastProps) {
 // correct in both light and dark; the glyph itself knocks out white.
 const TOAST_DATA = {
   [TOAST_TYPE.SUCCESS]: {
-    icon: <BadgeCheck width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-success-primary)" }} />,
+    icon: (
+      <BadgeCheck
+        width={22}
+        height={22}
+        strokeWidth={2}
+        className="text-white"
+        style={{ fill: "var(--bg-success-primary)" }}
+      />
+    ),
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.CURSOR_BUDDY_SUCCESS]: {
-    icon: <BadgeCheck width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-success-primary)" }} />,
+    icon: (
+      <BadgeCheck
+        width={22}
+        height={22}
+        strokeWidth={2}
+        className="text-white"
+        style={{ fill: "var(--bg-success-primary)" }}
+      />
+    ),
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.ERROR]: {
-    icon: <AlertCircle width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-danger-primary)" }} />,
+    icon: (
+      <AlertCircle
+        width={22}
+        height={22}
+        strokeWidth={2}
+        className="text-white"
+        style={{ fill: "var(--bg-danger-primary)" }}
+      />
+    ),
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.WARNING]: {
-    icon: <AlertTriangle width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-warning-primary)" }} />,
+    icon: (
+      <AlertTriangle
+        width={22}
+        height={22}
+        strokeWidth={2}
+        className="text-white"
+        style={{ fill: "var(--bg-warning-primary)" }}
+      />
+    ),
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.INFO]: {
-    icon: <InfoIcon width={22} height={22} strokeWidth={2} className="text-white" style={{ fill: "var(--bg-accent-primary)" }} />,
+    icon: (
+      <InfoIcon
+        width={22}
+        height={22}
+        strokeWidth={2}
+        className="text-white"
+        style={{ fill: "var(--bg-accent-primary)" }}
+      />
+    ),
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
@@ -136,7 +176,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
       className={cn(
         // Base layout and positioning — anchored to the top-right corner
         "group flex w-[360px] max-w-[calc(100vw-2rem)] items-center rounded-2xl border border-subtle-1 shadow-overlay-200",
-        "absolute right-3 top-3 z-[calc(1000-var(--toast-index))]",
+        "absolute top-3 right-3 z-[calc(1000-var(--toast-index))]",
         "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] select-none",
 
         // Default transform: newest toast on top, older ones nudged down and scaled back
@@ -232,9 +272,7 @@ export function ToastStatic({ type, title, message, actionItems, theme = "light"
               <div className="text-body-xs-regular text-tertiary">{message}</div>
             )}
           </div>
-          {type !== TOAST_TYPE.LOADING && actionItems && (
-            <div className={TOAST_ACTION_WRAPPER}>{actionItems}</div>
-          )}
+          {type !== TOAST_TYPE.LOADING && actionItems && <div className={TOAST_ACTION_WRAPPER}>{actionItems}</div>}
         </div>
         <div className="absolute top-2.5 right-2.5 cursor-default text-icon-tertiary">
           <CloseIcon strokeWidth={1.5} width={14} height={14} />

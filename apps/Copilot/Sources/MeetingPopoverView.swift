@@ -32,8 +32,6 @@ struct MeetingPopoverView: View {
                 }
                 settingsCard
             }
-
-            footer
         }
         .padding(12)
         .background {
@@ -41,10 +39,6 @@ struct MeetingPopoverView: View {
             MenuWindowBorderCleaner(theme: theme, isDark: store.copilotTheme == .dark, cornerRadius: shellCornerRadius)
         }
         .clipShape(RoundedRectangle(cornerRadius: shellCornerRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: shellCornerRadius, style: .continuous)
-                .stroke(store.copilotTheme == .dark ? Color(red: 0.07, green: 0.07, blue: 0.07) : theme.canvas, lineWidth: 2)
-        }
         .preferredColorScheme(store.copilotTheme.colorScheme)
         .opacity(isPanelRevealed ? 1 : 0)
         .offset(y: isPanelRevealed ? 0 : 26)
@@ -71,21 +65,17 @@ struct MeetingPopoverView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            if let logo = BrandTheme.logo {
-                Image(nsImage: logo)
-                    .renderingMode(store.copilotTheme == .dark ? .template : .original)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 16)
-                    .foregroundStyle(Color.white.opacity(0.88))
-                    .opacity(store.copilotTheme == .dark ? 0.88 : 0.78)
-            }
+            Text("DragonFruit Atlas")
+                .font(.custom("Figtree", size: 11).weight(.medium))
+                .foregroundStyle(theme.textPrimary.opacity(0.82))
             Spacer()
-            Text("Atlas")
-                .font(.custom("Figtree", size: 10).weight(.medium))
-                .foregroundStyle(theme.textTertiary)
-            if store.isAuthenticated, let profile = store.userProfile {
-                AtlasProfileAvatar(profile: profile, theme: theme)
+            if store.isAuthenticated {
+                Button("Log out") {
+                    store.logout()
+                }
+                .buttonStyle(.plain)
+                .font(.custom("Figtree", size: 11).weight(.medium))
+                .foregroundStyle(theme.textSecondary)
             }
         }
     }
@@ -156,68 +146,60 @@ struct MeetingPopoverView: View {
 
     private var permissionsOnboardingCard: some View {
         card {
-            if let warning = store.permissionsEnvironmentWarning {
-                environmentWarningBanner(warning)
-            }
-            if let currentPermission = store.currentMissingRequiredPermission {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: onboardingIcon(for: currentPermission))
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(theme.accent)
-                        .frame(width: 24, height: 24)
-                        .background(theme.accentSubtle)
-                        .clipShape(Circle())
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Set up Atlas")
-                            .font(.custom("Figtree", size: 15).weight(.semibold))
-                            .foregroundStyle(theme.textPrimary)
-                        Text(onboardingTitle(for: currentPermission))
-                            .font(.custom("Figtree", size: 12).weight(.semibold))
-                            .foregroundStyle(theme.textPrimary)
-                        Text(onboardingDetail(for: currentPermission))
-                            .font(.custom("Figtree", size: 11).weight(.medium))
-                            .foregroundStyle(theme.textSecondary)
-                            .lineLimit(2)
-                    }
-                    Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 12) {
+                if let warning = store.permissionsEnvironmentWarning {
+                    environmentWarningBanner(warning)
                 }
+                if let currentPermission = store.currentMissingRequiredPermission {
+                    HStack(alignment: .center, spacing: 12) {
+                        onboardingIconView(for: currentPermission)
+                            .foregroundStyle(theme.textTertiary)
+                            .frame(width: 22, height: 22)
 
-                HStack(spacing: 6) {
-                    let progress = store.requiredPermissionProgress
-                    ForEach(0..<max(progress.total, 1), id: \.self) { index in
-                        Capsule()
-                            .fill(index < progress.granted ? theme.accent : theme.borderStrong)
-                            .frame(width: 18, height: 4)
-                    }
-                    Spacer(minLength: 0)
-                }
-
-                HStack(spacing: 8) {
-                    Button(onboardingButtonTitle(for: currentPermission)) {
-                        store.handlePermissionAction(currentPermission)
-                    }
-                    .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
-
-                    if currentPermission.requiresRestart {
-                        Button("Restart") {
-                            store.restartApp()
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(onboardingTitle(for: currentPermission))
+                                .font(.custom("Figtree", size: 14).weight(.semibold))
+                                .tracking(PermissionOnboardingMetrics.titleTracking)
+                                .foregroundStyle(theme.textPrimary)
+                            Text(onboardingDetail(for: currentPermission))
+                                .font(.custom("Figtree", size: 13).weight(.regular))
+                                .tracking(PermissionOnboardingMetrics.bodyTracking)
+                                .foregroundStyle(theme.textTertiary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+                        Spacer(minLength: 0)
                     }
 
-                    Spacer(minLength: 0)
-                }
+                    HStack(spacing: 6) {
+                        let progress = store.requiredPermissionProgress
+                        ForEach(0..<max(progress.total, 1), id: \.self) { index in
+                            Capsule()
+                                .fill(index < progress.granted ? theme.accent : theme.borderStrong)
+                                .frame(width: 18, height: 4)
+                        }
+                        Spacer(minLength: 0)
+                    }
 
-                if currentPermission.requiresRestart {
-                    HStack(alignment: .top, spacing: 6) {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(theme.textTertiary)
-                        Text("Allowed it in System Settings? macOS needs Atlas to restart before it takes effect.")
-                            .font(.custom("Figtree", size: 10).weight(.medium))
-                            .foregroundStyle(theme.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 8) {
+                        Button {
+                            store.handlePermissionAction(currentPermission)
+                        } label: {
+                            Text(onboardingButtonTitle(for: currentPermission))
+                                .tracking(PermissionOnboardingMetrics.actionTracking)
+                        }
+                        .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
+
+                        if currentPermission.requiresRestart {
+                            Button {
+                                store.restartApp()
+                            } label: {
+                                Text("Restart")
+                                    .tracking(PermissionOnboardingMetrics.actionTracking)
+                            }
+                            .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+                        }
+
                         Spacer(minLength: 0)
                     }
                 }
@@ -228,8 +210,8 @@ struct MeetingPopoverView: View {
     @ViewBuilder
     private func environmentWarningBanner(_ message: String) -> some View {
         HStack(alignment: .top, spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 10, weight: .semibold))
+            AtlasIcon(.warning)
+                .frame(width: 10, height: 10)
                 .foregroundStyle(.orange)
             Text(message)
                 .font(.custom("Figtree", size: 10).weight(.medium))
@@ -243,31 +225,37 @@ struct MeetingPopoverView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
-    private func onboardingIcon(for permission: PermissionStatus) -> String {
+    @ViewBuilder
+    private func onboardingIconView(for permission: PermissionStatus) -> some View {
+        AtlasIcon(onboardingIcon(for: permission))
+            .frame(width: 22, height: 22)
+    }
+
+    private func onboardingIcon(for permission: PermissionStatus) -> AtlasIconName {
         switch permission.id {
         case "mic":
-            return "mic.fill"
+            return .mic01
         case "system-audio":
-            return "speaker.wave.2.fill"
+            return .volumeHigh
         case "speech":
-            return "waveform"
+            return .voice
         case "accessibility":
-            return "cursorarrow.motionlines"
+            return .cursor
         default:
-            return "checkmark.circle.fill"
+            return .checkCircle
         }
     }
 
     private func onboardingTitle(for permission: PermissionStatus) -> String {
         switch permission.id {
         case "mic":
-            return "Microphone"
+            return "Allow microphone"
         case "system-audio":
-            return "System audio"
+            return "Allow system audio"
         case "speech":
-            return "Speech recognition"
+            return "Allow speech recognition"
         case "accessibility":
-            return "Accessibility"
+            return "Allow Accessibility"
         default:
             return "Finish setup"
         }
@@ -277,18 +265,18 @@ struct MeetingPopoverView: View {
         switch permission.id {
         case "mic":
             return permission.state == "Blocked"
-                ? "Re-enable Microphone in System Settings, then restart Atlas."
-                : "Needed for Atlas voice and dictation. macOS will ask; keep this window open."
+                ? "Open System Settings to re-enable microphone access."
+                : "Keep this open while macOS asks for microphone access."
         case "speech":
             return permission.state == "Blocked"
-                ? "Re-enable Speech Recognition in System Settings, then restart Atlas."
-                : "Needed to turn what you say into text."
+                ? "Open System Settings to re-enable speech recognition."
+                : "Allow speech recognition so Atlas can transcribe you."
         case "system-audio":
-            return "Lets meeting notes hear others on Zoom, Meet, and Teams. Needs a quick restart."
+            return "Allow System Audio Recording Only so Atlas can hear other people."
         case "accessibility":
-            return "Lets dictation type into the active field. Opens System Settings."
+            return "Open System Settings so Atlas can type into the active field."
         default:
-            return "Atlas opens the menu when setup is complete."
+            return "Atlas will continue once permissions are ready."
         }
     }
 
@@ -309,8 +297,8 @@ struct MeetingPopoverView: View {
         card {
             if let result = store.lastVoiceActionResult {
                 HStack(alignment: .top, spacing: 9) {
-                    Image(systemName: voiceActionIcon(for: result.type))
-                        .font(.system(size: 13, weight: .semibold))
+                    AtlasIcon(voiceActionIcon(for: result.type))
+                        .frame(width: 14, height: 14)
                         .foregroundStyle(theme.accent)
                         .frame(width: 18)
                     VStack(alignment: .leading, spacing: 4) {
@@ -331,8 +319,8 @@ struct MeetingPopoverView: View {
                         Button {
                             store.openLastVoiceActionResult()
                         } label: {
-                            Image(systemName: "arrow.up.forward")
-                                .font(.system(size: 11, weight: .semibold))
+                            AtlasIcon(.arrowUpRight)
+                                .frame(width: 12, height: 12)
                                 .foregroundStyle(theme.accent)
                                 .frame(width: 24, height: 24)
                                 .background(theme.layer1)
@@ -373,8 +361,8 @@ struct MeetingPopoverView: View {
                 HStack(spacing: 8) {
                     sectionLabel("Settings")
                     Spacer()
-                    Image(systemName: isSettingsExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
+                    AtlasIcon(isSettingsExpanded ? .arrowUp : .arrowDown)
+                        .frame(width: 12, height: 12)
                         .foregroundStyle(theme.textTertiary)
                         .frame(width: 18, height: 18)
                 }
@@ -386,7 +374,7 @@ struct MeetingPopoverView: View {
                 themePicker
                 languagePicker
                 featureToggle("Voice", isOn: $store.voiceActionsEnabled, detail: "⌥Space")
-                featureToggle("Buddy cursor", isOn: $store.showCursorBuddyEnabled, detail: store.showCursorBuddyEnabled ? "Yes" : "No")
+                featureToggle("Atlas cursor", isOn: $store.showCursorBuddyEnabled, detail: store.showCursorBuddyEnabled ? "Yes" : "No")
                 if store.showCursorBuddyEnabled {
                     buddyCursorTransparencyControl
                 }
@@ -408,8 +396,8 @@ struct MeetingPopoverView: View {
             updater?.checkForUpdates()
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "arrow.down.circle")
-                    .font(.system(size: 11, weight: .semibold))
+                AtlasIcon(.download)
+                    .frame(width: 13, height: 13)
                 Text("Check for Updates…")
                     .font(.custom("Figtree", size: 11).weight(.semibold))
                 Spacer(minLength: 8)
@@ -428,8 +416,8 @@ struct MeetingPopoverView: View {
             store.resetAccessibilityAccess()
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 11, weight: .semibold))
+                AtlasIcon(.reloadHorizontal)
+                    .frame(width: 13, height: 13)
                 Text("Reset Accessibility access")
                     .font(.custom("Figtree", size: 11).weight(.semibold))
                 Spacer(minLength: 8)
@@ -466,7 +454,7 @@ struct MeetingPopoverView: View {
                     store.selectedWorkspaceSlug = workspace.slug
                 } label: {
                     if store.selectedWorkspaceSlug == workspace.slug {
-                        Label(workspace.name, systemImage: "checkmark")
+                        selectedMenuLabel(workspace.name)
                     } else {
                         Text(workspace.name)
                     }
@@ -482,7 +470,7 @@ struct MeetingPopoverView: View {
                     store.speechLanguage = language
                 } label: {
                     if store.speechLanguage == language {
-                        Label(language.displayLabel, systemImage: "checkmark")
+                        selectedMenuLabel(language.displayLabel)
                     } else {
                         Text(language.displayLabel)
                     }
@@ -498,7 +486,7 @@ struct MeetingPopoverView: View {
                     store.copilotTheme = theme
                 } label: {
                     if store.copilotTheme == theme {
-                        Label(theme.label, systemImage: "checkmark")
+                        selectedMenuLabel(theme.label)
                     } else {
                         Text(theme.label)
                     }
@@ -543,8 +531,8 @@ struct MeetingPopoverView: View {
                 .frame(maxWidth: 180, alignment: .leading)
                 .clipped()
             Spacer(minLength: 8)
-            Image(systemName: "chevron.down")
-                .font(.system(size: 9, weight: .semibold))
+            AtlasIcon(.arrowDown)
+                .frame(width: 10, height: 10)
                 .foregroundStyle(theme.textTertiary)
         }
         .fixedSize(horizontal: true, vertical: false)
@@ -558,7 +546,7 @@ struct MeetingPopoverView: View {
         card {
             sectionLabel("Upcoming meeting")
             if store.needsScreenRecordingForMeeting {
-                screenRecordingMeetingBanner
+                systemAudioMeetingBanner
             }
             if store.needsCalendarReconnect {
                 Text("Reconnect to load next meeting.")
@@ -575,48 +563,23 @@ struct MeetingPopoverView: View {
                         .font(.custom("Figtree", size: 12).weight(.medium))
                         .foregroundStyle(theme.textSecondary)
                 } else {
-                    Text(store.meeting.title)
-                        .font(.custom("Newsreader", size: 16).weight(.regular))
-                        .foregroundStyle(theme.textPrimary)
-                        .lineLimit(2)
-                        .lineSpacing(0)
-                    HStack(spacing: 8) {
-                        Text(store.nextUpCountdownLabel)
-                            .font(.custom("Figtree", size: 11).weight(.medium))
-                            .foregroundStyle(theme.textSecondary)
-                        Spacer()
-                    }
-                    HStack(spacing: 8) {
-                        if store.meeting.joinURL != nil {
-                            Button("Join meeting") {
-                                store.openJoinLink()
-                            }
-                            .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(store.meeting.title)
+                                .font(.custom("Newsreader", size: 16).weight(.regular))
+                                .foregroundStyle(theme.textPrimary)
+                                .lineLimit(2)
+                                .lineSpacing(0)
+
+                            Text(store.nextUpCountdownLabel)
+                                .font(.custom("Figtree", size: 11).weight(.medium))
+                                .foregroundStyle(theme.textSecondary)
                         }
-                        if store.isMeetingRecording {
-                            Button("Stop notes") {
-                                store.toggleRecording()
-                            }
-                            .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
-                        } else {
-                            Button("Start notes") {
-                                store.toggleRecording()
-                            }
-                            .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
-                        }
-                        if !store.meeting.calendarDisplayName.isEmpty {
-                            Text(store.meeting.calendarDisplayName)
-                                .font(.custom("Figtree", size: 10).weight(.medium))
-                                .foregroundStyle(theme.textTertiary)
-                                .lineLimit(1)
-                        }
-                        Spacer()
-                    }
-                    if store.lastMeetingNotesURL != nil {
-                        Button("Open notes") {
-                            store.openMeetingNotes()
-                        }
-                        .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+                        .layoutPriority(1)
+
+                        Spacer(minLength: 8)
+
+                        meetingNotesButton
                     }
                 }
             } else {
@@ -628,27 +591,38 @@ struct MeetingPopoverView: View {
         }
     }
 
-    private var screenRecordingMeetingBanner: some View {
+    @ViewBuilder
+    private var meetingNotesButton: some View {
+        if store.isMeetingRecording {
+            Button("Stop notes") {
+                store.toggleRecording()
+            }
+            .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+        } else {
+            Button("Start notes") {
+                store.toggleRecording()
+            }
+            .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
+        }
+    }
+
+    private var systemAudioMeetingBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top, spacing: 6) {
-                Image(systemName: "speaker.wave.2.fill")
-                    .font(.system(size: 10, weight: .semibold))
+                AtlasIcon(.volumeHigh)
+                    .frame(width: 10, height: 10)
                     .foregroundStyle(theme.accent)
-                Text("Meeting notes need Screen Recording to hear other people. Allow it, then restart Atlas.")
+                Text("Meeting notes need System Audio Recording Only to hear other people.")
                     .font(.custom("Figtree", size: 10).weight(.medium))
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             HStack(spacing: 8) {
-                Button("Allow Screen Recording") {
-                    store.requestScreenRecording()
+                Button("Allow System Audio") {
+                    store.requestSystemAudioRecording()
                 }
                 .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
-                Button("Restart") {
-                    store.restartApp()
-                }
-                .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
             }
         }
         .padding(8)
@@ -657,59 +631,33 @@ struct MeetingPopoverView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
-    private var footer: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            if store.isAuthenticated {
-                Button("Log out") {
-                    store.logout()
-                }
-                .buttonStyle(.plain)
-                .font(.custom("Figtree", size: 11).weight(.medium))
-                .foregroundStyle(theme.textSecondary)
-            }
-            Spacer(minLength: 8)
-            if isFooterStatusVisible {
-                Text(footerStatusText)
-                    .font(.custom("Figtree", size: 11).weight(.medium))
-                    .foregroundStyle(theme.textSecondary)
-                    .multilineTextAlignment(.trailing)
-                    .lineLimit(3)
-            }
-        }
-    }
-
     private var isMeetingRefreshStatusVisible: Bool {
         guard store.meetingNotesEnabled else { return false }
         let normalized = store.statusMessage.lowercased()
         return normalized.contains("refresh") && !normalized.contains("not connected")
     }
 
-    private var isFooterStatusVisible: Bool {
-        !footerStatusText.isEmpty && !store.isRestoringSession
-    }
-
-    private var footerStatusText: String {
-        if store.needsPermissionOnboarding {
-            return ""
-        }
-        if store.isListening {
-            return store.lastTranscript.isEmpty ? store.statusMessage : store.lastTranscript
-        }
-        return store.statusMessage
-    }
-
-    private func voiceActionIcon(for type: VoiceCaptureType) -> String {
+    private func voiceActionIcon(for type: VoiceCaptureType) -> AtlasIconName {
         switch type {
         case .task:
-            return "checkmark.circle.fill"
+            return .checkCircle
         case .doc:
-            return "doc.text.fill"
+            return .file
         case .sticky:
-            return "note.text"
+            return .stickyNote
         case .bookmark:
-            return "bookmark.fill"
+            return .bookmark
         case .agent:
-            return "message.fill"
+            return .message
+        }
+    }
+
+    private func selectedMenuLabel(_ label: String) -> some View {
+        Label {
+            Text(label)
+        } icon: {
+            AtlasIcon(.check)
+                .frame(width: 12, height: 12)
         }
     }
 
@@ -773,6 +721,12 @@ struct MeetingPopoverView: View {
     }
 }
 
+private enum PermissionOnboardingMetrics {
+    static let titleTracking: CGFloat = 0.14
+    static let bodyTracking: CGFloat = 0.13
+    static let actionTracking: CGFloat = 0.14
+}
+
 private struct MenuWindowBorderCleaner: NSViewRepresentable {
     let theme: CopilotThemeTokens
     let isDark: Bool
@@ -794,36 +748,35 @@ private struct MenuWindowBorderCleaner: NSViewRepresentable {
 
     private func configureWindow(from view: NSView) {
         guard let window = view.window else { return }
-        let backgroundColor = NSColor(theme.canvas)
-        let edgeColor = isDark ? NSColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1) : backgroundColor
+        let clearColor = NSColor.clear
         window.isOpaque = false
-        window.backgroundColor = backgroundColor
+        window.backgroundColor = clearColor
         window.hasShadow = false
         window.appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
         window.contentView?.superview?.wantsLayer = true
-        window.contentView?.superview?.layer?.backgroundColor = backgroundColor.cgColor
+        window.contentView?.superview?.layer?.backgroundColor = clearColor.cgColor
         window.contentView?.superview?.layer?.cornerRadius = cornerRadius
         window.contentView?.superview?.layer?.masksToBounds = true
         window.contentView?.superview?.layer?.borderWidth = 0
-        window.contentView?.superview?.layer?.borderColor = edgeColor.cgColor
+        window.contentView?.superview?.layer?.borderColor = clearColor.cgColor
         window.contentView?.superview?.layer?.shadowOpacity = 0
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.cornerRadius = cornerRadius
         window.contentView?.layer?.masksToBounds = true
         window.contentView?.layer?.borderWidth = 0
-        window.contentView?.layer?.borderColor = edgeColor.cgColor
+        window.contentView?.layer?.borderColor = clearColor.cgColor
         window.contentView?.layer?.shadowOpacity = 0
-        darkenAncestorLayers(from: view, backgroundColor: backgroundColor, edgeColor: edgeColor)
+        clearAncestorLayers(from: view)
         clearBorders(in: window.contentView)
     }
 
-    private func darkenAncestorLayers(from view: NSView, backgroundColor: NSColor, edgeColor: NSColor) {
+    private func clearAncestorLayers(from view: NSView) {
         var current: NSView? = view
         while let node = current {
             node.wantsLayer = true
-            node.layer?.backgroundColor = backgroundColor.cgColor
+            node.layer?.backgroundColor = NSColor.clear.cgColor
             node.layer?.borderWidth = 0
-            node.layer?.borderColor = edgeColor.cgColor
+            node.layer?.borderColor = NSColor.clear.cgColor
             node.layer?.shadowOpacity = 0
             current = node.superview
         }
@@ -836,46 +789,6 @@ private struct MenuWindowBorderCleaner: NSViewRepresentable {
         view.layer?.borderColor = NSColor.clear.cgColor
         for subview in view.subviews {
             clearBorders(in: subview)
-        }
-    }
-}
-
-/// The signed-in user's profile picture, configured in the web app's settings.
-/// Falls back to their initials while loading or when no avatar is set.
-struct AtlasProfileAvatar: View {
-    let profile: AtlasUserProfile
-    let theme: CopilotThemeTokens
-    var size: CGFloat = 18
-
-    var body: some View {
-        avatar
-            .frame(width: size, height: size)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(theme.borderStrong, lineWidth: 1))
-            .help(profile.displayName.isEmpty ? profile.email : profile.displayName)
-    }
-
-    @ViewBuilder
-    private var avatar: some View {
-        if let url = profile.avatarURL {
-            AsyncImage(url: url) { phase in
-                if case let .success(image) = phase {
-                    image.resizable().scaledToFill()
-                } else {
-                    initials
-                }
-            }
-        } else {
-            initials
-        }
-    }
-
-    private var initials: some View {
-        ZStack {
-            theme.accentSubtle
-            Text(profile.initials)
-                .font(.custom("Figtree", size: size * 0.44).weight(.semibold))
-                .foregroundStyle(theme.accent)
         }
     }
 }

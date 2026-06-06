@@ -142,9 +142,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             })}
             strokeWidth={2.5}
           />
-          <div className="line-clamp-1 inline-block truncate text-13 font-medium">
-            {title}
-          </div>
+          <div className="line-clamp-1 inline-block truncate text-13 font-medium">{title}</div>
           <div className="pl-2 text-13 font-medium">{count || 0}</div>
           <div className="px-2.5">
             <WorkFlowGroupTree groupBy={groupBy} groupId={groupID} />
