@@ -31,14 +31,29 @@ const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, l
 const userService = new UserService();
 const issueService = new IssueService();
 
-export const MyTasksSection = observer(function MyTasksSection() {
+type MyTasksSectionProps = {
+  /** Whose tasks to show. Defaults to the signed-in user (home usage). */
+  userId?: string;
+  /**
+   * "View all" link target. Omit for the default (the user's profile);
+   * pass `null` to hide the link entirely.
+   */
+  viewAllHref?: string | null;
+};
+
+export const MyTasksSection = observer(function MyTasksSection({
+  userId: userIdProp,
+  viewAllHref,
+}: MyTasksSectionProps = {}) {
   const { workspaceSlug } = useParams();
   const { data: currentUser } = useUser();
   const { getStateById, getProjectStates, fetchWorkspaceStates, fetchProjectStates } = useProjectState();
   const { getProjectById, getProjectIdentifierById } = useProject();
 
   const slug = workspaceSlug?.toString();
-  const userId = currentUser?.id;
+  const userId = userIdProp ?? currentUser?.id;
+  const resolvedViewAllHref =
+    viewAllHref === undefined ? (userId ? `/${slug}/profile/${userId}` : null) : viewAllHref;
 
   // `checking` → row is mid-completion (shows the filled check + strike-through).
   // `completed` → completion confirmed, row is removed from the list.
@@ -122,7 +137,7 @@ export const MyTasksSection = observer(function MyTasksSection() {
   });
 
   // Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent.
-  const tasks = [...openIssues].sort((a, b) => {
+  const tasks = openIssues.toSorted((a, b) => {
     const aDue = a.target_date ? (getDate(a.target_date)?.getTime() ?? Infinity) : Infinity;
     const bDue = b.target_date ? (getDate(b.target_date)?.getTime() ?? Infinity) : Infinity;
     if (aDue !== bDue) return aDue - bDue;
@@ -146,9 +161,9 @@ export const MyTasksSection = observer(function MyTasksSection() {
             </span>
           )}
         </div>
-        {userId && (
+        {resolvedViewAllHref && (
           <Link
-            href={`/${slug}/profile/${userId}`}
+            href={resolvedViewAllHref}
             className="flex items-center gap-1 text-12 font-medium text-tertiary hover:text-secondary"
           >
             View all
