@@ -21,7 +21,7 @@ export default function ProfileOverviewPage({ params }: Route.ComponentProps) {
     <>
       <PageHead title={t("profile.page_label")} />
       <ContentWrapper className="space-y-8">
-        <MyTasksSection userId={userId} viewAllHref={`/${workspaceSlug}/profile/${userId}/assigned/`} />
+        <MyTasksSection userId={userId} viewAllHref={`/${workspaceSlug}/profile/${userId}/assigned/`} hideHeader />
       </ContentWrapper>
     </>
   );

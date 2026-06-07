@@ -8,9 +8,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import useSWR from "swr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { PriorityIcon, YourWorkIcon } from "@plane/propel/icons";
+import { YourWorkIcon } from "@plane/propel/icons";
 import type { TBaseIssue, TIssuePriorities, TIssuesResponse } from "@plane/types";
 import { cn, createIssuePayload, getDate, renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
 import { Check, ChevronRight, Loader, Plus } from "@/components/icons/lucide-shim";
@@ -20,11 +19,8 @@ import { useLabel } from "@/hooks/store/use-label";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { IssueService } from "@/services/issue";
-import { UserService } from "@/services/user.service";
+import { isOpenIssue, useMyTasksData } from "./use-my-tasks";
 
-// Pull a generous page so the widget is a true aggregate of everything on the
-// user's plate across projects — not just a teaser.
-const PAGE_SIZE = 50;
 // How long the row stays visibly "checked" before it animates out of the list.
 const COMPLETE_ANIMATION_MS = 320;
 
@@ -135,7 +131,6 @@ function parseQuickInput(raw: string): ParsedQuickInput {
   return { name: kept.join(" ").replace(/\s+/g, " ").trim(), labelNames, priority, dueDate };
 }
 
-const userService = new UserService();
 const issueService = new IssueService();
 
 type MyTasksSectionProps = {
@@ -146,11 +141,14 @@ type MyTasksSectionProps = {
    * pass `null` to hide the link entirely.
    */
   viewAllHref?: string | null;
+  /** Hide the widget's "My tasks" title + icon + count (profile page uses the page title instead). */
+  hideHeader?: boolean;
 };
 
 export const MyTasksSection = observer(function MyTasksSection({
   userId: userIdProp,
   viewAllHref,
+  hideHeader = false,
 }: MyTasksSectionProps = {}) {
   const { workspaceSlug } = useParams();
   const { data: currentUser } = useUser();
@@ -178,17 +176,7 @@ export const MyTasksSection = observer(function MyTasksSection({
   const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
 
-  const { data, isLoading, mutate } = useSWR<TIssuesResponse | null>(
-    slug && userId ? `HOME_MY_TASKS_${slug}_${userId}` : null,
-    slug && userId
-      ? () =>
-          userService.getUserProfileIssues(slug, userId, {
-            assignees: userId,
-            per_page: PAGE_SIZE,
-          })
-      : null,
-    { revalidateOnFocus: false }
-  );
+  const { data, isLoading, mutate } = useMyTasksData(slug, userId);
 
   // Load every project's states up front so we can both classify each task's
   // state group and resolve the project's "done" state when completing.
@@ -318,12 +306,7 @@ export const MyTasksSection = observer(function MyTasksSection({
   const allIssues: TBaseIssue[] = Array.isArray(data?.results) ? (data!.results as TBaseIssue[]) : [];
 
   // Only open work belongs on a todo list — drop anything done or cancelled.
-  const openIssues = allIssues.filter((issue) => {
-    if (completedIds.has(issue.id)) return false;
-    if (issue.completed_at) return false;
-    const group = issue.state_id ? getStateById(issue.state_id)?.group : undefined;
-    return group !== "completed" && group !== "cancelled";
-  });
+  const openIssues = allIssues.filter((issue) => !completedIds.has(issue.id) && isOpenIssue(issue, getStateById));
 
   // Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent.
   // Copy before sorting (toSorted needs es2023 lib, which this project's tsc target predates).
@@ -346,26 +329,32 @@ export const MyTasksSection = observer(function MyTasksSection({
 
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-2">
-          <YourWorkIcon className="size-4 text-tertiary" />
-          <h3 className="text-14 font-semibold text-secondary">My tasks</h3>
-          {tasks.length > 0 && (
-            <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
-              {tasks.length}
-            </span>
+      {(!hideHeader || resolvedViewAllHref) && (
+        <div className="flex items-center justify-between px-2">
+          {hideHeader ? (
+            <span />
+          ) : (
+            <div className="flex items-center gap-2">
+              <YourWorkIcon className="size-4 text-tertiary" />
+              <h3 className="text-14 font-semibold text-secondary">My tasks</h3>
+              {tasks.length > 0 && (
+                <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
+                  {tasks.length}
+                </span>
+              )}
+            </div>
+          )}
+          {resolvedViewAllHref && (
+            <Link
+              href={resolvedViewAllHref}
+              className="flex items-center gap-1 text-12 font-medium text-tertiary hover:text-secondary"
+            >
+              View all
+              <ChevronRight className="size-3" />
+            </Link>
           )}
         </div>
-        {resolvedViewAllHref && (
-          <Link
-            href={resolvedViewAllHref}
-            className="flex items-center gap-1 text-12 font-medium text-tertiary hover:text-secondary"
-          >
-            View all
-            <ChevronRight className="size-3" />
-          </Link>
-        )}
-      </div>
+      )}
       <div className="rounded-[18px] border border-subtle bg-surface-1">
         {isLoading ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
@@ -389,9 +378,10 @@ export const MyTasksSection = observer(function MyTasksSection({
               const dueLabel = issue.target_date ? renderFormattedDate(issue.target_date, "MMM d") : undefined;
               const isOverdue = !!dueDate && dueDate < todayStart;
               const priority = (issue.priority ?? "none") as TIssuePriorities | "none";
-              const showPriority = priority === "urgent" || priority === "high";
+              const hasPriority = priority !== "none";
               const labels = (issue.label_ids ?? []).map((id) => labelById.get(id)).filter(Boolean);
-              const hasSubtitle = !!project?.name || !!dueLabel || labels.length > 0;
+              const hasAttributes = !!dueLabel || hasPriority || labels.length > 0;
+              const hasSubtitle = !!project?.name || hasAttributes;
 
               return (
                 <li key={issue.id}>
@@ -430,28 +420,25 @@ export const MyTasksSection = observer(function MyTasksSection({
                       {hasSubtitle && (
                         <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-11 text-placeholder">
                           {project?.name && <span className="truncate">{project.name}</span>}
-                          {project?.name && dueLabel && <span aria-hidden>·</span>}
-                          {dueLabel && (
-                            <span className={cn("flex-shrink-0", isOverdue && "text-danger-primary")}>{dueLabel}</span>
-                          )}
-                          {labels.map((label) => (
-                            <span
-                              key={label!.id}
-                              className="inline-flex flex-shrink-0 items-center gap-1 rounded bg-layer-2 px-1.5 py-px text-tertiary"
-                            >
-                              <span
-                                className="size-1.5 rounded-full"
-                                style={{ backgroundColor: label!.color || "#9ca3af" }}
-                              />
-                              {label!.name}
+                          {project?.name && hasAttributes && <span aria-hidden>·</span>}
+                          {hasAttributes && (
+                            <span className="font-newsreader flex flex-wrap items-center gap-1.5 text-12 text-accent-primary">
+                              {dueLabel && (
+                                <span className={cn("flex-shrink-0", isOverdue && "text-danger-primary")}>
+                                  {dueLabel}
+                                </span>
+                              )}
+                              {hasPriority && <span className="flex-shrink-0 capitalize">{priority}</span>}
+                              {labels.map((label) => (
+                                <span key={label!.id} className="flex-shrink-0">
+                                  #{label!.name}
+                                </span>
+                              ))}
                             </span>
-                          ))}
+                          )}
                         </span>
                       )}
                     </Link>
-                    {showPriority && (
-                      <PriorityIcon priority={issue.priority} withContainer size={12} className="mt-0.5" />
-                    )}
                   </div>
                 </li>
               );
@@ -495,19 +482,11 @@ export const MyTasksSection = observer(function MyTasksSection({
                   )}
                 </div>
                 {hasInputPreview && (
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-[30px] text-11 text-tertiary">
-                    {inputPreview.dueDate && (
-                      <span className="rounded bg-layer-2 px-1.5 py-0.5">
-                        {renderFormattedDate(inputPreview.dueDate, "MMM d")}
-                      </span>
-                    )}
-                    {inputPreview.priority && (
-                      <span className="rounded bg-layer-2 px-1.5 py-0.5 capitalize">{inputPreview.priority}</span>
-                    )}
+                  <div className="font-newsreader mt-1.5 flex flex-wrap items-center gap-2 pl-[30px] text-12 text-accent-primary">
+                    {inputPreview.dueDate && <span>{renderFormattedDate(inputPreview.dueDate, "MMM d")}</span>}
+                    {inputPreview.priority && <span className="capitalize">{inputPreview.priority}</span>}
                     {inputPreview.labelNames.map((labelName) => (
-                      <span key={labelName} className="rounded bg-layer-2 px-1.5 py-0.5">
-                        #{labelName}
-                      </span>
+                      <span key={labelName}>#{labelName}</span>
                     ))}
                   </div>
                 )}
