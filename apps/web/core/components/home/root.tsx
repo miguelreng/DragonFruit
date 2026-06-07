@@ -17,12 +17,20 @@ import { useUserProfile } from "@/hooks/store/user";
 import { HomePeekOverviewsRoot } from "@/plane-web/components/home";
 import { TourRoot } from "@/plane-web/components/onboarding/tour/root";
 // local imports
-import { ActivityHeatmapSection, AgentCostSection, FavoritesSection, InboxSection, MyTasksSection } from "./sections";
+import {
+  ActivityHeatmapSection,
+  AgentCostSection,
+  FavoritesSection,
+  InboxSection,
+  MyTasksSection,
+  RecentActivitySection,
+} from "./sections";
 
 const SECTION_RENDERERS: Record<string, () => ReactNode> = {
   inbox: () => <InboxSection />,
   my_tasks: () => <MyTasksSection />,
   favorites: () => <FavoritesSection />,
+  recent_activity: () => <RecentActivitySection />,
   activity: () => <ActivityHeatmapSection />,
   agent_cost: () => <AgentCostSection />,
 };
@@ -66,12 +74,11 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
         <div className={cn("home-dashboard-container", header && "px-page-x")}>
           <div className={cn("home-dashboard-grid", header ? "pt-6" : "pt-2")}>
             {enabledKeys("activity") && SECTION_RENDERERS.activity()}
-            {enabledKeys("inbox") && SECTION_RENDERERS.inbox()}
-            {enabledKeys("agent_cost") && SECTION_RENDERERS.agent_cost()}
             {enabledKeys("my_tasks") && SECTION_RENDERERS.my_tasks()}
-            {enabledKeys("favorites") && (
-              <div className="home-dashboard-favorites">{SECTION_RENDERERS.favorites()}</div>
-            )}
+            {enabledKeys("agent_cost") && SECTION_RENDERERS.agent_cost()}
+            {enabledKeys("inbox") && SECTION_RENDERERS.inbox()}
+            {enabledKeys("favorites") && SECTION_RENDERERS.favorites()}
+            {enabledKeys("recent_activity") && SECTION_RENDERERS.recent_activity()}
           </div>
         </div>
       </ContentWrapper>

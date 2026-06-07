@@ -7,7 +7,7 @@
 import { API_BASE_URL } from "@plane/constants";
 import { APIService } from "@/services/api.service";
 
-export type THomeSectionKey = "inbox" | "my_tasks" | "favorites" | "activity" | "agent_cost";
+export type THomeSectionKey = "inbox" | "my_tasks" | "favorites" | "recent_activity" | "activity" | "agent_cost";
 
 export type TActivityRange = "all" | "30d" | "7d";
 

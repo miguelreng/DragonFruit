@@ -403,6 +403,7 @@ class WorkspaceHomePreference(BaseModel):
         INBOX = "inbox", "Inbox"
         MY_TASKS = "my_tasks", "My tasks"
         FAVORITES = "favorites", "Favorites"
+        RECENT_ACTIVITY = "recent_activity", "Recent activity"
         AGENT_COST = "agent_cost", "Agent cost"
         # Legacy widget keys — left in place so existing rows still
         # resolve to a valid choice, but no longer seeded by the GET

@@ -24,7 +24,7 @@ class WorkspaceHomePreferenceViewSet(BaseAPIView):
     # rendering order on the home page (higher sort_order = earlier).
     # Legacy widget keys are deliberately absent — the section-based
     # home view replaced them.
-    _SEEDED_KEYS = ["inbox", "my_tasks", "favorites", "activity", "agent_cost"]
+    _SEEDED_KEYS = ["inbox", "my_tasks", "favorites", "recent_activity", "activity", "agent_cost"]
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):

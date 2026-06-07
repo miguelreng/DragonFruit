@@ -10,7 +10,6 @@ import { ContentWrapper } from "@plane/ui";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { MyTasksSection } from "@/components/home/sections/my-tasks-section";
-import { ProfileActivity } from "@/components/profile/overview/activity";
 import type { Route } from "./+types/page";
 
 export default function ProfileOverviewPage({ params }: Route.ComponentProps) {
@@ -23,7 +22,6 @@ export default function ProfileOverviewPage({ params }: Route.ComponentProps) {
       <PageHead title={t("profile.page_label")} />
       <ContentWrapper className="space-y-8">
         <MyTasksSection userId={userId} viewAllHref={`/${workspaceSlug}/profile/${userId}/assigned/`} />
-        <ProfileActivity />
       </ContentWrapper>
     </>
   );
