@@ -148,6 +148,7 @@ import {
   TextItalicIcon,
   TextStrikethroughIcon,
   TextUnderlineIcon,
+  TextSelectIcon as HugeTextSelectIcon,
   TextIcon,
   Ticket01Icon,
   Tick02Icon,
@@ -163,6 +164,7 @@ import {
   UserMinus01Icon,
   UserMultipleIcon,
   WebhookIcon,
+  WhiteboardIcon,
   ZapIcon,
 } from "@hugeicons/core-free-icons";
 
@@ -330,6 +332,8 @@ export const Image = huge(Image01Icon);
 export const ImageIcon = Image;
 export const Info = huge(InformationCircleIcon);
 export const InfoIcon = Info;
+export const TextSelect = huge(HugeTextSelectIcon);
+export const TextSelectIcon = TextSelect;
 export const InboxIconShim = huge(InboxIcon);
 export const KeyRound = huge(Key01Icon);
 export const Lightbulb = huge(BulbIcon);
@@ -602,4 +606,4 @@ export const UploadCloud = huge(CloudUploadIcon);
 
 // ── domain icons matched to sidebar entries ───────────────────────────
 export const PaintBoard = huge(PaintBoardIcon);
-export const Whiteboard = PaintBoard;
+export const Whiteboard = huge(WhiteboardIcon);

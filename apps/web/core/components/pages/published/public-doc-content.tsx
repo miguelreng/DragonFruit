@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from "react";
-import { ListChecks, PenTool, StickyNote } from "@/components/icons/lucide-shim";
+import { ListChecks, Whiteboard, StickyNote } from "@/components/icons/lucide-shim";
 import type { TPublicDocEmbed } from "@/services/page/public-page.service";
 
 export type TPublicDocHeading = {
@@ -21,7 +21,7 @@ type Props = {
 };
 
 const TYPE_META = {
-  whiteboard: { label: "Whiteboard", Icon: PenTool },
+  whiteboard: { label: "Whiteboard", Icon: Whiteboard },
   sticky: { label: "Sticky", Icon: StickyNote },
   task_view: { label: "Task view", Icon: ListChecks },
 };

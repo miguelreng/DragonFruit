@@ -5,7 +5,7 @@
  */
 
 import { useMemo, useCallback } from "react";
-import { FileText, PenTool, Star } from "@/components/icons/lucide-shim";
+import { FileText, Whiteboard, Star } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@plane/propel/icons";
@@ -108,7 +108,7 @@ export const useNavigationItems = ({
         key: "whiteboards",
         name: "Whiteboards",
         href: `/${workspaceSlug}/projects/${projectId}/whiteboards`,
-        icon: PenTool,
+        icon: Whiteboard,
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: !!project?.page_view,
         sortOrder: 7,

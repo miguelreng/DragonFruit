@@ -13,6 +13,7 @@ import { ListLayout } from "@/components/core/list";
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 import { usePageStore } from "@/plane-web/hooks/store";
 // local imports
+import { BRIEF_PAGE_NAME } from "@/components/project/brief/constants";
 import { PageListBlock } from "./block";
 
 type TPagesListRoot = {
@@ -24,9 +25,11 @@ type TPagesListRoot = {
 export const PagesListRoot = observer(function PagesListRoot(props: TPagesListRoot) {
   const { contentType, pageType, storeType } = props;
   // store hooks
-  const { getCurrentProjectFilteredPageIdsByTab } = usePageStore(storeType);
-  // derived values
-  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType, contentType);
+  const { getCurrentProjectFilteredPageIdsByTab, getPageById } = usePageStore(storeType);
+  // derived values — hide the hidden, per-project "Brief" backing page
+  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType, contentType)?.filter(
+    (pageId) => (getPageById(pageId)?.name ?? "").trim() !== BRIEF_PAGE_NAME
+  );
 
   if (!filteredPageIds) return <></>;
   return (

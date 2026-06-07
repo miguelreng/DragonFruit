@@ -2,8 +2,10 @@
 
 const DEFAULT_API_URL = "https://api.dragonfruit.sh";
 
+const loadingView = document.querySelector("#loading-view");
+const loadingLabel = document.querySelector("#loading-label");
 const loginView = document.querySelector("#login-view");
-const bookmarkView = document.querySelector("#bookmark-view");
+const guideView = document.querySelector("#guide-view");
 const settingsView = document.querySelector("#settings-view");
 const accountLabel = document.querySelector("#account-label");
 const workspaceSelect = document.querySelector("#workspace-slug");
@@ -11,7 +13,6 @@ const projectSelect = document.querySelector("#project-id");
 const authActionButton = document.querySelector("#auth-action");
 const signOutButton = document.querySelector("#sign-out");
 const refreshSettingsButton = document.querySelector("#refresh-settings");
-const savePageButton = document.querySelector("#save-page");
 const statusEl = document.querySelector("#status");
 
 let isAuthenticated = false;
@@ -21,13 +22,13 @@ let currentUser = null;
 init();
 
 async function init() {
-  savePageButton.addEventListener("click", saveActivePage);
   authActionButton.addEventListener("click", toggleAuth);
   signOutButton.addEventListener("click", toggleAuth);
   refreshSettingsButton.addEventListener("click", refreshBookmarkContext);
   workspaceSelect.addEventListener("change", handleWorkspaceChange);
   projectSelect.addEventListener("change", persistSettings);
 
+  showLoading("Connecting…");
   const popupView = await takePopupView();
   await refreshAuthState({ preferredView: popupView });
 }
@@ -53,8 +54,7 @@ async function refreshAuthState({ preferredView = "bookmark" } = {}) {
     currentUser = response?.user || null;
 
     if (response?.pending) {
-      showLogin();
-      setStatus("Finish sign in on the DragonFruit page", "loading");
+      showLoading("Finishing sign-in…");
       startAuthPolling();
       return;
     }
@@ -82,11 +82,15 @@ async function refreshAuthState({ preferredView = "bookmark" } = {}) {
     }
 
     stopAuthPolling();
+    showLoading("Loading workspace…");
     await ensureBookmarkContext();
     updateAccountLabel();
+    if (preferredView === "settings") {
+      showSettings();
+    } else {
+      showGuide();
+    }
     if (response?.warning) setStatus(response.warning, "");
-    if (preferredView === "settings") showSettings();
-    else showBookmark();
   });
 }
 
@@ -107,19 +111,21 @@ async function toggleAuth() {
     return;
   }
 
-  setStatus("Opening DragonFruit login...", "loading");
+  showLoading("Opening DragonFruit…");
   chrome.runtime.sendMessage({ type: "SIGN_IN", appUrl: DEFAULT_API_URL }, (response) => {
     authActionButton.disabled = false;
     signOutButton.disabled = false;
     if (chrome.runtime.lastError) {
+      showLogin();
       setStatus(chrome.runtime.lastError.message || "Could not connect", "error");
       return;
     }
     if (!response?.ok) {
+      showLogin();
       setStatus(response?.error || "Could not connect", "error");
       return;
     }
-    setStatus("Finish sign in on the DragonFruit page", "loading");
+    showLoading("Finishing sign-in…");
     startAuthPolling();
   });
 }
@@ -225,24 +231,6 @@ async function loadProjectsForWorkspace(workspaceSlug) {
   });
 }
 
-async function saveActivePage() {
-  setStatus("Saving...", "loading");
-  savePageButton.disabled = true;
-  chrome.runtime.sendMessage({ type: "SAVE_ACTIVE_TAB" }, async (response) => {
-    if (chrome.runtime.lastError) {
-      setStatus(chrome.runtime.lastError.message || "Could not save", "error");
-      savePageButton.disabled = false;
-      return;
-    }
-    if (!response?.ok && String(response?.error || "").includes("Choose a workspace")) {
-      await refreshBookmarkContext();
-    }
-    const ok = Boolean(response?.ok);
-    setStatus(ok ? "Saved" : response?.error || "Could not save", ok ? "success" : "error");
-    savePageButton.disabled = false;
-  });
-}
-
 async function persistSettings() {
   const workspaces = Array.from(workspaceSelect.options).map((option) => ({
     slug: option.value,
@@ -306,24 +294,36 @@ function updateAccountLabel() {
   accountLabel.textContent = currentUser?.display_name || currentUser?.email || "Connected";
 }
 
+function showLoading(label = "Loading…") {
+  loadingLabel.textContent = label;
+  loadingView.hidden = false;
+  loginView.hidden = true;
+  guideView.hidden = true;
+  settingsView.hidden = true;
+  setStatus("", "");
+}
+
 function showLogin() {
+  loadingView.hidden = true;
   loginView.hidden = false;
-  bookmarkView.hidden = true;
+  guideView.hidden = true;
   settingsView.hidden = true;
   authActionButton.textContent = "Continue with DragonFruit";
   authActionButton.dataset.connected = "false";
 }
 
-function showBookmark() {
+function showGuide() {
+  loadingView.hidden = true;
   loginView.hidden = true;
-  bookmarkView.hidden = false;
+  guideView.hidden = false;
   settingsView.hidden = true;
-  setStatus(projectSelect.value ? "Ready" : "Choose a writable project", projectSelect.value ? "success" : "");
+  setStatus("Connected", "success");
 }
 
 function showSettings() {
+  loadingView.hidden = true;
   loginView.hidden = true;
-  bookmarkView.hidden = true;
+  guideView.hidden = true;
   settingsView.hidden = false;
   authActionButton.textContent = "Log out";
   authActionButton.dataset.connected = "true";

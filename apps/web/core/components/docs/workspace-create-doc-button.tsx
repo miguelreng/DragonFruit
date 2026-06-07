@@ -16,7 +16,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TPage, TPageType } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 import { cn } from "@plane/utils";
-import { ChevronDown, FileText, PenTool, Search } from "@/components/icons/lucide-shim";
+import { ChevronDown, FileText, Whiteboard, Search } from "@/components/icons/lucide-shim";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { ProjectPageService } from "@/services/page/project-page.service";
@@ -28,7 +28,7 @@ const wait = (delay: number) => new Promise((resolve) => setTimeout(resolve, del
 
 const TYPE_META: Record<TPageType, { label: string; Icon: typeof FileText }> = {
   doc: { label: "Doc", Icon: FileText },
-  whiteboard: { label: "Whiteboard", Icon: PenTool },
+  whiteboard: { label: "Whiteboard", Icon: Whiteboard },
 };
 
 const ALLOWED_ROLES = new Set<EUserPermissions | EUserProjectRoles>([

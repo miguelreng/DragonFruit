@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { ListViewIcon } from "@hugeicons/core-free-icons";
+import { LeftToRightListStarIcon } from "@hugeicons/core-free-icons";
 
 import { hugeIcon } from "../_hugeicons-shim";
 
-export const ListLayoutIcon = hugeIcon(ListViewIcon);
+export const ListLayoutIcon = hugeIcon(LeftToRightListStarIcon);

@@ -87,10 +87,6 @@ main {
   text-transform: uppercase;
 }
 
-.action-card {
-  gap: 8px;
-}
-
 .login-card p,
 .settings-hint {
   margin: 0;
@@ -99,21 +95,159 @@ main {
   font-weight: 500;
 }
 
-.action-copy {
+/* Loading — a single quiet spinner. Less is more. */
+.loading-view {
   display: grid;
-  gap: 3px;
+  place-items: center;
+  gap: 12px;
+  min-height: 132px;
 }
 
-.action-copy strong {
-  font-size: 12px;
+.loader {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.loading-label {
+  color: var(--text-tertiary);
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0;
 }
 
-.action-copy span {
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader {
+    animation-duration: 1.6s;
+  }
+}
+
+/* Post-login guide — point the user at the toolbar instead of a save button. */
+.guide-view {
+  display: grid;
+  gap: 12px;
+  padding: 2px 2px 4px;
+}
+
+.guide-pointer {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.guide-pointer svg {
+  width: 24px;
+  height: 24px;
+  color: var(--accent);
+  animation: nudge-up 1.5s ease-in-out infinite;
+}
+
+.guide-pointer span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@keyframes nudge-up {
+  0%,
+  100% {
+    transform: translateY(2px);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-pointer svg {
+    animation: none;
+  }
+}
+
+.guide-pin {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.guide-pin svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.guide-pin strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.guide-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 0.75px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.guide-step-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--layer-1);
+}
+
+.guide-step-icon img {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.guide-step-icon svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+}
+
+.guide-step-text {
+  display: grid;
+  gap: 1px;
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 500;
+  line-height: 1.4;
+}
+
+.guide-step-text strong {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .settings-card {

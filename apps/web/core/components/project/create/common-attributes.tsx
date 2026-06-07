@@ -122,7 +122,7 @@ function ProjectCommonAttributes(props: Props) {
 
       <div>
         <label className="mb-1.5 block text-body-sm-medium text-primary">
-          {t("description")} <span className="text-secondary">({t("optional")})</span>
+          Brief <span className="text-secondary">({t("optional")})</span>
         </label>
         <Controller
           name="description"

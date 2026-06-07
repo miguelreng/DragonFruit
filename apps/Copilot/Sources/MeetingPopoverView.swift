@@ -383,6 +383,9 @@ struct MeetingPopoverView: View {
                 }
                 featureToggle("Dictation", isOn: $store.cursorBuddyEnabled, detail: "Hold ⌥")
                 featureToggle("Meeting notes", isOn: $store.meetingNotesEnabled)
+                if store.meetingNotesEnabled {
+                    featureToggle("Open notes when done", isOn: $store.autoOpenMeetingNotesEnabled)
+                }
                 resetAccessibilityButton
                 if updater != nil {
                     checkForUpdatesButton

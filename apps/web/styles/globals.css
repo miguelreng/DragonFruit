@@ -5,6 +5,15 @@
 @import "./emoji.css";
 @plugin "@tailwindcss/typography";
 
+/* The editor styles ship from @plane/editor's prebuilt dist, where the pending
+   Atlas-proposal text color was near-white — unreadable on the light-mode tint
+   background. Override it here (web loads after the editor css) with the
+   theme-aware readable color. Dark mode keeps its own (working) value via the
+   higher-specificity .dark selector in the editor css. */
+:root {
+  --atlas-review-pending-text: var(--atlas-review-text);
+}
+
 /* React Router file-system routes live under app/(group)/[param]/ — the
  * parentheses and brackets in those folder names break Tailwind v4's
  * default glob source detection, which silently drops arbitrary

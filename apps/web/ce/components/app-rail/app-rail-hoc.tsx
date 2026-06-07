@@ -43,9 +43,7 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
       if (!item || !slug || !allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, slug)) return null;
 
       const href =
-        item.key === "your_work" && currentUser?.id
-          ? joinUrlPath(`/${slug}`, item.href, currentUser.id)
-          : joinUrlPath(`/${slug}`, item.href);
+        item.key === "your_work" ? `/${slug}/tasks` : joinUrlPath(`/${slug}`, item.href);
 
       return {
         label:

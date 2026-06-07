@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { ExternalLink, HardDrive, ListChecks, Loader2, PenTool, StickyNote } from "@/components/icons/lucide-shim";
+import { ExternalLink, HardDrive, ListChecks, Loader2, Whiteboard, StickyNote } from "@/components/icons/lucide-shim";
 import type { IProjectView, TPage, TSticky } from "@plane/types";
 import { EViewAccess } from "@plane/types";
 import { cn } from "@plane/utils";
@@ -86,7 +86,7 @@ export function DocEmbedCard(props: Props) {
       const page = state.status === "ready" ? state.page : undefined;
       return {
         label: "Whiteboard",
-        Icon: PenTool,
+        Icon: Whiteboard,
         name: page?.name || title || "Untitled whiteboard",
         href: workspaceSlug && projectId ? `/${workspaceSlug}/projects/${projectId}/pages/${entityId}` : undefined,
         body: "Canvas page",

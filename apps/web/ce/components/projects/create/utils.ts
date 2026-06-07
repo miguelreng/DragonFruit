@@ -19,4 +19,12 @@ export const getProjectFormValues = (): Partial<IProject> => ({
   name: "",
   network: 2,
   project_lead: null,
+  // Default feature set: Brief + Tasks (always-on in the UI) + Docs.
+  // Everything else stays off so new projects start lean — this replaces
+  // the old post-create feature-selection step.
+  page_view: true,
+  cycle_view: false,
+  module_view: false,
+  issue_views_view: false,
+  inbox_view: false,
 });

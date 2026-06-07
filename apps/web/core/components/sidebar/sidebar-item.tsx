@@ -77,7 +77,7 @@ const styles = {
   baseInline:
     "group relative flex w-fit max-w-full cursor-pointer items-center rounded-lg px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
   icon: "flex items-center justify-center gap-2 size-8 rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:size-5 [&_svg]:text-current",
-  iconActive: "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary",
+  iconActive: "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary",
   iconInactive:
     "group-hover:text-icon-secondary group-hover:bg-layer-transparent-hover !text-icon-tertiary dark:!text-white/55 dark:group-hover:!text-white/85 dark:group-hover:bg-white/[0.08]",
   iconInline: "flex size-5 flex-shrink-0 items-center justify-center [&_svg]:size-4 [&_svg]:text-current",
@@ -87,7 +87,7 @@ const styles = {
   labelInline: "flex h-5 items-center text-13 leading-5 font-medium",
   labelActive: "text-secondary dark:text-white",
   labelInactive: "group-hover:text-secondary text-tertiary dark:text-white/65 dark:group-hover:text-white/90",
-  inlineActive: "!bg-white/55 !text-primary dark:!bg-layer-1 dark:!text-accent-primary",
+  inlineActive: "!bg-white/55 sepia:!bg-[#dbccb3] !text-primary dark:!bg-layer-1 dark:!text-accent-primary",
   inlineInactive:
     "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]",
 } as const;

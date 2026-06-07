@@ -833,6 +833,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var meetingNotesEnabled = true {
         didSet { UserDefaults.standard.set(meetingNotesEnabled, forKey: "df_meeting_notes_enabled") }
     }
+    @Published var autoOpenMeetingNotesEnabled = true {
+        didSet { UserDefaults.standard.set(autoOpenMeetingNotesEnabled, forKey: "df_auto_open_meeting_notes_enabled") }
+    }
     @Published var showCursorBuddyEnabled = true {
         didSet { UserDefaults.standard.set(showCursorBuddyEnabled, forKey: "df_show_cursor_buddy_enabled") }
     }
@@ -931,12 +934,20 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var agentTypingTask: Task<Void, Never>?
     private var agentResponseDismissTask: Task<Void, Never>?
     private var voiceCaptureMode: VoiceCaptureMode = .intent
+    private struct PendingVoiceCaptureStart {
+        let mode: VoiceCaptureMode
+        let requiredHeldHotKeyID: UInt32
+        let heldHotKeySequence: Int
+    }
     private var isStartingVoiceCapture = false
+    private var pendingVoiceCaptureStart: PendingVoiceCaptureStart?
     private var pendingVoiceTranscript = ""
     private var voiceTranscriptFlushTask: Task<Void, Never>?
     private var pendingCursorContext = VoiceCursorContext.empty
     private var lastAudioLevelPublishedAt: TimeInterval = 0
     private var heldHotKeyIds: Set<UInt32> = []
+    private var heldHotKeySequenceByID: [UInt32: Int] = [:]
+    private var nextHeldHotKeySequence = 0
     private var dictationStreamedText = ""
     private var dictationSavedPasteboardItems: [NSPasteboardItem]?
     private var dictationTargetApplication: NSRunningApplication?
@@ -967,6 +978,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let savedCursorBuddyOpacity = defaults.object(forKey: "df_cursor_buddy_opacity") as? Double
         cursorBuddyOpacity = min(max(savedCursorBuddyOpacity ?? 1.0, 0.35), 1.0)
         speechLanguage = SpeechLanguage(rawValue: defaults.string(forKey: "df_speech_language") ?? "") ?? .spanishES
+        autoOpenMeetingNotesEnabled = defaults.object(forKey: "df_auto_open_meeting_notes_enabled") as? Bool ?? true
         selectedWorkspaceSlug = defaults.string(forKey: "df_selected_workspace_slug") ?? ""
         selectedAgentId = defaults.string(forKey: "df_selected_agent_id") ?? ""
         isRestoringSession = !apiToken.isEmpty
@@ -1497,6 +1509,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         if isPressed {
             guard !isOptionDictationHeld else { return }
             isOptionDictationHeld = true
+            markHeldHotKeyPressed(Self.optionOnlyDictationHotKeyID)
             optionDictationStartTask?.cancel()
             optionDictationStartTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: 160_000_000)
@@ -1512,7 +1525,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     func endHeldVoiceCapture(hotKeyID: UInt32) {
-        heldHotKeyIds.remove(hotKeyID)
+        markHeldHotKeyReleased(hotKeyID)
         guard isListening else { return }
         stopVoiceCapture()
     }
@@ -1521,7 +1534,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         isOptionDictationHeld = false
         optionDictationStartTask?.cancel()
         optionDictationStartTask = nil
-        heldHotKeyIds.remove(Self.optionOnlyDictationHotKeyID)
+        markHeldHotKeyReleased(Self.optionOnlyDictationHotKeyID)
     }
 
     private func toggleVoiceCapture(mode: VoiceCaptureMode) {
@@ -1533,7 +1546,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func beginVoiceCapture(mode: VoiceCaptureMode, requiredHeldHotKeyID: UInt32? = nil) {
-        guard !isListening, !isStartingVoiceCapture else { return }
+        guard !isListening else { return }
         guard mode == .dictation || voiceActionsEnabled else {
             statusMessage = "Turn on Voice in Settings first."
             return
@@ -1542,10 +1555,78 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             pendingCursorContext = voiceActionsEnabled ? captureCursorContext() : VoiceCursorContext.empty
             lastVoiceActionResult = nil
         }
+        var heldHotKeySequence: Int?
         if let requiredHeldHotKeyID {
-            heldHotKeyIds.insert(requiredHeldHotKeyID)
+            heldHotKeySequence = currentHeldHotKeySequence(for: requiredHeldHotKeyID)
+                ?? markHeldHotKeyPressed(requiredHeldHotKeyID)
         }
-        Task { await startVoiceCapture(mode: mode, requiredHeldHotKeyID: requiredHeldHotKeyID) }
+        if isStartingVoiceCapture {
+            if let requiredHeldHotKeyID, let heldHotKeySequence {
+                pendingVoiceCaptureStart = PendingVoiceCaptureStart(
+                    mode: mode,
+                    requiredHeldHotKeyID: requiredHeldHotKeyID,
+                    heldHotKeySequence: heldHotKeySequence
+                )
+            }
+            return
+        }
+        Task {
+            await startVoiceCapture(
+                mode: mode,
+                requiredHeldHotKeyID: requiredHeldHotKeyID,
+                heldHotKeySequence: heldHotKeySequence
+            )
+        }
+    }
+
+    @discardableResult
+    private func markHeldHotKeyPressed(_ hotKeyID: UInt32) -> Int {
+        nextHeldHotKeySequence += 1
+        heldHotKeyIds.insert(hotKeyID)
+        heldHotKeySequenceByID[hotKeyID] = nextHeldHotKeySequence
+        return nextHeldHotKeySequence
+    }
+
+    private func markHeldHotKeyReleased(_ hotKeyID: UInt32) {
+        heldHotKeyIds.remove(hotKeyID)
+        heldHotKeySequenceByID[hotKeyID] = nil
+        if pendingVoiceCaptureStart?.requiredHeldHotKeyID == hotKeyID {
+            pendingVoiceCaptureStart = nil
+        }
+    }
+
+    private func currentHeldHotKeySequence(for hotKeyID: UInt32) -> Int? {
+        guard heldHotKeyIds.contains(hotKeyID) else { return nil }
+        return heldHotKeySequenceByID[hotKeyID]
+    }
+
+    private func isHeldHotKeyActive(_ hotKeyID: UInt32?, sequence: Int?) -> Bool {
+        guard let hotKeyID else { return true }
+        guard heldHotKeyIds.contains(hotKeyID) else { return false }
+        guard let sequence else { return true }
+        return heldHotKeySequenceByID[hotKeyID] == sequence
+    }
+
+    private func startPendingVoiceCaptureIfNeeded() {
+        guard !isListening, !isStartingVoiceCapture, let pendingStart = pendingVoiceCaptureStart else {
+            if isListening {
+                pendingVoiceCaptureStart = nil
+            }
+            return
+        }
+        guard isHeldHotKeyActive(
+            pendingStart.requiredHeldHotKeyID,
+            sequence: pendingStart.heldHotKeySequence
+        ) else {
+            self.pendingVoiceCaptureStart = nil
+            return
+        }
+
+        self.pendingVoiceCaptureStart = nil
+        beginVoiceCapture(
+            mode: pendingStart.mode,
+            requiredHeldHotKeyID: pendingStart.requiredHeldHotKeyID
+        )
     }
 
     func openLastVoiceActionResult() {
@@ -2496,15 +2577,73 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 ? "Meeting notes saved to Docs and attached to your event."
                 : "Meeting notes saved to Docs."
             notifyMeetingNotesSaved(title: targetMeeting.title)
+            // Open the saved document in the browser as soon as recording finishes.
+            if autoOpenMeetingNotesEnabled, let notesURL = lastMeetingNotesURL {
+                NSWorkspace.shared.open(notesURL)
+            }
         } catch {
             meetingState = "Summary"
-            statusMessage = "Could not save meeting notes: \(error.localizedDescription)"
+            Self.logger.error("Meeting notes save failed: \(error.localizedDescription, privacy: .public)")
+            let targetMeeting = recordingMeeting ?? meeting
+            if let backupURL = try? saveMeetingNotesBackup(meeting: targetMeeting, transcript: transcript) {
+                lastMeetingNotesURL = backupURL
+                lastSavedMeetingTitle = targetMeeting.title
+                statusMessage = "Could not save online. Saved a local backup in Documents."
+                if autoOpenMeetingNotesEnabled {
+                    NSWorkspace.shared.open(backupURL)
+                }
+            } else {
+                statusMessage = "Could not save meeting notes: \(error.localizedDescription)"
+            }
         }
         if let systemAudioURL {
             try? FileManager.default.removeItem(at: systemAudioURL)
         }
         meetingMicAudioURL = nil
         meetingSystemAudioURL = nil
+    }
+
+    private func saveMeetingNotesBackup(meeting: MeetingInfo, transcript: String) throws -> URL {
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? FileManager.default.homeDirectoryForCurrentUser
+        let directoryURL = documentsURL.appendingPathComponent("DragonFruit Meeting Notes", isDirectory: true)
+        try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+
+        let timestampFormatter = DateFormatter()
+        timestampFormatter.locale = Locale(identifier: "en_US_POSIX")
+        timestampFormatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        let timestamp = timestampFormatter.string(from: Date())
+        let title = sanitizedMeetingNotesFileName(meeting.title.isEmpty ? "Meeting notes" : meeting.title)
+        let fileURL = directoryURL.appendingPathComponent("\(timestamp)-\(title).md")
+
+        let capturedAt = ISO8601DateFormatter().string(from: Date())
+        var lines = [
+            "# \(meeting.title.isEmpty ? "Meeting notes" : meeting.title)",
+            "",
+            "Captured by DragonFruit Atlas on \(capturedAt).",
+        ]
+        if let joinURL = meeting.joinURL {
+            lines.append("")
+            lines.append("Meeting link: \(joinURL.absoluteString)")
+        }
+        lines.append("")
+        lines.append("## Transcript")
+        lines.append("")
+        lines.append(transcript)
+
+        try lines.joined(separator: "\n").write(to: fileURL, atomically: true, encoding: .utf8)
+        return fileURL
+    }
+
+    private func sanitizedMeetingNotesFileName(_ value: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_ "))
+        let scalars = value.unicodeScalars.map { scalar in
+            allowed.contains(scalar) ? Character(scalar) : "-"
+        }
+        let collapsed = String(scalars)
+            .replacingOccurrences(of: " ", with: "-")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-_"))
+        return String((collapsed.isEmpty ? "Meeting-notes" : collapsed).prefix(80))
     }
 
     private func transcribeWithWhisperCPP(audioURL: URL) async throws -> String {
@@ -2677,10 +2816,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
-    private func startVoiceCapture(mode: VoiceCaptureMode, requiredHeldHotKeyID: UInt32? = nil) async {
+    private func startVoiceCapture(
+        mode: VoiceCaptureMode,
+        requiredHeldHotKeyID: UInt32? = nil,
+        heldHotKeySequence: Int? = nil
+    ) async {
         guard !isStartingVoiceCapture else { return }
         isStartingVoiceCapture = true
-        defer { isStartingVoiceCapture = false }
+        defer {
+            isStartingVoiceCapture = false
+            startPendingVoiceCaptureIfNeeded()
+        }
 
         guard isAuthenticated else {
             statusMessage = "Sign in first to capture voice notes."
@@ -2708,8 +2854,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 statusMessage = "Microphone permission denied."
                 return
             }
-            if let requiredHeldHotKeyID, !heldHotKeyIds.contains(requiredHeldHotKeyID) {
-                statusMessage = "Dictation cancelled."
+            guard isHeldHotKeyActive(requiredHeldHotKeyID, sequence: heldHotKeySequence) else {
+                if pendingVoiceCaptureStart == nil {
+                    statusMessage = "Dictation cancelled."
+                }
                 return
             }
 
@@ -2746,9 +2894,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             try audioEngine.start()
             isListening = true
             statusMessage = statusMessageForListening(mode: mode)
-            if let requiredHeldHotKeyID, !heldHotKeyIds.contains(requiredHeldHotKeyID) {
+            if !isHeldHotKeyActive(requiredHeldHotKeyID, sequence: heldHotKeySequence) {
                 stopVoiceCapture()
-                statusMessage = "Dictation cancelled."
+                if pendingVoiceCaptureStart == nil {
+                    statusMessage = "Dictation cancelled."
+                }
                 return
             }
 

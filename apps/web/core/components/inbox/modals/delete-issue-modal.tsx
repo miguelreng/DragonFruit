@@ -54,7 +54,13 @@ export const DeleteInboxIssueModal = observer(function DeleteInboxIssueModal({
         });
       })
       .catch((errors) => {
-        const isPermissionError = errors?.error === "Only admin or creator can delete the task";
+        // Match both the current generic 403 ("You don't have the required
+        // permissions.") and the older "Only admin or creator can delete the …"
+        // wording so a permission denial shows the helpful permission toast.
+        const errorMessage = typeof errors?.error === "string" ? errors.error : "";
+        const isPermissionError =
+          /you don't have the required permission/i.test(errorMessage) ||
+          /only admin or creator can delete/i.test(errorMessage);
         const currentError = isPermissionError
           ? PROJECT_ERROR_MESSAGES.permissionError
           : PROJECT_ERROR_MESSAGES.issueDeleteError;

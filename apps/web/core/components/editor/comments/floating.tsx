@@ -357,7 +357,7 @@ export function BlockCommentFloating(props: Props) {
             containerClassName="min-h-min"
             displayConfig={{ fontSize: "small-font" }}
             showSubmitButton={false}
-            showToolbarInitially={false}
+            variant="none"
           />
         ) : null}
         <div className="mt-2 flex items-center justify-between">
@@ -369,7 +369,7 @@ export function BlockCommentFloating(props: Props) {
             onClick={() => void handlePost()}
             disabled={saving || draftEmpty}
             className={cn(
-              "text-on-accent-primary inline-flex items-center gap-1.5 rounded-lg bg-accent-primary px-3 py-1 text-12 font-medium",
+              "inline-flex items-center gap-1.5 rounded-lg bg-accent-primary px-3 py-1 text-12 font-medium text-on-color",
               (saving || draftEmpty) && "cursor-not-allowed opacity-60"
             )}
           >

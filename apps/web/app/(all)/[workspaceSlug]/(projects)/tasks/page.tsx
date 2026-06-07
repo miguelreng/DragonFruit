@@ -4,25 +4,21 @@
  * See the LICENSE file for details.
  */
 
-// plane imports
-import { useTranslation } from "@plane/i18n";
+import { observer } from "mobx-react";
 import { ContentWrapper } from "@plane/ui";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { MyTasksSection } from "@/components/home/sections/my-tasks-section";
-import type { Route } from "./+types/page";
 
-export default function ProfileOverviewPage({ params }: Route.ComponentProps) {
-  const { workspaceSlug, userId } = params;
-
-  const { t } = useTranslation();
-
+function MyTasksPage() {
   return (
     <>
-      <PageHead title={t("profile.page_label")} />
+      <PageHead title="My tasks" />
       <ContentWrapper className="space-y-8">
-        <MyTasksSection userId={userId} hideHeader />
+        <MyTasksSection hideHeader />
       </ContentWrapper>
     </>
   );
 }
+
+export default observer(MyTasksPage);

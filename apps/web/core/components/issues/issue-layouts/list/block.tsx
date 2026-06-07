@@ -189,7 +189,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
           // (12px), gap-3 → gap-2. Matches ClickUp/Linear density so longer
           // lists fit on-screen without scrolling. Cell content still wraps
           // gracefully on narrow viewports because the row keeps min-h.
-          "group/list-block relative flex min-h-8 flex-col gap-2 rounded-lg bg-layer-transparent py-1.5 text-13 transition-colors hover:bg-layer-transparent-hover",
+          "group/list-block relative flex min-h-8 flex-col gap-2 bg-layer-transparent py-1.5 text-13 transition-colors hover:bg-layer-transparent-hover",
           {
             "border-accent-strong": getIsIssuePeeked(issue.id) && peekIssue?.nestingLevel === nestingLevel,
             "border-strong-1": isIssueActive,

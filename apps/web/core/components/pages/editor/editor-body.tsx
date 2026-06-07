@@ -32,7 +32,9 @@ import {
 import { EditorMentionsRoot } from "@/components/editor/embeds/mentions";
 // hooks
 import { useEditorMention } from "@/hooks/editor";
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useMember } from "@/hooks/store/use-member";
+import { useProject } from "@/hooks/store/use-project";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser } from "@/hooks/store/user";
 import { normalizeDocFontStyle } from "@/helpers/doc-font";
@@ -80,6 +82,11 @@ type Props = {
   extendedEditorProps: TExtendedEditorExtensionsConfig;
   isFetchingFallbackBinary?: boolean;
   onCollaborationStateChange?: (state: CollaborationState) => void;
+  // Brief view: hide the editable page title, show a fixed label instead, and
+  // override the empty-state placeholder.
+  chromeless?: boolean;
+  headerLabel?: string;
+  editorPlaceholder?: string;
 };
 
 export const PageEditorBody = observer(function PageEditorBody(props: Props) {
@@ -98,6 +105,9 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     extendedEditorProps,
     isFetchingFallbackBinary,
     onCollaborationStateChange,
+    chromeless,
+    headerLabel,
+    editorPlaceholder,
   } = props;
   // refs
   const titleEditorRef = useRef<EditorTitleRefApi>(null);
@@ -105,6 +115,10 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
   const { data: currentUser } = useUser();
   const { getWorkspaceBySlug } = useWorkspace();
   const { getUserDetails } = useMember();
+  const { getProjectIdentifierById } = useProject();
+  const {
+    issue: { getIssueById },
+  } = useIssueDetail();
   // derived values
   const {
     id: pageId,
@@ -392,12 +406,17 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
         <div>
           <div className="page-header-container group/page-header">
             <div className={blockWidthClassName}>
-              <PageEditorHeaderRoot page={page} projectId={projectId} />
+              {chromeless ? (
+                <h1 className="break-words pt-10 pb-2 text-26 font-semibold text-primary">{headerLabel}</h1>
+              ) : (
+                <PageEditorHeaderRoot page={page} projectId={projectId} />
+              )}
             </div>
           </div>
           <CollaborativeDocumentEditorWithRef
             editable={isContentEditable}
             id={pageId}
+            placeholder={editorPlaceholder}
             fileHandler={config.fileHandler}
             handleEditorReady={handleEditorReady}
             ref={editorForwardRef}
@@ -412,7 +431,16 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
                 return res;
               },
               renderComponent: (mentionProps) => <EditorMentionsRoot {...mentionProps} />,
-              getMentionedEntityDetails: (id: string) => ({ display_name: getUserDetails(id)?.display_name ?? "" }),
+              getMentionedEntityDetails: (id: string) => {
+                const user = getUserDetails(id);
+                if (user) return { display_name: user.display_name };
+                // Work-item mention: serialize as IDENTIFIER-seq for markdown export.
+                const issue = getIssueById(id);
+                if (issue?.project_id) {
+                  return { display_name: `${getProjectIdentifierById(issue.project_id)}-${issue.sequence_id}` };
+                }
+                return { display_name: "" };
+              },
             }}
             updatePageProperties={updatePageProperties}
             realtimeConfig={realtimeConfig}

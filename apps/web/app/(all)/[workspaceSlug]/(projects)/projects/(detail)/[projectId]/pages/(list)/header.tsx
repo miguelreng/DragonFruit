@@ -16,7 +16,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TPage, TPageType } from "@plane/types";
 // plane ui
 import { Breadcrumbs, Header } from "@plane/ui";
-import { PenTool } from "@/components/icons/lucide-shim";
+import { Whiteboard } from "@/components/icons/lucide-shim";
 // helpers
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // hooks
@@ -50,7 +50,7 @@ export const PagesListHeader = observer(function PagesListHeader(props: Props) {
   const searchParams = useSearchParams();
   const pageType = searchParams.get("type");
   const contentMeta = PAGE_CONTENT_META[contentType];
-  const HeaderIcon = contentType === "whiteboard" ? PenTool : PageIcon;
+  const HeaderIcon = contentType === "whiteboard" ? Whiteboard : PageIcon;
   // store hooks
   const { currentProjectDetails, loader } = useProject();
   const { canCurrentUserCreatePage, createPage } = usePageStore(EPageStoreType.PROJECT);

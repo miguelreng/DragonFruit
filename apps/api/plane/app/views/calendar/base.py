@@ -36,6 +36,7 @@ from plane.bgtasks.page_transaction_task import page_transaction
 from plane.app.views.external.base import call_llm_chat, get_llm_config
 from plane.license.utils.instance_value import get_configuration_value
 from plane.license.utils.encryption import decrypt_data, encrypt_data
+from plane.utils.exception_logger import log_exception
 
 from ..base import BaseAPIView
 
@@ -828,11 +829,15 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
         if not external_key:
             external_key = f"meeting-notes:{request.user.id}:{datetime.now(timezone.utc).timestamp()}"[:255]
 
-        summary = _summarize_meeting_notes(
-            workspace=workspace,
-            meeting_title=meeting_title,
-            transcript=notes,
-        )
+        try:
+            summary = _summarize_meeting_notes(
+                workspace=workspace,
+                meeting_title=meeting_title,
+                transcript=notes,
+            )
+        except Exception as exc:
+            log_exception(exc)
+            summary = None
         description_html = _meeting_notes_html(
             meeting_title=meeting_title,
             notes=notes,
@@ -880,7 +885,8 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
             page.name = f"Meeting notes: {meeting_title}"[:255]
             page.description_html = description_html
             page.page_type = Page.PAGE_TYPE_DOC
-            page.save(updated_by_id=request.user.id)
+            page.updated_by_id = request.user.id
+            page.save()
 
         ProjectPage.objects.get_or_create(
             workspace=workspace,

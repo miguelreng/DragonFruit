@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HardDrive, ListChecks, Loader2, PenTool, Plus, Search, StickyNote } from "@/components/icons/lucide-shim";
+import { HardDrive, ListChecks, Loader2, Whiteboard, Plus, Search, StickyNote } from "@/components/icons/lucide-shim";
 import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
 import type { TDocEmbedInsertAttrs, TDocEmbedPickerMode, TDocEmbedType } from "@plane/editor";
 import type { IProjectView, TSticky } from "@plane/types";
@@ -37,7 +37,7 @@ const TYPE_COPY = {
     plural: "whiteboards",
     placeholder: "Search whiteboards…",
     createPlaceholder: "Title of the new whiteboard…",
-    Icon: PenTool,
+    Icon: Whiteboard,
   },
   sticky: {
     label: "sticky",

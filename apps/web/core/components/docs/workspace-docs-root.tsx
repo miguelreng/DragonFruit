@@ -12,7 +12,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { Archive02Icon, Copy01Icon, Delete02Icon, LinkSquare01Icon, MoreHorizontal } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ListBullets, SquaresFour } from "@phosphor-icons/react";
-import { ListFilter, PaintBoard } from "@/components/icons/lucide-shim";
+import { ListFilter, Whiteboard } from "@/components/icons/lucide-shim";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@plane/propel/icons";
@@ -223,7 +223,7 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
   const primaryProjectId = projectIds[0];
   const itemLink =
     primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : "#";
-  const FallbackIcon = page.page_type === "whiteboard" ? PaintBoard : PageIcon;
+  const FallbackIcon = page.page_type === "whiteboard" ? Whiteboard : PageIcon;
   const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
 
   return (
@@ -287,7 +287,7 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
   const itemLink =
     primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : null;
-  const FallbackIcon = page.page_type === "whiteboard" ? PaintBoard : PageIcon;
+  const FallbackIcon = page.page_type === "whiteboard" ? Whiteboard : PageIcon;
   const pagesKey = `WORKSPACE_PAGES_${workspaceSlug}_${pageType}`;
 
   const refreshPages = async () => {

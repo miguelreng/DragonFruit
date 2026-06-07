@@ -86,7 +86,7 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
           className={cn(
             "flex w-full items-center gap-1.5 rounded-lg px-2 py-1 transition-colors outline-none",
             isSettingsActive
-              ? "bg-[#fff7f8] text-primary dark:bg-danger-subtle"
+              ? "bg-[#fff7f8] text-primary dark:bg-danger-subtle sepia:bg-[#dbccb3]"
               : "text-secondary hover:bg-[#fffafb] active:bg-[#fff7f8] dark:hover:bg-danger-subtle-hover dark:active:bg-danger-subtle-active"
           )}
           aria-label="Workspace settings"

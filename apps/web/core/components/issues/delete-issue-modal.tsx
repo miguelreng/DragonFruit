@@ -95,9 +95,15 @@ export const DeleteIssueModal = observer(function DeleteIssueModal(props: Props)
           onClose();
         })
         .catch((errors) => {
+          // The backend denies deletes to non-admins who aren't the creator with a
+          // generic 403 ("You don't have the required permissions."). Older endpoints
+          // phrased this as "Only admin or creator can delete the …". Match both so a
+          // permission denial shows the helpful permission toast instead of the generic
+          // "failed to delete" one.
+          const errorMessage = typeof errors?.error === "string" ? errors.error : "";
           const isPermissionError =
-            errors?.error ===
-            `Only admin or creator can delete the ${isSubIssue ? "sub-task" : isEpic ? "epic" : "task"}`;
+            /you don't have the required permission/i.test(errorMessage) ||
+            /only admin or creator can delete/i.test(errorMessage);
           const currentError = isPermissionError
             ? PROJECT_ERROR_MESSAGES.permissionError
             : PROJECT_ERROR_MESSAGES.issueDeleteError;

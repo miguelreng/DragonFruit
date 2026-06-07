@@ -13,20 +13,59 @@
         <span>Bookmarks</span>
       </header>
 
-      <section id="login-view" class="card login-card">
+      <section id="loading-view" class="loading-view">
+        <span class="loader" aria-hidden="true"></span>
+        <span id="loading-label" class="loading-label">Connecting…</span>
+      </section>
+
+      <section id="login-view" class="card login-card" hidden>
         <span class="section-label">Login to DragonFruit</span>
         <button id="auth-action" type="button" class="primary dragon-button">Continue with DragonFruit</button>
         <p>Sign in on the web to connect bookmarks. You’ll return here automatically.</p>
       </section>
 
-      <section id="bookmark-view" class="card action-card" hidden>
-        <span class="section-label">Bookmark</span>
-        <div class="action-copy">
-          <strong>Save the current Chrome page.</strong>
-          <span>Click the DragonFruit icon on any page to save it. Right-click pages, links, and images for more save actions.</span>
+      <section id="guide-view" class="guide-view" hidden>
+        <div class="guide-pointer" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 19V5" />
+            <path d="m5 12 7-7 7 7" />
+          </svg>
+          <span>Save from up here</span>
         </div>
-        <button id="save-page" type="button" class="primary dragon-button">Save current page</button>
-        <p class="settings-hint">Right-click the extension icon for settings.</p>
+
+        <p class="guide-pin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 17v5" />
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+          </svg>
+          Don’t see it? Click the <strong>puzzle piece</strong> in your toolbar, then pin DragonFruit.
+        </p>
+
+        <ol class="guide-steps">
+          <li class="guide-step">
+            <span class="guide-step-icon">
+              <img src="./icons/action/icon-idle-32.png" alt="" />
+            </span>
+            <span class="guide-step-text">
+              <strong>Click the DragonFruit icon</strong>
+              in your toolbar to save the page you’re on.
+            </span>
+          </li>
+          <li class="guide-step">
+            <span class="guide-step-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3h7v7H3z" />
+                <path d="m14 14 4 7 2-4 4-2-10-1z" />
+              </svg>
+            </span>
+            <span class="guide-step-text">
+              <strong>Right-click anything</strong>
+              a page, link, or image → Save to DragonFruit.
+            </span>
+          </li>
+        </ol>
+
+        <p class="settings-hint">Right-click the icon for settings.</p>
       </section>
 
       <section id="settings-view" class="card settings-card" hidden>

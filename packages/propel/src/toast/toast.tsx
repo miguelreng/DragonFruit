@@ -52,13 +52,21 @@ type PromiseToastOptions<ToastData> = {
 
 export type ToastProps = {
   theme: "light" | "dark" | "system";
+  /**
+   * Time (in ms) before a toast auto-dismisses. Loading toasts always persist
+   * until replaced. A value of `0` disables auto-dismiss. Defaults to a few
+   * seconds so toasts clear themselves without manual dismissal.
+   */
+  timeout?: number;
 };
+
+const DEFAULT_TOAST_TIMEOUT = 4000;
 
 const toastManager = BaseToast.createToastManager();
 
 export function Toast(props: ToastProps) {
   return (
-    <BaseToast.Provider toastManager={toastManager}>
+    <BaseToast.Provider toastManager={toastManager} timeout={props.timeout ?? DEFAULT_TOAST_TIMEOUT}>
       <BaseToast.Portal>
         <BaseToast.Viewport data-theme={props.theme}>
           <ToastList />
@@ -286,6 +294,9 @@ export const setToast = (props: SetToastProps) => {
   let toastId: string | undefined;
   if (props.type !== TOAST_TYPE.LOADING) {
     toastId = toastManager.add({
+      // Top-level `type` drives Base UI's auto-dismiss logic (loading toasts are
+      // exempt and persist until replaced); `data.type` drives our rendering.
+      type: props.type,
       data: {
         type: props.type,
         title: props.title,
@@ -295,6 +306,7 @@ export const setToast = (props: SetToastProps) => {
     });
   } else {
     toastId = toastManager.add({
+      type: TOAST_TYPE.LOADING,
       data: {
         type: props.type,
         title: props.title,
@@ -306,6 +318,7 @@ export const setToast = (props: SetToastProps) => {
 
 export const updateToast = (id: string, props: SetToastProps) => {
   toastManager.update(id, {
+    type: props.type,
     data:
       props.type === TOAST_TYPE.LOADING
         ? {
@@ -319,6 +332,12 @@ export const updateToast = (id: string, props: SetToastProps) => {
             actionItems: props.actionItems,
           },
   });
+  // Base UI only schedules an auto-dismiss timer on `add`, not on `update`.
+  // Loading toasts are added without a timer (they persist until replaced), so
+  // when we transition one to a resolved state we must close it ourselves.
+  if (props.type !== TOAST_TYPE.LOADING) {
+    setTimeout(() => dismissToast(id), DEFAULT_TOAST_TIMEOUT);
+  }
 };
 
 export const setPromiseToast = <ToastData,>(

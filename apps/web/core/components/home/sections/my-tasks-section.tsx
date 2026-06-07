@@ -7,12 +7,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { useParams, useSearchParams } from "next/navigation";
+import { TOAST_TYPE, dismissToast, setToast } from "@plane/propel/toast";
 import { YourWorkIcon } from "@plane/propel/icons";
 import type { TBaseIssue, TIssuePriorities, TIssuesResponse } from "@plane/types";
 import { cn, createIssuePayload, getDate, renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
-import { Check, ChevronRight, Loader, Plus } from "@/components/icons/lucide-shim";
+import { Check, Loader, Plus } from "@/components/icons/lucide-shim";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
 import { useUser } from "@/hooks/store/user";
 import { useLabel } from "@/hooks/store/use-label";
@@ -136,21 +136,16 @@ const issueService = new IssueService();
 type MyTasksSectionProps = {
   /** Whose tasks to show. Defaults to the signed-in user (home usage). */
   userId?: string;
-  /**
-   * "View all" link target. Omit for the default (the user's profile);
-   * pass `null` to hide the link entirely.
-   */
-  viewAllHref?: string | null;
   /** Hide the widget's "My tasks" title + icon + count (profile page uses the page title instead). */
   hideHeader?: boolean;
 };
 
 export const MyTasksSection = observer(function MyTasksSection({
   userId: userIdProp,
-  viewAllHref,
   hideHeader = false,
 }: MyTasksSectionProps = {}) {
   const { workspaceSlug } = useParams();
+  const searchParams = useSearchParams();
   const { data: currentUser } = useUser();
   const { getStateById, getProjectStates, fetchWorkspaceStates, fetchProjectStates } = useProjectState();
   const { getProjectById, getProjectIdentifierById, joinedProjectIds } = useProject();
@@ -158,8 +153,6 @@ export const MyTasksSection = observer(function MyTasksSection({
 
   const slug = workspaceSlug?.toString();
   const userId = userIdProp ?? currentUser?.id;
-  const resolvedViewAllHref =
-    viewAllHref === undefined ? (userId ? `/${slug}/profile/${userId}` : null) : viewAllHref;
 
   // Inline create (Reminders-style): only on your own list, and only if there's
   // a project to drop the new task into.
@@ -203,10 +196,43 @@ export const MyTasksSection = observer(function MyTasksSection({
     [getProjectStates, fetchProjectStates, slug]
   );
 
+  // Revert a just-completed task back to the state it had before completing,
+  // bringing it back onto the list.
+  const handleUndoComplete = useCallback(
+    async (issue: TBaseIssue, previousStateId: string | null | undefined) => {
+      const projectId = issue.project_id;
+      if (!slug || !projectId || !previousStateId) return;
+      try {
+        await issueService.patchIssue(slug, projectId, issue.id, { state_id: previousStateId });
+        setCompletedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(issue.id);
+          return next;
+        });
+        setCheckingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(issue.id);
+          return next;
+        });
+        mutate();
+      } catch {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Couldn't undo",
+          message: "Something went wrong. Please try again.",
+        });
+      }
+    },
+    [slug, mutate]
+  );
+
   const handleComplete = useCallback(
     async (issue: TBaseIssue) => {
       const projectId = issue.project_id;
       if (!slug || !projectId || checkingIds.has(issue.id) || completedIds.has(issue.id)) return;
+
+      // Remember the pre-completion state so the toast's "Undo" can restore it.
+      const previousStateId = issue.state_id;
 
       // Optimistically show the row as checked.
       setCheckingIds((prev) => new Set(prev).add(issue.id));
@@ -223,6 +249,21 @@ export const MyTasksSection = observer(function MyTasksSection({
             return next;
           });
           mutate();
+          // Offer a brief window to undo, Reminders-style.
+          let toastId: string | undefined;
+          const undo = () => {
+            if (toastId) dismissToast(toastId);
+            handleUndoComplete(issue, previousStateId);
+          };
+          toastId = setToast({
+            type: TOAST_TYPE.SUCCESS,
+            title: "Task completed",
+            actionItems: (
+              <button type="button" onClick={undo}>
+                Undo
+              </button>
+            ),
+          });
         }, COMPLETE_ANIMATION_MS);
       } catch {
         setCheckingIds((prev) => {
@@ -237,7 +278,7 @@ export const MyTasksSection = observer(function MyTasksSection({
         });
       }
     },
-    [slug, checkingIds, completedIds, resolveCompletedStateId, mutate]
+    [slug, checkingIds, completedIds, resolveCompletedStateId, mutate, handleUndoComplete]
   );
 
   // Resolve `#label` names to label ids in the target project, creating any
@@ -305,8 +346,19 @@ export const MyTasksSection = observer(function MyTasksSection({
 
   const allIssues: TBaseIssue[] = Array.isArray(data?.results) ? (data!.results as TBaseIssue[]) : [];
 
+  // Header label pills drive `?label=<id>` — when set, show only tasks with that label.
+  const activeLabel = searchParams.get("label");
+  // Header search drives `?q=<text>` — when set, match against the task title.
+  const searchQuery = (searchParams.get("q") ?? "").trim().toLowerCase();
+
   // Only open work belongs on a todo list — drop anything done or cancelled.
-  const openIssues = allIssues.filter((issue) => !completedIds.has(issue.id) && isOpenIssue(issue, getStateById));
+  const openIssues = allIssues.filter(
+    (issue) =>
+      !completedIds.has(issue.id) &&
+      isOpenIssue(issue, getStateById) &&
+      (!activeLabel || (issue.label_ids ?? []).includes(activeLabel)) &&
+      (!searchQuery || (issue.name ?? "").toLowerCase().includes(searchQuery))
+  );
 
   // Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent.
   // Copy before sorting (toSorted needs es2023 lib, which this project's tsc target predates).
@@ -329,13 +381,11 @@ export const MyTasksSection = observer(function MyTasksSection({
 
   return (
     <section className="flex flex-col gap-2">
-      {(!hideHeader || resolvedViewAllHref) && (
+      {!hideHeader && (
         <div className="flex items-center justify-between px-2">
-          {hideHeader ? (
-            <span />
-          ) : (
-            <div className="flex items-center gap-2">
-              <YourWorkIcon className="size-4 text-tertiary" />
+          <div className="flex items-center gap-2">
+            <YourWorkIcon className="size-4 text-tertiary" />
+            <div className="flex items-center gap-1">
               <h3 className="text-14 font-semibold text-secondary">My tasks</h3>
               {tasks.length > 0 && (
                 <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
@@ -343,16 +393,7 @@ export const MyTasksSection = observer(function MyTasksSection({
                 </span>
               )}
             </div>
-          )}
-          {resolvedViewAllHref && (
-            <Link
-              href={resolvedViewAllHref}
-              className="flex items-center gap-1 text-12 font-medium text-tertiary hover:text-secondary"
-            >
-              View all
-              <ChevronRight className="size-3" />
-            </Link>
-          )}
+          </div>
         </div>
       )}
       <div className="rounded-[18px] border border-subtle bg-surface-1">
@@ -422,7 +463,7 @@ export const MyTasksSection = observer(function MyTasksSection({
                           {project?.name && <span className="truncate">{project.name}</span>}
                           {project?.name && hasAttributes && <span aria-hidden>·</span>}
                           {hasAttributes && (
-                            <span className="font-newsreader flex flex-wrap items-center gap-1.5 text-12 text-accent-primary">
+                            <span className="font-newsreader flex flex-wrap items-center gap-1.5 text-12 text-primary">
                               {dueLabel && (
                                 <span className={cn("flex-shrink-0", isOverdue && "text-danger-primary")}>
                                   {dueLabel}
@@ -482,7 +523,7 @@ export const MyTasksSection = observer(function MyTasksSection({
                   )}
                 </div>
                 {hasInputPreview && (
-                  <div className="font-newsreader mt-1.5 flex flex-wrap items-center gap-2 pl-[30px] text-12 text-accent-primary">
+                  <div className="font-newsreader mt-1.5 flex flex-wrap items-center gap-2 pl-[30px] text-12 text-primary">
                     {inputPreview.dueDate && <span>{renderFormattedDate(inputPreview.dueDate, "MMM d")}</span>}
                     {inputPreview.priority && <span className="capitalize">{inputPreview.priority}</span>}
                     {inputPreview.labelNames.map((labelName) => (

@@ -2,7 +2,7 @@
 
 // Logged on service-worker startup so you can confirm the running build in the
 // extension's DevTools console. Keep in sync with manifest.json "version".
-const EXTENSION_VERSION = "0.1.11";
+const EXTENSION_VERSION = "0.1.12";
 console.log(`DragonFruit Bookmarks extension v${EXTENSION_VERSION}`);
 
 const DEFAULT_API_URL = "https://api.dragonfruit.sh";
@@ -969,12 +969,15 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
           toast.dataset.visible = "true";
         });
         if (normalizedState === "loading") return;
+        // Auto-dismiss after a few seconds — long enough to read the message and
+        // click the "View" action pill. Mirrors the web app's toast timeout
+        // (packages/propel/src/toast/toast.tsx).
         window.setTimeout(() => {
           if (host.dataset.toastToken !== toastToken) return;
           const latestToast = host.shadowRoot?.querySelector(".toast");
           if (!latestToast) return;
           latestToast.dataset.visible = "false";
-        }, 1700);
+        }, 4000);
       },
     });
   } catch {

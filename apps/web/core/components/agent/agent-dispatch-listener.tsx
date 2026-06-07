@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import MarkdownIt from "markdown-it";
 import type { EditorRefApi } from "@plane/editor";
 import { ChevronDown, Eraser, FileText, ListChecks, PenTool, Plus, Sparkles } from "@plane/icons";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
@@ -43,6 +44,17 @@ type TDocChatMessage = {
 const createInitialMessages = (): TDocChatMessage[] => [];
 
 const agentChatService = new AgentChatService();
+
+// Atlas streams its drafts as Markdown, but the editor's doc-review proposals are
+// inserted by parsing HTML. Convert the Markdown to HTML here so "# heading",
+// "**bold**", "1. item" become real heading/bold/list nodes instead of literal
+// characters. html:false keeps any raw HTML in the model output escaped (safe).
+const markdownRenderer = new MarkdownIt({ html: false, linkify: true, breaks: false });
+const atlasMarkdownToHtml = (text: string | undefined): string => {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) return "";
+  return markdownRenderer.render(trimmed);
+};
 
 const AI_MODES: {
   id: TAIMode;
@@ -260,14 +272,16 @@ async function streamDocReview(args: TStreamDocReviewArgs) {
         } else if (event.event === "proposal_delta") {
           activePageEditorRef.updateAtlasProposal(event.proposal_id, {
             contentText: event.content_text,
-            contentHtml: event.content_html,
+            // Render from the Markdown source so formatting (headings, bold,
+            // lists) is applied instead of inserted as literal characters.
+            contentHtml: atlasMarkdownToHtml(event.content_text),
             status: "streaming",
           });
         } else if (event.event === "proposal_completed") {
           activePageEditorRef.updateAtlasProposal(event.proposal_id, {
             status: "pending",
             contentText: event.content_text,
-            contentHtml: event.content_html,
+            contentHtml: atlasMarkdownToHtml(event.content_text),
             targetBlockId: event.target_block_id || undefined,
             targetOriginalText: event.target_original_text || undefined,
           });
@@ -301,12 +315,21 @@ async function streamDocReview(args: TStreamDocReviewArgs) {
  * Slash-command events can still prefill editor context, but the request
  * now goes through the app's first-party AI API instead of a workspace webhook.
  */
-export const AgentDispatchListener = observer(function AgentDispatchListener() {
-  const { workspaceSlug, projectId, pageId } = useParams() as {
+type TAgentDispatchListenerProps = {
+  // Optional override for routes that render a doc page but don't carry :pageId
+  // in the URL (e.g. the project Brief, which resolves its backing page id).
+  pageId?: string;
+};
+
+export const AgentDispatchListener = observer(function AgentDispatchListener(props: TAgentDispatchListenerProps) {
+  const { pageId: pageIdOverride } = props;
+  const params = useParams() as {
     workspaceSlug?: string;
     projectId?: string;
     pageId?: string;
   };
+  const { workspaceSlug, projectId } = params;
+  const pageId = pageIdOverride ?? params.pageId;
 
   const [session, setSession] = useState<TAgentChatSession | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
@@ -670,7 +693,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener() {
                           })}
                         </div>
                       ) : (
-                        <div className="w-full rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-[12px] leading-5 break-words whitespace-pre-wrap text-primary shadow-raised-100">
+                        <div className="w-full rounded-[18px] border border-subtle bg-surface-1 px-3 py-2 text-[12px] leading-5 break-words whitespace-pre-wrap text-primary shadow-raised-100">
                           {message.content}
                         </div>
                       )}

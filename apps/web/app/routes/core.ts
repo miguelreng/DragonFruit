@@ -137,6 +137,11 @@ export const coreRoutes: RouteConfigEntry[] = [
         // Bookmarks
         route(":workspaceSlug/bookmarks", "./(all)/[workspaceSlug]/(projects)/bookmarks/page.tsx"),
 
+        // My tasks (current user) — clean URL for the profile overview / "Your work"
+        layout("./(all)/[workspaceSlug]/(projects)/tasks/layout.tsx", [
+          route(":workspaceSlug/tasks", "./(all)/[workspaceSlug]/(projects)/tasks/page.tsx"),
+        ]),
+
         // Profile
         layout("./(all)/[workspaceSlug]/(projects)/profile/[userId]/layout.tsx", [
           route(":workspaceSlug/profile/:userId", "./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx"),

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { EPageAccess } from "@plane/constants";
+import { useOutsideClickDetector } from "@plane/hooks";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { copyTextToClipboard } from "@plane/utils";
 import {
@@ -32,7 +33,32 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
   const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [showPublishPanel, setShowPublishPanel] = useState(false);
+  // inline public-URL slug editing
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [isSavingSlug, setIsSavingSlug] = useState(false);
+  const [slugDraft, setSlugDraft] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close the publish panel on outside click (e.g. clicking the three-dots
+  // menu), using the shared detector so it behaves like the rest of the app.
+  useOutsideClickDetector(containerRef, () => {
+    setShowPublishPanel(false);
+    setIsEditingSlug(false);
+  });
+
+  // Escape also closes the panel.
+  useEffect(() => {
+    if (!showPublishPanel) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowPublishPanel(false);
+        setIsEditingSlug(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showPublishPanel]);
 
   const publicUrl = useMemo(() => {
     if (!workspaceSlug || !page.id) return "";
@@ -62,13 +88,14 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
     showPanel(true);
   }, [publicUrl, showPanel]);
 
-  const handleEditPublicUrl = useCallback(async () => {
-    if (!workspaceSlug || !page.id) return;
-    const currentSlug = getPublicPageSlug(page);
-    const input = window.prompt("Public URL slug", currentSlug);
-    if (input === null) return;
+  const startEditingSlug = useCallback(() => {
+    setSlugDraft(getPublicPageSlug(page));
+    setIsEditingSlug(true);
+  }, [page]);
 
-    const nextSlug = normalizePublicPageSlug(input);
+  const handleSaveSlug = useCallback(async () => {
+    if (!workspaceSlug || !page.id) return;
+    const nextSlug = normalizePublicPageSlug(slugDraft);
     const validationError = validatePublicPageSlug(nextSlug);
     if (validationError) {
       setToast({
@@ -79,14 +106,25 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
       return;
     }
 
-    await page.updateViewProps({ public_slug: nextSlug });
-    setToast({
-      type: TOAST_TYPE.SUCCESS,
-      title: "Public URL updated",
-      message: buildPublicPagePath(workspaceSlug.toString(), nextSlug),
-    });
-    setShowPublishPanel(true);
-  }, [page, workspaceSlug]);
+    setIsSavingSlug(true);
+    try {
+      await page.updateViewProps({ public_slug: nextSlug });
+      setIsEditingSlug(false);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Public URL updated",
+        message: buildPublicPagePath(workspaceSlug.toString(), nextSlug),
+      });
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't update public URL",
+        message: "Try again in a moment.",
+      });
+    } finally {
+      setIsSavingSlug(false);
+    }
+  }, [page, slugDraft, workspaceSlug]);
 
   const handleMakePrivate = useCallback(async () => {
     setIsUpdatingPrivacy(true);
@@ -133,28 +171,59 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
   if (page.archived_at || !page.canCurrentUserChangeAccess) return null;
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       {showPublishPanel && publicUrl && (
         <div className="shadow-lg absolute top-full right-0 z-50 mt-2 w-80 rounded-lg border border-subtle-1 bg-surface-1 p-2">
           <div className="mb-1 flex items-center gap-1.5 text-11 font-medium text-secondary">
-            {isCopied ? (
+            {isEditingSlug ? (
+              <HeroPencilSquareIcon className="size-4" />
+            ) : isCopied ? (
               <HeroCheckCircleIcon className="size-4 text-success-primary" />
             ) : (
               <HeroGlobeAltIcon className="size-4" />
             )}
-            {isCopied ? "Copied public URL" : "Published URL"}
+            {isEditingSlug ? "Edit public URL" : isCopied ? "Copied public URL" : "Published URL"}
           </div>
           <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 truncate rounded-lg border border-subtle-1 bg-layer-1 px-2 py-1.5 text-12 text-secondary">
-              {publicUrl}
-            </div>
+            {isEditingSlug ? (
+              <div className="flex min-w-0 flex-1 items-center rounded-lg border border-subtle-1 bg-layer-1 px-2 py-1.5 text-12 text-secondary">
+                <span className="flex-shrink-0 truncate text-tertiary">{`published/${workspaceSlug}/`}</span>
+                <input
+                  autoFocus
+                  value={slugDraft}
+                  onChange={(e) => setSlugDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleSaveSlug();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      setIsEditingSlug(false);
+                    }
+                  }}
+                  placeholder="custom-slug"
+                  className="min-w-0 flex-1 bg-transparent text-primary outline-none placeholder:text-placeholder"
+                />
+              </div>
+            ) : (
+              <div className="min-w-0 flex-1 truncate rounded-lg border border-subtle-1 bg-layer-1 px-2 py-1.5 text-12 text-secondary">
+                {publicUrl}
+              </div>
+            )}
             <button
               type="button"
-              onClick={() => void handleCopy()}
-              className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg border border-subtle-1 bg-surface-2 text-secondary hover:bg-layer-2"
-              aria-label="Copy published URL"
+              onClick={() => (isEditingSlug ? void handleSaveSlug() : void handleCopy())}
+              disabled={isSavingSlug}
+              className="flex h-8 min-w-8 flex-shrink-0 items-center justify-center gap-1 rounded-lg border border-subtle-1 bg-surface-2 px-2 text-12 font-medium text-secondary hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
+              aria-label={isEditingSlug ? "Save public URL" : "Copy published URL"}
             >
-              {isCopied ? (
+              {isEditingSlug ? (
+                isSavingSlug ? (
+                  <HeroArrowPathIcon className="size-4 animate-spin" />
+                ) : (
+                  "Save"
+                )
+              ) : isCopied ? (
                 <HeroCheckCircleIcon className="size-4 text-success-primary" />
               ) : (
                 <HeroClipboardDocumentIcon className="size-4" />
@@ -163,27 +232,39 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
           </div>
           {page.access === EPageAccess.PUBLIC && (
             <div className="mt-2 border-t border-subtle-1 pt-1">
-              <button
-                type="button"
-                onClick={() => void handleEditPublicUrl()}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2"
-              >
-                <HeroPencilSquareIcon className="size-4" />
-                Edit public URL
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleMakePrivate()}
-                disabled={isUpdatingPrivacy}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
-              >
-                {isUpdatingPrivacy ? (
-                  <HeroArrowPathIcon className="size-4 animate-spin" />
-                ) : (
-                  <HeroLockClosedIcon className="size-4" />
-                )}
-                Make private
-              </button>
+              {isEditingSlug ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingSlug(false)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2"
+                >
+                  Cancel
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={startEditingSlug}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2"
+                  >
+                    <HeroPencilSquareIcon className="size-4" />
+                    Edit public URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleMakePrivate()}
+                    disabled={isUpdatingPrivacy}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-12 text-secondary hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
+                  >
+                    {isUpdatingPrivacy ? (
+                      <HeroArrowPathIcon className="size-4 animate-spin" />
+                    ) : (
+                      <HeroLockClosedIcon className="size-4" />
+                    )}
+                    Make private
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

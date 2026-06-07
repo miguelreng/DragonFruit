@@ -49,6 +49,13 @@ type TPageRootProps = {
   projectId?: string;
   workspaceSlug: string;
   customRealtimeEventHandlers?: TCustomEventHandlers;
+  // "chromeless" hides the formatting toolbar and the editable page title — used
+  // by the project Brief, which wants the minimal look of the original editor.
+  chromeless?: boolean;
+  // a fixed, non-editable title rendered in place of the page-title editor.
+  headerLabel?: string;
+  // overrides the editor's empty-state placeholder text.
+  editorPlaceholder?: string;
 };
 
 export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
@@ -61,6 +68,9 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
     webhookConnectionParams,
     workspaceSlug,
     customRealtimeEventHandlers,
+    chromeless,
+    headerLabel,
+    editorPlaceholder,
   } = props;
   // states
   const [editorReady, setEditorReady] = useState(false);
@@ -168,7 +178,7 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
 
   // Doc pages keep the rich-text toolbar. The right-hand navigation pane is
   // intentionally disabled in this app, but the formatting toolbar remains.
-  const shouldShowToolbar = page.page_type !== "whiteboard";
+  const shouldShowToolbar = page.page_type !== "whiteboard" && !chromeless;
   const shouldShowNavigationPane = false;
 
   return (
@@ -213,6 +223,9 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
               extendedEditorProps={extendedEditorProps}
               isFetchingFallbackBinary={isFetchingFallbackBinary}
               onCollaborationStateChange={setCollaborationState}
+              chromeless={chromeless}
+              headerLabel={headerLabel}
+              editorPlaceholder={editorPlaceholder}
             />
           )}
         </Suspense>

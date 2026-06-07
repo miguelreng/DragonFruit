@@ -107,7 +107,7 @@ export function EmojiPicker(props: TCustomEmojiPicker) {
         {label}
       </Popover.Button>
       <Popover.Panel
-        positionerClassName="z-50"
+        positionerClassName="z-[120]"
         className={cn("w-80 overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1", dropdownClassName)}
         side={finalSide}
         align={finalAlign}

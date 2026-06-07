@@ -150,7 +150,7 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
 
   return (
     <div
-      className="grid gap-4 transition-opacity duration-300 ease-in-out"
+      className="grid gap-0 transition-opacity duration-300 ease-in-out"
       style={{
         gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
       }}

@@ -16,10 +16,10 @@ import {
   File02Icon,
   Home01Icon,
   InboxIcon,
-  PaintBoardIcon,
   PencilEdit01Icon,
   RepeatIcon,
   StickyNote02Icon,
+  WhiteboardIcon,
 } from "@hugeicons/core-free-icons";
 import { cn } from "@plane/utils";
 
@@ -53,7 +53,7 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
     case "bookmarks":
       return <SidebarNavIcon icon={Bookmark} className={cls} />;
     case "whiteboards":
-      return <SidebarNavIcon icon={PaintBoardIcon} className={cls} />;
+      return <SidebarNavIcon icon={WhiteboardIcon} className={cls} />;
     case "calendar":
       return <SidebarNavIcon icon={Calendar01Icon} className={cls} />;
     case "agents":

@@ -5,12 +5,13 @@
  */
 
 "use client";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, type MutableRefObject, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
+import useSWR from "swr";
 import {
   CalendarDays,
   Download,
@@ -19,6 +20,7 @@ import {
   Folder,
   FolderOpen,
   Info,
+  TextSelect,
   Settings,
   Layers,
   ListTodo,
@@ -33,7 +35,7 @@ import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@plan
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CustomMenu, EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
+import { CustomMenu, EModalPosition, EModalWidth, Input, Loader, ModalCore } from "@plane/ui";
 import { cn, copyTextToClipboard } from "@plane/utils";
 import { orderBy } from "lodash-es";
 import { NotificationsBell } from "@/plane-web/components/navigations/notifications-bell";
@@ -53,6 +55,7 @@ import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 // local imports
 import { AppSidebarItemsRoot } from "./items-root";
 import { generateFavoriteItemLink } from "@/components/workspace/sidebar/favorites/favorite-items/common";
+import { WORKSPACE_FAVORITE } from "@/constants/fetch-keys";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 import type { IFavorite, EIssueLayoutTypes, TLogoProps, TPartialProject } from "@plane/types";
 import { DeleteProjectModal } from "@/components/project/delete-project-modal";
@@ -66,6 +69,7 @@ type TCompactRailItem = {
 };
 
 type TProjectRailItem = TCompactRailItem & {
+  briefHref: string;
   pagesHref: string;
   tasksHref: string;
   project: TPartialProject;
@@ -77,7 +81,7 @@ const COMPRESSED_ICON_CLASS =
   "relative grid size-8 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
 const EXPANDED_ICON_CLASS =
   "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none transition-colors dark:text-white/70";
-const EXPANDED_ICON_ACTIVE = "!bg-white/55 !text-primary dark:!bg-layer-1 dark:!text-accent-primary";
+const EXPANDED_ICON_ACTIVE = "!bg-white/55 sepia:!bg-[#dbccb3] !text-primary dark:!bg-layer-1 dark:!text-accent-primary";
 const EXPANDED_ICON_INACTIVE =
   "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]";
 const COMPACT_RAIL_ICON_CLASS = "grid size-5 place-items-center [&_svg]:size-5 [&_svg]:text-current";
@@ -126,16 +130,17 @@ const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps |
   }
 };
 
-const CompactRailLink = (props: { item: TCompactRailItem }) => {
-  const { item } = props;
+const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => void }) => {
+  const { item, onActivate } = props;
 
   return (
     <AppSidebarTooltip tooltipContent={item.label}>
       <Link
         href={item.href}
         aria-label={item.label}
+        onClick={onActivate}
         className={cn(COMPRESSED_ICON_CLASS, {
-          "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": item.isActive,
+          "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": item.isActive,
         })}
       >
         <span
@@ -151,14 +156,15 @@ const CompactRailLink = (props: { item: TCompactRailItem }) => {
   );
 };
 
-const ExpandedCompactRailLink = (props: { item: TCompactRailItem }) => {
-  const { item } = props;
+const ExpandedCompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => void }) => {
+  const { item, onActivate } = props;
 
   return (
     <AppSidebarTooltip tooltipContent={item.label}>
       <Link
         href={item.href}
         aria-label={item.label}
+        onClick={onActivate}
         className={cn(EXPANDED_ICON_CLASS, {
           [EXPANDED_ICON_ACTIVE]: item.isActive,
           [EXPANDED_ICON_INACTIVE]: !item.isActive,
@@ -238,8 +244,10 @@ const CompactRailItemGroup = (props: {
   onNavigate: (href: string) => void;
   isCompact: boolean;
   panelDataTheme?: "dark" | "light" | "sepia";
+  // Fired right before an item navigates (used to suppress project-tree auto-expand).
+  onItemActivate?: () => void;
 }) => {
-  const { primaryItems, overflowItems, onNavigate, isCompact, panelDataTheme } = props;
+  const { primaryItems, overflowItems, onNavigate, isCompact, panelDataTheme, onItemActivate } = props;
   const LinkComponent = isCompact ? CompactRailLink : ExpandedCompactRailLink;
 
   return (
@@ -250,7 +258,7 @@ const CompactRailItemGroup = (props: {
       })}
     >
       {primaryItems.map((item) => (
-        <LinkComponent key={item.id} item={item} />
+        <LinkComponent key={item.id} item={item} onActivate={onItemActivate} />
       ))}
       <CompactRailOverflowMenu
         items={overflowItems}
@@ -262,6 +270,32 @@ const CompactRailItemGroup = (props: {
   );
 };
 
+const FavoritesRailSkeleton = (props: { isCompact: boolean }) => {
+  const { isCompact } = props;
+  const rows = [0, 1, 2];
+
+  if (isCompact) {
+    return (
+      <Loader className="flex flex-col items-center gap-0.5">
+        {rows.map((row) => (
+          <Loader.Item key={row} height="2rem" width="2rem" />
+        ))}
+      </Loader>
+    );
+  }
+
+  return (
+    <Loader className="flex w-full flex-col gap-0.5">
+      {rows.map((row) => (
+        <div key={row} className="flex items-center gap-1.5 px-2 py-1">
+          <Loader.Item height="1rem" width="1rem" />
+          <Loader.Item height="0.625rem" width={row === 0 ? "70%" : row === 1 ? "55%" : "45%"} />
+        </div>
+      ))}
+    </Loader>
+  );
+};
+
 const RailCategory = (props: {
   title: string;
   isExpanded: boolean;
@@ -269,9 +303,11 @@ const RailCategory = (props: {
   onToggle: () => void;
   className?: string;
   action?: React.ReactNode;
+  // Optional custom header icon; falls back to the folder open/closed icons.
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) => {
-  const { title, isExpanded, isOpen, onToggle, action, children, className = "" } = props;
+  const { title, isExpanded, isOpen, onToggle, action, icon, children, className = "" } = props;
 
   if (!isExpanded) return <>{children}</>;
 
@@ -287,7 +323,7 @@ const RailCategory = (props: {
             aria-expanded={isOpen}
           >
             <span className="flex size-5 flex-shrink-0 items-center justify-center text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current">
-              {isOpen ? <FolderOpen /> : <Folder />}
+              {icon ?? (isOpen ? <FolderOpen /> : <Folder />)}
             </span>
             <span className="min-w-0 flex-1 truncate">{title}</span>
           </button>
@@ -359,8 +395,13 @@ const RenameProjectModal = (props: {
   );
 };
 
-const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; workspaceSlug: string }) => {
-  const { item, pathname, workspaceSlug } = props;
+const ProjectRailTreeItem = (props: {
+  item: TProjectRailItem;
+  pathname: string;
+  workspaceSlug: string;
+  suppressAutoOpenRef: MutableRefObject<boolean>;
+}) => {
+  const { item, pathname, workspaceSlug, suppressAutoOpenRef } = props;
   const [isOpen, setIsOpen] = useState(item.isActive);
   const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
   const [isRenameProjectModalOpen, setIsRenameProjectModalOpen] = useState(false);
@@ -369,9 +410,10 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
   const router = useRouter();
   const { t } = useTranslation();
   const { allowPermissions } = useUserPermissions();
+  const isBriefActive = isRouteMatch(item.briefHref, pathname);
   const isTasksActive = isRouteMatch(item.tasksHref, pathname);
   const isPagesActive = isRouteMatch(item.pagesHref, pathname);
-  const shouldHighlightProject = item.isActive && !isTasksActive && !isPagesActive;
+  const shouldHighlightProject = item.isActive && !isBriefActive && !isTasksActive && !isPagesActive;
   const isProjectAdmin = allowPermissions(
     [EUserPermissions.ADMIN],
     EUserPermissionsLevel.PROJECT,
@@ -420,8 +462,11 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
   };
 
   useEffect(() => {
-    if (item.isActive) setIsOpen(true);
-  }, [item.isActive]);
+    // When the user navigates by clicking a favorite, don't auto-expand the
+    // project tree that contains the target — they asked to jump straight to
+    // the item without revealing where it lives.
+    if (item.isActive && !suppressAutoOpenRef.current) setIsOpen(true);
+  }, [item.isActive, suppressAutoOpenRef]);
 
   return (
     <>
@@ -534,6 +579,21 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
         {isOpen && (
           <div className="relative mt-0.5 mb-1 ml-4 flex flex-col gap-0.5 pl-3">
             <div className={RAIL_TREE_LINE_CLASS} />
+            <AppSidebarTooltip tooltipContent={`${item.label} Brief`}>
+              <Link
+                href={item.briefHref}
+                aria-label={`${item.label} Brief`}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
+                  {
+                    "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isBriefActive,
+                  }
+                )}
+              >
+                <TextSelect className={RAIL_INLINE_ICON_CLASS} />
+                <span className="truncate">Brief</span>
+              </Link>
+            </AppSidebarTooltip>
             <AppSidebarTooltip tooltipContent={`${item.label} Tasks`}>
               <Link
                 href={item.tasksHref}
@@ -541,7 +601,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isTasksActive,
+                    "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isTasksActive,
                   }
                 )}
               >
@@ -556,7 +616,7 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isPagesActive,
+                    "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isPagesActive,
                   }
                 )}
               >
@@ -571,13 +631,24 @@ const ProjectRailTreeItem = (props: { item: TProjectRailItem; pathname: string; 
   );
 };
 
-const ProjectRailTree = (props: { projects: TProjectRailItem[]; pathname: string; workspaceSlug: string }) => {
-  const { projects, pathname, workspaceSlug } = props;
+const ProjectRailTree = (props: {
+  projects: TProjectRailItem[];
+  pathname: string;
+  workspaceSlug: string;
+  suppressAutoOpenRef: MutableRefObject<boolean>;
+}) => {
+  const { projects, pathname, workspaceSlug, suppressAutoOpenRef } = props;
 
   return (
     <div className="flex w-full flex-col gap-0.5">
       {projects.map((project) => (
-        <ProjectRailTreeItem key={project.id} item={project} pathname={pathname} workspaceSlug={workspaceSlug} />
+        <ProjectRailTreeItem
+          key={project.id}
+          item={project}
+          pathname={pathname}
+          workspaceSlug={workspaceSlug}
+          suppressAutoOpenRef={suppressAutoOpenRef}
+        />
       ))}
     </div>
   );
@@ -754,6 +825,10 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const showRailLabels = isRailExpanded;
   const railWidth = isMobile ? "100%" : isRailExpanded ? "14.5rem" : "3.25rem";
   const slug = workspaceSlug?.toString() ?? "";
+  // Subscribe (without a fetcher) to the shared favorites request kicked off by the
+  // workspace wrapper, so the rail can show a skeleton while favorites load instead
+  // of a placeholder item that looks like a real favorite.
+  const { isLoading: isFavoritesLoading } = useSWR(slug ? WORKSPACE_FAVORITE(slug) : null);
   const canCreateIssue = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.WORKSPACE
@@ -766,9 +841,11 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
     .map((project) => {
       const tasksHref = `/${slug}/projects/${project.id}/issues/?layout=list`;
       const pagesHref = `/${slug}/projects/${project.id}/pages`;
+      const briefHref = `/${slug}/projects/${project.id}/brief`;
       return {
         id: project.id,
         href: tasksHref,
+        briefHref,
         tasksHref,
         pagesHref,
         project,
@@ -811,7 +888,15 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
       toggleCreateIssueModal(true);
     }
   };
+  // Set when navigation is triggered by clicking a favorite so the project tree
+  // doesn't auto-expand to reveal where the target lives. Children read it in
+  // their auto-open effect; we clear it after each navigation settles.
+  const suppressAutoOpenRef = useRef(false);
+  useEffect(() => {
+    suppressAutoOpenRef.current = false;
+  }, [pathname]);
   const handleFavoriteNavigation = (href: string) => {
+    suppressAutoOpenRef.current = true;
     router.push(href);
   };
   return (
@@ -897,17 +982,25 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             </div>
             <RailCategory
               title="Favs"
+              icon={<Star />}
               isExpanded={isRailExpanded}
               isOpen={isFavoritesCategoryOpen}
               onToggle={() => setIsFavoritesCategoryOpen((isOpen) => !isOpen)}
             >
-              <CompactRailItemGroup
-                primaryItems={favoriteItemsForRail.slice(0, MAX_COMPACT_RAIL_ITEMS)}
-                overflowItems={favoriteItemsForRail.slice(MAX_COMPACT_RAIL_ITEMS)}
-                isCompact={!isRailExpanded}
-                onNavigate={handleFavoriteNavigation}
-                panelDataTheme={surfaceTheme}
-              />
+              {isFavoritesLoading && favorites.length === 0 ? (
+                <FavoritesRailSkeleton isCompact={!isRailExpanded} />
+              ) : (
+                <CompactRailItemGroup
+                  primaryItems={favoriteItemsForRail.slice(0, MAX_COMPACT_RAIL_ITEMS)}
+                  overflowItems={favoriteItemsForRail.slice(MAX_COMPACT_RAIL_ITEMS)}
+                  isCompact={!isRailExpanded}
+                  onNavigate={handleFavoriteNavigation}
+                  onItemActivate={() => {
+                    suppressAutoOpenRef.current = true;
+                  }}
+                  panelDataTheme={surfaceTheme}
+                />
+              )}
             </RailCategory>
             <RailCategory
               title="Projects"
@@ -934,7 +1027,12 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               }
             >
               {isRailExpanded ? (
-                <ProjectRailTree projects={projects} pathname={pathname} workspaceSlug={slug} />
+                <ProjectRailTree
+                  projects={projects}
+                  pathname={pathname}
+                  workspaceSlug={slug}
+                  suppressAutoOpenRef={suppressAutoOpenRef}
+                />
               ) : (
                 <CompactRailItemGroup
                   primaryItems={projects.slice(0, MAX_COMPACT_RAIL_ITEMS)}
