@@ -941,6 +941,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
     private var isStartingVoiceCapture = false
     private var pendingVoiceCaptureStart: PendingVoiceCaptureStart?
+    private var voiceCaptureStartTask: Task<Void, Never>?
+    private var startingVoiceCaptureHotKeyID: UInt32?
+    private var startingVoiceCaptureMode: VoiceCaptureMode?
     private var pendingVoiceTranscript = ""
     private var voiceTranscriptFlushTask: Task<Void, Never>?
     private var pendingCursorContext = VoiceCursorContext.empty
@@ -1507,13 +1510,19 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     func handleOptionFlagsChanged(isPressed: Bool) {
         if isPressed {
-            guard !isOptionDictationHeld else { return }
+            if isOptionDictationHeld {
+                guard isStaleOptionDictationHold else { return }
+                isOptionDictationHeld = false
+                markHeldHotKeyReleased(Self.optionOnlyDictationHotKeyID)
+            }
             isOptionDictationHeld = true
             markHeldHotKeyPressed(Self.optionOnlyDictationHotKeyID)
             optionDictationStartTask?.cancel()
             optionDictationStartTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: 160_000_000)
-                guard let self, !Task.isCancelled, self.isOptionDictationHeld else { return }
+                guard let self else { return }
+                self.optionDictationStartTask = nil
+                guard !Task.isCancelled, self.isOptionDictationHeld else { return }
                 self.beginDictationVoiceCapture(hotKeyID: Self.optionOnlyDictationHotKeyID)
             }
         } else {
@@ -1524,8 +1533,16 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
+    private var isStaleOptionDictationHold: Bool {
+        !isListening &&
+            !isStartingVoiceCapture &&
+            optionDictationStartTask == nil &&
+            pendingVoiceCaptureStart?.requiredHeldHotKeyID != Self.optionOnlyDictationHotKeyID
+    }
+
     func endHeldVoiceCapture(hotKeyID: UInt32) {
         markHeldHotKeyReleased(hotKeyID)
+        cancelStartingVoiceCaptureIfNeeded(hotKeyID: hotKeyID)
         guard isListening else { return }
         stopVoiceCapture()
     }
@@ -1570,13 +1587,18 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             }
             return
         }
-        Task {
-            await startVoiceCapture(
+        startingVoiceCaptureHotKeyID = requiredHeldHotKeyID
+        startingVoiceCaptureMode = mode
+        voiceCaptureStartTask?.cancel()
+        let startTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.startVoiceCapture(
                 mode: mode,
                 requiredHeldHotKeyID: requiredHeldHotKeyID,
                 heldHotKeySequence: heldHotKeySequence
             )
         }
+        voiceCaptureStartTask = startTask
     }
 
     @discardableResult
@@ -1603,6 +1625,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private func isHeldHotKeyActive(_ hotKeyID: UInt32?, sequence: Int?) -> Bool {
         guard let hotKeyID else { return true }
         guard heldHotKeyIds.contains(hotKeyID) else { return false }
+        if hotKeyID == Self.optionOnlyDictationHotKeyID {
+            let flags = NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard flags.contains(.option) else { return false }
+        }
         guard let sequence else { return true }
         return heldHotKeySequenceByID[hotKeyID] == sequence
     }
@@ -1627,6 +1653,16 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             mode: pendingStart.mode,
             requiredHeldHotKeyID: pendingStart.requiredHeldHotKeyID
         )
+    }
+
+    private func cancelStartingVoiceCaptureIfNeeded(hotKeyID: UInt32) {
+        guard isStartingVoiceCapture, startingVoiceCaptureHotKeyID == hotKeyID else { return }
+        voiceCaptureStartTask?.cancel()
+        voiceCaptureStartTask = nil
+        let startingMode = startingVoiceCaptureMode ?? voiceCaptureMode
+        startingVoiceCaptureHotKeyID = nil
+        startingVoiceCaptureMode = nil
+        cleanupPreparedVoiceCaptureStart(mode: startingMode)
     }
 
     func openLastVoiceActionResult() {
@@ -2824,10 +2860,20 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         guard !isStartingVoiceCapture else { return }
         isStartingVoiceCapture = true
         defer {
+            if startingVoiceCaptureHotKeyID == requiredHeldHotKeyID, startingVoiceCaptureMode == mode {
+                voiceCaptureStartTask = nil
+                startingVoiceCaptureHotKeyID = nil
+                startingVoiceCaptureMode = nil
+            }
             isStartingVoiceCapture = false
             startPendingVoiceCaptureIfNeeded()
         }
 
+        guard canContinueVoiceCaptureStart(
+            mode: mode,
+            requiredHeldHotKeyID: requiredHeldHotKeyID,
+            heldHotKeySequence: heldHotKeySequence
+        ) else { return }
         guard isAuthenticated else {
             statusMessage = "Sign in first to capture voice notes."
             return
@@ -2845,19 +2891,23 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
         do {
             let speechAuth = await Self.requestSpeechAuthorization()
+            guard canContinueVoiceCaptureStart(
+                mode: mode,
+                requiredHeldHotKeyID: requiredHeldHotKeyID,
+                heldHotKeySequence: heldHotKeySequence
+            ) else { return }
             guard speechAuth == .authorized else {
                 statusMessage = "Speech permission denied."
                 return
             }
             let micGranted = await Self.requestMicrophonePermission()
+            guard canContinueVoiceCaptureStart(
+                mode: mode,
+                requiredHeldHotKeyID: requiredHeldHotKeyID,
+                heldHotKeySequence: heldHotKeySequence
+            ) else { return }
             guard micGranted else {
                 statusMessage = "Microphone permission denied."
-                return
-            }
-            guard isHeldHotKeyActive(requiredHeldHotKeyID, sequence: heldHotKeySequence) else {
-                if pendingVoiceCaptureStart == nil {
-                    statusMessage = "Dictation cancelled."
-                }
                 return
             }
 
@@ -2876,6 +2926,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             if mode == .dictation {
                 prepareStreamingDictation()
             }
+            guard canContinuePreparedVoiceCaptureStart(
+                mode: mode,
+                requiredHeldHotKeyID: requiredHeldHotKeyID,
+                heldHotKeySequence: heldHotKeySequence
+            ) else { return }
             let node = audioEngine.inputNode
             let format = try inputTapFormat(for: node)
             removeInputTapIfNeeded()
@@ -2889,16 +2944,27 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 }
             }
             isInputTapInstalled = true
+            guard canContinuePreparedVoiceCaptureStart(
+                mode: mode,
+                requiredHeldHotKeyID: requiredHeldHotKeyID,
+                heldHotKeySequence: heldHotKeySequence
+            ) else { return }
 
             audioEngine.prepare()
             try audioEngine.start()
+            guard canContinuePreparedVoiceCaptureStart(
+                mode: mode,
+                requiredHeldHotKeyID: requiredHeldHotKeyID,
+                heldHotKeySequence: heldHotKeySequence
+            ) else { return }
             isListening = true
             statusMessage = statusMessageForListening(mode: mode)
-            if !isHeldHotKeyActive(requiredHeldHotKeyID, sequence: heldHotKeySequence) {
+            if !canContinueVoiceCaptureStart(
+                mode: mode,
+                requiredHeldHotKeyID: requiredHeldHotKeyID,
+                heldHotKeySequence: heldHotKeySequence
+            ) {
                 stopVoiceCapture()
-                if pendingVoiceCaptureStart == nil {
-                    statusMessage = "Dictation cancelled."
-                }
                 return
             }
 
@@ -2920,14 +2986,56 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             }
         } catch {
             statusMessage = "Voice capture failed: \(error.localizedDescription)"
-            stopAudioCapture()
-            pendingVoiceTranscript = ""
-            voiceTranscriptFlushTask?.cancel()
-            voiceTranscriptFlushTask = nil
-            finishStreamingDictation()
-            audioLevel = 0
-            isListening = false
+            cleanupPreparedVoiceCaptureStart(mode: mode)
         }
+    }
+
+    private func canContinuePreparedVoiceCaptureStart(
+        mode: VoiceCaptureMode,
+        requiredHeldHotKeyID: UInt32?,
+        heldHotKeySequence: Int?
+    ) -> Bool {
+        guard canContinueVoiceCaptureStart(
+            mode: mode,
+            requiredHeldHotKeyID: requiredHeldHotKeyID,
+            heldHotKeySequence: heldHotKeySequence
+        ) else {
+            cleanupPreparedVoiceCaptureStart(mode: mode)
+            return false
+        }
+        return true
+    }
+
+    private func canContinueVoiceCaptureStart(
+        mode: VoiceCaptureMode,
+        requiredHeldHotKeyID: UInt32?,
+        heldHotKeySequence: Int?
+    ) -> Bool {
+        guard !Task.isCancelled, isHeldHotKeyActive(requiredHeldHotKeyID, sequence: heldHotKeySequence) else {
+            setVoiceCaptureCancelledStatusIfNeeded(mode: mode)
+            return false
+        }
+        return true
+    }
+
+    private func setVoiceCaptureCancelledStatusIfNeeded(mode: VoiceCaptureMode) {
+        guard pendingVoiceCaptureStart == nil else { return }
+        switch mode {
+        case .dictation:
+            statusMessage = "Dictation cancelled."
+        case .copilot, .intent:
+            statusMessage = "Voice capture cancelled."
+        }
+    }
+
+    private func cleanupPreparedVoiceCaptureStart(mode: VoiceCaptureMode) {
+        stopAudioCapture()
+        pendingVoiceTranscript = ""
+        voiceTranscriptFlushTask?.cancel()
+        voiceTranscriptFlushTask = nil
+        finishStreamingDictation()
+        audioLevel = 0
+        isListening = false
     }
 
     private func stopVoiceCapture() {
