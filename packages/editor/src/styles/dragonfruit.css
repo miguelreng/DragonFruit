@@ -64,21 +64,23 @@
 
 .editor-container.dragonfruit.line-spacing-regular,
 .editor-container.dragonfruit:not(.line-spacing-small):not(.line-spacing-mobile-regular) {
-  --heading-1-padding-top: 22px;
+  --heading-1-padding-top: 14px;
   --heading-1-padding-bottom: 4px;
-  --heading-2-padding-top: 20px;
+  --heading-2-padding-top: 13px;
   --heading-2-padding-bottom: 4px;
-  --heading-3-padding-top: 16px;
+  --heading-3-padding-top: 10px;
   --heading-3-padding-bottom: 2px;
-  --heading-4-padding-top: 14px;
+  --heading-4-padding-top: 9px;
   --heading-4-padding-bottom: 2px;
-  --heading-5-padding-top: 12px;
+  --heading-5-padding-top: 8px;
   --heading-5-padding-bottom: 2px;
-  --heading-6-padding-top: 10px;
+  --heading-6-padding-top: 7px;
   --heading-6-padding-bottom: 2px;
   --paragraph-padding-top: 2px;
   --paragraph-padding-bottom: 2px;
-  --paragraph-padding-between: 12px;
+  /* Gap between consecutive paragraphs is this value applied twice (bottom of
+     the previous block + top of the next), so 6px → a 12px gap on Enter. */
+  --paragraph-padding-between: 6px;
 }
 
 /* ─── 3. Headings: serif display, refined tracking ─────────────────────── */
