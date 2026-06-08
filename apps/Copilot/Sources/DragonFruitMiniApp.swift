@@ -132,6 +132,14 @@ final class VoiceToastController: ObservableObject {
             }
             .store(in: &cancellables)
 
+        store.$isSavingMeetingNotes
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak store] _ in
+                guard let self, let store else { return }
+                self.update(for: store)
+            }
+            .store(in: &cancellables)
+
         store.$lastVoiceActionResult
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak store] result in
@@ -198,7 +206,7 @@ final class VoiceToastController: ObservableObject {
         let nextKind: ToastKind
         if isErrorStatus(store.statusMessage) {
             nextKind = .error
-        } else if store.isVoiceActionProcessing || store.isAgentResponding {
+        } else if store.isVoiceActionProcessing || store.isAgentResponding || store.isSavingMeetingNotes {
             nextKind = .processing
         } else if let permission = store.currentMissingCopilotPermission, store.needsPermissionOnboarding,
                   store.isAuthenticated, !store.isPopoverOpen, !store.permissionsOnboardingDismissed {
@@ -916,6 +924,11 @@ struct VoiceProcessingToast: View {
     }
 
     private var subtitle: String {
+        // While a stopped meeting is being saved, keep a single steady label
+        // regardless of the internal transcribe/upload status churn.
+        if store.isSavingMeetingNotes {
+            return "Creating meeting notes…"
+        }
         let status = statusMessage
         let normalized = status.lowercased()
         if status.hasPrefix("Asking ") || status.hasPrefix("Creating ") || status.hasPrefix("Atlas is creating") {
@@ -1413,7 +1426,7 @@ final class MeetingNotesOverlayController: ObservableObject {
     }
 
     private func showOverlay(for store: MeetingStore) {
-        let size = NSSize(width: 56, height: 112)
+        let size = NSSize(width: 56, height: 132)
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         panel.contentView = TransparentHostingView(rootView: MeetingNotesRecordingOverlayView(store: store))
@@ -1452,7 +1465,9 @@ final class MeetingNotesOverlayController: ObservableObject {
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false
-        panel.ignoresMouseEvents = true
+        // Interactive so the stop button is clickable; .nonactivatingPanel keeps
+        // clicks from stealing focus from the meeting app the user is in.
+        panel.ignoresMouseEvents = false
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
         return panel
@@ -1472,17 +1487,20 @@ final class MeetingNotesOverlayController: ObservableObject {
 
 struct MeetingNotesRecordingOverlayView: View {
     @ObservedObject var store: MeetingStore
+    @State private var isHoveringStop = false
 
     var body: some View {
         TimelineView(.animation) { timeline in
-            VStack(spacing: 18) {
+            VStack(spacing: 14) {
                 recordingLogo
                     .frame(width: 24, height: 24)
 
-                MeetingNotesRecordingBars(date: timeline.date)
+                MeetingNotesRecordingBars(date: timeline.date, level: store.audioLevel)
                     .frame(width: 24, height: 22)
+
+                stopButton
             }
-            .frame(width: 56, height: 112)
+            .frame(width: 56, height: 132)
             .background(
                 Capsule(style: .continuous)
                     .fill(Color(red: 0.13, green: 0.13, blue: 0.13).opacity(0.96))
@@ -1494,8 +1512,34 @@ struct MeetingNotesRecordingOverlayView: View {
             .shadow(color: Color.black.opacity(0.24), radius: 8, y: 6)
             .shadow(color: Color.black.opacity(0.22), radius: 24, y: 18)
         }
-        .accessibilityElement(children: .ignore)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Atlas meeting notes active")
+    }
+
+    // Stop + save the meeting notes. toggleRecording() ends the session while
+    // one is live, which also tears down audio capture and resets the level.
+    private var stopButton: some View {
+        Button {
+            store.toggleRecording()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color(red: 0.95, green: 0.30, blue: 0.34).opacity(isHoveringStop ? 0.24 : 0.15))
+                Circle()
+                    .stroke(Color(red: 0.95, green: 0.30, blue: 0.34).opacity(0.55), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 2.5, style: .continuous)
+                    .fill(Color(red: 0.97, green: 0.43, blue: 0.46))
+                    .frame(width: 9, height: 9)
+            }
+            .frame(width: 26, height: 26)
+            .scaleEffect(isHoveringStop ? 1.09 : 1.0)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHoveringStop = $0 }
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isHoveringStop)
+        .help("Stop meeting notes")
+        .accessibilityLabel("Stop meeting notes")
     }
 
     @ViewBuilder
@@ -1515,6 +1559,8 @@ struct MeetingNotesRecordingOverlayView: View {
 
 struct MeetingNotesRecordingBars: View {
     let date: Date
+    /// Live audio level (0...1) from MeetingStore's RMS metering.
+    let level: CGFloat
 
     private let color = Color(red: 0.47, green: 0.84, blue: 0.08)
 
@@ -1524,15 +1570,26 @@ struct MeetingNotesRecordingBars: View {
                 Capsule(style: .continuous)
                     .fill(color)
                     .frame(width: 4, height: barHeight(index: index))
+                    .animation(AtlasMotion.soundLevel, value: level)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func barHeight(index: Int) -> CGFloat {
+        // Centre bar swings hardest, edges follow — reads like a real meter.
+        let weights: [CGFloat] = [0.72, 1.0, 0.62]
         let offsets: [Double] = [0, 1.35, 2.7]
-        let base = (sin(date.timeIntervalSinceReferenceDate * 4.8 + offsets[index]) + 1) / 2
-        return 7 + CGFloat(base) * 10
+        // Noise gate: ambient room/system hiss still reads as a small RMS level,
+        // which made the bars twitch during silence. Drop everything below the
+        // floor to zero and rescale the rest, so the wave only swings on real
+        // speech and otherwise rests at a calm idle shimmer.
+        let gateFloor: CGFloat = 0.18
+        let clamped = max(0, min(1, level))
+        let gated = clamped <= gateFloor ? 0 : (clamped - gateFloor) / (1 - gateFloor)
+        let idle = (sin(date.timeIntervalSinceReferenceDate * 4.8 + offsets[index]) + 1) / 2
+        let reactive = pow(gated, 0.72)
+        return 5 + CGFloat(idle) * 1.5 + reactive * 14 * weights[index]
     }
 }
 

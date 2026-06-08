@@ -884,6 +884,13 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
         else:
             page.name = f"Meeting notes: {meeting_title}"[:255]
             page.description_html = description_html
+            # Clear the stored Yjs blob (and JSON) so the live server re-seeds the
+            # collaborative editor from this fresh HTML the next time the doc is
+            # opened. The live server only converts HTML -> binary when the binary
+            # is empty; otherwise it serves the stale blob from the first
+            # recording and silently ignores the new transcript.
+            page.description_binary = None
+            page.description_json = {}
             page.page_type = Page.PAGE_TYPE_DOC
             page.updated_by_id = request.user.id
             page.save()

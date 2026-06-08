@@ -872,6 +872,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var isListening = false
     @Published var audioLevel: CGFloat = 0
     @Published var isMeetingRecording = false
+    // True while a stopped meeting is being transcribed + turned into notes, so
+    // the UI can surface a "Creating meeting notes…" toast during the save.
+    @Published var isSavingMeetingNotes = false
     @Published var meetingStartPrompt: MeetingInfo?
     @Published var meetingNotesTranscript = ""
     @Published var lastMeetingNotesURL: URL?
@@ -2535,6 +2538,13 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     if let request = previewRequest {
                         request.append(buffer)
                     }
+                    // Drive the floating recording widget's sound wave from the
+                    // live meeting audio — same RMS metering as voice capture,
+                    // which otherwise only runs on the mic input tap.
+                    let level = Self.normalizedAudioLevel(from: buffer)
+                    Task { @MainActor [weak self] in
+                        self?.updateAudioLevel(level)
+                    }
                 },
                 onError: { [weak self] error in
                     Task { @MainActor in
@@ -2553,6 +2563,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             isMeetingRecording = true
             meetingState = "Recording"
             statusMessage = "Capturing meeting text locally. Audio will be deleted after transcription."
+
+            // Also capture the local microphone — system audio only carries the
+            // other participants, so without this the user's own voice is missing
+            // from the transcript. Non-fatal: a mic failure still records system.
+            do {
+                try startMeetingMicrophoneCapture()
+            } catch {
+                Self.logger.error("Meeting mic capture failed: \(error.localizedDescription, privacy: .public)")
+                meetingMicAudioFile = nil
+                meetingMicAudioURL = nil
+            }
 
             if let request = previewRequest {
                 recognitionTask = Self.startRecognitionTask(recognizer: recognizer, request: request) { [weak self] result, error in
@@ -2580,32 +2601,69 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func stopMeetingRecordingAndSave() async {
+        // Flip on immediately (before the async audio teardown) so the
+        // "Creating meeting notes…" toast appears the instant Stop is pressed,
+        // and clear it on every exit path once the notes are saved or failed.
+        isSavingMeetingNotes = true
+        defer { isSavingMeetingNotes = false }
         await stopMeetingAudioCapture()
         isMeetingRecording = false
         meetingState = "Saving"
 
-        var transcript = meetingNotesTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
         let systemAudioURL = meetingSystemAudioURL
-        if let systemAudioURL, FileManager.default.fileExists(atPath: systemAudioURL.path) {
+        let micAudioURL = meetingMicAudioURL
+        // Both captured files exist only long enough to transcribe locally —
+        // remove them on every exit path.
+        defer {
+            if let systemAudioURL { try? FileManager.default.removeItem(at: systemAudioURL) }
+            if let micAudioURL { try? FileManager.default.removeItem(at: micAudioURL) }
+            meetingSystemAudioURL = nil
+            meetingMicAudioURL = nil
+        }
+
+        var transcript = meetingNotesTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+        let audioURLs = [systemAudioURL, micAudioURL]
+            .compactMap { $0 }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+        if !audioURLs.isEmpty {
             statusMessage = "Transcribing meeting text locally with Whisper.cpp..."
-            do {
-                let whisperTranscript = try await transcribeWithWhisperCPP(audioURL: systemAudioURL)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                if !whisperTranscript.isEmpty {
-                    transcript = whisperTranscript
-                    meetingNotesTranscript = whisperTranscript
+            var pieces: [String] = []
+            var whisperFailed = false
+            // Transcribe each side (system = other participants, mic = the user)
+            // and merge. Either side may be silent, so cleanedWhisperTranscript
+            // drops silence-only filler instead of one side stomping the other.
+            for url in audioURLs {
+                let size = ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int) ?? -1
+                Self.logger.info("Whisper input \(url.lastPathComponent, privacy: .public): \(size, privacy: .public) bytes")
+                do {
+                    let raw = try await transcribeWithWhisperCPP(audioURL: url)
+                    let piece = Self.cleanedWhisperTranscript(raw)
+                    // Log lengths only — never the transcript content — so meeting
+                    // text doesn't leak into the system log.
+                    Self.logger.info(
+                        "Whisper [\(url.lastPathComponent, privacy: .public)]: raw \(raw.count, privacy: .public) chars, kept \(piece.count, privacy: .public)"
+                    )
+                    if !piece.isEmpty { pieces.append(piece) }
+                } catch {
+                    whisperFailed = true
+                    Self.logger.error(
+                        "Whisper failed [\(url.lastPathComponent, privacy: .public)]: \(error.localizedDescription, privacy: .public)"
+                    )
                 }
-            } catch {
-                if transcript.isEmpty {
-                    meetingState = "Summary"
-                    statusMessage = "Whisper.cpp transcription failed: \(error.localizedDescription)"
-                    try? FileManager.default.removeItem(at: systemAudioURL)
-                    meetingSystemAudioURL = nil
-                    return
-                }
+            }
+            let merged = pieces.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !merged.isEmpty {
+                transcript = merged
+                meetingNotesTranscript = merged
+            } else if whisperFailed && transcript.isEmpty {
+                meetingState = "Summary"
+                statusMessage = "Whisper.cpp transcription failed."
+                return
+            } else if whisperFailed {
                 statusMessage = "Whisper.cpp failed; saving live transcript."
             }
         }
+        Self.logger.info("Final meeting transcript: \(transcript.count, privacy: .public) chars -> creating draft")
         if transcript.isEmpty {
             meetingState = "Summary"
             statusMessage = "Recording stopped. No meeting text captured."
@@ -2631,6 +2689,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             )
             lastMeetingNotesURL = draft.url.flatMap(URL.init(string:))
             lastSavedMeetingTitle = targetMeeting.title
+            Self.logger.info("Meeting notes draft created (hasURL=\(draft.url != nil, privacy: .public), calendar=\(draft.calendar_attached == true, privacy: .public))")
             meetingState = "Notes ready"
             statusMessage = (draft.calendar_attached == true)
                 ? "Meeting notes saved to Docs and attached to your event."
@@ -2655,11 +2714,6 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 statusMessage = "Could not save meeting notes: \(error.localizedDescription)"
             }
         }
-        if let systemAudioURL {
-            try? FileManager.default.removeItem(at: systemAudioURL)
-        }
-        meetingMicAudioURL = nil
-        meetingSystemAudioURL = nil
     }
 
     private func saveMeetingNotesBackup(meeting: MeetingInfo, transcript: String) throws -> URL {
@@ -2878,6 +2932,55 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             )
         }
         return format
+    }
+
+    // Capture the local microphone alongside system audio for a meeting. System
+    // audio only carries the other participants, so without this the user's own
+    // voice never reaches the transcript. Writes a temp CAF for the post-meeting
+    // Whisper pass and drives the recording widget's sound wave from the mic.
+    private func startMeetingMicrophoneCapture() throws {
+        let node = audioEngine.inputNode
+        let format = try inputTapFormat(for: node)
+        let micURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("dragonfruit-meeting-mic-\(UUID().uuidString).caf")
+        let micFile = try AVAudioFile(
+            forWriting: micURL,
+            settings: format.settings,
+            commonFormat: format.commonFormat,
+            interleaved: format.isInterleaved
+        )
+        meetingMicAudioFile = micFile
+        meetingMicAudioURL = micURL
+
+        removeInputTapIfNeeded()
+        node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+            try? micFile.write(from: buffer)
+            let level = Self.normalizedAudioLevel(from: buffer)
+            Task { @MainActor [weak self] in
+                self?.updateAudioLevel(level)
+            }
+        }
+        isInputTapInstalled = true
+        audioEngine.prepare()
+        try audioEngine.start()
+        Self.logger.info(
+            "Meeting mic capture started @\(format.sampleRate, privacy: .public)Hz \(format.channelCount, privacy: .public)ch -> \(micURL.lastPathComponent, privacy: .public)"
+        )
+    }
+
+    // whisper.cpp emits filler like "you" / "Thank you." / "[BLANK_AUDIO]" when
+    // fed (near-)silence. Treat a transcript that is *only* such filler as empty
+    // so one silent side (e.g. no remote audio) can't pollute the merged notes.
+    nonisolated private static func cleanedWhisperTranscript(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = trimmed
+            .lowercased()
+            .trimmingCharacters(in: CharacterSet(charactersIn: " .,!?-\n"))
+        let silenceTokens: Set<String> = [
+            "", "you", "thank you", "thanks for watching", "thanks for watching everyone",
+            "[blank_audio]", "(silence)", "[silence]",
+        ]
+        return silenceTokens.contains(normalized) ? "" : trimmed
     }
 
     private func notifyMeetingNotesSaved(title: String) {
