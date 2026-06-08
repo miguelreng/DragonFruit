@@ -12,6 +12,7 @@ import { PageIcon } from "@plane/propel/icons";
 import { getPageName } from "@plane/utils";
 // components
 import { ListItem } from "@/components/core/list";
+import { FileText } from "@/components/icons/lucide-shim";
 import { BlockItemAction } from "@/components/pages/list/block-item-action";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -37,7 +38,8 @@ export const PageListBlock = observer(function PageListBlock(props: TPageListBlo
   // handle page check
   if (!page) return null;
   // derived values
-  const { name, logo_props, getRedirectionLink } = page;
+  const { name, logo_props, getRedirectionLink, page_type } = page;
+  const FallbackIcon = page_type === "pdf" ? FileText : PageIcon;
 
   return (
     <ListItem
@@ -46,7 +48,7 @@ export const PageListBlock = observer(function PageListBlock(props: TPageListBlo
           {logo_props?.in_use ? (
             <Logo logo={logo_props} size={16} type="lucide" />
           ) : (
-            <PageIcon className="h-4 w-4 text-tertiary" />
+            <FallbackIcon className="h-4 w-4 text-tertiary" />
           )}
         </>
       }

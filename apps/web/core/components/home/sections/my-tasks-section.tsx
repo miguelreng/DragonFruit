@@ -32,15 +32,38 @@ const LABEL_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#e
 const randomLabelColor = () => LABEL_COLORS[Math.floor(Math.random() * LABEL_COLORS.length)];
 
 const PRIORITY_TOKENS: Record<string, TIssuePriorities> = {
-  urgent: "urgent", u: "urgent", p1: "urgent",
-  high: "high", h: "high", p2: "high",
-  medium: "medium", med: "medium", m: "medium", p3: "medium",
-  low: "low", l: "low", p4: "low",
+  urgent: "urgent",
+  u: "urgent",
+  p1: "urgent",
+  high: "high",
+  h: "high",
+  p2: "high",
+  medium: "medium",
+  med: "medium",
+  m: "medium",
+  p3: "medium",
+  low: "low",
+  l: "low",
+  p4: "low",
 };
 
 const WEEKDAYS: Record<string, number> = {
-  sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2,
-  wednesday: 3, wed: 3, thursday: 4, thu: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6,
+  sunday: 0,
+  sun: 0,
+  monday: 1,
+  mon: 1,
+  tuesday: 2,
+  tue: 2,
+  tues: 2,
+  wednesday: 3,
+  wed: 3,
+  thursday: 4,
+  thu: 4,
+  thurs: 4,
+  friday: 5,
+  fri: 5,
+  saturday: 6,
+  sat: 6,
 };
 
 /** Resolve an `@date` token (today/tomorrow/eod/eow/weekday/`3d`/`2w`/ISO/`M/D`) to a Date. */
@@ -288,21 +311,20 @@ export const MyTasksSection = observer(function MyTasksSection({
       if (!slug || names.length === 0) return [];
       let labels = getProjectLabels(projectId);
       if (!labels) labels = await fetchProjectLabels(slug, projectId).catch(() => [] as typeof labels);
-      const ids: string[] = [];
-      for (const name of names) {
-        const existing = labels?.find((label) => label.name.toLowerCase() === name.toLowerCase());
-        if (existing) {
-          ids.push(existing.id);
-          continue;
-        }
-        try {
-          const created = await createLabel(slug, projectId, { name, color: randomLabelColor() });
-          if (created?.id) ids.push(created.id);
-        } catch {
-          // Skip a label we couldn't create rather than failing the whole task.
-        }
-      }
-      return ids;
+      const ids = await Promise.all(
+        names.map(async (name) => {
+          const existing = labels?.find((label) => label.name.toLowerCase() === name.toLowerCase());
+          if (existing) return existing.id;
+          try {
+            const created = await createLabel(slug, projectId, { name, color: randomLabelColor() });
+            return created?.id;
+          } catch {
+            // Skip a label we couldn't create rather than failing the whole task.
+            return undefined;
+          }
+        })
+      );
+      return ids.filter((id): id is string => !!id);
     },
     [slug, getProjectLabels, fetchProjectLabels, createLabel]
   );
@@ -322,14 +344,17 @@ export const MyTasksSection = observer(function MyTasksSection({
       });
       const created = await issueService.createIssue(slug, resolvedAddProjectId, payload);
       // Optimistically surface the new task without a full refetch.
-      mutate((prev) => {
-        const results = Array.isArray(prev?.results) ? (prev!.results as TBaseIssue[]) : [];
-        return {
-          ...prev,
-          results: [created as TBaseIssue, ...results],
-          total_count: ((prev?.total_count as number | undefined) ?? 0) + 1,
-        } as TIssuesResponse;
-      }, { revalidate: false });
+      mutate(
+        (prev) => {
+          const results = Array.isArray(prev?.results) ? (prev!.results as TBaseIssue[]) : [];
+          return {
+            ...prev,
+            results: [created as TBaseIssue, ...results],
+            total_count: ((prev?.total_count as number | undefined) ?? 0) + 1,
+          } as TIssuesResponse;
+        },
+        { revalidate: false }
+      );
       // Clear and keep focus for rapid continuous entry, like Reminders.
       setNewTaskName("");
       newTaskInputRef.current?.focus();
@@ -362,6 +387,7 @@ export const MyTasksSection = observer(function MyTasksSection({
 
   // Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent.
   // Copy before sorting (toSorted needs es2023 lib, which this project's tsc target predates).
+  // oxlint-disable-next-line unicorn/no-array-sort
   const tasks = [...openIssues].sort((a, b) => {
     const aDue = a.target_date ? (getDate(a.target_date)?.getTime() ?? Infinity) : Infinity;
     const bDue = b.target_date ? (getDate(b.target_date)?.getTime() ?? Infinity) : Infinity;
@@ -376,8 +402,7 @@ export const MyTasksSection = observer(function MyTasksSection({
 
   // Live preview of what the inline tokens in the add input will resolve to.
   const inputPreview = parseQuickInput(newTaskName);
-  const hasInputPreview =
-    !!inputPreview.dueDate || !!inputPreview.priority || inputPreview.labelNames.length > 0;
+  const hasInputPreview = !!inputPreview.dueDate || !!inputPreview.priority || inputPreview.labelNames.length > 0;
 
   return (
     <section className="flex flex-col gap-2">
@@ -409,82 +434,85 @@ export const MyTasksSection = observer(function MyTasksSection({
                 )
               : null}
             {tasks.length > 0 && (
-          <ul className="scrollbar-hide max-h-[420px] divide-y divide-subtle overflow-y-auto">
-            {tasks.map((issue) => {
-              const isChecked = checkingIds.has(issue.id);
-              const project = getProjectById(issue.project_id);
-              const projectIdentifier = getProjectIdentifierById(issue.project_id) ?? "";
-              const href = `/${slug}/browse/${projectIdentifier}-${issue.sequence_id}/`;
-              const dueDate = getDate(issue.target_date);
-              const dueLabel = issue.target_date ? renderFormattedDate(issue.target_date, "MMM d") : undefined;
-              const isOverdue = !!dueDate && dueDate < todayStart;
-              const priority = (issue.priority ?? "none") as TIssuePriorities | "none";
-              const hasPriority = priority !== "none";
-              const labels = (issue.label_ids ?? []).map((id) => labelById.get(id)).filter(Boolean);
-              const hasAttributes = !!dueLabel || hasPriority || labels.length > 0;
-              const hasSubtitle = !!project?.name || hasAttributes;
+              <ul className="scrollbar-hide max-h-[420px] divide-y divide-subtle overflow-y-auto">
+                {tasks.map((issue) => {
+                  const isChecked = checkingIds.has(issue.id);
+                  const project = getProjectById(issue.project_id);
+                  const projectIdentifier = getProjectIdentifierById(issue.project_id) ?? "";
+                  const href = `/${slug}/browse/${projectIdentifier}-${issue.sequence_id}/`;
+                  const dueDate = getDate(issue.target_date);
+                  const dueLabel = issue.target_date ? renderFormattedDate(issue.target_date, "MMM d") : undefined;
+                  const isOverdue = !!dueDate && dueDate < todayStart;
+                  const priority = (issue.priority ?? "none") as TIssuePriorities | "none";
+                  const hasPriority = priority !== "none";
+                  const labels = (issue.label_ids ?? []).flatMap((id) => {
+                    const label = labelById.get(id);
+                    return label ? [label] : [];
+                  });
+                  const hasAttributes = !!dueLabel || hasPriority || labels.length > 0;
+                  const hasSubtitle = !!project?.name || hasAttributes;
 
-              return (
-                <li key={issue.id}>
-                  <div
-                    className={cn(
-                      "group flex items-start gap-3 px-3 py-2.5 transition-opacity hover:bg-layer-transparent-hover",
-                      isChecked && "opacity-60"
-                    )}
-                  >
-                    <button
-                      type="button"
-                      aria-label="Mark task complete"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleComplete(issue);
-                      }}
-                      className={cn(
-                        "mt-0.5 flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
-                        isChecked
-                          ? "border-accent-primary bg-accent-primary text-white"
-                          : "border-strong text-transparent hover:border-accent-primary"
-                      )}
-                    >
-                      <Check className="size-3" strokeWidth={3} />
-                    </button>
-                    <Link href={href} className="flex min-w-0 flex-1 flex-col">
-                      <span
+                  return (
+                    <li key={issue.id}>
+                      <div
                         className={cn(
-                          "truncate text-13 text-secondary",
-                          isChecked && "text-placeholder line-through"
+                          "group flex items-start gap-3 px-3 py-2.5 transition-opacity hover:bg-layer-transparent-hover",
+                          isChecked && "opacity-60"
                         )}
                       >
-                        {issue.name}
-                      </span>
-                      {hasSubtitle && (
-                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-11 text-placeholder">
-                          {project?.name && <span className="truncate">{project.name}</span>}
-                          {project?.name && hasAttributes && <span aria-hidden>·</span>}
-                          {hasAttributes && (
-                            <span className="font-newsreader flex flex-wrap items-center gap-1.5 text-12 text-primary">
-                              {dueLabel && (
-                                <span className={cn("flex-shrink-0", isOverdue && "text-danger-primary")}>
-                                  {dueLabel}
+                        <button
+                          type="button"
+                          aria-label="Mark task complete"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleComplete(issue);
+                          }}
+                          className={cn(
+                            "mt-0.5 flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
+                            isChecked
+                              ? "border-accent-primary bg-accent-primary text-white"
+                              : "hover:border-accent-primary border-strong text-transparent"
+                          )}
+                        >
+                          <Check className="size-3" strokeWidth={3} />
+                        </button>
+                        <Link href={href} className="flex min-w-0 flex-1 flex-col">
+                          <span
+                            className={cn(
+                              "truncate text-13 text-secondary",
+                              isChecked && "text-placeholder line-through"
+                            )}
+                          >
+                            {issue.name}
+                          </span>
+                          {hasSubtitle && (
+                            <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-11 text-placeholder">
+                              {project?.name && <span className="truncate">{project.name}</span>}
+                              {project?.name && hasAttributes && <span aria-hidden>·</span>}
+                              {hasAttributes && (
+                                <span className="font-newsreader flex flex-wrap items-center gap-1.5 text-12 text-primary">
+                                  {dueLabel && (
+                                    <span className={cn("flex-shrink-0", isOverdue && "text-danger-primary")}>
+                                      {dueLabel}
+                                    </span>
+                                  )}
+                                  {hasPriority && <span className="flex-shrink-0 capitalize">{priority}</span>}
+                                  {labels.map((label) => (
+                                    <span key={label.id} className="flex-shrink-0">
+                                      #{label.name}
+                                    </span>
+                                  ))}
                                 </span>
                               )}
-                              {hasPriority && <span className="flex-shrink-0 capitalize">{priority}</span>}
-                              {labels.map((label) => (
-                                <span key={label!.id} className="flex-shrink-0">
-                                  #{label!.name}
-                                </span>
-                              ))}
                             </span>
                           )}
-                        </span>
-                      )}
-                    </Link>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                        </Link>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
             {canAdd && (
               <div className={cn("px-3 py-2.5", tasks.length > 0 && "border-t border-subtle")}>

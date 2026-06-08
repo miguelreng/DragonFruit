@@ -10,4 +10,9 @@
 // reserved name and cached per-browser for fast subsequent loads.
 export const BRIEF_PAGE_NAME = "Project Brief";
 
+export const isBriefPageName = (name: string | undefined) => (name ?? "").trim() === BRIEF_PAGE_NAME;
+
+export const getBriefPageDisplayName = (projectName: string | undefined) =>
+  `Brief - ${projectName?.trim() || "Project"}`;
+
 export const briefCacheKey = (projectId: string) => `df:brief-page:${projectId}`;

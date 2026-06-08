@@ -26,7 +26,7 @@ function ToggleSwitch(props: IToggleSwitchProps) {
       disabled={disabled}
       onChange={onChange}
       className={cn(
-        "relative inline-flex h-6 w-10 flex-shrink-0 cursor-pointer rounded-full border border-subtle bg-layer-1 transition-colors duration-200 ease-in-out focus:outline-none",
+        "t-colors relative inline-flex h-6 w-10 flex-shrink-0 cursor-pointer rounded-full border border-subtle bg-layer-1 focus:outline-none",
         {
           "h-4 w-7": size === "sm",
           "h-5 w-9": size === "md",
@@ -42,7 +42,7 @@ function ToggleSwitch(props: IToggleSwitchProps) {
       <span
         aria-hidden="true"
         className={cn(
-          "inline-block h-5 w-5 transform self-center rounded-full bg-(--text-color-icon-on-color) ring-0 transition duration-200 ease-in-out",
+          "inline-block h-5 w-5 transform self-center rounded-full bg-(--text-color-icon-on-color) ring-0 transition-transform duration-[var(--motion-control-dur)] ease-[var(--motion-control-ease)]",
           {
             "h-3 w-3 translate-x-3.5": size === "sm" && value,
             "h-3 w-3 translate-x-0.5": size === "sm" && !value,

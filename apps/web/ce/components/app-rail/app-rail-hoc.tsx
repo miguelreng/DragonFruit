@@ -42,8 +42,7 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
       const item = WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS[key];
       if (!item || !slug || !allowPermissions(item.access, EUserPermissionsLevel.WORKSPACE, slug)) return null;
 
-      const href =
-        item.key === "your_work" ? `/${slug}/tasks` : joinUrlPath(`/${slug}`, item.href);
+      const href = item.key === "your_work" ? `/${slug}/tasks` : joinUrlPath(`/${slug}`, item.href);
 
       return {
         label:

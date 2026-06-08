@@ -198,8 +198,8 @@ final class VoiceToastController: ObservableObject {
         let nextKind: ToastKind
         if isErrorStatus(store.statusMessage) {
             nextKind = .error
-        } else if store.isListening {
-            nextKind = .listening
+        } else if store.isVoiceActionProcessing || store.isAgentResponding {
+            nextKind = .processing
         } else if let permission = store.currentMissingCopilotPermission, store.needsPermissionOnboarding,
                   store.isAuthenticated, !store.isPopoverOpen, !store.permissionsOnboardingDismissed {
             // Only nudge from the menu bar after sign-in, when the popover isn't
@@ -207,8 +207,8 @@ final class VoiceToastController: ObservableObject {
             nextKind = .permissions(permission.id, store.completedCopilotPermissionCount)
         } else if let prompt = store.meetingStartPrompt, !store.isMeetingRecording {
             nextKind = .meetingPrompt(prompt.id)
-        } else if store.isVoiceActionProcessing || store.isAgentResponding {
-            nextKind = .processing
+        } else if store.isListening {
+            nextKind = .listening
         } else if !store.lastAgentTextResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             nextKind = .agentResponse
         } else if let result = store.lastVoiceActionResult, result.id != hiddenResultId {
@@ -346,7 +346,7 @@ final class VoiceToastController: ObservableObject {
 
     private func showAgentResponseToast(for store: MeetingStore) {
         let kind = ToastKind.agentResponse
-        let size = NSSize(width: AtlasToastMetrics.width, height: 124)
+        let size = NSSize(width: AtlasToastMetrics.width, height: VoiceAgentResponseToast.preferredHeight(for: store))
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         closeTask?.cancel()
@@ -427,13 +427,13 @@ final class VoiceToastController: ObservableObject {
         hideTask = nil
         guard let panel else { return }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.15
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 1, 0.36, 1)
+            context.duration = AtlasMotion.toastExitDuration
+            context.timingFunction = AtlasMotion.standardTimingFunction
             panel.animator().alphaValue = 0
         }
         closeTask?.cancel()
         closeTask = Task { @MainActor [weak self, weak panel] in
-            try? await Task.sleep(nanoseconds: 160_000_000)
+            try? await Task.sleep(nanoseconds: AtlasMotion.toastExitDelayNanoseconds)
             panel?.orderOut(nil)
             self?.currentKind = .none
             self?.closeTask = nil
@@ -450,8 +450,8 @@ final class VoiceToastController: ObservableObject {
             panel.orderFrontRegardless()
         }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.25
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 1, 0.36, 1)
+            context.duration = AtlasMotion.toastEnterDuration
+            context.timingFunction = AtlasMotion.standardTimingFunction
             panel.animator().alphaValue = 1
         }
     }
@@ -491,10 +491,18 @@ private enum AtlasToastMetrics {
     static let closePadding: CGFloat = 10
     static let standardHeight: CGFloat = 68
     static let loadingHeight: CGFloat = 50
+    static let agentResponseMinHeight: CGFloat = 68
+    static let agentResponseMaxHeight: CGFloat = 124
     static let titleTracking: CGFloat = 0.14
     static let bodyTracking: CGFloat = 0.13
     static let actionTracking: CGFloat = 0.13
     static let onboardingActionTracking: CGFloat = 0.14
+}
+
+private enum AtlasToastTypography {
+    static let title = Font.custom("Figtree", size: 14).weight(.semibold)
+    static let body = Font.custom("Figtree", size: 13).weight(.regular)
+    static let action = Font.custom("Figtree", size: 13).weight(.medium)
 }
 
 private enum AtlasToastStatusIconKind {
@@ -562,27 +570,70 @@ private struct AtlasToastStatusIcon: View {
             case .loading:
                 AtlasToastLoadingIcon(theme: theme)
             case .success:
-                badge(fill: theme.success, icon: .check)
+                AtlasToastSemanticIcon(kind: .success, fillHex: theme.toastSuccessIconFill)
             case .error:
-                badge(fill: theme.danger, icon: .alertCircle)
+                AtlasToastSemanticIcon(kind: .error, fillHex: theme.toastDangerIconFill)
             case .warning:
-                badge(fill: theme.warning, icon: .warning)
+                AtlasToastSemanticIcon(kind: .warning, fillHex: theme.toastWarningIconFill)
             case .info:
-                badge(fill: theme.accent, icon: .info)
+                AtlasToastSemanticIcon(kind: .info, fillHex: theme.toastInfoIconFill)
             }
         }
         .frame(width: 22, height: 22)
         .flexibilityShrinkDisabled()
     }
+}
 
-    private func badge(fill: Color, icon: AtlasIconName) -> some View {
-        Circle()
-            .fill(fill)
-            .overlay {
-                AtlasIcon(icon)
-                    .frame(width: 13, height: 13)
-                    .foregroundStyle(Color.white)
-            }
+private struct AtlasToastSemanticIcon: View {
+    let kind: AtlasToastStatusIconKind
+    let fillHex: String
+
+    var body: some View {
+        if let image = NSImage(data: Data(svg.utf8)) {
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Color.clear
+        }
+    }
+
+    private var svg: String {
+        switch kind {
+        case .success:
+            return """
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="\(fillHex)" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            """
+        case .error:
+            return """
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="\(fillHex)" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4"/>
+              <path d="M12 16h.01"/>
+            </svg>
+            """
+        case .warning:
+            return """
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="\(fillHex)" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+              <path d="M12 9v4"/>
+              <path d="M12 17h.01"/>
+            </svg>
+            """
+        case .info:
+            return """
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="\(fillHex)" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+            """
+        case .loading:
+            return ""
+        }
     }
 }
 
@@ -608,12 +659,24 @@ private struct AtlasToastLoadingIcon: View {
     }
 }
 
+private struct AtlasToastCursorBuddyIcon: View {
+    let state: CursorBuddyOverlayView.BuddyVisualState
+    let theme: CopilotThemeTokens
+
+    var body: some View {
+        CursorBuddyDot(state: state, theme: theme)
+            .frame(width: 18, height: 18)
+            .frame(width: 22, height: 22)
+            .flexibilityShrinkDisabled()
+    }
+}
+
 private struct AtlasToastActionButtonStyle: ButtonStyle {
     let theme: CopilotThemeTokens
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.custom("Figtree", size: 13).weight(.medium))
+            .font(AtlasToastTypography.action)
             .foregroundStyle(configuration.isPressed ? theme.textPrimary : theme.textSecondary)
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
@@ -656,11 +719,11 @@ struct MeetingStartToast: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Meeting starting")
-                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .font(AtlasToastTypography.title)
                         .tracking(AtlasToastMetrics.titleTracking)
                         .foregroundStyle(theme.textPrimary)
                     Text(meetingTitle)
-                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .font(AtlasToastTypography.body)
                         .tracking(AtlasToastMetrics.bodyTracking)
                         .foregroundStyle(theme.textTertiary)
                         .lineLimit(1)
@@ -702,11 +765,11 @@ struct PermissionOnboardingToast: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .font(AtlasToastTypography.title)
                         .tracking(AtlasToastMetrics.titleTracking)
                         .foregroundStyle(theme.textPrimary)
                     Text(detail)
-                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .font(AtlasToastTypography.body)
                         .tracking(AtlasToastMetrics.bodyTracking)
                         .foregroundStyle(theme.textTertiary)
                         .lineLimit(2)
@@ -842,10 +905,20 @@ struct VoiceProcessingToast: View {
         store.copilotTheme.tokens
     }
 
+    private var statusMessage: String {
+        store.statusMessage
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "Asking Bot", with: "Asking Atlas")
+    }
+
+    private var usesCursorBuddyIcon: Bool {
+        statusMessage.hasPrefix("Asking ") || store.isAgentResponding
+    }
+
     private var subtitle: String {
-        let status = store.statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        let status = statusMessage
         let normalized = status.lowercased()
-        if status.hasPrefix("Asking ") || status.hasPrefix("Creating ") || status.hasPrefix("Buddy is creating") {
+        if status.hasPrefix("Asking ") || status.hasPrefix("Creating ") || status.hasPrefix("Atlas is creating") {
             return status
         }
         if normalized.contains("thinking") || normalized.contains("saving") {
@@ -857,10 +930,14 @@ struct VoiceProcessingToast: View {
     var body: some View {
         AtlasToastCard(theme: theme, height: AtlasToastMetrics.loadingHeight, onClose: onClose) {
             HStack(spacing: 12) {
-                AtlasToastStatusIcon(kind: .loading, theme: theme)
+                if usesCursorBuddyIcon {
+                    AtlasToastCursorBuddyIcon(state: .thinking, theme: theme)
+                } else {
+                    AtlasToastStatusIcon(kind: .loading, theme: theme)
+                }
 
                 Text(subtitle == "Working on it" ? "Thinking" : subtitle)
-                    .font(.custom("Figtree", size: 14).weight(.semibold))
+                    .font(AtlasToastTypography.title)
                     .tracking(AtlasToastMetrics.titleTracking)
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
@@ -875,43 +952,146 @@ struct VoiceAgentResponseToast: View {
     @ObservedObject var store: MeetingStore
     let onClose: () -> Void
 
+    private struct ResponsePresentation {
+        let message: String
+        let actionURL: URL?
+    }
+
     private var theme: CopilotThemeTokens {
         store.copilotTheme.tokens
     }
 
-    private var responseText: String {
-        store.lastAgentTextResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+    private var responsePresentation: ResponsePresentation {
+        Self.makeResponsePresentation(from: store.lastAgentTextResponse, appURL: store.appURL)
     }
 
-    private var userText: String {
-        store.lastTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+    private var toastHeight: CGFloat {
+        Self.preferredHeight(for: store)
     }
 
     var body: some View {
-        AtlasToastCard(theme: theme, height: 124, verticalPadding: 14, alignment: .topLeading, onClose: onClose) {
+        AtlasToastCard(theme: theme, height: toastHeight, verticalPadding: 14, alignment: .topLeading, onClose: onClose) {
+            let presentation = responsePresentation
             HStack(alignment: .top, spacing: 12) {
-                AtlasToastStatusIcon(kind: .info, theme: theme)
+                AtlasToastCursorBuddyIcon(state: .complete, theme: theme)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(userText.isEmpty ? "Atlas" : userText)
-                        .font(.custom("Figtree", size: 14).weight(.semibold))
-                        .tracking(AtlasToastMetrics.titleTracking)
-                        .foregroundStyle(theme.textPrimary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(responseText)
-                        .font(.custom("Figtree", size: 13).weight(.regular))
-                        .tracking(AtlasToastMetrics.bodyTracking)
-                        .foregroundStyle(theme.textTertiary)
-                        .lineSpacing(2)
-                        .lineLimit(4)
-                        .fixedSize(horizontal: false, vertical: true)
+                Text(presentation.message)
+                    .font(AtlasToastTypography.title)
+                    .tracking(AtlasToastMetrics.titleTracking)
+                    .foregroundStyle(theme.toastResponseText)
+                    .lineSpacing(2)
+                    .lineLimit(presentation.actionURL == nil ? 5 : 4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.trailing, 20)
+
+                Spacer(minLength: 8)
+
+                if let url = presentation.actionURL {
+                    Button {
+                        NSWorkspace.shared.open(url)
+                    } label: {
+                        Text("View")
+                            .tracking(AtlasToastMetrics.actionTracking)
+                    }
+                    .buttonStyle(AtlasToastActionButtonStyle(theme: theme))
                 }
-                .padding(.trailing, 20)
-
-                Spacer(minLength: 0)
             }
         }
+    }
+
+    static func preferredHeight(for store: MeetingStore) -> CGFloat {
+        let presentation = makeResponsePresentation(from: store.lastAgentTextResponse, appURL: store.appURL)
+        let textWidth = textWidthForResponse(hasAction: presentation.actionURL != nil)
+        let textHeight = measuredTextHeight(presentation.message, width: textWidth)
+        let contentHeight = max(textHeight, 22)
+        let rawHeight = ceil((14 * 2) + contentHeight)
+        return min(max(rawHeight, AtlasToastMetrics.agentResponseMinHeight), AtlasToastMetrics.agentResponseMaxHeight)
+    }
+
+    private static func makeResponsePresentation(from text: String, appURL: String) -> ResponsePresentation {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pattern = #"(?i)(?:\s*(?:Puedes verlo aquí|Puedes verlo aqui|Puedes abrirlo aquí|Puedes abrirlo aqui|View it here|You can view it here)\s*:\s*)?\[([^\]]+)\]\(([^)]+)\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(
+                in: trimmedText,
+                range: NSRange(trimmedText.startIndex..<trimmedText.endIndex, in: trimmedText)
+              ),
+              let labelRange = Range(match.range(at: 1), in: trimmedText),
+              let urlRange = Range(match.range(at: 2), in: trimmedText),
+              let fullRange = Range(match.range, in: trimmedText)
+        else {
+            return ResponsePresentation(message: cleanedResponseText(trimmedText), actionURL: nil)
+        }
+
+        let label = String(trimmedText[labelRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawURL = String(trimmedText[urlRange])
+        var message = trimmedText
+        message.removeSubrange(fullRange)
+        let cleanedMessage = cleanedResponseText(message)
+
+        return ResponsePresentation(
+            message: linkedResponseMessage(cleanedMessage, fallbackLabel: label),
+            actionURL: resolvedResponseURL(from: rawURL, appURL: appURL)
+        )
+    }
+
+    private static func linkedResponseMessage(_ message: String, fallbackLabel: String) -> String {
+        let normalized = message
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowercased = normalized.lowercased()
+        if normalized.isEmpty || lowercased.range(of: #"^(created|creado|creada|done|listo|lista)\s*[\.:!¡]*$"#, options: .regularExpression) != nil {
+            return "Documento creado: \(fallbackLabel)"
+        }
+        return normalized
+    }
+
+    private static func cleanedResponseText(_ text: String) -> String {
+        var cleaned = text
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        while cleaned.last == ":" || cleaned.last == "-" {
+            cleaned = String(cleaned.dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return cleaned.isEmpty ? "Atlas finished." : cleaned
+    }
+
+    private static func textWidthForResponse(hasAction: Bool) -> CGFloat {
+        let horizontalPadding = AtlasToastMetrics.leadingPadding + AtlasToastMetrics.trailingPaddingWithClose
+        let iconAndSpacing: CGFloat = 22 + 12
+        let actionWidth: CGFloat = hasAction ? 74 : 0
+        return max(180, AtlasToastMetrics.width - horizontalPadding - iconAndSpacing - actionWidth - 20)
+    }
+
+    private static func measuredTextHeight(_ text: String, width: CGFloat) -> CGFloat {
+        let font = NSFont(name: "Figtree", size: 14) ?? NSFont.systemFont(ofSize: 14, weight: .semibold)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = 2
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .paragraphStyle: paragraph,
+        ]
+        let rect = (text as NSString).boundingRect(
+            with: NSSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attributes
+        )
+        return ceil(rect.height)
+    }
+
+    private static func resolvedResponseURL(from rawURL: String, appURL: String) -> URL? {
+        let trimmedURL = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: trimmedURL), url.scheme != nil {
+            return url
+        }
+
+        let trimmedAppURL = appURL
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let baseURL = URL(string: "\(trimmedAppURL)/") else { return URL(string: trimmedURL) }
+        let relativePath = trimmedURL.hasPrefix("/") ? String(trimmedURL.dropFirst()) : trimmedURL
+        return URL(string: relativePath, relativeTo: baseURL)?.absoluteURL
     }
 }
 
@@ -940,17 +1120,17 @@ struct AgentDragonMark: View {
         .rotationEffect(isSpinning ? .degrees(360) : .degrees(0))
         .onAppear {
             guard isThinking else { return }
-            withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: AtlasMotion.spinnerDuration).repeatForever(autoreverses: false)) {
                 isSpinning = true
             }
         }
         .onChange(of: isThinking) { thinking in
             if thinking {
-                withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+                withAnimation(.linear(duration: AtlasMotion.spinnerDuration).repeatForever(autoreverses: false)) {
                     isSpinning = true
                 }
             } else {
-                withAnimation(.easeOut(duration: 0.18)) {
+                withAnimation(.easeOut(duration: AtlasMotion.fastDuration)) {
                     isSpinning = false
                 }
             }
@@ -978,11 +1158,11 @@ struct VoiceRecordingToast: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Listening")
-                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .font(AtlasToastTypography.title)
                         .tracking(AtlasToastMetrics.titleTracking)
                         .foregroundStyle(theme.textPrimary)
                     Text(transcriptPreview)
-                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .font(AtlasToastTypography.body)
                         .tracking(AtlasToastMetrics.bodyTracking)
                         .foregroundStyle(theme.textTertiary)
                         .lineLimit(1)
@@ -1003,17 +1183,32 @@ struct VoiceStatusToast: View {
         store.copilotTheme.tokens
     }
 
+    private var message: String {
+        let status = store.statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let separator = status.firstIndex(of: ":") else { return status }
+        let detailStart = status.index(after: separator)
+        let detail = status[detailStart...].trimmingCharacters(in: .whitespacesAndNewlines)
+        return detail.isEmpty ? status : detail
+    }
+
     var body: some View {
         AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: onClose) {
             HStack(spacing: 12) {
                 AtlasToastStatusIcon(kind: .error, theme: theme)
 
-                Text(store.statusMessage)
-                    .font(.custom("Figtree", size: 14).weight(.semibold))
-                    .tracking(AtlasToastMetrics.titleTracking)
-                    .foregroundStyle(theme.textPrimary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Error!")
+                        .font(AtlasToastTypography.title)
+                        .tracking(AtlasToastMetrics.titleTracking)
+                        .foregroundStyle(theme.textPrimary)
+                        .lineLimit(1)
+                    Text(message)
+                        .font(AtlasToastTypography.body)
+                        .tracking(AtlasToastMetrics.bodyTracking)
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 Spacer(minLength: 0)
             }
@@ -1033,11 +1228,11 @@ struct VoiceCreatedToast: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(result.type.rawValue) created")
-                        .font(.custom("Figtree", size: 14).weight(.semibold))
+                        .font(AtlasToastTypography.title)
                         .tracking(AtlasToastMetrics.titleTracking)
                         .foregroundStyle(theme.textPrimary)
                     Text(result.title)
-                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .font(AtlasToastTypography.body)
                         .tracking(AtlasToastMetrics.bodyTracking)
                         .foregroundStyle(theme.textTertiary)
                         .lineLimit(1)
@@ -1094,7 +1289,7 @@ struct ToastMotionContainer<Content: View>: View {
             .modifier(ShakeEffect(animatableData: shakeTrigger))
             .onAppear {
                 isOpen = false
-                withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.25)) {
+                withAnimation(AtlasMotion.toastEnter) {
                     isOpen = true
                 }
                 replayErrorShakeIfNeeded()
@@ -1107,7 +1302,7 @@ struct ToastMotionContainer<Content: View>: View {
     private func replayErrorShakeIfNeeded() {
         guard isError else { return }
         shakeTrigger = 0
-        withAnimation(.linear(duration: 0.28)) {
+        withAnimation(AtlasMotion.errorShake) {
             shakeTrigger += 1
         }
     }
@@ -1129,7 +1324,7 @@ struct SuccessCheckIcon: View {
             .opacity(isVisible ? 1 : 0)
             .onAppear {
                 isVisible = false
-                withAnimation(.timingCurve(0.34, 1.35, 0.64, 1, duration: 0.55)) {
+                withAnimation(AtlasMotion.successCheck) {
                     isVisible = true
                 }
             }
@@ -1482,11 +1677,11 @@ struct CursorBuddyOverlayView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
         .opacity(store.cursorBuddyOpacity)
         .modifier(ShakeEffect(animatableData: errorShakeTrigger, distance: 3, overshoot: 2))
-        .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.82), value: buddyVisualState)
+        .animation(AtlasMotion.cursorBuddy, value: buddyVisualState)
         .onChange(of: buddyVisualState) { state in
             guard state == .error else { return }
             errorShakeTrigger = 0
-            withAnimation(.linear(duration: 0.28)) {
+            withAnimation(AtlasMotion.errorShake) {
                 errorShakeTrigger += 1
             }
         }
@@ -1596,7 +1791,7 @@ struct SoundWaveView: View {
                     RoundedRectangle(cornerRadius: 1.5, style: .continuous)
                         .fill(theme.accent.opacity(0.64 + 0.28 * base))
                         .frame(width: 4, height: height)
-                        .animation(.interactiveSpring(response: 0.16, dampingFraction: 0.72), value: clampedLevel)
+                        .animation(AtlasMotion.soundLevel, value: clampedLevel)
                 }
             }
             .frame(maxHeight: .infinity)

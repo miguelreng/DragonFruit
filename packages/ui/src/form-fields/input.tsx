@@ -38,7 +38,7 @@ const Input = React.forwardRef(function Input(props: InputProps, ref: React.Forw
         "placeholder-tertiary block rounded-lg border-subtle-1 bg-layer-2 text-13 focus:outline-none",
         {
           "rounded-lg border-[0.5px]": mode === "primary",
-          "rounded-lg border-none bg-transparent ring-0 transition-all focus:ring-1 focus:ring-accent-strong":
+          "t-field rounded-lg border-none bg-transparent ring-0 focus:ring-1 focus:ring-accent-strong":
             mode === "transparent",
           "rounded-lg border-none bg-transparent ring-0": mode === "true-transparent",
           "border-danger-strong": hasError,

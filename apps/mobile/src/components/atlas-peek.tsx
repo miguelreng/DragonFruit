@@ -5,13 +5,14 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
 import { AtlasChat } from "@/components/atlas-chat";
+import { motion } from "@/lib/motion";
 
 // Mirrors the left sidebar drawer: arm within 48px of the (right) edge, and the
 // settle physics that decide open vs. closed on release.
-const EDGE_WIDTH = 48;
-const SETTLE = 0.4; // past 40% revealed → settle open
-const FLING_VELOCITY = 500; // px/s flick that opens/closes regardless of distance
-const SPRING = { damping: 24, stiffness: 260, mass: 0.7 };
+const EDGE_WIDTH = motion.drawer.edgeWidth;
+const SETTLE = motion.panel.settle; // past 40% revealed -> settle open
+const FLING_VELOCITY = motion.panel.flingVelocity; // px/s flick that opens/closes regardless of distance
+const SPRING = motion.panel.spring;
 
 /**
  * Right-edge interactive slide-over for Ask Atlas — the mirror image of the
@@ -52,7 +53,8 @@ export function AtlasPeek({ children }: { children: React.ReactNode }) {
       progress.value = p < 0 ? 0 : p > 1 ? 1 : p;
     })
     .onEnd((e) => {
-      const target = e.velocityX < -FLING_VELOCITY ? 1 : e.velocityX > FLING_VELOCITY ? 0 : progress.value >= SETTLE ? 1 : 0;
+      const target =
+        e.velocityX < -FLING_VELOCITY ? 1 : e.velocityX > FLING_VELOCITY ? 0 : progress.value >= SETTLE ? 1 : 0;
       progress.value = withSpring(target, SPRING);
       runOnJS(setOpen)(target === 1);
     });
@@ -71,13 +73,14 @@ export function AtlasPeek({ children }: { children: React.ReactNode }) {
       progress.value = p < 0 ? 0 : p > 1 ? 1 : p;
     })
     .onEnd((e) => {
-      const target = e.velocityX < -FLING_VELOCITY ? 1 : e.velocityX > FLING_VELOCITY ? 0 : progress.value >= SETTLE ? 1 : 0;
+      const target =
+        e.velocityX < -FLING_VELOCITY ? 1 : e.velocityX > FLING_VELOCITY ? 0 : progress.value >= SETTLE ? 1 : 0;
       progress.value = withSpring(target, SPRING);
       runOnJS(setOpen)(target === 1);
     });
 
   // Home dims as Atlas peeks across — mirrors the sidebar's scrim.
-  const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.value * 0.4 }));
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.value * motion.drawer.overlayOpacity }));
   // The panel starts a full width off the right edge and slides to 0 as it opens.
   const panelStyle = useAnimatedStyle(() => ({ transform: [{ translateX: (1 - progress.value) * width }] }));
 

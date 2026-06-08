@@ -79,12 +79,18 @@ function ProjectPagesPage({ params }: Route.ComponentProps) {
       <PageHead title={pageTitle} />
       <PagesListView
         contentType="doc"
+        contentTypes={["doc", "pdf"]}
         pageType={pageType}
         projectId={projectId}
         storeType={EPageStoreType.PROJECT}
         workspaceSlug={workspaceSlug}
       >
-        <PagesListRoot contentType="doc" pageType={pageType} storeType={EPageStoreType.PROJECT} />
+        <PagesListRoot
+          contentType="doc"
+          contentTypes={["doc", "pdf"]}
+          pageType={pageType}
+          storeType={EPageStoreType.PROJECT}
+        />
       </PagesListView>
     </>
   );

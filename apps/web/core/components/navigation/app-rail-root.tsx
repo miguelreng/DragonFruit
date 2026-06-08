@@ -81,7 +81,8 @@ const COMPRESSED_ICON_CLASS =
   "relative grid size-8 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
 const EXPANDED_ICON_CLASS =
   "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none transition-colors dark:text-white/70";
-const EXPANDED_ICON_ACTIVE = "!bg-white/55 sepia:!bg-[#dbccb3] !text-primary dark:!bg-layer-1 dark:!text-accent-primary";
+const EXPANDED_ICON_ACTIVE =
+  "!bg-white/55 sepia:!bg-[#dbccb3] !text-primary dark:!bg-layer-1 dark:!text-accent-primary";
 const EXPANDED_ICON_INACTIVE =
   "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]";
 const COMPACT_RAIL_ICON_CLASS = "grid size-5 place-items-center [&_svg]:size-5 [&_svg]:text-current";
@@ -140,7 +141,7 @@ const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => voi
         aria-label={item.label}
         onClick={onActivate}
         className={cn(COMPRESSED_ICON_CLASS, {
-          "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": item.isActive,
+          "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary sepia:!bg-[#dbccb3]": item.isActive,
         })}
       >
         <span
@@ -586,7 +587,8 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isBriefActive,
+                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary sepia:!bg-[#dbccb3]":
+                      isBriefActive,
                   }
                 )}
               >
@@ -601,7 +603,8 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isTasksActive,
+                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary sepia:!bg-[#dbccb3]":
+                      isTasksActive,
                   }
                 )}
               >
@@ -616,7 +619,8 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary": isPagesActive,
+                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary sepia:!bg-[#dbccb3]":
+                      isPagesActive,
                   }
                 )}
               >

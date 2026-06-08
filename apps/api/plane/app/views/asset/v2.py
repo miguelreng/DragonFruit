@@ -27,6 +27,32 @@ from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from plane.throttles.asset import AssetRateThrottle
 
 
+IMAGE_ASSET_MIME_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/jpg",
+    "image/gif",
+]
+
+PAGE_DESCRIPTION_ASSET_MIME_TYPES = [
+    *IMAGE_ASSET_MIME_TYPES,
+    "application/pdf",
+]
+
+
+def get_allowed_asset_mime_types(entity_type):
+    if entity_type == FileAsset.EntityTypeContext.PAGE_DESCRIPTION:
+        return PAGE_DESCRIPTION_ASSET_MIME_TYPES
+    return IMAGE_ASSET_MIME_TYPES
+
+
+def get_asset_response_disposition(request):
+    if request.query_params.get("disposition") == "inline":
+        return "inline"
+    return "attachment"
+
+
 class UserAssetsV2Endpoint(BaseAPIView):
     """This endpoint is used to upload user profile images."""
 
@@ -125,13 +151,7 @@ class UserAssetsV2Endpoint(BaseAPIView):
             )
 
         # Check if the file type is allowed
-        allowed_types = [
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "image/jpg",
-            "image/gif",
-        ]
+        allowed_types = IMAGE_ASSET_MIME_TYPES
         if type not in allowed_types:
             return Response(
                 {
@@ -328,17 +348,11 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
             )
 
         # Check if the file type is allowed
-        allowed_types = [
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "image/jpg",
-            "image/gif",
-        ]
+        allowed_types = get_allowed_asset_mime_types(entity_type)
         if type not in allowed_types:
             return Response(
                 {
-                    "error": "Invalid file type. Only JPEG, PNG, WebP, JPG and GIF files are allowed.",
+                    "error": "Invalid file type.",
                     "status": False,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -432,7 +446,7 @@ class WorkspaceFileAssetEndpoint(BaseAPIView):
         # Generate a presigned URL to share an S3 object
         signed_url = storage.generate_presigned_url(
             object_name=asset.asset.name,
-            disposition="attachment",
+            disposition=get_asset_response_disposition(request),
             filename=asset.attributes.get("name"),
         )
         # Redirect to the signed URL
@@ -535,17 +549,11 @@ class ProjectAssetEndpoint(BaseAPIView):
             )
 
         # Check if the file type is allowed
-        allowed_types = [
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "image/jpg",
-            "image/gif",
-        ]
+        allowed_types = get_allowed_asset_mime_types(entity_type)
         if type not in allowed_types:
             return Response(
                 {
-                    "error": "Invalid file type. Only JPEG, PNG, WebP, JPG and GIF files are allowed.",
+                    "error": "Invalid file type.",
                     "status": False,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -635,7 +643,7 @@ class ProjectAssetEndpoint(BaseAPIView):
         # Generate a presigned URL to share an S3 object
         signed_url = storage.generate_presigned_url(
             object_name=asset.asset.name,
-            disposition="attachment",
+            disposition=get_asset_response_disposition(request),
             filename=asset.attributes.get("name"),
         )
         # Redirect to the signed URL

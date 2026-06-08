@@ -19,6 +19,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // components
 import { cn, copyUrlToClipboard } from "@plane/utils";
 import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
+import { isBriefPageName } from "@/components/project/brief/constants";
 import {
   buildPublicPagePath,
   buildPublicPageUrl,
@@ -128,6 +129,7 @@ export const PageActions = observer(function PageActions(props: Props) {
   const currentFontStyle = normalizeDocFontStyle(view_props?.font_style);
   const currentFontStyleLabel =
     DOC_FONT_STYLE_OPTIONS.find((option) => option.value === currentFontStyle)?.label ?? "Default";
+  const isProjectBrief = page.page_type === "doc" && isBriefPageName(page.name);
   // menu items
   const MENU_ITEMS = useMemo(
     function MENU_ITEMS() {
@@ -224,7 +226,7 @@ export const PageActions = observer(function PageActions(props: Props) {
           },
           title: archived_at ? "Restore" : "Archive",
           icon: archived_at ? ArchiveRestoreIcon : ArchiveIcon,
-          shouldRender: canCurrentUserArchivePage,
+          shouldRender: canCurrentUserArchivePage && (!isProjectBrief || !!archived_at),
         },
         {
           key: "delete",
@@ -233,14 +235,14 @@ export const PageActions = observer(function PageActions(props: Props) {
           },
           title: "Delete",
           icon: TrashIcon,
-          shouldRender: canCurrentUserDeletePage && !!archived_at,
+          shouldRender: canCurrentUserDeletePage && !!archived_at && !isProjectBrief,
         },
         {
           key: "move",
           action: () => setMovePageModal(true),
           title: "Move",
           icon: FileOutput,
-          shouldRender: canCurrentUserMovePage && isMovePageEnabled,
+          shouldRender: canCurrentUserMovePage && isMovePageEnabled && !isProjectBrief,
         },
         {
           key: "save-as-template",
@@ -269,6 +271,7 @@ export const PageActions = observer(function PageActions(props: Props) {
       canCurrentUserDeletePage,
       canCurrentUserMovePage,
       canSaveAsTemplate,
+      isProjectBrief,
       isMovePageEnabled,
       pageOperations,
       page,

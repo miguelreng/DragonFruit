@@ -27,7 +27,7 @@ export const bannerStyling: IBannerStyling = {
 };
 
 // Base banner styles
-export const bannerBaseStyles = "flex items-center justify-between w-full transition-all duration-200";
+export const bannerBaseStyles = "t-colors flex items-center justify-between w-full";
 
 // Get banner container styling
 export const getBannerStyling = (variant: TBannerVariant): string => {
@@ -45,8 +45,7 @@ export const getBannerTitleStyling = (): string =>
 export const getBannerActionStyling = (): string => `flex items-center flex-shrink-0 ${bannerSizeStyling.action}`;
 
 // Get dismiss button styling
-export const getBannerDismissStyling = (): string =>
-  "rounded-lg p-1 hover:bg-surface-2 transition-colors flex-shrink-0";
+export const getBannerDismissStyling = (): string => "t-colors rounded-lg p-1 hover:bg-surface-2 flex-shrink-0";
 
 // Get dismiss icon styling
 export const getBannerDismissIconStyling = (): string => "text-secondary";

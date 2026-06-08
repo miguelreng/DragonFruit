@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Animated,
   Dimensions,
-  Easing,
   Modal,
   PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useAnimatedValue,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,12 +17,13 @@ import { CheckmarkCircle02Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { AppIcon } from "@/components/app-icon";
 import { Avatar } from "@/components/avatar";
 import type { Workspace } from "@/lib/api";
+import { motion } from "@/lib/motion";
 import { colors, font, radius, spacing } from "@/lib/theme";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 // Drag past this (or flick faster than the velocity threshold) to dismiss.
-const DRAG_CLOSE_DISTANCE = 110;
-const DRAG_CLOSE_VELOCITY = 0.5;
+const DRAG_CLOSE_DISTANCE = motion.sheet.closeDistance;
+const DRAG_CLOSE_VELOCITY = motion.sheet.closeVelocity;
 
 /**
  * Native-feeling bottom sheet for switching workspaces: a backdrop that fades
@@ -50,55 +51,77 @@ export function WorkspaceSwitcher({
   const insets = useSafeAreaInsets();
   // Keep the sheet mounted through its exit animation, then unmount.
   const [rendered, setRendered] = useState(visible);
-  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const backdrop = useRef(new Animated.Value(0)).current;
+  const translateY = useAnimatedValue(SCREEN_HEIGHT);
+  const backdrop = useAnimatedValue(0);
 
-  const animateClose = (after?: () => void) => {
-    Animated.parallel([
-      Animated.timing(backdrop, { toValue: 0, duration: 180, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-      Animated.timing(translateY, {
-        toValue: SCREEN_HEIGHT,
-        duration: 220,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) after?.();
-    });
-  };
+  const animateClose = useCallback(
+    (after?: () => void) => {
+      Animated.parallel([
+        Animated.timing(backdrop, {
+          toValue: 0,
+          duration: motion.duration.control,
+          easing: motion.easing.scrimOut,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: SCREEN_HEIGHT,
+          duration: motion.duration.panelClose,
+          easing: motion.easing.panelOut,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) after?.();
+      });
+    },
+    [backdrop, translateY]
+  );
 
   useEffect(() => {
+    if (!visible || rendered) return undefined;
+
+    const frame = requestAnimationFrame(() => setRendered(true));
+    return () => cancelAnimationFrame(frame);
+  }, [rendered, visible]);
+
+  useEffect(() => {
+    if (!rendered) return;
+
     if (visible) {
-      setRendered(true);
       translateY.setValue(SCREEN_HEIGHT);
       backdrop.setValue(0);
       Animated.parallel([
-        Animated.timing(backdrop, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.spring(translateY, { toValue: 0, damping: 24, stiffness: 240, mass: 0.9, useNativeDriver: true }),
+        Animated.timing(backdrop, {
+          toValue: 1,
+          duration: motion.duration.panelClose,
+          easing: motion.easing.scrimIn,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, { toValue: 0, ...motion.sheet.spring, useNativeDriver: true }),
       ]).start();
     } else if (rendered) {
       animateClose(() => setRendered(false));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [animateClose, backdrop, rendered, translateY, visible]);
 
   // Drag-to-dismiss: follow the finger downward, snap closed past the threshold
   // (or on a fast flick), otherwise spring back to rest.
-  const pan = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_e, g) => g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
-      onPanResponderMove: (_e, g) => {
-        if (g.dy > 0) translateY.setValue(g.dy);
-      },
-      onPanResponderRelease: (_e, g) => {
-        if (g.dy > DRAG_CLOSE_DISTANCE || g.vy > DRAG_CLOSE_VELOCITY) {
-          animateClose(onClose);
-        } else {
-          Animated.spring(translateY, { toValue: 0, damping: 24, stiffness: 240, useNativeDriver: true }).start();
-        }
-      },
-    })
-  ).current;
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_e, g) => g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
+        onPanResponderMove: (_e, g) => {
+          if (g.dy > 0) translateY.setValue(g.dy);
+        },
+        onPanResponderRelease: (_e, g) => {
+          if (g.dy > DRAG_CLOSE_DISTANCE || g.vy > DRAG_CLOSE_VELOCITY) {
+            animateClose(onClose);
+          } else {
+            Animated.spring(translateY, { toValue: 0, ...motion.sheet.settleSpring, useNativeDriver: true }).start();
+          }
+        },
+      }),
+    [animateClose, onClose, translateY]
+  );
 
   if (!rendered) return null;
 
@@ -109,7 +132,9 @@ export function WorkspaceSwitcher({
           <Pressable style={styles.fill} onPress={() => animateClose(onClose)} accessibilityLabel="Close" />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.md, transform: [{ translateY }] }]}>
+        <Animated.View
+          style={[styles.sheet, { paddingBottom: insets.bottom + spacing.md, transform: [{ translateY }] }]}
+        >
           {/* Drag handle — the whole header area is the drag target. */}
           <View {...pan.panHandlers} style={styles.handleArea}>
             <View style={styles.grabber} />

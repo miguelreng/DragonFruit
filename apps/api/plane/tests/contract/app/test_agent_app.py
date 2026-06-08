@@ -11,6 +11,7 @@ from plane.app.views.agent.chat import (
     _make_create_document_tool,
     _normalise_document_subject,
     _should_use_agent_tools,
+    _successful_tool_confirmation,
     _title_from_subject,
 )
 from plane.db.models import Agent, Page, Project, ProjectPage, WorkspaceMember
@@ -83,6 +84,21 @@ class TestAgentAPI:
 
         assert result.startswith("tool_error: no project is currently open")
         assert Page.objects.filter(name="Benefits of Meditation").exists() is False
+
+    def test_chat_prefers_created_document_confirmation_from_successful_tool(self):
+        class Result:
+            tool_calls = [
+                {
+                    "name": "create_document",
+                    "arguments": {"title": "Benefits of Meditation"},
+                    "result": "ok: created document 'Benefits of Meditation' (id=page-id, url=/w/projects/p/pages/page-id)",
+                }
+            ]
+
+        assert (
+            _successful_tool_confirmation(Result(), "create_document")
+            == "Created [Benefits of Meditation](/w/projects/p/pages/page-id)."
+        )
 
     def test_chat_document_subject_cleanup_handles_user_phrasing(self):
         subject = _normalise_document_subject(

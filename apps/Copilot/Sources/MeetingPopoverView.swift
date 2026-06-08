@@ -45,7 +45,7 @@ struct MeetingPopoverView: View {
         .blur(radius: isPanelRevealed ? 0 : 2)
         .onAppear {
             isPanelRevealed = false
-            withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.40)) {
+            withAnimation(AtlasMotion.panelReveal) {
                 isPanelRevealed = true
             }
             store.isPopoverOpen = true
@@ -354,7 +354,7 @@ struct MeetingPopoverView: View {
     private var settingsCard: some View {
         card {
             Button {
-                withAnimation(.easeInOut(duration: 0.16)) {
+                withAnimation(.easeInOut(duration: AtlasMotion.fastDuration)) {
                     isSettingsExpanded.toggle()
                 }
             } label: {

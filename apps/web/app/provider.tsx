@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { useTheme } from "next-themes";
 import { SWRConfig } from "swr";
 import { IconContext } from "@phosphor-icons/react";
@@ -15,21 +15,11 @@ import { Toast } from "@plane/propel/toast";
 // helpers
 import { resolveGeneralTheme } from "@plane/utils";
 import { MobileAppInstallPrompt } from "@/components/pwa/mobile-app-install-prompt";
+import AppProgressBar from "@/lib/b-progress/AppProgressBar";
 // mobx store provider
 import { StoreProvider } from "@/lib/store-context";
-
-// lazy imports
-const AppProgressBar = lazy(function AppProgressBar() {
-  return import("@/lib/b-progress/AppProgressBar");
-});
-
-const StoreWrapper = lazy(function StoreWrapper() {
-  return import("@/lib/wrappers/store-wrapper");
-});
-
-const InstanceWrapper = lazy(function InstanceWrapper() {
-  return import("@/lib/wrappers/instance-wrapper");
-});
+import InstanceWrapper from "@/lib/wrappers/instance-wrapper";
+import StoreWrapper from "@/lib/wrappers/store-wrapper";
 
 const PHOSPHOR_ICON_CONTEXT_VALUE = { weight: "regular", size: "1em" } as const;
 

@@ -28,6 +28,13 @@
   --accent-strong: #d93791;
   --danger: #f24d61;
   --success: #2d8b6f;
+  --motion-fast-dur: 150ms;
+  --motion-control-dur: 200ms;
+  --motion-panel-dur: 400ms;
+  --motion-spinner-dur: 1.2s;
+  --motion-guide-dur: 1.5s;
+  --motion-standard-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-control-ease: ease-in-out;
 }
 
 body {
@@ -109,7 +116,7 @@ main {
   border: 2px solid var(--border-strong);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin var(--motion-spinner-dur) linear infinite;
 }
 
 .loading-label {
@@ -147,7 +154,7 @@ main {
   width: 24px;
   height: 24px;
   color: var(--accent);
-  animation: nudge-up 1.5s ease-in-out infinite;
+  animation: nudge-up var(--motion-guide-dur) var(--motion-control-ease) infinite;
 }
 
 .guide-pointer span {
@@ -340,8 +347,10 @@ button {
   cursor: pointer;
   font-weight: 500;
   transition:
-    background 0.14s ease,
-    transform 0.14s ease;
+    background-color var(--motion-fast-dur) var(--motion-control-ease),
+    color var(--motion-fast-dur) var(--motion-control-ease),
+    border-color var(--motion-fast-dur) var(--motion-control-ease),
+    transform var(--motion-fast-dur) var(--motion-standard-ease);
 }
 
 button:active {

@@ -29,7 +29,9 @@ type Props = {
   contentType?: TPageType;
 };
 
-const PAGE_CONTENT_META: Record<TPageType, { addLabel: string; breadcrumbLabel: string }> = {
+type TCreatableHeaderPageType = Exclude<TPageType, "pdf">;
+
+const PAGE_CONTENT_META: Record<TCreatableHeaderPageType, { addLabel: string; breadcrumbLabel: string }> = {
   doc: {
     addLabel: "Create doc",
     breadcrumbLabel: "Pages",
@@ -42,6 +44,7 @@ const PAGE_CONTENT_META: Record<TPageType, { addLabel: string; breadcrumbLabel: 
 
 export const PagesListHeader = observer(function PagesListHeader(props: Props) {
   const { contentType = "doc" } = props;
+  const headerContentType: TCreatableHeaderPageType = contentType === "whiteboard" ? "whiteboard" : "doc";
   // states
   const [isCreatingPage, setIsCreatingPage] = useState(false);
   // router
@@ -49,13 +52,13 @@ export const PagesListHeader = observer(function PagesListHeader(props: Props) {
   const { workspaceSlug, projectId } = useParams();
   const searchParams = useSearchParams();
   const pageType = searchParams.get("type");
-  const contentMeta = PAGE_CONTENT_META[contentType];
-  const HeaderIcon = contentType === "whiteboard" ? Whiteboard : PageIcon;
+  const contentMeta = PAGE_CONTENT_META[headerContentType];
+  const HeaderIcon = headerContentType === "whiteboard" ? Whiteboard : PageIcon;
   // store hooks
   const { currentProjectDetails, loader } = useProject();
   const { canCurrentUserCreatePage, createPage } = usePageStore(EPageStoreType.PROJECT);
   // handle page create
-  const handleCreatePage = async (kind: TPageType = contentType) => {
+  const handleCreatePage = async (kind: TCreatableHeaderPageType = headerContentType) => {
     setIsCreatingPage(true);
 
     const payload: Partial<TPage> = {
@@ -96,7 +99,7 @@ export const PagesListHeader = observer(function PagesListHeader(props: Props) {
               <BreadcrumbLink
                 label={contentMeta.breadcrumbLabel}
                 href={`/${workspaceSlug}/projects/${currentProjectDetails?.id}/${
-                  contentType === "whiteboard" ? "whiteboards" : "pages"
+                  headerContentType === "whiteboard" ? "whiteboards" : "pages"
                 }/`}
                 icon={<HeaderIcon className="h-4 w-4 text-tertiary" />}
                 isLast
@@ -111,7 +114,7 @@ export const PagesListHeader = observer(function PagesListHeader(props: Props) {
           <Button
             variant="primary"
             size="lg"
-            onClick={() => handleCreatePage(contentType)}
+            onClick={() => handleCreatePage(headerContentType)}
             loading={isCreatingPage}
             className="bg-[#e548a5] hover:bg-[#d93d9a] active:bg-[#c9368e]"
           >

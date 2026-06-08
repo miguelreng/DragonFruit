@@ -145,8 +145,7 @@ const bookmarkSuggestedTags = (bookmark: TProjectBookmark): string[] => {
   if (!Array.isArray(raw)) return [];
   const existing = new Set(bookmark.tags.map((tag) => tag.toLowerCase()));
   return raw.filter(
-    (tag): tag is string =>
-      typeof tag === "string" && tag.trim().length > 0 && !existing.has(tag.toLowerCase())
+    (tag): tag is string => typeof tag === "string" && tag.trim().length > 0 && !existing.has(tag.toLowerCase())
   );
 };
 
@@ -414,7 +413,7 @@ function SuggestedTagChips(props: {
             type="button"
             aria-label={`Dismiss ${tag}`}
             onClick={guard(onDismiss, tag)}
-            className="grid place-items-center text-tertiary hover:text-red-500"
+            className="hover:text-red-500 grid place-items-center text-tertiary"
           >
             <HugeiconsIcon icon={CancelCircleIcon} className="size-3" color="currentColor" strokeWidth={1.5} />
           </button>
@@ -1003,7 +1002,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
         // just persist whatever suggestions remain after accept/dismiss in the modal.
         await bookmarkStore.updateBookmark(workspaceSlug, targetProjectId, editingId, {
           ...toPayload(draft),
-          metadata: { ...(draft.metadata ?? {}), suggested_tags: editingSuggestions },
+          metadata: { ...draft.metadata, suggested_tags: editingSuggestions },
         });
       } else {
         const created = await bookmarkStore.createBookmark(workspaceSlug, targetProjectId, toPayload(draft));

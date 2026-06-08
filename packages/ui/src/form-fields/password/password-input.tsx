@@ -39,7 +39,7 @@ export function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          "w-full rounded-lg border bg-surface-1 px-3 py-2 pr-10 text-secondary transition-all duration-200 placeholder:text-placeholder focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
+          "t-field w-full rounded-lg border bg-surface-1 px-3 py-2 pr-10 text-secondary placeholder:text-placeholder focus:border-transparent focus:ring-2 focus:ring-accent-strong focus:outline-none",
           {
             "border-strong": !error,
             "border-danger-strong": error,
@@ -54,7 +54,7 @@ export function PasswordInput({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-secondary transition-colors duration-200 hover:text-primary"
+            className="t-colors absolute inset-y-0 right-0 flex items-center pr-3 text-secondary hover:text-primary"
           >
             <div className="t-icon-swap h-4 w-4" data-state={showPassword ? "b" : "a"}>
               <span className="t-icon" data-icon="a">

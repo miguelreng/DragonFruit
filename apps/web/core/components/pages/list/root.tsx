@@ -18,16 +18,17 @@ import { PageListBlock } from "./block";
 
 type TPagesListRoot = {
   contentType?: TPageType;
+  contentTypes?: TPageType[];
   pageType: TPageNavigationTabs;
   storeType: EPageStoreType;
 };
 
 export const PagesListRoot = observer(function PagesListRoot(props: TPagesListRoot) {
-  const { contentType, pageType, storeType } = props;
+  const { contentType, contentTypes, pageType, storeType } = props;
   // store hooks
   const { getCurrentProjectFilteredPageIdsByTab, getPageById } = usePageStore(storeType);
   // derived values — hide the hidden, per-project "Brief" backing page
-  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType, contentType)?.filter(
+  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType, contentType, contentTypes)?.filter(
     (pageId) => (getPageById(pageId)?.name ?? "").trim() !== BRIEF_PAGE_NAME
   );
 

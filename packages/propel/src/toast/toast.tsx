@@ -185,7 +185,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         // Base layout and positioning — anchored to the top-right corner
         "group flex w-[360px] max-w-[calc(100vw-2rem)] items-center rounded-2xl border border-subtle-1 shadow-overlay-200",
         "absolute top-3 right-3 z-[calc(1000-var(--toast-index))]",
-        "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] select-none",
+        "t-toast select-none",
 
         // Default transform: newest toast on top, older ones nudged down and scaled back
         "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)+calc(min(var(--toast-index),10)*10px)))_scale(calc(max(0,1-(var(--toast-index)*0.1))))]",

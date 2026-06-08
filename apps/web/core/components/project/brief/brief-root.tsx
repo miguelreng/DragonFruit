@@ -34,7 +34,7 @@ import { WorkspaceService } from "@/services/workspace.service";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
-import { BRIEF_PAGE_NAME, briefCacheKey } from "./constants";
+import { BRIEF_PAGE_NAME, briefCacheKey, getBriefPageDisplayName, isBriefPageName } from "./constants";
 import { EllipsisHorizontalIcon, LockClosedIcon, LockOpenIcon } from "./icons";
 
 const workspaceService = new WorkspaceService();
@@ -73,7 +73,7 @@ export const ProjectBriefRoot = observer(function ProjectBriefRoot(props: TBrief
     // 2. discover an existing brief page by its reserved name
     const existing = getCurrentProjectPageIds(projectId)
       .map((id) => getPageById(id))
-      .find((page) => page?.page_type === "doc" && (page?.name ?? "").trim() === BRIEF_PAGE_NAME);
+      .find((page) => page?.page_type === "doc" && isBriefPageName(page?.name));
     if (existing?.id) {
       if (typeof window !== "undefined") window.localStorage.setItem(briefCacheKey(projectId), existing.id);
       setBriefPageId(existing.id);
@@ -136,7 +136,7 @@ const BriefPageActions = observer(function BriefPageActions(props: { page: TPage
   if (!canPublish && !canLock) return null;
 
   return (
-    <div className="absolute right-4 top-3 z-20 flex items-center gap-1.5">
+    <div className="absolute top-3 right-4 z-20 flex items-center gap-1.5">
       {canPublish && <PageShareControl page={page} storeType={storeType} />}
       {canLock && (
         <CustomMenu
@@ -176,7 +176,8 @@ const BriefPageEditor = observer(function BriefPageEditor(props: TBriefPageEdito
   const { uploadEditorAsset, duplicateEditorAsset } = useEditorAsset();
   // derived values
   const workspaceId = workspaceSlug ? (getWorkspaceBySlug(workspaceSlug)?.id ?? "") : "";
-  const projectName = getProjectById(projectId)?.name ?? "Brief";
+  const projectName = getProjectById(projectId)?.name ?? "Project";
+  const briefDisplayName = getBriefPageDisplayName(projectName);
   const { id, updateDescription } = page ?? {};
   // editor config
   const { getEditorFileHandlers } = useEditorConfig();
@@ -270,7 +271,7 @@ const BriefPageEditor = observer(function BriefPageEditor(props: TBriefPageEdito
   return (
     <div className="df-brief-chromeless relative flex h-full w-full flex-shrink-0 flex-col overflow-hidden">
       {/* The collaborative editor renders its own editable page title (the page
-          name, "Project Brief"). In the Brief we show a fixed project-name label
+          name, "Project Brief"). In the Brief we show a fixed project-brief label
           instead, so hide the editor's built-in title block. */}
       <style>{`.df-brief-chromeless div:has(> .page-title-editor){display:none !important;}`}</style>
       <BriefPageActions page={page} />
@@ -283,7 +284,7 @@ const BriefPageEditor = observer(function BriefPageEditor(props: TBriefPageEdito
         workspaceSlug={workspaceSlug}
         projectId={projectId}
         chromeless
-        headerLabel={projectName}
+        headerLabel={briefDisplayName}
         editorPlaceholder="Write an overview of this project…"
       />
       {/* The Atlas AI bar is mounted globally in the projects layout but keys off

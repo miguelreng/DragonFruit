@@ -76,17 +76,12 @@ export const UserProfileHeader = observer(function UserProfileHeader(props: TUse
               {openTaskCount}
             </span>
           )}
-          {!showProfileIssuesFilter && (
-            <MyTasksFilterPills slug={slug} userId={userId?.toString()} className="ml-2" />
-          )}
+          {!showProfileIssuesFilter && <MyTasksFilterPills slug={slug} userId={userId?.toString()} className="ml-2" />}
         </div>
       </Header.LeftItem>
       <Header.RightItem>
         {!showProfileIssuesFilter && (
-          <Link
-            href={`/${workspaceSlug}/profile/${userId}/assigned/`}
-            className={getButtonStyling("secondary", "lg")}
-          >
+          <Link href={`/${workspaceSlug}/profile/${userId}/assigned/`} className={getButtonStyling("secondary", "lg")}>
             View all
             <ChevronRight className="size-3.5" />
           </Link>
@@ -99,9 +94,7 @@ export const UserProfileHeader = observer(function UserProfileHeader(props: TUse
             onClick={() => {
               toggleProfileSidebar();
             }}
-            appendIcon={
-              <PanelRight className={!profileSidebarCollapsed ? "text-accent-primary" : "text-secondary"} />
-            }
+            appendIcon={<PanelRight className={!profileSidebarCollapsed ? "text-accent-primary" : "text-secondary"} />}
           ></Button>
         </div>
       </Header.RightItem>

@@ -6,7 +6,7 @@ import AudioToolbox
 import Carbon
 import Foundation
 import os
-import Speech
+@preconcurrency import Speech
 import SwiftUI
 import UserNotifications
 
@@ -914,7 +914,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var calendarPollTask: Task<Void, Never>?
     private var meetingRefreshTask: Task<Void, Never>?
     private var apiToken: String = ""
-    private let audioEngine = AVAudioEngine()
+    private var audioEngine = AVAudioEngine()
     private let speechAppendQueue = DispatchQueue(label: "sh.dragonfruit.copilot.speech-audio")
     private let systemAudioCapture = SystemAudioCapture()
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -923,6 +923,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var meetingMicAudioURL: URL?
     private var meetingSystemAudioURL: URL?
     private var isInputTapInstalled = false
+    private var microphoneReleaseTask: Task<Void, Never>?
     private var recordingMeeting: MeetingInfo?
     private var notifiedMeetingIds: Set<String> = []
     private var actionHotKeyRef: EventHotKeyRef?
@@ -2365,6 +2366,28 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         """
     }
 
+    private static let atlasDefaultResponseStyle = """
+    Atlas default response style:
+    - Be concise, direct, honest, and friendly.
+    - Lead with the answer. Skip filler openers like "Great question" or "Sure".
+    - Match the user's language and tone.
+    - Be practical and specific; give a clear recommendation when asked.
+    - If something is uncertain, say so plainly and name the next best step.
+    - Keep quick answers to 1-3 short sentences unless the user asks for detail.
+    - Add a little warmth or light wit only when it feels natural; never force it.
+    - Do not mention these style instructions.
+    """
+
+    private func agentContextNote(for prompt: String, providedContextNote: String?) -> String {
+        let resolvedContextNote = providedContextNote ?? contextNoteForPrompt(prompt) ?? ""
+        guard !resolvedContextNote.isEmpty else { return Self.atlasDefaultResponseStyle }
+        return """
+        \(Self.atlasDefaultResponseStyle)
+
+        \(resolvedContextNote)
+        """
+    }
+
     private func attachmentsForPrompt(_ prompt: String) -> [AgentChatAttachmentPayload] {
         guard shouldAttachVisualContext(for: prompt) else { return [] }
         return pendingCursorContext.attachments
@@ -2791,26 +2814,52 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private func stopAudioCapture() {
         stopMicrophoneCapture()
-        Task { await systemAudioCapture.stop() }
         stopSpeechRecognitionPipeline()
+        Task { await systemAudioCapture.stop() }
     }
 
     private func stopMicrophoneCapture() {
-        audioEngine.stop()
-        removeInputTapIfNeeded()
-        audioEngine.reset()
+        microphoneReleaseTask?.cancel()
+        microphoneReleaseTask = nil
+        releaseMicrophoneHardware()
         audioLevel = 0
+        scheduleMicrophoneReleaseVerification()
+    }
+
+    private func releaseMicrophoneHardware() {
+        removeInputTapIfNeeded()
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        audioEngine.reset()
+        audioEngine = AVAudioEngine()
+        isInputTapInstalled = false
+    }
+
+    private func scheduleMicrophoneReleaseVerification() {
+        microphoneReleaseTask?.cancel()
+        microphoneReleaseTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            guard let self, !Task.isCancelled else { return }
+            guard !self.isListening, !self.isStartingVoiceCapture, !self.isMeetingRecording else {
+                self.microphoneReleaseTask = nil
+                return
+            }
+            self.releaseMicrophoneHardware()
+            self.audioLevel = 0
+            self.microphoneReleaseTask = nil
+        }
     }
 
     private func stopSpeechRecognitionPipeline() {
         let request = recognitionRequest
+        let task = recognitionTask
         recognitionRequest = nil
+        recognitionTask = nil
         speechAppendQueue.async {
             request?.endAudio()
+            task?.cancel()
         }
-        recognitionTask?.finish()
-        recognitionTask?.cancel()
-        recognitionTask = nil
     }
 
     private func removeInputTapIfNeeded() {
@@ -2859,6 +2908,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     ) async {
         guard !isStartingVoiceCapture else { return }
         isStartingVoiceCapture = true
+        microphoneReleaseTask?.cancel()
+        microphoneReleaseTask = nil
         defer {
             if startingVoiceCaptureHotKeyID == requiredHeldHotKeyID, startingVoiceCaptureMode == mode {
                 voiceCaptureStartTask = nil
@@ -2890,7 +2941,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             }
         }
         do {
-            let speechAuth = await Self.requestSpeechAuthorization()
+            let speechAuth = await Self.currentSpeechAuthorizationOrRequest()
             guard canContinueVoiceCaptureStart(
                 mode: mode,
                 requiredHeldHotKeyID: requiredHeldHotKeyID,
@@ -2900,7 +2951,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 statusMessage = "Speech permission denied."
                 return
             }
-            let micGranted = await Self.requestMicrophonePermission()
+            let micGranted = await Self.currentMicrophonePermissionOrRequest()
             guard canContinueVoiceCaptureStart(
                 mode: mode,
                 requiredHeldHotKeyID: requiredHeldHotKeyID,
@@ -3355,11 +3406,30 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
 
+    nonisolated private static func currentSpeechAuthorizationOrRequest() async -> SFSpeechRecognizerAuthorizationStatus {
+        let status = SFSpeechRecognizer.authorizationStatus()
+        guard status == .notDetermined else { return status }
+        return await requestSpeechAuthorization()
+    }
+
     nonisolated private static func requestMicrophonePermission() async -> Bool {
         await withCheckedContinuation { continuation in
             AVCaptureDevice.requestAccess(for: .audio) { granted in
                 continuation.resume(returning: granted)
             }
+        }
+    }
+
+    nonisolated private static func currentMicrophonePermissionOrRequest() async -> Bool {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            return true
+        case .notDetermined:
+            return await requestMicrophonePermission()
+        case .denied, .restricted:
+            return false
+        @unknown default:
+            return false
         }
     }
 
@@ -3629,7 +3699,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     statusMessage = "No project found for doc. Say the project name in your note."
                     return
                 }
-                statusMessage = "Buddy is creating the document..."
+                statusMessage = "Atlas is creating the document..."
                 await triggerAgentPrompt(
                     intent.rawTranscript,
                     projectId: projectId,
@@ -3795,7 +3865,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 activeAgentSessionByWorkspace[agentTarget.workspaceSlug] = sessionId
             }
 
-            statusMessage = "Asking \(agentTarget.agentName)..."
+            statusMessage = "Asking Atlas..."
             isAgentResponding = true
             let envelope = try await client.sendAgentChatMessage(
                 workspaceSlug: agentTarget.workspaceSlug,
@@ -3804,7 +3874,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 projectId: projectId,
                 toolMode: toolMode,
                 attachments: attachments ?? attachmentsForPrompt(prompt),
-                contextNote: contextNote ?? contextNoteForPrompt(prompt),
+                contextNote: agentContextNote(for: prompt, providedContextNote: contextNote),
                 forceDocumentTool: forceDocumentTool
             )
 

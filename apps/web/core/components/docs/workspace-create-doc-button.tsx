@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { observer } from "mobx-react";
 import { useNavigate } from "react-router";
 import { Menu } from "@headlessui/react";
@@ -14,14 +14,17 @@ import { Button } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TPage, TPageType } from "@plane/types";
-import { EUserProjectRoles } from "@plane/types";
-import { cn } from "@plane/utils";
-import { ChevronDown, FileText, Whiteboard, Search } from "@/components/icons/lucide-shim";
+import { EFileAssetType, EUserProjectRoles } from "@plane/types";
+import { cn, convertBytesToSize } from "@plane/utils";
+import { ChevronDown, File as FileIcon, FileText, Whiteboard, Search } from "@/components/icons/lucide-shim";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
+import { useFileSize } from "@/plane-web/hooks/use-file-size";
+import { FileService } from "@/services/file.service";
 import { ProjectPageService } from "@/services/page/project-page.service";
 
 const pageService = new ProjectPageService();
+const fileService = new FileService();
 const PAGE_READY_RETRY_DELAYS_MS = [150, 300, 500, 800, 1200];
 
 const wait = (delay: number) => new Promise((resolve) => setTimeout(resolve, delay));
@@ -29,6 +32,7 @@ const wait = (delay: number) => new Promise((resolve) => setTimeout(resolve, del
 const TYPE_META: Record<TPageType, { label: string; Icon: typeof FileText }> = {
   doc: { label: "Doc", Icon: FileText },
   whiteboard: { label: "Whiteboard", Icon: Whiteboard },
+  pdf: { label: "PDF", Icon: FileIcon },
 };
 
 const ALLOWED_ROLES = new Set<EUserPermissions | EUserProjectRoles>([
@@ -50,9 +54,12 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
   const navigate = useNavigate();
   const { joinedProjectIds, getProjectById } = useProject();
   const { getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
+  const { maxFileSize } = useFileSize();
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [currentType, setCurrentType] = useState<TPageType>(defaultType);
   const [projectSearch, setProjectSearch] = useState("");
+  const [pendingPdfProjectId, setPendingPdfProjectId] = useState<string | null>(null);
   const [submittingProjectId, setSubmittingProjectId] = useState<string | null>(null);
   const [referenceElement, setReferenceElement] = useState<HTMLDivElement | null>(null);
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
@@ -82,6 +89,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
   const isCreating = submittingProjectId !== null;
   const hasEligibleProjects = eligibleProjects.length > 0;
   const meta = TYPE_META[currentType];
+  const buttonLabel = currentType === "pdf" ? "Upload PDF" : `New ${meta.label.toLowerCase()}`;
 
   const waitForCreatedPage = async (projectId: string, pageId: string, retryDelays = PAGE_READY_RETRY_DELAYS_MS) => {
     try {
@@ -98,7 +106,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
     if (isCreating) return;
     setSubmittingProjectId(projectId);
     const payload: Partial<TPage> = {
-      access: currentType === "doc" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
+      access: currentType === "whiteboard" ? EPageAccess.PUBLIC : EPageAccess.PRIVATE,
       page_type: currentType,
     };
     try {
@@ -118,11 +126,111 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
     }
   };
 
+  const rollbackCreatedPage = async (projectId: string, pageId: string) => {
+    await pageService.archive(workspaceSlug, projectId, pageId).catch(() => undefined);
+    await pageService.remove(workspaceSlug, projectId, pageId).catch(() => undefined);
+  };
+
+  const handlePdfUpload = async (projectId: string, file: File) => {
+    const isPdfFile = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdfFile) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Invalid file",
+        message: "Please choose a PDF file.",
+      });
+      return;
+    }
+
+    if (file.size > maxFileSize) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "File too large",
+        message: `PDF must be ${convertBytesToSize(maxFileSize)} or less.`,
+      });
+      return;
+    }
+
+    let page: TPage | undefined;
+    setSubmittingProjectId(projectId);
+    try {
+      const pageName = file.name.replace(/\.pdf$/i, "").trim() || "Untitled PDF";
+      page = await pageService.create(workspaceSlug, projectId, {
+        access: EPageAccess.PRIVATE,
+        name: pageName,
+        page_type: "pdf",
+      });
+
+      if (!page?.id) throw new Error("PDF page could not be created.");
+
+      const uploadResponse = await fileService.uploadProjectAsset(
+        workspaceSlug,
+        projectId,
+        {
+          entity_identifier: page.id,
+          entity_type: EFileAssetType.PAGE_DESCRIPTION,
+        },
+        file
+      );
+
+      await pageService.update(workspaceSlug, projectId, page.id, {
+        view_props: {
+          ...page.view_props,
+          pdf: {
+            asset_id: uploadResponse.asset_id,
+            project_id: projectId,
+            name: file.name,
+            size: file.size,
+            mime_type: "application/pdf",
+          },
+        },
+      });
+
+      await waitForCreatedPage(projectId, page.id);
+      navigate(`/${workspaceSlug}/projects/${projectId}/pages/${page.id}`);
+    } catch (err: any) {
+      if (page?.id) await rollbackCreatedPage(projectId, page.id);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: err?.error || err?.data?.error || "PDF could not be uploaded. Please try again.",
+      });
+      setSubmittingProjectId(null);
+    }
+  };
+
+  const handleProjectSelect = (projectId: string) => {
+    if (currentType !== "pdf") {
+      void handleCreate(projectId);
+      return;
+    }
+
+    if (isCreating) return;
+    setPendingPdfProjectId(projectId);
+    fileInputRef.current?.click();
+  };
+
+  const handleSelectedPdfFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    const projectId = pendingPdfProjectId;
+    setPendingPdfProjectId(null);
+    if (!file || !projectId) return;
+    void handlePdfUpload(projectId, file);
+  };
+
   return (
     <Menu as="div" className="relative">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        className="hidden"
+        onChange={handleSelectedPdfFile}
+      />
       <div ref={setReferenceElement} className="flex items-stretch">
         <Menu.Button as={Button} variant="primary" size="lg" loading={isCreating} className="rounded-r-none">
-          {isCreating ? "Adding" : `New ${meta.label.toLowerCase()}`}
+          {isCreating ? "Adding" : buttonLabel}
         </Menu.Button>
         <Menu.Button
           aria-label="Choose type and project"
@@ -184,7 +292,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
                 {({ active }) => (
                   <button
                     type="button"
-                    onClick={() => handleCreate(project.id)}
+                    onClick={() => handleProjectSelect(project.id)}
                     disabled={isCreating}
                     className={cn("flex w-full items-center gap-2 px-3 py-1.5 text-left text-12 text-primary", {
                       "bg-layer-1-hover": active,

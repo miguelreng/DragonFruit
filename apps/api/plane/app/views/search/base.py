@@ -517,6 +517,7 @@ class SearchEndpoint(BaseAPIView):
                             "name",
                             "id",
                             "logo_props",
+                            "page_type",
                             "projects__id",
                             "workspace__slug",
                         )[:count]
@@ -719,6 +720,7 @@ class SearchEndpoint(BaseAPIView):
                             "name",
                             "id",
                             "logo_props",
+                            "page_type",
                             "projects__id",
                             "workspace__slug",
                         )[:count]

@@ -12,6 +12,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore } from "@plane/ui";
 import { getPageName } from "@plane/utils";
 // constants
+import { isBriefPageName } from "@/components/project/brief/constants";
 // plane web hooks
 import { useAppRouter } from "@/hooks/use-app-router";
 import type { EPageStoreType } from "@/plane-web/hooks/store";
@@ -34,7 +35,8 @@ export const DeletePageModal = observer(function DeletePageModal(props: TConfirm
   const { removePage } = usePageStore(storeType);
 
   // derived values
-  const { id: pageId, name } = page;
+  const { id: pageId, name, page_type } = page;
+  const isProjectBrief = page_type === "doc" && isBriefPageName(name);
 
   const handleClose = () => {
     setIsDeleting(false);
@@ -46,29 +48,36 @@ export const DeletePageModal = observer(function DeletePageModal(props: TConfirm
 
   const handleDelete = async () => {
     if (!pageId) return;
+    if (isProjectBrief) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "Briefs are protected",
+        message: "Project briefs can't be deleted.",
+      });
+      handleClose();
+      return;
+    }
     setIsDeleting(true);
-    await removePage({ pageId })
-      .then(() => {
-        handleClose();
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Page deleted successfully.",
-        });
-
-        if (routePageId) {
-          router.back();
-        }
-      })
-      .catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Page could not be deleted. Please try again.",
-        });
+    try {
+      await removePage({ pageId });
+      handleClose();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: "Page deleted successfully.",
       });
 
-    setIsDeleting(false);
+      if (routePageId) {
+        router.back();
+      }
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Page could not be deleted. Please try again.",
+      });
+      setIsDeleting(false);
+    }
   };
 
   if (!page || !page.id) return null;

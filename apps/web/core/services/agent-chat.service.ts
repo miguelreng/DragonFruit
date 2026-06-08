@@ -121,6 +121,7 @@ export type TAtlasDocWritePayload = {
   project_id?: string;
   prompt: string;
   mode: TAtlasDocWriteMode;
+  context_note?: string;
   intent?: TAtlasDocWriteIntent;
   cursor_position?: number;
   selection_text?: string | null;

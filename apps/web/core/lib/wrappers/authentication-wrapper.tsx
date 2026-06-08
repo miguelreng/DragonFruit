@@ -16,7 +16,6 @@ import { EPageTypes } from "@/helpers/authentication.helper";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser, useUserProfile, useUserSettings } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
-import { useMinimumLoaderDuration } from "@/hooks/use-minimum-loader-duration";
 
 type TPageType = EPageTypes;
 
@@ -81,10 +80,15 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
     return redirectionRoute;
   };
 
-  const showLoader = useMinimumLoaderDuration(
-    (isUserSWRLoading || isUserLoading || workspacesLoader) && !currentUser?.id,
-    2400
-  );
+  const isFetchingUser = (isUserSWRLoading || isUserLoading) && !currentUser?.id;
+  const isFetchingUserProfile = !!currentUser?.id && !currentUserProfile?.id;
+  const isWaitingForRedirectData =
+    pageType !== EPageTypes.AUTHENTICATED &&
+    !!currentUser?.id &&
+    !!currentUserProfile?.id &&
+    isUserOnboard &&
+    (isUserLoading || workspacesLoader);
+  const showLoader = isFetchingUser || isFetchingUserProfile || isWaitingForRedirectData;
   if (showLoader) return <AppLoadingScreen />;
 
   if (pageType === EPageTypes.PUBLIC) return <>{children}</>;

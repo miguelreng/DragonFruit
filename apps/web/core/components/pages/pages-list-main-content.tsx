@@ -24,12 +24,13 @@ import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 type Props = {
   children: React.ReactNode;
   contentType?: TPageType;
+  contentTypes?: TPageType[];
   pageType: TPageNavigationTabs;
   storeType: EPageStoreType;
 };
 
 export const PagesListMainContent = observer(function PagesListMainContent(props: Props) {
-  const { children, contentType = "doc", pageType, storeType } = props;
+  const { children, contentType, contentTypes, pageType, storeType } = props;
   // plane hooks
   const { t } = useTranslation();
   // store hooks
@@ -44,9 +45,10 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
   const router = useRouter();
   const { workspaceSlug } = useParams();
   // derived values
-  const pageIds = getCurrentProjectPageIdsByTab(pageType, contentType);
-  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType, contentType);
-  const isWhiteboard = contentType === "whiteboard";
+  const primaryContentType = contentType ?? contentTypes?.[0] ?? "doc";
+  const pageIds = getCurrentProjectPageIdsByTab(pageType, contentType, contentTypes);
+  const filteredPageIds = getCurrentProjectFilteredPageIdsByTab(pageType, contentType, contentTypes);
+  const isWhiteboard = primaryContentType === "whiteboard";
   const emptyStateTitle = isWhiteboard ? "No whiteboards yet" : t("project_empty_state.pages.title");
   const emptyStateDescription = isWhiteboard
     ? "Create a whiteboard to sketch ideas, flows, and project plans."
@@ -63,8 +65,12 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
 
     const payload: Partial<TPage> = {
       access:
-        contentType === "doc" ? EPageAccess.PRIVATE : pageType === "private" ? EPageAccess.PRIVATE : EPageAccess.PUBLIC,
-      page_type: contentType,
+        primaryContentType === "doc"
+          ? EPageAccess.PRIVATE
+          : pageType === "private"
+            ? EPageAccess.PRIVATE
+            : EPageAccess.PUBLIC,
+      page_type: primaryContentType,
     };
 
     try {

@@ -117,15 +117,17 @@ export class UserStore implements IUserStore {
       });
       const user = await this.userService.currentUser();
       if (user && user?.id) {
+        runInAction(() => {
+          this.data = user;
+          this.isAuthenticated = true;
+        });
         await Promise.all([
           this.userProfile.fetchUserProfile(),
           this.userSettings.fetchCurrentUserSettings(),
           this.store.workspaceRoot.fetchWorkspaces(),
         ]);
         runInAction(() => {
-          this.data = user;
           this.isLoading = false;
-          this.isAuthenticated = true;
         });
       } else
         runInAction(() => {
@@ -138,6 +140,7 @@ export class UserStore implements IUserStore {
       runInAction(() => {
         this.isLoading = false;
         this.isAuthenticated = false;
+        this.data = undefined;
         this.error = {
           status: "user-fetch-error",
           message: "Failed to fetch current user",

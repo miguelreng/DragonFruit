@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { Temporal } from "@js-temporal/polyfill";
@@ -33,6 +33,7 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  RefreshCw,
   Trash2,
 } from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
@@ -40,8 +41,6 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Breadcrumbs, Header } from "@plane/ui";
 import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
-import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import {
   CalendarService,
@@ -53,6 +52,12 @@ import {
 
 const calendarService = new CalendarService();
 const TASKS_CALENDAR_ID = "tasks";
+const CreateUpdateIssueModal = lazy(() =>
+  import("@/components/issues/issue-modal/modal").then((module) => ({ default: module.CreateUpdateIssueModal }))
+);
+const IssuePeekOverview = lazy(() =>
+  import("@/components/issues/peek-overview").then((module) => ({ default: module.IssuePeekOverview }))
+);
 type TGoogleCalendarSource = {
   id: string;
   account: TCalendarAccount;
@@ -238,6 +243,7 @@ export function CalendarRoot() {
     start_date: string;
     target_date: string;
   } | null>(null);
+  const [hasOpenedIssuePeek, setHasOpenedIssuePeek] = useState(false);
 
   // Google: optional overlay.
   const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>("CALENDAR_ACCOUNTS", () =>
@@ -323,6 +329,7 @@ export function CalendarRoot() {
     data: googleEvents = [],
     error: googleEventsError,
     isLoading: isLoadingGoogleEvents,
+    mutate: refetchGoogleEvents,
   } = useSWR<TCalendarEventWithSource[]>(
     visibleGoogleSources.length > 0
       ? `CALENDAR_EVENTS_${taskRange.from}_${taskRange.to}_${visibleGoogleSources.map((source) => source.id).join("_")}`
@@ -391,6 +398,7 @@ export function CalendarRoot() {
     const now = new Date();
     return `${now.toLocaleString("en-US", { month: "long" })} ${now.getFullYear()}`;
   });
+  const [isRefreshingCalendar, setIsRefreshingCalendar] = useState(false);
 
   // Keep the latest setQuickAddDate accessible from the (one-time) Schedule-X
   // callbacks closure — we don't want to recreate the calendar on every render.
@@ -399,7 +407,10 @@ export function CalendarRoot() {
   // Same trick for the task peek handler — the closure inside createCalendar
   // captures the *first* render's setPeekIssue, so we route through a ref.
   const openTaskPeekRef = useRef<(payload: { projectId: string; taskId: string }) => void>(() => {});
-  openTaskPeekRef.current = ({ projectId, taskId }) => setPeekIssue({ workspaceSlug, projectId, issueId: taskId });
+  openTaskPeekRef.current = ({ projectId, taskId }) => {
+    setHasOpenedIssuePeek(true);
+    setPeekIssue({ workspaceSlug, projectId, issueId: taskId });
+  };
 
   const calendarApp = useMemo(
     () =>
@@ -463,6 +474,26 @@ export function CalendarRoot() {
     d.setMonth(d.getMonth() + delta);
     handleSetDate(d);
   };
+  const handleRefreshCalendar = useCallback(async () => {
+    if (isRefreshingCalendar) return;
+    setIsRefreshingCalendar(true);
+    try {
+      await Promise.all([refetchTasks(), refetchGoogleEvents()]);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Calendar refreshed",
+      });
+    } catch (err) {
+      console.error("Could not refresh calendar", err);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't refresh calendar",
+        message: "Try again in a moment.",
+      });
+    } finally {
+      setIsRefreshingCalendar(false);
+    }
+  }, [isRefreshingCalendar, refetchGoogleEvents, refetchTasks]);
 
   useEffect(() => {
     if (!eventsService) return;
@@ -492,6 +523,8 @@ export function CalendarRoot() {
             onToday={handleToday}
             onPrev={() => handleStep(-1)}
             onNext={() => handleStep(1)}
+            onRefresh={handleRefreshCalendar}
+            isRefreshing={isRefreshingCalendar}
           />
         }
       />
@@ -502,30 +535,36 @@ export function CalendarRoot() {
       {/* Click-a-day → quick-create task. The existing CreateUpdateIssueModal
           handles project selection, validation, and submit; we just preload
           the date the user clicked into. */}
-      <CreateUpdateIssueModal
-        isOpen={quickAddDate !== null}
-        onClose={() => {
-          setQuickAddDate(null);
-          setQuickAddSeed(null);
-        }}
-        onSubmit={async () => {
-          await refetchTasks();
-          setQuickAddSeed(null);
-        }}
-        data={
-          quickAddSeed
-            ? quickAddSeed
-            : quickAddDate
-              ? {
-                  start_date: quickAddDate,
-                  target_date: quickAddDate,
-                }
-              : undefined
-        }
-      />
+      {quickAddDate !== null && (
+        <Suspense fallback={null}>
+          <CreateUpdateIssueModal
+            isOpen
+            onClose={() => {
+              setQuickAddDate(null);
+              setQuickAddSeed(null);
+            }}
+            onSubmit={async () => {
+              await refetchTasks();
+              setQuickAddSeed(null);
+            }}
+            data={
+              quickAddSeed
+                ? quickAddSeed
+                : {
+                    start_date: quickAddDate,
+                    target_date: quickAddDate,
+                  }
+            }
+          />
+        </Suspense>
+      )}
       {/* Click-a-task → open the standard peek-overview drawer. The store
           is global, so a single mount is enough for the whole calendar. */}
-      <IssuePeekOverview />
+      {hasOpenedIssuePeek && (
+        <Suspense fallback={null}>
+          <IssuePeekOverview />
+        </Suspense>
+      )}
     </>
   );
 }
@@ -546,6 +585,8 @@ type CalendarPageHeaderProps = {
   onToday: () => void;
   onPrev: () => void;
   onNext: () => void;
+  onRefresh: () => void | Promise<void>;
+  isRefreshing: boolean;
 };
 
 function CalendarPageHeader({
@@ -564,6 +605,8 @@ function CalendarPageHeader({
   onToday,
   onPrev,
   onNext,
+  onRefresh,
+  isRefreshing,
 }: CalendarPageHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const hasGoogleAccounts = googleAccounts.length > 0;
@@ -655,6 +698,17 @@ function CalendarPageHeader({
         </div>
         <span className="px-1 text-13 font-medium text-primary">{visibleMonth}</span>
         <span className="bg-subtle mx-1 h-5 w-px" aria-hidden />
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          aria-label="Refresh calendar events"
+          title="Refresh calendar events"
+        >
+          <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          {isRefreshing ? "Refreshing" : "Refresh"}
+        </Button>
         <Button
           variant="secondary"
           size="lg"

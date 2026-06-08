@@ -36,6 +36,7 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
   // router
   const router = useAppRouter();
   const { workspaceSlug, workItem } = params;
+  const workspaceSlugString = workspaceSlug.toString();
   // hooks
   const { resolvedTheme } = useTheme();
   // store hooks
@@ -54,7 +55,7 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
   // fetching issue details
   const { data, isLoading, error } = useSWR<TIssue, Error>(
     `ISSUE_DETAIL_${workspaceSlug}_${projectIdentifier}_${sequence_id}`,
-    () => fetchIssueWithIdentifier(workspaceSlug.toString(), projectIdentifier, sequence_id)
+    () => fetchIssueWithIdentifier(workspaceSlugString, projectIdentifier, sequence_id)
   );
 
   // derived values
@@ -68,7 +69,7 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
 
   useWorkItemProperties(
     projectId,
-    workspaceSlug.toString(),
+    workspaceSlugString,
     issueId,
     issue?.is_epic ? EIssueServiceType.EPICS : EIssueServiceType.ISSUES
   );
@@ -93,18 +94,28 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
     }
   }, [workspaceSlug, data, router]);
 
+  const workItemNotFoundEmptyState = (
+    <EmptyState
+      image={resolvedTheme === "dark" ? emptyIssueDark : emptyIssueLight}
+      title={t("issue.empty_state.issue_detail.title")}
+      description={t("issue.empty_state.issue_detail.description")}
+      primaryButton={{
+        text: t("issue.empty_state.issue_detail.primary_button.text"),
+        onClick: () => router.push(`/${workspaceSlug}/`),
+      }}
+    />
+  );
+
   if (error && !isLoading) {
-    return (
-      <EmptyState
-        image={resolvedTheme === "dark" ? emptyIssueDark : emptyIssueLight}
-        title={t("issue.empty_state.issue_detail.title")}
-        description={t("issue.empty_state.issue_detail.description")}
-        primaryButton={{
-          text: t("issue.empty_state.issue_detail.primary_button.text"),
-          onClick: () => router.push(`/${workspaceSlug}/`),
-        }}
-      />
-    );
+    if (projectId) {
+      return (
+        <ProjectAuthWrapper workspaceSlug={workspaceSlugString} projectId={projectId.toString()}>
+          {workItemNotFoundEmptyState}
+        </ProjectAuthWrapper>
+      );
+    }
+
+    return workItemNotFoundEmptyState;
   }
 
   if (issueLoader) {
@@ -130,9 +141,9 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
     <>
       <PageHead title={pageTitle} />
       {workspaceSlug && projectId && issueId && (
-        <ProjectAuthWrapper workspaceSlug={workspaceSlug} projectId={projectId}>
+        <ProjectAuthWrapper workspaceSlug={workspaceSlugString} projectId={projectId}>
           <WorkItemDetailRoot
-            workspaceSlug={workspaceSlug.toString()}
+            workspaceSlug={workspaceSlugString}
             projectId={projectId.toString()}
             issueId={issueId.toString()}
             issue={issue}

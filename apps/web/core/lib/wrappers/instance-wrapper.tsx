@@ -12,7 +12,6 @@ import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { InstanceNotReady, MaintenanceView } from "@/components/instance";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
-import { useMinimumLoaderDuration } from "@/hooks/use-minimum-loader-duration";
 
 type TInstanceWrapper = {
   children: ReactNode;
@@ -29,8 +28,7 @@ const InstanceWrapper = observer(function InstanceWrapper(props: TInstanceWrappe
     { revalidateOnFocus: false }
   );
 
-  // loading state — pin loader so the painting + entrance animation are seen
-  const showLoader = useMinimumLoaderDuration((isLoading || isInstanceSWRLoading) && !instance, 2400);
+  const showLoader = (isLoading || isInstanceSWRLoading) && !instance;
   if (showLoader) return <AppLoadingScreen />;
 
   if (instanceSWRError) return <MaintenanceView />;

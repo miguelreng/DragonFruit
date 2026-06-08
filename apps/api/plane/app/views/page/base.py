@@ -5,6 +5,7 @@
 # Python imports
 import json
 import os
+from copy import deepcopy
 from datetime import datetime
 from django.core.serializers.json import DjangoJSONEncoder
 
@@ -54,7 +55,7 @@ from ..base import BaseAPIView, BaseViewSet
 from plane.bgtasks.page_transaction_task import page_transaction
 from plane.bgtasks.page_version_task import track_page_version
 from plane.bgtasks.recent_visited_task import recent_visited_task
-from plane.bgtasks.copy_s3_object import copy_s3_objects_of_description_and_assets
+from plane.bgtasks.copy_s3_object import copy_assets, copy_s3_objects_of_description_and_assets
 from plane.bgtasks.landing_deploy_task import trigger_landing_deploy
 from plane.app.permissions import ProjectPagePermission
 from plane.utils.exception_logger import log_exception
@@ -96,6 +97,32 @@ def unarchive_archive_page_and_descendants(page_id, archived_at):
     # Execute the SQL query
     with connection.cursor() as cursor:
         cursor.execute(sql, [page_id, archived_at])
+
+
+def duplicate_pdf_asset_for_page(page, source_view_props, project_id, user_id):
+    if page.page_type != Page.PAGE_TYPE_PDF or not isinstance(source_view_props, dict):
+        return
+
+    source_pdf = source_view_props.get("pdf")
+    if not isinstance(source_pdf, dict):
+        return
+
+    source_asset_id = source_pdf.get("asset_id")
+    if not source_asset_id:
+        return
+
+    duplicated_assets = copy_assets(page, page.id, project_id, [source_asset_id], user_id)
+    if not duplicated_assets:
+        return
+
+    next_view_props = deepcopy(source_view_props)
+    next_view_props["pdf"] = {
+        **source_pdf,
+        "asset_id": duplicated_assets[0]["new_asset_id"],
+        "project_id": str(project_id),
+    }
+    Page.objects.filter(pk=page.id).update(view_props=next_view_props)
+    page.view_props = next_view_props
 
 
 class PageViewSet(BaseViewSet):
@@ -643,6 +670,8 @@ class PageDuplicateEndpoint(BaseAPIView):
 
         # get all the project ids where page is present
         project_ids = ProjectPage.objects.filter(page_id=page_id).values_list("project_id", flat=True)
+        source_project_id = project_id
+        source_view_props = deepcopy(page.view_props)
 
         page.pk = None
         page.name = f"{page.name} (Copy)"
@@ -652,14 +681,16 @@ class PageDuplicateEndpoint(BaseAPIView):
         page.updated_by = request.user
         page.save()
 
-        for project_id in project_ids:
+        for linked_project_id in project_ids:
             ProjectPage.objects.create(
                 workspace_id=page.workspace_id,
-                project_id=project_id,
+                project_id=linked_project_id,
                 page_id=page.id,
                 created_by_id=page.created_by_id,
                 updated_by_id=page.updated_by_id,
             )
+
+        duplicate_pdf_asset_for_page(page, source_view_props, source_project_id, request.user.id)
 
         page_transaction.delay(
             new_description_html=page.description_html,
@@ -671,7 +702,7 @@ class PageDuplicateEndpoint(BaseAPIView):
         copy_s3_objects_of_description_and_assets.delay(
             entity_name="PAGE",
             entity_identifier=page.id,
-            project_id=project_id,
+            project_id=source_project_id,
             slug=slug,
             user_id=request.user.id,
         )
@@ -698,7 +729,7 @@ class WorkspacePagesListEndpoint(BaseAPIView):
     is either public or owned by the user. Annotates `project_ids` so the
     frontend can filter by project without an extra round trip.
 
-    Accepts `?page_type=<doc|whiteboard>` to scope to a single type.
+    Accepts `?page_type=<doc|whiteboard|pdf>` to scope to a single type.
     """
 
     ALLOWED_PAGE_TYPES = {choice[0] for choice in Page.PAGE_TYPE_CHOICES}

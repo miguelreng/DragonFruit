@@ -14,6 +14,7 @@ import { EUserProjectRoles } from "@plane/types";
 // helpers
 import { filterPagesByPageType, getPageName, orderPages, shouldFilterPage } from "@plane/utils";
 // plane web constants
+import { isBriefPageName } from "@/components/project/brief/constants";
 // plane web store
 import type { RootStore } from "@/plane-web/store/root.store";
 // services
@@ -26,6 +27,12 @@ import { ProjectPage } from "./project-page";
 type TLoader = "init-loader" | "mutation-loader" | undefined;
 
 type TError = { title: string; description: string };
+
+const matchesContentType = (page: TPage, contentType?: TPageType, contentTypes?: TPageType[]) => {
+  if (contentTypes && contentTypes.length > 0) return contentTypes.includes(page.page_type ?? "doc");
+  if (contentType) return page.page_type === contentType;
+  return true;
+};
 
 export const ROLE_PERMISSIONS_TO_CREATE_PAGE = [
   EUserPermissions.ADMIN,
@@ -44,11 +51,16 @@ export interface IProjectPageStore {
   isAnyPageAvailable: boolean;
   canCurrentUserCreatePage: boolean;
   // helper actions
-  getCurrentProjectPageIdsByTab: (pageType: TPageNavigationTabs, contentType?: TPageType) => string[] | undefined;
+  getCurrentProjectPageIdsByTab: (
+    pageType: TPageNavigationTabs,
+    contentType?: TPageType,
+    contentTypes?: TPageType[]
+  ) => string[] | undefined;
   getCurrentProjectPageIds: (projectId: string) => string[];
   getCurrentProjectFilteredPageIdsByTab: (
     pageType: TPageNavigationTabs,
-    contentType?: TPageType
+    contentType?: TPageType,
+    contentTypes?: TPageType[]
   ) => string[] | undefined;
   getPageById: (pageId: string) => TProjectPage | undefined;
   updateFilters: <T extends keyof TPageFilters>(filterKey: T, filterValue: TPageFilters[T]) => void;
@@ -58,7 +70,8 @@ export interface IProjectPageStore {
     workspaceSlug: string,
     projectId: string,
     pageType?: TPageNavigationTabs,
-    contentType?: TPageType
+    contentType?: TPageType,
+    contentTypes?: TPageType[]
   ) => Promise<TPage[] | undefined>;
   fetchPageDetails: (
     workspaceSlug: string,
@@ -142,19 +155,21 @@ export class ProjectPageStore implements IProjectPageStore {
    * @description get the current project page ids based on the pageType
    * @param {TPageNavigationTabs} pageType
    */
-  getCurrentProjectPageIdsByTab = computedFn((pageType: TPageNavigationTabs, contentType?: TPageType) => {
-    const { projectId } = this.store.router;
-    if (!projectId) return undefined;
-    // helps to filter pages based on the pageType
-    let pagesByType = filterPagesByPageType(pageType, Object.values(this?.data || {}));
-    pagesByType = pagesByType.filter(
-      (p) => p.project_ids?.includes(projectId) && (!contentType || p.page_type === contentType)
-    );
+  getCurrentProjectPageIdsByTab = computedFn(
+    (pageType: TPageNavigationTabs, contentType?: TPageType, contentTypes?: TPageType[]) => {
+      const { projectId } = this.store.router;
+      if (!projectId) return undefined;
+      // helps to filter pages based on the pageType
+      let pagesByType = filterPagesByPageType(pageType, Object.values(this?.data || {}));
+      pagesByType = pagesByType.filter(
+        (p) => p.project_ids?.includes(projectId) && matchesContentType(p, contentType, contentTypes)
+      );
 
-    const pages = (pagesByType.map((page) => page.id) as string[]) || undefined;
+      const pages = (pagesByType.map((page) => page.id) as string[]) || undefined;
 
-    return pages ?? undefined;
-  });
+      return pages ?? undefined;
+    }
+  );
 
   /**
    * @description get the current project page ids
@@ -170,25 +185,27 @@ export class ProjectPageStore implements IProjectPageStore {
    * @description get the current project filtered page ids based on the pageType
    * @param {TPageNavigationTabs} pageType
    */
-  getCurrentProjectFilteredPageIdsByTab = computedFn((pageType: TPageNavigationTabs, contentType?: TPageType) => {
-    const { projectId } = this.store.router;
-    if (!projectId) return undefined;
+  getCurrentProjectFilteredPageIdsByTab = computedFn(
+    (pageType: TPageNavigationTabs, contentType?: TPageType, contentTypes?: TPageType[]) => {
+      const { projectId } = this.store.router;
+      if (!projectId) return undefined;
 
-    // helps to filter pages based on the pageType
-    const pagesByType = filterPagesByPageType(pageType, Object.values(this?.data || {}));
-    let filteredPages = pagesByType.filter(
-      (p) =>
-        p.project_ids?.includes(projectId) &&
-        (!contentType || p.page_type === contentType) &&
-        getPageName(p.name).toLowerCase().includes(this.filters.searchQuery.toLowerCase()) &&
-        shouldFilterPage(p, this.filters.filters)
-    );
-    filteredPages = orderPages(filteredPages, this.filters.sortKey, this.filters.sortBy);
+      // helps to filter pages based on the pageType
+      const pagesByType = filterPagesByPageType(pageType, Object.values(this?.data || {}));
+      let filteredPages = pagesByType.filter(
+        (p) =>
+          p.project_ids?.includes(projectId) &&
+          matchesContentType(p, contentType, contentTypes) &&
+          getPageName(p.name).toLowerCase().includes(this.filters.searchQuery.toLowerCase()) &&
+          shouldFilterPage(p, this.filters.filters)
+      );
+      filteredPages = orderPages(filteredPages, this.filters.sortKey, this.filters.sortBy);
 
-    const pages = (filteredPages.map((page) => page.id) as string[]) || undefined;
+      const pages = (filteredPages.map((page) => page.id) as string[]) || undefined;
 
-    return pages ?? undefined;
-  });
+      return pages ?? undefined;
+    }
+  );
 
   /**
    * @description get the page store by id
@@ -217,18 +234,23 @@ export class ProjectPageStore implements IProjectPageStore {
     workspaceSlug: string,
     projectId: string,
     pageType?: TPageNavigationTabs,
-    contentType?: TPageType
+    contentType?: TPageType,
+    contentTypes?: TPageType[]
   ) => {
     try {
       if (!workspaceSlug || !projectId) return undefined;
 
-      const currentPageIds = pageType ? this.getCurrentProjectPageIdsByTab(pageType, contentType) : undefined;
+      const currentPageIds = pageType
+        ? this.getCurrentProjectPageIdsByTab(pageType, contentType, contentTypes)
+        : undefined;
       runInAction(() => {
         this.loader = currentPageIds && currentPageIds.length > 0 ? `mutation-loader` : `init-loader`;
         this.error = undefined;
       });
 
-      const pages = await this.service.fetchAll(workspaceSlug, projectId, contentType);
+      const requestContentType =
+        contentTypes && contentTypes.length > 1 ? undefined : (contentType ?? contentTypes?.[0]);
+      const pages = await this.service.fetchAll(workspaceSlug, projectId, requestContentType);
       runInAction(() => {
         for (const page of pages) {
           if (page?.id) {
@@ -340,12 +362,17 @@ export class ProjectPageStore implements IProjectPageStore {
    * @description delete a page
    * @param {string} pageId
    */
-  removePage = async ({ pageId, shouldSync: _shouldSync = true }: { pageId: string; shouldSync?: boolean }) => {
+  removePage = async ({ pageId, shouldSync = true }: { pageId: string; shouldSync?: boolean }) => {
     try {
       const { workspaceSlug, projectId } = this.store.router;
       if (!workspaceSlug || !projectId || !pageId) return undefined;
 
-      await this.service.remove(workspaceSlug, projectId, pageId);
+      const page = this.data[pageId];
+      if (shouldSync && page?.page_type === "doc" && isBriefPageName(page.name)) {
+        throw new Error("Project briefs can't be deleted.");
+      }
+
+      if (shouldSync) await this.service.remove(workspaceSlug, projectId, pageId);
       runInAction(() => {
         unset(this.data, [pageId]);
         if (this.rootStore.favorite.entityMap[pageId]) this.rootStore.favorite.removeFavoriteFromStore(pageId);

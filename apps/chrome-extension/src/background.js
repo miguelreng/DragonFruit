@@ -800,6 +800,11 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               --icon-secondary: oklch(0.4377 0.0066 230.87);
               --success: oklch(0.632 0.185972 147.3695);
               --danger: oklch(0.583 0.238666 28.4765);
+              --motion-fast-dur: 150ms;
+              --motion-control-dur: 200ms;
+              --motion-toast-dur: 500ms;
+              --motion-standard-ease: cubic-bezier(0.22, 1, 0.36, 1);
+              --motion-control-ease: ease-in-out;
               --shadow: 0px 10px 10px -10px #292f3d0a, 0px 30px 60px -12px #292f3d1a;
               position: fixed;
               right: 12px;
@@ -841,7 +846,9 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               box-shadow: var(--shadow);
               transform: translateY(-150%);
               opacity: 0;
-              transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+              transition:
+                opacity var(--motion-toast-dur) var(--motion-standard-ease),
+                transform var(--motion-toast-dur) var(--motion-standard-ease);
               pointer-events: auto;
             }
             .toast[data-visible="true"] {
@@ -895,7 +902,9 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               color: var(--icon-tertiary);
               cursor: pointer;
               opacity: 0;
-              transition: opacity 0.2s ease, color 0.15s ease;
+              transition:
+                opacity var(--motion-control-dur) var(--motion-control-ease),
+                color var(--motion-fast-dur) var(--motion-control-ease);
             }
             .toast:hover .close {
               opacity: 1;
@@ -921,14 +930,16 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               cursor: pointer;
               font: 500 0.8125rem/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
               letter-spacing: calc(0.01 * 0.8125rem);
-              transition: color 0.15s ease, border-color 0.15s ease;
+              transition:
+                color var(--motion-fast-dur) var(--motion-control-ease),
+                border-color var(--motion-fast-dur) var(--motion-control-ease);
             }
             .action:hover {
               border-color: var(--border-subtle-1);
               color: var(--text-primary);
             }
             @media (prefers-reduced-motion: reduce) {
-              .toast { transition: opacity 0.2s ease; transform: none; }
+              .toast { transition: opacity var(--motion-control-dur) var(--motion-control-ease); transform: none; }
               .toast[data-visible="true"] { transform: none; }
             }
           </style>

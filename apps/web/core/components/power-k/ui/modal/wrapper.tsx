@@ -130,30 +130,30 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
         {/* Backdrop */}
         <Transition.Child
           as={React.Fragment}
-          enter="ease-out duration-300"
+          enter="transition-opacity duration-[var(--motion-control-dur)] ease-[var(--motion-standard-ease)]"
           enterFrom="opacity-0"
           enterTo="opacity-100"
-          leave="ease-in duration-200"
+          leave="transition-opacity duration-[var(--motion-fast-dur)] ease-[var(--motion-control-ease)]"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-backdrop transition-opacity" />
+          <div className="fixed inset-0 bg-backdrop" />
         </Transition.Child>
         {/* Modal Container */}
         <div className="fixed inset-0 z-30 overflow-y-auto">
           <div className="flex items-center justify-center p-4 sm:p-6 md:p-20">
             <Transition.Child
               as={React.Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enter=""
+              enterFrom=""
+              enterTo="is-open"
+              leave=""
+              leaveFrom="is-open"
+              leaveTo="is-closing"
             >
               <Dialog.Panel
                 data-theme={surfaceTheme}
-                className="divide-opacity-10 t-modal is-open relative flex w-full max-w-2xl transform flex-col items-center justify-center divide-y divide-subtle-1 rounded-[18px] border-[0.5px] border-strong bg-surface-1 text-primary shadow-raised-200 transition-all"
+                className="divide-opacity-10 t-modal relative flex w-full max-w-2xl transform flex-col items-center justify-center divide-y divide-subtle-1 rounded-[18px] border-[0.5px] border-strong bg-surface-1 text-primary shadow-raised-200"
               >
                 <Command
                   filter={(i18nValue: string, search: string) => {

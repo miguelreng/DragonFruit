@@ -1171,6 +1171,15 @@ def _fallback_tool_confirmation(result) -> str:
     return ""
 
 
+def _successful_tool_confirmation(result, tool_name: str) -> str:
+    for tool_call in reversed(result.tool_calls):
+        if tool_call.get("name") != tool_name:
+            continue
+        if str(tool_call.get("result") or "").startswith("ok:"):
+            return _tool_call_confirmation(tool_call)
+    return ""
+
+
 def _tool_call_confirmation(tool_call: dict) -> str:
     tool_result = tool_call.get("result") or ""
     if not tool_result.startswith("ok:"):
@@ -1412,6 +1421,7 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
 
         document_markdown = str(request.data.get("document_markdown") or "")[:40_000]
         selection_text = str(request.data.get("selection_text") or "")[:8_000]
+        context_note = str(request.data.get("context_note") or "").strip()[:12_000]
         blocks = _document_blocks_from_json(request.data.get("document_json"))
         agent = session.agent
 
@@ -1444,6 +1454,13 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                     f"Intent: {intent}",
                     f"User request:\n{content}",
                     f"Selected text:\n{selection_text}" if selection_text else "",
+                    (
+                        "Private Atlas context (do not quote this block unless the user asks):\n"
+                        f"{context_note}\n\n"
+                        "Use this context only to resolve references and improve grounding."
+                    )
+                    if context_note
+                    else "",
                     f"Document blocks with stable ids:\n{block_context}" if block_context else "",
                     f"Document markdown:\n{document_markdown}" if document_markdown else "",
                 ]
@@ -1858,10 +1875,13 @@ class AgentChatMessageEndpoint(BaseAPIView):
             result.tool_calls.append(tool_call)
             fallback_tool_call = tool_call
 
+        successful_document_confirmation = (
+            _successful_tool_confirmation(result, "create_document") if is_document_request else ""
+        )
         assistant_content = (
             _tool_call_confirmation(fallback_tool_call)
             if fallback_tool_call is not None
-            else (result.final_text or "").strip() or _fallback_tool_confirmation(result)
+            else successful_document_confirmation or (result.final_text or "").strip() or _fallback_tool_confirmation(result)
         )
         cost = estimate_cost_usd(
             agent.provider_model or "",

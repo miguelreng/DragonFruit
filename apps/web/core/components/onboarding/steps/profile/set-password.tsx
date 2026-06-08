@@ -83,23 +83,27 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
 
   const chevronIconClasses = useMemo(
     () =>
-      `w-4 h-4 text-placeholder transition-transform duration-300 ease-in-out ${isExpanded ? "rotate-180" : "rotate-0"}`,
+      `w-4 h-4 text-placeholder transition-transform duration-[var(--motion-control-dur)] ease-[var(--motion-control-ease)] ${
+        isExpanded ? "rotate-180" : "rotate-0"
+      }`,
     [isExpanded]
   );
 
   const expandedContentClasses = useMemo(
     () =>
-      `flex flex-col gap-4 transition-all duration-300 ease-in-out overflow-hidden px-3 ${
+      `flex flex-col gap-4 transition-[max-height,opacity] duration-[var(--resize-dur)] ease-[var(--resize-ease)] overflow-hidden px-3 ${
         isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
       }`,
     [isExpanded]
   );
 
   return (
-    <div className="t-resize flex flex-col overflow-hidden rounded-lg bg-surface-2 transition-all duration-300 ease-in-out">
-      <div
+    <div className="t-resize t-colors flex flex-col overflow-hidden rounded-lg bg-surface-2">
+      <button
+        type="button"
+        disabled={disabled}
         className={cn(
-          "flex items-center justify-between px-3 py-2 text-13 transition-colors duration-200",
+          "t-colors flex w-full items-center justify-between px-3 py-2 text-left text-13",
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
           isExpanded && "pb-1"
         )}
@@ -113,31 +117,30 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
         <div className="flex items-center gap-2 text-placeholder">
           <ChevronDownIcon className={chevronIconClasses} />
         </div>
-      </div>
+      </button>
 
       <div className={`t-resize ${expandedContentClasses}`}>
         {/* Password input */}
-        <div className="flex transform flex-col gap-2 pt-1 transition-all duration-300 ease-in-out">
+        <div className="flex transform flex-col gap-2 pt-1 transition-[opacity,transform] duration-[var(--resize-dur)] ease-[var(--resize-ease)]">
           <PasswordInput
             id="password"
             value={passwordState.password}
             onChange={(value) => handlePasswordChange("password", value)}
             placeholder="Set a password"
-            className="transition-all duration-200"
           />
           {passwordState.password.length > 0 && <PasswordStrengthIndicator password={passwordState.password} />}
         </div>
 
         <div className="flex flex-col gap-2 pb-2">
           {/* Confirm password label */}
-          <div className="transform text-13 font-medium text-tertiary transition-all delay-75 duration-300 ease-in-out">
+          <div className="transform text-13 font-medium text-tertiary transition-[opacity,transform] delay-75 duration-[var(--resize-dur)] ease-[var(--resize-ease)]">
             Confirm password
           </div>
 
           {/* Confirm password input */}
           <div
             className={cn(
-              "t-input-wrap transform transition-all delay-100 duration-300 ease-in-out",
+              "t-input-wrap transform transition-[opacity,transform] delay-100 duration-[var(--resize-dur)] ease-[var(--resize-ease)]",
               hasPasswordMismatch && "is-error"
             )}
           >
@@ -147,11 +150,7 @@ export function SetPasswordRoot({ onPasswordChange, onConfirmPasswordChange, dis
               onChange={(value) => handlePasswordChange("confirmPassword", value)}
               placeholder="Confirm password"
               error={hasPasswordMismatch}
-              className={cn(
-                "t-input transition-all duration-200",
-                hasPasswordMismatch && "is-error",
-                isConfirmShaking && "is-shaking"
-              )}
+              className={cn("t-input", hasPasswordMismatch && "is-error", isConfirmShaking && "is-shaking")}
             />
             <p className="t-error-msg mt-1 text-11 text-danger-primary">Passwords do not match</p>
             {isPasswordValid && <p className="mt-1 text-11 text-success-primary">✓ Passwords match</p>}

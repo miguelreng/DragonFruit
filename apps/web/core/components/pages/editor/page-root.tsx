@@ -26,7 +26,7 @@ import { PageVersionsOverlay } from "../version";
 import { PagesVersionEditor } from "../version/editor";
 import { ContentLimitBanner } from "./content-limit-banner";
 import type { TEditorBodyConfig, TEditorBodyHandlers } from "./editor-body";
-import { EditorFallback, ExcalidrawEditor, PageEditorBody } from "./editor-surfaces";
+import { EditorFallback, ExcalidrawEditor, PageEditorBody, PdfPageViewer } from "./editor-surfaces";
 import { PageEditorToolbarRoot } from "./toolbar";
 
 export type TPageRootHandlers = {
@@ -178,7 +178,7 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
 
   // Doc pages keep the rich-text toolbar. The right-hand navigation pane is
   // intentionally disabled in this app, but the formatting toolbar remains.
-  const shouldShowToolbar = page.page_type !== "whiteboard" && !chromeless;
+  const shouldShowToolbar = page.page_type === "doc" && !chromeless;
   const shouldShowNavigationPane = false;
 
   return (
@@ -205,6 +205,8 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
         <Suspense fallback={<EditorFallback />}>
           {page.page_type === "whiteboard" ? (
             <ExcalidrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+          ) : page.page_type === "pdf" ? (
+            <PdfPageViewer page={page} projectId={projectId} workspaceSlug={workspaceSlug} />
           ) : (
             <PageEditorBody
               config={config}

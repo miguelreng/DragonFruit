@@ -7,7 +7,7 @@
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 
-export const badgeVariants = cva("inline-flex items-center justify-center gap-1 whitespace-nowrap transition-colors", {
+export const badgeVariants = cva("t-colors inline-flex items-center justify-center gap-1 whitespace-nowrap", {
   variants: {
     variant: {
       neutral: "bg-layer-3 text-tertiary",

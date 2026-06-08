@@ -10,9 +10,21 @@ import type { TPageExtended } from "./extended";
 
 /**
  * Page sub-type. "doc" is the collaborative rich-text editor;
- * "whiteboard" renders an Excalidraw canvas.
+ * "whiteboard" renders an Excalidraw canvas; "pdf" renders an uploaded PDF.
  */
-export type TPageType = "doc" | "whiteboard";
+export type TPageType = "doc" | "whiteboard" | "pdf";
+
+export type TPagePdfViewProps = {
+  asset_id: string;
+  project_id: string;
+  name: string;
+  size: number;
+  mime_type: "application/pdf";
+};
+
+export type TPageViewProps = Record<string, unknown> & {
+  pdf?: TPagePdfViewProps;
+};
 
 export type TPage = {
   access: EPageAccess | undefined;
@@ -45,7 +57,7 @@ export type TPage = {
    * a JSONField on the API. Keep this loose so new keys can be added without
    * coordinating types across the FE/BE.
    */
-  view_props?: Record<string, unknown> | undefined;
+  view_props?: TPageViewProps | undefined;
   deleted_at: Date | undefined;
 } & TPageExtended;
 

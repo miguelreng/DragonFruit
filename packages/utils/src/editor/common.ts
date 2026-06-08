@@ -43,6 +43,21 @@ export const getEditorAssetDownloadSrc = (args: TEditorSrcArgs): string | undefi
   return url;
 };
 
+/**
+ * @description generate an authenticated inline file source using assetId
+ * @param {TEditorSrcArgs} args
+ */
+export const getEditorAssetInlineSrc = (args: TEditorSrcArgs): string | undefined => {
+  const { assetId, projectId, workspaceSlug } = args;
+  let url: string | undefined = "";
+  if (projectId) {
+    url = getFileURL(`/api/assets/v2/workspaces/${workspaceSlug}/projects/${projectId}/${assetId}/?disposition=inline`);
+  } else {
+    url = getFileURL(`/api/assets/v2/workspaces/${workspaceSlug}/${assetId}/?disposition=inline`);
+  }
+  return url;
+};
+
 export const getTextContent = (jsx: React.ReactNode | null | undefined): string => {
   if (!jsx) return "";
 

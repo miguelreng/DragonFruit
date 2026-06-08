@@ -4,6 +4,7 @@ import { useWindowDimensions, View } from "react-native";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { LoadingScreen } from "@/components/loading-screen";
+import { motion } from "@/lib/motion";
 import { useCalendarWidgetSync } from "@/lib/use-calendar-widget-sync";
 import { useSession } from "@/lib/session";
 import { radius } from "@/lib/theme";
@@ -61,8 +62,8 @@ export default function AppLayout() {
           borderBottomRightRadius: radius.lg,
         },
         // Dim scrim over the covered content; tap it to close.
-        overlayColor: "rgba(0,0,0,0.4)",
-        swipeEdgeWidth: 48,
+        overlayColor: `rgba(0,0,0,${motion.drawer.overlayOpacity})`,
+        swipeEdgeWidth: motion.drawer.edgeWidth,
       }}
     />
   );

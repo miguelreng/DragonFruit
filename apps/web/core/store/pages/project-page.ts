@@ -11,6 +11,7 @@ import { EPageAccess, EUserPermissions } from "@plane/constants";
 import type { TPage } from "@plane/types";
 // plane web store
 import type { RootStore } from "@/plane-web/store/root.store";
+import { isBriefPageName } from "@/components/project/brief/constants";
 // services
 import { ProjectPageService } from "@/services/page";
 const projectPageService = new ProjectPageService();
@@ -92,6 +93,10 @@ export class ProjectPage extends BasePage implements TProjectPage {
     return highestRole;
   });
 
+  private get isProjectBrief() {
+    return this.page_type === "doc" && isBriefPageName(this.name);
+  }
+
   /**
    * @description returns true if the current logged in user can access the page
    */
@@ -140,6 +145,7 @@ export class ProjectPage extends BasePage implements TProjectPage {
    * @description returns true if the current logged in user can archive the page
    */
   get canCurrentUserArchivePage() {
+    if (this.isProjectBrief && !this.archived_at) return false;
     const highestRole = this.getHighestRoleAcrossProjects();
     return this.isCurrentUserOwner || highestRole === EUserPermissions.ADMIN;
   }
@@ -148,6 +154,7 @@ export class ProjectPage extends BasePage implements TProjectPage {
    * @description returns true if the current logged in user can delete the page
    */
   get canCurrentUserDeletePage() {
+    if (this.isProjectBrief) return false;
     const highestRole = this.getHighestRoleAcrossProjects();
     return this.isCurrentUserOwner || highestRole === EUserPermissions.ADMIN;
   }
@@ -164,6 +171,7 @@ export class ProjectPage extends BasePage implements TProjectPage {
    * @description returns true if the current logged in user can move the page
    */
   get canCurrentUserMovePage() {
+    if (this.isProjectBrief) return false;
     const highestRole = this.getHighestRoleAcrossProjects();
     return this.isCurrentUserOwner || highestRole === EUserPermissions.ADMIN;
   }

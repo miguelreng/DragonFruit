@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import MarkdownIt from "markdown-it";
 import type { EditorRefApi } from "@plane/editor";
-import { ChevronDown, Eraser, FileText, ListChecks, PenTool, Plus, Sparkles } from "@plane/icons";
+import { ChevronDown, Eraser, FileText, Link, ListChecks, PenTool, Plus, Sparkles, Whiteboard } from "@plane/icons";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { Loader } from "@plane/ui";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
@@ -21,6 +21,28 @@ import {
   type TAtlasDocWriteIntent,
   type TAtlasDocWriteMode,
 } from "@/services/agent-chat.service";
+import { BookmarkService } from "@/services/bookmark.service";
+import { IssueService } from "@/services/issue";
+import { ProjectPageService } from "@/services/page";
+import { WorkspaceService } from "@/services/workspace.service";
+import {
+  bookmarkToMentionedReference,
+  bookmarkToReferenceContextContent,
+  buildAtlasReferencesContext,
+  extractAtlasMentionTokens,
+  getAtlasMentionMatch,
+  getAtlasReferenceTypeLabel,
+  getAtlasPromptHighlightParts,
+  htmlToPlainText,
+  issueSearchResponseToMentionedReference,
+  issueToReferenceContextContent,
+  pageSearchResponseToMentionedReference,
+  referenceIdentity,
+  type TAtlasReferenceContextSource,
+  type TAtlasMentionedReference,
+  type TAtlasMentionMatch,
+  whiteboardJsonToPlainText,
+} from "./atlas-doc-mentions";
 
 type InvokeDetail = {
   paragraphText?: string;
@@ -44,6 +66,10 @@ type TDocChatMessage = {
 const createInitialMessages = (): TDocChatMessage[] => [];
 
 const agentChatService = new AgentChatService();
+const bookmarkService = new BookmarkService();
+const issueService = new IssueService();
+const projectPageService = new ProjectPageService();
+const workspaceService = new WorkspaceService();
 
 // Atlas streams its drafts as Markdown, but the editor's doc-review proposals are
 // inserted by parsing HTML. Convert the Markdown to HTML here so "# heading",
@@ -145,6 +171,47 @@ const parseResponsePills = (text: string, mode: TAIMode) => {
   return [];
 };
 
+const getAtlasReferenceIcon = (type: TAtlasMentionedReference["type"]) => {
+  switch (type) {
+    case "bookmark":
+      return Link;
+    case "task":
+      return ListChecks;
+    case "whiteboard":
+      return Whiteboard;
+    case "doc":
+    default:
+      return FileText;
+  }
+};
+
+type TAtlasReferenceContextOverrides = {
+  content: string;
+  details?: string[];
+  projectId?: string;
+  subtitle?: string;
+  title?: string;
+  type?: TAtlasMentionedReference["type"];
+  url?: string;
+  workspaceSlug?: string;
+};
+
+const buildAtlasReferenceContextSource = (
+  reference: TAtlasMentionedReference,
+  overrides: TAtlasReferenceContextOverrides
+): TAtlasReferenceContextSource => ({
+  content: overrides.content,
+  details: overrides.details,
+  id: reference.id,
+  insertText: reference.insertText,
+  projectId: overrides.projectId ?? reference.projectId,
+  subtitle: overrides.subtitle ?? reference.subtitle,
+  title: overrides.title ?? reference.title,
+  type: overrides.type ?? reference.type,
+  url: overrides.url ?? reference.url,
+  workspaceSlug: overrides.workspaceSlug ?? reference.workspaceSlug,
+});
+
 const mapChatMessageToDocMessage = (message: TAgentChatMessage): TDocChatMessage => {
   const content = message.error_message || message.content;
   const role = message.error_message ? "error" : message.role;
@@ -196,6 +263,7 @@ type TStreamDocReviewArgs = {
   pageId: string;
   projectId?: string;
   prompt: string;
+  contextNote?: string;
   selectionText?: string;
   sessionId: string;
   setMessages: Dispatch<SetStateAction<TDocChatMessage[]>>;
@@ -210,6 +278,7 @@ async function streamDocReview(args: TStreamDocReviewArgs) {
     pageId,
     projectId,
     prompt,
+    contextNote,
     selectionText,
     sessionId,
     setMessages,
@@ -239,6 +308,7 @@ async function streamDocReview(args: TStreamDocReviewArgs) {
         project_id: projectId,
         prompt,
         mode,
+        context_note: contextNote,
         intent,
         cursor_position: cursorPosition,
         selection_text: selectionText ?? activePageEditorRef.getSelectedText(),
@@ -343,6 +413,12 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
   const [isDrafting, setIsDrafting] = useState(false);
   // Two-step inline confirm for the destructive "clear conversation".
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [docMentionMatch, setDocMentionMatch] = useState<TAtlasMentionMatch | null>(null);
+  const [docMentionResults, setDocMentionResults] = useState<TAtlasMentionedReference[]>([]);
+  const [docMentionIndex, setDocMentionIndex] = useState(0);
+  const [isSearchingDocs, setIsSearchingDocs] = useState(false);
+  const [docMentionError, setDocMentionError] = useState<string | null>(null);
+  const [mentionedDocs, setMentionedDocs] = useState<TAtlasMentionedReference[]>([]);
   const detailRef = useRef<InvokeDetail>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -464,6 +540,97 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
     };
   }, [isDocPage, pageId, projectId, workspaceSlug]);
 
+  const searchMentionReferences = useCallback(
+    async (query: string) => {
+      if (!workspaceSlug || !projectId) return [];
+
+      let hadError = false;
+      const [entityResponse, bookmarkResponse] = await Promise.all([
+        workspaceService
+          .searchEntity(workspaceSlug, {
+            count: 8,
+            project_id: projectId,
+            query,
+            query_type: ["page", "issue"],
+          })
+          .catch(() => {
+            hadError = true;
+            return { issue: [], page: [] };
+          }),
+        bookmarkService.listProjectBookmarks(workspaceSlug, projectId, { query }).catch(() => {
+          hadError = true;
+          return { results: [] };
+        }),
+      ]);
+
+      const references = [
+        ...(entityResponse.issue ?? [])
+          .map(issueSearchResponseToMentionedReference)
+          .filter((reference): reference is TAtlasMentionedReference => !!reference),
+        ...(entityResponse.page ?? [])
+          .map(pageSearchResponseToMentionedReference)
+          .filter((reference): reference is TAtlasMentionedReference => !!reference),
+        ...(bookmarkResponse.results ?? [])
+          .slice(0, 8)
+          .map(bookmarkToMentionedReference)
+          .filter((reference): reference is TAtlasMentionedReference => !!reference),
+      ];
+
+      const uniqueReferences = references.filter(
+        (reference, index, list) =>
+          list.findIndex((entry) => referenceIdentity(entry) === referenceIdentity(reference)) === index
+      );
+      if (hadError && uniqueReferences.length === 0) throw new Error("Could not search references.");
+      return uniqueReferences.slice(0, 12);
+    },
+    [projectId, workspaceSlug]
+  );
+
+  useEffect(() => {
+    if (!workspaceSlug || !projectId || !docMentionMatch) {
+      setDocMentionResults([]);
+      setDocMentionError(null);
+      setIsSearchingDocs(false);
+      return;
+    }
+
+    let isActive = true;
+    setIsSearchingDocs(true);
+    setDocMentionError(null);
+
+    const handle = window.setTimeout(async () => {
+      const query = docMentionMatch.query.trim();
+      const fallbackQuery = query.replace(/[-_]+/g, " ").trim();
+
+      try {
+        let references = await searchMentionReferences(query);
+
+        if (references.length === 0 && fallbackQuery && fallbackQuery !== query) {
+          references = await searchMentionReferences(fallbackQuery);
+        }
+
+        if (!isActive) return;
+        setDocMentionResults(references);
+        setDocMentionIndex(0);
+      } catch {
+        if (!isActive) return;
+        setDocMentionResults([]);
+        setDocMentionError("Could not search references.");
+      } finally {
+        if (isActive) setIsSearchingDocs(false);
+      }
+    }, 180);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(handle);
+    };
+  }, [docMentionMatch, projectId, searchMentionReferences, workspaceSlug]);
+
+  useEffect(() => {
+    setMentionedDocs((current) => current.filter((doc) => prompt.includes(doc.insertText)));
+  }, [prompt]);
+
   const contextText = context.selectionText?.trim() || context.paragraphText?.trim() || "";
   const activeMode = AI_MODES.find((entry) => entry.id === mode) ?? AI_MODES[0]!;
   const ActiveModeIcon = activeMode.Icon;
@@ -474,12 +641,191 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
   const isWriteIntent =
     Boolean(activePageEditorRef) &&
     (isEditorWritingRequest(prompt.trim()) || Boolean(context.selectionText && isSelectionEditRequest(prompt.trim())));
+  const selectedDocMention = docMentionResults[docMentionIndex] ?? docMentionResults[0];
+  const isDocMentionPickerOpen = Boolean(
+    docMentionMatch &&
+    (isSearchingDocs || docMentionResults.length > 0 || docMentionError || docMentionMatch.query.trim())
+  );
+
+  const syncDocMentionMatch = useCallback((value: string, cursorPosition: number | null | undefined) => {
+    const nextMatch = getAtlasMentionMatch(value, cursorPosition);
+    setDocMentionMatch((current) => {
+      if (!current && !nextMatch) return current;
+      if (
+        current &&
+        nextMatch &&
+        current.from === nextMatch.from &&
+        current.to === nextMatch.to &&
+        current.query === nextMatch.query
+      )
+        return current;
+      return nextMatch;
+    });
+  }, []);
+
+  const insertDocMentionTrigger = useCallback(() => {
+    const textarea = textareaRef.current;
+    const selectionStart = textarea?.selectionStart ?? prompt.length;
+    const selectionEnd = textarea?.selectionEnd ?? selectionStart;
+    const needsLeadingSpace = selectionStart > 0 && !/\s/.test(prompt[selectionStart - 1] ?? "");
+    const insertText = needsLeadingSpace ? " @" : "@";
+    const nextPrompt = `${prompt.slice(0, selectionStart)}${insertText}${prompt.slice(selectionEnd)}`;
+    const nextCursor = selectionStart + insertText.length;
+
+    setPrompt(nextPrompt);
+    syncDocMentionMatch(nextPrompt, nextCursor);
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(nextCursor, nextCursor);
+    });
+  }, [prompt, syncDocMentionMatch]);
+
+  const selectDocMention = useCallback(
+    (doc: TAtlasMentionedReference | undefined) => {
+      if (!docMentionMatch || !doc) return;
+
+      const insertText = `${doc.insertText} `;
+      const nextPrompt = `${prompt.slice(0, docMentionMatch.from)}${insertText}${prompt
+        .slice(docMentionMatch.to)
+        .replace(/^\s+/, "")}`;
+      const nextCursor = docMentionMatch.from + insertText.length;
+
+      setPrompt(nextPrompt);
+      setMentionedDocs((current) =>
+        current.some((entry) => referenceIdentity(entry) === referenceIdentity(doc)) ? current : [...current, doc]
+      );
+      setDocMentionMatch(null);
+      setDocMentionResults([]);
+      setDocMentionError(null);
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.setSelectionRange(nextCursor, nextCursor);
+      });
+    },
+    [docMentionMatch, prompt]
+  );
+
+  const resolvePromptMentionedDocs = useCallback(
+    async (text: string, selectedDocs: TAtlasMentionedReference[]) => {
+      if (!workspaceSlug || !projectId) return selectedDocs;
+
+      const selectedTokens = new Set(selectedDocs.map((doc) => doc.insertText));
+      const unresolvedTokens = extractAtlasMentionTokens(text).filter((token) => !selectedTokens.has(token));
+      if (unresolvedTokens.length === 0) return selectedDocs;
+
+      const resolvedDocs = await Promise.all(
+        unresolvedTokens.map(async (token) => {
+          const query = token.slice(1).trim();
+          const fallbackQuery = query.replace(/[-_]+/g, " ").trim();
+          try {
+            let references = await searchMentionReferences(query);
+
+            if (references.length === 0 && fallbackQuery && fallbackQuery !== query) {
+              references = await searchMentionReferences(fallbackQuery);
+            }
+
+            return references.find((reference) => reference.insertText === token) ?? references[0] ?? null;
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      const docs = [...selectedDocs, ...resolvedDocs.filter((doc): doc is TAtlasMentionedReference => !!doc)];
+      return docs.filter(
+        (doc, index, list) => list.findIndex((entry) => referenceIdentity(entry) === referenceIdentity(doc)) === index
+      );
+    },
+    [projectId, searchMentionReferences, workspaceSlug]
+  );
+
+  const resolveMentionedDocsContext = useCallback(
+    async (docs: TAtlasMentionedReference[]) => {
+      if (!workspaceSlug || !projectId || docs.length === 0) return "";
+
+      const uniqueDocs = docs.filter(
+        (doc, index, list) => list.findIndex((entry) => referenceIdentity(entry) === referenceIdentity(doc)) === index
+      );
+      const sources = await Promise.all(
+        uniqueDocs.map(async (doc) => {
+          try {
+            if (doc.type === "task") {
+              const issue = await issueService.retrieve(workspaceSlug, doc.projectId ?? projectId, doc.id);
+              const identifier = [doc.subtitle, issue.sequence_id ? `#${issue.sequence_id}` : ""]
+                .filter(Boolean)
+                .join(" ");
+              return buildAtlasReferenceContextSource(doc, {
+                content: issueToReferenceContextContent(issue),
+                details: [
+                  identifier,
+                  issue.priority ? `Priority: ${issue.priority}` : "",
+                  issue.state_id ? `State ID: ${issue.state_id}` : "",
+                  issue.start_date ? `Start date: ${issue.start_date}` : "",
+                  issue.target_date ? `Target date: ${issue.target_date}` : "",
+                  issue.completed_at ? `Completed at: ${issue.completed_at}` : "",
+                ],
+                projectId: issue.project_id ?? doc.projectId,
+                title: issue.name?.trim() || doc.title,
+              });
+            }
+
+            if (doc.type === "bookmark") {
+              const bookmark = await bookmarkService.retrieveBookmark(
+                workspaceSlug,
+                doc.projectId ?? projectId,
+                doc.id
+              );
+              return buildAtlasReferenceContextSource(doc, {
+                content: bookmarkToReferenceContextContent(bookmark),
+                details: [
+                  bookmark.tags.length > 0 ? `Tags: ${bookmark.tags.join(", ")}` : "",
+                  bookmark.entity_type ? `Entity type: ${bookmark.entity_type}` : "",
+                  bookmark.entity_identifier ? `Entity ID: ${bookmark.entity_identifier}` : "",
+                ],
+                projectId: bookmark.project_id,
+                title: bookmark.title?.trim() || doc.title,
+                url: bookmark.url || doc.url || undefined,
+                workspaceSlug: bookmark.workspace_slug,
+              });
+            }
+
+            const page = await projectPageService.fetchById(workspaceSlug, doc.projectId ?? projectId, doc.id, false);
+            const isWhiteboard = doc.type === "whiteboard" || page.page_type === "whiteboard";
+            const type: TAtlasMentionedReference["type"] = isWhiteboard ? "whiteboard" : "doc";
+            return buildAtlasReferenceContextSource(doc, {
+              content: isWhiteboard
+                ? whiteboardJsonToPlainText(page.description_json)
+                : htmlToPlainText(page.description_html) || page.description_snippet || "",
+              projectId: doc.projectId,
+              subtitle: getAtlasReferenceTypeLabel(type),
+              title: page.name?.trim() || doc.title,
+              type,
+              workspaceSlug: doc.workspaceSlug,
+            });
+          } catch {
+            return buildAtlasReferenceContextSource(doc, {
+              content: "",
+              projectId: doc.projectId,
+              title: doc.title,
+              workspaceSlug: doc.workspaceSlug,
+            });
+          }
+        })
+      );
+
+      return buildAtlasReferencesContext(sources);
+    },
+    [projectId, workspaceSlug]
+  );
 
   const handleSubmit = useCallback(async () => {
     const trimmed = prompt.trim();
     if (!trimmed || !workspaceSlug || !projectId || !session) return;
+    let docsForRequest = mentionedDocs.filter((doc) => trimmed.includes(doc.insertText));
     setIsSending(true);
     setPrompt("");
+    setMentionedDocs([]);
+    setDocMentionMatch(null);
     const userMessageId = crypto.randomUUID();
     setMessages((current) => [
       ...current,
@@ -490,6 +836,8 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
       },
     ]);
     try {
+      docsForRequest = await resolvePromptMentionedDocs(trimmed, docsForRequest);
+      const referencedDocsContext = await resolveMentionedDocsContext(docsForRequest);
       const shouldWriteIntoEditor = Boolean(
         activePageEditorRef &&
         (isEditorWritingRequest(trimmed) || Boolean(context.selectionText && isSelectionEditRequest(trimmed)))
@@ -503,6 +851,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
           pageId,
           projectId,
           prompt: trimmed,
+          contextNote: referencedDocsContext,
           selectionText: context.selectionText,
           sessionId: session.id,
           setMessages,
@@ -516,6 +865,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
         `Atlas writing mode: ${activeMode.label}.`,
         `Task: ${activeMode.buildTask(Boolean(contextText))}`,
         contextText ? `Editor context:\n${contextText}` : "",
+        referencedDocsContext,
       ]
         .filter(Boolean)
         .join("\n\n");
@@ -568,6 +918,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
         },
       ]);
       setPrompt(trimmed);
+      setMentionedDocs(docsForRequest);
     } finally {
       setIsSending(false);
       setIsDrafting(false);
@@ -579,9 +930,12 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
     context.selectionText,
     contextText,
     mode,
+    mentionedDocs,
     pageId,
     projectId,
     prompt,
+    resolveMentionedDocsContext,
+    resolvePromptMentionedDocs,
     session,
     workspaceSlug,
   ]);
@@ -623,6 +977,8 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
   }, [activePageEditorRef, pageId, projectId, session, workspaceSlug]);
 
   if (!workspaceSlug || !projectId || !pageId || !isDocPage) return null;
+
+  const promptHighlightParts = prompt ? getAtlasPromptHighlightParts(prompt) : [];
 
   return (
     <div aria-live="polite" className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
@@ -795,25 +1151,137 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
                 </button>
               </div>
             ) : null}
-            <textarea
-              ref={textareaRef}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void handleSubmit();
-                }
-              }}
-              placeholder={activeMode.placeholder(Boolean(contextText))}
-              rows={1}
-              className="max-h-16 min-h-[22px] w-full resize-none bg-transparent text-[14px] leading-5 text-primary outline-none placeholder:text-placeholder/70"
-            />
+            {isDocMentionPickerOpen && (
+              <div className="absolute bottom-full left-3 z-30 mb-2 max-h-64 w-72 overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
+                <div className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium text-tertiary">
+                  <Sparkles className="size-3.5" />
+                  <span>References</span>
+                </div>
+                {isSearchingDocs ? (
+                  <div className="flex items-center gap-2 px-2 py-2 text-[12px] text-tertiary">
+                    <Loader className="flex items-center gap-1.5">
+                      <Loader.Item className="rounded-full" width="5px" height="5px" />
+                      <Loader.Item className="rounded-full" width="5px" height="5px" />
+                      <Loader.Item className="rounded-full" width="5px" height="5px" />
+                    </Loader>
+                  </div>
+                ) : docMentionResults.length > 0 ? (
+                  <div className="space-y-0.5">
+                    {docMentionResults.map((doc, index) => {
+                      const isSelected = index === docMentionIndex;
+                      const ReferenceIcon = getAtlasReferenceIcon(doc.type);
+                      return (
+                        <button
+                          key={referenceIdentity(doc)}
+                          type="button"
+                          onMouseEnter={() => setDocMentionIndex(index)}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectDocMention(doc)}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] transition-colors ${
+                            isSelected
+                              ? "bg-layer-1 text-primary"
+                              : "text-secondary hover:bg-layer-1 hover:text-primary"
+                          }`}
+                        >
+                          <span
+                            className={`grid size-6 shrink-0 place-items-center rounded-md ${
+                              isSelected ? "bg-layer-2 text-primary" : "bg-layer-2 text-tertiary"
+                            }`}
+                          >
+                            <ReferenceIcon className="size-3.5" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">{doc.title}</span>
+                            <span className="block truncate text-[10px] text-tertiary">
+                              {doc.subtitle ?? getAtlasReferenceTypeLabel(doc.type)}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-[10px] text-[#ff2da1]">{doc.insertText}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-2 py-2 text-[12px] text-tertiary">{docMentionError ?? "No references found"}</div>
+                )}
+              </div>
+            )}
+            <div className="relative min-h-[22px]">
+              {promptHighlightParts.length > 0 && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 max-h-16 w-full overflow-hidden text-[14px] leading-5 break-words whitespace-pre-wrap text-primary"
+                >
+                  {promptHighlightParts.map((part) =>
+                    part.isMention ? (
+                      <span key={part.key} className="text-[#ff2da1]">
+                        {part.text}
+                      </span>
+                    ) : (
+                      <span key={part.key}>{part.text}</span>
+                    )
+                  )}
+                </div>
+              )}
+              <textarea
+                ref={textareaRef}
+                value={prompt}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  syncDocMentionMatch(e.target.value, e.target.selectionStart);
+                }}
+                onKeyDown={(e) => {
+                  if (docMentionMatch && ["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(e.key)) {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setDocMentionIndex((current) =>
+                        docMentionResults.length ? (current + 1) % docMentionResults.length : 0
+                      );
+                      return;
+                    }
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setDocMentionIndex((current) =>
+                        docMentionResults.length
+                          ? (current - 1 + docMentionResults.length) % docMentionResults.length
+                          : 0
+                      );
+                      return;
+                    }
+                    if (e.key === "Enter" || e.key === "Tab") {
+                      if (selectedDocMention) {
+                        e.preventDefault();
+                        selectDocMention(selectedDocMention);
+                        return;
+                      }
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setDocMentionMatch(null);
+                      return;
+                    }
+                  }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSubmit();
+                  }
+                }}
+                onKeyUp={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
+                onClick={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
+                onSelect={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
+                placeholder={activeMode.placeholder(Boolean(contextText))}
+                rows={1}
+                className={`relative z-10 max-h-16 min-h-[22px] w-full resize-none bg-transparent text-[14px] leading-5 outline-none placeholder:text-placeholder/70 ${
+                  prompt ? "text-transparent caret-[#ff2da1]" : "text-primary"
+                }`}
+              />
+            </div>
 
             <div className="relative my-0.5 flex items-center justify-between gap-1.5">
               <div className="text-sm flex min-w-0 items-center gap-1 text-tertiary">
                 <button
                   type="button"
+                  onClick={insertDocMentionTrigger}
                   className="grid size-6 shrink-0 place-items-center rounded-full border border-subtle bg-layer-2 text-tertiary transition-colors hover:bg-layer-3 hover:text-primary"
                   aria-label="Add context"
                   title="Add context"

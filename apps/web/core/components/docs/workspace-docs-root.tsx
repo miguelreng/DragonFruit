@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { Link } from "react-router";
@@ -12,21 +12,23 @@ import useSWR, { useSWRConfig } from "swr";
 import { Archive02Icon, Copy01Icon, Delete02Icon, LinkSquare01Icon, MoreHorizontal } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ListBullets, SquaresFour } from "@phosphor-icons/react";
-import { ListFilter, Whiteboard } from "@/components/icons/lucide-shim";
+import { ChevronDown, FileText, Folder, ListFilter, Search, Whiteboard, X } from "@/components/icons/lucide-shim";
+import { Button } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@plane/propel/icons";
 import { ArchiveRestoreIcon } from "@plane/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Breadcrumbs, CustomMenu, Header } from "@plane/ui";
-import { cn, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
-import type { TPage } from "@plane/types";
+import { Breadcrumbs, Checkbox, CustomMenu, Header } from "@plane/ui";
+import { cn, convertBytesToSize, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
+import type { TPage, TPageType } from "@plane/types";
 import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ListLayout, ListItem } from "@/components/core/list";
 import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { PageSearchInput } from "@/components/pages/list/search-input";
+import { getBriefPageDisplayName, isBriefPageName } from "@/components/project/brief/constants";
 import { useProject } from "@/hooks/store/use-project";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -41,7 +43,9 @@ type ViewMode = "list" | "grid";
 type Props = {
   workspaceSlug: string;
   /** Filter the workspace pages list by type. Omit to show docs only. */
-  pageType?: TPage["page_type"];
+  pageType?: TPageType;
+  /** Filter the workspace pages list by multiple page types. */
+  pageTypes?: TPageType[];
   /** Breadcrumb label shown in the page header. */
   headerLabel: string;
   /** Breadcrumb icon shown in the page header. */
@@ -57,45 +61,88 @@ type Props = {
 export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   workspaceSlug,
   pageType = "doc",
+  pageTypes,
   headerLabel,
   headerIcon,
   labels,
 }: Props) {
-  const { getProjectById } = useProject();
+  const { getProjectById, joinedProjectIds } = useProject();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const activePageTypes = useMemo(() => (pageTypes?.length ? pageTypes : [pageType]), [pageType, pageTypes]);
+  const pageTypesKey = activePageTypes.join("_");
+  const requestPageType = activePageTypes.length === 1 ? activePageTypes[0] : undefined;
+  const pagesKey = `WORKSPACE_PAGES_${workspaceSlug}_${pageTypesKey}`;
   const { storedValue: storedViewMode, setValue: setViewMode } = useLocalStorage<ViewMode>(
-    `workspace_docs_view_mode_${pageType}`,
+    `workspace_docs_view_mode_${pageTypesKey}`,
     "grid"
   );
   const viewMode: ViewMode = storedViewMode ?? "grid";
 
-  const { data: pages, isLoading } = useSWR(
-    workspaceSlug ? `WORKSPACE_PAGES_${workspaceSlug}_${pageType}` : null,
-    workspaceSlug ? () => pageService.fetchWorkspacePages(workspaceSlug, pageType) : null
+  const {
+    data: pages,
+    isLoading,
+    mutate: mutatePages,
+  } = useSWR(
+    workspaceSlug ? pagesKey : null,
+    workspaceSlug ? () => pageService.fetchWorkspacePages(workspaceSlug, requestPageType) : null
   );
 
-  const visiblePages = useMemo(() => (pages ?? []).filter((p) => !p.archived_at), [pages]);
+  const visiblePages = useMemo(
+    () => (pages ?? []).filter((p) => !p.archived_at && activePageTypes.includes(p.page_type ?? "doc")),
+    [activePageTypes, pages]
+  );
+  const pagesById = useMemo(() => {
+    const map = new Map<string, TPage>();
+    visiblePages.forEach((page) => {
+      if (page.id) map.set(page.id, page);
+    });
+    return map;
+  }, [visiblePages]);
+  const selectedDocIdSet = useMemo(() => new Set(selectedDocIds), [selectedDocIds]);
+  const selectedDocs = useMemo(
+    () => selectedDocIds.map((id) => pagesById.get(id)).filter((page): page is TPage => Boolean(page)),
+    [pagesById, selectedDocIds]
+  );
+
+  useEffect(() => {
+    setSelectedDocIds((prev) => {
+      const next = prev.filter((id) => pagesById.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [pagesById]);
 
   const filteredPages = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return visiblePages.filter((p) => {
-      if (q && !(p.name ?? "").toLowerCase().includes(q)) return false;
+      const primaryProjectId = p.project_ids?.[0];
+      const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
+      const displayName = getWorkspaceDocDisplayName(p, primaryProject?.name);
+      if (q && !displayName.toLowerCase().includes(q) && !(p.name ?? "").toLowerCase().includes(q)) return false;
       if (selectedProjectIds.length > 0) {
         const projectIds = p.project_ids ?? [];
         if (!projectIds.some((id) => selectedProjectIds.includes(id))) return false;
       }
       return true;
     });
-  }, [visiblePages, searchQuery, selectedProjectIds]);
+  }, [visiblePages, searchQuery, selectedProjectIds, getProjectById]);
 
   const toggleProject = (projectId: string) => {
     setSelectedProjectIds((prev) =>
       prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
     );
   };
+  const toggleDocSelection = (pageId: string) => {
+    setSelectedDocIds((prev) => (prev.includes(pageId) ? prev.filter((id) => id !== pageId) : [...prev, pageId]));
+  };
+  const clearDocSelection = () => setSelectedDocIds([]);
+  const refreshPages = async () => {
+    await mutatePages();
+  };
 
   const hasFilters = searchQuery.length > 0 || selectedProjectIds.length > 0;
+  const isSelectionActive = selectedDocIds.length > 0;
 
   const headerNode = (
     <Header>
@@ -157,9 +204,12 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 <DocCard
                   key={page.id}
                   page={page}
-                  pageType={pageType}
+                  pagesKey={pagesKey}
                   workspaceSlug={workspaceSlug}
                   getProjectById={getProjectById}
+                  isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
+                  isSelectionActive={isSelectionActive}
+                  onToggleSelection={toggleDocSelection}
                 />
               ))}
             </div>
@@ -167,9 +217,27 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         ) : (
           <ListLayout>
             {filteredPages.map((page) => (
-              <DocListItem key={page.id} page={page} workspaceSlug={workspaceSlug} getProjectById={getProjectById} />
+              <DocListItem
+                key={page.id}
+                page={page}
+                workspaceSlug={workspaceSlug}
+                getProjectById={getProjectById}
+                isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
+                isSelectionActive={isSelectionActive}
+                onToggleSelection={toggleDocSelection}
+              />
             ))}
           </ListLayout>
+        )}
+        {selectedDocs.length > 0 && (
+          <DocsBulkActionBar
+            selectedPages={selectedDocs}
+            workspaceSlug={workspaceSlug}
+            joinedProjectIds={joinedProjectIds ?? []}
+            getProjectById={getProjectById}
+            onClear={clearDocSelection}
+            onRefresh={refreshPages}
+          />
         )}
       </div>
     </>
@@ -210,38 +278,79 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
   );
 }
 
+const isProjectBriefPage = (page: TPage) => page.page_type === "doc" && isBriefPageName(page.name);
+
+const getWorkspaceDocDisplayName = (page: TPage, projectName: string | undefined) =>
+  isProjectBriefPage(page) ? getBriefPageDisplayName(projectName) : getPageName(page.name);
+
 type DocListItemProps = {
   page: TPage;
   workspaceSlug: string;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
+  isSelected: boolean;
+  isSelectionActive: boolean;
+  onToggleSelection: (pageId: string) => void;
 };
 
-function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) {
+function DocListItem({
+  page,
+  workspaceSlug,
+  getProjectById,
+  isSelected,
+  isSelectionActive,
+  onToggleSelection,
+}: DocListItemProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatformOS();
   const projectIds = page.project_ids ?? [];
   const primaryProjectId = projectIds[0];
+  const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
+  const isProjectBrief = isProjectBriefPage(page);
+  const displayName = getWorkspaceDocDisplayName(page, primaryProject?.name);
   const itemLink =
-    primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : "#";
-  const FallbackIcon = page.page_type === "whiteboard" ? Whiteboard : PageIcon;
+    primaryProjectId && (isProjectBrief || page.id)
+      ? `/${workspaceSlug}/projects/${primaryProjectId}/${isProjectBrief ? "brief" : `pages/${page.id}/`}`
+      : "#";
+  const FallbackIcon = page.page_type === "pdf" ? FileText : page.page_type === "whiteboard" ? Whiteboard : PageIcon;
+  const pdfMeta = page.page_type === "pdf" ? page.view_props?.pdf : undefined;
   const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
 
   return (
     <ListItem
       prependTitleElement={
-        page.logo_props?.in_use ? (
-          <Logo logo={page.logo_props} size={16} type="lucide" />
-        ) : (
-          <FallbackIcon className="h-4 w-4 text-tertiary" />
-        )
+        <span className="flex items-center gap-2">
+          {page.id && (
+            <DocSelectionCheckbox
+              pageId={page.id}
+              isSelected={isSelected}
+              isSelectionActive={isSelectionActive}
+              onToggleSelection={onToggleSelection}
+            />
+          )}
+          {page.logo_props?.in_use ? (
+            <Logo logo={page.logo_props} size={16} type="lucide" />
+          ) : (
+            <FallbackIcon className={cn("h-4 w-4 text-tertiary", { "text-accent-primary": isProjectBrief })} />
+          )}
+        </span>
       }
-      title={getPageName(page.name)}
+      title={displayName}
       itemLink={itemLink}
+      onItemClick={(e) => {
+        if (!isSelectionActive || !page.id) return;
+        e.preventDefault();
+        onToggleSelection(page.id);
+      }}
       isMobile={isMobile}
       parentRef={parentRef}
       disableLink={!primaryProjectId}
+      className={cn({
+        "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief,
+      })}
+      titleClassName={cn({ "font-medium text-accent-primary": isProjectBrief })}
       actionableItems={
         <div className="flex items-center gap-3 text-13 text-tertiary">
+          {pdfMeta && <span className="shrink-0 text-11">PDF | {convertBytesToSize(pdfMeta.size)}</span>}
           {tags.length > 0 && (
             <div className="flex max-w-[220px] items-center gap-1 overflow-hidden">
               {tags.slice(0, 2).map((tag) => (
@@ -275,20 +384,35 @@ function DocListItem({ page, workspaceSlug, getProjectById }: DocListItemProps) 
 
 type DocCardProps = {
   page: TPage;
-  pageType: TPage["page_type"];
+  pagesKey: string;
   workspaceSlug: string;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
+  isSelected: boolean;
+  isSelectionActive: boolean;
+  onToggleSelection: (pageId: string) => void;
 };
 
-function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps) {
+function DocCard({
+  page,
+  pagesKey,
+  workspaceSlug,
+  getProjectById,
+  isSelected,
+  isSelectionActive,
+  onToggleSelection,
+}: DocCardProps) {
   const { mutate } = useSWRConfig();
   const projectIds = page.project_ids ?? [];
   const primaryProjectId = projectIds[0];
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
+  const isProjectBrief = isProjectBriefPage(page);
+  const displayName = getWorkspaceDocDisplayName(page, primaryProject?.name);
   const itemLink =
-    primaryProjectId && page.id ? `/${workspaceSlug}/projects/${primaryProjectId}/pages/${page.id}/` : null;
-  const FallbackIcon = page.page_type === "whiteboard" ? Whiteboard : PageIcon;
-  const pagesKey = `WORKSPACE_PAGES_${workspaceSlug}_${pageType}`;
+    primaryProjectId && page.id
+      ? `/${workspaceSlug}/projects/${primaryProjectId}/${isProjectBrief ? "brief" : `pages/${page.id}/`}`
+      : null;
+  const FallbackIcon = page.page_type === "pdf" ? FileText : page.page_type === "whiteboard" ? Whiteboard : PageIcon;
+  const pdfMeta = page.page_type === "pdf" ? page.view_props?.pdf : undefined;
 
   const refreshPages = async () => {
     await mutate(pagesKey);
@@ -300,7 +424,7 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
     setToast({
       type: TOAST_TYPE.SUCCESS,
       title: "Link copied",
-      message: "Doc link copied to clipboard.",
+      message: "Page link copied to clipboard.",
     });
   };
 
@@ -325,6 +449,14 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
 
   const handleArchive = async () => {
     if (!primaryProjectId || !page.id) return;
+    if (isProjectBrief) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "Briefs are protected",
+        message: "Project briefs can't be archived.",
+      });
+      return;
+    }
     try {
       if (page.archived_at) {
         await pageService.restore(workspaceSlug, primaryProjectId, page.id);
@@ -355,7 +487,15 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
 
   const handleDelete = async () => {
     if (!primaryProjectId || !page.id) return;
-    const confirmed = window.confirm(`Delete ${getPageName(page.name)}? This can't be undone.`);
+    if (isProjectBrief) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "Briefs are protected",
+        message: "Project briefs can't be deleted.",
+      });
+      return;
+    }
+    const confirmed = window.confirm(`Delete ${displayName}? This can't be undone.`);
     if (!confirmed) return;
     try {
       if (!page.archived_at) await pageService.archive(workspaceSlug, primaryProjectId, page.id);
@@ -380,25 +520,55 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
     <div
       className={cn(
         "group relative flex h-[240px] flex-col gap-3 rounded-2xl border border-subtle bg-surface-1 p-4 transition-colors",
-        { "hover:border-strong": itemLink, "opacity-60": !itemLink }
+        {
+          "hover:border-strong": itemLink && !isProjectBrief,
+          "shadow-sm bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief,
+          "border-strong bg-layer-1": isSelected,
+          "opacity-60": !itemLink,
+        }
       )}
     >
+      {page.id && (
+        <div
+          className={cn(
+            "absolute top-2 right-10 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100",
+            { "opacity-100": isSelected || isSelectionActive }
+          )}
+        >
+          <DocSelectionCheckbox
+            pageId={page.id}
+            isSelected={isSelected}
+            isSelectionActive={isSelectionActive}
+            onToggleSelection={onToggleSelection}
+          />
+        </div>
+      )}
       <div className="flex items-start gap-2.5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
+        <span
+          className={cn("grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary", {
+            "bg-accent-primary/10 text-accent-primary": isProjectBrief,
+          })}
+        >
           {page.logo_props?.in_use ? (
             <Logo logo={page.logo_props} size={16} type="lucide" />
           ) : (
-            <FallbackIcon className="size-4 text-tertiary" />
+            <FallbackIcon className={cn("size-4 text-tertiary", { "text-accent-primary": isProjectBrief })} />
           )}
         </span>
-        <div className="min-w-0 flex-1 pr-8">
-          <h3 className="line-clamp-2 text-14 leading-snug font-medium text-primary">{getPageName(page.name)}</h3>
+        <div className="min-w-0 flex-1 pr-14">
+          <h3
+            className={cn("line-clamp-2 text-14 leading-snug font-medium text-primary", {
+              "text-accent-primary": isProjectBrief,
+            })}
+          >
+            {displayName}
+          </h3>
         </div>
       </div>
       {primaryProjectId && page.id && (
         <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
           <CustomMenu
-            ariaLabel="Doc actions"
+            ariaLabel="Page actions"
             placement="bottom-end"
             closeOnSelect
             useCaptureForOutsideClick
@@ -420,30 +590,42 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
                 Duplicate
               </span>
             </CustomMenu.MenuItem>
-            <CustomMenu.MenuItem onClick={() => void handleArchive()}>
-              <span className="flex items-center gap-2">
-                {page.archived_at ? (
-                  <ArchiveRestoreIcon className="size-4" />
-                ) : (
-                  <HugeiconsIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-                )}
-                {page.archived_at ? "Restore" : "Archive"}
-              </span>
-            </CustomMenu.MenuItem>
-            <CustomMenu.MenuItem
-              onClick={() => void handleDelete()}
-              className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
-            >
-              <span className="flex items-center gap-2">
-                <HugeiconsIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-                Delete
-              </span>
-            </CustomMenu.MenuItem>
+            {!isProjectBrief && (
+              <>
+                <CustomMenu.MenuItem onClick={() => void handleArchive()}>
+                  <span className="flex items-center gap-2">
+                    {page.archived_at ? (
+                      <ArchiveRestoreIcon className="size-4" />
+                    ) : (
+                      <HugeiconsIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                    )}
+                    {page.archived_at ? "Restore" : "Archive"}
+                  </span>
+                </CustomMenu.MenuItem>
+                <CustomMenu.MenuItem
+                  onClick={() => void handleDelete()}
+                  className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
+                >
+                  <span className="flex items-center gap-2">
+                    <HugeiconsIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                    Delete
+                  </span>
+                </CustomMenu.MenuItem>
+              </>
+            )}
           </CustomMenu>
         </div>
       )}
       <div className="flex flex-1 flex-col">
-        {page.description_snippet ? (
+        {pdfMeta ? (
+          <div className="mt-1 flex flex-1 flex-col items-center justify-center gap-2 rounded-xl bg-layer-1/60 px-4 text-center">
+            <FileText className="size-7 text-tertiary" />
+            <div className="min-w-0">
+              <p className="line-clamp-2 text-12 font-medium text-secondary">{pdfMeta.name}</p>
+              <p className="mt-0.5 text-11 text-tertiary">{convertBytesToSize(pdfMeta.size)}</p>
+            </div>
+          </div>
+        ) : page.description_snippet ? (
           <p className="line-clamp-4 text-12 leading-relaxed text-secondary">{page.description_snippet}</p>
         ) : (
           <div className="mt-1 flex flex-1 items-center justify-center rounded-xl bg-layer-1/60 text-12 text-placeholder">
@@ -468,9 +650,298 @@ function DocCard({ page, pageType, workspaceSlug, getProjectById }: DocCardProps
     <Link
       to={itemLink}
       className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
+      onClick={(e) => {
+        if (!isSelectionActive || !page.id) return;
+        e.preventDefault();
+        onToggleSelection(page.id);
+      }}
     >
       {card}
     </Link>
+  );
+}
+
+type DocSelectionCheckboxProps = {
+  pageId: string;
+  isSelected: boolean;
+  isSelectionActive: boolean;
+  onToggleSelection: (pageId: string) => void;
+};
+
+function DocSelectionCheckbox({ pageId, isSelected, isSelectionActive, onToggleSelection }: DocSelectionCheckboxProps) {
+  return (
+    <Checkbox
+      aria-label={isSelected ? "Deselect doc" : "Select doc"}
+      checked={isSelected}
+      className="size-3.5 !outline-none"
+      containerClassName={cn("transition-opacity", {
+        "opacity-100": isSelected || isSelectionActive,
+        "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100": !isSelected && !isSelectionActive,
+      })}
+      iconClassName="size-3"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggleSelection(pageId);
+      }}
+      readOnly
+    />
+  );
+}
+
+type BulkOperation = "delete" | "duplicate" | "move";
+
+type DocsBulkActionBarProps = {
+  selectedPages: TPage[];
+  workspaceSlug: string;
+  joinedProjectIds: string[];
+  getProjectById: ReturnType<typeof useProject>["getProjectById"];
+  onClear: () => void;
+  onRefresh: () => Promise<void>;
+};
+
+type BulkActionPage = {
+  page: TPage;
+  pageId: string;
+  projectId: string;
+  isProjectBrief: boolean;
+};
+
+const docLabel = (value: number) => (value === 1 ? "doc" : "docs");
+const skippedBriefMessage = (value: number) =>
+  value > 0 ? ` ${value} ${value === 1 ? "brief was" : "briefs were"} skipped.` : "";
+
+function DocsBulkActionBar({
+  selectedPages,
+  workspaceSlug,
+  joinedProjectIds,
+  getProjectById,
+  onClear,
+  onRefresh,
+}: DocsBulkActionBarProps) {
+  const [operation, setOperation] = useState<BulkOperation | null>(null);
+  const [projectSearch, setProjectSearch] = useState("");
+  const isBusy = operation !== null;
+  const count = selectedPages.length;
+  const actionPages = useMemo(
+    () =>
+      selectedPages
+        .map((page): BulkActionPage | undefined => {
+          const pageId = page.id;
+          const projectId = page.project_ids?.[0];
+          if (!pageId || !projectId) return undefined;
+          return { page, pageId, projectId, isProjectBrief: isProjectBriefPage(page) };
+        })
+        .filter((page): page is BulkActionPage => Boolean(page)),
+    [selectedPages]
+  );
+  const movablePages = useMemo(() => actionPages.filter((page) => !page.isProjectBrief), [actionPages]);
+  const deletablePages = useMemo(() => actionPages.filter((page) => !page.isProjectBrief), [actionPages]);
+  const moveTargetProjects = useMemo(() => {
+    const q = projectSearch.trim().toLowerCase();
+    return sortBy(
+      (joinedProjectIds ?? [])
+        .map((id) => getProjectById(id))
+        .filter((project): project is NonNullable<typeof project> => Boolean(project))
+        .filter((project) => (q ? project.name.toLowerCase().includes(q) : true)),
+      [(project) => project.name.toLowerCase()]
+    );
+  }, [getProjectById, joinedProjectIds, projectSearch]);
+
+  const finishBulkOperation = async (
+    currentOperation: BulkOperation,
+    pagesToProcess: BulkActionPage[],
+    processPage: (page: BulkActionPage) => Promise<unknown>,
+    successMessage: (processedCount: number) => string,
+    errorMessage: (failedCount: number, processedCount: number) => string
+  ) => {
+    if (pagesToProcess.length === 0) return;
+    setOperation(currentOperation);
+    try {
+      const results = await Promise.allSettled(pagesToProcess.map(processPage));
+      const failedCount = results.filter((result) => result.status === "rejected").length;
+      await onRefresh().catch(() => undefined);
+
+      if (failedCount === 0) {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Success!",
+          message: successMessage(pagesToProcess.length),
+        });
+        onClear();
+      } else {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Error!",
+          message: errorMessage(failedCount, pagesToProcess.length),
+        });
+      }
+    } finally {
+      setOperation(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (isBusy || actionPages.length === 0) return;
+    const skippedBriefCount = actionPages.length - deletablePages.length;
+    if (deletablePages.length === 0) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "Briefs are protected",
+        message: "Project briefs can't be deleted.",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${deletablePages.length} selected ${docLabel(deletablePages.length)}? This can't be undone.${
+        skippedBriefCount > 0 ? " Project briefs will be skipped." : ""
+      }`
+    );
+    if (!confirmed) return;
+
+    await finishBulkOperation(
+      "delete",
+      deletablePages,
+      async ({ page, pageId, projectId }) => {
+        if (!page.archived_at) await pageService.archive(workspaceSlug, projectId, pageId);
+        await pageService.remove(workspaceSlug, projectId, pageId);
+      },
+      (processedCount) =>
+        `${processedCount} ${docLabel(processedCount)} deleted.${skippedBriefMessage(skippedBriefCount)}`,
+      (failedCount, processedCount) =>
+        `Couldn't delete ${failedCount} of ${processedCount} selected ${docLabel(processedCount)}.`
+    );
+  };
+
+  const handleBulkDuplicate = async () => {
+    if (isBusy || actionPages.length === 0) return;
+
+    await finishBulkOperation(
+      "duplicate",
+      actionPages,
+      async ({ pageId, projectId }) => await pageService.duplicate(workspaceSlug, projectId, pageId),
+      (processedCount) => `${processedCount} ${docLabel(processedCount)} duplicated.`,
+      (failedCount, processedCount) =>
+        `Couldn't duplicate ${failedCount} of ${processedCount} selected ${docLabel(processedCount)}.`
+    );
+  };
+
+  const handleBulkMove = async (targetProjectId: string) => {
+    if (isBusy) return;
+    const targetProject = getProjectById(targetProjectId);
+    const pagesToMove = movablePages.filter(({ projectId }) => projectId !== targetProjectId);
+    const skippedBriefCount = actionPages.length - movablePages.length;
+
+    if (pagesToMove.length === 0) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "Nothing to move",
+        message:
+          skippedBriefCount > 0
+            ? "Project briefs stay with their projects."
+            : "The selected docs are already in that project.",
+      });
+      return;
+    }
+
+    await finishBulkOperation(
+      "move",
+      pagesToMove,
+      async ({ pageId, projectId }) => await pageService.move(workspaceSlug, projectId, pageId, targetProjectId),
+      (processedCount) =>
+        `${processedCount} ${docLabel(processedCount)} moved${targetProject ? ` to ${targetProject.name}` : ""}.${skippedBriefMessage(skippedBriefCount)}`,
+      (failedCount, processedCount) =>
+        `Couldn't move ${failedCount} of ${processedCount} selected ${docLabel(processedCount)}.`
+    );
+  };
+
+  return (
+    <div
+      role="toolbar"
+      aria-label={`${count} docs selected`}
+      className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4"
+    >
+      <div className="shadow-lg pointer-events-auto flex max-w-full items-center gap-2 rounded-xl border border-strong bg-surface-1 px-3 py-2">
+        <span className="shrink-0 px-1 text-11 font-medium">
+          <span className="text-primary">{count}</span>{" "}
+          <span className="text-tertiary">{docLabel(count)} selected</span>
+        </span>
+        <div className="bg-strong h-4 w-px" aria-hidden />
+        <Button variant="ghost" size="sm" onClick={onClear} disabled={isBusy} aria-label="Clear selection">
+          <X className="size-3.5" />
+          <span>Clear</span>
+        </Button>
+        <CustomMenu
+          ariaLabel="Move selected docs"
+          placement="top-start"
+          maxHeight="lg"
+          closeOnSelect={false}
+          disabled={isBusy || movablePages.length === 0}
+          customButtonClassName={cn(
+            "inline-flex h-7 items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-2 text-11 font-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active",
+            { "cursor-not-allowed opacity-60": isBusy || movablePages.length === 0 }
+          )}
+          customButton={
+            <>
+              <Folder className="size-3.5" />
+              <span>{operation === "move" ? "Moving..." : "Move"}</span>
+              <ChevronDown className="size-3" />
+            </>
+          }
+          optionsClassName="w-64"
+        >
+          <div className="p-1">
+            <div className="flex items-center gap-1.5 rounded-lg border border-subtle bg-canvas px-2 py-1">
+              <Search className="size-3 text-tertiary" />
+              <input
+                type="text"
+                value={projectSearch}
+                onChange={(e) => setProjectSearch(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                placeholder="Search projects"
+                className="w-full bg-transparent text-11 text-primary outline-none placeholder:text-placeholder"
+              />
+            </div>
+          </div>
+          {moveTargetProjects.length > 0 ? (
+            moveTargetProjects.map((project) => {
+              const alreadyInProject =
+                movablePages.length > 0 && movablePages.every((page) => page.projectId === project.id);
+              return (
+                <CustomMenu.MenuItem
+                  key={project.id}
+                  disabled={isBusy || alreadyInProject}
+                  onClick={() => void handleBulkMove(project.id)}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="grid h-4 w-4 flex-shrink-0 place-items-center">
+                      <Logo logo={project.logo_props} size={12} />
+                    </span>
+                    <span className="truncate">{project.name}</span>
+                    {alreadyInProject && <span className="ml-auto shrink-0 text-10 text-tertiary">Current</span>}
+                  </span>
+                </CustomMenu.MenuItem>
+              );
+            })
+          ) : (
+            <CustomMenu.MenuItem disabled>
+              <span className="text-tertiary">No matching projects</span>
+            </CustomMenu.MenuItem>
+          )}
+        </CustomMenu>
+        <Button variant="secondary" size="sm" onClick={handleBulkDuplicate} disabled={isBusy} aria-label="Duplicate">
+          <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+          <span>{operation === "duplicate" ? "Duplicating..." : "Duplicate"}</span>
+        </Button>
+        <Button variant="error-outline" size="sm" onClick={handleBulkDelete} disabled={isBusy} aria-label="Delete">
+          <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+          <span>{operation === "delete" ? "Deleting..." : "Delete"}</span>
+        </Button>
+      </div>
+    </div>
   );
 }
 

@@ -6,7 +6,22 @@ import pytest
 from unittest.mock import patch
 from rest_framework import status
 
-from plane.db.models import Page, Project, ProjectMember, ProjectPage
+from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage
+
+
+def mock_presigned_post(file_type="application/pdf"):
+    return {
+        "url": "https://uploads.example.test/",
+        "fields": {
+            "Content-Type": file_type,
+            "key": "workspace/file.pdf",
+            "x-amz-algorithm": "AWS4-HMAC-SHA256",
+            "x-amz-credential": "test",
+            "x-amz-date": "20260101T000000Z",
+            "policy": "test",
+            "x-amz-signature": "test",
+        },
+    }
 
 
 @pytest.mark.contract
@@ -40,12 +55,15 @@ class TestPageAPIGet:
 
         doc_response = session_client.post(url, {"name": "Spec", "page_type": "doc"}, format="json")
         whiteboard_response = session_client.post(url, {"name": "Flow", "page_type": "whiteboard"}, format="json")
+        pdf_response = session_client.post(url, {"name": "Handbook", "page_type": "pdf"}, format="json")
 
         assert doc_response.status_code == status.HTTP_201_CREATED
         assert whiteboard_response.status_code == status.HTTP_201_CREATED
+        assert pdf_response.status_code == status.HTTP_201_CREATED
 
         docs_response = session_client.get(f"{url}?page_type=doc")
         whiteboards_response = session_client.get(f"{url}?page_type=whiteboard")
+        pdfs_response = session_client.get(f"{url}?page_type=pdf")
         mixed_response = session_client.get(url)
 
         assert docs_response.status_code == status.HTTP_200_OK
@@ -56,8 +74,147 @@ class TestPageAPIGet:
         assert [page["page_type"] for page in whiteboards_response.data] == ["whiteboard"]
         assert [page["name"] for page in whiteboards_response.data] == ["Flow"]
 
+        assert pdfs_response.status_code == status.HTTP_200_OK
+        assert [page["page_type"] for page in pdfs_response.data] == ["pdf"]
+        assert [page["name"] for page in pdfs_response.data] == ["Handbook"]
+
         assert mixed_response.status_code == status.HTTP_200_OK
-        assert {page["page_type"] for page in mixed_response.data} == {"doc", "whiteboard"}
+        assert {page["page_type"] for page in mixed_response.data} == {"doc", "whiteboard", "pdf"}
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.page.base.copy_s3_objects_of_description_and_assets.delay")
+    @patch("plane.app.views.page.base.page_transaction.delay")
+    @patch("plane.bgtasks.copy_s3_object.S3Storage")
+    def test_duplicate_pdf_page_rewrites_pdf_asset_id(
+        self, mock_s3_storage, _mock_page_tx, _mock_copy_task, session_client, workspace, create_user
+    ):
+        project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20)
+        page = Page.objects.create(
+            name="Research PDF",
+            workspace=workspace,
+            owned_by=create_user,
+            page_type=Page.PAGE_TYPE_PDF,
+        )
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+        asset = FileAsset.objects.create(
+            attributes={"name": "research.pdf", "type": "application/pdf", "size": 1024},
+            asset=f"{workspace.id}/research.pdf",
+            size=1024,
+            workspace=workspace,
+            project=project,
+            page=page,
+            entity_type=FileAsset.EntityTypeContext.PAGE_DESCRIPTION,
+            is_uploaded=True,
+            created_by=create_user,
+        )
+        page.view_props = {
+            "full_width": False,
+            "pdf": {
+                "asset_id": str(asset.id),
+                "project_id": str(project.id),
+                "name": "research.pdf",
+                "size": 1024,
+                "mime_type": "application/pdf",
+            },
+        }
+        page.save(update_fields=["view_props"])
+
+        response = session_client.post(
+            f"{self.get_pages_url(workspace.slug, str(project.id))}{page.id}/duplicate/",
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["page_type"] == "pdf"
+        assert response.data["view_props"]["pdf"]["asset_id"] != str(asset.id)
+        duplicated_asset = FileAsset.objects.get(id=response.data["view_props"]["pdf"]["asset_id"])
+        assert duplicated_asset.page_id == response.data["id"]
+        assert duplicated_asset.entity_type == FileAsset.EntityTypeContext.PAGE_DESCRIPTION
+        mock_s3_storage.return_value.copy_object.assert_called_once()
+
+
+@pytest.mark.contract
+class TestPageAssetAPI:
+    @pytest.mark.django_db
+    @patch("plane.app.views.asset.v2.S3Storage")
+    def test_page_description_asset_accepts_pdf(self, mock_s3_storage, session_client, workspace, create_user):
+        mock_s3_storage.return_value.generate_presigned_post.return_value = mock_presigned_post()
+        project = Project.objects.create(name="Docs", identifier="DOC", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20)
+        page = Page.objects.create(name="PDF", workspace=workspace, owned_by=create_user, page_type=Page.PAGE_TYPE_PDF)
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+
+        response = session_client.post(
+            f"/api/assets/v2/workspaces/{workspace.slug}/projects/{project.id}/",
+            {
+                "entity_type": FileAsset.EntityTypeContext.PAGE_DESCRIPTION,
+                "entity_identifier": str(page.id),
+                "name": "handbook.pdf",
+                "type": "application/pdf",
+                "size": 1024,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        asset = FileAsset.objects.get(id=response.data["asset_id"])
+        assert asset.page_id == page.id
+        assert asset.attributes["type"] == "application/pdf"
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.asset.v2.S3Storage")
+    def test_project_cover_asset_rejects_pdf(self, mock_s3_storage, session_client, workspace, create_user):
+        mock_s3_storage.return_value.generate_presigned_post.return_value = mock_presigned_post()
+        project = Project.objects.create(name="Docs", identifier="DOC", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20)
+
+        response = session_client.post(
+            f"/api/assets/v2/workspaces/{workspace.slug}/projects/{project.id}/",
+            {
+                "entity_type": FileAsset.EntityTypeContext.PROJECT_COVER,
+                "entity_identifier": str(project.id),
+                "name": "cover.pdf",
+                "type": "application/pdf",
+                "size": 1024,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.asset.v2.S3Storage")
+    def test_project_asset_inline_url_uses_inline_disposition(
+        self, mock_s3_storage, session_client, workspace, create_user
+    ):
+        mock_s3_storage.return_value.generate_presigned_url.return_value = "https://assets.example.test/inline.pdf"
+        project = Project.objects.create(name="Docs", identifier="DOC", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20)
+        page = Page.objects.create(name="PDF", workspace=workspace, owned_by=create_user, page_type=Page.PAGE_TYPE_PDF)
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+        asset = FileAsset.objects.create(
+            attributes={"name": "inline.pdf", "type": "application/pdf", "size": 1024},
+            asset=f"{workspace.id}/inline.pdf",
+            size=1024,
+            workspace=workspace,
+            project=project,
+            page=page,
+            entity_type=FileAsset.EntityTypeContext.PAGE_DESCRIPTION,
+            is_uploaded=True,
+            created_by=create_user,
+        )
+
+        response = session_client.get(
+            f"/api/assets/v2/workspaces/{workspace.slug}/projects/{project.id}/{asset.id}/?disposition=inline"
+        )
+
+        assert response.status_code == status.HTTP_302_FOUND
+        mock_s3_storage.return_value.generate_presigned_url.assert_called_once_with(
+            object_name=asset.asset.name,
+            disposition="inline",
+            filename="inline.pdf",
+        )
 
 
 @pytest.mark.contract

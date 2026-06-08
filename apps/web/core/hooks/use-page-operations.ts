@@ -12,6 +12,7 @@ import { EPageAccess } from "@plane/types";
 import { copyUrlToClipboard } from "@plane/utils";
 // hooks
 import { useCollaborativePageActions } from "@/hooks/use-collaborative-page-actions";
+import { isBriefPageName } from "@/components/project/brief/constants";
 // store types
 import type { TPageInstance } from "@/store/pages/base-page";
 // local storage
@@ -45,9 +46,12 @@ export const usePageOperations = (
     duplicate,
     is_favorite,
     is_locked,
+    name,
+    page_type,
     getRedirectionLink,
     removePageFromFavorites,
   } = page;
+  const isProjectBrief = page_type === "doc" && isBriefPageName(name);
   // collaborative actions
   const { executeCollaborativeAction } = useCollaborativePageActions(props);
   // local storage
@@ -122,6 +126,14 @@ export const usePageOperations = (
             });
           }
         } else {
+          if (isProjectBrief) {
+            setToast({
+              type: TOAST_TYPE.WARNING,
+              title: "Briefs are protected",
+              message: "Project briefs can't be archived.",
+            });
+            return;
+          }
           try {
             await executeCollaborativeAction({ type: "sendMessageToServer", message: "archive" });
             setToast({
@@ -213,6 +225,7 @@ export const usePageOperations = (
     duplicate,
     executeCollaborativeAction,
     getRedirectionLink,
+    isProjectBrief,
     is_favorite,
     is_locked,
     isFavoriteMenuOpen,

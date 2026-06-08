@@ -1,5 +1,6 @@
 import AppKit
 import CoreText
+import QuartzCore
 import SwiftUI
 
 enum CopilotThemeMode: String, CaseIterable, Identifiable {
@@ -53,6 +54,11 @@ struct CopilotThemeTokens {
     let success: Color
     let warning: Color
     let danger: Color
+    let toastSuccessIconFill: String
+    let toastWarningIconFill: String
+    let toastDangerIconFill: String
+    let toastInfoIconFill: String
+    let toastResponseText: Color
     let shadow: Color
     let toastShadowSoft: Color
     let toastShadowLift: Color
@@ -74,6 +80,11 @@ struct CopilotThemeTokens {
         success: Color(red: 0.18, green: 0.55, blue: 0.44),
         warning: Color(red: 0.91, green: 0.57, blue: 0.14),
         danger: Color(red: 0.95, green: 0.30, blue: 0.38),
+        toastSuccessIconFill: "#00A63E",
+        toastWarningIconFill: "#FE9A00",
+        toastDangerIconFill: "#E7000B",
+        toastInfoIconFill: "#AA0276",
+        toastResponseText: Color(red: 1.0, green: 0.18, blue: 0.56),
         shadow: Color.black.opacity(0.16),
         toastShadowSoft: Color(red: 0.16, green: 0.18, blue: 0.24).opacity(0.04),
         toastShadowLift: Color(red: 0.16, green: 0.18, blue: 0.24).opacity(0.10)
@@ -96,10 +107,60 @@ struct CopilotThemeTokens {
         success: Color(red: 0.39, green: 0.82, blue: 0.62),
         warning: Color(red: 0.93, green: 0.67, blue: 0.22),
         danger: Color(red: 0.96, green: 0.37, blue: 0.44),
+        toastSuccessIconFill: "#05DF72",
+        toastWarningIconFill: "#FE9A00",
+        toastDangerIconFill: "#9F0712",
+        toastInfoIconFill: "#FF6BC3",
+        toastResponseText: Color(red: 1.0, green: 0.42, blue: 0.76),
         shadow: Color.black.opacity(0.34),
         toastShadowSoft: Color.black.opacity(0.18),
         toastShadowLift: Color.black.opacity(0.28)
     )
+}
+
+enum AtlasMotion {
+    static let fastDuration: TimeInterval = 0.16
+    static let controlDuration: TimeInterval = 0.20
+    static let toastEnterDuration: TimeInterval = 0.25
+    static let toastExitDuration: TimeInterval = 0.15
+    static let panelRevealDuration: TimeInterval = 0.40
+    static let successDuration: TimeInterval = 0.55
+    static let shakeDuration: TimeInterval = 0.28
+    static let spinnerDuration: TimeInterval = 1.20
+
+    static let standardTimingFunction = CAMediaTimingFunction(controlPoints: 0.22, 1, 0.36, 1)
+
+    static var toastExitDelayNanoseconds: UInt64 {
+        UInt64((toastExitDuration + 0.01) * 1_000_000_000)
+    }
+
+    static var standard: Animation {
+        .timingCurve(0.22, 1, 0.36, 1, duration: controlDuration)
+    }
+
+    static var toastEnter: Animation {
+        .timingCurve(0.22, 1, 0.36, 1, duration: toastEnterDuration)
+    }
+
+    static var panelReveal: Animation {
+        .timingCurve(0.22, 1, 0.36, 1, duration: panelRevealDuration)
+    }
+
+    static var successCheck: Animation {
+        .timingCurve(0.34, 1.35, 0.64, 1, duration: successDuration)
+    }
+
+    static var errorShake: Animation {
+        .linear(duration: shakeDuration)
+    }
+
+    static var cursorBuddy: Animation {
+        .interactiveSpring(response: 0.22, dampingFraction: 0.82)
+    }
+
+    static var soundLevel: Animation {
+        .interactiveSpring(response: 0.16, dampingFraction: 0.72)
+    }
 }
 
 enum BrandTheme {

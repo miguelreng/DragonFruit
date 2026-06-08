@@ -61,6 +61,7 @@ export type TPageSearchResponse = {
   name: TPage["name"];
   id: TPage["id"];
   logo_props: TPage["logo_props"];
+  page_type?: TPage["page_type"];
   projects__id: TPage["project_ids"];
   workspace__slug: IWorkspace["slug"];
 };

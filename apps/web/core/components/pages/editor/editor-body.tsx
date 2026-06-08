@@ -407,7 +407,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
           <div className="page-header-container group/page-header">
             <div className={blockWidthClassName}>
               {chromeless ? (
-                <h1 className="break-words pt-10 pb-2 text-26 font-semibold text-primary">{headerLabel}</h1>
+                <h1 className="text-26 pt-10 pb-2 font-semibold break-words text-primary">{headerLabel}</h1>
               ) : (
                 <PageEditorHeaderRoot page={page} projectId={projectId} />
               )}

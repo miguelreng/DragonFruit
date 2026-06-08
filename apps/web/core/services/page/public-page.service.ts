@@ -5,6 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
+import type { TPageType } from "@plane/types";
 import { APIService } from "@/services/api.service";
 
 export type TPublicPageResponse = {
@@ -13,7 +14,7 @@ export type TPublicPageResponse = {
   workspace_slug: string;
   project_id: string | null;
   name: string;
-  page_type: "doc" | "whiteboard";
+  page_type: TPageType;
   description_html: string;
   description_json: Record<string, unknown> | null;
   embeds?: TPublicDocEmbed[];

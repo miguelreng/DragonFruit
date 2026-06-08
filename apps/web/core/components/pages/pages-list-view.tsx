@@ -17,6 +17,7 @@ import { PagesListMainContent } from "./pages-list-main-content";
 type TPageView = {
   children: React.ReactNode;
   contentType?: TPageType;
+  contentTypes?: TPageType[];
   pageType: TPageNavigationTabs;
   projectId: string;
   storeType: EPageStoreType;
@@ -24,14 +25,15 @@ type TPageView = {
 };
 
 export const PagesListView = observer(function PagesListView(props: TPageView) {
-  const { children, contentType, pageType, projectId, storeType, workspaceSlug } = props;
+  const { children, contentType, contentTypes, pageType, projectId, storeType, workspaceSlug } = props;
   // store hooks
   const { isAnyPageAvailable, fetchPagesList } = usePageStore(storeType);
+  const contentTypeKey = contentTypes?.join("_") ?? contentType ?? "all";
   // fetching pages list
   useSWR(
-    workspaceSlug && projectId && pageType ? `PROJECT_PAGES_${projectId}_${contentType ?? "all"}_${pageType}` : null,
+    workspaceSlug && projectId && pageType ? `PROJECT_PAGES_${projectId}_${contentTypeKey}_${pageType}` : null,
     workspaceSlug && projectId && pageType
-      ? () => fetchPagesList(workspaceSlug, projectId, pageType, contentType)
+      ? () => fetchPagesList(workspaceSlug, projectId, pageType, contentType, contentTypes)
       : null
   );
 
@@ -48,7 +50,12 @@ export const PagesListView = observer(function PagesListView(props: TPageView) {
           workspaceSlug={workspaceSlug}
         />
       )}
-      <PagesListMainContent contentType={contentType} pageType={pageType} storeType={storeType}>
+      <PagesListMainContent
+        contentType={contentType}
+        contentTypes={contentTypes}
+        pageType={pageType}
+        storeType={storeType}
+      >
         {children}
       </PagesListMainContent>
     </div>

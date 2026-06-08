@@ -51,7 +51,7 @@ export function Popover(props: TPopover) {
           ref={popoverButtonRef as Ref<HTMLButtonElement>}
           className={cn(
             {
-              "flex h-6 w-6 items-center justify-center rounded-lg bg-surface-2 text-14 transition-all hover:bg-layer-1":
+              "t-colors flex h-6 w-6 items-center justify-center rounded-lg bg-surface-2 text-14 hover:bg-layer-1":
                 !button,
             },
             buttonClassName
