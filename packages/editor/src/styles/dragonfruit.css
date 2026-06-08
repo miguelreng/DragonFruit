@@ -247,6 +247,8 @@
   /* In light mode the tint background is light, so the pending text must be
      dark to stay readable (near-white only works on the dark-mode tint). */
   --atlas-review-pending-text: var(--atlas-review-text);
+  /* Pending proposal wash — barely-there so the words read like applied text. */
+  --atlas-review-pending-bg: color-mix(in oklch, var(--brand-300, #e548a5) 6%, transparent);
   --atlas-review-border: color-mix(in oklch, var(--border-accent-subtle, #e548a5) 52%, transparent);
   --atlas-review-button-bg: color-mix(in oklch, var(--bg-surface-1, #fff) 88%, transparent);
   --atlas-review-button-bg-hover: color-mix(in oklch, var(--bg-surface-1, #fff) 82%, var(--brand-200, #e548a5) 18%);
@@ -263,6 +265,7 @@
   --atlas-review-bg-strong: color-mix(in oklch, var(--bg-surface-1, #181616) 70%, var(--brand-default, #f472b6) 30%);
   --atlas-review-text: oklch(0.96 0.01 30);
   --atlas-review-pending-text: oklch(0.98 0.01 30);
+  --atlas-review-pending-bg: color-mix(in oklch, var(--brand-default, #f472b6) 11%, transparent);
   --atlas-review-border: color-mix(in oklch, var(--brand-default, #f472b6) 55%, var(--border-strong, #3a3333));
   --atlas-review-button-bg: color-mix(in oklch, var(--bg-surface-2, #201d1d) 84%, var(--brand-400, #e548a5) 16%);
   --atlas-review-button-bg-hover: color-mix(in oklch, var(--bg-surface-2, #201d1d) 70%, var(--brand-500, #e548a5) 30%);
@@ -279,6 +282,7 @@
   --atlas-review-bg-strong: color-mix(in oklch, var(--bg-surface-1, #f8f0d8) 68%, var(--brand-500, #cc705d) 32%);
   --atlas-review-text: var(--txt-primary, #3c2f24);
   --atlas-review-pending-text: oklch(0.98 0.01 30);
+  --atlas-review-pending-bg: color-mix(in oklch, var(--brand-400, #cc705d) 8%, transparent);
   --atlas-review-border: color-mix(in oklch, var(--brand-500, #b85f4e) 48%, var(--border-subtle, #d9c9a8));
   --atlas-review-button-bg: color-mix(in oklch, var(--bg-surface-1, #f8f0d8) 84%, var(--brand-200, #e8b3a7) 16%);
   --atlas-review-button-bg-hover: color-mix(in oklch, var(--bg-surface-1, #f8f0d8) 72%, var(--brand-300, #d88a78) 28%);
@@ -304,27 +308,17 @@
   cursor: default;
 }
 
-/* Pending Atlas proposal text — an inline tint that hugs the words like a
-   selection, wrapping cleanly per line rather than filling the block width. */
+/* Pending Atlas proposal text — a barely-there wash so the proposed words read
+   exactly like applied document text: same color/typography, no padding shift,
+   no per-word pill. The floating Accept/Reject controls and the Atlas bar carry
+   the "awaiting review" affordance, so the document itself stays clean. */
 .atlas-doc-review-pending {
-  position: relative;
-  z-index: 25;
-  border-radius: 3px;
-  padding: 0.08em 0.14em;
-  background: var(--atlas-review-bg);
-  color: var(--atlas-review-pending-text) !important;
-  opacity: 1 !important;
+  border-radius: 2px;
+  background: var(--atlas-review-pending-bg);
   overflow-wrap: anywhere;
   word-break: break-word;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
-}
-
-.atlas-doc-review-pending,
-.atlas-doc-review-pending * {
-  color: var(--atlas-review-pending-text) !important;
-  -webkit-text-fill-color: var(--atlas-review-pending-text) !important;
-  opacity: 1 !important;
 }
 
 /* Zero-height anchor at the block boundary; the buttons themselves are pushed
