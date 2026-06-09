@@ -27,7 +27,7 @@ import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
-import { Breadcrumbs, CustomMenu, EModalWidth, Header, Loader, ModalCore } from "@plane/ui";
+import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, EModalWidth, Header, Loader, ModalCore } from "@plane/ui";
 import { cn, renderFormattedDate } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { AppHeader } from "@/components/core/app-header";
@@ -283,12 +283,26 @@ function BookmarkCard(props: {
   bookmark: TProjectBookmark;
   workspaceSlug: string;
   showProject: boolean;
+  isSelected: boolean;
+  isSelectionActive: boolean;
   onOpen: (bookmark: TProjectBookmark) => void;
+  onSelect: (bookmarkId: string, isRange: boolean) => void;
   onDelete: (bookmark: TProjectBookmark) => void;
   onAcceptTag: (bookmark: TProjectBookmark, tag: string) => void;
   onDismissTag: (bookmark: TProjectBookmark, tag: string) => void;
 }) {
-  const { bookmark, workspaceSlug, showProject, onOpen, onDelete, onAcceptTag, onDismissTag } = props;
+  const {
+    bookmark,
+    workspaceSlug,
+    showProject,
+    isSelected,
+    isSelectionActive,
+    onOpen,
+    onSelect,
+    onDelete,
+    onAcceptTag,
+    onDismissTag,
+  } = props;
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
   const imageUrl = bookmarkPreviewImage(bookmark);
@@ -313,15 +327,52 @@ function BookmarkCard(props: {
       // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- a native <button> can't contain the nested link/menu controls this card holds
       role="button"
       tabIndex={0}
-      onClick={() => onOpen(bookmark)}
+      onClick={(event) => {
+        // ⌘/Ctrl+click toggles; shift+click selects a range; once a selection is
+        // active, a plain click keeps toggling instead of opening the detail modal.
+        if (event.metaKey || event.ctrlKey || event.shiftKey || isSelectionActive) {
+          onSelect(bookmark.id, event.shiftKey);
+          return;
+        }
+        onOpen(bookmark);
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          onOpen(bookmark);
+          if (isSelectionActive) onSelect(bookmark.id, false);
+          else onOpen(bookmark);
         }
       }}
-      className="group focus-visible:ring-accent-primary/40 relative cursor-pointer overflow-hidden rounded-2xl border border-subtle bg-surface-1 text-left transition-colors hover:border-strong focus:outline-none focus-visible:ring-2"
+      className={cn(
+        "group focus-visible:ring-accent-primary/40 relative cursor-pointer overflow-hidden rounded-2xl border border-subtle bg-surface-1 text-left transition-colors hover:border-strong focus:outline-none focus-visible:ring-2",
+        { "ring-accent-primary border-accent-primary ring-2": isSelected }
+      )}
     >
+      <button
+        type="button"
+        aria-label={isSelected ? "Deselect bookmark" : "Select bookmark"}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onSelect(bookmark.id, event.shiftKey);
+        }}
+        className={cn(
+          "shadow-sm absolute top-2 left-2 z-30 grid size-6 place-items-center rounded-lg bg-layer-1/95 backdrop-blur-sm transition-opacity",
+          {
+            "opacity-100": isSelected || isSelectionActive,
+            "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100":
+              !isSelected && !isSelectionActive,
+          }
+        )}
+      >
+        <Checkbox
+          checked={isSelected}
+          readOnly
+          tabIndex={-1}
+          className="pointer-events-none size-3.5 !outline-none"
+          iconClassName="size-3"
+        />
+      </button>
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- swallows bubbling so card-open doesn't fire when using these controls; the controls themselves stay keyboard-reachable */}
       <div
         className="absolute top-2 right-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
@@ -393,7 +444,7 @@ function BookmarkCard(props: {
           {hasTwitterScreenshot && (
             <button
               type="button"
-              className="shadow-sm absolute top-2 left-2 z-20 grid size-7 place-items-center rounded-lg border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
+              className="shadow-sm absolute top-2 left-10 z-20 grid size-7 place-items-center rounded-lg border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -462,12 +513,26 @@ function BookmarkListItem(props: {
   bookmark: TProjectBookmark;
   workspaceSlug: string;
   showProject: boolean;
+  isSelected: boolean;
+  isSelectionActive: boolean;
   onOpen: (bookmark: TProjectBookmark) => void;
+  onSelect: (bookmarkId: string, isRange: boolean) => void;
   onDelete: (bookmark: TProjectBookmark) => void;
   onAcceptTag: (bookmark: TProjectBookmark, tag: string) => void;
   onDismissTag: (bookmark: TProjectBookmark, tag: string) => void;
 }) {
-  const { bookmark, workspaceSlug, showProject, onOpen, onDelete, onAcceptTag, onDismissTag } = props;
+  const {
+    bookmark,
+    workspaceSlug,
+    showProject,
+    isSelected,
+    isSelectionActive,
+    onOpen,
+    onSelect,
+    onDelete,
+    onAcceptTag,
+    onDismissTag,
+  } = props;
   const parentRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatformOS();
   const href = bookmarkHref(workspaceSlug, bookmark);
@@ -478,14 +543,40 @@ function BookmarkListItem(props: {
       title={bookmarkDisplayTitle(bookmark) || bookmarkSource(bookmark)}
       itemLink="#"
       disableLink
+      className={cn({ "bg-accent-primary/5 hover:bg-accent-primary/10": isSelected })}
       onItemClick={(event) => {
         event.preventDefault();
-        onOpen(bookmark);
+        // ⌘/Ctrl+click toggles; shift+click selects a range; once a selection is
+        // active, a plain click keeps toggling instead of opening.
+        if (event.metaKey || event.ctrlKey || event.shiftKey || isSelectionActive) {
+          onSelect(bookmark.id, event.shiftKey);
+        } else {
+          onOpen(bookmark);
+        }
       }}
       isMobile={isMobile}
       parentRef={parentRef}
       prependTitleElement={
-        <HugeiconsIcon icon={BookmarkIcon} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
+        <span className="flex items-center gap-2">
+          <Checkbox
+            aria-label={isSelected ? "Deselect bookmark" : "Select bookmark"}
+            checked={isSelected}
+            className="size-3.5 !outline-none"
+            containerClassName={cn("transition-opacity", {
+              "pointer-events-auto opacity-100": isSelected || isSelectionActive,
+              "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100":
+                !isSelected && !isSelectionActive,
+            })}
+            iconClassName="size-3"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onSelect(bookmark.id, event.shiftKey);
+            }}
+            readOnly
+          />
+          <HugeiconsIcon icon={BookmarkIcon} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
+        </span>
       }
       actionableItems={
         <div className="flex items-center gap-3 text-13 text-tertiary">
@@ -700,6 +791,40 @@ const BookmarkFilterSection = observer(function BookmarkFilterSection({
   );
 });
 
+function BookmarkBulkActionBar(props: { count: number; isBusy: boolean; onClear: () => void; onDelete: () => void }) {
+  const { count, isBusy, onClear, onDelete } = props;
+  // Rise into place on mount instead of popping in the moment a selection is made.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  return (
+    <div
+      role="toolbar"
+      aria-label={`${count} bookmarks selected`}
+      className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4"
+    >
+      <div
+        className="t-panel-slide shadow-lg pointer-events-auto flex max-w-full items-center gap-2 rounded-xl border border-strong bg-surface-1 px-3 py-2"
+        data-open={mounted ? "true" : "false"}
+      >
+        <span className="shrink-0 px-1 text-11 font-medium">
+          <span className="text-primary">{count}</span>{" "}
+          <span className="text-tertiary">{count === 1 ? "bookmark" : "bookmarks"} selected</span>
+        </span>
+        <div className="bg-strong h-4 w-px" aria-hidden />
+        <Button variant="ghost" size="lg" onClick={onClear} disabled={isBusy} aria-label="Clear selection">
+          <HugeiconsIcon icon={CancelCircleIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+          <span>Clear</span>
+        </Button>
+        <Button variant="error-outline" size="lg" onClick={onDelete} disabled={isBusy} aria-label="Delete">
+          <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+          <span>{isBusy ? "Deleting..." : "Delete"}</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const { workspaceSlug, projectId, mode } = props;
   const bookmarkStore = useBookmark();
@@ -718,6 +843,11 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const [editingSuggestions, setEditingSuggestions] = useState<string[]>([]);
   // Bookmark opened in the detail modal (view, inline edit, tags, comments).
   const [detailId, setDetailId] = useState<string | null>(null);
+  // Multi-selection: chosen bookmark ids + the anchor for shift-click range select.
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
   const { storedValue: storedViewMode, setValue: setViewMode } = useLocalStorage<ViewMode>(
     `bookmarks_view_mode_${mode}`,
@@ -770,6 +900,41 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       return true;
     });
   }, [bookmarks, query, selectedProjectIds, selectedTags]);
+
+  // Selection derives from the live list, so ids of deleted/filtered-out bookmarks
+  // are simply ignored — no separate pruning pass needed.
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedBookmarks = bookmarks.filter((bookmark) => selectedIdSet.has(bookmark.id));
+  const isSelectionActive = selectedBookmarks.length > 0;
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]));
+    setAnchorId(id);
+  };
+  // Shift-click selects every bookmark between the anchor and the target (inclusive),
+  // in the order they're rendered, unioned into the current selection.
+  const selectRange = (targetId: string) => {
+    const order = filteredBookmarks.map((bookmark) => bookmark.id);
+    const targetIdx = order.indexOf(targetId);
+    if (targetIdx === -1) return;
+    const anchorIdx = anchorId ? order.indexOf(anchorId) : -1;
+    if (anchorIdx === -1) {
+      setSelectedIds((prev) => (prev.includes(targetId) ? prev : [...prev, targetId]));
+      setAnchorId(targetId);
+      return;
+    }
+    const [start, end] = anchorIdx <= targetIdx ? [anchorIdx, targetIdx] : [targetIdx, anchorIdx];
+    const rangeIds = order.slice(start, end + 1);
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...rangeIds])));
+  };
+  const handleSelect = (id: string, isRange: boolean) => {
+    if (isRange) selectRange(id);
+    else toggleSelection(id);
+  };
+  const clearSelection = () => {
+    setSelectedIds([]);
+    setAnchorId(null);
+  };
 
   const toggleProjectFilter = (filterProjectId: string) => {
     setSelectedProjectIds((prev) =>
@@ -925,6 +1090,45 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       await bookmarkStore.deleteBookmark(workspaceSlug, bookmark.project_id, bookmark.id);
     } catch {
       setToast({ type: TOAST_TYPE.ERROR, title: "Bookmark could not be deleted" });
+    }
+  };
+
+  // Only bookmarks in projects the user can edit are deletable; the rest are skipped.
+  const deletableSelected = selectedBookmarks.filter((bookmark) => writableProjectIds.includes(bookmark.project_id));
+
+  const handleBulkDeleteClick = () => {
+    if (deletableSelected.length === 0) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "Nothing to delete",
+        message: "You can only delete bookmarks in projects you can edit.",
+      });
+      return;
+    }
+    setBulkDeleteOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (deletableSelected.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const results = await Promise.allSettled(
+        deletableSelected.map((bookmark) =>
+          bookmarkStore.deleteBookmark(workspaceSlug, bookmark.project_id, bookmark.id)
+        )
+      );
+      const failed = results.filter((result) => result.status === "rejected").length;
+      const total = deletableSelected.length;
+      const noun = total === 1 ? "bookmark" : "bookmarks";
+      setToast(
+        failed === 0
+          ? { type: TOAST_TYPE.SUCCESS, title: "Deleted", message: `${total} ${noun} deleted.` }
+          : { type: TOAST_TYPE.ERROR, title: "Error", message: `Couldn't delete ${failed} of ${total} ${noun}.` }
+      );
+      clearSelection();
+    } finally {
+      setIsBulkDeleting(false);
+      setBulkDeleteOpen(false);
     }
   };
 
@@ -1138,7 +1342,10 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                     bookmark={bookmark}
                     workspaceSlug={workspaceSlug}
                     showProject={mode === "workspace"}
+                    isSelected={selectedIdSet.has(bookmark.id)}
+                    isSelectionActive={isSelectionActive}
                     onOpen={openDetail}
+                    onSelect={handleSelect}
                     onDelete={handleDelete}
                     onAcceptTag={handleAcceptTag}
                     onDismissTag={handleDismissTag}
@@ -1155,7 +1362,10 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                 bookmark={bookmark}
                 workspaceSlug={workspaceSlug}
                 showProject={mode === "workspace"}
+                isSelected={selectedIdSet.has(bookmark.id)}
+                isSelectionActive={isSelectionActive}
                 onOpen={openDetail}
+                onSelect={handleSelect}
                 onDelete={handleDelete}
                 onAcceptTag={handleAcceptTag}
                 onDismissTag={handleDismissTag}
@@ -1163,7 +1373,30 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
             ))}
           </ListLayout>
         )}
+        {isSelectionActive && (
+          <BookmarkBulkActionBar
+            count={selectedBookmarks.length}
+            isBusy={isBulkDeleting}
+            onClear={clearSelection}
+            onDelete={handleBulkDeleteClick}
+          />
+        )}
       </div>
+      <AlertModalCore
+        isOpen={bulkDeleteOpen}
+        handleClose={() => {
+          if (isBulkDeleting) return;
+          setBulkDeleteOpen(false);
+        }}
+        handleSubmit={() => void confirmBulkDelete()}
+        isSubmitting={isBulkDeleting}
+        title={`Delete ${deletableSelected.length} ${deletableSelected.length === 1 ? "bookmark" : "bookmarks"}`}
+        content={`Delete ${deletableSelected.length} selected ${
+          deletableSelected.length === 1 ? "bookmark" : "bookmarks"
+        }? This can't be undone.${
+          selectedBookmarks.length > deletableSelected.length ? " Bookmarks you can't edit will be skipped." : ""
+        }`}
+      />
     </>
   );
 });

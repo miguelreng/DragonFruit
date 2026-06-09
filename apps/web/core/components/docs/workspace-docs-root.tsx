@@ -99,6 +99,8 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  // The last single-toggled doc; shift-click selects the range from here to the target.
+  const [anchorDocId, setAnchorDocId] = useState<string | null>(null);
   const activePageTypes = useMemo(() => (pageTypes?.length ? pageTypes : [pageType]), [pageType, pageTypes]);
   const pageTypesKey = activePageTypes.join("_");
   const requestPageType = activePageTypes.length === 1 ? activePageTypes[0] : undefined;
@@ -164,8 +166,34 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   };
   const toggleDocSelection = (pageId: string) => {
     setSelectedDocIds((prev) => (prev.includes(pageId) ? prev.filter((id) => id !== pageId) : [...prev, pageId]));
+    setAnchorDocId(pageId);
   };
-  const clearDocSelection = () => setSelectedDocIds([]);
+  // Shift-click selects every doc between the anchor and the target (inclusive),
+  // in render order — classic range selection. The range is unioned into the
+  // current selection and the anchor stays put so it can be re-extended.
+  const selectDocRange = (targetPageId: string) => {
+    const order = filteredPages.map((p) => p.id).filter((id): id is string => Boolean(id));
+    const targetIdx = order.indexOf(targetPageId);
+    if (targetIdx === -1) return;
+    const anchorIdx = anchorDocId ? order.indexOf(anchorDocId) : -1;
+    if (anchorIdx === -1) {
+      // No usable anchor yet — behave like a single select and set the anchor.
+      setSelectedDocIds((prev) => (prev.includes(targetPageId) ? prev : [...prev, targetPageId]));
+      setAnchorDocId(targetPageId);
+      return;
+    }
+    const [start, end] = anchorIdx <= targetIdx ? [anchorIdx, targetIdx] : [targetIdx, anchorIdx];
+    const rangeIds = order.slice(start, end + 1);
+    setSelectedDocIds((prev) => Array.from(new Set([...prev, ...rangeIds])));
+  };
+  const handleDocSelect = (pageId: string, isRange: boolean) => {
+    if (isRange) selectDocRange(pageId);
+    else toggleDocSelection(pageId);
+  };
+  const clearDocSelection = () => {
+    setSelectedDocIds([]);
+    setAnchorDocId(null);
+  };
   const refreshPages = async () => {
     await mutatePages();
   };
@@ -239,7 +267,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   canModify={canDeleteDoc(page)}
                   isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
                   isSelectionActive={isSelectionActive}
-                  onToggleSelection={toggleDocSelection}
+                  onSelect={handleDocSelect}
                 />
               ))}
             </div>
@@ -254,7 +282,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 getProjectById={getProjectById}
                 isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
                 isSelectionActive={isSelectionActive}
-                onToggleSelection={toggleDocSelection}
+                onSelect={handleDocSelect}
               />
             ))}
           </ListLayout>
@@ -296,10 +324,9 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
             aria-label={label}
             aria-pressed={isActive}
             onClick={() => onChange(value)}
-            className={cn(
-              "grid size-6 place-items-center rounded-lg text-tertiary t-press hover:text-primary",
-              { "bg-layer-1 text-primary": isActive }
-            )}
+            className={cn("t-press grid size-6 place-items-center rounded-lg text-tertiary hover:text-primary", {
+              "bg-layer-1 text-primary": isActive,
+            })}
           >
             <Icon className="size-3.5" />
           </button>
@@ -320,7 +347,7 @@ type DocListItemProps = {
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
   isSelected: boolean;
   isSelectionActive: boolean;
-  onToggleSelection: (pageId: string) => void;
+  onSelect: (pageId: string, isRange: boolean) => void;
 };
 
 function DocListItem({
@@ -329,7 +356,7 @@ function DocListItem({
   getProjectById,
   isSelected,
   isSelectionActive,
-  onToggleSelection,
+  onSelect,
 }: DocListItemProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatformOS();
@@ -355,7 +382,7 @@ function DocListItem({
               pageId={page.id}
               isSelected={isSelected}
               isSelectionActive={isSelectionActive}
-              onToggleSelection={onToggleSelection}
+              onSelect={onSelect}
             />
           )}
           {page.logo_props?.in_use ? (
@@ -368,9 +395,13 @@ function DocListItem({
       title={displayName}
       itemLink={itemLink}
       onItemClick={(e) => {
-        if (!isSelectionActive || !page.id) return;
-        e.preventDefault();
-        onToggleSelection(page.id);
+        if (!page.id) return;
+        // ⌘/Ctrl+click toggles; shift+click selects a range; once a selection is
+        // active, a plain click keeps toggling instead of opening.
+        if (e.metaKey || e.ctrlKey || e.shiftKey || isSelectionActive) {
+          e.preventDefault();
+          onSelect(page.id, e.shiftKey);
+        }
       }}
       isMobile={isMobile}
       parentRef={parentRef}
@@ -422,7 +453,7 @@ type DocCardProps = {
   canModify: boolean;
   isSelected: boolean;
   isSelectionActive: boolean;
-  onToggleSelection: (pageId: string) => void;
+  onSelect: (pageId: string, isRange: boolean) => void;
 };
 
 function DocCard({
@@ -433,7 +464,7 @@ function DocCard({
   canModify,
   isSelected,
   isSelectionActive,
-  onToggleSelection,
+  onSelect,
 }: DocCardProps) {
   const { mutate } = useSWRConfig();
   const projectIds = page.project_ids ?? [];
@@ -562,7 +593,7 @@ function DocCard({
   const card = (
     <div
       className={cn(
-        "group relative flex h-[240px] flex-col gap-3 rounded-2xl border border-subtle bg-surface-1 p-4 t-press",
+        "group t-press relative flex h-[240px] flex-col gap-3 rounded-2xl border border-subtle bg-surface-1 p-4",
         {
           "hover:border-strong": itemLink && !isProjectBrief,
           "shadow-sm bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief,
@@ -571,34 +602,53 @@ function DocCard({
         }
       )}
     >
-      {page.id && (
-        <div
-          className={cn(
-            "absolute top-2 right-10 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100",
-            { "opacity-100": isSelected || isSelectionActive }
-          )}
-        >
-          <DocSelectionCheckbox
-            pageId={page.id}
-            isSelected={isSelected}
-            isSelectionActive={isSelectionActive}
-            onToggleSelection={onToggleSelection}
-          />
-        </div>
-      )}
       <div className="flex items-start gap-2.5">
         <span
-          className={cn("grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary", {
+          className={cn("relative grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary", {
             "bg-accent-primary/10 text-accent-primary": isProjectBrief,
           })}
         >
-          {page.logo_props?.in_use ? (
-            <Logo logo={page.logo_props} size={16} type="lucide" />
-          ) : (
-            <FallbackIcon className={cn("size-4 text-tertiary", { "text-accent-primary": isProjectBrief })} />
+          {/* Format-type icon — fades out on hover to reveal the selection checkbox in its place */}
+          <span
+            className={cn("flex transition-opacity", {
+              "opacity-0": isSelected || isSelectionActive,
+              "group-focus-within:opacity-0 group-hover:opacity-0": !isSelected && !isSelectionActive,
+            })}
+          >
+            {page.logo_props?.in_use ? (
+              <Logo logo={page.logo_props} size={16} type="lucide" />
+            ) : (
+              <FallbackIcon className={cn("size-4 text-tertiary", { "text-accent-primary": isProjectBrief })} />
+            )}
+          </span>
+          {/* Selection toggle — fills the icon's box so the whole tile is the hit target on hover */}
+          {page.id && (
+            <button
+              type="button"
+              aria-label={isSelected ? "Deselect doc" : "Select doc"}
+              onClick={(e) => {
+                if (!page.id) return;
+                e.preventDefault();
+                e.stopPropagation();
+                onSelect(page.id, e.shiftKey);
+              }}
+              className={cn("absolute inset-0 grid place-items-center rounded-lg transition-opacity", {
+                "opacity-100": isSelected || isSelectionActive,
+                "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100":
+                  !isSelected && !isSelectionActive,
+              })}
+            >
+              <Checkbox
+                checked={isSelected}
+                readOnly
+                tabIndex={-1}
+                className="pointer-events-none size-3.5 !outline-none"
+                iconClassName="size-3"
+              />
+            </button>
           )}
         </span>
-        <div className="min-w-0 flex-1 pr-14">
+        <div className="min-w-0 flex-1 pr-8">
           <h3
             className={cn("line-clamp-2 text-14 leading-snug font-medium text-primary", {
               "text-accent-primary": isProjectBrief,
@@ -715,9 +765,13 @@ function DocCard({
         to={itemLink}
         className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
         onClick={(e) => {
-          if (!isSelectionActive || !page.id) return;
-          e.preventDefault();
-          onToggleSelection(page.id);
+          if (!page.id) return;
+          // ⌘/Ctrl+click toggles; shift+click selects a range; once a selection is
+          // active, a plain click keeps toggling instead of opening.
+          if (e.metaKey || e.ctrlKey || e.shiftKey || isSelectionActive) {
+            e.preventDefault();
+            onSelect(page.id, e.shiftKey);
+          }
         }}
       >
         {card}
@@ -731,24 +785,25 @@ type DocSelectionCheckboxProps = {
   pageId: string;
   isSelected: boolean;
   isSelectionActive: boolean;
-  onToggleSelection: (pageId: string) => void;
+  onSelect: (pageId: string, isRange: boolean) => void;
 };
 
-function DocSelectionCheckbox({ pageId, isSelected, isSelectionActive, onToggleSelection }: DocSelectionCheckboxProps) {
+function DocSelectionCheckbox({ pageId, isSelected, isSelectionActive, onSelect }: DocSelectionCheckboxProps) {
   return (
     <Checkbox
       aria-label={isSelected ? "Deselect doc" : "Select doc"}
       checked={isSelected}
       className="size-3.5 !outline-none"
       containerClassName={cn("transition-opacity", {
-        "opacity-100": isSelected || isSelectionActive,
-        "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100": !isSelected && !isSelectionActive,
+        "pointer-events-auto opacity-100": isSelected || isSelectionActive,
+        "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100":
+          !isSelected && !isSelectionActive,
       })}
       iconClassName="size-3"
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        onToggleSelection(pageId);
+        onSelect(pageId, e.shiftKey);
       }}
       readOnly
     />
@@ -854,7 +909,10 @@ function DocsBulkActionBar({
       } else {
         // Surface the underlying API reason (e.g. permissions / not archived)
         // instead of only the count, which hides why every item failed.
-        console.error("Docs bulk operation failed:", rejected.map((result) => result.reason));
+        console.error(
+          "Docs bulk operation failed:",
+          rejected.map((result) => result.reason)
+        );
         const reason = pageActionErrorMessage(rejected[0]?.reason, "");
         const baseMessage = errorMessage(failedCount, pagesToProcess.length);
         setToast({
@@ -959,93 +1017,93 @@ function DocsBulkActionBar({
         aria-label={`${count} docs selected`}
         className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4"
       >
-      <div
-        className="t-panel-slide shadow-lg pointer-events-auto flex max-w-full items-center gap-2 rounded-xl border border-strong bg-surface-1 px-3 py-2"
-        data-open={mounted ? "true" : "false"}
-      >
-        <span className="shrink-0 px-1 text-11 font-medium">
-          <span className="text-primary">{count}</span>{" "}
-          <span className="text-tertiary">{docLabel(count)} selected</span>
-        </span>
-        <div className="bg-strong h-4 w-px" aria-hidden />
-        <Button variant="ghost" size="sm" onClick={onClear} disabled={isBusy} aria-label="Clear selection">
-          <X className="size-3.5" />
-          <span>Clear</span>
-        </Button>
-        <CustomMenu
-          ariaLabel="Move selected docs"
-          placement="top-start"
-          maxHeight="lg"
-          closeOnSelect={false}
-          disabled={isBusy || movablePages.length === 0}
-          customButtonClassName={cn(
-            "inline-flex h-7 items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-2 text-11 font-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active",
-            { "cursor-not-allowed opacity-60": isBusy || movablePages.length === 0 }
-          )}
-          customButton={
-            <>
-              <Folder className="size-3.5" />
-              <span>{operation === "move" ? "Moving..." : "Move"}</span>
-              <ChevronDown className="size-3" />
-            </>
-          }
-          optionsClassName="w-64"
+        <div
+          className="t-panel-slide shadow-lg pointer-events-auto flex max-w-full items-center gap-2 rounded-xl border border-strong bg-surface-1 px-3 py-2"
+          data-open={mounted ? "true" : "false"}
         >
-          <div className="p-1">
-            <div className="flex items-center gap-1.5 rounded-lg border border-subtle bg-canvas px-2 py-1">
-              <Search className="size-3 text-tertiary" />
-              <input
-                type="text"
-                value={projectSearch}
-                onChange={(e) => setProjectSearch(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                placeholder="Search projects"
-                className="w-full bg-transparent text-11 text-primary outline-none placeholder:text-placeholder"
-              />
+          <span className="shrink-0 px-1 text-11 font-medium">
+            <span className="text-primary">{count}</span>{" "}
+            <span className="text-tertiary">{docLabel(count)} selected</span>
+          </span>
+          <div className="bg-strong h-4 w-px" aria-hidden />
+          <Button variant="ghost" size="lg" onClick={onClear} disabled={isBusy} aria-label="Clear selection">
+            <X className="size-3.5" />
+            <span>Clear</span>
+          </Button>
+          <CustomMenu
+            ariaLabel="Move selected docs"
+            placement="top-start"
+            maxHeight="lg"
+            closeOnSelect={false}
+            disabled={isBusy || movablePages.length === 0}
+            customButtonClassName={cn(
+              "inline-flex h-7 items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-2 text-11 font-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active",
+              { "cursor-not-allowed opacity-60": isBusy || movablePages.length === 0 }
+            )}
+            customButton={
+              <>
+                <Folder className="size-3.5" />
+                <span>{operation === "move" ? "Moving..." : "Move"}</span>
+                <ChevronDown className="size-3" />
+              </>
+            }
+            optionsClassName="w-64"
+          >
+            <div className="p-1">
+              <div className="flex items-center gap-1.5 rounded-lg border border-subtle bg-canvas px-2 py-1">
+                <Search className="size-3 text-tertiary" />
+                <input
+                  type="text"
+                  value={projectSearch}
+                  onChange={(e) => setProjectSearch(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  placeholder="Search projects"
+                  className="w-full bg-transparent text-11 text-primary outline-none placeholder:text-placeholder"
+                />
+              </div>
             </div>
-          </div>
-          {moveTargetProjects.length > 0 ? (
-            moveTargetProjects.map((project) => {
-              const alreadyInProject =
-                movablePages.length > 0 && movablePages.every((page) => page.projectId === project.id);
-              return (
-                <CustomMenu.MenuItem
-                  key={project.id}
-                  disabled={isBusy || alreadyInProject}
-                  onClick={() => void handleBulkMove(project.id)}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="grid h-4 w-4 flex-shrink-0 place-items-center">
-                      <Logo logo={project.logo_props} size={12} />
+            {moveTargetProjects.length > 0 ? (
+              moveTargetProjects.map((project) => {
+                const alreadyInProject =
+                  movablePages.length > 0 && movablePages.every((page) => page.projectId === project.id);
+                return (
+                  <CustomMenu.MenuItem
+                    key={project.id}
+                    disabled={isBusy || alreadyInProject}
+                    onClick={() => void handleBulkMove(project.id)}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="grid h-4 w-4 flex-shrink-0 place-items-center">
+                        <Logo logo={project.logo_props} size={12} />
+                      </span>
+                      <span className="truncate">{project.name}</span>
+                      {alreadyInProject && <span className="ml-auto shrink-0 text-10 text-tertiary">Current</span>}
                     </span>
-                    <span className="truncate">{project.name}</span>
-                    {alreadyInProject && <span className="ml-auto shrink-0 text-10 text-tertiary">Current</span>}
-                  </span>
-                </CustomMenu.MenuItem>
-              );
-            })
-          ) : (
-            <CustomMenu.MenuItem disabled>
-              <span className="text-tertiary">No matching projects</span>
-            </CustomMenu.MenuItem>
-          )}
-        </CustomMenu>
-        <Button variant="secondary" size="sm" onClick={handleBulkDuplicate} disabled={isBusy} aria-label="Duplicate">
-          <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-          <span>{operation === "duplicate" ? "Duplicating..." : "Duplicate"}</span>
-        </Button>
-        <Button
-          variant="error-outline"
-          size="sm"
-          onClick={handleBulkDelete}
-          disabled={isBusy || deletablePages.length === 0}
-          aria-label="Delete"
-        >
-          <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-          <span>{operation === "delete" ? "Deleting..." : "Delete"}</span>
-        </Button>
+                  </CustomMenu.MenuItem>
+                );
+              })
+            ) : (
+              <CustomMenu.MenuItem disabled>
+                <span className="text-tertiary">No matching projects</span>
+              </CustomMenu.MenuItem>
+            )}
+          </CustomMenu>
+          <Button variant="secondary" size="lg" onClick={handleBulkDuplicate} disabled={isBusy} aria-label="Duplicate">
+            <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <span>{operation === "duplicate" ? "Duplicating..." : "Duplicate"}</span>
+          </Button>
+          <Button
+            variant="error-outline"
+            size="lg"
+            onClick={handleBulkDelete}
+            disabled={isBusy || deletablePages.length === 0}
+            aria-label="Delete"
+          >
+            <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <span>{operation === "delete" ? "Deleting..." : "Delete"}</span>
+          </Button>
         </div>
       </div>
     </>
