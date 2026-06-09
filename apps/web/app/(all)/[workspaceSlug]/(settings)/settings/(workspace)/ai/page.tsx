@@ -7,28 +7,35 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
 import { Sparkles } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { cn } from "@plane/utils";
 // components
+import { AgentAutomationsModal, AgentsList } from "@/components/agents";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
+// constants
+import { ATLAS_IDENTITY } from "@/constants/atlas";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserPermissions } from "@/hooks/store/user";
 // services
 import { AIService } from "@/services/ai.service";
 import type { TWorkspaceLLMConfig, TWorkspaceLLMProvider } from "@/services/ai.service";
+import { AgentService, type TAgent } from "@/services/agent.service";
 // local
 import { AIWorkspaceSettingsHeader } from "./header";
 
 const aiService = new AIService();
+const agentService = new AgentService();
 
 type FormState = {
   provider: string;
@@ -40,6 +47,20 @@ const SELECT_CLASSNAME =
   "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary min-w-[220px]";
 const INPUT_CLASSNAME =
   "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder min-w-[220px]";
+
+const agentErrorTitle = (err: unknown, t: (key: string) => string) =>
+  (err as { error?: string } | undefined)?.error ?? t("workspace_settings.settings.agents.update_error");
+
+// Atlas is the single workspace companion. Older workspaces can carry more
+// than one historical Agent row, so we resolve to the oldest enabled one.
+const getAtlasProfile = (agents: TAgent[]): TAgent | undefined => {
+  // `toSorted` (ES2023) is not available in this app's TS lib config.
+  // oxlint-disable-next-line no-array-sort
+  return [...agents].sort((a, b) => {
+    if (a.is_enabled !== b.is_enabled) return a.is_enabled ? -1 : 1;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  })[0];
+};
 
 function AISettingsLoader() {
   return (
@@ -93,6 +114,69 @@ function AISettingsPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [showAutomationsModal, setShowAutomationsModal] = useState(false);
+
+  // ---- Atlas profile (enable / triggers / automations) ----------------- //
+  const { data: agents, mutate: mutateAgents } = useSWR<TAgent[]>(
+    canEdit && workspaceSlug ? `AGENTS_LIST_${workspaceSlug}` : null,
+    canEdit && workspaceSlug ? () => agentService.list(workspaceSlug) : null
+  );
+  const atlasAgent = agents ? getAtlasProfile(agents) : undefined;
+  const visibleAgents = atlasAgent ? [atlasAgent] : [];
+
+  // ON → resume future dispatches. OFF → the `stop` endpoint also cancels
+  // every in-flight run (the Celery loop polls cancel_requested and bails).
+  const handleToggle = useCallback(
+    async (id: string, next: boolean) => {
+      if (!workspaceSlug) return;
+      try {
+        if (next) {
+          await agentService.update(workspaceSlug, id, { is_enabled: true });
+        } else {
+          const stopped = await agentService.stop(workspaceSlug, id);
+          const cancelled = stopped.cancelled_runs ?? 0;
+          if (cancelled > 0) {
+            setToast({
+              type: TOAST_TYPE.SUCCESS,
+              title: t("workspace_settings.settings.agents.stopped.title"),
+              message: t("workspace_settings.settings.agents.stopped.cancelled", { count: cancelled }),
+            });
+          }
+        }
+        await mutateAgents();
+      } catch (err) {
+        setToast({ type: TOAST_TYPE.ERROR, title: agentErrorTitle(err, t) });
+      }
+    },
+    [workspaceSlug, mutateAgents, t]
+  );
+
+  const handleUpdateTrigger = useCallback(
+    async (id: string, key: keyof TAgent["triggers"], next: boolean) => {
+      if (!workspaceSlug) return;
+      try {
+        // PATCH shallow-merges `triggers` server-side, so we send only the one we change.
+        await agentService.update(workspaceSlug, id, { triggers: { [key]: next } });
+        await mutateAgents();
+      } catch (err) {
+        setToast({ type: TOAST_TYPE.ERROR, title: agentErrorTitle(err, t) });
+      }
+    },
+    [workspaceSlug, mutateAgents, t]
+  );
+
+  // Atlas's name, personality, and avatar are fixed in code (ATLAS_IDENTITY
+  // + the server-side prompts), so initialization just mints the bot — there's
+  // nothing to configure.
+  const handleInitializeAtlas = useCallback(async () => {
+    if (!workspaceSlug) return;
+    try {
+      await agentService.create(workspaceSlug, { name: ATLAS_IDENTITY.name });
+      await mutateAgents();
+    } catch (err) {
+      setToast({ type: TOAST_TYPE.ERROR, title: agentErrorTitle(err, t) });
+    }
+  }, [workspaceSlug, mutateAgents, t]);
 
   const loadConfig = useCallback(async () => {
     if (!workspaceSlug) return;
@@ -188,6 +272,53 @@ function AISettingsPage() {
           title={t("workspace_settings.settings.ai.heading")}
           description={t("workspace_settings.settings.ai.description")}
         />
+
+        {/* Atlas — the one workspace companion. Identity & personality are
+            fixed in code; only on/off, triggers, and automations are tunable
+            here. The model + BYOK key it runs on are configured below. */}
+        <AgentAutomationsModal
+          workspaceSlug={workspaceSlug}
+          agents={visibleAgents}
+          isOpen={showAutomationsModal}
+          onClose={() => setShowAutomationsModal(false)}
+        />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-0.5">
+              <h3 className="text-15 font-medium text-primary">{ATLAS_IDENTITY.name}</h3>
+              <p className="text-12 text-tertiary">{ATLAS_IDENTITY.description}</p>
+            </div>
+            {atlasAgent && (
+              <Button
+                variant="secondary"
+                size="lg"
+                className="!h-8 px-3"
+                disabled={!canEdit}
+                onClick={() => setShowAutomationsModal(true)}
+              >
+                Automations
+              </Button>
+            )}
+          </div>
+          {atlasAgent ? (
+            <AgentsList agents={visibleAgents} onToggle={handleToggle} onUpdateTrigger={handleUpdateTrigger} />
+          ) : (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-subtle bg-layer-2 px-4 py-4">
+              <p className="text-12 text-tertiary">
+                Atlas isn’t set up in this workspace yet. Initialize it to assign tasks and @-mention it.
+              </p>
+              <Button
+                variant="primary"
+                size="lg"
+                className="!h-8 px-3"
+                disabled={!canEdit}
+                onClick={() => void handleInitializeAtlas()}
+              >
+                Initialize Atlas
+              </Button>
+            </div>
+          )}
+        </div>
 
         {loading ? (
           <AISettingsLoader />

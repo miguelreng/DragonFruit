@@ -6,16 +6,23 @@
 
 import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { v4 as uuidv4 } from "uuid";
-import type { TProjectBookmark, TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } from "@plane/types";
+import type {
+  TProjectBookmark,
+  TProjectBookmarkBulkImportResult,
+  TProjectBookmarkComment,
+  TProjectBookmarkCreatePayload,
+} from "@plane/types";
 import { BookmarkService, type TBookmarkQueryParams, type TBookmarkUrlMetadata } from "@/services/bookmark.service";
 
 export interface IBookmarkStore {
   bookmarkMap: Record<string, TProjectBookmark>;
   projectBookmarkIds: Record<string, string[]>;
   workspaceBookmarkIds: Record<string, string[]>;
+  commentsByBookmark: Record<string, TProjectBookmarkComment[]>;
   service: BookmarkService;
   workspaceBookmarks: (workspaceSlug: string) => TProjectBookmark[];
   projectBookmarks: (projectId: string) => TProjectBookmark[];
+  bookmarkComments: (bookmarkId: string) => TProjectBookmarkComment[];
   fetchProjectBookmarks: (
     workspaceSlug: string,
     projectId: string,
@@ -41,12 +48,37 @@ export interface IBookmarkStore {
     payload: TProjectBookmarkCreatePayload
   ) => Promise<TProjectBookmark>;
   deleteBookmark: (workspaceSlug: string, projectId: string, bookmarkId: string) => Promise<void>;
+  fetchBookmarkComments: (
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string
+  ) => Promise<TProjectBookmarkComment[]>;
+  createBookmarkComment: (
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    comment: string
+  ) => Promise<TProjectBookmarkComment>;
+  updateBookmarkComment: (
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    commentId: string,
+    comment: string
+  ) => Promise<TProjectBookmarkComment>;
+  deleteBookmarkComment: (
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    commentId: string
+  ) => Promise<void>;
 }
 
 export class BookmarkStore implements IBookmarkStore {
   bookmarkMap: Record<string, TProjectBookmark> = {};
   projectBookmarkIds: Record<string, string[]> = {};
   workspaceBookmarkIds: Record<string, string[]> = {};
+  commentsByBookmark: Record<string, TProjectBookmarkComment[]> = {};
   service = new BookmarkService();
 
   constructor() {
@@ -54,6 +86,7 @@ export class BookmarkStore implements IBookmarkStore {
       bookmarkMap: observable,
       projectBookmarkIds: observable,
       workspaceBookmarkIds: observable,
+      commentsByBookmark: observable,
       allBookmarks: computed,
       fetchProjectBookmarks: action,
       fetchWorkspaceBookmarks: action,
@@ -62,6 +95,10 @@ export class BookmarkStore implements IBookmarkStore {
       importBookmarks: action,
       updateBookmark: action,
       deleteBookmark: action,
+      fetchBookmarkComments: action,
+      createBookmarkComment: action,
+      updateBookmarkComment: action,
+      deleteBookmarkComment: action,
     });
   }
 
@@ -74,6 +111,8 @@ export class BookmarkStore implements IBookmarkStore {
 
   projectBookmarks = (projectId: string) =>
     (this.projectBookmarkIds[projectId] ?? []).map((id) => this.bookmarkMap[id]).filter(Boolean);
+
+  bookmarkComments = (bookmarkId: string) => this.commentsByBookmark[bookmarkId] ?? [];
 
   private mergeBookmarks(bookmarks: TProjectBookmark[]) {
     bookmarks.forEach((bookmark) => {
@@ -219,6 +258,60 @@ export class BookmarkStore implements IBookmarkStore {
           this.projectBookmarkIds[projectId] = [bookmarkId, ...(this.projectBookmarkIds[projectId] ?? [])];
           this.workspaceBookmarkIds[workspaceSlug] = [bookmarkId, ...(this.workspaceBookmarkIds[workspaceSlug] ?? [])];
         }
+      });
+      throw error;
+    }
+  };
+
+  fetchBookmarkComments = async (workspaceSlug: string, projectId: string, bookmarkId: string) => {
+    const comments = await this.service.listBookmarkComments(workspaceSlug, projectId, bookmarkId);
+    runInAction(() => {
+      this.commentsByBookmark[bookmarkId] = comments;
+    });
+    return comments;
+  };
+
+  createBookmarkComment = async (workspaceSlug: string, projectId: string, bookmarkId: string, comment: string) => {
+    const created = await this.service.createBookmarkComment(workspaceSlug, projectId, bookmarkId, { comment });
+    runInAction(() => {
+      this.commentsByBookmark[bookmarkId] = [...(this.commentsByBookmark[bookmarkId] ?? []), created];
+    });
+    return created;
+  };
+
+  updateBookmarkComment = async (
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    commentId: string,
+    comment: string
+  ) => {
+    const updated = await this.service.updateBookmarkComment(workspaceSlug, projectId, bookmarkId, commentId, {
+      comment,
+    });
+    runInAction(() => {
+      this.commentsByBookmark[bookmarkId] = (this.commentsByBookmark[bookmarkId] ?? []).map((existing) =>
+        existing.id === commentId ? updated : existing
+      );
+    });
+    return updated;
+  };
+
+  deleteBookmarkComment = async (
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    commentId: string
+  ) => {
+    const previous = this.commentsByBookmark[bookmarkId] ?? [];
+    runInAction(() => {
+      this.commentsByBookmark[bookmarkId] = previous.filter((existing) => existing.id !== commentId);
+    });
+    try {
+      await this.service.deleteBookmarkComment(workspaceSlug, projectId, bookmarkId, commentId);
+    } catch (error) {
+      runInAction(() => {
+        this.commentsByBookmark[bookmarkId] = previous;
       });
       throw error;
     }

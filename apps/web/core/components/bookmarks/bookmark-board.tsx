@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bookmark as BookmarkIcon,
   CancelCircleIcon,
@@ -15,7 +15,6 @@ import {
   LinkSquare01Icon,
   ListViewIcon,
   MoreHorizontal,
-  PencilEdit02Icon,
   PlusSignIcon,
   Upload03Icon,
 } from "@hugeicons/core-free-icons";
@@ -41,7 +40,20 @@ import { useUserPermissions } from "@/hooks/store/user";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
+import { BookmarkDetailModal } from "./bookmark-detail-modal";
+import {
+  bookmarkDisplayTitle,
+  bookmarkHasTwitterScreenshot,
+  bookmarkHref,
+  bookmarkPreviewImage,
+  bookmarkSource,
+  bookmarkSuggestedTags,
+  domainFromUrl,
+  normalizeTags,
+  openImageUrl,
+} from "./helpers";
 import { ImportBookmarksModal } from "./import-bookmarks-modal";
+import { SuggestedTagChips } from "./suggested-tag-chips";
 
 type Props = {
   workspaceSlug: string;
@@ -65,119 +77,6 @@ const EMPTY_DRAFT: BookmarkDraft = {
   description: "",
   tags: "",
   metadata: {},
-};
-
-const normalizeTags = (tags: string) =>
-  tags
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-
-const domainFromUrl = (url: string) => {
-  if (!url) return "";
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url.replace(/^https?:\/\//, "").split("/")[0];
-  }
-};
-
-const isTweetUrl = (url: string) => /https?:\/\/(x|twitter)\.com\/[^/]+\/status\/\d+/i.test(url);
-
-const internalBookmarkHref = (workspaceSlug: string, bookmark: TProjectBookmark) => {
-  const projectId = bookmark.project_id;
-  const entityId = bookmark.entity_identifier;
-  switch (bookmark.entity_type) {
-    case "project":
-      return `/${workspaceSlug}/projects/${projectId}/issues`;
-    case "issue":
-    case "work_item":
-      return entityId ? `/${workspaceSlug}/projects/${projectId}/issues/${entityId}` : "";
-    case "page":
-      return entityId ? `/${workspaceSlug}/projects/${projectId}/pages/${entityId}` : "";
-    case "cycle":
-      return entityId ? `/${workspaceSlug}/projects/${projectId}/cycles/${entityId}` : "";
-    case "module":
-      return entityId ? `/${workspaceSlug}/projects/${projectId}/modules/${entityId}` : "";
-    case "view":
-      return entityId ? `/${workspaceSlug}/projects/${projectId}/views/${entityId}` : "";
-    default:
-      return "";
-  }
-};
-
-const bookmarkHref = (workspaceSlug: string, bookmark: TProjectBookmark) =>
-  bookmark.url || internalBookmarkHref(workspaceSlug, bookmark);
-
-const bookmarkSource = (bookmark: TProjectBookmark) =>
-  bookmark.metadata?.site_name || domainFromUrl(bookmark.url) || bookmark.entity_type || "DragonFruit";
-
-// Imported image/file saves often carry the raw filename as their title
-// (e.g. Facebook CDN names like "706873799_15204..._n.jpg"). Those add nothing
-// over the preview image, so we treat them as "no title" and hide them.
-const MEDIA_FILE_TITLE_RE = /\.(jpe?g|png|gif|webp|heic|heif|bmp|svg|tiff?|avif|mp4|mov|webm|pdf)$/i;
-
-const isJunkTitle = (rawTitle: string) => {
-  const title = (rawTitle ?? "").trim();
-  if (!title) return true;
-  const base = title.replace(MEDIA_FILE_TITLE_RE, "");
-  if (base !== title) return true; // a bare filename used as a title
-  const tokens = base.split(/[\s._-]+/).filter(Boolean);
-  if (tokens.length === 0) return true;
-  // machine IDs: long digit runs, hex blobs, or the lone trailing letters FB appends
-  const idLike = tokens.filter(
-    (token) => /^\d{4,}$/.test(token) || /^[0-9a-f]{8,}$/i.test(token) || /^[a-z]$/i.test(token)
-  );
-  return idLike.length / tokens.length >= 0.7;
-};
-
-const bookmarkDisplayTitle = (bookmark: TProjectBookmark) => (isJunkTitle(bookmark.title) ? "" : bookmark.title.trim());
-
-const bookmarkPreviewImage = (bookmark: TProjectBookmark) => {
-  const metadata = bookmark.metadata ?? {};
-  if (typeof metadata.image_url === "string" && metadata.image_url) return metadata.image_url;
-  if (typeof metadata.og_image_url === "string" && metadata.og_image_url) return metadata.og_image_url;
-  return "";
-};
-
-const bookmarkSuggestedTags = (bookmark: TProjectBookmark): string[] => {
-  const raw = bookmark.metadata?.suggested_tags;
-  if (!Array.isArray(raw)) return [];
-  const existing = new Set(bookmark.tags.map((tag) => tag.toLowerCase()));
-  return raw.filter(
-    (tag): tag is string => typeof tag === "string" && tag.trim().length > 0 && !existing.has(tag.toLowerCase())
-  );
-};
-
-const bookmarkHasTwitterScreenshot = (bookmark: TProjectBookmark, imageUrl: string) =>
-  Boolean(imageUrl) && isTweetUrl(bookmark.url) && bookmark.metadata?.screenshot_source === "chrome_extension";
-
-const openImageUrl = async (imageUrl: string) => {
-  if (!imageUrl) return;
-
-  if (!imageUrl.startsWith("data:")) {
-    window.open(imageUrl, "_blank", "noopener,noreferrer");
-    return;
-  }
-
-  const imageWindow = window.open("about:blank", "_blank");
-  if (!imageWindow) {
-    setToast({ type: TOAST_TYPE.ERROR, title: "Screenshot could not be opened" });
-    return;
-  }
-
-  imageWindow.opener = null;
-
-  try {
-    const response = await fetch(imageUrl);
-    const imageBlob = await response.blob();
-    const objectUrl = URL.createObjectURL(imageBlob);
-    imageWindow.location.href = objectUrl;
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-  } catch {
-    imageWindow.close();
-    setToast({ type: TOAST_TYPE.ERROR, title: "Screenshot could not be opened" });
-  }
 };
 
 const toPayload = (draft: BookmarkDraft): TProjectBookmarkCreatePayload => ({
@@ -380,59 +279,16 @@ function BookmarkFormModal(props: {
   );
 }
 
-function SuggestedTagChips(props: {
-  tags: string[];
-  onAccept: (tag: string) => void;
-  onDismiss: (tag: string) => void;
-  className?: string;
-  // When rendered inside a clickable card/row, swallow the click so accepting a
-  // tag doesn't also navigate to the bookmark.
-  stopPropagation?: boolean;
-}) {
-  const { tags, onAccept, onDismiss, className, stopPropagation } = props;
-  if (tags.length === 0) return null;
-  const guard = (handler: (tag: string) => void, tag: string) => (event: MouseEvent) => {
-    if (stopPropagation) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    handler(tag);
-  };
-  return (
-    <div className={cn("flex flex-wrap items-center gap-1", className)}>
-      <span className="text-11 font-medium tracking-wide text-tertiary uppercase">Suggested</span>
-      {tags.map((tag) => (
-        <span
-          key={tag}
-          className="inline-flex items-center gap-1 rounded-lg border border-dashed border-strong px-1.5 py-0.5 text-11 text-secondary"
-        >
-          <button type="button" title="Add tag" onClick={guard(onAccept, tag)} className="hover:text-primary">
-            {tag}
-          </button>
-          <button
-            type="button"
-            aria-label={`Dismiss ${tag}`}
-            onClick={guard(onDismiss, tag)}
-            className="hover:text-red-500 grid place-items-center text-tertiary"
-          >
-            <HugeiconsIcon icon={CancelCircleIcon} className="size-3" color="currentColor" strokeWidth={1.5} />
-          </button>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function BookmarkCard(props: {
   bookmark: TProjectBookmark;
   workspaceSlug: string;
   showProject: boolean;
-  onEdit: (bookmark: TProjectBookmark) => void;
+  onOpen: (bookmark: TProjectBookmark) => void;
   onDelete: (bookmark: TProjectBookmark) => void;
   onAcceptTag: (bookmark: TProjectBookmark, tag: string) => void;
   onDismissTag: (bookmark: TProjectBookmark, tag: string) => void;
 }) {
-  const { bookmark, workspaceSlug, showProject, onEdit, onDelete, onAcceptTag, onDismissTag } = props;
+  const { bookmark, workspaceSlug, showProject, onOpen, onDelete, onAcceptTag, onDismissTag } = props;
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
   const imageUrl = bookmarkPreviewImage(bookmark);
@@ -448,9 +304,39 @@ function BookmarkCard(props: {
   // ratio until the image loads, then lock to its measured ratio.
   const [measuredRatio, setMeasuredRatio] = useState<string | undefined>(undefined);
   const imageRatio = storedRatio ?? measuredRatio ?? "4 / 5";
-  const cardBody = (
-    <div className="group relative overflow-hidden rounded-2xl border border-subtle bg-surface-1 transition-colors hover:border-strong">
-      <div className="absolute top-2 right-2 z-20 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+  // The open-link button is the only way to follow the URL; clicking the rest of
+  // the card opens the detail modal. Clicks inside this cluster never bubble up.
+  const openLinkClasses =
+    "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary";
+  return (
+    <div
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- a native <button> can't contain the nested link/menu controls this card holds
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(bookmark)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen(bookmark);
+        }
+      }}
+      className="group focus-visible:ring-accent-primary/40 relative cursor-pointer overflow-hidden rounded-2xl border border-subtle bg-surface-1 text-left transition-colors hover:border-strong focus:outline-none focus-visible:ring-2"
+    >
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- swallows bubbling so card-open doesn't fire when using these controls; the controls themselves stay keyboard-reachable */}
+      <div
+        className="absolute top-2 right-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {href &&
+          (isExternal ? (
+            <a href={href} target="_blank" rel="noreferrer" className={openLinkClasses} aria-label="Open link">
+              <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            </a>
+          ) : (
+            <Link href={href} className={openLinkClasses} aria-label="Open link">
+              <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            </Link>
+          ))}
         <CustomMenu
           placement="bottom-end"
           closeOnSelect
@@ -469,16 +355,6 @@ function BookmarkCard(props: {
             <span className="flex items-center gap-2">
               <HugeiconsIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
               Copy link
-            </span>
-          </CustomMenu.MenuItem>
-          <CustomMenu.MenuItem
-            onClick={() => {
-              onEdit(bookmark);
-            }}
-          >
-            <span className="flex items-center gap-2">
-              <HugeiconsIcon icon={PencilEdit02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-              Edit bookmark
             </span>
           </CustomMenu.MenuItem>
           <CustomMenu.MenuItem
@@ -580,40 +456,18 @@ function BookmarkCard(props: {
       />
     </div>
   );
-
-  if (!href) return cardBody;
-  if (isExternal) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer"
-        className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
-      >
-        {cardBody}
-      </a>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
-    >
-      {cardBody}
-    </Link>
-  );
 }
 
 function BookmarkListItem(props: {
   bookmark: TProjectBookmark;
   workspaceSlug: string;
   showProject: boolean;
-  onEdit: (bookmark: TProjectBookmark) => void;
+  onOpen: (bookmark: TProjectBookmark) => void;
   onDelete: (bookmark: TProjectBookmark) => void;
   onAcceptTag: (bookmark: TProjectBookmark, tag: string) => void;
   onDismissTag: (bookmark: TProjectBookmark, tag: string) => void;
 }) {
-  const { bookmark, workspaceSlug, showProject, onEdit, onDelete, onAcceptTag, onDismissTag } = props;
+  const { bookmark, workspaceSlug, showProject, onOpen, onDelete, onAcceptTag, onDismissTag } = props;
   const parentRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatformOS();
   const href = bookmarkHref(workspaceSlug, bookmark);
@@ -622,16 +476,12 @@ function BookmarkListItem(props: {
   return (
     <ListItem
       title={bookmarkDisplayTitle(bookmark) || bookmarkSource(bookmark)}
-      itemLink={href || "#"}
-      disableLink={!href}
-      onItemClick={
-        isExternal
-          ? (event) => {
-              event.preventDefault();
-              window.open(href, "_blank", "noopener,noreferrer");
-            }
-          : undefined
-      }
+      itemLink="#"
+      disableLink
+      onItemClick={(event) => {
+        event.preventDefault();
+        onOpen(bookmark);
+      }}
       isMobile={isMobile}
       parentRef={parentRef}
       prependTitleElement={
@@ -659,6 +509,26 @@ function BookmarkListItem(props: {
             {bookmark.tags.length > 3 && <span className="text-11">+{bookmark.tags.length - 3}</span>}
           </div>
           {bookmark.updated_at && <span className="text-11">{renderFormattedDate(bookmark.updated_at)}</span>}
+          {href &&
+            (isExternal ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
+                aria-label="Open link"
+              >
+                <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              </a>
+            ) : (
+              <Link
+                href={href}
+                className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
+                aria-label="Open link"
+              >
+                <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              </Link>
+            ))}
           <button
             type="button"
             className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
@@ -666,14 +536,6 @@ function BookmarkListItem(props: {
             aria-label="Copy bookmark link"
           >
             <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-          </button>
-          <button
-            type="button"
-            className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
-            onClick={() => onEdit(bookmark)}
-            aria-label="Edit bookmark"
-          >
-            <HugeiconsIcon icon={PencilEdit02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
           <button
             type="button"
@@ -854,6 +716,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   // Pending AI suggestions for the bookmark currently open in the edit modal.
   const [editingSuggestions, setEditingSuggestions] = useState<string[]>([]);
+  // Bookmark opened in the detail modal (view, inline edit, tags, comments).
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "");
   const { storedValue: storedViewMode, setValue: setViewMode } = useLocalStorage<ViewMode>(
     `bookmarks_view_mode_${mode}`,
@@ -1053,20 +917,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     }
   };
 
-  const handleEdit = (bookmark: TProjectBookmark) => {
-    setEditingId(bookmark.id);
-    setSelectedProjectId(bookmark.project_id);
-    setDraft({
-      title: bookmark.title,
-      url: bookmark.url,
-      description: bookmark.description,
-      tags: bookmark.tags.join(", "),
-      metadata: bookmark.metadata ?? {},
-    });
-    lastFetchedUrlRef.current = bookmark.url;
-    setEditingSuggestions(bookmarkSuggestedTags(bookmark));
-    setIsFormModalOpen(true);
-  };
+  // Clicking a card/row opens the detail modal — view, inline edit, tags, comments.
+  const openDetail = (bookmark: TProjectBookmark) => setDetailId(bookmark.id);
 
   const handleDelete = async (bookmark: TProjectBookmark) => {
     try {
@@ -1093,6 +945,9 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const canCreateBookmark = writableProjectIds.length > 0;
   const importDefaultProjectId =
     projectId && writableProjectIds.includes(projectId) ? projectId : (writableProjectIds[0] ?? "");
+
+  const detailBookmark = detailId ? bookmarkStore.bookmarkMap[detailId] : undefined;
+  const canEditDetail = detailBookmark ? writableProjectIds.includes(detailBookmark.project_id) : false;
 
   const header = (
     <Header>
@@ -1207,6 +1062,15 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
           onImport={handleImport}
         />
       )}
+      <BookmarkDetailModal
+        isOpen={!!detailId}
+        bookmarkId={detailId}
+        workspaceSlug={workspaceSlug}
+        showProject={mode === "workspace"}
+        canEdit={canEditDetail}
+        onClose={() => setDetailId(null)}
+        onDelete={handleDelete}
+      />
       <div className="relative flex h-full w-full flex-col overflow-hidden">
         {filteredBookmarks.length === 0 ? (
           isLoading ? (
@@ -1274,7 +1138,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                     bookmark={bookmark}
                     workspaceSlug={workspaceSlug}
                     showProject={mode === "workspace"}
-                    onEdit={handleEdit}
+                    onOpen={openDetail}
                     onDelete={handleDelete}
                     onAcceptTag={handleAcceptTag}
                     onDismissTag={handleDismissTag}
@@ -1291,7 +1155,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                 bookmark={bookmark}
                 workspaceSlug={workspaceSlug}
                 showProject={mode === "workspace"}
-                onEdit={handleEdit}
+                onOpen={openDetail}
                 onDelete={handleDelete}
                 onAcceptTag={handleAcceptTag}
                 onDismissTag={handleDismissTag}

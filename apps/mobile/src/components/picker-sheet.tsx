@@ -2,6 +2,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
 
 import { AppIcon } from "@/components/app-icon";
+import { PressableScale } from "@/components/pressable-scale";
 import { colors, font, radius, spacing } from "@/lib/theme";
 
 export type PickerOption = { id: string; label: string; color?: string };
@@ -33,7 +34,7 @@ export function PickerSheet({
           <Text style={styles.title}>{title}</Text>
           <ScrollView>
             {options.map((option) => (
-              <Pressable key={option.id} onPress={() => onSelect(option.id)} style={({ pressed }) => pressed && styles.pressedDim}>
+              <PressableScale key={option.id} onPress={() => onSelect(option.id)} style={({ pressed }) => pressed && styles.pressedDim}>
                 <View style={styles.optionRow}>
                   {option.color ? (
                     <View style={[styles.optionDot, { backgroundColor: option.color }]} />
@@ -43,7 +44,7 @@ export function PickerSheet({
                     <AppIcon icon={CheckmarkCircle02Icon} size={18} color={colors.brandText} strokeWidth={1.9} />
                   ) : null}
                 </View>
-              </Pressable>
+              </PressableScale>
             ))}
           </ScrollView>
         </Pressable>

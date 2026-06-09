@@ -57,7 +57,7 @@ import type { EditorRefApi } from "@plane/editor";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore, Avatar, Spinner } from "@plane/ui";
-import { calculateTimeAgo, cn, getFileURL } from "@plane/utils";
+import { calculateTimeAgo, cn } from "@plane/utils";
 // components
 import {
   Eraser,
@@ -71,6 +71,8 @@ import {
   Trash2,
   X,
 } from "@/components/icons/lucide-shim";
+// constants
+import { ATLAS_IDENTITY } from "@/constants/atlas";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
@@ -324,7 +326,7 @@ function ChatView(props: {
           <Avatar
             size="md"
             name={agent?.name ?? "Atlas"}
-            src={getFileURL(agent?.avatar_url ?? "")}
+            src={ATLAS_IDENTITY.avatarSrc}
             className="shrink-0"
           />
           <div className="flex min-w-0 flex-col">
@@ -392,7 +394,7 @@ function NewChatLanding(props: { onStartSession: () => Promise<void> }) {
       <button
         type="button"
         onClick={() => void onStartSession()}
-        className="rounded-lg bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
+        className="t-press rounded-lg bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
       >
         Start chat
       </button>
@@ -438,7 +440,7 @@ function HistoryView(props: {
         <button
           type="button"
           onClick={() => void onStartSession()}
-          className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
+          className="t-press flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
         >
           <Plus className="size-3.5" />
           New Atlas session
@@ -458,7 +460,7 @@ function HistoryView(props: {
             <Avatar
               size="sm"
               name={s.agent_name || "Atlas"}
-              src={getFileURL(s.agent_avatar_url ?? "")}
+              src={ATLAS_IDENTITY.avatarSrc}
               className="shrink-0"
             />
             <button type="button" onClick={() => onPickSession(s.id)} className="min-w-0 flex-1 text-left">
@@ -827,7 +829,7 @@ function ChatThread(props: {
             <Avatar
               size="lg"
               name={agent?.name ?? "Atlas"}
-              src={getFileURL(agent?.avatar_url ?? "")}
+              src={ATLAS_IDENTITY.avatarSrc}
               className="shrink-0"
             />
             <div className="space-y-1">
@@ -849,7 +851,7 @@ function ChatThread(props: {
                 <Avatar
                   size="sm"
                   name={agent?.name ?? "Atlas"}
-                  src={getFileURL(agent?.avatar_url ?? "")}
+                  src={ATLAS_IDENTITY.avatarSrc}
                   className="shrink-0"
                 />
                 <span className="flex items-center gap-1 text-12 text-tertiary">
@@ -914,7 +916,7 @@ function ChatThread(props: {
               <button
                 type="button"
                 onClick={() => setReplyContext(null)}
-                className="grid size-5 shrink-0 place-items-center rounded text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+                className="t-press grid size-5 shrink-0 place-items-center rounded text-tertiary hover:bg-layer-1 hover:text-primary"
                 aria-label="Remove reply context"
               >
                 <X className="size-3" />
@@ -944,7 +946,7 @@ function ChatThread(props: {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="grid size-7 shrink-0 place-items-center rounded-full text-tertiary transition-colors hover:bg-layer-2 hover:text-primary"
+              className="t-press grid size-7 shrink-0 place-items-center rounded-full text-tertiary hover:bg-layer-2 hover:text-primary"
               aria-label="Attach file"
               title="Attach image, CSV, or PDF"
             >
@@ -955,7 +957,7 @@ function ChatThread(props: {
               onClick={() => void handleSend()}
               disabled={sending || (draft.trim().length === 0 && pendingFiles.length === 0)}
               className={cn(
-                "grid size-7 shrink-0 place-items-center rounded-full transition-colors",
+                "t-press grid size-7 shrink-0 place-items-center rounded-full",
                 (draft.trim().length === 0 && pendingFiles.length === 0) || sending
                   ? "bg-layer-2 text-tertiary"
                   : "bg-[#e548a5] text-white hover:bg-[#d93d9a]"
@@ -1167,7 +1169,7 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
       <Avatar
         size="sm"
         name={agent?.name ?? "Atlas"}
-        src={getFileURL(agent?.avatar_url ?? "")}
+        src={ATLAS_IDENTITY.avatarSrc}
         className="mt-0.5 shrink-0"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">

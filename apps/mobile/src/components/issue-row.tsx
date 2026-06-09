@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { ArrowRight01Icon, Calendar03Icon } from "@hugeicons/core-free-icons";
 
 import { AppIcon } from "@/components/app-icon";
+import { PressableScale } from "@/components/pressable-scale";
 import type { IssueListItem } from "@/lib/api";
 import { formatDueDate, PRIORITY_COLOR, PRIORITY_LABEL } from "@/lib/format";
 import { colors, font, radius, shadow, spacing } from "@/lib/theme";
@@ -26,7 +27,7 @@ export function IssueRow({
   const due = formatDueDate(issue.target_date);
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={issue.name}>
+    <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={issue.name}>
       {({ pressed }) => (
         <View style={[styles.card, pressed && styles.cardPressed]}>
           <View style={[styles.priorityDot, { backgroundColor: PRIORITY_COLOR[priority] ?? PRIORITY_COLOR.none }]} />
@@ -61,7 +62,7 @@ export function IssueRow({
           <AppIcon icon={ArrowRight01Icon} size={18} color={colors.faint} strokeWidth={1.9} />
         </View>
       )}
-    </Pressable>
+    </PressableScale>
   );
 }
 

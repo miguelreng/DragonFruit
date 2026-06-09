@@ -763,6 +763,23 @@ enum SpeechLanguage: String, CaseIterable, Identifiable {
         return Self.supportedLocale(for: rawValue) ?? Locale(identifier: rawValue)
     }
 
+    /// whisper.cpp language code (ISO 639-1). When whisper runs in `auto` mode
+    /// it can emit bracketed `[Language]` tokens (e.g. "[Spanish]") instead of
+    /// transcribing, so we pass the configured language explicitly whenever we
+    /// know it and only fall back to `auto` for the system-language option.
+    var whisperLanguageCode: String {
+        guard self != .multilingual else { return "auto" }
+        let primary = rawValue.split(separator: "-").first.map(String.init)?.lowercased() ?? "auto"
+        // whisper uses `no` for Norwegian Bokmål rather than the BCP-47 `nb`.
+        return primary == "nb" ? "no" : primary
+    }
+
+    /// English-only whisper models (`*.en.bin`) can't honor a non-English
+    /// language flag, so a non-English selection needs a multilingual model.
+    var needsMultilingualWhisperModel: Bool {
+        whisperLanguageCode != "en" && whisperLanguageCode != "auto"
+    }
+
     static func supportedLocale(for identifier: String) -> Locale? {
         let normalizedIdentifier = normalizeLocaleID(identifier)
         return SFSpeechRecognizer.supportedLocales().first {
@@ -2562,7 +2579,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             meetingSystemAudioURL = systemAudioURL
             isMeetingRecording = true
             meetingState = "Recording"
-            statusMessage = "Capturing meeting text locally. Audio will be deleted after transcription."
+            if meetingWhisperModelLanguageMismatch {
+                statusMessage = "Recording in \(speechLanguage.label), but only an English-only Whisper model was found. Install a multilingual model (e.g. ggml-base.bin) for accurate notes."
+            } else {
+                statusMessage = "Capturing meeting text locally. Audio will be deleted after transcription."
+            }
 
             // Also capture the local microphone — system audio only carries the
             // other participants, so without this the user's own voice is missing
@@ -2625,7 +2646,15 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let audioURLs = [systemAudioURL, micAudioURL]
             .compactMap { $0 }
             .filter { FileManager.default.fileExists(atPath: $0.path) }
-        if !audioURLs.isEmpty {
+        if meetingWhisperModelLanguageMismatch {
+            // Only an English-only model is available for a non-English meeting:
+            // whisper would hallucinate English and overwrite the (correct) live
+            // transcript, so skip it and keep what the live recognizer captured.
+            Self.logger.info("Skipping Whisper pass — English-only model for \(self.speechLanguage.label, privacy: .public); keeping live transcript")
+            if !transcript.isEmpty {
+                statusMessage = "Saved the live \(speechLanguage.label) transcript. Install a multilingual Whisper model (e.g. ggml-base.bin) for higher-accuracy notes."
+            }
+        } else if !audioURLs.isEmpty {
             statusMessage = "Transcribing meeting text locally with Whisper.cpp..."
             var pieces: [String] = []
             var whisperFailed = false
@@ -2761,7 +2790,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private func transcribeWithWhisperCPP(audioURL: URL) async throws -> String {
         let binaryURL = try whisperCPPBinaryURL()
-        let modelURL = try whisperCPPModelURL()
+        let languageCode = speechLanguage.whisperLanguageCode
+        let modelURL = try whisperCPPModelURL(preferMultilingual: speechLanguage.needsMultilingualWhisperModel)
         let tempDirectory = FileManager.default.temporaryDirectory
         let wavURL = tempDirectory.appendingPathComponent("dragonfruit-whisper-\(UUID().uuidString).wav")
         let outputPrefix = tempDirectory
@@ -2783,6 +2813,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             arguments: [
                 "-m", modelURL.path,
                 "-f", wavURL.path,
+                "-l", languageCode,
                 "-otxt",
                 "-of", outputPrefix,
                 "-nt",
@@ -2813,11 +2844,14 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         )
     }
 
-    private func whisperCPPModelURL() throws -> URL {
+    private func whisperModelCandidates(preferMultilingual: Bool) -> [String] {
         let defaults = UserDefaults.standard
-        let candidates = [
+        // An explicitly configured model always wins — honor the user's choice.
+        let explicit = [
             defaults.string(forKey: "df_whisper_cpp_model"),
             ProcessInfo.processInfo.environment["WHISPER_CPP_MODEL"],
+        ].compactMap { $0 }.filter { !$0.isEmpty }
+        var fallbacks = [
             "\(NSHomeDirectory())/Library/Application Support/DragonFruit/Whisper/ggml-base.en.bin",
             "\(NSHomeDirectory())/Library/Application Support/Screen Studio/models/ggml-base.bin",
             "\(NSHomeDirectory())/Library/Application Support/Screen Studio/models/ggml-small.bin",
@@ -2825,9 +2859,23 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             "\(NSHomeDirectory())/Code/whisper.cpp/models/ggml-base.en.bin",
             "\(NSHomeDirectory())/whisper.cpp/models/ggml-small.en.bin",
             "\(NSHomeDirectory())/Code/whisper.cpp/models/ggml-small.en.bin",
-        ].compactMap { $0 }.filter { !$0.isEmpty }
+        ]
+        if preferMultilingual {
+            // English-only models can't transcribe other languages, so try
+            // multilingual models first when a non-English language is selected.
+            fallbacks = fallbacks.filter { !$0.hasSuffix(".en.bin") }
+                + fallbacks.filter { $0.hasSuffix(".en.bin") }
+        }
+        return explicit + fallbacks
+    }
 
-        for path in candidates where FileManager.default.fileExists(atPath: path) {
+    private func resolvedWhisperModelPath(preferMultilingual: Bool) -> String? {
+        whisperModelCandidates(preferMultilingual: preferMultilingual)
+            .first { FileManager.default.fileExists(atPath: $0) }
+    }
+
+    private func whisperCPPModelURL(preferMultilingual: Bool) throws -> URL {
+        if let path = resolvedWhisperModelPath(preferMultilingual: preferMultilingual) {
             return URL(fileURLWithPath: path)
         }
         throw NSError(
@@ -2835,6 +2883,16 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             code: 3002,
             userInfo: [NSLocalizedDescriptionKey: "Whisper model not found. Set df_whisper_cpp_model or WHISPER_CPP_MODEL."]
         )
+    }
+
+    /// True when a non-English language is selected but the only Whisper model
+    /// we can find is English-only. That pairing can't transcribe the spoken
+    /// language — whisper ignores the language flag and hallucinates English —
+    /// so we warn up front and keep the live transcript instead.
+    private var meetingWhisperModelLanguageMismatch: Bool {
+        guard speechLanguage.needsMultilingualWhisperModel else { return false }
+        guard let path = resolvedWhisperModelPath(preferMultilingual: true) else { return false }
+        return path.hasSuffix(".en.bin")
     }
 
     private func runProcess(executableURL: URL, arguments: [String]) async throws {
@@ -2968,19 +3026,24 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         )
     }
 
-    // whisper.cpp emits filler like "you" / "Thank you." / "[BLANK_AUDIO]" when
-    // fed (near-)silence. Treat a transcript that is *only* such filler as empty
-    // so one silent side (e.g. no remote audio) can't pollute the merged notes.
+    // whisper.cpp emits non-speech annotation tokens — "[BLANK_AUDIO]",
+    // "(silence)", "[Music]", or a bare "[Spanish]" language tag when it can't
+    // transcribe foreign/quiet audio — plus filler like "you" / "Thank you.".
+    // Strip the annotations and treat a transcript made of *only* such noise as
+    // empty so it can't pollute (or overwrite a good live) transcript.
     nonisolated private static func cleanedWhisperTranscript(_ raw: String) -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalized = trimmed
+        let withoutAnnotations = raw
+            .replacingOccurrences(of: "\\[[^\\]]*\\]", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "\\([^\\)]*\\)", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = withoutAnnotations
             .lowercased()
             .trimmingCharacters(in: CharacterSet(charactersIn: " .,!?-\n"))
         let silenceTokens: Set<String> = [
             "", "you", "thank you", "thanks for watching", "thanks for watching everyone",
-            "[blank_audio]", "(silence)", "[silence]",
         ]
-        return silenceTokens.contains(normalized) ? "" : trimmed
+        return silenceTokens.contains(normalized) ? "" : withoutAnnotations
     }
 
     private func notifyMeetingNotesSaved(title: String) {
@@ -3292,8 +3355,18 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         let meanSquare = sum / Float(max(1, frameCount * max(1, channelCount)))
         let rms = sqrt(meanSquare)
-        let adjusted = max(0, min(1, (rms - 0.012) * 14))
-        return CGFloat(adjusted)
+        // Perceptual (dB) metering. Loudness is logarithmic, so the old linear
+        // `(rms - floor) * gain` mapping left normal speech (RMS ~0.02–0.1)
+        // bunched at the bottom and the bars barely moved. Map a sensible dBFS
+        // window to 0…1 instead: a near-silent room rests below the view's
+        // noise gate, quiet speech lands mid-scale, and a strong voice reaches
+        // the top — so the wave actually tracks the talker.
+        guard rms > 0.0008 else { return 0 }   // true-silence gate
+        let db = 20 * log10(rms)               // ≈ -62 … 0 dBFS
+        let minDb: Float = -46                 // ambient / near-silent floor
+        let maxDb: Float = -12                 // strong speech → full scale
+        let level = (db - minDb) / (maxDb - minDb)
+        return CGFloat(max(0, min(1, level)))
     }
 
     private func typeTextIntoFocusedInput(_ text: String) {

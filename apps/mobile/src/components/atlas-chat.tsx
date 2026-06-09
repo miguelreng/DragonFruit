@@ -5,7 +5,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +17,7 @@ import Markdown from "react-native-markdown-display";
 import { SentIcon, SparklesIcon } from "@hugeicons/core-free-icons";
 
 import { AppIcon } from "@/components/app-icon";
+import { PressableScale } from "@/components/pressable-scale";
 import { ScreenHeader } from "@/components/screen-header";
 import {
   createAgentSession,
@@ -231,7 +231,7 @@ export function AtlasChat({ onClose }: { onClose?: () => void } = {}) {
                 ]}
                 accessibilityLabel="Message Atlas"
               />
-              <Pressable
+              <PressableScale
                 onPress={() => void send()}
                 disabled={sending || input.trim().length === 0}
                 accessibilityRole="button"
@@ -252,7 +252,7 @@ export function AtlasChat({ onClose }: { onClose?: () => void } = {}) {
                     strokeWidth={1.9}
                   />
                 )}
-              </Pressable>
+              </PressableScale>
             </View>
           </View>
         </KeyboardAvoidingView>

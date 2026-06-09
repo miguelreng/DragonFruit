@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -50,3 +51,28 @@ class ProjectBookmark(ProjectBaseModel):
 
     def __str__(self):
         return self.title
+
+
+class ProjectBookmarkComment(ProjectBaseModel):
+    bookmark = models.ForeignKey(ProjectBookmark, on_delete=models.CASCADE, related_name="comments")
+    comment = models.TextField(blank=True, default="")
+    # System/agents could author comments too, so the actor is nullable.
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="bookmark_comments",
+        null=True,
+    )
+    edited_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Project Bookmark Comment"
+        verbose_name_plural = "Project Bookmark Comments"
+        db_table = "project_bookmark_comments"
+        ordering = ("created_at",)
+        indexes = [
+            models.Index(fields=["bookmark", "created_at"], name="bookmark_comment_thread_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.bookmark_id} {self.id}"

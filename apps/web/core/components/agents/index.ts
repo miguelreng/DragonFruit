@@ -5,7 +5,6 @@
  */
 
 export * from "./agent-avatar";
-export * from "./agent-form-modal";
 export * from "./agent-automations-modal";
 export * from "./agent-runs-panel";
 export * from "./agents-list";

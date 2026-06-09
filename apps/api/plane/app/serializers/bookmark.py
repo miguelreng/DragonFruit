@@ -7,7 +7,8 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from plane.app.serializers.base import BaseSerializer
-from plane.db.models import ProjectBookmark
+from plane.app.serializers.user import UserLiteSerializer
+from plane.db.models import ProjectBookmark, ProjectBookmarkComment
 
 
 class ProjectBookmarkSerializer(BaseSerializer):
@@ -72,3 +73,37 @@ class ProjectBookmarkSerializer(BaseSerializer):
         if not data.get("title") and not getattr(self.instance, "title", ""):
             raise serializers.ValidationError({"title": "Title is required."})
         return data
+
+
+class ProjectBookmarkCommentSerializer(BaseSerializer):
+    actor_detail = UserLiteSerializer(read_only=True, source="actor")
+
+    class Meta:
+        model = ProjectBookmarkComment
+        fields = [
+            "id",
+            "bookmark",
+            "workspace_id",
+            "project_id",
+            "comment",
+            "actor",
+            "actor_detail",
+            "edited_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "bookmark",
+            "workspace",
+            "project",
+            "actor",
+            "edited_at",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_comment(self, value):
+        text = (value or "").strip()
+        if not text:
+            raise serializers.ValidationError("Comment cannot be empty.")
+        return text

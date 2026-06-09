@@ -78,9 +78,9 @@ type TProjectRailItem = TCompactRailItem & {
 const MAX_COMPACT_RAIL_ITEMS = 3;
 const RAIL_INLINE_ICON_CLASS = "size-4 flex-shrink-0 text-current";
 const COMPRESSED_ICON_CLASS =
-  "relative grid size-8 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
+  "relative grid size-8 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
 const EXPANDED_ICON_CLASS =
-  "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none transition-colors dark:text-white/70";
+  "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none t-press dark:text-white/70";
 const EXPANDED_ICON_ACTIVE =
   "!bg-white/55 sepia:!bg-[#dbccb3] !text-primary dark:!bg-layer-1 dark:!text-accent-primary";
 const EXPANDED_ICON_INACTIVE =
@@ -907,7 +907,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
     <div
       data-theme={surfaceTheme}
       className={cn(
-        "z-[26] h-full flex-shrink-0 overflow-hidden rounded-[18px] transition-all duration-300 ease-in-out",
+        "z-[26] h-full flex-shrink-0 overflow-hidden rounded-[18px] transition-[width] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
         "bg-gray-200 shadow-sm text-secondary dark:bg-[oklch(0.17_0.01_0)] dark:text-white/75",
         // Drawer mode: flush left edge, fill the panel, no width animation.
         isMobile && "rounded-l-none transition-none"

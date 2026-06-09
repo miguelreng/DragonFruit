@@ -161,7 +161,7 @@ function Menu(props: TMenuProps) {
           ) : (
             <BaseMenu.Trigger
               type="button"
-              className={`flex items-center justify-between gap-1 rounded-lg px-2.5 py-1 text-11 whitespace-nowrap duration-300 outline-none ${
+              className={`flex items-center justify-between gap-1 rounded-lg px-2.5 py-1 text-11 whitespace-nowrap t-press outline-none ${
                 isOpen ? "bg-surface-2 text-primary" : "text-secondary"
               } ${noBorder ? "" : "shadow-sm border border-strong focus:outline-none"} ${
                 disabled ? "cursor-not-allowed text-secondary" : "cursor-pointer hover:bg-layer-1"

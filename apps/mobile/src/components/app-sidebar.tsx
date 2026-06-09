@@ -22,6 +22,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { AppIcon } from "@/components/app-icon";
+import { PressableScale } from "@/components/pressable-scale";
 import { Avatar } from "@/components/avatar";
 import { ProjectLogo } from "@/components/project-logo";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
@@ -72,7 +73,7 @@ function ItemRow({ icon, leading, label, active, onPress, trailing }: ItemRowPro
   // New Architecture, a Pressable rendered inside the drawer drops `flexDirection`
   // (its children stack vertically), while a plain View lays out correctly.
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -88,7 +89,7 @@ function ItemRow({ icon, leading, label, active, onPress, trailing }: ItemRowPro
         </Text>
         {trailing}
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 

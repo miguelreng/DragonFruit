@@ -1705,14 +1705,19 @@ class AgentChatMessageEndpoint(BaseAPIView):
         for turn in history_trimmed[:-1]:  # all but the message we just inserted
             label = "User" if turn["role"] == "user" else "Assistant"
             transcript_lines.append(f"{label}: {turn['content']}")
+        # Atlas has one fixed personality across every workspace — we ignore
+        # the per-workspace `agent.system_prompt` so the assistant's voice
+        # can't drift. The matching task/page-comment personas live in
+        # plane/bgtasks/agent_dispatch_task.py; the web mirror is ATLAS_IDENTITY.
+        atlas_persona = (
+            "You are Atlas, the DragonFruit workspace companion. You help across docs, tasks, "
+            "and team context. Use clear reasoning, ask focused questions when context is "
+            "missing, and keep replies concise and useful."
+        )
         if transcript_lines:
-            system = (
-                (agent.system_prompt or "").strip()
-                + "\n\nConversation so far:\n"
-                + "\n".join(transcript_lines)
-            )
+            system = atlas_persona + "\n\nConversation so far:\n" + "\n".join(transcript_lines)
         else:
-            system = (agent.system_prompt or "").strip() or "You are a helpful assistant."
+            system = atlas_persona
         system = f"{system}\n\n{_CHAT_INTENT_SYSTEM_PROMPT}"
         if is_document_request:
             interpreted = [

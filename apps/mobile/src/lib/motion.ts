@@ -13,6 +13,14 @@ export const motion = {
     scrimOut: Easing.in(Easing.quad),
     panelOut: Easing.in(Easing.cubic),
   },
+  // Tactile press feedback (mobile counterpart of the web `t-press`): pressable
+  // elements scale down subtly so the UI confirms the touch. Press in is
+  // snappier than release is gentle; both stay under the fast/control budget.
+  press: {
+    scale: 0.97,
+    inDuration: 120,
+    outDuration: 160,
+  },
   drawer: {
     edgeWidth: 48,
     overlayOpacity: 0.4,

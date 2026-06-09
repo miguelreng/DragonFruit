@@ -12,8 +12,10 @@ import { EPillSize, EPillVariant, Pill } from "@plane/propel/pill";
 import { ToggleSwitch } from "@plane/ui";
 // services
 import type { TAgent } from "@/services/agent.service";
+// constants
+import { ATLAS_IDENTITY } from "@/constants/atlas";
 // local
-import { ChevronDown, ChevronRight, Settings2 } from "@plane/icons";
+import { ChevronDown, ChevronRight } from "@plane/icons";
 import { AgentAvatar } from "./agent-avatar";
 import { AgentRunsPanel } from "./agent-runs-panel";
 
@@ -22,7 +24,6 @@ export type TAgentTriggerKey = keyof TAgent["triggers"];
 interface IAgentsListItemProps {
   agent: TAgent;
   onToggle: (id: string, next: boolean) => Promise<void>;
-  onEdit: (agent: TAgent) => void;
   onUpdateTrigger: (id: string, key: TAgentTriggerKey, next: boolean) => Promise<void>;
 }
 
@@ -57,7 +58,7 @@ const TRIGGER_LABELS: Array<{ key: TAgentTriggerKey; title: string; description:
   },
 ];
 
-export function AgentsListItem({ agent, onToggle, onEdit, onUpdateTrigger }: IAgentsListItemProps) {
+export function AgentsListItem({ agent, onToggle, onUpdateTrigger }: IAgentsListItemProps) {
   const { workspaceSlug } = useParams();
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
@@ -90,18 +91,12 @@ export function AgentsListItem({ agent, onToggle, onEdit, onUpdateTrigger }: IAg
   return (
     <div className="overflow-hidden bg-layer-2">
       {/*
-        Layout note: the disclosure trigger (the row) and the controls
-        (toggle + delete) are siblings, not nested — HTML doesn't allow
-        buttons inside buttons. The disclosure occupies the flexible
-        middle; controls sit to the right as their own interactive
-        elements.
-      */}
-      {/*
-        Matches the SettingsBoxedControlItem rhythm used on the AI page:
-        title + description on the left, controls block on the right. The
-        whole left column is a single button that toggles the expand
-        disclosure — we keep the chevron at the far right of the title so
-        the row's affordance is clear without an avatar prefix.
+        Layout note: the disclosure trigger (the row) and the enable toggle
+        are siblings, not nested — HTML doesn't allow buttons inside buttons.
+        The disclosure occupies the flexible middle (brand avatar + title +
+        description); the toggle sits to the right as its own control. The
+        chevron stays at the far right of the title so the row's expand
+        affordance is clear.
       */}
       <div className="flex w-full items-center justify-between gap-4 px-4 py-3">
         <button
@@ -111,10 +106,10 @@ export function AgentsListItem({ agent, onToggle, onEdit, onUpdateTrigger }: IAg
           aria-expanded={expanded}
           aria-label={expanded ? "Collapse Atlas profile" : "Expand Atlas profile"}
         >
-          <AgentAvatar seed={agent.id} name={agent.name} src={agent.avatar_url} size="lg" />
+          <AgentAvatar seed={agent.id} name={ATLAS_IDENTITY.name} size="lg" />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex items-center gap-2">
-              <h4 className="truncate text-body-sm-medium text-primary">{agent.name}</h4>
+              <h4 className="truncate text-body-sm-medium text-primary">{ATLAS_IDENTITY.name}</h4>
               {agent.has_api_key ? null : (
                 <Pill variant={EPillVariant.DEFAULT} size={EPillSize.XS}>
                   {t("workspace_settings.settings.agents.badge.no_key")}
@@ -127,23 +122,10 @@ export function AgentsListItem({ agent, onToggle, onEdit, onUpdateTrigger }: IAg
               )}
               <Chevron className="size-3.5 shrink-0 text-tertiary" />
             </div>
-            {(agent.description || agent.bot_user_email) && (
-              <p className="truncate text-caption-md-regular text-tertiary">
-                {agent.description || agent.bot_user_email}
-              </p>
-            )}
+            <p className="truncate text-caption-md-regular text-tertiary">{ATLAS_IDENTITY.description}</p>
           </div>
         </button>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit(agent)}
-            disabled={busy}
-            className="grid size-7 place-items-center rounded text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary disabled:opacity-50"
-            aria-label="Configure Atlas"
-          >
-            <Settings2 className="size-4" />
-          </button>
           <ToggleSwitch value={agent.is_enabled} onChange={handleToggle} disabled={busy} />
         </div>
       </div>

@@ -23,6 +23,7 @@ from plane.app.views import (
     ProjectArchiveUnarchiveEndpoint,
     ProjectMemberPreferenceEndpoint,
     ProjectBookmarkViewSet,
+    ProjectBookmarkCommentViewSet,
 )
 
 
@@ -123,6 +124,16 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/<uuid:pk>/",
         ProjectBookmarkViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
         name="project-bookmarks",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/<uuid:bookmark_id>/comments/",
+        ProjectBookmarkCommentViewSet.as_view({"get": "list", "post": "create"}),
+        name="project-bookmark-comments",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/<uuid:bookmark_id>/comments/<uuid:pk>/",
+        ProjectBookmarkCommentViewSet.as_view({"patch": "partial_update", "delete": "destroy"}),
+        name="project-bookmark-comments",
     ),
     path(
         "workspaces/<str:slug>/user-favorite-projects/<uuid:project_id>/",

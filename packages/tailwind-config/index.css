@@ -54,6 +54,12 @@ body {
   --motion-control-dur: 200ms;
   --motion-standard-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-control-ease: ease-in-out;
+  /* Tactile press feedback — pressable elements scale down briefly so the UI
+     confirms it heard the click before any network round-trip. Press is
+     snappier than colour (140ms vs 200ms) so the release feels instant. */
+  --press-dur: 140ms;
+  --press-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --press-scale: 0.97;
   --resize-dur: 300ms;
   --resize-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --digit-dur: 500ms;
@@ -184,6 +190,23 @@ body {
     color var(--motion-control-dur) var(--motion-control-ease),
     box-shadow var(--motion-control-dur) var(--motion-control-ease),
     opacity var(--motion-control-dur) var(--motion-control-ease);
+}
+
+/* Press feedback for buttons and pressable elements. A superset of t-colors
+   (each t-* class owns the `transition` shorthand, so they can't compose —
+   folding colour in here keeps hovers smooth while adding the scale-on-press).
+   Use t-press on its own or alongside t-colors; defined later, it wins. */
+.t-press {
+  transition:
+    background-color var(--motion-control-dur) var(--motion-control-ease),
+    border-color var(--motion-control-dur) var(--motion-control-ease),
+    color var(--motion-control-dur) var(--motion-control-ease),
+    box-shadow var(--motion-control-dur) var(--motion-control-ease),
+    opacity var(--motion-control-dur) var(--motion-control-ease),
+    transform var(--press-dur) var(--press-ease);
+}
+.t-press:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: scale(var(--press-scale));
 }
 
 .t-field {
@@ -579,8 +602,14 @@ body {
   .t-avatar,
   .t-colors,
   .t-field,
+  .t-press,
   .t-toast {
     transition: none !important;
+  }
+
+  /* Reduced motion = no movement: keep the colour change, drop the scale. */
+  .t-press:active {
+    transform: none !important;
   }
 
   .t-badge,

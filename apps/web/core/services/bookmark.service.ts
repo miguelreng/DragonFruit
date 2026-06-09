@@ -5,7 +5,12 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
-import type { TProjectBookmark, TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } from "@plane/types";
+import type {
+  TProjectBookmark,
+  TProjectBookmarkBulkImportResult,
+  TProjectBookmarkComment,
+  TProjectBookmarkCreatePayload,
+} from "@plane/types";
 import { APIService } from "@/services/api.service";
 
 export type TBookmarkQueryParams = {
@@ -104,6 +109,66 @@ export class BookmarkService extends APIService {
 
   async deleteBookmark(workspaceSlug: string, projectId: string, bookmarkId: string): Promise<void> {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async listBookmarkComments(
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string
+  ): Promise<TProjectBookmarkComment[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/comments/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async createBookmarkComment(
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    payload: { comment: string }
+  ): Promise<TProjectBookmarkComment> {
+    return this.post(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/comments/`,
+      payload
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async updateBookmarkComment(
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    commentId: string,
+    payload: { comment: string }
+  ): Promise<TProjectBookmarkComment> {
+    return this.patch(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/comments/${commentId}/`,
+      payload
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async deleteBookmarkComment(
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    commentId: string
+  ): Promise<void> {
+    return this.delete(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/comments/${commentId}/`
+    )
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

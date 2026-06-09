@@ -1,11 +1,12 @@
 import type React from "react";
 import { router, useNavigation } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DrawerActions } from "@react-navigation/native";
 import { ArrowLeft01Icon, SidebarLeftIcon } from "@hugeicons/core-free-icons";
 
 import { AppIcon } from "@/components/app-icon";
+import { PressableScale } from "@/components/pressable-scale";
 import { colors, font, radius, spacing } from "@/lib/theme";
 
 /**
@@ -40,7 +41,7 @@ export function ScreenHeader({
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
       <View style={styles.row}>
-        <Pressable
+        <PressableScale
           onPress={onLeading}
           hitSlop={8}
           style={({ pressed }) => [styles.backBtn, pressed && styles.pressedDim]}
@@ -48,7 +49,7 @@ export function ScreenHeader({
           accessibilityLabel={showBack ? "Go back" : "Open menu"}
         >
           <AppIcon icon={showBack ? ArrowLeft01Icon : SidebarLeftIcon} size={18} color={colors.ink} strokeWidth={1.9} />
-        </Pressable>
+        </PressableScale>
         <View style={styles.titleWrap}>
           <Text style={styles.title} numberOfLines={1}>
             {title}

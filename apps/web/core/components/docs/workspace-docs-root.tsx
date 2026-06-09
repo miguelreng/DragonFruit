@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { Link } from "react-router";
@@ -19,7 +19,7 @@ import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@plane/propel/icons";
 import { ArchiveRestoreIcon } from "@plane/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Breadcrumbs, Checkbox, CustomMenu, Header } from "@plane/ui";
+import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, Header } from "@plane/ui";
 import { cn, convertBytesToSize, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
 import type { TPage, TPageType } from "@plane/types";
 import { AppHeader } from "@/components/core/app-header";
@@ -30,6 +30,8 @@ import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { PageSearchInput } from "@/components/pages/list/search-input";
 import { getBriefPageDisplayName, isBriefPageName } from "@/components/project/brief/constants";
 import { useProject } from "@/hooks/store/use-project";
+import { useUser, useUserPermissions } from "@/hooks/store/user";
+import { EUserPermissions } from "@plane/constants";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { normalizeTags } from "@/helpers/tags";
@@ -37,6 +39,19 @@ import { ProjectPageService } from "@/services/page/project-page.service";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
 
 const pageService = new ProjectPageService();
+
+// Page service methods reject with the API response body (e.g. {error: "..."}),
+// a bare string, or an Axios error. Pull out the human-readable reason so the
+// real cause (403/locked/not-archived) surfaces instead of a generic message.
+const pageActionErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === "string" && error.trim()) return error.trim();
+  if (error && typeof error === "object") {
+    const data = error as { error?: unknown; detail?: unknown; message?: unknown };
+    const detail = data.error ?? data.detail ?? data.message;
+    if (typeof detail === "string" && detail.trim()) return detail.trim();
+  }
+  return fallback;
+};
 
 type ViewMode = "list" | "grid";
 
@@ -67,6 +82,20 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   labels,
 }: Props) {
   const { getProjectById, joinedProjectIds } = useProject();
+  const { data: currentUser } = useUser();
+  const { getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
+  // Mirrors the API's delete rule (owner OR project admin; never a brief) so we
+  // only ever offer a delete that will succeed. See ProjectPagePermission.
+  const canDeleteDoc = useCallback(
+    (page: TPage) => {
+      if (isProjectBriefPage(page)) return false;
+      if (currentUser?.id && page.owned_by === currentUser.id) return true;
+      return (page.project_ids ?? []).some(
+        (projectId) => getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId) === EUserPermissions.ADMIN
+      );
+    },
+    [currentUser?.id, getProjectRoleByWorkspaceSlugAndProjectId, workspaceSlug]
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
@@ -207,6 +236,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   pagesKey={pagesKey}
                   workspaceSlug={workspaceSlug}
                   getProjectById={getProjectById}
+                  canModify={canDeleteDoc(page)}
                   isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
                   isSelectionActive={isSelectionActive}
                   onToggleSelection={toggleDocSelection}
@@ -235,6 +265,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
             workspaceSlug={workspaceSlug}
             joinedProjectIds={joinedProjectIds ?? []}
             getProjectById={getProjectById}
+            canDeleteDoc={canDeleteDoc}
             onClear={clearDocSelection}
             onRefresh={refreshPages}
           />
@@ -266,7 +297,7 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
             aria-pressed={isActive}
             onClick={() => onChange(value)}
             className={cn(
-              "grid size-6 place-items-center rounded-lg text-tertiary transition-colors hover:text-primary",
+              "grid size-6 place-items-center rounded-lg text-tertiary t-press hover:text-primary",
               { "bg-layer-1 text-primary": isActive }
             )}
           >
@@ -387,6 +418,8 @@ type DocCardProps = {
   pagesKey: string;
   workspaceSlug: string;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
+  /** Whether the current user can archive/delete this doc (owner or project admin). */
+  canModify: boolean;
   isSelected: boolean;
   isSelectionActive: boolean;
   onToggleSelection: (pageId: string) => void;
@@ -397,6 +430,7 @@ function DocCard({
   pagesKey,
   workspaceSlug,
   getProjectById,
+  canModify,
   isSelected,
   isSelectionActive,
   onToggleSelection,
@@ -413,6 +447,8 @@ function DocCard({
       : null;
   const FallbackIcon = page.page_type === "pdf" ? FileText : page.page_type === "whiteboard" ? Whiteboard : PageIcon;
   const pdfMeta = page.page_type === "pdf" ? page.view_props?.pdf : undefined;
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const refreshPages = async () => {
     await mutate(pagesKey);
@@ -485,7 +521,7 @@ function DocCard({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!primaryProjectId || !page.id) return;
     if (isProjectBrief) {
       setToast({
@@ -495,31 +531,38 @@ function DocCard({
       });
       return;
     }
-    const confirmed = window.confirm(`Delete ${displayName}? This can't be undone.`);
-    if (!confirmed) return;
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!primaryProjectId || !page.id) return;
+    setIsDeleting(true);
     try {
       if (!page.archived_at) await pageService.archive(workspaceSlug, primaryProjectId, page.id);
       await pageService.remove(workspaceSlug, primaryProjectId, page.id);
       await refreshPages();
+      setIsDeleteModalOpen(false);
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Success!",
         message: "Page deleted successfully.",
       });
-    } catch {
+    } catch (error) {
       await refreshPages().catch(() => undefined);
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error!",
-        message: "Page could not be deleted. Please try again later.",
+        message: pageActionErrorMessage(error, "Page could not be deleted. Please try again later."),
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const card = (
     <div
       className={cn(
-        "group relative flex h-[240px] flex-col gap-3 rounded-2xl border border-subtle bg-surface-1 p-4 transition-colors",
+        "group relative flex h-[240px] flex-col gap-3 rounded-2xl border border-subtle bg-surface-1 p-4 t-press",
         {
           "hover:border-strong": itemLink && !isProjectBrief,
           "shadow-sm bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief,
@@ -590,7 +633,7 @@ function DocCard({
                 Duplicate
               </span>
             </CustomMenu.MenuItem>
-            {!isProjectBrief && (
+            {!isProjectBrief && canModify && (
               <>
                 <CustomMenu.MenuItem onClick={() => void handleArchive()}>
                   <span className="flex items-center gap-2">
@@ -645,19 +688,42 @@ function DocCard({
     </div>
   );
 
-  if (!itemLink) return card;
-  return (
-    <Link
-      to={itemLink}
-      className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
-      onClick={(e) => {
-        if (!isSelectionActive || !page.id) return;
-        e.preventDefault();
-        onToggleSelection(page.id);
+  const deleteModal = (
+    <AlertModalCore
+      isOpen={isDeleteModalOpen}
+      handleClose={() => {
+        if (isDeleting) return;
+        setIsDeleteModalOpen(false);
       }}
-    >
-      {card}
-    </Link>
+      handleSubmit={() => void confirmDelete()}
+      isSubmitting={isDeleting}
+      title="Delete doc"
+      content={`Delete ${displayName}? This can't be undone.`}
+    />
+  );
+
+  if (!itemLink)
+    return (
+      <>
+        {card}
+        {deleteModal}
+      </>
+    );
+  return (
+    <>
+      <Link
+        to={itemLink}
+        className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
+        onClick={(e) => {
+          if (!isSelectionActive || !page.id) return;
+          e.preventDefault();
+          onToggleSelection(page.id);
+        }}
+      >
+        {card}
+      </Link>
+      {deleteModal}
+    </>
   );
 }
 
@@ -696,6 +762,7 @@ type DocsBulkActionBarProps = {
   workspaceSlug: string;
   joinedProjectIds: string[];
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
+  canDeleteDoc: (page: TPage) => boolean;
   onClear: () => void;
   onRefresh: () => Promise<void>;
 };
@@ -710,17 +777,25 @@ type BulkActionPage = {
 const docLabel = (value: number) => (value === 1 ? "doc" : "docs");
 const skippedBriefMessage = (value: number) =>
   value > 0 ? ` ${value} ${value === 1 ? "brief was" : "briefs were"} skipped.` : "";
+const skippedDocsMessage = (value: number) =>
+  value > 0 ? ` ${value} ${value === 1 ? "doc was" : "docs were"} skipped.` : "";
 
 function DocsBulkActionBar({
   selectedPages,
   workspaceSlug,
   joinedProjectIds,
   getProjectById,
+  canDeleteDoc,
   onClear,
   onRefresh,
 }: DocsBulkActionBarProps) {
   const [operation, setOperation] = useState<BulkOperation | null>(null);
   const [projectSearch, setProjectSearch] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  // Flip on after mount so the bar rises into place (t-panel-slide) instead of
+  // popping in the moment a selection is made.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const isBusy = operation !== null;
   const count = selectedPages.length;
   const actionPages = useMemo(
@@ -736,7 +811,13 @@ function DocsBulkActionBar({
     [selectedPages]
   );
   const movablePages = useMemo(() => actionPages.filter((page) => !page.isProjectBrief), [actionPages]);
-  const deletablePages = useMemo(() => actionPages.filter((page) => !page.isProjectBrief), [actionPages]);
+  // Deletable = not a brief AND the user can delete it (owner or project admin),
+  // so the bulk count and the modal only ever reflect docs that will succeed.
+  const deletablePages = useMemo(
+    () => actionPages.filter((page) => !page.isProjectBrief && canDeleteDoc(page.page)),
+    [actionPages, canDeleteDoc]
+  );
+  const skippedFromDelete = actionPages.length - deletablePages.length;
   const moveTargetProjects = useMemo(() => {
     const q = projectSearch.trim().toLowerCase();
     return sortBy(
@@ -759,7 +840,8 @@ function DocsBulkActionBar({
     setOperation(currentOperation);
     try {
       const results = await Promise.allSettled(pagesToProcess.map(processPage));
-      const failedCount = results.filter((result) => result.status === "rejected").length;
+      const rejected = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+      const failedCount = rejected.length;
       await onRefresh().catch(() => undefined);
 
       if (failedCount === 0) {
@@ -770,10 +852,15 @@ function DocsBulkActionBar({
         });
         onClear();
       } else {
+        // Surface the underlying API reason (e.g. permissions / not archived)
+        // instead of only the count, which hides why every item failed.
+        console.error("Docs bulk operation failed:", rejected.map((result) => result.reason));
+        const reason = pageActionErrorMessage(rejected[0]?.reason, "");
+        const baseMessage = errorMessage(failedCount, pagesToProcess.length);
         setToast({
           type: TOAST_TYPE.ERROR,
           title: "Error!",
-          message: errorMessage(failedCount, pagesToProcess.length),
+          message: reason ? `${baseMessage} ${reason}` : baseMessage,
         });
       }
     } finally {
@@ -781,25 +868,20 @@ function DocsBulkActionBar({
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (isBusy || actionPages.length === 0) return;
-    const skippedBriefCount = actionPages.length - deletablePages.length;
     if (deletablePages.length === 0) {
       setToast({
         type: TOAST_TYPE.WARNING,
-        title: "Briefs are protected",
-        message: "Project briefs can't be deleted.",
+        title: "Nothing to delete",
+        message: "You can only delete docs you own or manage as a project admin.",
       });
       return;
     }
+    setIsDeleteModalOpen(true);
+  };
 
-    const confirmed = window.confirm(
-      `Delete ${deletablePages.length} selected ${docLabel(deletablePages.length)}? This can't be undone.${
-        skippedBriefCount > 0 ? " Project briefs will be skipped." : ""
-      }`
-    );
-    if (!confirmed) return;
-
+  const confirmBulkDelete = async () => {
     await finishBulkOperation(
       "delete",
       deletablePages,
@@ -808,10 +890,11 @@ function DocsBulkActionBar({
         await pageService.remove(workspaceSlug, projectId, pageId);
       },
       (processedCount) =>
-        `${processedCount} ${docLabel(processedCount)} deleted.${skippedBriefMessage(skippedBriefCount)}`,
+        `${processedCount} ${docLabel(processedCount)} deleted.${skippedDocsMessage(skippedFromDelete)}`,
       (failedCount, processedCount) =>
         `Couldn't delete ${failedCount} of ${processedCount} selected ${docLabel(processedCount)}.`
     );
+    setIsDeleteModalOpen(false);
   };
 
   const handleBulkDuplicate = async () => {
@@ -857,12 +940,29 @@ function DocsBulkActionBar({
   };
 
   return (
-    <div
-      role="toolbar"
-      aria-label={`${count} docs selected`}
-      className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4"
-    >
-      <div className="shadow-lg pointer-events-auto flex max-w-full items-center gap-2 rounded-xl border border-strong bg-surface-1 px-3 py-2">
+    <>
+      <AlertModalCore
+        isOpen={isDeleteModalOpen}
+        handleClose={() => {
+          if (isBusy) return;
+          setIsDeleteModalOpen(false);
+        }}
+        handleSubmit={() => void confirmBulkDelete()}
+        isSubmitting={isBusy}
+        title={`Delete ${deletablePages.length} ${docLabel(deletablePages.length)}`}
+        content={`Delete ${deletablePages.length} selected ${docLabel(deletablePages.length)}? This can't be undone.${
+          skippedFromDelete > 0 ? " Docs you can't delete will be skipped." : ""
+        }`}
+      />
+      <div
+        role="toolbar"
+        aria-label={`${count} docs selected`}
+        className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4"
+      >
+      <div
+        className="t-panel-slide shadow-lg pointer-events-auto flex max-w-full items-center gap-2 rounded-xl border border-strong bg-surface-1 px-3 py-2"
+        data-open={mounted ? "true" : "false"}
+      >
         <span className="shrink-0 px-1 text-11 font-medium">
           <span className="text-primary">{count}</span>{" "}
           <span className="text-tertiary">{docLabel(count)} selected</span>
@@ -936,12 +1036,19 @@ function DocsBulkActionBar({
           <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           <span>{operation === "duplicate" ? "Duplicating..." : "Duplicate"}</span>
         </Button>
-        <Button variant="error-outline" size="sm" onClick={handleBulkDelete} disabled={isBusy} aria-label="Delete">
+        <Button
+          variant="error-outline"
+          size="sm"
+          onClick={handleBulkDelete}
+          disabled={isBusy || deletablePages.length === 0}
+          aria-label="Delete"
+        >
           <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           <span>{operation === "delete" ? "Deleting..." : "Delete"}</span>
         </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

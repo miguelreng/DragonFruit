@@ -16,6 +16,7 @@ import { CheckmarkCircle02Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 
 import { AppIcon } from "@/components/app-icon";
 import { Avatar } from "@/components/avatar";
+import { PressableScale } from "@/components/pressable-scale";
 import type { Workspace } from "@/lib/api";
 import { motion } from "@/lib/motion";
 import { colors, font, radius, spacing } from "@/lib/theme";
@@ -145,7 +146,7 @@ export function WorkspaceSwitcher({
             {workspaces.map((w) => {
               const active = w.slug === currentSlug;
               return (
-                <Pressable
+                <PressableScale
                   key={w.slug}
                   onPress={() => {
                     onSelect(w.slug);
@@ -172,12 +173,12 @@ export function WorkspaceSwitcher({
                       <AppIcon icon={CheckmarkCircle02Icon} size={22} color={colors.brandText} strokeWidth={2} />
                     ) : null}
                   </View>
-                </Pressable>
+                </PressableScale>
               );
             })}
 
             {onCreate ? (
-              <Pressable
+              <PressableScale
                 onPress={() => {
                   onCreate();
                   animateClose(onClose);
@@ -192,7 +193,7 @@ export function WorkspaceSwitcher({
                   </View>
                   <Text style={[styles.name, styles.createLabel]}>Create workspace</Text>
                 </View>
-              </Pressable>
+              </PressableScale>
             ) : null}
           </ScrollView>
         </Animated.View>

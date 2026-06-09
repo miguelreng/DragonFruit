@@ -29,7 +29,13 @@ const Button = React.forwardRef(function Button(props: ButtonProps, ref: React.F
     <button
       ref={ref}
       type={type}
-      className={cn(buttonVariants({ variant, size }), className)}
+      className={cn(
+        buttonVariants({ variant, size }),
+        // Press feedback on real buttons; link variants are inline text and
+        // shouldn't scale. t-press supersedes the base t-colors transition.
+        variant !== "link" && variant !== "link-accent" && "t-press",
+        className
+      )}
       disabled={disabled || loading}
       {...rest}
     >

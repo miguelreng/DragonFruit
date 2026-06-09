@@ -52,3 +52,26 @@ export type TProjectBookmarkBulkImportResult = {
   skipped_count: number;
   errors: { index: number; error: unknown }[];
 };
+
+export type TBookmarkCommentActor = {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  display_name?: string;
+  avatar?: string;
+  avatar_url?: string;
+  is_bot?: boolean;
+};
+
+export type TProjectBookmarkComment = {
+  id: string;
+  bookmark: string;
+  workspace_id: string;
+  project_id: string;
+  comment: string;
+  actor: string | null;
+  actor_detail?: TBookmarkCommentActor;
+  edited_at: string | null;
+  created_at: string;
+  updated_at: string;
+};

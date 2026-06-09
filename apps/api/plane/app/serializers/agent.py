@@ -49,6 +49,12 @@ class AgentSerializer(serializers.ModelSerializer):
             "workspace",
             "bot_user_id",
             "bot_user_email",
+            # Identity & personality are fixed in code (Atlas is one canonical
+            # companion across every workspace), so these are read-only.
+            "name",
+            "description",
+            "avatar_url",
+            "system_prompt",
             "has_api_key",
             "mcp_servers",
             "created_at",

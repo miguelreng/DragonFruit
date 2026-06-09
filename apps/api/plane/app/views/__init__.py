@@ -33,6 +33,7 @@ from .project.template import (
 from .project.bookmark import (
     BookmarkExtensionContextEndpoint,
     BookmarkMetadataEndpoint,
+    ProjectBookmarkCommentViewSet,
     ProjectBookmarkViewSet,
     WorkspaceProjectBookmarkViewSet,
 )

@@ -7,6 +7,7 @@
 import { Avatar, type TAvatarSize } from "@plane/propel/avatar";
 import { cn } from "@plane/utils";
 import { Sparkles } from "@/components/icons/lucide-shim";
+import { ATLAS_IDENTITY } from "@/constants/atlas";
 
 // Six agent-themed accent colors. Selected by hashing the agent's id (or
 // name as a fallback) so each agent has a stable identity color across
@@ -49,7 +50,6 @@ type Props = {
 export function AgentAvatar({ seed, name, src, size = "base", showBadge = true, className }: Props) {
   const accent = getAgentAccent(seed);
   const hasImage = Boolean(src && src.trim().length > 0);
-  const initial = (name?.trim()?.[0] ?? "A").toUpperCase();
   // Avatar's outer wrapper doesn't size itself when `size` is a number,
   // so we size our own wrapper and pass the same number through. Named
   // sizes ("sm"/"md"/"base"/"lg") size themselves, so we leave the
@@ -89,17 +89,16 @@ export function AgentAvatar({ seed, name, src, size = "base", showBadge = true, 
           className={cn(isNumericSize && "h-full w-full")}
         />
       )}
+      {/* No custom image → the canonical DragonFruit brand mark (magenta
+          square + white dragon). Atlas has one fixed face everywhere; the
+          mark is self-contained, so it renders correctly on any surface. */}
       {!hasImage && (
-        <div
-          className={cn(
-            "grid place-items-center rounded-lg font-semibold text-white select-none",
-            isNumericSize ? "h-full w-full text-[24px] leading-none" : fallbackNamedSizeClass
-          )}
-          style={{ backgroundColor: accent.bg }}
+        <img
+          src={ATLAS_IDENTITY.avatarSrc}
+          alt={name ?? ATLAS_IDENTITY.name}
+          className={cn("rounded-lg object-cover", isNumericSize ? "h-full w-full" : fallbackNamedSizeClass)}
           aria-hidden
-        >
-          {initial}
-        </div>
+        />
       )}
       {showBadge && (
         <span

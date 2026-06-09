@@ -163,7 +163,10 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
     )
     memory_context = _build_memory_context(agent=agent, issue=issue)
     user_prompt = _build_user_prompt(issue, trigger_event, available_states, available_labels, memory_context)
-    system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_SYSTEM_PROMPT
+    # Atlas has one fixed personality across every workspace. We deliberately
+    # ignore any per-workspace `agent.system_prompt` here so the assistant's
+    # voice can't drift between workspaces — see the frontend ATLAS_IDENTITY.
+    system_prompt = _DEFAULT_SYSTEM_PROMPT
     base_tools = [
         _make_post_comment_tool(agent=agent, issue=issue, run=run),
         _make_change_state_tool(agent=agent, issue=issue, run=run),
@@ -1102,7 +1105,8 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
         trigger_event=trigger_event,
         memory_context=memory_context,
     )
-    system_prompt = (agent.system_prompt or "").strip() or _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT
+    # Fixed personality (see _DEFAULT_SYSTEM_PROMPT) — ignore per-workspace override.
+    system_prompt = _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT
     base_tools = [
         _make_post_page_comment_tool(agent=agent, page_comment=page_comment, run=run),
         _make_record_step_tool(run=run),

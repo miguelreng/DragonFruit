@@ -8,7 +8,7 @@ import { Buffer } from "buffer";
 import type { Extensions, JSONContent } from "@tiptap/core";
 import { getSchema } from "@tiptap/core";
 import { generateHTML, generateJSON } from "@tiptap/html";
-import { prosemirrorJSONToYDoc, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
+import { prosemirrorJSONToYDoc, updateYFragment, yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
 import * as Y from "yjs";
 // extensions
 import type { TDocumentPayload } from "@plane/types";
@@ -121,6 +121,75 @@ export const getBinaryDataFromDocumentEditorHTMLString = (descriptionHTML: strin
   // convert Y.Doc to Uint8Array format
   const encodedData = Y.encodeStateAsUpdate(transformedData);
   return encodedData;
+};
+
+/**
+ * @description Reconcile a document-editor Y.Doc's "default" fragment to match
+ * `descriptionHTML`, applying the change as a minimal delete/insert diff on the
+ * SAME doc instead of building a fresh, independently-rooted doc. Because the
+ * deletions become real CRDT operations in this doc's own history, connected
+ * clients — and their IndexedDB caches — converge to the new content rather than
+ * unioning it with the previous version. This is what makes a server-side
+ * "replace the whole document" operation actually replace, not append. Mutates
+ * `ydoc` in place inside a single transaction.
+ * @param {Y.Doc} ydoc - the document to reconcile in place
+ * @param {string} descriptionHTML - the new, full document HTML
+ */
+export const replaceDocumentEditorYDocContent = (ydoc: Y.Doc, descriptionHTML: string): void => {
+  // HTML -> ProseMirror doc node, using the same schema the document editor uses.
+  const contentJSON = generateJSON(descriptionHTML ?? "<p></p>", DOCUMENT_EDITOR_EXTENSIONS);
+  const pmNode = documentEditorSchema.nodeFromJSON(contentJSON);
+  const fragment = ydoc.getXmlFragment("default");
+  ydoc.transact(() => {
+    // updateYFragment is y-prosemirror's own fragment-diffing primitive (the one
+    // its editor binding runs on every local change), so it produces the minimal
+    // set of insert/delete ops to turn the current fragment into `pmNode`.
+    updateYFragment(ydoc, fragment, pmNode, { mapping: new Map(), isOMark: new Map() });
+  });
+};
+
+/**
+ * @description Replace the entire content of a document-editor doc with
+ * `descriptionHTML` and return all stored formats. When `existingBinary` is
+ * provided, the result is a proper *successor* of that state (its deletions are
+ * real tombstones), so clients replace rather than union their cached content.
+ * When omitted/empty, this is equivalent to a fresh conversion (correct for a
+ * brand-new doc). This is the building block for replacing a meeting-notes /
+ * generated doc that may already be open in collaborative editors.
+ * @param {string} descriptionHTML - the new, full document HTML
+ * @param {Uint8Array} [existingBinary] - the current stored Yjs binary, if any
+ * @returns {TDocumentPayload}
+ */
+export const replaceDocumentEditorBinaryFromHTML = (
+  descriptionHTML: string,
+  existingBinary?: Uint8Array
+): TDocumentPayload => {
+  const ydoc = new Y.Doc();
+  if (existingBinary && existingBinary.byteLength > 0) {
+    Y.applyUpdate(ydoc, existingBinary);
+  }
+  replaceDocumentEditorYDocContent(ydoc, descriptionHTML);
+  return serializeDocumentEditorYDoc(ydoc);
+};
+
+/**
+ * @description Serialize a document-editor Y.Doc into the stored formats
+ * (base64 binary + JSON + HTML). Useful after mutating an in-memory collaborative
+ * document so the backend can persist the same state the live server holds.
+ * @param {Y.Doc} ydoc
+ * @returns {TDocumentPayload}
+ */
+export const serializeDocumentEditorYDoc = (ydoc: Y.Doc): TDocumentPayload => {
+  const encoded = Y.encodeStateAsUpdate(ydoc);
+  const { contentBinaryEncoded, contentHTML, contentJSON } = getAllDocumentFormatsFromDocumentEditorBinaryData(
+    encoded,
+    false
+  );
+  return {
+    description_binary: contentBinaryEncoded,
+    description_html: contentHTML,
+    description_json: contentJSON,
+  };
 };
 
 /**

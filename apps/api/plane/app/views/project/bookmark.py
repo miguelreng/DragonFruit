@@ -9,14 +9,21 @@ from bs4 import BeautifulSoup
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import DatabaseError
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
-from plane.app.serializers import ProjectBookmarkSerializer
+from plane.app.serializers import ProjectBookmarkCommentSerializer, ProjectBookmarkSerializer
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.bgtasks.work_item_link_task import find_favicon_url, safe_get, validate_url_ip
-from plane.db.models import Project, ProjectBookmark, ProjectMember, WorkspaceMember
+from plane.db.models import (
+    Project,
+    ProjectBookmark,
+    ProjectBookmarkComment,
+    ProjectMember,
+    WorkspaceMember,
+)
 from plane.utils.exception_logger import log_exception
 
 # Mirrors the og:/twitter: selectors the browser extension reads, so in-app
@@ -345,6 +352,78 @@ class WorkspaceProjectBookmarkViewSet(ProjectBookmarkViewSet):
             on_results=lambda bookmarks: ProjectBookmarkSerializer(bookmarks, many=True).data,
             default_per_page=50,
         )
+
+
+class ProjectBookmarkCommentViewSet(BaseViewSet):
+    serializer_class = ProjectBookmarkCommentSerializer
+    model = ProjectBookmarkComment
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(workspace__slug=self.kwargs.get("slug"))
+            .filter(project_id=self.kwargs.get("project_id"))
+            .filter(bookmark_id=self.kwargs.get("bookmark_id"))
+            .select_related("actor")
+            .order_by("created_at")
+        )
+
+    def is_project_admin(self, request, slug, project_id):
+        return ProjectMember.objects.filter(
+            member=request.user,
+            workspace__slug=slug,
+            project_id=project_id,
+            role=ROLE.ADMIN.value,
+            is_active=True,
+        ).exists() or WorkspaceMember.objects.filter(
+            member=request.user,
+            workspace__slug=slug,
+            role=ROLE.ADMIN.value,
+            is_active=True,
+        ).exists()
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="PROJECT")
+    def list(self, request, slug, project_id, bookmark_id):
+        comments = self.get_queryset()
+        return Response(ProjectBookmarkCommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="PROJECT")
+    def create(self, request, slug, project_id, bookmark_id):
+        bookmark = ProjectBookmark.objects.filter(
+            pk=bookmark_id, project_id=project_id, workspace__slug=slug
+        ).first()
+        if bookmark is None:
+            return Response({"error": "Bookmark not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = ProjectBookmarkCommentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(
+                bookmark=bookmark,
+                project=bookmark.project,
+                workspace=bookmark.workspace,
+                actor=request.user,
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="PROJECT")
+    def partial_update(self, request, slug, project_id, bookmark_id, pk):
+        comment = self.get_queryset().get(pk=pk)
+        if comment.actor_id != request.user.id:
+            return Response({"error": "You can only edit your own comments."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ProjectBookmarkCommentSerializer(comment, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(edited_at=timezone.now())
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="PROJECT")
+    def destroy(self, request, slug, project_id, bookmark_id, pk):
+        comment = self.get_queryset().get(pk=pk)
+        if comment.actor_id != request.user.id and not self.is_project_admin(request, slug, project_id):
+            return Response({"error": "You don't have the required permissions."}, status=status.HTTP_403_FORBIDDEN)
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class BookmarkExtensionContextEndpoint(BaseAPIView):

@@ -211,7 +211,11 @@ class AgentEndpoint(BaseAPIView):
             created = _get_existing_workspace_companion(locked_workspace) is None
             agent = _get_workspace_companion(locked_workspace)
             agent.name = _DEFAULT_ASSISTANT_NAME
-            for field in ("description", "avatar_url", "system_prompt", "provider_model", "api_base_url"):
+            # Identity & personality (name / description / avatar_url /
+            # system_prompt) are fixed in code — Atlas is one canonical
+            # companion across every workspace — so they're not writable here.
+            # Only the BYOK runtime config is per-workspace.
+            for field in ("provider_model", "api_base_url"):
                 if field in request.data:
                     setattr(agent, field, (request.data.get(field) or "").strip())
             if plaintext_key:
@@ -248,10 +252,10 @@ class AgentDetailEndpoint(BaseAPIView):
             return Response({"error": "agent not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Mutable, non-secret fields. api_key is handled separately below.
+        # Identity & personality (name / description / avatar_url /
+        # system_prompt) are intentionally NOT writable: Atlas is one
+        # canonical companion across every workspace, fixed in code.
         for field in (
-            "description",
-            "avatar_url",
-            "system_prompt",
             "provider_model",
             "api_base_url",
             "is_enabled",
@@ -262,8 +266,6 @@ class AgentDetailEndpoint(BaseAPIView):
                 if isinstance(value, str):
                     value = value.strip()
                 setattr(agent, field, value)
-        if "name" in request.data:
-            agent.name = _DEFAULT_ASSISTANT_NAME
 
         if "triggers" in request.data and isinstance(request.data["triggers"], dict):
             # Shallow-merge so callers can patch just one flag.

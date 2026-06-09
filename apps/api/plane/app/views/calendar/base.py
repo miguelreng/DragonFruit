@@ -15,6 +15,7 @@ There are two halves to this module:
     overlay on top of the native task feed. Tokens stored Fernet-encrypted.
 """
 
+import base64
 import json
 import os
 import tempfile
@@ -37,6 +38,7 @@ from plane.app.views.external.base import call_llm_chat, get_llm_config
 from plane.license.utils.instance_value import get_configuration_value
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 from plane.utils.exception_logger import log_exception
+from plane.utils.url import normalize_url_path
 
 from ..base import BaseAPIView
 
@@ -848,6 +850,40 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
             summary=summary,
         )
 
+        # Convert the HTML body to the Yjs blob the collaborative editor reads
+        # from, via the live server. The editor renders from description_binary,
+        # not description_html. Crucially we must *replace* the doc's content in
+        # place rather than swap in a freshly-generated, independently-rooted Yjs
+        # blob: the editor caches each doc in IndexedDB by page id, so on
+        # re-recording the same meeting a fresh blob would CRDT-merge with the
+        # cached copy and stack a duplicate of the whole note on every save. The
+        # live server's /replace-document reconciles the new HTML against the
+        # existing state, so its deletions are real tombstones the editor applies
+        # — replacing the content (and self-healing any already-duplicated doc)
+        # instead of unioning it.
+        def _apply_document_body(target_page):
+            existing_binary = bytes(target_page.description_binary) if target_page.description_binary else None
+            document_formats = _replace_meeting_notes_document_formats(
+                page_id=str(target_page.id),
+                description_html=description_html,
+                existing_binary=existing_binary,
+            )
+            target_page.description_html = description_html
+            if document_formats.get("description_binary"):
+                target_page.description_json = document_formats.get("description_json") or {}
+                target_page.description_binary = base64.b64decode(document_formats["description_binary"])
+            elif not existing_binary:
+                # Brand-new doc and the live server is unavailable — clear the blob
+                # so the live server re-seeds the editor from this fresh HTML on
+                # next open. (Lazy re-seed is safe here: no cached client state to
+                # collide with.)
+                target_page.description_binary = None
+                target_page.description_json = {}
+            # else: an existing doc whose live server is unreachable — leave the
+            # stored binary untouched. We can't safely build a successor without
+            # the live server, and swapping in an independent blob would
+            # re-introduce the duplicate-on-merge bug.
+
         project = (
             Project.objects.filter(
                 workspace=workspace,
@@ -874,23 +910,16 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
                 workspace=workspace,
                 name=f"Meeting notes: {meeting_title}"[:255],
                 page_type=Page.PAGE_TYPE_DOC,
-                description_html=description_html,
                 owned_by=request.user,
                 access=Page.PRIVATE_ACCESS,
                 external_source="google_meeting_notes",
                 external_id=external_key,
             )
+            _apply_document_body(page)
             page.save(created_by_id=request.user.id)
         else:
             page.name = f"Meeting notes: {meeting_title}"[:255]
-            page.description_html = description_html
-            # Clear the stored Yjs blob (and JSON) so the live server re-seeds the
-            # collaborative editor from this fresh HTML the next time the doc is
-            # opened. The live server only converts HTML -> binary when the binary
-            # is empty; otherwise it serves the stale blob from the first
-            # recording and silently ignores the new transcript.
-            page.description_binary = None
-            page.description_json = {}
+            _apply_document_body(page)
             page.page_type = Page.PAGE_TYPE_DOC
             page.updated_by_id = request.user.id
             page.save()
@@ -1042,6 +1071,38 @@ def _summarize_meeting_notes(*, workspace: Workspace, meeting_title: str, transc
     if not isinstance(data, dict):
         return None
     return data
+
+
+def _replace_meeting_notes_document_formats(
+    *, page_id: str, description_html: str, existing_binary: bytes | None
+) -> dict:
+    """Ask the live server to replace a meeting-notes doc's content with fresh
+    HTML *in place*, returning the document-editor Yjs formats (binary + json).
+
+    Reconciling against the doc's existing state (rather than building a fresh,
+    independently-rooted blob) keeps the result a proper successor: its deletions
+    are real CRDT tombstones, so collaborative editors and their IndexedDB caches
+    replace the content instead of unioning it — which is what stacked a duplicate
+    of the whole note on every re-recording. Returns {} when the live server is
+    unset or unreachable; callers decide how to fall back.
+    """
+    live_url = getattr(settings, "LIVE_URL", None)
+    if not live_url:
+        return {}
+    payload = {"page_id": page_id, "description_html": description_html}
+    if existing_binary:
+        payload["existing_binary"] = base64.b64encode(existing_binary).decode("ascii")
+    try:
+        url = normalize_url_path(f"{live_url}/replace-document/")
+        response = requests.post(url, json=payload, timeout=15)
+        if response.status_code == 200:
+            return response.json()
+        log_exception(
+            Exception(f"replace-document returned {response.status_code}: {response.text[:200]}")
+        )
+    except requests.RequestException as exc:
+        log_exception(exc)
+    return {}
 
 
 def _meeting_notes_html(

@@ -161,7 +161,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
               enter="transition ease-out duration-100"
               enterFrom="transform opacity-0 scale-95"
               enterTo="trnsform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
+              leave="transition ease-out duration-75"
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >

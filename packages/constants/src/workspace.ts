@@ -247,11 +247,12 @@ export const WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS: Record<string, IWorkspac
   agents: {
     key: "agents",
     labelTranslationKey: "sidebar.agents",
-    // For now this jumps straight into Settings → Atlas. When the workspace-
-    // level Atlas page (runs feed, overview) lands, swap the href
-    // to `/agents/` and keep the same `agents` key so personal preferences
-    // (pinning, sort order) survive.
-    href: `/settings/agents/`,
+    // Atlas is configured on the unified Settings → AI page (identity is
+    // fixed in code; only on/off, triggers, automations, and the model/BYOK
+    // key are tunable). When a workspace-level Atlas page (runs feed,
+    // overview) lands, swap the href to `/agents/` and keep the same
+    // `agents` key so personal preferences (pinning, sort order) survive.
+    href: `/settings/ai/`,
     access: [EUserWorkspaceRoles.ADMIN],
     highlight: (pathname: string, url: string) => pathname.includes(url),
   },

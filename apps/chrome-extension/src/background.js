@@ -544,6 +544,14 @@ function positiveInt(value) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
+// The bookmark `title` column is CharField(max_length=255); trim to fit so a
+// long page/og:title doesn't get rejected with a 400 by the API serializer.
+const MAX_BOOKMARK_TITLE_LENGTH = 255;
+function clampTitle(title) {
+  const value = stringValue(title);
+  return value.length > MAX_BOOKMARK_TITLE_LENGTH ? value.slice(0, MAX_BOOKMARK_TITLE_LENGTH) : value;
+}
+
 async function saveBookmark(payload) {
   const settings = await getSettings();
   if (!settings.apiToken) {
@@ -556,6 +564,7 @@ async function saveBookmark(payload) {
   const user = await fetchCurrentUser(settings.appUrl, settings.apiToken).catch(() => null);
   const payloadWithAudit = {
     ...payload,
+    title: clampTitle(payload.title),
     ...(user?.id ? { updated_by: user.id } : {}),
   };
 
@@ -653,8 +662,12 @@ async function bookmarkErrorMessage(response) {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     const data = await response.json().catch(() => null);
-    const detail = data?.error || data?.detail || data?.message;
-    if (detail) return `${fallback} - ${formatErrorDetail(detail)}`;
+    // Prefer a wrapped {error|detail|message}, but fall back to the whole body
+    // so DRF field-error dicts (e.g. {"title": ["Ensure this field has no more
+    // than 255 characters."]}) surface instead of a bare status.
+    const detail = data?.error || data?.detail || data?.message || data;
+    const formatted = formatErrorDetail(detail);
+    return formatted ? `${fallback} - ${formatted}` : fallback;
   }
 
   const text = await response.text().catch(() => "");
@@ -662,8 +675,20 @@ async function bookmarkErrorMessage(response) {
 }
 
 function formatErrorDetail(detail) {
-  if (Array.isArray(detail)) return detail.join(", ");
-  if (typeof detail === "object") return Object.values(detail).flat().join(", ");
+  if (detail === null || detail === undefined) return "";
+  if (typeof detail === "string") return detail.trim();
+  if (Array.isArray(detail)) return detail.map(formatErrorDetail).filter(Boolean).join(", ");
+  if (typeof detail === "object") {
+    return Object.entries(detail)
+      .map(([key, value]) => {
+        const message = formatErrorDetail(value);
+        if (!message) return "";
+        // Keep field names on validation errors; drop generic wrapper keys.
+        return /^(non_field_errors|detail|error|message)$/.test(key) ? message : `${key}: ${message}`;
+      })
+      .filter(Boolean)
+      .join("; ");
+  }
   return String(detail);
 }
 
@@ -810,7 +835,7 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               right: 12px;
               top: 12px;
               z-index: 2147483647;
-              width: min(360px, calc(100vw - 2rem));
+              width: min(360px, calc(100vw - 32px));
               color-scheme: light;
               pointer-events: none;
             }
@@ -874,8 +899,8 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
             .title {
               margin: 0;
               color: var(--text-primary);
-              font: 600 0.875rem/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
-              letter-spacing: calc(0.01 * 0.875rem);
+              font: 600 14px/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
+              letter-spacing: 0.14px;
             }
             .message {
               margin: 0;
@@ -884,8 +909,8 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               white-space: nowrap;
               text-overflow: ellipsis;
               max-width: 100%;
-              font: 400 0.8125rem/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
-              letter-spacing: calc(0.01 * 0.8125rem);
+              font: 400 13px/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
+              letter-spacing: 0.13px;
             }
             .close {
               position: absolute;
@@ -928,8 +953,8 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               background: var(--surface-2);
               color: var(--text-secondary);
               cursor: pointer;
-              font: 500 0.8125rem/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
-              letter-spacing: calc(0.01 * 0.8125rem);
+              font: 500 13px/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
+              letter-spacing: 0.13px;
               transition:
                 color var(--motion-fast-dur) var(--motion-control-ease),
                 border-color var(--motion-fast-dur) var(--motion-control-ease);
