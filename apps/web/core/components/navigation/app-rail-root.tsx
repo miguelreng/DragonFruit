@@ -670,9 +670,11 @@ const ChromeWebStoreIcon = () => (
   </svg>
 );
 
-// Distribution links for the downloadable clients. Update these once the Mac
-// build is hosted and the extension is published to the Chrome Web Store.
-const ATLAS_MAC_DOWNLOAD_URL = "https://dl.dragonfruit.sh/atlas/DragonFruit%20Atlas.dmg";
+// Distribution links for the downloadable clients. The Mac build is self-served
+// as a static asset from apps/web/public/downloads (so it downloads directly,
+// no external host needed). Swap ATLAS_MAC_DOWNLOAD_URL for a CDN URL once one
+// is provisioned, and update the extension link once it's on the Chrome Web Store.
+const ATLAS_MAC_DOWNLOAD_URL = "/downloads/DragonFruit-Atlas.dmg";
 const CHROME_EXTENSION_URL = "https://chromewebstore.google.com/";
 
 const DOWNLOAD_APPS: {
@@ -685,6 +687,9 @@ const DOWNLOAD_APPS: {
   ctaIcon: React.JSX.Element;
   variant: "primary" | "secondary";
   steps: string[];
+  // When set, the link is fetched as a same-origin download with this filename
+  // (forces a save dialog instead of opening a tab). Omit for external links.
+  download?: string;
   // Temporary beta caveat — remove once the Mac build is notarized.
   note?: string;
 }[] = [
@@ -693,6 +698,7 @@ const DOWNLOAD_APPS: {
     title: "Atlas for Mac",
     description: "Voice, dictation, and meeting notes from your menu bar.",
     href: ATLAS_MAC_DOWNLOAD_URL,
+    download: "DragonFruit Atlas.dmg",
     icon: <AppleIcon />,
     cta: "Download",
     ctaIcon: <Download />,
@@ -724,8 +730,18 @@ const DOWNLOAD_APPS: {
 const DownloadAppsModal = (props: { isOpen: boolean; onClose: () => void }) => {
   const { isOpen, onClose } = props;
 
-  const openApp = (href: string) => {
-    window.open(href, "_blank", "noopener,noreferrer");
+  const openApp = (app: (typeof DOWNLOAD_APPS)[number]) => {
+    if (app.download) {
+      // Same-origin asset: trigger a direct download instead of opening a tab.
+      const link = document.createElement("a");
+      link.href = app.href;
+      link.download = app.download;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } else {
+      window.open(app.href, "_blank", "noopener,noreferrer");
+    }
     onClose();
   };
 
@@ -771,7 +787,7 @@ const DownloadAppsModal = (props: { isOpen: boolean; onClose: () => void }) => {
                     variant={app.variant}
                     size="lg"
                     prependIcon={app.ctaIcon}
-                    onClick={() => openApp(app.href)}
+                    onClick={() => openApp(app)}
                     className="flex-shrink-0"
                   >
                     {app.cta}
