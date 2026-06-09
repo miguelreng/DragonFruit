@@ -649,6 +649,68 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
             events.append(event)
         return Response({"events": events}, status=status.HTTP_200_OK)
 
+    def post(self, request, account_id):
+        """Create a Google Calendar event (not a task) on a connected calendar."""
+        try:
+            account = UserCalendarAccount.objects.get(id=account_id, user=request.user, is_active=True)
+        except UserCalendarAccount.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        title = (request.data.get("title") or "").strip()
+        if not title:
+            return Response({"error": "title is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        calendar_id = request.data.get("calendar_id") or account.primary_calendar_id or "primary"
+        description = (request.data.get("description") or "").strip()
+        all_day = bool(request.data.get("all_day"))
+        start_raw = request.data.get("start")
+        end_raw = request.data.get("end") or start_raw
+        time_zone = request.data.get("time_zone")
+
+        if not start_raw:
+            return Response({"error": "start is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if all_day:
+            try:
+                start_date = datetime.fromisoformat(str(start_raw)[:10]).date()
+                end_date = datetime.fromisoformat(str(end_raw)[:10]).date()
+            except ValueError:
+                return Response({"error": "start/end must be YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST)
+            if end_date < start_date:
+                end_date = start_date
+            # Google treats the all-day end date as exclusive, so bump the
+            # user's inclusive end by a day.
+            start_payload = {"date": start_date.isoformat()}
+            end_payload = {"date": (end_date + timedelta(days=1)).isoformat()}
+        else:
+            start_payload = {"dateTime": str(start_raw)}
+            end_payload = {"dateTime": str(end_raw)}
+            if time_zone:
+                start_payload["timeZone"] = str(time_zone)
+                end_payload["timeZone"] = str(time_zone)
+
+        payload = {"summary": title, "description": description, "start": start_payload, "end": end_payload}
+
+        resp = _google_api_request(
+            account=account,
+            method="POST",
+            url=_google_calendar_url(calendar_id, "events"),
+            json=payload,
+            timeout=10,
+        )
+        if resp.status_code not in (200, 201):
+            return Response(
+                {
+                    "error": "Failed to create event",
+                    "status": resp.status_code,
+                    "details": _details_from_response(resp),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        event = _event_to_dict(resp.json())
+        event["calendar_id"] = calendar_id
+        return Response({"event": event}, status=status.HTTP_201_CREATED)
+
 
 class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
     """Fetch the current user's next Google Calendar meetings across accounts."""
@@ -1509,6 +1571,11 @@ class MyCalendarTasksEndpoint(BaseAPIView):
             Issue.issue_objects.filter(workspace__slug=slug)
             .filter(project__project_projectmember__member=user, project__project_projectmember__is_active=True)
             .filter(Q(assignees=user) | Q(created_by=user))
+            # Google Calendar events are already overlaid live on the calendar, so
+            # imported copies (external_source="google_calendar") would be stale
+            # duplicates that linger after the source event is deleted. Keep them
+            # out of the task layer.
+            .exclude(external_source="google_calendar")
             .filter(
                 Q(target_date__range=(from_dt.date(), to_dt.date()))
                 | Q(start_date__range=(from_dt.date(), to_dt.date()))

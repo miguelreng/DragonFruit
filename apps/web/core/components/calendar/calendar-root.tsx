@@ -28,6 +28,7 @@ import "@schedule-x/theme-default/dist/index.css";
 import { Menu } from "@headlessui/react";
 import {
   Calendar as CalendarIcon,
+  CheckSquare,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -38,7 +39,7 @@ import {
 } from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Breadcrumbs, Header } from "@plane/ui";
+import { Breadcrumbs, EModalWidth, Header, ModalCore } from "@plane/ui";
 import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -291,6 +292,11 @@ export function CalendarRoot() {
     () => googleSources.filter((source) => isGoogleSourceVisible(source, calendarPrefs)),
     [googleSources, calendarPrefs]
   );
+  // Calendars the user can write to — needed to create events on them.
+  const writableSources = useMemo(
+    () => googleSources.filter((source) => ["writer", "owner"].includes(source.calendar.access_role)),
+    [googleSources]
+  );
   const updateCalendarPrefs = useCallback(
     (source: TGoogleCalendarSource, patch: Partial<{ visible: boolean; color: string }>) => {
       setCalendarPrefs((current) => {
@@ -399,6 +405,7 @@ export function CalendarRoot() {
     return `${now.toLocaleString("en-US", { month: "long" })} ${now.getFullYear()}`;
   });
   const [isRefreshingCalendar, setIsRefreshingCalendar] = useState(false);
+  const [isNewEventOpen, setIsNewEventOpen] = useState(false);
 
   // Keep the latest setQuickAddDate accessible from the (one-time) Schedule-X
   // callbacks closure — we don't want to recreate the calendar on every render.
@@ -516,6 +523,8 @@ export function CalendarRoot() {
             refetchAccounts={refetchAccounts}
             onUpdateCalendarPrefs={updateCalendarPrefs}
             onQuickAdd={() => setQuickAddDate(new Date().toISOString().slice(0, 10))}
+            onNewEvent={() => setIsNewEventOpen(true)}
+            canCreateEvent={writableSources.length > 0}
             visibleMonth={visibleMonth}
             googleEventCount={googleEvents.length}
             isLoadingGoogleEvents={isLoadingGoogleEvents}
@@ -565,6 +574,14 @@ export function CalendarRoot() {
           <IssuePeekOverview />
         </Suspense>
       )}
+      <NewEventModal
+        isOpen={isNewEventOpen}
+        sources={writableSources}
+        onClose={() => setIsNewEventOpen(false)}
+        onCreated={() => {
+          void refetchGoogleEvents();
+        }}
+      />
     </>
   );
 }
@@ -578,6 +595,8 @@ type CalendarPageHeaderProps = {
   refetchAccounts: () => void;
   onUpdateCalendarPrefs: (source: TGoogleCalendarSource, patch: Partial<{ visible: boolean; color: string }>) => void;
   onQuickAdd: () => void;
+  onNewEvent: () => void;
+  canCreateEvent: boolean;
   visibleMonth: string;
   googleEventCount: number;
   isLoadingGoogleEvents: boolean;
@@ -598,6 +617,8 @@ function CalendarPageHeader({
   workspaceSlug,
   onUpdateCalendarPrefs,
   onQuickAdd,
+  onNewEvent,
+  canCreateEvent,
   visibleMonth,
   googleEventCount,
   isLoadingGoogleEvents,
@@ -610,7 +631,6 @@ function CalendarPageHeader({
 }: CalendarPageHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const hasGoogleAccounts = googleAccounts.length > 0;
-  const visibleGoogleSources = googleSources.filter((source) => isGoogleSourceVisible(source, calendarPrefs));
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -651,26 +671,20 @@ function CalendarPageHeader({
             component={<BreadcrumbLink label="Calendar" icon={<CalendarIcon className="h-4 w-4 text-tertiary" />} />}
           />
         </Breadcrumbs>
-        <div className="ml-2 flex items-center gap-2 text-13 text-secondary">
-          <LegendDot color="#ec4899" />
-          <span>
-            Your tasks <span className="ml-0.5 text-tertiary">· {taskCount}</span>
+        <div className="ml-2 flex items-center gap-3 text-12 text-tertiary">
+          <span className="flex items-center gap-1.5">
+            <LegendDot color="#ec4899" />
+            {taskCount} tasks
           </span>
           {hasGoogleAccounts && (
-            <>
-              <span className="text-tertiary">·</span>
+            <span className="flex min-w-0 items-center gap-1.5 truncate">
               <LegendDot color={googleSources[0] ? googleSourceColor(googleSources[0], calendarPrefs) : "#2563eb"} />
-              <span className="truncate">
-                {isLoadingGoogleEvents
-                  ? "Loading events"
-                  : hasGoogleEventsError
-                    ? "Events need attention"
-                    : googleSources.length === 1
-                      ? googleSourceLabel(googleSources[0]!)
-                      : `${visibleGoogleSources.length}/${googleSources.length} calendars`}
-                <span className="ml-0.5 text-tertiary">· {googleEventCount}</span>
-              </span>
-            </>
+              {isLoadingGoogleEvents
+                ? "Loading…"
+                : hasGoogleEventsError
+                  ? "Events need attention"
+                  : `${googleEventCount} events`}
+            </span>
           )}
         </div>
       </Header.LeftItem>
@@ -697,39 +711,72 @@ function CalendarPageHeader({
           </button>
         </div>
         <span className="px-1 text-13 font-medium text-primary">{visibleMonth}</span>
-        <span className="bg-subtle mx-1 h-5 w-px" aria-hidden />
-        <Button
-          variant="secondary"
-          size="lg"
+        <button
+          type="button"
           onClick={onRefresh}
           disabled={isRefreshing}
           aria-label="Refresh calendar events"
           title="Refresh calendar events"
+          className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2-hover hover:text-primary disabled:opacity-50"
         >
           <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          {isRefreshing ? "Refreshing" : "Refresh"}
-        </Button>
-        <Button
-          variant="secondary"
-          size="lg"
-          prependIcon={<CalendarIcon />}
-          onClick={handleConnect}
-          disabled={isConnecting}
-        >
-          {isConnecting ? "Redirecting…" : hasGoogleAccounts ? "Add calendar" : "Connect calendar"}
-        </Button>
-        {hasGoogleAccounts && (
+        </button>
+        <span className="bg-subtle mx-1 h-5 w-px" aria-hidden />
+        {hasGoogleAccounts ? (
           <GoogleAccountsMenu
             accounts={googleAccounts}
             sources={googleSources}
             calendarPrefs={calendarPrefs}
             onUpdateCalendarPrefs={onUpdateCalendarPrefs}
             onDisconnect={handleDisconnect}
+            onAddCalendar={handleConnect}
+            isConnecting={isConnecting}
           />
+        ) : (
+          <Button
+            variant="secondary"
+            size="lg"
+            prependIcon={<CalendarIcon />}
+            onClick={handleConnect}
+            disabled={isConnecting}
+          >
+            {isConnecting ? "Redirecting…" : "Connect calendar"}
+          </Button>
         )}
-        <Button variant="primary" size="lg" onClick={onQuickAdd}>
-          New task
-        </Button>
+        {canCreateEvent ? (
+          <Menu as="div" className="relative">
+            <Menu.Button className="t-press inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-accent-primary px-3 text-body-xs-medium whitespace-nowrap text-on-color hover:opacity-90">
+              New
+              <ChevronDown className="size-3.5" />
+            </Menu.Button>
+            <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-44 rounded-lg border border-strong bg-layer-2 py-1 outline-none">
+              <Menu.Item>
+                <button
+                  type="button"
+                  onClick={onNewEvent}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-13 text-primary hover:bg-layer-2-hover"
+                >
+                  <CalendarIcon className="size-3.5 text-tertiary" />
+                  New event
+                </button>
+              </Menu.Item>
+              <Menu.Item>
+                <button
+                  type="button"
+                  onClick={onQuickAdd}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-13 text-primary hover:bg-layer-2-hover"
+                >
+                  <CheckSquare className="size-3.5 text-tertiary" />
+                  New task
+                </button>
+              </Menu.Item>
+            </Menu.Items>
+          </Menu>
+        ) : (
+          <Button variant="primary" size="lg" onClick={onQuickAdd}>
+            New task
+          </Button>
+        )}
       </Header.RightItem>
     </Header>
   );
@@ -741,6 +788,8 @@ type GoogleAccountsMenuProps = {
   calendarPrefs: TCalendarPrefs;
   onUpdateCalendarPrefs: (source: TGoogleCalendarSource, patch: Partial<{ visible: boolean; color: string }>) => void;
   onDisconnect: (account: TCalendarAccount) => void;
+  onAddCalendar: () => void;
+  isConnecting: boolean;
 };
 
 function GoogleAccountsMenu({
@@ -749,6 +798,8 @@ function GoogleAccountsMenu({
   calendarPrefs,
   onUpdateCalendarPrefs,
   onDisconnect,
+  onAddCalendar,
+  isConnecting,
 }: GoogleAccountsMenuProps) {
   return (
     <Menu as="div" className="relative">
@@ -801,6 +852,17 @@ function GoogleAccountsMenu({
             </div>
           );
         })}
+        <div className="border-t border-subtle p-1">
+          <button
+            type="button"
+            onClick={onAddCalendar}
+            disabled={isConnecting}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-13 text-secondary hover:bg-layer-2-hover disabled:opacity-50"
+          >
+            <CalendarIcon className="size-3.5" />
+            {isConnecting ? "Redirecting…" : "Add calendar"}
+          </button>
+        </div>
       </Menu.Items>
     </Menu>
   );
@@ -808,4 +870,184 @@ function GoogleAccountsMenu({
 
 function LegendDot({ color }: { color: string }) {
   return <span className="inline-block size-2 rounded-full" style={{ backgroundColor: color }} />;
+}
+
+const EVENT_FIELD_CLASS =
+  "focus:border-accent-primary h-10 w-full rounded-lg border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none";
+
+function NewEventModal(props: {
+  isOpen: boolean;
+  sources: TGoogleCalendarSource[];
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const { isOpen, sources, onClose, onCreated } = props;
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [allDay, setAllDay] = useState(false);
+  const [sourceId, setSourceId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("10:00");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const today = new Date().toISOString().slice(0, 10);
+    setTitle("");
+    setDescription("");
+    setAllDay(false);
+    setStartDate(today);
+    setEndDate(today);
+    setStartTime("09:00");
+    setEndTime("10:00");
+    setSourceId((current) => (sources.some((source) => source.id === current) ? current : (sources[0]?.id ?? "")));
+  }, [isOpen, sources]);
+
+  const source = sources.find((item) => item.id === sourceId) ?? sources[0];
+
+  const handleSubmit = async () => {
+    const name = title.trim();
+    if (!name || !source || isSaving) return;
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const payload = allDay
+      ? {
+          calendar_id: source.calendar.id,
+          title: name,
+          description,
+          all_day: true,
+          start: startDate,
+          end: endDate || startDate,
+        }
+      : {
+          calendar_id: source.calendar.id,
+          title: name,
+          description,
+          all_day: false,
+          start: `${startDate}T${startTime}:00`,
+          end: `${endDate || startDate}T${endTime}:00`,
+          time_zone: timeZone,
+        };
+    setIsSaving(true);
+    try {
+      await calendarService.createEvent(source.account.id, payload);
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Event created", message: `"${name}" added to your calendar.` });
+      onCreated();
+      onClose();
+    } catch (err) {
+      console.error("Could not create event", err);
+      const message =
+        (err as { response?: { data?: { details?: string; error?: string } } })?.response?.data?.details ||
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        "Try again in a moment.";
+      setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't create event", message });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <ModalCore isOpen={isOpen} handleClose={onClose} width={EModalWidth.XXL}>
+      <form
+        className="flex flex-col"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleSubmit();
+        }}
+      >
+        <div className="border-b border-subtle px-5 py-4">
+          <h2 className="text-16 font-semibold text-primary">New event</h2>
+          <p className="mt-0.5 text-12 text-tertiary">Added straight to your Google Calendar — separate from tasks.</p>
+        </div>
+        <div className="flex flex-col gap-3 px-5 py-4">
+          <input
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- focus the first field when the create dialog opens
+            autoFocus
+            className={EVENT_FIELD_CLASS}
+            placeholder="Event title"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+          {sources.length > 1 && (
+            <label className="block">
+              <span className="mb-1.5 block text-11 font-medium text-secondary">Calendar</span>
+              <select
+                className={EVENT_FIELD_CLASS}
+                value={source?.id ?? ""}
+                onChange={(event) => setSourceId(event.target.value)}
+              >
+                {sources.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {googleSourceLabel(item)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="flex items-center gap-2 text-13 text-secondary">
+            <input type="checkbox" checked={allDay} onChange={(event) => setAllDay(event.target.checked)} />
+            All day
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1.5 block text-11 font-medium text-secondary">Starts</span>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  className={EVENT_FIELD_CLASS}
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+                {!allDay && (
+                  <input
+                    type="time"
+                    className={EVENT_FIELD_CLASS}
+                    value={startTime}
+                    onChange={(event) => setStartTime(event.target.value)}
+                  />
+                )}
+              </div>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-11 font-medium text-secondary">Ends</span>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  className={EVENT_FIELD_CLASS}
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                />
+                {!allDay && (
+                  <input
+                    type="time"
+                    className={EVENT_FIELD_CLASS}
+                    value={endTime}
+                    onChange={(event) => setEndTime(event.target.value)}
+                  />
+                )}
+              </div>
+            </label>
+          </div>
+          <label className="block">
+            <span className="mb-1.5 block text-11 font-medium text-secondary">Description</span>
+            <textarea
+              className="focus:border-accent-primary min-h-20 w-full resize-y rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none"
+              placeholder="Optional"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-subtle px-5 py-3">
+          <Button variant="secondary" size="lg" type="button" onClick={onClose} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button variant="primary" size="lg" type="submit" disabled={!title.trim() || !source || isSaving}>
+            {isSaving ? "Creating…" : "Create event"}
+          </Button>
+        </div>
+      </form>
+    </ModalCore>
+  );
 }

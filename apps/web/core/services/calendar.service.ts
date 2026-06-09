@@ -93,6 +93,21 @@ export class CalendarService extends APIService {
     return this.get(`/api/users/me/calendar-accounts/${accountId}/events/`, { params }).then((r) => r?.data);
   }
 
+  async createEvent(
+    accountId: string,
+    payload: {
+      calendar_id?: string;
+      title: string;
+      description?: string;
+      all_day: boolean;
+      start: string;
+      end: string;
+      time_zone?: string;
+    }
+  ): Promise<{ event: TCalendarEvent }> {
+    return this.post(`/api/users/me/calendar-accounts/${accountId}/events/`, payload).then((r) => r?.data);
+  }
+
   async syncTasksToGoogle(
     workspaceSlug: string,
     payload: { account_id: string; calendar_id?: string; from: string; to: string }
