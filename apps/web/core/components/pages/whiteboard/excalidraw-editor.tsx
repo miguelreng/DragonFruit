@@ -110,22 +110,40 @@ export const ExcalidrawEditor = observer(function ExcalidrawEditor({ page, handl
   );
 
   return (
-    <div className="h-full w-full">
-      <Suspense
-        fallback={
-          <div className="text-sm flex h-full w-full items-center justify-center text-tertiary">
-            Loading whiteboard...
-          </div>
-        }
-      >
-        <ExcalidrawCanvas
-          initialData={initialDataRef.current}
-          name={page.name || "Untitled whiteboard"}
-          onChange={handleChange}
-          theme={excalidrawTheme}
-          viewModeEnabled={!isEditable}
+    <div className="flex h-full w-full flex-col">
+      {/* Editable title. A new whiteboard is created unnamed and the canvas has
+          no title field of its own, so this bar is the one place to name (or
+          rename) it. Persists via updateTitle's debounced reaction — the same
+          path docs and PDFs use. */}
+      <div className="flex-shrink-0 border-b border-subtle px-4 py-2.5">
+        <input
+          type="text"
+          value={page.name ?? ""}
+          onChange={(e) => page.updateTitle(e.target.value)}
+          readOnly={!isEditable}
+          maxLength={255}
+          placeholder="Untitled whiteboard"
+          aria-label="Whiteboard name"
+          className="w-full bg-transparent text-14 font-semibold text-primary outline-none placeholder:text-placeholder read-only:cursor-default"
         />
-      </Suspense>
+      </div>
+      <div className="min-h-0 flex-1">
+        <Suspense
+          fallback={
+            <div className="text-sm flex h-full w-full items-center justify-center text-tertiary">
+              Loading whiteboard...
+            </div>
+          }
+        >
+          <ExcalidrawCanvas
+            initialData={initialDataRef.current}
+            name={page.name || "Untitled whiteboard"}
+            onChange={handleChange}
+            theme={excalidrawTheme}
+            viewModeEnabled={!isEditable}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 });
