@@ -8,6 +8,27 @@
 import { API_BASE_URL } from "@plane/constants";
 import { APIService } from "@/services/api.service";
 
+/** An MCP server as returned by the API (ciphertext stripped — only presence is exposed). */
+export type TMcpServerSummary = {
+  name: string;
+  url: string;
+  enabled: boolean;
+  has_auth_header: boolean;
+};
+
+/**
+ * An MCP server as WRITTEN back via `mcp_servers_set`. Send the full desired
+ * set on each update. Omit `auth_header` on an existing entry (matched by
+ * `name`) to preserve its stored token; pass a string to set/rotate it, or
+ * "" to wipe it.
+ */
+export type TMcpServerWrite = {
+  name: string;
+  url: string;
+  enabled?: boolean;
+  auth_header?: string;
+};
+
 export type TAgent = {
   id: string;
   workspace: string;
@@ -31,6 +52,7 @@ export type TAgent = {
   is_enabled: boolean;
   max_concurrent_runs: number;
   draft_mode: boolean;
+  mcp_servers: TMcpServerSummary[];
   created_at: string;
   updated_at: string;
 };
@@ -51,6 +73,7 @@ export type TAgentUpdatePayload = Partial<TAgentCreatePayload> & {
   max_concurrent_runs?: number;
   triggers?: Partial<TAgent["triggers"]>;
   tool_policies?: Record<string, "auto" | "ask" | "never">;
+  mcp_servers_set?: TMcpServerWrite[];
 };
 
 export type TAgentToolCall = {

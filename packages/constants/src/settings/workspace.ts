@@ -62,6 +62,13 @@ export const WORKSPACE_SETTINGS: Record<TWorkspaceSettingsTabs, TWorkspaceSettin
     access: [EUserWorkspaceRoles.ADMIN],
     highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/ai/`,
   },
+  integrations: {
+    key: "integrations",
+    i18n_label: "workspace_settings.settings.integrations.title",
+    href: `/settings/integrations`,
+    access: [EUserWorkspaceRoles.ADMIN],
+    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/settings/integrations/`,
+  },
   agents: {
     key: "agents",
     i18n_label: "workspace_settings.settings.agents.title",
@@ -111,6 +118,10 @@ export const GROUPED_WORKSPACE_SETTINGS: Record<WORKSPACE_SETTINGS_CATEGORY, TWo
     WORKSPACE_SETTINGS["imports"],
     WORKSPACE_SETTINGS["about"],
   ],
-  [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [WORKSPACE_SETTINGS["ai"], WORKSPACE_SETTINGS["templates"]],
+  [WORKSPACE_SETTINGS_CATEGORY.FEATURES]: [
+    WORKSPACE_SETTINGS["ai"],
+    WORKSPACE_SETTINGS["integrations"],
+    WORKSPACE_SETTINGS["templates"],
+  ],
   [WORKSPACE_SETTINGS_CATEGORY.DEVELOPER]: [WORKSPACE_SETTINGS["webhooks"], WORKSPACE_SETTINGS["mcp"]],
 };

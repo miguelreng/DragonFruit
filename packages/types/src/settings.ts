@@ -18,6 +18,7 @@ export type TWorkspaceSettingsTabs =
   | "webhooks"
   | "ai"
   | "agents"
+  | "integrations"
   | "mcp"
   | "templates"
   | "about";
