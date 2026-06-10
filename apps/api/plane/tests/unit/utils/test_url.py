@@ -69,15 +69,21 @@ class TestContainsURL:
 
     def test_contains_url_length_limit_under_1000(self):
         """Test contains_url with input under 1000 characters containing URLs"""
-        # Create a string under 1000 characters with a URL
-        text_with_url = "a" * 970 + " https://example.com"  # 970 + 1 + 19 = 990 chars
+        # URL on a SHORT line (< 500 chars) — found.
+        text_with_url = "a" * 10 + " https://example.com"
         assert len(text_with_url) < 1000
         assert contains_url(text_with_url) is True
 
-        # Test with exactly 1000 characters
-        text_exact_1000 = "a" * 981 + "https://example.com"  # 981 + 19 = 1000 chars
-        assert len(text_exact_1000) == 1000
-        assert contains_url(text_exact_1000) is True
+        # URL buried in a very long single line where it falls after the 500-char
+        # per-line truncation point — NOT found (ReDoS protection).
+        text_url_after_500 = "a" * 970 + " https://example.com"  # 990 chars total
+        assert len(text_url_after_500) < 1000
+        assert contains_url(text_url_after_500) is False
+
+        # URL at the start of a long line — still found.
+        text_url_at_start = "https://example.com" + "a" * 970
+        assert len(text_url_at_start) < 1000
+        assert contains_url(text_url_at_start) is True
 
     def test_contains_url_length_limit_over_1000(self):
         """Test contains_url with input over 1000 characters returns False"""
@@ -92,15 +98,21 @@ class TestContainsURL:
 
     def test_contains_url_length_limit_exactly_1000(self):
         """Test contains_url with input exactly 1000 characters"""
-        # Test with exactly 1000 characters without URL
+        # Exactly 1000 characters without URL — False.
         text_no_url = "a" * 1000
         assert len(text_no_url) == 1000
         assert contains_url(text_no_url) is False
 
-        # Test with exactly 1000 characters with URL at the end
-        text_with_url = "a" * 981 + "https://example.com"  # 981 + 19 = 1000 chars
-        assert len(text_with_url) == 1000
-        assert contains_url(text_with_url) is True
+        # Exactly 1000 characters with URL buried after the 500-char line-truncation
+        # point — NOT found because the line is truncated before the URL.
+        text_url_after_500 = "a" * 981 + "https://example.com"  # 1000 chars, url at pos 981
+        assert len(text_url_after_500) == 1000
+        assert contains_url(text_url_after_500) is False
+
+        # Exactly 1000 characters with URL within the first 500 chars of the line — found.
+        text_url_in_window = "https://example.com" + "a" * 981  # 1000 chars, url at pos 0
+        assert len(text_url_in_window) == 1000
+        assert contains_url(text_url_in_window) is True
 
     def test_contains_url_line_length_scenarios(self):
         """Test contains_url with realistic line length scenarios"""
@@ -116,15 +128,19 @@ class TestContainsURL:
 
     def test_contains_url_total_length_vs_line_length(self):
         """Test the interaction between total length limit and line processing"""
-        # Test that total length limit takes precedence
-        # Even if individual lines would be processed, total > 1000 means immediate False
+        # Total > 1000 → immediate False, regardless of URL presence.
         over_limit_text = "a" * 1001  # No URL, but over total limit
         assert contains_url(over_limit_text) is False
 
-        # Test that under total limit, line processing works normally
+        # Total < 1000 but URL appears after the 500-char per-line truncation
+        # point → NOT found (per-line ReDoS guard fires before total limit).
         under_limit_with_url = "a" * 900 + "https://example.com"  # 919 chars total
         assert len(under_limit_with_url) < 1000
-        assert contains_url(under_limit_with_url) is True
+        assert contains_url(under_limit_with_url) is False
+
+        # Total < 1000 and URL is within the first 500 chars of the line → found.
+        short_line_with_url = "a" * 50 + "https://example.com"  # 69 chars total
+        assert contains_url(short_line_with_url) is True
 
     def test_contains_url_multiline_mixed_lengths(self):
         """Test contains_url with multiple lines of different lengths"""

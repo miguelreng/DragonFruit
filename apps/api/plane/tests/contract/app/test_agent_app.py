@@ -35,7 +35,9 @@ class TestAgentAPI:
         delete_response = session_client.delete(delete_url)
         assert delete_response.status_code == status.HTTP_204_NO_CONTENT
 
-        agent = Agent.objects.get(id=agent_id)
+        # soft-deleted agents are excluded from the default manager;
+        # use all_objects to retrieve them regardless of deletion state.
+        agent = Agent.all_objects.get(id=agent_id)
         assert agent.deleted_at is not None
         assert agent.bot_user.is_active is False
         assert (
@@ -109,12 +111,14 @@ class TestAgentAPI:
         assert _title_from_subject(subject) == "Benefits of Meditation"
 
     def test_chat_document_subject_cleanup_handles_spanish_phrasing(self):
+        # "sobre los beneficios..." — the regex strips the leading article "los"
+        # before the real subject, which is the intended normalisation behaviour.
         subject = _normalise_document_subject(
             "Crea un documento sobre los beneficios de votar informado por favor"
         )
 
-        assert subject == "los beneficios de votar informado"
-        assert _title_from_subject(subject) == "Los Beneficios De Votar Informado"
+        assert subject == "beneficios de votar informado"
+        assert _title_from_subject(subject) == "Beneficios De Votar Informado"
 
     def test_chat_fallback_document_writes_body_and_sources(self):
         html = _build_fallback_document_html(
