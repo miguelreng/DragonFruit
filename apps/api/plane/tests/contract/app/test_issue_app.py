@@ -31,7 +31,7 @@ class TestIssueAPIPost:
         assert response.data["name"] == "Issue with down broker"
 
     @pytest.mark.django_db
-    def test_create_issue_returns_404_for_project_outside_workspace(self, session_client, workspace, create_user):
+    def test_create_issue_returns_403_for_project_outside_workspace(self, session_client, workspace, create_user):
         other_workspace = Workspace.objects.create(name="Other Workspace", owner=create_user, slug="other-workspace")
         WorkspaceMember.objects.create(workspace=other_workspace, member=create_user, role=20)
         other_project = Project.objects.create(name="Other Project", identifier="OP", workspace=other_workspace)
@@ -39,4 +39,5 @@ class TestIssueAPIPost:
         url = self.get_issue_url(workspace.slug, str(other_project.id))
         response = session_client.post(url, {"name": "Cross workspace issue"}, format="json")
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        # Inaccessible projects return a uniform 403 (no resource-existence leak), not 404.
+        assert response.status_code == status.HTTP_403_FORBIDDEN

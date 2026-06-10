@@ -75,7 +75,8 @@ class TestProjectBookmarkAPI:
             format="json",
         )
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        # Inaccessible projects return a uniform 403 (no resource-existence leak), not 404.
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.django_db
     def test_project_bookmark_create_handles_storage_errors(self, monkeypatch, session_client, workspace, create_user):
