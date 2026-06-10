@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import hljs from "highlight.js/lib/core";
 // Hand-picked language set for chat — see the editor's lowlight-languages
 // for the editor's larger curated set. Chat replies usually skew JS/TS/
@@ -323,12 +323,7 @@ function ChatView(props: {
           the right. Sits at h-11 to match the page-level header strip. */}
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Avatar
-            size="md"
-            name={agent?.name ?? "Atlas"}
-            src={ATLAS_IDENTITY.avatarSrc}
-            className="shrink-0"
-          />
+          <Avatar size="md" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
           <div className="flex min-w-0 flex-col">
             <div className="truncate text-13 font-medium text-primary">Atlas</div>
             <div className="truncate text-11 text-tertiary">{agent?.provider_model || "Workspace companion"}</div>
@@ -457,12 +452,7 @@ function HistoryView(props: {
               activeId === s.id ? "bg-layer-1" : "hover:bg-layer-1"
             )}
           >
-            <Avatar
-              size="sm"
-              name={s.agent_name || "Atlas"}
-              src={ATLAS_IDENTITY.avatarSrc}
-              className="shrink-0"
-            />
+            <Avatar size="sm" name={s.agent_name || "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
             <button type="button" onClick={() => onPickSession(s.id)} className="min-w-0 flex-1 text-left">
               <div className="truncate text-13 text-primary">{s.title || "New chat"}</div>
               <div className="flex items-center gap-1 truncate text-11 text-tertiary">
@@ -826,12 +816,7 @@ function ChatThread(props: {
       <div ref={scrollRef} className="vertical-scrollbar scrollbar-sm flex-1 overflow-y-auto px-4 py-5">
         {isEmpty && (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <Avatar
-              size="lg"
-              name={agent?.name ?? "Atlas"}
-              src={ATLAS_IDENTITY.avatarSrc}
-              className="shrink-0"
-            />
+            <Avatar size="lg" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
             <div className="space-y-1">
               <div className="text-14 font-medium text-primary">How can Atlas help?</div>
               <div className="max-w-xs text-12 text-tertiary">
@@ -848,12 +833,7 @@ function ChatThread(props: {
             ))}
             {sending && (
               <li className="flex items-center gap-2">
-                <Avatar
-                  size="sm"
-                  name={agent?.name ?? "Atlas"}
-                  src={ATLAS_IDENTITY.avatarSrc}
-                  className="shrink-0"
-                />
+                <Avatar size="sm" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
                 <span className="flex items-center gap-1 text-12 text-tertiary">
                   <Spinner height="12px" width="12px" />
                   Thinking…
@@ -1132,7 +1112,13 @@ function PendingAttachmentChip({ file, onRemove }: { file: File; onRemove: () =>
   );
 }
 
-function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAgent | undefined }) {
+const MessageRow = memo(function MessageRow({
+  message,
+  agent,
+}: {
+  message: TAgentChatMessage;
+  agent: TAgent | undefined;
+}) {
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -1166,12 +1152,7 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
 
   return (
     <li className="flex gap-2">
-      <Avatar
-        size="sm"
-        name={agent?.name ?? "Atlas"}
-        src={ATLAS_IDENTITY.avatarSrc}
-        className="mt-0.5 shrink-0"
-      />
+      <Avatar size="sm" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="mt-0.5 shrink-0" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {message.error_message ? (
           <div className="text-error max-w-full text-13">{message.error_message}</div>
@@ -1191,7 +1172,7 @@ function MessageRow({ message, agent }: { message: TAgentChatMessage; agent: TAg
       </div>
     </li>
   );
-}
+});
 
 function stripCopilotContextForDisplay(content: string): string {
   if (!content.includes("Copilot context:") && !content.includes("Atlas context:")) return content;

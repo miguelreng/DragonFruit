@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Bookmark as BookmarkIcon,
   CancelCircleIcon,
@@ -31,7 +32,7 @@ import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, EModalWidth, Header,
 import { cn, renderFormattedDate } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { AppHeader } from "@/components/core/app-header";
-import { ListItem, ListLayout } from "@/components/core/list";
+import { ListItem } from "@/components/core/list";
 import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { PageSearchInput } from "@/components/pages/list/search-input";
 import { useBookmark } from "@/hooks/store/use-bookmark";
@@ -838,6 +839,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const [draft, setDraft] = useState<BookmarkDraft>(EMPTY_DRAFT);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const lastFetchedUrlRef = useRef("");
+  // Scroll container ref for the list-view virtualizer.
+  const listScrollRef = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   // Pending AI suggestions for the bookmark currently open in the edit modal.
   const [editingSuggestions, setEditingSuggestions] = useState<string[]>([]);
@@ -900,6 +903,16 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       return true;
     });
   }, [bookmarks, query, selectedProjectIds, selectedTags]);
+
+  // Virtualizer for the list view — mounts only visible rows. The grid view
+  // uses CSS masonry columns which are incompatible with row-based
+  // virtualization, so virtualization is scoped to list view only.
+  const listVirtualizer = useVirtualizer({
+    count: filteredBookmarks.length,
+    getScrollElement: () => listScrollRef.current,
+    estimateSize: () => 52,
+    overscan: 5,
+  });
 
   // Selection derives from the live list, so ids of deleted/filtered-out bookmarks
   // are simply ignored — no separate pruning pass needed.
@@ -1355,23 +1368,46 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
             </div>
           </div>
         ) : (
-          <ListLayout>
-            {filteredBookmarks.map((bookmark) => (
-              <BookmarkListItem
-                key={bookmark.id}
-                bookmark={bookmark}
-                workspaceSlug={workspaceSlug}
-                showProject={mode === "workspace"}
-                isSelected={selectedIdSet.has(bookmark.id)}
-                isSelectionActive={isSelectionActive}
-                onOpen={openDetail}
-                onSelect={handleSelect}
-                onDelete={handleDelete}
-                onAcceptTag={handleAcceptTag}
-                onDismissTag={handleDismissTag}
-              />
-            ))}
-          </ListLayout>
+          // List view: virtualized so only visible rows mount.
+          // We inline the ListLayout scroll styles here to gain a ref on
+          // the container (ListLayout does not forward refs).
+          <div
+            ref={listScrollRef}
+            className="vertical-scrollbar flex scrollbar-lg h-full w-full flex-col overflow-y-auto"
+          >
+            <div style={{ height: listVirtualizer.getTotalSize(), position: "relative" }}>
+              {listVirtualizer.getVirtualItems().map((virtualRow) => {
+                const bookmark = filteredBookmarks[virtualRow.index]!;
+                return (
+                  <div
+                    key={bookmark.id}
+                    data-index={virtualRow.index}
+                    ref={listVirtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    <BookmarkListItem
+                      bookmark={bookmark}
+                      workspaceSlug={workspaceSlug}
+                      showProject={mode === "workspace"}
+                      isSelected={selectedIdSet.has(bookmark.id)}
+                      isSelectionActive={isSelectionActive}
+                      onOpen={openDetail}
+                      onSelect={handleSelect}
+                      onDelete={handleDelete}
+                      onAcceptTag={handleAcceptTag}
+                      onDismissTag={handleDismissTag}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
         {isSelectionActive && (
           <BookmarkBulkActionBar
