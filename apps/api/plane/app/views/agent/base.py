@@ -23,9 +23,10 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
-from plane.app.serializers.agent import AgentAutomationSerializer, AgentMemorySerializer, AgentRunSerializer, AgentSerializer
-from plane.db.models import Agent, AgentAutomation, AgentChatMessage, AgentMemory, AgentRun, Issue, Workspace, WorkspaceMember
+from plane.app.serializers.agent import AgentAutomationSerializer, AgentMemorySerializer, AgentRunSerializer, AgentSerializer  # noqa: E501
+from plane.db.models import Agent, AgentAutomation, AgentChatMessage, AgentMemory, AgentRun, Issue, Workspace, WorkspaceMember  # noqa: E501
 from plane.license.utils.encryption import encrypt_data
+from plane.llm.mcp_client import MCPClientError, validate_mcp_server_url
 
 from ..base import BaseAPIView
 
@@ -75,6 +76,10 @@ def _normalise_mcp_servers(submitted: list, *, previous: list) -> list:
         url = (raw.get("url") or "").strip()
         if not name or not url:
             continue
+        try:
+            url = validate_mcp_server_url(url)
+        except MCPClientError:
+            continue          # drop entries pointing at disallowed/invalid hosts
         if name in seen:
             continue
         seen.add(name)

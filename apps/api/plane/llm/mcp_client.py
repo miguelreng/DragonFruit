@@ -27,9 +27,12 @@ forwarding to the underlying MCP server.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
+import socket
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 import requests
 
@@ -57,6 +60,45 @@ class MCPClientError(RuntimeError):
     """
 
 
+def validate_mcp_server_url(url: str) -> str:
+    """Validate that a URL is safe to use as an MCP server endpoint.
+
+    Blocks SSRF by rejecting non-http(s) schemes and any URL that
+    resolves to a private, loopback, link-local, reserved, unspecified,
+    or multicast address.
+
+    Note: DNS-rebinding after this check is a known residual risk; the
+    check at __init__ time mitigates the common case but cannot
+    prevent a host that changes its DNS answer between validation and
+    the actual request.
+
+    Returns the URL unchanged on success; raises MCPClientError on
+    any violation.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise MCPClientError("MCP server URL must be http or https")
+    host = parsed.hostname
+    if not host:
+        raise MCPClientError("MCP server URL must include a host")
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror as exc:
+        raise MCPClientError(f"MCP server host does not resolve: {host}") from exc
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_unspecified
+            or ip.is_multicast
+        ):
+            raise MCPClientError("MCP server URL resolves to a disallowed address")
+    return url
+
+
 class MCPClient:
     """One client instance per (server, dispatch) pair.
 
@@ -69,6 +111,7 @@ class MCPClient:
     def __init__(self, *, url: str, auth_header_value: Optional[str] = None) -> None:
         if not url:
             raise MCPClientError("url is required")
+        url = validate_mcp_server_url(url)          # SSRF guard
         self.url = url.rstrip("/") + "/" if not url.endswith("/") else url
         # Force trailing slash so we POST to the same path every time —
         # MCP servers that respond to /mcp/ won't accept /mcp without
@@ -265,4 +308,4 @@ def wrap_mcp_server_as_tools(
     return wrapped
 
 
-__all__ = ["MCPClient", "MCPClientError", "wrap_mcp_server_as_tools"]
+__all__ = ["MCPClient", "MCPClientError", "validate_mcp_server_url", "wrap_mcp_server_as_tools"]
