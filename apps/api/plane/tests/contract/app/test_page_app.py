@@ -31,8 +31,11 @@ class TestPageAPIPost:
 
     @pytest.mark.django_db
     @patch("plane.app.views.page.base.page_transaction.delay", side_effect=Exception("broker unavailable"))
-    def test_create_page_succeeds_when_page_transaction_dispatch_fails(self, _mock_page_tx, session_client, workspace):
+    def test_create_page_succeeds_when_page_transaction_dispatch_fails(
+        self, _mock_page_tx, session_client, workspace, create_user
+    ):
         project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
+        ProjectMember.objects.create(project=project, member=create_user, role=20, is_active=True)
         url = self.get_pages_url(workspace.slug, str(project.id))
 
         response = session_client.post(url, {"name": "Whiteboard 1", "page_type": "whiteboard"}, format="json")
@@ -49,8 +52,9 @@ class TestPageAPIGet:
 
     @pytest.mark.django_db
     @patch("plane.app.views.page.base.page_transaction.delay", side_effect=Exception("broker unavailable"))
-    def test_list_pages_can_filter_by_page_type(self, _mock_page_tx, session_client, workspace):
+    def test_list_pages_can_filter_by_page_type(self, _mock_page_tx, session_client, workspace, create_user):
         project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
+        ProjectMember.objects.create(project=project, member=create_user, role=20, is_active=True)
         url = self.get_pages_url(workspace.slug, str(project.id))
 
         doc_response = session_client.post(url, {"name": "Spec", "page_type": "doc"}, format="json")

@@ -61,7 +61,7 @@ class TestAIConnectorsAPI:
         )
         assert delete_response.status_code == status.HTTP_204_NO_CONTENT
 
-        connector = WorkspaceAIConnector.objects.get(id=connector_id)
+        connector = WorkspaceAIConnector.all_objects.get(id=connector_id)
         assert connector.deleted_at is not None
         assert connector.status == "revoked"
 

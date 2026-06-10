@@ -268,11 +268,12 @@ class IssueGoogleDriveAttachmentEndpoint(BaseAPIView):
             is_deleted=False,
         ).first()
         if existing_asset:
+            serialized = IssueAttachmentSerializer(existing_asset).data
             return Response(
                 {
                     "error": "Google Drive file already attached.",
-                    "id": str(existing_asset.id),
-                    "attachment": IssueAttachmentSerializer(existing_asset).data,
+                    "id": serialized["id"],
+                    "attachment": serialized,
                 },
                 status=status.HTTP_409_CONFLICT,
             )
