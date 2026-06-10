@@ -942,6 +942,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var meetingMicAudioFile: AVAudioFile?
     private var meetingMicAudioURL: URL?
     private var meetingSystemAudioURL: URL?
+    // Loudest level seen on the system-audio tap during the current meeting
+    // recording. 0 at save time means the tap delivered pure digital silence
+    // (TCC denied or broken routing) — distinct from "nobody spoke".
+    private var meetingSystemAudioPeak: CGFloat = 0
     private var isInputTapInstalled = false
     private var microphoneReleaseTask: Task<Void, Never>?
     private var recordingMeeting: MeetingInfo?
@@ -2560,7 +2564,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     // which otherwise only runs on the mic input tap.
                     let level = Self.normalizedAudioLevel(from: buffer)
                     Task { @MainActor [weak self] in
-                        self?.updateAudioLevel(level)
+                        guard let self else { return }
+                        self.updateAudioLevel(level)
+                        self.meetingSystemAudioPeak = max(self.meetingSystemAudioPeak, level)
                     }
                 },
                 onError: { [weak self] error in
@@ -2577,6 +2583,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             meetingMicAudioFile = nil
             meetingMicAudioURL = nil
             meetingSystemAudioURL = systemAudioURL
+            meetingSystemAudioPeak = 0
             isMeetingRecording = true
             meetingState = "Recording"
             if meetingWhisperModelLanguageMismatch {
@@ -2646,6 +2653,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let audioURLs = [systemAudioURL, micAudioURL]
             .compactMap { $0 }
             .filter { FileManager.default.fileExists(atPath: $0.path) }
+        // Per-side outcome so a one-sided transcript can be called out instead
+        // of silently saving notes that are missing the other participants.
+        var systemSideHadSpeech = false
+        var micSideHadSpeech = false
         if meetingWhisperModelLanguageMismatch {
             // Only an English-only model is available for a non-English meeting:
             // whisper would hallucinate English and overwrite the (correct) live
@@ -2673,6 +2684,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                         "Whisper [\(url.lastPathComponent, privacy: .public)]: raw \(raw.count, privacy: .public) chars, kept \(piece.count, privacy: .public)"
                     )
                     if !piece.isEmpty { pieces.append(piece) }
+                    if url == systemAudioURL { systemSideHadSpeech = !piece.isEmpty }
+                    if url == micAudioURL { micSideHadSpeech = !piece.isEmpty }
                 } catch {
                     whisperFailed = true
                     Self.logger.error(
@@ -2723,6 +2736,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             statusMessage = (draft.calendar_attached == true)
                 ? "Meeting notes saved to Docs and attached to your event."
                 : "Meeting notes saved to Docs."
+            if micSideHadSpeech && !systemSideHadSpeech {
+                if meetingSystemAudioPeak < 0.01 {
+                    // The tap delivered pure digital silence — a permission or
+                    // routing failure, not a quiet meeting. Surface the fix.
+                    Self.logger.warning("Meeting notes one-sided: system audio tap was silent (peak \(Double(self.meetingSystemAudioPeak), privacy: .public))")
+                    statusMessage = "Notes saved, but only your voice was captured — the meeting audio was silent. Allow Atlas under System Audio Recording Only in Privacy & Security and try again."
+                    needsScreenRecordingForMeeting = true
+                } else {
+                    statusMessage = "Notes saved, but no participant speech was recognized in the meeting audio."
+                }
+            }
             notifyMeetingNotesSaved(title: targetMeeting.title)
             // Open the saved document in the browser as soon as recording finishes.
             if autoOpenMeetingNotesEnabled, let notesURL = lastMeetingNotesURL {

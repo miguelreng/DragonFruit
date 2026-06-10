@@ -1399,6 +1399,11 @@ final class MeetingNotesOverlayController: ObservableObject {
     private var timer: Timer?
     private var cancellables: Set<AnyCancellable> = []
     private weak var store: MeetingStore?
+    private var moveObserver: NSObjectProtocol?
+    // Once the user drags the widget by its logo we pin it where they left it
+    // (for the rest of the session) instead of snapping back to the screen edge.
+    private var userOrigin: NSPoint?
+    private var isProgrammaticMove = false
 
     func bind(to store: MeetingStore) {
         guard self.store !== store else { return }
@@ -1426,7 +1431,7 @@ final class MeetingNotesOverlayController: ObservableObject {
     }
 
     private func showOverlay(for store: MeetingStore) {
-        let size = NSSize(width: 56, height: 132)
+        let size = MeetingNotesRecordingOverlayView.panelSize
         let panel = panel ?? makePanel(size: size)
         self.panel = panel
         panel.contentView = TransparentHostingView(rootView: MeetingNotesRecordingOverlayView(store: store))
@@ -1468,20 +1473,38 @@ final class MeetingNotesOverlayController: ObservableObject {
         // Interactive so the stop button is clickable; .nonactivatingPanel keeps
         // clicks from stealing focus from the meeting app the user is in.
         panel.ignoresMouseEvents = false
+        panel.isMovable = true
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
+        moveObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didMoveNotification,
+            object: panel,
+            queue: nil
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, !self.isProgrammaticMove else { return }
+                self.userOrigin = self.panel?.frame.origin
+            }
+        }
         return panel
     }
 
     private func position(panel: NSPanel, size: NSSize) {
+        // The user dragged the widget — leave it where they put it.
+        if userOrigin != nil { return }
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         let frame = screen?.visibleFrame ?? .zero
+        // The panel is oversized by shadowMargin on every side; offset so the
+        // visible capsule (not the shadow padding) sits 18pt from the edge.
+        let margin = MeetingNotesRecordingOverlayView.shadowMargin
         let origin = NSPoint(
-            x: frame.maxX - size.width - 18,
+            x: frame.maxX - size.width + margin - 18,
             y: frame.midY - (size.height / 2)
         )
+        isProgrammaticMove = true
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
+        isProgrammaticMove = false
     }
 }
 
@@ -1489,28 +1512,44 @@ struct MeetingNotesRecordingOverlayView: View {
     @ObservedObject var store: MeetingStore
     @State private var isHoveringStop = false
 
+    /// The visible capsule. The hosting panel adds `shadowMargin` on every side
+    /// so the drop shadow can render fully — a panel sized exactly to the
+    /// capsule clipped the shadow into a hard square edge.
+    static let capsuleSize = NSSize(width: 56, height: 132)
+    static let shadowMargin: CGFloat = 46
+    static var panelSize: NSSize {
+        NSSize(
+            width: capsuleSize.width + shadowMargin * 2,
+            height: capsuleSize.height + shadowMargin * 2
+        )
+    }
+
     var body: some View {
         TimelineView(.animation) { timeline in
             VStack(spacing: 14) {
                 recordingLogo
                     .frame(width: 24, height: 24)
+                    .overlay(WindowDragHandle())
 
                 MeetingNotesRecordingBars(date: timeline.date, level: store.audioLevel)
                     .frame(width: 24, height: 22)
 
                 stopButton
             }
-            .frame(width: 56, height: 132)
+            .frame(width: Self.capsuleSize.width, height: Self.capsuleSize.height)
             .background(
+                // Shadow on the capsule fill itself (not the whole subtree) so
+                // the logo/bars don't each cast their own inner shadow.
                 Capsule(style: .continuous)
                     .fill(Color(red: 0.13, green: 0.13, blue: 0.13).opacity(0.96))
+                    .shadow(color: Color.black.opacity(0.24), radius: 8, y: 6)
+                    .shadow(color: Color.black.opacity(0.22), radius: 24, y: 18)
             )
             .overlay(
                 Capsule(style: .continuous)
                     .stroke(Color.white.opacity(0.12), lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(0.24), radius: 8, y: 6)
-            .shadow(color: Color.black.opacity(0.22), radius: 24, y: 18)
+            .frame(width: Self.panelSize.width, height: Self.panelSize.height)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Atlas meeting notes active")
@@ -1557,12 +1596,29 @@ struct MeetingNotesRecordingOverlayView: View {
     }
 }
 
+/// Click-and-drag area that moves the hosting panel — laid over the widget's
+/// logo so the whole recording pill can be repositioned by dragging the mark.
+private struct WindowDragHandle: NSViewRepresentable {
+    final class HandleView: NSView {
+        override func mouseDown(with event: NSEvent) {
+            window?.performDrag(with: event)
+        }
+
+        override func resetCursorRects() {
+            addCursorRect(bounds, cursor: .openHand)
+        }
+    }
+
+    func makeNSView(context: Context) -> HandleView { HandleView() }
+    func updateNSView(_ nsView: HandleView, context: Context) {}
+}
+
 struct MeetingNotesRecordingBars: View {
     let date: Date
     /// Live audio level (0...1) from MeetingStore's RMS metering.
     let level: CGFloat
 
-    private let color = Color(red: 0.47, green: 0.84, blue: 0.08)
+    private let color = Color(red: 1.0, green: 0.32, blue: 0.71)
 
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
