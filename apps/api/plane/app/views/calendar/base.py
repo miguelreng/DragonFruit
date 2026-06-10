@@ -26,7 +26,6 @@ from urllib.parse import quote, urlencode
 import requests
 from django.conf import settings
 from django.db.models import Q
-from django.utils.html import escape
 from rest_framework import status
 from rest_framework.response import Response
 from openai import OpenAI
@@ -38,6 +37,7 @@ from plane.app.views.external.base import call_llm_chat, get_llm_config
 from plane.license.utils.instance_value import get_configuration_value
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 from plane.utils.exception_logger import log_exception
+from plane.utils.html_builders import escape_text, list_html
 from plane.utils.url import normalize_url_path
 
 from ..base import BaseAPIView
@@ -1176,26 +1176,26 @@ def _meeting_notes_html(
 ) -> str:
     metadata = []
     if start:
-        metadata.append(f"<li><strong>Start:</strong> {escape(start)}</li>")
+        metadata.append(f"<strong>Start:</strong> {escape_text(start)}")
     if end:
-        metadata.append(f"<li><strong>End:</strong> {escape(end)}</li>")
+        metadata.append(f"<strong>End:</strong> {escape_text(end)}")
     if account_email:
-        metadata.append(f"<li><strong>Calendar:</strong> {escape(account_email)}</li>")
+        metadata.append(f"<strong>Calendar:</strong> {escape_text(account_email)}")
     if meeting_url:
-        metadata.append(
-            f'<li><strong>Join link:</strong> <a href="{escape(meeting_url)}">{escape(meeting_url)}</a></li>'
-        )
+        safe_url = escape_text(meeting_url, quote=True)
+        safe_url_label = escape_text(meeting_url)
+        metadata.append(f'<strong>Join link:</strong> <a href="{safe_url}">{safe_url_label}</a>')
 
     transcript_paragraphs = "".join(
-        f"<p>{escape(line)}</p>" for line in notes.splitlines() if line.strip()
+        f"<p>{escape_text(line)}</p>" for line in notes.splitlines() if line.strip()
     )
     if not transcript_paragraphs:
-        transcript_paragraphs = f"<p>{escape(notes)}</p>"
+        transcript_paragraphs = f"<p>{escape_text(notes)}</p>"
 
     header = (
-        f"<h2>{escape(meeting_title)}</h2>"
+        f"<h2>{escape_text(meeting_title)}</h2>"
         f"<p><em>Captured by DragonFruit Atlas.</em></p>"
-        f"<ul>{''.join(metadata)}</ul>"
+        f"{list_html(metadata)}"
     )
 
     structured = _structured_summary_html(summary) if summary else ""
@@ -1222,7 +1222,7 @@ def _structured_summary_html(summary: dict) -> str:
 
     overview = _clean(summary.get("summary"))
     summary_sections = summary.get("summary_sections")
-    summary_body = f"<p>{escape(overview)}</p>" if overview else ""
+    summary_body = f"<p>{escape_text(overview)}</p>" if overview else ""
     if isinstance(summary_sections, list):
         for item in summary_sections:
             if not isinstance(item, dict):
@@ -1231,20 +1231,20 @@ def _structured_summary_html(summary: dict) -> str:
             body = _clean(item.get("body"))
             if not (heading or body):
                 continue
-            prefix = f"<strong>{escape(heading)}</strong> " if heading else ""
-            summary_body += f"<p>{prefix}{escape(body)}</p>"
+            prefix = f"<strong>{escape_text(heading)}</strong> " if heading else ""
+            summary_body += f"<p>{prefix}{escape_text(body)}</p>"
     if summary_body:
         sections.append(f"<h3>Summary</h3>{summary_body}")
 
     decisions = summary.get("decisions")
     if isinstance(decisions, list):
-        items = "".join(f"<li>{escape(_clean(d))}</li>" for d in decisions if _clean(d))
-        if items:
-            sections.append(f"<h3>Decisions</h3><ul>{items}</ul>")
+        decision_items = [escape_text(_clean(d)) for d in decisions if _clean(d)]
+        if decision_items:
+            sections.append(f"<h3>Decisions</h3>{list_html(decision_items)}")
 
     next_steps = summary.get("next_steps")
     if isinstance(next_steps, list):
-        items = ""
+        step_items = []
         for step in next_steps:
             if not isinstance(step, dict):
                 continue
@@ -1253,15 +1253,15 @@ def _structured_summary_html(summary: dict) -> str:
             detail = _clean(step.get("detail"))
             if not action:
                 continue
-            owner_html = f"<strong>{escape(owner)}</strong> — " if owner else ""
-            detail_html = f": {escape(detail)}" if detail else ""
-            items += f"<li>{owner_html}{escape(action)}{detail_html}</li>"
-        if items:
-            sections.append(f"<h3>Next steps</h3><ul>{items}</ul>")
+            owner_html = f"<strong>{escape_text(owner)}</strong> — " if owner else ""
+            detail_html = f": {escape_text(detail)}" if detail else ""
+            step_items.append(f"{owner_html}{escape_text(action)}{detail_html}")
+        if step_items:
+            sections.append(f"<h3>Next steps</h3>{list_html(step_items)}")
 
     details = summary.get("details")
     if isinstance(details, list):
-        items = ""
+        detail_items = []
         for item in details:
             if not isinstance(item, dict):
                 continue
@@ -1269,10 +1269,10 @@ def _structured_summary_html(summary: dict) -> str:
             body = _clean(item.get("body"))
             if not (topic or body):
                 continue
-            topic_html = f"<strong>{escape(topic)}</strong>: " if topic else ""
-            items += f"<li>{topic_html}{escape(body)}</li>"
-        if items:
-            sections.append(f"<h3>Details</h3><ul>{items}</ul>")
+            topic_html = f"<strong>{escape_text(topic)}</strong>: " if topic else ""
+            detail_items.append(f"{topic_html}{escape_text(body)}")
+        if detail_items:
+            sections.append(f"<h3>Details</h3>{list_html(detail_items)}")
 
     return "".join(sections)
 
