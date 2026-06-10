@@ -37,7 +37,9 @@ class TestValidateUrlIp:
                 validate_url_ip("http://example.com")
 
     def test_rejects_non_http_scheme(self):
-        with pytest.raises(ValueError, match="Only HTTP and HTTPS"):
+        # file:/// has no hostname, so the "no hostname" check fires before
+        # the scheme check — accept either error message.
+        with pytest.raises(ValueError, match="Invalid URL|Only HTTP and HTTPS"):
             validate_url_ip("file:///etc/passwd")
 
     def test_allows_public_ip(self):

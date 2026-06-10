@@ -304,7 +304,8 @@ class TestMagicSignIn:
 
         # Use Django client to test the redirect flow without following redirects
         url = reverse("magic-sign-in")
-        next_path = "workspaces"
+        # next_path must start with "/" — the path validator rejects bare relative paths
+        next_path = "/workspaces"
         response = django_client.post(
             url,
             {"email": "user@plane.so", "code": token, "next_path": next_path},
@@ -316,7 +317,7 @@ class TestMagicSignIn:
         assert "error_code" not in response.url
 
         # Check that the redirect URL contains the next_path
-        assert next_path in response.url
+        assert "workspaces" in response.url
 
         # The user should now be authenticated
         assert "_auth_user_id" in django_client.session

@@ -11,7 +11,7 @@ from plane.db.models import Page, Project, ProjectPage, WorkspaceAgentWebhook
 
 
 @pytest.mark.unit
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_public_doc_page_create_enqueues_landing_redeploy(settings, workspace, create_user):
     settings.LANDING_DEPLOY_WEBHOOK_URL = "https://example.com/deploy-hook"
     settings.LANDING_DEPLOY_WEBHOOK_COOLDOWN_SECONDS = 0
@@ -53,7 +53,7 @@ def test_private_doc_page_create_does_not_enqueue_landing_redeploy(settings, wor
 
 
 @pytest.mark.unit
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_public_doc_edit_enqueues_landing_redeploy(settings, workspace, create_user):
     settings.LANDING_DEPLOY_WEBHOOK_URL = "https://example.com/deploy-hook"
     settings.LANDING_DEPLOY_WEBHOOK_COOLDOWN_SECONDS = 0
@@ -75,7 +75,7 @@ def test_public_doc_edit_enqueues_landing_redeploy(settings, workspace, create_u
 
 
 @pytest.mark.unit
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_private_doc_publish_enqueues_essay_illustration_task_without_webhook(settings, workspace, create_user):
     essay_project = Project.objects.create(
         name="Essays",
@@ -84,7 +84,7 @@ def test_private_doc_publish_enqueues_essay_illustration_task_without_webhook(se
     )
     settings.ESSAY_ILLUSTRATION_PROJECT_ID = str(essay_project.id)
 
-    with patch("plane.db.models.page.request_essay_illustration.delay") as mock_delay:
+    with patch("plane.bgtasks.essay_illustration_task.request_essay_illustration.delay") as mock_delay:
         page = Page.objects.create(
             name="Essay Draft",
             workspace=workspace,
@@ -186,7 +186,7 @@ def test_public_slug_generation_adds_suffix_for_duplicates(settings, workspace, 
 
 
 @pytest.mark.unit
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_public_doc_create_in_essays_project_enqueues_essay_illustration_task(settings, workspace, create_user):
     WorkspaceAgentWebhook.objects.create(
         workspace=workspace,
@@ -217,14 +217,14 @@ def test_public_doc_create_in_essays_project_enqueues_essay_illustration_task(se
     )
     assert serializer.is_valid(), serializer.errors
 
-    with patch("plane.db.models.page.request_essay_illustration.delay") as mock_delay:
+    with patch("plane.bgtasks.essay_illustration_task.request_essay_illustration.delay") as mock_delay:
         serializer.save()
 
     assert mock_delay.call_count == 1
 
 
 @pytest.mark.unit
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_private_doc_publish_does_not_enqueue_essay_illustration_task_outside_essays_project(
     settings, workspace, create_user
 ):
@@ -241,7 +241,7 @@ def test_private_doc_publish_does_not_enqueue_essay_illustration_task_outside_es
         workspace=workspace,
     )
 
-    with patch("plane.db.models.page.request_essay_illustration.delay") as mock_delay:
+    with patch("plane.bgtasks.essay_illustration_task.request_essay_illustration.delay") as mock_delay:
         page = Page.objects.create(
             name="Essay Draft",
             workspace=workspace,
@@ -258,7 +258,7 @@ def test_private_doc_publish_does_not_enqueue_essay_illustration_task_outside_es
 
 
 @pytest.mark.unit
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_public_doc_edit_does_not_enqueue_essay_illustration_task(workspace, create_user):
     WorkspaceAgentWebhook.objects.create(
         workspace=workspace,
@@ -275,7 +275,7 @@ def test_public_doc_edit_does_not_enqueue_essay_illustration_task(workspace, cre
         page_type=Page.PAGE_TYPE_DOC,
     )
 
-    with patch("plane.db.models.page.request_essay_illustration.delay") as mock_delay:
+    with patch("plane.bgtasks.essay_illustration_task.request_essay_illustration.delay") as mock_delay:
         page.name = "Published Essay Updated"
         page.save(update_fields=["name"])
 
@@ -283,7 +283,7 @@ def test_public_doc_edit_does_not_enqueue_essay_illustration_task(workspace, cre
 
 
 @pytest.mark.unit
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_unpublishing_public_doc_enqueues_landing_redeploy(settings, workspace, create_user):
     settings.LANDING_DEPLOY_WEBHOOK_URL = "https://example.com/deploy-hook"
     settings.LANDING_DEPLOY_WEBHOOK_COOLDOWN_SECONDS = 0
@@ -306,24 +306,30 @@ def test_unpublishing_public_doc_enqueues_landing_redeploy(settings, workspace, 
 
 
 @pytest.mark.unit
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_landing_redeploy_cooldown_skips_repeated_updates(settings, workspace, create_user):
     settings.LANDING_DEPLOY_WEBHOOK_URL = "https://example.com/deploy-hook"
     settings.LANDING_DEPLOY_WEBHOOK_COOLDOWN_SECONDS = 300
 
-    page = Page.objects.create(
-        name="Public Essay",
-        workspace=workspace,
-        owned_by=create_user,
-        access=Page.PUBLIC_ACCESS,
-        page_type=Page.PAGE_TYPE_DOC,
-        description_html="<p>v1</p>",
-    )
-
     with patch("plane.bgtasks.landing_deploy_task.trigger_landing_redeploy.delay") as mock_delay:
+        # Create as private so no redeploy is enqueued and no cache key is set.
+        page = Page.objects.create(
+            name="Public Essay",
+            workspace=workspace,
+            owned_by=create_user,
+            access=Page.PRIVATE_ACCESS,
+            page_type=Page.PAGE_TYPE_DOC,
+            description_html="<p>v1</p>",
+        )
+        # Publish the page — sets the cache key and fires the first redeploy.
+        page.access = Page.PUBLIC_ACCESS
+        page.save(update_fields=["access"])
+        mock_delay.reset_mock()
+
+        # Subsequent description edits while cooldown is active should be suppressed.
         page.description_html = "<p>v2</p>"
         page.save(update_fields=["description_html"])
         page.description_html = "<p>v3</p>"
         page.save(update_fields=["description_html"])
 
-    assert mock_delay.call_count == 1
+    assert mock_delay.call_count == 0
