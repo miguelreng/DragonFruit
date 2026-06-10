@@ -52,6 +52,7 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.utils.content_validator import validate_html_content
+from plane.utils.html_builders import link_html, list_html, paragraphs_html
 from plane.llm.pricing import estimate_cost_usd
 from plane.llm.provider import LLMConfigError, LLMProvider, LLMTool
 
@@ -334,10 +335,7 @@ def _doc_write_event(event: str, **payload):
 
 
 def _plain_text_to_html(text: str) -> str:
-    paragraphs = [part.strip() for part in re.split(r"\n{2,}", text or "") if part.strip()]
-    if not paragraphs:
-        return ""
-    return "".join(f"<p>{html.escape(paragraph).replace(chr(10), '<br />')}</p>" for paragraph in paragraphs)
+    return paragraphs_html(text)
 
 
 def _document_blocks_from_json(document_json) -> list[dict]:
@@ -919,28 +917,20 @@ def _build_fallback_document_html(*, title: str, subject: str, research_results:
             ),
         ]
     else:
+        key_point_items = [html.escape(source["title"]) for source in sources[:4]]
         body = [
             f"<h1>{safe_title}</h1>",
             f"<p>This document summarizes the most relevant points about {safe_subject}.</p>",
             "<h2>Overview</h2>",
             f"<p>{safe_subject.capitalize()} can be understood through the main themes and evidence below.</p>",
             "<h2>Key Points</h2>",
-            "<ul>",
-            *[
-                f"<li>{html.escape(source['title'])}</li>"
-                for source in sources[:4]
-            ],
-            "</ul>",
+            list_html(key_point_items),
         ]
 
     body.append("<h2>Sources</h2>")
     if sources:
-        body.append("<ul>")
-        for source in sources[:5]:
-            source_title = html.escape(source["title"])
-            source_url = html.escape(source["url"], quote=True)
-            body.append(f'<li><a href="{source_url}">{source_title}</a></li>')
-        body.append("</ul>")
+        source_link_items = [link_html(source["url"], source["title"]) for source in sources[:5]]
+        body.append(list_html(source_link_items))
     else:
         body.append("<p>No external sources were available when this document was created.</p>")
     return "".join(body)
