@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import patch
 from rest_framework import status
 
-from plane.db.models import Project, Workspace, WorkspaceMember
+from plane.db.models import Project, ProjectMember, Workspace, WorkspaceMember
 
 
 @pytest.mark.contract
@@ -19,9 +19,10 @@ class TestIssueAPIPost:
     @patch("plane.app.views.issue.base.model_activity.delay", side_effect=Exception("broker down"))
     @patch("plane.app.views.issue.base.issue_activity.delay", side_effect=Exception("broker down"))
     def test_create_issue_succeeds_when_async_dispatch_fails(
-        self, _mock_issue_activity, _mock_model_activity, _mock_desc_version, session_client, workspace
+        self, _mock_issue_activity, _mock_model_activity, _mock_desc_version, session_client, workspace, create_user
     ):
         project = Project.objects.create(name="Issue Project", identifier="IP", workspace=workspace)
+        ProjectMember.objects.create(project=project, member=create_user, role=20, is_active=True)
         url = self.get_issue_url(workspace.slug, str(project.id))
 
         response = session_client.post(url, {"name": "Issue with down broker"}, format="json")
