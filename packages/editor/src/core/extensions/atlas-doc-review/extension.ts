@@ -23,6 +23,9 @@ type TAtlasDocReviewState = {
   // the model is still composing. Kept separate from `proposals.length === 0`
   // because that's also true after the user rejects every proposal.
   loading: boolean;
+  // Cached DecorationSet — rebuilt only when proposals change, mapped through
+  // tr.mapping on every other transaction (typing, cursor moves, etc.).
+  decorations: DecorationSet;
 };
 
 type TFoundNode = { node: ProseMirrorNode; pos: number };
@@ -56,6 +59,7 @@ const initialState: TAtlasDocReviewState = {
   session: null,
   proposals: [],
   loading: false,
+  decorations: DecorationSet.empty,
 };
 
 const getReviewState = (state: EditorState) => atlasDocReviewPluginKey.getState(state) ?? initialState;
@@ -235,12 +239,11 @@ const buildProposalControls = (view: EditorView, proposal: TTrackedProposal) => 
   return controls;
 };
 
-const buildDecorations = (state: EditorState) => {
-  const reviewState = getReviewState(state);
-  const visibleProposals = reviewState.proposals.filter(
-    (proposal) => !["accepted", "rejected"].includes(proposal.status)
-  );
-  const decorations: Decoration[] = [];
+const buildDecorations = (proposals: TTrackedProposal[], state: EditorState): DecorationSet => {
+  const visibleProposals = proposals.filter((proposal) => !["accepted", "rejected"].includes(proposal.status));
+
+  // Fast path: no visible proposals → return the singleton empty set immediately.
+  if (visibleProposals.length === 0) return DecorationSet.empty;
 
   // The "Atlas is drafting…" status now lives in the Atlas chat bar, so the
   // document stays clean while the model is composing.
@@ -248,6 +251,7 @@ const buildDecorations = (state: EditorState) => {
   // Note: bulk Accept all / Reject all lives in the Atlas chat bar (less
   // chrome inside the document), driven by the editor-ref commands.
 
+  const decorations: Decoration[] = [];
   for (const proposal of visibleProposals) {
     const from = clampPos(state, proposal.from);
     const to = clampPos(state, proposal.to);
@@ -390,7 +394,13 @@ export const AtlasDocReviewExtension = Extension.create({
         key: atlasDocReviewPluginKey,
         state: {
           init: () => initialState,
-          apply(transaction, previous) {
+          apply(transaction, previous, _oldState, newState) {
+            const mappedProposals: TTrackedProposal[] = previous.proposals.map((proposal) => ({
+              ...proposal,
+              from: transaction.mapping.map(proposal.from, 1),
+              to: transaction.mapping.map(proposal.to, -1),
+              anchorPos: proposal.anchorPos === undefined ? undefined : transaction.mapping.map(proposal.anchorPos, 1),
+            }));
             const mapped: TAtlasDocReviewState = {
               session: previous.session
                 ? {
@@ -398,45 +408,55 @@ export const AtlasDocReviewExtension = Extension.create({
                     anchorPos: transaction.mapping.map(previous.session.anchorPos ?? 0, 1),
                   }
                 : null,
-              proposals: previous.proposals.map((proposal) => ({
-                ...proposal,
-                from: transaction.mapping.map(proposal.from, 1),
-                to: transaction.mapping.map(proposal.to, -1),
-                anchorPos:
-                  proposal.anchorPos === undefined ? undefined : transaction.mapping.map(proposal.anchorPos, 1),
-              })),
+              proposals: mappedProposals,
               loading: previous.loading,
+              // Map the cached DecorationSet through position changes (typing,
+              // deletions). When there is no review action this is the only cost —
+              // no full rebuild needed.
+              decorations: previous.decorations.map(transaction.mapping, newState.doc),
             };
+
             const action = transaction.getMeta(atlasDocReviewPluginKey) as TAtlasDocReviewAction | undefined;
             if (!action) return mapped;
 
+            // Any action that changes the visible proposal set requires a full
+            // decoration rebuild. Actions that only affect loading/session state
+            // do not change decorations.
             if (action.type === "start") {
-              return { session: action.session, proposals: [], loading: true };
+              return { session: action.session, proposals: [], loading: true, decorations: DecorationSet.empty };
             }
             if (action.type === "set-loading") {
               return { ...mapped, loading: action.loading };
             }
             if (action.type === "append") {
-              return { ...mapped, proposals: [...mapped.proposals, action.proposal], loading: false };
-            }
-            if (action.type === "update") {
+              const newProposals = [...mapped.proposals, action.proposal];
               return {
                 ...mapped,
-                proposals: mapped.proposals.map((proposal) =>
-                  proposal.id === action.id
-                    ? { ...proposal, ...action.patch, from: action.from, to: action.to }
-                    : proposal
-                ),
+                proposals: newProposals,
+                loading: false,
+                decorations: buildDecorations(newProposals, newState),
               };
             }
-            if (action.type === "remove") {
-              return { ...mapped, proposals: mapped.proposals.filter((proposal) => proposal.id !== action.id) };
+            if (action.type === "update") {
+              const newProposals = mapped.proposals.map((proposal) =>
+                proposal.id === action.id
+                  ? { ...proposal, ...action.patch, from: action.from, to: action.to }
+                  : proposal
+              );
+              return { ...mapped, proposals: newProposals, decorations: buildDecorations(newProposals, newState) };
             }
-            return initialState;
+            if (action.type === "remove") {
+              const newProposals = mapped.proposals.filter((proposal) => proposal.id !== action.id);
+              return { ...mapped, proposals: newProposals, decorations: buildDecorations(newProposals, newState) };
+            }
+            // "clear" action
+            return { ...initialState };
           },
         },
         props: {
-          decorations: buildDecorations,
+          // Return the cached DecorationSet from plugin state — rebuilt only
+          // when proposals change, mapped on every other transaction.
+          decorations: (state) => atlasDocReviewPluginKey.getState(state)?.decorations ?? DecorationSet.empty,
           handleDOMEvents: {
             "atlas-doc-review-accept": (view, event) => {
               acceptProposal(view, (event as CustomEvent<{ id?: string }>).detail?.id);
