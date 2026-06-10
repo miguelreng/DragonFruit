@@ -23,6 +23,7 @@ import type { EditorRefApi, IEditorProps, TEditorCommands } from "@/types";
 import { getParagraphCount } from "./common";
 import { insertContentAtSavedSelection } from "./insert-content-at-cursor-position";
 import { scrollSummary, scrollToNodeViaDOMCoordinates } from "./scroll-to-node";
+import { replaceDocumentEditorYDocFromHTML } from "./yjs-utils";
 
 type TArgs = Pick<IEditorProps, "getEditorMetaData"> & {
   editor: Editor | null;
@@ -284,6 +285,11 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       const document = provider?.document;
       if (!document) return;
       Y.applyUpdate(document, value);
+    },
+    replaceProviderDocumentFromHTML: (html, title) => {
+      const document = provider?.document;
+      if (!document) return;
+      replaceDocumentEditorYDocFromHTML(document, html, title);
     },
     getActiveAtlasProposalCount: () => {
       if (!editor) return 0;

@@ -934,17 +934,14 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
             if document_formats.get("description_binary"):
                 target_page.description_json = document_formats.get("description_json") or {}
                 target_page.description_binary = base64.b64decode(document_formats["description_binary"])
-            elif not existing_binary:
-                # Brand-new doc and the live server is unavailable — clear the blob
-                # so the live server re-seeds the editor from this fresh HTML on
-                # next open. (Lazy re-seed is safe here: no cached client state to
-                # collide with.)
+            else:
+                # Live server unavailable — clear the blob so editors re-seed
+                # from this fresh HTML on next open. The web editor reconciles
+                # HTML seeds into its existing doc in place (real tombstones,
+                # no fresh-root union), so this replaces the content for
+                # clients with cached state instead of leaving stale notes.
                 target_page.description_binary = None
                 target_page.description_json = {}
-            # else: an existing doc whose live server is unreachable — leave the
-            # stored binary untouched. We can't safely build a successor without
-            # the live server, and swapping in an independent blob would
-            # re-introduce the duplicate-on-merge bug.
 
         project = (
             Project.objects.filter(

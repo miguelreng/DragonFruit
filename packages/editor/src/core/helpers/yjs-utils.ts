@@ -149,6 +149,26 @@ export const replaceDocumentEditorYDocContent = (ydoc: Y.Doc, descriptionHTML: s
 };
 
 /**
+ * @description Reconcile a live provider doc to fresh HTML, for clients that
+ * must seed content client-side (no stored binary, e.g. the fallback path when
+ * the live server is unreachable). Reuses the in-place reconcile for the body —
+ * a fresh, independently-rooted seed applied via Y.applyUpdate would union with
+ * the editor's IndexedDB cache and stack a duplicate copy on every open. The
+ * title fragment is only seeded when currently empty, for the same reason.
+ * @param {Y.Doc} ydoc - the provider document to reconcile in place
+ * @param {string} descriptionHTML - the new, full document HTML
+ * @param {string} [title] - title to seed when the doc has none yet
+ */
+export const replaceDocumentEditorYDocFromHTML = (ydoc: Y.Doc, descriptionHTML: string, title?: string): void => {
+  replaceDocumentEditorYDocContent(ydoc, descriptionHTML);
+  if (title != null && ydoc.getXmlFragment("title").length === 0) {
+    const titleJSON = generateTitleProsemirrorJson(title);
+    const titleField = prosemirrorJSONToYDoc(documentEditorSchema, titleJSON, "title");
+    Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(titleField));
+  }
+};
+
+/**
  * @description Replace the entire content of a document-editor doc with
  * `descriptionHTML` and return all stored formats. When `existingBinary` is
  * provided, the result is a proper *successor* of that state (its deletions are

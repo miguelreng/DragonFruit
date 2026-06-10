@@ -148,6 +148,7 @@ export type CoreEditorRefApi = {
   setEditorValueAtCursorPosition: (content: Content) => void;
   setFocusAtPosition: (position: number) => void;
   setProviderDocument: (value: Uint8Array) => void;
+  replaceProviderDocumentFromHTML: (html: string, title?: string) => void;
   startAtlasReviewSession: (session: TAtlasDocReviewSession) => void;
   setAtlasReviewLoading: (loading: boolean) => void;
   getActiveAtlasProposalCount: () => number;

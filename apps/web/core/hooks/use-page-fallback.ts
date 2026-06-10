@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EditorRefApi, CollaborationState } from "@plane/editor";
 // plane editor
-import { convertBinaryDataToBase64String, getBinaryDataFromDocumentEditorHTMLString } from "@plane/editor";
+import { convertBinaryDataToBase64String } from "@plane/editor";
 // plane types
 import type { TDocumentPayload } from "@plane/types";
 // hooks
@@ -46,18 +46,17 @@ export const usePageFallback = (args: TArgs) => {
       setIsFetchingFallbackBinary(true);
 
       const latestEncodedDescription = await fetchPageDescription();
-      let latestDecodedDescription: Uint8Array;
       if (latestEncodedDescription && latestEncodedDescription.byteLength > 0) {
-        latestDecodedDescription = new Uint8Array(latestEncodedDescription);
+        editor.setProviderDocument(new Uint8Array(latestEncodedDescription));
       } else {
-        const pageDescriptionHtml = page.description_html;
-        latestDecodedDescription = getBinaryDataFromDocumentEditorHTMLString(
-          pageDescriptionHtml ?? "<p></p>",
-          page.name
-        );
+        // No stored binary — the content only exists as HTML (e.g. a doc
+        // written server-side while the live server was unreachable).
+        // Reconcile the HTML into the provider doc IN PLACE: applying a
+        // fresh, independently-rooted seed via Y.applyUpdate would union
+        // with the editor's IndexedDB cache and stack a duplicate copy of
+        // the whole doc on every open.
+        editor.replaceProviderDocumentFromHTML(page.description_html ?? "<p></p>", page.name);
       }
-
-      editor.setProviderDocument(latestDecodedDescription);
       const { binary, html, json } = editor.getDocument();
       if (!binary || !json) return;
       const encodedBinary = convertBinaryDataToBase64String(binary);
