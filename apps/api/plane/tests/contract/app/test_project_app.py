@@ -77,12 +77,12 @@ class TestProjectAPIPost(TestProjectBase):
         assert response.status_code == status.HTTP_201_CREATED
 
         # Verify project was created
-        assert Project.objects.count() == 1
+        assert Project.objects.filter(workspace=workspace, identifier=project_data["identifier"]).count() == 1
         project = Project.objects.get(name=project_data["name"])
         assert project.workspace == workspace
 
         # Check if the member is created with the correct role
-        assert ProjectMember.objects.count() == 1
+        assert ProjectMember.objects.filter(project=project).count() == 1
         project_member = ProjectMember.objects.filter(project=project, member=user).first()
         assert project_member.role == 20  # Administrator
         assert project_member.is_active is True
@@ -141,7 +141,7 @@ class TestProjectAPIPost(TestProjectBase):
         response = session_client.post(url, project_data, format="json")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert Project.objects.count() == 0
+        assert not Project.objects.filter(workspace=workspace, identifier="GP").exists()
 
     @pytest.mark.django_db
     def test_create_project_unauthenticated(self, client, workspace):

@@ -139,8 +139,8 @@ class TestProjectListCreateAPIEndpoint:
         assert "project_lead" in response.data, (
             f"Expected field-shaped error under 'project_lead', got {response.data!r}"
         )
-        # No project should have been persisted.
-        assert Project.objects.count() == 0
+        # No project should have been persisted in this workspace.
+        assert not Project.objects.filter(workspace=workspace, identifier="OUT").exists()
 
     @pytest.mark.django_db
     def test_model_activity_not_called_on_rollback(self, api_key_client, workspace, create_user):
@@ -175,10 +175,14 @@ class TestProjectListCreateAPIEndpoint:
             f"Got {response.status_code}: {response.data!r}"
         )
         # Transaction must have rolled back: no Project, no ProjectMember,
-        # no State persisted.
-        assert Project.objects.count() == 0
-        assert ProjectMember.objects.count() == 0
-        assert State.objects.count() == 0
+        # no State persisted for this specific attempted project.
+        assert not Project.objects.filter(workspace=workspace, identifier="RB").exists()
+        assert not ProjectMember.objects.filter(
+            project__workspace=workspace, project__identifier="RB"
+        ).exists()
+        assert not State.objects.filter(
+            project__workspace=workspace, project__identifier="RB"
+        ).exists()
         # And the deferred Celery task must not have been dispatched —
         # transaction.on_commit() callbacks only fire on a successful commit.
         mocked_activity.delay.assert_not_called()

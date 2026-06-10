@@ -44,13 +44,13 @@ class TestWorkspaceAPI:
         assert response.status_code == status.HTTP_201_CREATED
 
         # Verify workspace was created
-        assert Workspace.objects.count() == 1
+        assert Workspace.objects.filter(slug=workspace_data["slug"]).count() == 1
 
         # Check if the member is created
-        assert WorkspaceMember.objects.count() == 1
+        workspace = Workspace.objects.get(slug=workspace_data["slug"])
+        assert WorkspaceMember.objects.filter(workspace=workspace).count() == 1
 
         # Check other values
-        workspace = Workspace.objects.get(slug=workspace_data["slug"])
         workspace_member = WorkspaceMember.objects.filter(workspace=workspace, member=user).first()
         assert workspace.owner == user
         assert workspace_member.role == 20

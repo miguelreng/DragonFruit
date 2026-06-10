@@ -66,9 +66,9 @@ class TestLabelListCreateAPIEndpoint:
         response = api_key_client.post(url, label_data, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        assert Label.objects.count() == 1
+        assert Label.objects.filter(project=project).count() == 1
 
-        created_label = Label.objects.first()
+        created_label = Label.objects.filter(project=project).first()
         assert created_label.name == label_data["name"]
         assert created_label.color == label_data["color"]
         assert created_label.description == label_data["description"]
@@ -102,7 +102,7 @@ class TestLabelListCreateAPIEndpoint:
         response = api_key_client.post(url, label_data, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        created_label = Label.objects.first()
+        created_label = Label.objects.get(id=response.data["id"])
         assert created_label.external_id == "ext-123"
         assert created_label.external_source == "github"
 

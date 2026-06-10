@@ -35,3 +35,13 @@ INSTALLED_APPS.append(  # noqa
 # in favour of TASK_EAGER_PROPAGATES; set both for forward compatibility.
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = False  # keep False so task errors don't surface as exceptions
+
+# Use an in-process memory cache for tests so DRF throttle counters reset
+# between pytest invocations and never accumulate across --reuse-db runs.
+# common.py sets CACHES to django_redis when REDIS_URL is present; override
+# that here so rate-limit state is always fresh each session.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
