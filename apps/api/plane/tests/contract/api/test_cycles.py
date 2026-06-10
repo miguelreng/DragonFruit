@@ -79,9 +79,9 @@ class TestCycleListCreateAPIEndpoint:
 
         assert response.status_code == status.HTTP_201_CREATED
 
-        assert Cycle.objects.count() == 1
+        assert Cycle.objects.filter(project=project).count() == 1
 
-        created_cycle = Cycle.objects.first()
+        created_cycle = Cycle.objects.get(id=response.data["id"])
         assert created_cycle.name == cycle_data["name"]
         assert created_cycle.description == cycle_data["description"]
         assert created_cycle.project == project
@@ -130,7 +130,7 @@ class TestCycleListCreateAPIEndpoint:
         response = api_key_client.post(url, cycle_data, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        created_cycle = Cycle.objects.first()
+        created_cycle = Cycle.objects.get(id=response.data["id"])
         assert created_cycle.external_id == "ext-123"
         assert created_cycle.external_source == "github"
 
