@@ -29,3 +29,9 @@ _os.environ.setdefault("ENABLE_MAGIC_LINK_LOGIN", "1")
 INSTALLED_APPS.append(  # noqa
     "plane.tests"
 )
+
+# Run Celery tasks synchronously without a broker connection so tests never
+# need a live RabbitMQ/Redis queue. TASK_ALWAYS_EAGER is deprecated in Celery 5
+# in favour of TASK_EAGER_PROPAGATES; set both for forward compatibility.
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = False  # keep False so task errors don't surface as exceptions

@@ -19,6 +19,7 @@ def project(db, workspace, create_user):
         identifier="TP",
         workspace=workspace,
         created_by=create_user,
+        cycle_view=True,  # enable cycles on this project
     )
     ProjectMember.objects.create(
         project=project,

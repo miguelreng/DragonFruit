@@ -193,7 +193,7 @@ def _dispatch_to_agent_webhook(page: Page, agent_selector: str) -> None:
 def request_essay_illustration(page_id: str) -> None:
     """Dispatch an essay-hero generation request to the workspace webhook."""
     page = (
-        Page.objects.select_related("workspace", "owned_by")
+        Page.objects.select_related("workspace")
         .filter(pk=page_id)
         .only("id", "name", "page_type", "access", "description_stripped", "workspace_id", "view_props")
         .first()

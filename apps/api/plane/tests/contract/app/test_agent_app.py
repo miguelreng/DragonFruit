@@ -93,7 +93,10 @@ class TestAgentAPI:
                 {
                     "name": "create_document",
                     "arguments": {"title": "Benefits of Meditation"},
-                    "result": "ok: created document 'Benefits of Meditation' (id=page-id, url=/w/projects/p/pages/page-id)",
+                    "result": (
+                        "ok: created document 'Benefits of Meditation'"
+                        " (id=page-id, url=/w/projects/p/pages/page-id)"
+                    ),
                 }
             ]
 
