@@ -21,7 +21,7 @@ import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from string import Template
-from urllib.parse import quote, urlencode
+from urllib.parse import urlencode
 
 import requests
 from django.conf import settings
@@ -34,142 +34,32 @@ from plane.app.permissions import allow_permission, ROLE
 from plane.db.models import Issue, Page, Project, ProjectPage, State, UserCalendarAccount, Workspace
 from plane.bgtasks.page_transaction_task import page_transaction
 from plane.app.views.external.base import call_llm_chat, get_llm_config
-from plane.license.utils.instance_value import get_configuration_value
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 from plane.utils.exception_logger import log_exception
 from plane.utils.html_builders import escape_text, list_html
 from plane.utils.url import normalize_url_path
 
 from ..base import BaseAPIView
-
-
-GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_CAL_API = "https://www.googleapis.com/calendar/v3"
-SCOPES = [
-    "https://www.googleapis.com/auth/calendar.events",
-    "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
-    "openid",
-    "email",
-]
-
-
-def _first_config_value(keys: list[str], default: str = "", *, prefer_env: bool = False) -> str:
-    if prefer_env:
-        for key in keys:
-            value = os.environ.get(key)
-            if value:
-                return value
-
-    values = get_configuration_value(
-        [{"key": key, "default": os.environ.get(key, "")} for key in keys]
-    )
-    for value in values:
-        if value:
-            return str(value)
-    for key in keys:
-        value = os.environ.get(key)
-        if value:
-            return value
-    return default
-
-
-def _calendar_web_credentials() -> tuple[str, str]:
-    calendar_client_id = _first_config_value(["GOOGLE_CALENDAR_CLIENT_ID"], prefer_env=True)
-    calendar_client_secret = _first_config_value(["GOOGLE_CALENDAR_CLIENT_SECRET"], prefer_env=True)
-    google_client_id = _first_config_value(["GOOGLE_CLIENT_ID"], prefer_env=True)
-    google_client_secret = _first_config_value(["GOOGLE_CLIENT_SECRET"], prefer_env=True)
-
-    client_id = calendar_client_id or google_client_id
-    if calendar_client_id and google_client_id and calendar_client_id == google_client_id and google_client_secret:
-        return client_id, google_client_secret
-
-    return client_id, calendar_client_secret or google_client_secret
-
-
-def _unique_credential_pairs(pairs: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    seen: set[tuple[str, str]] = set()
-    unique: list[tuple[str, str]] = []
-    for client_id, client_secret in pairs:
-        if not client_id or not client_secret:
-            continue
-        key = (client_id, client_secret)
-        if key in seen:
-            continue
-        seen.add(key)
-        unique.append(key)
-    return unique
-
-
-def _web_credential_candidates() -> list[tuple[str, str]]:
-    primary = _calendar_web_credentials()
-
-    env_calendar = (
-        _first_config_value(["GOOGLE_CALENDAR_CLIENT_ID"], prefer_env=True),
-        _first_config_value(["GOOGLE_CALENDAR_CLIENT_SECRET"], prefer_env=True),
-    )
-    env_google = (
-        _first_config_value(["GOOGLE_CLIENT_ID"], prefer_env=True),
-        _first_config_value(["GOOGLE_CLIENT_SECRET"], prefer_env=True),
-    )
-    configured_calendar = (
-        _first_config_value(["GOOGLE_CALENDAR_CLIENT_ID"]),
-        _first_config_value(["GOOGLE_CALENDAR_CLIENT_SECRET"]),
-    )
-    configured_google = (
-        _first_config_value(["GOOGLE_CLIENT_ID"]),
-        _first_config_value(["GOOGLE_CLIENT_SECRET"]),
-    )
-
-    return _unique_credential_pairs(
-        [
-            primary,
-            env_calendar,
-            env_google,
-            configured_calendar,
-            configured_google,
-        ]
-    )
-
-
-def _normalize_client(client: str | None) -> str:
-    normalized = (client or "web").strip().lower()
-    return normalized if normalized in {"web", "native"} else "web"
-
-
-def _client_credentials(client: str | None) -> tuple[str, str]:
-    """Read Google credentials from Django settings.
-
-    We reuse the existing Plane Google OAuth client (already plumbed for
-    `IS_GOOGLE_ENABLED`); admins just need to add the `calendar.readonly`
-    scope in Google Cloud and add a redirect URI for this view.
-    """
-    normalized = _normalize_client(client)
-    if normalized == "native":
-        return (
-            _first_config_value(
-                [
-                    "GOOGLE_CALENDAR_NATIVE_CLIENT_ID",
-                    "GOOGLE_CALENDAR_CLIENT_ID",
-                    "GOOGLE_CLIENT_ID",
-                ]
-            ),
-            _first_config_value(
-                [
-                    "GOOGLE_CALENDAR_NATIVE_CLIENT_SECRET",
-                    "GOOGLE_CALENDAR_CLIENT_SECRET",
-                    "GOOGLE_CLIENT_SECRET",
-                ]
-            ),
-        )
-
-    return _calendar_web_credentials()
+from .google_oauth import (
+    GOOGLE_AUTHORIZE_URL,
+    GOOGLE_TOKEN_URL,
+    GOOGLE_CAL_API,
+    SCOPES,
+    _client_credentials,
+    _client_from_state,
+    _details_from_response,
+    _google_calendar_url,
+    _normalize_client,
+    _redirect_uri_for_client,
+    _serialize,
+    _upsert_calendar_account,
+    _client_credential_candidates as _google_oauth_client_credential_candidates,
+)
 
 
 def _client_credential_candidates(client: str | None) -> list[tuple[str, str]]:
-    if _normalize_client(client) == "web":
-        return _web_credential_candidates()
-    return _unique_credential_pairs([_client_credentials(client)])
+    """Re-exported in this namespace so tests can monkeypatch it here."""
+    return _google_oauth_client_credential_candidates(client)
 
 
 def _token_exchange_candidates(client: str | None) -> list[dict]:
@@ -198,116 +88,90 @@ def _token_exchange_candidates(client: str | None) -> list[dict]:
     return candidates
 
 
-def _redirect_uri_for_client(client: str | None) -> str:
-    """Resolve the Google redirect URI for web/native clients.
+def _refresh_if_needed(account: UserCalendarAccount, client: str | None = "web", *, force: bool = False) -> str:
+    """Return a fresh access token, refreshing via Google if expired."""
+    access_token = decrypt_data(account.access_token_encrypted)
+    expires_at = account.token_expires_at
+    now = datetime.now(timezone.utc)
+    if not force and expires_at and now < expires_at - timedelta(seconds=30) and access_token:
+        return access_token
 
-    Priority:
-    - native: GOOGLE_CALENDAR_REDIRECT_URI_NATIVE
-    - web/default: GOOGLE_CALENDAR_REDIRECT_URI
-    - fallback web callback under WEB_URL
-    """
-    normalized = _normalize_client(client)
-    if normalized == "native":
-        native = _first_config_value(
-            [
-                "GOOGLE_CALENDAR_NATIVE_REDIRECT_URI",
-                "GOOGLE_CALENDAR_REDIRECT_URI_NATIVE",
-            ]
+    refresh_token = decrypt_data(account.refresh_token_encrypted)
+    if not refresh_token:
+        return access_token  # best-effort; caller will get 401 and surface it
+
+    normalized_client = _normalize_client(client)
+    client_order = [normalized_client]
+    alternate = "native" if normalized_client == "web" else "web"
+    client_order.append(alternate)
+
+    seen: set[tuple[str, str]] = set()
+    credential_candidates: list[tuple[str, str]] = []
+    for candidate_client in client_order:
+        for client_id, client_secret in _client_credential_candidates(candidate_client):
+            key = (client_id, client_secret)
+            if key in seen:
+                continue
+            seen.add(key)
+            credential_candidates.append(key)
+
+    td = None
+    for client_id, client_secret in credential_candidates:
+        resp = requests.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            },
+            timeout=10,
         )
-        if native:
-            return native
+        if resp.status_code != 200:
+            continue
+        td = resp.json()
+        break
 
-    app_base_url = (
-        getattr(settings, "APP_BASE_URL", None)
-        or getattr(settings, "WEB_URL", "http://localhost:3000")
-    ).rstrip("/")
+    if td is None:
+        return access_token
 
-    return _first_config_value(
-        ["GOOGLE_CALENDAR_REDIRECT_URI"],
-        f"{app_base_url}/calendar/oauth/callback",
-    )
-
-
-def _client_from_state(state: str | None) -> str | None:
-    if not state or ":" not in state:
-        return None
-    client = state.rsplit(":", 1)[-1].strip().lower()
-    if client in {"web", "native"}:
-        return client
-    return None
+    new_access = td.get("access_token", access_token)
+    expires_in = int(td.get("expires_in", 3600))
+    account.access_token_encrypted = encrypt_data(new_access)
+    account.token_expires_at = now + timedelta(seconds=expires_in)
+    update_fields = ["access_token_encrypted", "token_expires_at"]
+    new_refresh_token = td.get("refresh_token")
+    if new_refresh_token:
+        account.refresh_token_encrypted = encrypt_data(new_refresh_token)
+        update_fields.append("refresh_token_encrypted")
+    account.save(update_fields=update_fields)
+    return new_access
 
 
-def _details_from_response(response: requests.Response) -> str:
-    try:
-        payload = response.json()
-        if isinstance(payload, dict):
-            message = payload.get("error_description") or payload.get("error") or payload
-            return str(message)[:500]
-    except ValueError:
-        pass
-    return response.text[:500]
-
-
-def _serialize(acc: UserCalendarAccount) -> dict:
-    return {
-        "id": str(acc.id),
-        "provider": acc.provider,
-        "account_email": acc.account_email,
-        "primary_calendar_id": acc.primary_calendar_id,
-        "is_active": acc.is_active,
-        "scopes": acc.scopes,
-        "created_at": acc.created_at.isoformat() if acc.created_at else None,
-    }
-
-
-def _upsert_calendar_account(
+def _google_api_request(
     *,
-    user,
-    account_email: str,
-    access_token: str,
-    refresh_token: str,
-    expires_in: int,
-    primary_calendar_id: str,
-    scope: str,
-) -> UserCalendarAccount:
-    account = UserCalendarAccount.objects.filter(
-        user=user,
-        provider=UserCalendarAccount.PROVIDER_GOOGLE,
-        account_email=account_email,
-    ).first()
+    account: UserCalendarAccount,
+    method: str,
+    url: str,
+    client: str | None = "web",
+    params: dict | None = None,
+    json: dict | None = None,
+    timeout: int = 10,
+) -> requests.Response:
+    def _send(token: str) -> requests.Response:
+        headers = {"Authorization": f"Bearer {token}"}
+        if json is not None:
+            headers["Content-Type"] = "application/json"
+        return requests.request(method, url, params=params, json=json, headers=headers, timeout=timeout)
 
-    if account is None:
-        account = UserCalendarAccount.all_objects.filter(
-            user=user,
-            provider=UserCalendarAccount.PROVIDER_GOOGLE,
-            account_email=account_email,
-        ).first()
+    access_token = _refresh_if_needed(account, client=client)
+    response = _send(access_token)
 
-    if account is None:
-        account = UserCalendarAccount(
-            user=user,
-            provider=UserCalendarAccount.PROVIDER_GOOGLE,
-            account_email=account_email,
-        )
+    if response.status_code in {401, 403}:
+        retry_token = _refresh_if_needed(account, client=client, force=True)
+        response = _send(retry_token)
 
-    account.access_token_encrypted = encrypt_data(access_token)
-    if refresh_token:
-        account.refresh_token_encrypted = encrypt_data(refresh_token)
-    account.token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in) if expires_in else None
-    account.primary_calendar_id = primary_calendar_id
-    account.scopes = scope
-    account.is_active = True
-    account.deleted_at = None
-    account.save()
-    return account
-
-
-def _google_calendar_url(calendar_id: str, suffix: str = "") -> str:
-    encoded_calendar_id = quote(calendar_id or "primary", safe="")
-    suffix = suffix.strip("/")
-    if suffix:
-        return f"{GOOGLE_CAL_API}/calendars/{encoded_calendar_id}/{suffix}"
-    return f"{GOOGLE_CAL_API}/calendars/{encoded_calendar_id}"
+    return response
 
 
 def _calendar_to_dict(calendar: dict) -> dict:
@@ -514,92 +378,6 @@ class GoogleCalendarCallbackEndpoint(BaseAPIView):
         )
 
         return Response(_serialize(account), status=status.HTTP_200_OK)
-
-
-def _refresh_if_needed(account: UserCalendarAccount, client: str | None = "web", *, force: bool = False) -> str:
-    """Return a fresh access token, refreshing via Google if expired."""
-    access_token = decrypt_data(account.access_token_encrypted)
-    expires_at = account.token_expires_at
-    now = datetime.now(timezone.utc)
-    if not force and expires_at and now < expires_at - timedelta(seconds=30) and access_token:
-        return access_token
-
-    refresh_token = decrypt_data(account.refresh_token_encrypted)
-    if not refresh_token:
-        return access_token  # best-effort; caller will get 401 and surface it
-
-    normalized_client = _normalize_client(client)
-    client_order = [normalized_client]
-    alternate = "native" if normalized_client == "web" else "web"
-    client_order.append(alternate)
-
-    seen: set[tuple[str, str]] = set()
-    credential_candidates: list[tuple[str, str]] = []
-    for candidate_client in client_order:
-        for client_id, client_secret in _client_credential_candidates(candidate_client):
-            key = (client_id, client_secret)
-            if key in seen:
-                continue
-            seen.add(key)
-            credential_candidates.append(key)
-
-    td = None
-    for client_id, client_secret in credential_candidates:
-        resp = requests.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "refresh_token": refresh_token,
-                "grant_type": "refresh_token",
-            },
-            timeout=10,
-        )
-        if resp.status_code != 200:
-            continue
-        td = resp.json()
-        break
-
-    if td is None:
-        return access_token
-
-    new_access = td.get("access_token", access_token)
-    expires_in = int(td.get("expires_in", 3600))
-    account.access_token_encrypted = encrypt_data(new_access)
-    account.token_expires_at = now + timedelta(seconds=expires_in)
-    update_fields = ["access_token_encrypted", "token_expires_at"]
-    new_refresh_token = td.get("refresh_token")
-    if new_refresh_token:
-        account.refresh_token_encrypted = encrypt_data(new_refresh_token)
-        update_fields.append("refresh_token_encrypted")
-    account.save(update_fields=update_fields)
-    return new_access
-
-
-def _google_api_request(
-    *,
-    account: UserCalendarAccount,
-    method: str,
-    url: str,
-    client: str | None = "web",
-    params: dict | None = None,
-    json: dict | None = None,
-    timeout: int = 10,
-) -> requests.Response:
-    def _send(token: str) -> requests.Response:
-        headers = {"Authorization": f"Bearer {token}"}
-        if json is not None:
-            headers["Content-Type"] = "application/json"
-        return requests.request(method, url, params=params, json=json, headers=headers, timeout=timeout)
-
-    access_token = _refresh_if_needed(account, client=client)
-    response = _send(access_token)
-
-    if response.status_code in {401, 403}:
-        retry_token = _refresh_if_needed(account, client=client, force=True)
-        response = _send(retry_token)
-
-    return response
 
 
 class CalendarAccountEventsEndpoint(BaseAPIView):
