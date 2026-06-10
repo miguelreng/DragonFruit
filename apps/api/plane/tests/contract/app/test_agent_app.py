@@ -160,3 +160,188 @@ class TestAgentAPI:
     )
     def test_chat_tool_mode_can_disable_agent_tools(self, tool_mode, expected):
         assert _should_use_agent_tools(tool_mode) is expected
+
+    # ------------------------------------------------------------------ #
+    # Atlas baseline: tool-use loop caps iterations                       #
+    # ------------------------------------------------------------------ #
+
+    def test_atlas_baseline_tool_loop_terminates_at_max_iterations(self, monkeypatch):
+        """When the model ALWAYS returns a tool call, the loop must terminate at
+        max_iterations and report stopped_reason='max_iterations', not loop forever.
+        """
+        from plane.llm.provider import LLMProvider, LLMTool
+
+        call_count = [0]
+
+        def mock_completion(**kwargs):
+            call_count[0] += 1
+
+            class FakeFunction:
+                name = "infinite_tool"
+                arguments = "{}"
+
+            class FakeToolCall:
+                id = f"tc-{call_count[0]}"
+                function = FakeFunction()
+
+            class FakeMessage:
+                content = ""
+                tool_calls = [FakeToolCall()]
+                provider_specific_fields = None
+
+            class FakeChoice:
+                message = FakeMessage()
+
+            class FakeCompletion:
+                choices = [FakeChoice()]
+                usage = None
+
+            return FakeCompletion()
+
+        import litellm
+        monkeypatch.setattr(litellm, "completion", mock_completion)
+
+        tool = LLMTool(
+            name="infinite_tool",
+            description="Returns a tool call every time",
+            parameters_schema={"type": "object", "properties": {}},
+            handler=lambda args: "ok",
+        )
+        provider = LLMProvider(model="openai/gpt-4o", api_key="test-key", default_max_iterations=3)
+        result = provider.run(
+            system_prompt="You are a test agent.",
+            user_prompt="Run forever.",
+            tools=[tool],
+            max_iterations=3,
+        )
+
+        assert result.stopped_reason == "max_iterations"
+        assert result.iterations == 3
+        assert call_count[0] == 3, f"litellm.completion called {call_count[0]} times, expected exactly 3"
+
+    def test_atlas_baseline_tool_loop_catching_handler_exception(self, monkeypatch):
+        """A tool handler that raises must be caught and surfaced as a tool_error
+        string in the result — not propagated as a 500. The loop continues and the
+        model gets to react to the error.
+        """
+        from plane.llm.provider import LLMProvider, LLMTool
+
+        call_count = [0]
+
+        def mock_completion(**kwargs):
+            call_count[0] += 1
+
+            class FakeFunction:
+                name = "exploding_tool"
+                arguments = "{}"
+
+            class FakeToolCall:
+                id = f"tc-{call_count[0]}"
+                function = FakeFunction()
+
+            class FakeMessage:
+                content = "Done" if call_count[0] >= 2 else ""
+                tool_calls = [] if call_count[0] >= 2 else [FakeToolCall()]
+                provider_specific_fields = None
+
+            class FakeChoice:
+                message = FakeMessage()
+
+            class FakeCompletion:
+                choices = [FakeChoice()]
+                usage = None
+
+            return FakeCompletion()
+
+        import litellm
+        monkeypatch.setattr(litellm, "completion", mock_completion)
+
+        def exploding_handler(args):
+            raise RuntimeError("kaboom")
+
+        tool = LLMTool(
+            name="exploding_tool",
+            description="Always raises",
+            parameters_schema={"type": "object", "properties": {}},
+            handler=exploding_handler,
+        )
+        provider = LLMProvider(model="openai/gpt-4o", api_key="test-key")
+        result = provider.run(
+            system_prompt="You are a test agent.",
+            user_prompt="Call the exploding tool.",
+            tools=[tool],
+            max_iterations=5,
+        )
+
+        # The loop must complete (not raise), with the final text.
+        assert result.stopped_reason == "completed"
+        assert result.final_text == "Done"
+        # The tool_call record must carry the error string, not raise.
+        assert len(result.tool_calls) == 1
+        assert result.tool_calls[0]["result"].startswith("tool_error: RuntimeError: kaboom")
+
+    # ------------------------------------------------------------------ #
+    # Atlas baseline: MCP server failure degrades gracefully              #
+    # ------------------------------------------------------------------ #
+
+    def test_atlas_baseline_mcp_failure_wrap_raises_mcp_client_error(self, monkeypatch):
+        """When the MCP server is unreachable during tool discovery,
+        wrap_mcp_server_as_tools raises MCPClientError (not an unhandled exception).
+        Callers catch MCPClientError to degrade to base tools.
+        """
+        import requests as _requests
+        from plane.llm.mcp_client import MCPClientError, wrap_mcp_server_as_tools
+
+        def mock_post(url, data, headers, timeout):
+            raise _requests.ConnectionError("connection refused")
+
+        monkeypatch.setattr(_requests, "post", mock_post)
+
+        # Use an external host to pass SSRF validation (no real call is made).
+        server_config = {
+            "name": "github",
+            "url": "https://mcp.example.com/github/",
+        }
+
+        # The SSRF guard resolves the hostname — mock socket.getaddrinfo to
+        # return a routable public address so we reach the network call.
+        import socket
+        monkeypatch.setattr(
+            socket,
+            "getaddrinfo",
+            lambda host, port, *args, **kwargs: [(None, None, None, None, ("203.0.113.1", 0))],
+        )
+
+        with pytest.raises(MCPClientError):
+            wrap_mcp_server_as_tools(server_config)
+
+    def test_atlas_baseline_mcp_failure_handler_returns_tool_error_string(self, monkeypatch):
+        """When the MCP server returns a network error during tool dispatch,
+        the wrapped tool's handler must return a 'tool_error:' string rather
+        than raising — so the LLM loop's except block catches it and the agent
+        continues with the remaining (base) tools.
+        """
+        from plane.llm.mcp_client import MCPClient, MCPClientError
+
+        client = MCPClient.__new__(MCPClient)
+        client.url = "https://mcp.example.com/github/"
+        client._auth_header = None
+        client._next_id = 1
+        client._initialized = True  # skip handshake
+
+        def mock_post_method(method, params=None, *, timeout):
+            raise MCPClientError("network error talking to server")
+
+        monkeypatch.setattr(client, "_post", mock_post_method)
+
+        # Simulate the wrapped handler that the agent dispatcher uses:
+        # the handler catches MCPClientError and returns "tool_error: ...".
+        def _handler(args, _remote_name="list_issues", _client=client):
+            try:
+                return _client.call_tool(_remote_name, args)
+            except MCPClientError as exc:
+                return f"tool_error: {exc}"
+
+        result = _handler({})
+        assert result.startswith("tool_error:")
+        assert "network error" in result

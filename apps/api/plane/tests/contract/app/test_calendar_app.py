@@ -396,3 +396,140 @@ class TestCalendarAppEndpoint:
         assert response.data["events"][0]["status"] == "error"
         assert response.data["events"][0]["account_id"] == str(account.id)
         assert "calendar timeout" in response.data["events"][0]["description"]
+
+    # ------------------------------------------------------------------ #
+    # Atlas baseline: doc-replace reconcile                               #
+    # ------------------------------------------------------------------ #
+
+    @pytest.mark.django_db
+    def test_atlas_baseline_doc_replace_does_not_duplicate_content(
+        self, session_client, workspace, create_user, monkeypatch
+    ):
+        """POSTing meeting notes twice for the same meeting key must NOT
+        duplicate content. With LIVE_URL unset _replace_meeting_notes_document_formats
+        returns {} so description_binary is cleared and description_html is replaced
+        in full — not concatenated. The second POST returns 200 (not 201) and reuses
+        the same page id.
+        """
+        project = Project.objects.create(
+            name="Meetings",
+            identifier="MBL",
+            workspace=workspace,
+            created_by=create_user,
+        )
+        ProjectMember.objects.create(project=project, member=create_user, role=20, is_active=True)
+
+        monkeypatch.setattr("plane.app.views.calendar.base._summarize_meeting_notes", lambda **kwargs: None)
+        monkeypatch.setattr("plane.app.views.calendar.base._attach_doc_to_calendar_event", lambda **kwargs: False)
+        monkeypatch.setattr("plane.app.views.calendar.base.page_transaction.delay", lambda **kwargs: None)
+        # Ensure settings.WEB_URL is a string so the view can call .rstrip("/")
+        from django.conf import settings as django_settings
+        monkeypatch.setattr(django_settings, "WEB_URL", "http://localhost:3000", raising=False)
+
+        payload = {
+            "meeting_id": "atlas-baseline-event-1",
+            "meeting_title": "Atlas Baseline Meeting",
+            "account_id": "acct-baseline",
+            "calendar_id": "primary",
+            "notes": "First recording of the meeting.",
+        }
+        url = f"/api/workspaces/{workspace.slug}/calendar/meeting-notes/"
+
+        first_response = session_client.post(url, payload, format="json")
+        assert first_response.status_code == status.HTTP_201_CREATED, (
+            f"first POST should be 201; got {first_response.status_code}: {first_response.data}"
+        )
+        page_id_first = first_response.data["id"]
+
+        second_response = session_client.post(
+            url, {**payload, "notes": "Second recording — completely different content."}, format="json"
+        )
+        assert second_response.status_code == status.HTTP_200_OK, (
+            f"second POST should be 200 (update); got {second_response.status_code}: {second_response.data}"
+        )
+        assert second_response.data["id"] == page_id_first, "second POST must reuse the same page id"
+        assert second_response.data["created"] is False
+
+        page = Page.objects.get(id=page_id_first)
+        # HTML must contain the SECOND transcript, not the first.
+        assert "Second recording" in page.description_html
+        # The FIRST transcript must NOT appear (no concatenation / duplication).
+        assert "First recording" not in page.description_html
+        # With LIVE_URL unset the binary is always cleared so editors re-seed.
+        assert page.description_binary is None
+
+    # ------------------------------------------------------------------ #
+    # Atlas baseline: OAuth token refresh retries credential candidates   #
+    # ------------------------------------------------------------------ #
+
+    @pytest.mark.django_db
+    def test_atlas_baseline_token_refresh_retries_second_credential_candidate(
+        self, session_client, create_user, monkeypatch
+    ):
+        """_refresh_if_needed iterates credential candidates when the first one
+        returns 400 from Google. The account must be updated with the token from
+        the successful candidate and the event list request must succeed.
+        """
+        account = UserCalendarAccount.objects.create(
+            user=create_user,
+            provider=UserCalendarAccount.PROVIDER_GOOGLE,
+            account_email="atlas@baseline.test",
+            primary_calendar_id="primary",
+            access_token_encrypted=encrypt_data("old-access-token"),
+            refresh_token_encrypted=encrypt_data("stored-refresh-token"),
+            # Expired — forces a refresh on every call.
+            token_expires_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            is_active=True,
+        )
+
+        refresh_attempts: list[dict] = []
+
+        def mock_client_credential_candidates(client):
+            # web: first candidate fails, second succeeds.
+            if client == "web":
+                return [("bad-id", "bad-secret"), ("good-id", "good-secret")]
+            return []
+
+        def mock_post(url, data, timeout):
+            refresh_attempts.append({"client_id": data["client_id"]})
+            if data["client_id"] == "bad-id":
+                return MockResponse({"error": "invalid_client"}, status.HTTP_400_BAD_REQUEST)
+            # second candidate succeeds
+            return MockResponse(
+                {
+                    "access_token": "refreshed-access-token",
+                    "refresh_token": "rotated-refresh-token",
+                    "expires_in": 3600,
+                }
+            )
+
+        event_auth_headers: list[str] = []
+
+        def mock_request(method, url, params=None, json=None, headers=None, timeout=10):
+            event_auth_headers.append(headers.get("Authorization", ""))
+            return MockResponse({"items": []})
+
+        monkeypatch.setattr(
+            "plane.app.views.calendar.base._client_credential_candidates",
+            mock_client_credential_candidates,
+        )
+        monkeypatch.setattr("plane.app.views.calendar.base.requests.post", mock_post)
+        monkeypatch.setattr("plane.app.views.calendar.base.requests.request", mock_request)
+
+        response = session_client.get(
+            reverse("calendar-accounts-events", kwargs={"account_id": account.id}),
+            {"from": "2026-06-01T00:00:00Z", "to": "2026-06-30T00:00:00Z"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"events": []}
+
+        # Both candidates must have been tried before success.
+        assert [a["client_id"] for a in refresh_attempts] == ["bad-id", "good-id"]
+
+        # The event request must have used the refreshed token.
+        assert event_auth_headers == ["Bearer refreshed-access-token"]
+
+        account.refresh_from_db()
+        assert decrypt_data(account.access_token_encrypted) == "refreshed-access-token"
+        assert decrypt_data(account.refresh_token_encrypted) == "rotated-refresh-token"
