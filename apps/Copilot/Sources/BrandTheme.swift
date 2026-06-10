@@ -175,12 +175,42 @@ enum BrandTheme {
     static var menuBarIcon: NSImage? {
         // White DragonFruit mark, rendered as a template image so macOS tints it
         // to match the menu bar — crisp white on dark menu bars, dark on light ones.
+        templateMark(pointSize: 18)
+    }
+
+    /// The brand mark as a template NSImage with explicit 1x and 2x bitmap reps.
+    /// Handing SwiftUI the SVG-backed NSImage directly rasterizes it at 1x and
+    /// upscales for Retina, which is what made the menu bar icon look jagged.
+    static func templateMark(pointSize: CGFloat) -> NSImage? {
         guard let path = Bundle.main.path(forResource: "icon-white", ofType: "svg")
             ?? Bundle.main.path(forResource: "app", ofType: "svg")
         else { return nil }
-        let url = URL(fileURLWithPath: path)
-        guard let image = NSImage(contentsOf: url) else { return nil }
-        image.size = NSSize(width: 18, height: 18)
+        guard let source = NSImage(contentsOf: URL(fileURLWithPath: path)) else { return nil }
+
+        let size = NSSize(width: pointSize, height: pointSize)
+        let image = NSImage(size: size)
+        for scale in [CGFloat(1), 2] {
+            let pixels = Int(pointSize * scale)
+            guard let rep = NSBitmapImageRep(
+                bitmapDataPlanes: nil,
+                pixelsWide: pixels,
+                pixelsHigh: pixels,
+                bitsPerSample: 8,
+                samplesPerPixel: 4,
+                hasAlpha: true,
+                isPlanar: false,
+                colorSpaceName: .deviceRGB,
+                bytesPerRow: 0,
+                bitsPerPixel: 0
+            ) else { continue }
+            rep.size = size
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+            NSGraphicsContext.current?.imageInterpolation = .high
+            source.draw(in: NSRect(origin: .zero, size: size))
+            NSGraphicsContext.restoreGraphicsState()
+            image.addRepresentation(rep)
+        }
         image.isTemplate = true
         return image
     }

@@ -1583,7 +1583,7 @@ struct MeetingNotesRecordingOverlayView: View {
 
     @ViewBuilder
     private var recordingLogo: some View {
-        if let icon = BrandTheme.menuBarIcon {
+        if let icon = BrandTheme.templateMark(pointSize: 24) {
             Image(nsImage: icon)
                 .renderingMode(.template)
                 .resizable()
