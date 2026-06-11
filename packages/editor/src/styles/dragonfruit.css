@@ -383,6 +383,31 @@
   color: var(--atlas-review-button-primary);
 }
 
+/* Select toggle — quiet checkbox-style button; filled when selected. */
+.atlas-doc-review-controls .atlas-doc-review-select {
+  opacity: 0.55;
+}
+
+.atlas-doc-review-controls .atlas-doc-review-select:hover {
+  opacity: 1;
+}
+
+.atlas-doc-review-controls .atlas-doc-review-select.is-selected {
+  opacity: 1;
+  background: var(--atlas-review-button-primary, #e548a5);
+  border-color: var(--atlas-review-button-primary, #e548a5);
+  color: #fff;
+}
+
+.atlas-doc-review-controls .atlas-doc-review-select.is-selected:hover {
+  opacity: 0.85;
+}
+
+/* Tighten the pending highlight when the proposal is selected. */
+.atlas-doc-review-pending.is-selected {
+  background: var(--atlas-review-pending-selected-bg, color-mix(in srgb, #e548a5 18%, transparent));
+}
+
 .atlas-doc-review-toolbar-title {
   color: var(--atlas-review-text);
   font-size: 12px;
