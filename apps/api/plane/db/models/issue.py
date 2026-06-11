@@ -109,6 +109,7 @@ class IssueManager(SoftDeletionManager):
             .exclude(state__group=StateGroup.TRIAGE.value)
             .exclude(archived_at__isnull=False)
             .exclude(project__archived_at__isnull=False)
+            .exclude(project__deleted_at__isnull=False)
             .exclude(is_draft=True)
         )
 
