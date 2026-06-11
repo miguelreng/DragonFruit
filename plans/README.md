@@ -114,6 +114,22 @@ and the web `ATLAS_IDENTITY.description` mirrors it. All tool/routing/execution-
 instructions preserved verbatim; suite 332 passed; web typecheck green. Tone dial lives
 in `persona.py` (soften the "Genuinely funny" bullet to dial humor down).
 
+## Wikipedia integration (015 + 016) — shipped
+
+- **015 (A–E) — MERGED** (`ce51022165` A–C, `7aedf5232b` D–E): `lookup_wikipedia` agent
+  tool (Atlas grounds facts + cites real URLs), `/wiki` slash command (cited summary
+  block), doc-write grounding on Wikipedia reference material, and `/cite` (select a
+  claim → inserts a Wikipedia citation link). Phase D shipped as an interim
+  `/wiki-link` slash command (mention system was a closed type) — superseded by 016.
+- **016 — MERGED** (`c8ed971e90`): the **real `@wiki` mention** — `@`-dropdown shows a
+  "Wikipedia" section (3+ char queries, client-side; never hits workspace search),
+  selecting inserts a linked mention chip, hovering shows a popover card
+  (title/extract/thumbnail). Added `"wiki"` to `TSearchEntities`; removed the interim
+  `/wiki-link`. Reuses `@plane/propel/popover` like `EditorUserMention`.
+- All additive + typecheck-green; **runtime smoke pending** (web → Vercel): try `/wiki`,
+  `/cite`, `@phot…` → Wikipedia section → hover the chip, and "ask Atlas a fact → cites Wikipedia".
+- Future (from the 10-ideas list): auto-glossary, fact-check lens, multilingual, hero-image, LLM article-ranking.
+
 ## Real product bugs surfaced by 007 (candidates for plan 008)
 
 These are the residual failures after 007 — genuine product bugs (or stale tests),
