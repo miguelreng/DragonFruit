@@ -397,6 +397,7 @@ class AgentRun(BaseModel):
         ("completed", "Completed"),
         ("failed", "Failed"),
         ("cancelled", "Cancelled"),
+        ("needs_input", "Needs Input"),
     )
 
     TRIGGER_CHOICES = (
@@ -436,6 +437,12 @@ class AgentRun(BaseModel):
     # order. JSONField rather than a related table because we never query
     # it across rows — only read it back per-run for the panel.
     tool_calls = models.JSONField(default=list, blank=True)
+    # When status=="needs_input", this carries the pending request the agent
+    # is waiting for. Shape:
+    #   {kind: "question"|"approval", message: str,
+    #    tool: str|None, arguments: dict|None}
+    # Cleared to null on resume.
+    pending_request = models.JSONField(null=True, blank=True)
     # Dollar cost computed at finalise time using the per-model pricing
     # table in plane.llm.pricing. 6-decimal precision because Gemini Flash
     # and similar low-cost models routinely produce sub-cent run costs.

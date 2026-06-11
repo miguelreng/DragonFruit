@@ -80,7 +80,9 @@ _DEFAULT_SYSTEM_PROMPT = (
     "1) Call `plan_next_steps` first.\n"
     "2) For each meaningful step, call `record_step` with phase=`plan`|`act`|`verify`|`report`.\n"
     "3) Every `record_step` must include `result`, `evidence`, and `next_action`.\n"
-    "4) Before finishing, call `record_step` with phase=`report`, then post the final comment."
+    "4) Before finishing, call `record_step` with phase=`report`, then post the final comment.\n\n"
+    "If you're blocked or missing context, call `request_help` with a specific question instead "
+    "of guessing — the run pauses until the user replies."
 )
 
 # Trigger-specific framing prepended to the user prompt so the model
@@ -154,6 +156,34 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         logger.info("agent_dispatch: agent %s not configured (%s)", agent.id, exc)
         return
 
+    _run_agent_loop(run, provider=provider, agent=agent, issue=issue)
+
+
+def _run_agent_loop(
+    run: "AgentRun",
+    *,
+    provider: "LLMProvider",
+    agent: "Agent",
+    issue: "Issue",
+    resume_note: Optional[str] = None,
+) -> None:
+    """Drive the LLM tool-use loop for a single AgentRun on an issue.
+
+    Shared by the initial dispatch and the resume path. When called on
+    resume, `resume_note` carries the human's reply (injected into the
+    re-grounded user prompt).
+
+    Pause-safety: tools that need to pause the run (request_help,
+    approval-gate) set `_paused[0] = True` via a shared mutable flag
+    captured in the closure. The `is_cancelled` callback also checks
+    this flag so `provider.run()` terminates the loop immediately after
+    the pausing tool returns. After `provider.run()` returns we inspect
+    the flag to skip `_finalise_run` — instead the run row already has
+    status="needs_input" and pending_request set by the pausing tool.
+    """
+    # Shared mutable pause flag — set by pausing tools; checked by is_cancelled.
+    _paused: list[bool] = [False]
+
     available_states = list(
         State.objects.filter(project=issue.project, deleted_at__isnull=True)
         .order_by("sequence")
@@ -165,7 +195,15 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         .values_list("name", flat=True)
     )
     memory_context = _build_memory_context(agent=agent, issue=issue)
-    user_prompt = _build_user_prompt(issue, trigger_event, available_states, available_labels, memory_context)
+    user_prompt = _build_user_prompt(
+        issue,
+        run.trigger_event,
+        available_states,
+        available_labels,
+        memory_context,
+        resume_note=resume_note,
+        prior_tool_calls=list(run.tool_calls or []),
+    )
     # Atlas has one fixed personality across every workspace. We deliberately
     # ignore any per-workspace `agent.system_prompt` here so the assistant's
     # voice can't drift between workspaces — see the frontend ATLAS_IDENTITY.
@@ -180,9 +218,19 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         _make_record_step_tool(run=run),
         _make_remember_memory_tool(agent=agent, run=run),
         _make_search_memory_tool(agent=agent, run=run),
+        _make_request_help_tool(agent=agent, issue=issue, run=run, paused=_paused),
     ]
-    tools = _apply_tool_policies(agent=agent, tools=base_tools)
-    tools.extend(_apply_tool_policies(agent=agent, tools=_load_mcp_tools_for(agent)))
+    # Use the pause-aware policy applier so ask-gated tools pause the run
+    # rather than returning a denial string.
+    tools = _apply_tool_policies_with_pause(agent=agent, tools=base_tools, run=run, paused=_paused)
+    tools.extend(
+        _apply_tool_policies_with_pause(
+            agent=agent, tools=_load_mcp_tools_for(agent), run=run, paused=_paused
+        )
+    )
+
+    def _is_paused_or_cancelled() -> bool:
+        return _paused[0] or _is_cancelled(run.id)
 
     try:
         result = provider.run(
@@ -190,15 +238,26 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
             user_prompt=user_prompt,
             tools=tools,
             max_iterations=_MAX_ITERATIONS_PER_RUN,
-            is_cancelled=lambda: _is_cancelled(run.id),
+            is_cancelled=_is_paused_or_cancelled,
             on_tool_call=lambda call: _persist_tool_call_progress(run, call),
         )
     except Exception as exc:  # noqa: BLE001 — record the failure on the run row
-        logger.exception("agent_dispatch: provider.run failed for agent=%s issue=%s", agent_id, issue_id)
+        logger.exception(
+            "agent_dispatch: provider.run failed for agent=%s run=%s",
+            agent.id,
+            run.id,
+        )
         _mark_failed(run, f"{exc.__class__.__name__}: {exc}")
         return
 
+    # If a pausing tool triggered the stop, the run row already has
+    # status="needs_input" and pending_request set. Skip _finalise_run.
+    if _paused[0]:
+        _emit_needs_input_notification(run=run, agent=agent, issue=issue)
+        return
+
     _finalise_run(run, result)
+    _emit_run_outcome_notification(run=run, agent=agent, issue=issue)
 
     # If the model produced a final text message but never called
     # post_comment, post the text as a comment ourselves so the agent
@@ -224,6 +283,8 @@ def _build_user_prompt(
     available_states=None,
     available_labels=None,
     memory_context: str = "",
+    resume_note: Optional[str] = None,
+    prior_tool_calls: Optional[list] = None,
 ) -> str:
     """Render the issue as a single user-prompt string.
 
@@ -232,9 +293,11 @@ def _build_user_prompt(
     is the project's state palette (name, group pairs) — listing them
     in the prompt is much cheaper than exposing a `list_states` tool.
 
-    Slice 2 frontloads name + description + state + recent comments +
-    state palette. Slice 3 will expose `read_task` as a tool so the
-    agent can fetch this itself.
+    When `resume_note` is provided the prompt includes a re-grounding
+    section describing what the agent had already done (from
+    `prior_tool_calls`) and the human's answer so the model can
+    continue seamlessly. This is re-grounding, not true continuation —
+    a fresh provider.run() is used each time.
     """
     state_name = issue.state.name if issue.state else "(no state)"
     desc = (issue.description_stripped or "").strip()
@@ -282,6 +345,32 @@ def _build_user_prompt(
             body = (c.get("comment_stripped") or "").strip()
             if body:
                 parts.append(f"- {who}: {body[:500]}")
+
+    # Re-grounding section for resumed runs.
+    if resume_note is not None:
+        parts.append("")
+        parts.append("--- CONTINUATION ---")
+        parts.append(
+            "You were previously working on this task and paused to ask a question or "
+            "request approval. This is a continuation of that run."
+        )
+        if prior_tool_calls:
+            # Summarise prior steps (skip lifecycle entries).
+            steps = [
+                tc for tc in prior_tool_calls
+                if isinstance(tc, dict) and tc.get("kind") != "lifecycle"
+            ]
+            if steps:
+                parts.append("")
+                parts.append("Steps you completed before pausing:")
+                for tc in steps[-10:]:  # cap to last 10 to keep prompt lean
+                    name = tc.get("name", "?")
+                    result_preview = str(tc.get("result") or "")[:200]
+                    parts.append(f"- {name}: {result_preview}")
+        parts.append("")
+        parts.append(f"Human response: {resume_note}")
+        parts.append("Continue from where you left off using this information.")
+
     return "\n".join(parts)
 
 
@@ -291,7 +380,12 @@ def _normalise_tool_policy(value: str) -> str:
 
 
 def _apply_tool_policies(*, agent: Agent, tools: list[LLMTool]) -> list[LLMTool]:
-    """Apply per-tool autonomy policy (auto | ask | never)."""
+    """Apply per-tool autonomy policy (auto | ask | never).
+
+    This variant is kept for callers that don't have a run/paused
+    context (e.g., page-comment dispatch). It uses the old approval gate
+    that returns a denial string instead of pausing the run.
+    """
     policies = agent.tool_policies or {}
     filtered: list[LLMTool] = []
     for tool in tools:
@@ -305,8 +399,25 @@ def _apply_tool_policies(*, agent: Agent, tools: list[LLMTool]) -> list[LLMTool]
     return filtered
 
 
+def _apply_tool_policies_with_pause(
+    *, agent: Agent, tools: list[LLMTool], run: "AgentRun", paused: list[bool]
+) -> list[LLMTool]:
+    """Apply per-tool policy; ask-gated tools pause the run instead of denying."""
+    policies = agent.tool_policies or {}
+    filtered: list[LLMTool] = []
+    for tool in tools:
+        policy = _normalise_tool_policy(str(policies.get(tool.name, _DEFAULT_TOOL_POLICY)))
+        if policy == "never":
+            continue
+        if policy == "ask":
+            filtered.append(_wrap_tool_with_pause_gate(tool, run=run, paused=paused))
+            continue
+        filtered.append(tool)
+    return filtered
+
+
 def _wrap_tool_with_approval_gate(tool: LLMTool) -> LLMTool:
-    """Return a non-executing wrapper for tools that require approval."""
+    """Return a non-executing wrapper for tools that require approval (legacy, no pause)."""
 
     def handler(args: Dict[str, Any]) -> str:
         return json.dumps(
@@ -318,6 +429,63 @@ def _wrap_tool_with_approval_gate(tool: LLMTool) -> LLMTool:
                     "This tool is configured as ask-only. Stop and request user approval "
                     "before retrying with the same arguments."
                 ),
+            },
+            cls=DjangoJSONEncoder,
+        )
+
+    return LLMTool(
+        name=tool.name,
+        description=f"{tool.description} (requires approval before execution)",
+        parameters_schema=tool.parameters_schema,
+        handler=handler,
+    )
+
+
+def _wrap_tool_with_pause_gate(
+    tool: LLMTool, *, run: "AgentRun", paused: list[bool]
+) -> LLMTool:
+    """Return a wrapper that pauses the run when an ask-gated tool is called.
+
+    On first call: persists run.pending_request={kind:"approval", ...},
+    sets run.status="needs_input", posts a short comment, and sets
+    paused[0]=True so the is_cancelled check stops the loop cleanly.
+    The real tool does NOT execute — it runs later on approval (Step 4).
+    """
+    _original_tool = tool  # capture for closure
+
+    def handler(args: Dict[str, Any]) -> str:
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        # Persist the pending request and pause.
+        run.pending_request = {
+            "kind": "approval",
+            "message": f"Atlas wants to run `{_original_tool.name}`",
+            "tool": _original_tool.name,
+            "arguments": args,
+        }
+        run.status = "needs_input"
+        run.save(update_fields=["pending_request", "status", "updated_at"])
+
+        # Post a brief comment so the human sees what Atlas is waiting for.
+        try:
+            _post_comment_as_bot(
+                agent=run.agent,
+                issue=run.issue,
+                html=_wrap_in_paragraph(
+                    f"I'd like to run `{_original_tool.name}` but it needs your approval. "
+                    "Please approve or decline via the run panel."
+                ),
+            )
+        except Exception:  # noqa: BLE001 — best-effort, don't break pause
+            logger.exception("approval-gate: failed to post comment for run=%s", run.id)
+
+        paused[0] = True
+        return json.dumps(
+            {
+                "paused": True,
+                "tool": _original_tool.name,
+                "message": "Run paused awaiting approval. The loop will stop now.",
             },
             cls=DjangoJSONEncoder,
         )
@@ -940,6 +1108,343 @@ def _make_search_memory_tool(*, agent: Agent, run: AgentRun) -> LLMTool:
         },
         handler=handler,
     )
+
+
+def _make_request_help_tool(
+    *, agent: Agent, issue: Issue, run: "AgentRun", paused: list[bool]
+) -> LLMTool:
+    """Tool the model calls when it needs human input to continue.
+
+    Handler: posts the question as a comment, sets run.status="needs_input",
+    run.pending_request, and sets paused[0]=True so the is_cancelled
+    callback stops the loop cleanly after this tool returns.
+    """
+
+    def handler(args: Dict[str, Any]) -> str:
+        question = (args.get("question") or "").strip()
+        if not question:
+            return "tool_error: `question` is required"
+
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        # Post the question as a visible comment.
+        try:
+            _post_comment_as_bot(
+                agent=agent,
+                issue=issue,
+                html=_wrap_in_paragraph(question),
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("request_help: failed to post comment for run=%s", run.id)
+
+        # Persist the pending request and transition status.
+        run.pending_request = {
+            "kind": "question",
+            "message": question,
+            "tool": None,
+            "arguments": None,
+        }
+        run.status = "needs_input"
+        run.save(update_fields=["pending_request", "status", "updated_at"])
+
+        paused[0] = True
+        return json.dumps(
+            {"paused": True, "message": "Run paused; awaiting human response."},
+            cls=DjangoJSONEncoder,
+        )
+
+    return LLMTool(
+        name="request_help",
+        description=(
+            "Pause the current run and post a question to the task thread for the "
+            "human assignee/creator to answer. The run will resume once they reply. "
+            "Use this when you are genuinely blocked or missing critical context."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": "The specific question you need answered.",
+                },
+            },
+            "required": ["question"],
+        },
+        handler=handler,
+    )
+
+
+# ===================================================================== #
+# Resume task (Step 4)                                                  #
+# ===================================================================== #
+
+
+@shared_task(name="plane.bgtasks.agent_dispatch_task.resume_agent_run")
+def resume_agent_run(run_id: str, *, human_response: Optional[str] = None, approved: Optional[bool] = None) -> None:
+    """Resume a paused AgentRun after human input.
+
+    Guards against double-resume with a select_for_update row-lock.
+
+    Two resume modes:
+      - question: human_response is appended as resume_note to the re-grounded
+        user prompt; _run_agent_loop is re-dispatched from the current state.
+      - approval: if approved=True, run the pending tool with its saved
+        arguments, append the result to tool_calls, then re-dispatch the loop;
+        if approved=False, record the decline and continue/finish.
+    """
+    try:
+        with transaction.atomic():
+            # Use select_for_update(of=("self",)) to lock only the run row,
+            # not the nullable joined tables (issue, etc.) — PostgreSQL
+            # prohibits FOR UPDATE on the nullable side of an outer join.
+            run = (
+                AgentRun.objects.select_for_update(of=("self",))
+                .select_related(
+                    "agent__workspace",
+                    "agent__bot_user",
+                    "issue__project",
+                    "issue__workspace",
+                    "issue__state",
+                )
+                .get(pk=run_id)
+            )
+            if run.status != "needs_input":
+                logger.warning("resume_agent_run: run %s is not needs_input (status=%s), skipping", run_id, run.status)
+                return
+
+            # Transition back to running so a concurrent resume can't slip in.
+            run.status = "running"
+            run.save(update_fields=["status", "updated_at"])
+
+    except AgentRun.DoesNotExist:
+        logger.warning("resume_agent_run: run %s not found", run_id)
+        return
+
+    agent = run.agent
+    issue = run.issue
+
+    if issue is None:
+        _mark_failed(run, "resume not supported for non-issue runs")
+        return
+
+    pending = run.pending_request or {}
+    kind = pending.get("kind")
+
+    # Clear the pending request now that we're handling it.
+    run.pending_request = None
+    run.save(update_fields=["pending_request", "updated_at"])
+
+    try:
+        provider = LLMProvider.from_agent(agent)
+    except LLMConfigError as exc:
+        _mark_failed(run, f"not configured: {exc}")
+        return
+
+    if kind == "question":
+        # Re-ground the loop with the human's answer.
+        note = (human_response or "").strip() or "(no response provided)"
+        _run_agent_loop(run, provider=provider, agent=agent, issue=issue, resume_note=note)
+
+    elif kind == "approval":
+        tool_name = pending.get("tool") or ""
+        tool_arguments = pending.get("arguments") or {}
+
+        if approved:
+            # Execute the real tool and append its result to tool_calls.
+            tool_result = _execute_approved_tool(
+                tool_name=tool_name,
+                tool_arguments=tool_arguments,
+                agent=agent,
+                issue=issue,
+                run=run,
+            )
+            _persist_tool_call_progress(
+                run,
+                {
+                    "name": tool_name,
+                    "arguments": tool_arguments,
+                    "result": tool_result,
+                    "iteration": -1,  # sentinel: executed outside the loop
+                    "approved": True,
+                },
+            )
+            note = f"Tool `{tool_name}` was approved and executed. Result: {tool_result[:500]}"
+        else:
+            note = f"Tool `{tool_name}` was declined by the user."
+            _persist_tool_call_progress(
+                run,
+                {
+                    "name": tool_name,
+                    "arguments": tool_arguments,
+                    "result": "user declined",
+                    "iteration": -1,
+                    "approved": False,
+                },
+            )
+
+        _run_agent_loop(run, provider=provider, agent=agent, issue=issue, resume_note=note)
+
+    else:
+        # Unknown kind — just re-dispatch with any provided response.
+        note = (human_response or "").strip() or "(resumed)"
+        _run_agent_loop(run, provider=provider, agent=agent, issue=issue, resume_note=note)
+
+
+def _execute_approved_tool(
+    *,
+    tool_name: str,
+    tool_arguments: Dict[str, Any],
+    agent: Agent,
+    issue: Issue,
+    run: "AgentRun",
+) -> str:
+    """Execute the real (un-gated) tool handler after approval.
+
+    Builds a fresh tool instance and calls its handler directly.
+    Returns the tool output string.
+    """
+    # Map of tool names to their factory functions.
+    _paused_dummy: list[bool] = [False]
+    factory_map = {
+        "change_state": lambda: _make_change_state_tool(agent=agent, issue=issue, run=run),
+        "add_label": lambda: _make_add_label_tool(agent=agent, issue=issue, run=run),
+        "post_comment": lambda: _make_post_comment_tool(agent=agent, issue=issue, run=run),
+        "search_issues": lambda: _make_search_issues_tool(agent=agent, issue=issue, run=run),
+        "list_attachments": lambda: _make_list_attachments_tool(agent=agent, issue=issue, run=run),
+        "plan_next_steps": lambda: _make_plan_next_steps_tool(agent=agent, issue=issue, run=run),
+        "record_step": lambda: _make_record_step_tool(run=run),
+        "remember_memory": lambda: _make_remember_memory_tool(agent=agent, run=run),
+        "search_memory": lambda: _make_search_memory_tool(agent=agent, run=run),
+        "request_help": lambda: _make_request_help_tool(agent=agent, issue=issue, run=run, paused=_paused_dummy),
+    }
+    factory = factory_map.get(tool_name)
+    if factory is None:
+        return f"tool_error: unknown tool '{tool_name}' — cannot execute approved action"
+    try:
+        tool = factory()
+        result = tool.handler(tool_arguments)
+        return result if isinstance(result, str) else str(result)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("approved tool '%s' raised", tool_name)
+        return f"tool_error: {exc.__class__.__name__}: {exc}"
+
+
+# ===================================================================== #
+# Notification helpers (Step 5)                                         #
+# ===================================================================== #
+
+
+def _get_run_recipients(*, run: "AgentRun", issue: Issue) -> list:
+    """Return the human User instances that should receive agent notifications.
+
+    Includes the issue creator and issue assignees that are not bot users.
+    Best-effort: returns empty list on any error.
+    """
+    try:
+        from plane.db.models.issue import IssueAssignee
+
+        recipients: dict = {}
+
+        # Issue creator.
+        if issue.created_by_id and not getattr(issue.created_by, "is_bot", False):
+            recipients[str(issue.created_by_id)] = issue.created_by
+
+        # Issue assignees (exclude bots).
+        for ia in IssueAssignee.objects.filter(issue=issue, deleted_at__isnull=True).select_related("assignee"):
+            if not getattr(ia.assignee, "is_bot", False):
+                recipients[str(ia.assignee_id)] = ia.assignee
+
+        return list(recipients.values())
+    except Exception:  # noqa: BLE001
+        logger.exception("_get_run_recipients failed for run=%s", run.id)
+        return []
+
+
+def _emit_needs_input_notification(*, run: "AgentRun", agent: Agent, issue: Issue) -> None:
+    """Create Notification rows for humans when the run enters needs_input."""
+    _emit_run_notification(
+        run=run,
+        agent=agent,
+        issue=issue,
+        kind="needs_input",
+        title=f"{agent.name} needs your input on task: {issue.name}",
+    )
+
+
+def _emit_run_outcome_notification(*, run: "AgentRun", agent: Agent, issue: Issue) -> None:
+    """Create Notification rows when the run completes or fails."""
+    _emit_run_notification(
+        run=run,
+        agent=agent,
+        issue=issue,
+        kind=run.status,  # "completed" | "failed" | "cancelled"
+        title=f"{agent.name} finished working on: {issue.name}",
+    )
+
+
+def _emit_run_notification(
+    *,
+    run: "AgentRun",
+    agent: Agent,
+    issue: Issue,
+    kind: str,
+    title: str,
+) -> None:
+    """Best-effort: create Notification rows for issue stakeholders.
+
+    Notification model required fields mapping:
+      workspace        → issue.workspace
+      project          → issue.project (nullable)
+      entity_identifier → run.id (the agent run)
+      entity_name      → "agent_run"
+      title            → human-readable title
+      message          → null (not required)
+      sender           → "agent"
+      triggered_by     → agent.bot_user (the actor)
+      receiver         → each human stakeholder
+      data             → {run_id, issue_id, kind, message}
+    """
+    try:
+        from plane.db.models.notification import Notification
+
+        recipients = _get_run_recipients(run=run, issue=issue)
+        if not recipients:
+            return
+
+        pending = run.pending_request or {}
+        payload = {
+            "run_id": str(run.id),
+            "issue_id": str(issue.id) if issue else None,
+            "kind": kind,
+            "message": pending.get("message", ""),
+        }
+
+        for recipient in recipients:
+            try:
+                Notification.objects.create(
+                    workspace=issue.workspace,
+                    project=issue.project,
+                    entity_identifier=run.id,
+                    entity_name="agent_run",
+                    title=title,
+                    message=None,
+                    message_html="<p></p>",
+                    message_stripped="",
+                    sender="agent",
+                    triggered_by=agent.bot_user,
+                    receiver=recipient,
+                    data=payload,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "emit_run_notification: failed to create notification for receiver=%s run=%s",
+                    recipient.id,
+                    run.id,
+                )
+    except Exception:  # noqa: BLE001
+        # Best-effort — never fail the run if notification creation throws.
+        logger.exception("_emit_run_notification failed for run=%s kind=%s", run.id, kind)
 
 
 def _emit_state_activity(*, issue: Issue, agent: Agent, previous_state_id, new_state_id: str) -> None:
