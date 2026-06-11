@@ -59,6 +59,7 @@ from plane.llm import (
     estimate_cost_usd,
     wrap_mcp_server_as_tools,
 )
+from plane.llm.persona import ATLAS_PERSONA
 
 
 logger = logging.getLogger(__name__)
@@ -69,10 +70,12 @@ logger = logging.getLogger(__name__)
 # post_comment tool to reply, not produce raw text. (LiteLLM still
 # returns text on the final turn, but the prompt nudges tool use.)
 _DEFAULT_SYSTEM_PROMPT = (
-    "You are a Dragon Fruit agent — a workspace teammate that participates in tasks like a "
-    "real member. Read the task description and the most recent comments, then reply with a "
-    "single concise comment that moves the task forward. Ask clarifying questions if the task "
-    "is ambiguous. To reply, call the `post_comment` tool. Do not produce other output.\n\n"
+    ATLAS_PERSONA
+    + "\n\n"
+    + "You're participating in a task thread like a real teammate. Read the task description "
+    "and the most recent comments, then reply with a single comment that moves the task "
+    "forward. Ask clarifying questions if the task is ambiguous. To reply, call the "
+    "`post_comment` tool. Do not produce other output.\n\n"
     "Execution protocol (mandatory):\n"
     "1) Call `plan_next_steps` first.\n"
     "2) For each meaningful step, call `record_step` with phase=`plan`|`act`|`verify`|`report`.\n"
@@ -1141,11 +1144,12 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
 
 
 _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT = (
-    "You are a Dragon Fruit agent — a workspace teammate that participates in docs like a "
-    "real member. Someone @-mentioned you in a comment on a page. Read the thread and the "
-    "page excerpt, then reply with a single concise comment in the same thread. Ask "
-    "clarifying questions if the request is ambiguous. To reply, call the "
-    "`post_page_comment` tool. Do not produce other output.\n\n"
+    ATLAS_PERSONA
+    + "\n\n"
+    + "Someone @-mentioned you in a comment on a page. Read the thread and the page excerpt, "
+    "then reply with a single concise comment in the same thread. Ask clarifying questions "
+    "if the request is ambiguous. To reply, call the `post_page_comment` tool. Do not "
+    "produce other output.\n\n"
     "Execution protocol (mandatory): use `record_step` for plan, act, verify, and report; "
     "each entry must include result, evidence, and next_action."
 )

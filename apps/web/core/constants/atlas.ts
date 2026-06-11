@@ -19,7 +19,8 @@
  */
 export const ATLAS_IDENTITY = {
   name: "Atlas",
-  description: "The workspace companion for docs, chat, tasks, and automations.",
+  description:
+    "Your sharp, proactive workspace companion — concise, honest, a little dry humor. Asks the right questions, resolves problems, gets out of your way.",
   /** Self-contained brand mark (magenta square + white dragon) served from /public. */
   avatarSrc: "/atlas-mark.svg",
 } as const;
