@@ -140,19 +140,19 @@ struct PomodoroCardContent: View {
                 Spacer(minLength: 0)
             }
 
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(theme.layer1)
-                    Capsule()
-                        .fill(pomodoro.phase == .focus ? theme.accent : theme.success)
-                        .frame(width: max(4, proxy.size.width * pomodoro.progress))
-                        .animation(.linear(duration: 1), value: pomodoro.progress)
+            HStack(spacing: 10) {
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(theme.layer1)
+                        Capsule()
+                            .fill(pomodoro.phase == .focus ? theme.accent : theme.success)
+                            .frame(width: max(4, proxy.size.width * pomodoro.progress))
+                            .animation(.linear(duration: 1), value: pomodoro.progress)
+                    }
                 }
-            }
-            .frame(height: 4)
+                .frame(height: 4)
 
-            HStack(spacing: 8) {
                 Button {
                     pomodoro.toggle()
                 } label: {
@@ -178,8 +178,6 @@ struct PomodoroCardContent: View {
                     .buttonStyle(PomodoroIconButtonStyle(theme: theme))
                     .help("Reset")
                 }
-
-                Spacer(minLength: 0)
             }
         }
     }

@@ -642,6 +642,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var oauthSession: ASWebAuthenticationSession?
     private var calendarPollTask: Task<Void, Never>?
     private var meetingRefreshTask: Task<Void, Never>?
+    private var sessionRestoreAttempts = 0
     private var apiToken: String = ""
     private var audioEngine = AVAudioEngine()
     private let speechAppendQueue = DispatchQueue(label: "sh.dragonfruit.copilot.speech-audio")
@@ -1139,6 +1140,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         do {
             let client = try makeClient()
             let user = try await client.getCurrentUser()
+            sessionRestoreAttempts = 0
             isAuthenticated = true
             applyCurrentUserProfile(user)
             isRestoringSession = false
@@ -1146,8 +1148,22 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             startPostLoginRefresh()
         } catch {
             Self.logger.error("Session restore failed: \(error.localizedDescription, privacy: .public)")
-            clearSavedSession(message: "")
-            isRestoringSession = false
+            let nsError = error as NSError
+            let isAuthFailure = nsError.domain == "DragonFruitNative" && (nsError.code == 401 || nsError.code == 403)
+            if isAuthFailure {
+                clearSavedSession(message: "")
+                isRestoringSession = false
+            } else if sessionRestoreAttempts < 3 {
+                // Transient failure (offline, server deploy, timeout): keep the
+                // saved token and retry instead of signing the user out.
+                sessionRestoreAttempts += 1
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
+                await restoreSession()
+            } else {
+                sessionRestoreAttempts = 0
+                isRestoringSession = false
+                statusMessage = "Couldn't reach DragonFruit. Your session is saved; sign in or relaunch to retry."
+            }
         }
     }
 
