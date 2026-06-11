@@ -10,12 +10,14 @@ import { useParams } from "next/navigation";
 import { searchWikipedia } from "@plane/editor";
 import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
 // plane imports
-import { WikiIcon, WorkItemsIcon } from "@plane/propel/icons";
+import { WorkItemsIcon } from "@plane/propel/icons";
 // plane types
 import type { TSearchEntities, TSearchResponse } from "@plane/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
+// local components
+import { WikipediaLogo } from "@/plane-web/components/editor/embeds/mentions/wikipedia-logo";
 
 export type TUseAdditionalEditorMentionArgs = {
   enableAdvancedMentions: boolean;
@@ -99,7 +101,7 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
       const hits = await searchWikipedia(query, { limit: 3 });
       if (!hits.length) return [];
       const items: TMentionSuggestion[] = hits.map((hit) => ({
-        icon: <WikiIcon className="size-3.5 flex-shrink-0 text-tertiary" />,
+        icon: <WikipediaLogo className="size-3.5 flex-shrink-0 text-tertiary" />,
         // Use the article key (canonical slug) as the stable id per section.
         id: `wiki-${hit.key}`,
         // entity_identifier carries the full Wikipedia article URL so the
