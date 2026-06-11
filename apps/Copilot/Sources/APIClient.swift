@@ -75,6 +75,22 @@ struct MeetingNotesDraftResponse: Codable {
     let calendar_attached: Bool?
 }
 
+struct MyTaskSummary: Codable, Identifiable {
+    let id: String
+    let name: String
+    let priority: String?
+    let sequence_id: Int?
+    let project_id: String?
+    let state_id: String?
+    let target_date: String?
+}
+
+struct StateSummary: Codable, Identifiable {
+    let id: String
+    let name: String
+    let group: String
+}
+
 struct AgentSummary: Codable, Identifiable {
     let id: String
     let name: String
@@ -411,6 +427,44 @@ struct APIClient {
         let (data, response) = try await send(request, endpoint: "POST bookmark")
         try ensureStatus(response, allowed: [200, 201])
         return try JSONDecoder().decode(CreatedBookmark.self, from: data)
+    }
+
+    func listMyOpenTasks(workspaceSlug: String, userId: String) async throws -> [MyTaskSummary] {
+        var components = URLComponents(
+            url: baseURL.appending(path: "api/workspaces/\(workspaceSlug)/user-issues/\(userId)/"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "assignees", value: userId),
+            URLQueryItem(name: "state_group", value: "backlog,unstarted,started"),
+            URLQueryItem(name: "order_by", value: "-created_at"),
+            URLQueryItem(name: "per_page", value: "20"),
+        ]
+        guard let url = components?.url else {
+            throw NSError(domain: "DragonFruitNative", code: 1006, userInfo: [NSLocalizedDescriptionKey: "Invalid my-tasks URL"])
+        }
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await send(request, endpoint: "GET my tasks")
+        try ensureStatus(response, allowed: [200])
+        return try decodeArrayOrResults(data, as: MyTaskSummary.self)
+    }
+
+    func listStates(workspaceSlug: String, projectId: String) async throws -> [StateSummary] {
+        let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/projects/\(projectId)/states/")
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await send(request, endpoint: "GET states")
+        try ensureStatus(response, allowed: [200])
+        return try decodeArrayOrResults(data, as: StateSummary.self)
+    }
+
+    func setTaskState(workspaceSlug: String, projectId: String, issueId: String, stateId: String) async throws {
+        let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/projects/\(projectId)/issues/\(issueId)/")
+        var request = authorizedRequest(url: url, method: "PATCH")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("cursor-buddy", forHTTPHeaderField: "X-DragonFruit-Source")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["state_id": stateId])
+        let (data, response) = try await send(request, endpoint: "PATCH task state")
+        try ensureStatus(response, data: data, allowed: [200])
     }
 
     func listAgents(workspaceSlug: String) async throws -> [AgentSummary] {

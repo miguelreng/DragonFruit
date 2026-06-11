@@ -606,8 +606,18 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         didSet {
             UserDefaults.standard.set(selectedWorkspaceSlug, forKey: "df_selected_workspace_slug")
             selectDefaultAgentForSelectedWorkspaceIfNeeded()
+            if oldValue != selectedWorkspaceSlug {
+                Task { @MainActor [weak self] in
+                    await self?.refreshMyTasks()
+                }
+            }
         }
     }
+    @Published var myTasks: [MyTaskSummary] = []
+    @Published var isLoadingMyTasks = false
+    @Published var hasLoadedMyTasks = false
+    private var currentUserId = ""
+    private var taskIdsBeingCompleted: Set<String> = []
     @Published var availableAgents: [AgentOption] = []
     @Published var selectedAgentId = "" {
         didSet {
@@ -1475,6 +1485,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             guard let self else { return }
             await self.refreshCalendarState()
             await self.refreshAvailableAgents()
+            await self.refreshMyTasks()
             self.startMeetingRefreshLoop()
         }
     }
@@ -1515,6 +1526,64 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         } catch {
             statusMessage = "Could not load Atlas: \(error.localizedDescription)"
         }
+    }
+
+    func refreshMyTasks() async {
+        guard isAuthenticated, !currentUserId.isEmpty, !selectedWorkspaceSlug.isEmpty else { return }
+        isLoadingMyTasks = true
+        defer {
+            isLoadingMyTasks = false
+            hasLoadedMyTasks = true
+        }
+        do {
+            let client = try makeClient()
+            let tasks = try await client.listMyOpenTasks(workspaceSlug: selectedWorkspaceSlug, userId: currentUserId)
+            myTasks = Array(tasks.prefix(3))
+        } catch {
+            Self.logger.error("Could not load my tasks: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func isCompletingTask(_ task: MyTaskSummary) -> Bool {
+        taskIdsBeingCompleted.contains(task.id)
+    }
+
+    func markTaskDone(_ task: MyTaskSummary) {
+        guard let projectId = task.project_id, !taskIdsBeingCompleted.contains(task.id) else { return }
+        taskIdsBeingCompleted.insert(task.id)
+        objectWillChange.send()
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                self.taskIdsBeingCompleted.remove(task.id)
+                self.objectWillChange.send()
+            }
+            do {
+                let client = try self.makeClient()
+                let states = try await client.listStates(workspaceSlug: self.selectedWorkspaceSlug, projectId: projectId)
+                guard let doneState = states.first(where: { $0.group == "completed" }) else {
+                    self.statusMessage = "This project has no completed state."
+                    return
+                }
+                try await client.setTaskState(
+                    workspaceSlug: self.selectedWorkspaceSlug,
+                    projectId: projectId,
+                    issueId: task.id,
+                    stateId: doneState.id
+                )
+                self.myTasks.removeAll { $0.id == task.id }
+                await self.refreshMyTasks()
+            } catch {
+                self.statusMessage = "Could not complete task: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func openTaskInWeb(_ task: MyTaskSummary) {
+        guard let projectId = task.project_id,
+              let url = resourceURL(type: .task, workspaceSlug: selectedWorkspaceSlug, projectId: projectId, entityId: task.id)
+        else { return }
+        NSWorkspace.shared.open(url)
     }
 
     private func selectDefaultAgentForSelectedWorkspaceIfNeeded() {
@@ -1727,6 +1796,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         func value(_ key: String) -> String {
             (json[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }
+        currentUserId = value("id")
         let fullName = [value("first_name"), value("last_name")]
             .filter { !$0.isEmpty }
             .joined(separator: " ")

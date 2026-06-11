@@ -7,6 +7,7 @@ import SwiftUI
 @main
 struct DragonFruitMiniApp: App {
     @StateObject private var store = MeetingStore()
+    @StateObject private var pomodoro = PomodoroTimerModel()
     @StateObject private var toastController = VoiceToastController()
     @StateObject private var cursorBuddyController = CursorBuddyOverlayController()
     @StateObject private var meetingNotesOverlayController = MeetingNotesOverlayController()
@@ -32,7 +33,7 @@ struct DragonFruitMiniApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MeetingPopoverView(store: store, updater: updaterController?.updater)
+            MeetingPopoverView(store: store, pomodoro: pomodoro, updater: updaterController?.updater)
                 .frame(width: 360)
                 .onAppear {
                     toastController.bind(to: store)
@@ -41,7 +42,7 @@ struct DragonFruitMiniApp: App {
                 }
         } label: {
             Label {
-                Text("Atlas")
+                Text(pomodoro.menuBarLabel ?? "Atlas")
             } icon: {
                 if let icon = BrandTheme.menuBarIcon {
                     Image(nsImage: icon)

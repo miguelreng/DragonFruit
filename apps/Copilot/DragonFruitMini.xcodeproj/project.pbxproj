@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		03A834AC0384982974F9DFEC /* PomodoroTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81FA362363146EA52D21E736 /* PomodoroTimer.swift */; };
 		1008CA5A44D842BEC3EC9D84 /* dragon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 2EB47D528126A59CF59D4029 /* dragon.svg */; };
 		1239D328E3E9E06B1069B3CB /* SystemAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7A4EF497751D0535570020 /* SystemAudioCapture.swift */; };
 		1423D71AF5DAE780CE07775B /* icon-white.svg in Resources */ = {isa = PBXBuildFile; fileRef = BAD7CE3110EAFCD136BE7748 /* icon-white.svg */; };
@@ -44,6 +45,7 @@
 		6F0B5B0CBD0ED7CD8DC3DE5A /* AppIcon.icns */ = {isa = PBXFileReference; includeInIndex = 1; name = AppIcon.icns; path = Resources/AppIcon.icns; sourceTree = "<group>"; };
 		7368FB137059ACEC6E1E9C48 /* MeetingPopoverView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeetingPopoverView.swift; path = Sources/MeetingPopoverView.swift; sourceTree = "<group>"; };
 		7F2DB8A67C96A7E47F08EC92 /* app.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = app.svg; path = Resources/app.svg; sourceTree = "<group>"; };
+		81FA362363146EA52D21E736 /* PomodoroTimer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PomodoroTimer.swift; path = Sources/PomodoroTimer.swift; sourceTree = "<group>"; };
 		86DFBB6F8DF1C807CF1FA8B3 /* AtlasIcons.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AtlasIcons.swift; path = Sources/AtlasIcons.swift; sourceTree = "<group>"; };
 		A43D206D7AA8296DDA038D01 /* KeychainStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KeychainStore.swift; path = Sources/KeychainStore.swift; sourceTree = "<group>"; };
 		A69F9572A3C576FACDD5943F /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
@@ -100,6 +102,7 @@
 				3E7A4EF497751D0535570020 /* SystemAudioCapture.swift */,
 				6D6A5781BF8B9A5032C56DB2 /* DragonFruitMiniApp.swift */,
 				302AF68C2A17B14F39C37D13 /* MeetingStore.swift */,
+				81FA362363146EA52D21E736 /* PomodoroTimer.swift */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -231,6 +234,7 @@
 				1239D328E3E9E06B1069B3CB /* SystemAudioCapture.swift in Sources */,
 				A022564CBBAF8B665211C12E /* DragonFruitMiniApp.swift in Sources */,
 				997E9FCB1F527F112AB5BC9D /* MeetingStore.swift in Sources */,
+				03A834AC0384982974F9DFEC /* PomodoroTimer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

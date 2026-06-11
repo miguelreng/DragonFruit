@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MeetingPopoverView: View {
     @ObservedObject var store: MeetingStore
+    @ObservedObject var pomodoro: PomodoroTimerModel
     var updater: SPUUpdater? = nil
     @State private var isSettingsExpanded = false
     @State private var isPanelRevealed = false
@@ -30,6 +31,8 @@ struct MeetingPopoverView: View {
                 if store.lastVoiceActionResult != nil {
                     voiceActionResultCard
                 }
+                myTasksCard
+                pomodoroCard
                 settingsCard
             }
         }
@@ -50,6 +53,7 @@ struct MeetingPopoverView: View {
             }
             store.isPopoverOpen = true
             store.refreshPermissionStatuses()
+            Task { await store.refreshMyTasks() }
             if store.needsPermissionOnboarding {
                 store.startPermissionPolling()
             }
@@ -348,6 +352,78 @@ struct MeetingPopoverView: View {
                 }
                 Spacer()
             }
+        }
+    }
+
+    private var myTasksCard: some View {
+        card {
+            HStack(spacing: 8) {
+                sectionLabel("My tasks")
+                Spacer()
+                if store.isLoadingMyTasks {
+                    ProgressView()
+                        .controlSize(.mini)
+                }
+            }
+
+            if store.myTasks.isEmpty {
+                Text(store.hasLoadedMyTasks ? "No open tasks assigned to you." : "Loading your tasks...")
+                    .font(.custom("Figtree", size: 12).weight(.medium))
+                    .foregroundStyle(theme.textSecondary)
+            } else {
+                ForEach(store.myTasks) { task in
+                    myTaskRow(task)
+                }
+            }
+        }
+    }
+
+    private func myTaskRow(_ task: MyTaskSummary) -> some View {
+        HStack(alignment: .center, spacing: 9) {
+            Button {
+                store.markTaskDone(task)
+            } label: {
+                if store.isCompletingTask(task) {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .frame(width: 18, height: 18)
+                } else {
+                    AtlasIcon(.checkCircle)
+                        .frame(width: 14, height: 14)
+                        .foregroundStyle(theme.textTertiary)
+                        .frame(width: 18, height: 18)
+                }
+            }
+            .buttonStyle(.plain)
+            .help("Mark as done")
+            .disabled(store.isCompletingTask(task))
+
+            Text(task.name)
+                .font(.custom("Figtree", size: 12).weight(.medium))
+                .foregroundStyle(theme.textPrimary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer(minLength: 8)
+
+            Button {
+                store.openTaskInWeb(task)
+            } label: {
+                AtlasIcon(.arrowUpRight)
+                    .frame(width: 11, height: 11)
+                    .foregroundStyle(theme.accent)
+                    .frame(width: 22, height: 22)
+                    .background(theme.layer1)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .help("Open in DragonFruit")
+        }
+    }
+
+    private var pomodoroCard: some View {
+        card {
+            PomodoroCardContent(pomodoro: pomodoro, theme: theme)
         }
     }
 
