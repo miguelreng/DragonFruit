@@ -51,6 +51,7 @@ from plane.db.models import (
 )
 from plane.utils.content_validator import validate_html_content
 from plane.utils.html_builders import link_html, list_html
+from plane.llm.persona import ATLAS_PERSONA
 from plane.llm.pricing import estimate_cost_usd
 from plane.llm.provider import LLMConfigError, LLMProvider, LLMTool
 
@@ -91,13 +92,6 @@ _DOCUMENT_CREATION_RE = re.compile(
 
 _CHAT_INTENT_SYSTEM_PROMPT = """
 Before answering, silently classify the user's real intent.
-
-Default Buddy personality, always:
-- be warm, real, friendly, concise, and direct
-- sound like a capable teammate, not a corporate bot
-- keep answers short unless the user asks for depth
-- when answering from workspace files, say what you found and cite the file/task/sticky names
-- if you do not know, say so clearly and offer the next concrete step
 
 Only if the user explicitly asks you to create, write, draft, generate, make, or prepare a document/page/doc,
 you must call `create_document` exactly once instead of merely describing what you would do.
@@ -1405,11 +1399,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         # the per-workspace `agent.system_prompt` so the assistant's voice
         # can't drift. The matching task/page-comment personas live in
         # plane/bgtasks/agent_dispatch_task.py; the web mirror is ATLAS_IDENTITY.
-        atlas_persona = (
-            "You are Atlas, the DragonFruit workspace companion. You help across docs, tasks, "
-            "and team context. Use clear reasoning, ask focused questions when context is "
-            "missing, and keep replies concise and useful."
-        )
+        atlas_persona = ATLAS_PERSONA
         if transcript_lines:
             system = atlas_persona + "\n\nConversation so far:\n" + "\n".join(transcript_lines)
         else:
