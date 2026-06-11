@@ -10,8 +10,8 @@ export type IEditorPropsExtended = unknown;
 
 export type ICollaborativeDocumentEditorPropsExtended = unknown;
 
-/** DragonFruit: agent webhook + wiki lookup (see ce/extensions/slash-commands.tsx). */
-export type TExtendedEditorCommands = "agent" | "wiki";
+/** DragonFruit: agent webhook + wiki lookup + wiki-link inline ref (see ce/extensions/slash-commands.tsx). */
+export type TExtendedEditorCommands = "agent" | "wiki" | "wiki-link";
 
 export type TExtendedCommandExtraProps = unknown;
 

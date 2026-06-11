@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Globe, Sparkles } from "@plane/icons";
+import { Globe, Link, Sparkles } from "@plane/icons";
 // helpers
 import { searchWikipedia, fetchWikipediaSummary } from "@/helpers/wikipedia-client";
 // extensions
@@ -106,6 +106,80 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
                   },
                 ]
               : []),
+          ])
+          .run();
+      })();
+    },
+  },
+  {
+    // Phase D — @wiki mention fallback.
+    //
+    // The native @-mention system is tightly coupled to TSearchEntities
+    // (a closed union in @plane/types dist) and to the host app's
+    // renderComponent() prop, which has no "wiki" entity branch.  Adding
+    // a new entity type would require a multi-package change that is out
+    // of scope here.  The documented fallback is therefore a `/wiki-link`
+    // slash command that inserts an inline linked reference to the best-
+    // matching Wikipedia article — semantically identical to a mention
+    // token but serialised as a plain TipTap link mark, so it round-trips
+    // through Yjs/HTML exactly like any other hyperlink in the doc.
+    commandKey: "wiki-link",
+    key: "wiki-link",
+    title: "Wikipedia link",
+    description: "Insert an inline link to the best-matching Wikipedia article.",
+    searchTerms: ["wiki", "wikipedia", "link", "reference", "article", "mention"],
+    icon: <Link className="size-3.5" />,
+    section: "general",
+    pushAfter: "wiki",
+    command: ({ editor, range }) => {
+      // Prefer any active selection text as the search query; fall back to
+      // the current paragraph text with the slash trigger stripped.
+      const selectionText = editor.state.doc
+        .textBetween(editor.state.selection.from, editor.state.selection.to, " ")
+        .trim();
+
+      const $from = editor.state.doc.resolve(range.from);
+      const blockNode = $from.node($from.depth);
+      const rawText = blockNode?.textContent ?? "";
+      const paragraphQuery = rawText.replace(/^\/wiki-link\s*/i, "").trim();
+
+      const query = selectionText || paragraphQuery;
+
+      // Remove the slash-command trigger before inserting.
+      editor.chain().focus().deleteRange(range).run();
+
+      if (!query) return;
+
+      void (async () => {
+        const hits = await searchWikipedia(query, { limit: 1 });
+        if (!hits.length) return;
+
+        const hit = hits[0];
+        // Fetch the canonical URL via the summary endpoint so we get the
+        // desktop page URL (content_urls.desktop.page).
+        const summary = await fetchWikipediaSummary(hit.title);
+        const articleUrl = summary?.url ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(hit.key)}`;
+
+        // Insert as a linked text node — the same serialisation as any
+        // other link in the doc, so Yjs / HTML round-trips correctly.
+        editor
+          .chain()
+          .focus()
+          .insertContent([
+            {
+              type: "text",
+              marks: [
+                {
+                  type: "link",
+                  attrs: {
+                    href: articleUrl,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                  },
+                },
+              ],
+              text: hit.title,
+            },
           ])
           .run();
       })();
