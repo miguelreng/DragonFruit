@@ -54,6 +54,7 @@ from plane.utils.html_builders import link_html, list_html
 from plane.llm.persona import ATLAS_PERSONA
 from plane.llm.pricing import estimate_cost_usd
 from plane.llm.provider import LLMConfigError, LLMProvider, LLMTool
+from plane.llm.wikipedia import search_wikipedia, wikipedia_summary
 
 from ..base import BaseAPIView
 from .doc_write import (
@@ -110,6 +111,9 @@ If the user asks about information in their files, docs, tasks, notes, stickies,
 call `search_workspace` first and answer only from the returned context unless you clearly label outside knowledge.
 Only if the user explicitly asks you to create a task, call `create_task`.
 Only if the user explicitly asks you to create a sticky/note, call `create_sticky`.
+For factual questions about real-world entities, history, science, or definitions, call `lookup_wikipedia`
+to ground your answer and cite the returned URL — prefer it over stating facts from memory.
+In document Sources sections, use real URLs returned by `lookup_wikipedia`, never invented ones.
 Do not reveal private chain-of-thought; only share a brief rationale if it helps the user.
 """.strip()
 
@@ -852,6 +856,51 @@ def _make_create_sticky_tool(*, workspace: Workspace, user) -> LLMTool:
     )
 
 
+def _make_wikipedia_lookup_tool() -> LLMTool:
+    def _handler(args: dict) -> str:
+        query = str(args.get("query") or "").strip()
+        lang = str(args.get("lang") or "en").strip() or "en"
+        if not query:
+            return "wikipedia_error: `query` is required"
+        try:
+            hits = search_wikipedia(query, lang=lang, limit=3)
+            if not hits:
+                return f"No Wikipedia article found for '{query}'."
+            top = hits[0]
+            summary = wikipedia_summary(top["title"], lang=lang)
+            if summary is None:
+                return f"No Wikipedia article found for '{query}'."
+            extract = (summary.get("extract") or "")[:1500]
+            url = summary.get("url") or ""
+            title = summary.get("title") or top["title"]
+            if url:
+                return f"{title}: {extract}\n(source: {url})"
+            return f"{title}: {extract}"
+        except Exception as exc:  # noqa: BLE001
+            return f"wikipedia_error: {exc}"
+
+    return LLMTool(
+        name="lookup_wikipedia",
+        description=(
+            "Look up a real-world entity, concept, person, place, event, or scientific topic on Wikipedia. "
+            "Returns a brief summary and a citable URL. Use this to ground factual answers and avoid stating "
+            "facts from memory — prefer it for history, science, geography, definitions, and notable entities."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The entity or topic to look up"},
+                "lang": {
+                    "type": "string",
+                    "description": "Wikipedia language code (default: en)",
+                },
+            },
+            "required": ["query"],
+        },
+        handler=_handler,
+    )
+
+
 def _fallback_tool_confirmation(result) -> str:
     """Give users a useful reply if the model stops after an action tool call."""
     for tool_call in reversed(result.tool_calls):
@@ -1505,6 +1554,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     workspace=session.workspace,
                     user=request.user,
                 ),
+                _make_wikipedia_lookup_tool(),
             ]
 
         try:
