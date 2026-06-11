@@ -160,6 +160,27 @@ export type TAgentAutomationConditions = {
   issue_type_ids?: string[];
 };
 
+export type TAgentInboxIssue = {
+  id: string;
+  sequence_id: number;
+  name: string;
+};
+
+/**
+ * A single item returned by the agent-run inbox endpoint.
+ * `needs_input`   → show reply/approve controls
+ * `completed`     → dismissible "Atlas finished" line
+ * `failed`        → dismissible "Atlas failed" line
+ */
+export type TAgentInboxItem = {
+  run_id: string;
+  issue: TAgentInboxIssue | null;
+  kind: string; // "question" | "approval" | "completed" | "failed"
+  message: string;
+  status: "needs_input" | "completed" | "failed";
+  updated_at: string | null;
+};
+
 export class AgentService extends APIService {
   constructor() {
     super(API_BASE_URL);
@@ -372,6 +393,35 @@ export class AgentService extends APIService {
   ): Promise<{ queued: boolean; automation_id: string; agent_id: string; issue_id: string; trigger_event: string }> {
     return this.post(`/api/workspaces/${workspaceSlug}/agent-automations/${automationId}/test/`, payload)
       .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  /**
+   * Returns the current user's actionable agent-run inbox: needs_input runs
+   * for accessible issues plus recently completed/failed runs (last 7 days).
+   */
+  async inbox(workspaceSlug: string): Promise<TAgentInboxItem[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/agent-runs/inbox/`)
+      .then((res) => res?.data ?? [])
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  /**
+   * Respond to a needs_input agent run. Pass `response` for question runs or
+   * `approved` for approval runs. Corresponds to the 017 endpoint at
+   * POST /api/workspaces/{slug}/agent-runs/{run_id}/respond/
+   */
+  async respondToRun(
+    workspaceSlug: string,
+    runId: string,
+    payload: { response?: string; approved?: boolean }
+  ): Promise<void> {
+    return this.post(`/api/workspaces/${workspaceSlug}/agent-runs/${runId}/respond/`, payload)
+      .then(() => undefined)
       .catch((err) => {
         throw err?.response?.data;
       });
