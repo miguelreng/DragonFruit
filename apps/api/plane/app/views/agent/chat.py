@@ -91,6 +91,61 @@ _DOCUMENT_CREATION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Matches definitional / explanatory doc-write requests that benefit from
+# Wikipedia grounding (explain, define, add background on, describe, etc.)
+_DEFINITIONAL_DOC_REQUEST_RE = re.compile(
+    r"\b(explain|define|describe|overview|introduction|background|what is|who is|about|summarize)\b",
+    re.IGNORECASE,
+)
+
+
+def _extract_doc_write_topic(content: str) -> str:
+    """Best-effort extraction of the main topic from a doc-write prompt.
+
+    Strips leading definitional verbs and returns the remaining phrase,
+    capped at 120 characters, so it can be used as a Wikipedia query.
+    """
+    stripped = re.sub(
+        r"^\s*(explain|define|describe|write about|write an? (overview|introduction|summary) (of|on|about)|"
+        r"add (a )?(background|overview|introduction) (section )?(on|about|for)|what is|who is|about)\s*",
+        "",
+        content,
+        flags=re.IGNORECASE,
+    ).strip()
+    return stripped[:120] or content[:120]
+
+
+def _fetch_doc_write_reference_material(content: str) -> str:
+    """Fetch ≤3 Wikipedia summaries for the topic in a doc-write prompt.
+
+    Returns a formatted string ready to inject into the user prompt, or an
+    empty string if nothing useful is found. Never raises.
+    """
+    topic = _extract_doc_write_topic(content)
+    if not topic:
+        return ""
+    try:
+        hits = search_wikipedia(topic, limit=3)
+        if not hits:
+            return ""
+        parts: list[str] = []
+        for hit in hits[:3]:
+            summary = wikipedia_summary(hit["title"])
+            if summary is None:
+                continue
+            extract = (summary.get("extract") or "")[:800]
+            url = summary.get("url") or ""
+            title = summary.get("title") or hit["title"]
+            if extract:
+                citation = f" (source: {url})" if url else ""
+                parts.append(f"- {title}: {extract}{citation}")
+        if not parts:
+            return ""
+        return "Cited reference material (use and cite the URLs):\n" + "\n".join(parts)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 _CHAT_INTENT_SYSTEM_PROMPT = """
 Before answering, silently classify the user's real intent.
 
@@ -1186,12 +1241,20 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             block_context = "\n".join(
                 f"- id: {block['id']}\n  type: {block['type']}\n  text: {block['text']}" for block in blocks
             )
+
+            # Phase C: pre-fetch Wikipedia grounding for definitional requests so
+            # the streaming path (which has no tool access) can cite real sources.
+            reference_material = ""
+            if _DEFINITIONAL_DOC_REQUEST_RE.search(content):
+                reference_material = _fetch_doc_write_reference_material(content)
+
             user_prompt = "\n\n".join(
                 part
                 for part in [
                     f"Mode: {mode}",
                     f"Intent: {intent}",
                     f"User request:\n{content}",
+                    reference_material if reference_material else "",
                     f"Selected text:\n{selection_text}" if selection_text else "",
                     (
                         "Private Atlas context (do not quote this block unless the user asks):\n"
