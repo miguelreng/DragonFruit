@@ -63,13 +63,10 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
     pushAfter: "agent",
     acceptsArguments: true,
     command: ({ editor, range }) => {
-      // Pull query text from the current paragraph (best-effort) so typing
-      // `/wiki photosynthesis` pre-fills the topic automatically.
-      const $from = editor.state.doc.resolve(range.from);
-      const blockNode = $from.node($from.depth);
-      // The node text includes the typed "/wiki " prefix — strip it.
-      const rawText = blockNode?.textContent ?? "";
-      // Strip the typed slash trigger (any alias, e.g. "/wiki", "/wikipedia").
+      // The suggestion range covers exactly what the user typed
+      // ("/wiki photosynthesis") regardless of what else is in the
+      // paragraph — strip the slash trigger (any alias) to get the topic.
+      const rawText = editor.state.doc.textBetween(range.from, range.to, " ");
       const query = rawText.replace(/^\/\S*\s*/, "").trim();
 
       // Remove the slash-command trigger before inserting the result.
@@ -143,13 +140,16 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
         .textBetween(editor.state.selection.from, editor.state.selection.to, " ")
         .trim();
 
-      // Fall back to the paragraph text, stripping the slash trigger.
+      // Fall back to an inline argument ("/cite gravity") from the typed
+      // suggestion range, then to the rest of the paragraph.
+      const typedText = editor.state.doc.textBetween(range.from, range.to, " ");
+      const typedQuery = typedText.replace(/^\/\S*\s*/, "").trim();
       const $from = editor.state.doc.resolve(range.from);
       const blockNode = $from.node($from.depth);
       const rawText = blockNode?.textContent ?? "";
       const paragraphQuery = rawText.replace(/^\/\S*\s*/, "").trim();
 
-      const query = selectionText || paragraphQuery;
+      const query = selectionText || typedQuery || paragraphQuery;
 
       // Remove the slash-command trigger before inserting.
       editor.chain().focus().deleteRange(range).run();
