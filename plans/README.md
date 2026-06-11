@@ -114,6 +114,23 @@ and the web `ATLAS_IDENTITY.description` mirrors it. All tool/routing/execution-
 instructions preserved verbatim; suite 332 passed; web typecheck green. Tone dial lives
 in `persona.py` (soften the "Genuinely funny" bullet to dial humor down).
 
+## Agent autonomy: pause/resume + Mac-app & chat follow-ups (017 + 018) — shipped
+
+- **017 — MERGED** (`cf14cbfafb`): agent runs can pause and resume. New `request_help`
+  tool (Atlas asks a question → `needs_input` status, posts a comment), approve-to-execute
+  for `ask`-policy tools, `POST /agent-runs/{id}/respond/` + `resume_agent_run` (re-grounds
+  on recorded steps + the human's answer), and Notifications emitted on needs_input/completed.
+  Non-resume path provably unchanged (349 baseline intact); 9 resume tests. **Resume is
+  re-grounding, not serialized continuation.**
+- **018 — MERGED** (`3890171ba7`): delivery. `GET /agent-runs/inbox/` (your actionable runs);
+  Atlas **Mac app** polls it, fires a local notification on new needs_input, and a popover to
+  answer/approve inline; Atlas **chat drawer** gets a "needs you" strip. Polling (live server
+  not in prod). Backend 360 passed; Mac BUILD SUCCEEDED; web typecheck green.
+- **Live only after deploy**: API → Railway (017+018 backend), web → Vercel (chat strip),
+  Mac → new DMG. End-to-end smoke (assign task → Atlas `request_help` → reply in Mac/chat →
+  it resumes) needs those deploys + the live LLM.
+- Future: apply the same lifecycle to the page-comment agent; WebSocket push instead of polling.
+
 ## Wikipedia integration (015 + 016) — shipped
 
 - **015 (A–E) — MERGED** (`ce51022165` A–C, `7aedf5232b` D–E): `lookup_wikipedia` agent
