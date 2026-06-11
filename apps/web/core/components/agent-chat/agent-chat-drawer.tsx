@@ -451,7 +451,9 @@ function AgentInboxStrip(props: {
   const { items, dismissedRunIds, drafts, submitting, onDraftChange, onRespond, onDismiss } = props;
 
   const actionable = items.filter((i) => i.status === "needs_input");
-  const recent = items.filter((i) => (i.status === "completed" || i.status === "failed") && !dismissedRunIds.has(i.run_id));
+  const recent = items.filter(
+    (i) => (i.status === "completed" || i.status === "failed") && !dismissedRunIds.has(i.run_id)
+  );
 
   if (actionable.length === 0 && recent.length === 0) return null;
 
@@ -486,7 +488,7 @@ function AgentInboxStrip(props: {
                   type="button"
                   disabled={submitting.has(item.run_id)}
                   onClick={() => void onRespond(item.run_id, { approved: true })}
-                  className="t-press rounded-md bg-[#e548a5] px-2.5 py-1 text-11 font-medium text-white disabled:opacity-50 hover:bg-[#d93d9a]"
+                  className="t-press rounded-md bg-[#e548a5] px-2.5 py-1 text-11 font-medium text-white hover:bg-[#d93d9a] disabled:opacity-50"
                 >
                   Approve
                 </button>
@@ -494,7 +496,7 @@ function AgentInboxStrip(props: {
                   type="button"
                   disabled={submitting.has(item.run_id)}
                   onClick={() => void onRespond(item.run_id, { approved: false })}
-                  className="t-press rounded-md border-[0.5px] border-subtle bg-layer-2 px-2.5 py-1 text-11 font-medium text-secondary disabled:opacity-50 hover:bg-layer-1"
+                  className="t-press rounded-md border-[0.5px] border-subtle bg-layer-2 px-2.5 py-1 text-11 font-medium text-secondary hover:bg-layer-1 disabled:opacity-50"
                 >
                   Decline
                 </button>
@@ -518,7 +520,7 @@ function AgentInboxStrip(props: {
                   type="button"
                   disabled={submitting.has(item.run_id) || !(drafts[item.run_id] ?? "").trim()}
                   onClick={() => void onRespond(item.run_id, { response: (drafts[item.run_id] ?? "").trim() })}
-                  className="t-press rounded-md bg-[#e548a5] px-2.5 py-1 text-11 font-medium text-white disabled:opacity-50 hover:bg-[#d93d9a]"
+                  className="t-press rounded-md bg-[#e548a5] px-2.5 py-1 text-11 font-medium text-white hover:bg-[#d93d9a] disabled:opacity-50"
                 >
                   Send
                 </button>
@@ -527,18 +529,13 @@ function AgentInboxStrip(props: {
           </div>
         ))}
         {recent.map((item) => (
-          <div
-            key={item.run_id}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1"
-          >
+          <div key={item.run_id} className="flex items-center gap-1.5 rounded-md px-2 py-1">
             {item.status === "completed" ? (
               <CheckCircle className="size-3 shrink-0 text-secondary" />
             ) : (
               <AlertCircle className="size-3 shrink-0 text-tertiary" />
             )}
-            {item.issue && (
-              <span className="text-11 font-medium text-secondary">#{item.issue.sequence_id}</span>
-            )}
+            {item.issue && <span className="text-11 font-medium text-secondary">#{item.issue.sequence_id}</span>}
             <span className="flex-1 truncate text-11 text-tertiary">
               {item.status === "completed" ? "Atlas finished" : "Atlas failed"}
             </span>
@@ -681,6 +678,7 @@ function ChatThread(props: {
 
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [factCheck, setFactCheck] = useState(false);
   // Passage the user highlighted in the doc and chose to "Ask Atlas" about.
   // Seeded from the shared bridge on mount (the drawer opens *after* the pick,
   // so a window listener here would miss it), then kept live via subscribe.
@@ -956,6 +954,7 @@ function ChatThread(props: {
         project_id: projectId,
         tool_mode: shouldWriteIntoEditor ? "none" : "auto",
         context_note: contextNote,
+        fact_check: factCheck,
       });
       const generatedContent = response.assistant_message.content?.trim();
       if (shouldWriteIntoEditor && generatedContent && !response.assistant_message.error_message) {
@@ -980,6 +979,7 @@ function ChatThread(props: {
     activePageEditorRef,
     agent?.name,
     draft,
+    factCheck,
     pendingFiles,
     replyContext,
     sending,
@@ -1105,6 +1105,23 @@ function ChatThread(props: {
               placeholder="Message Atlas…"
               className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
             />
+            <button
+              type="button"
+              onClick={() => setFactCheck((on) => !on)}
+              className={cn(
+                "t-press grid size-7 shrink-0 place-items-center rounded-full transition-colors",
+                factCheck ? "bg-accent-subtle text-accent-primary" : "text-tertiary hover:bg-layer-2 hover:text-primary"
+              )}
+              aria-label="Toggle fact-check mode"
+              aria-pressed={factCheck}
+              title={
+                factCheck
+                  ? "Fact-check mode ON — claims get Wikipedia citations"
+                  : "Fact-check mode — cite every claim from Wikipedia"
+              }
+            >
+              <CheckCircle className="size-3.5" />
+            </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}

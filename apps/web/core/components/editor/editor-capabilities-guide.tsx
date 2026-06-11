@@ -39,6 +39,8 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
       { keys: "Ask Atlas", label: "Bottom bar — ask about or edit what you're writing" },
       { keys: "/agent", label: "Send the current block to Atlas as a prompt" },
       { keys: "Select → Reply", label: "Reply to a passage with Atlas in the drawer" },
+      { keys: "brief me on X", label: "Atlas researches the topic on Wikipedia and creates a sourced doc" },
+      { keys: "✓ in chat", label: "Fact-check mode — every claim gets a Wikipedia citation" },
     ],
   },
   {

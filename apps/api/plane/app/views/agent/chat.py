@@ -50,7 +50,7 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.utils.content_validator import validate_html_content
-from plane.utils.html_builders import link_html, list_html
+from plane.utils.html_builders import escape_text, link_html, list_html, paragraphs_html
 from plane.llm.persona import ATLAS_PERSONA
 from plane.llm.pricing import estimate_cost_usd
 from plane.llm.provider import LLMConfigError, LLMProvider, LLMTool
@@ -168,6 +168,8 @@ Only if the user explicitly asks you to create a task, call `create_task`.
 Only if the user explicitly asks you to create a sticky/note, call `create_sticky`.
 For factual questions about real-world entities, history, science, or definitions, call `lookup_wikipedia`
 to ground your answer and cite the returned URL — prefer it over stating facts from memory.
+If the user asks you to "brief me on X", "give me a brief on X", or wants a researched background document
+on a topic, call `create_wikipedia_brief` — it researches the topic on Wikipedia and creates a sourced doc.
 In document Sources sections, use real URLs returned by `lookup_wikipedia`, never invented ones.
 Do not reveal private chain-of-thought; only share a brief rationale if it helps the user.
 """.strip()
@@ -956,6 +958,72 @@ def _make_wikipedia_lookup_tool() -> LLMTool:
     )
 
 
+def _make_wikipedia_brief_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
+    """"Brief me on X" — research a topic on Wikipedia and create a sourced doc."""
+    create_tool = _make_create_document_tool(workspace=workspace, user=user, project_id=project_id)
+
+    def _handler(args: dict) -> str:
+        topic = str(args.get("topic") or "").strip()
+        if not topic:
+            return "tool_error: `topic` is required"
+        lang = str(args.get("lang") or "en").strip() or "en"
+
+        try:
+            hits = search_wikipedia(topic, lang=lang, limit=5)
+        except Exception as exc:  # noqa: BLE001
+            return f"wikipedia_error: {exc}"
+        if not hits:
+            return f"No Wikipedia articles found for '{topic}'."
+
+        summaries = []
+        for hit in hits:
+            try:
+                summary = wikipedia_summary(hit["title"], lang=lang)
+            except Exception:  # noqa: BLE001 — skip articles that fail to load
+                summary = None
+            if summary and summary.get("extract"):
+                summaries.append(summary)
+        if not summaries:
+            return f"No Wikipedia articles found for '{topic}'."
+
+        primary = summaries[0]
+        sections = [f"<h2>Overview</h2>{paragraphs_html(primary['extract'])}"]
+        if len(summaries) > 1:
+            related = "".join(
+                f"<h3>{escape_text(s['title'])}</h3>{paragraphs_html((s.get('extract') or '')[:800])}"
+                for s in summaries[1:]
+            )
+            sections.append(f"<h2>Related concepts</h2>{related}")
+        sources = "".join(f"<li>{link_html(s['url'], s['title'])}</li>" for s in summaries if s.get("url"))
+        if sources:
+            sections.append(f"<h2>Sources</h2><ul>{sources}</ul>")
+
+        return create_tool.handler(
+            {
+                "title": f"Brief: {primary['title']}"[:255],
+                "description_html": "".join(sections),
+            }
+        )
+
+    return LLMTool(
+        name="create_wikipedia_brief",
+        description=(
+            "Research a topic on Wikipedia and create a sourced one-page brief document in the current "
+            "project: overview, related concepts, and a Sources section with real article URLs. Use this "
+            "when the user asks for a brief, backgrounder, or researched introduction to a topic."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "topic": {"type": "string", "description": "The topic to research and brief"},
+                "lang": {"type": "string", "description": "Wikipedia language code (default: en)"},
+            },
+            "required": ["topic"],
+        },
+        handler=_handler,
+    )
+
+
 def _fallback_tool_confirmation(result) -> str:
     """Give users a useful reply if the model stops after an action tool call."""
     for tool_call in reversed(result.tool_calls):
@@ -1412,6 +1480,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         context_note = str(request.data.get("context_note") or "").strip()[:4_000]
         force_document_tool = _coerce_bool(request.data.get("force_document_tool"))
         use_agent_tools = _should_use_agent_tools(request.data.get("tool_mode"))
+        fact_check_mode = _coerce_bool(request.data.get("fact_check"))
         # Empty content is only allowed when there's at least one
         # attachment — the LLM gets enough to work with from "what's
         # this CSV?" without any typed message.
@@ -1517,6 +1586,15 @@ class AgentChatMessageEndpoint(BaseAPIView):
         else:
             system = atlas_persona
         system = f"{system}\n\n{_CHAT_INTENT_SYSTEM_PROMPT}"
+        if fact_check_mode:
+            system = (
+                f"{system}\n\n"
+                "FACT-CHECK MODE is ON for this conversation:\n"
+                "- verify every factual claim in your answer with `lookup_wikipedia` before stating it\n"
+                "- append a numbered citation marker like [1] after each verified claim\n"
+                "- end the answer with a 'Sources' list mapping each number to the Wikipedia URL used\n"
+                "- if a claim cannot be verified on Wikipedia, label it clearly as unverified instead of citing"
+            )
         if is_document_request:
             interpreted = [
                 "Interpreted document request:",
@@ -1618,6 +1696,11 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     user=request.user,
                 ),
                 _make_wikipedia_lookup_tool(),
+                _make_wikipedia_brief_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
             ]
 
         try:
