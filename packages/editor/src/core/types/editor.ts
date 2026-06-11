@@ -162,6 +162,7 @@ export type CoreEditorRefApi = {
   getSelectedAtlasProposalCount: () => number;
   acceptSelectedAtlasProposals: () => void;
   rejectSelectedAtlasProposals: () => void;
+  clearAtlasReview: () => void;
   undo: () => void;
 };
 
