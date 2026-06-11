@@ -1633,7 +1633,9 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
             on_tool_call=lambda call: _persist_tool_call_progress(run, call),
         )
     except Exception as exc:  # noqa: BLE001
-        logger.exception("agent_dispatch (page): provider.run failed for agent=%s comment=%s", agent_id, page_comment_id)
+        logger.exception(
+            "agent_dispatch (page): provider.run failed for agent=%s comment=%s", agent_id, page_comment_id
+        )
         _mark_failed(run, f"{exc.__class__.__name__}: {exc}")
         return
 
@@ -1660,7 +1662,9 @@ _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT = (
 )
 
 
-def _build_page_comment_user_prompt(*, page_comment: PageBlockComment, trigger_event: str, memory_context: str = "") -> str:
+def _build_page_comment_user_prompt(
+    *, page_comment: PageBlockComment, trigger_event: str, memory_context: str = ""
+) -> str:
     page = page_comment.page
     framing = (
         "Someone @-mentioned you in a page comment thread. The most recent comment in the "
@@ -1803,7 +1807,9 @@ def _finalise_run(run: AgentRun, result: LLMRunResult) -> None:
     run.completion_tokens = result.completion_tokens
     run.total_tokens = result.total_tokens
     existing_calls = list(run.tool_calls or [])
-    lifecycle_entries = [entry for entry in existing_calls if isinstance(entry, dict) and entry.get("kind") == "lifecycle"]
+    lifecycle_entries = [
+        entry for entry in existing_calls if isinstance(entry, dict) and entry.get("kind") == "lifecycle"
+    ]
     run.tool_calls = lifecycle_entries + result.tool_calls
     # Compute dollar cost from the per-model pricing table. Unknown
     # models fall back to 0 — better than showing a guessed number.
