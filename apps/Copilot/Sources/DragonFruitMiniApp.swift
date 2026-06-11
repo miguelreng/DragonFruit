@@ -11,6 +11,7 @@ struct DragonFruitMiniApp: App {
     @StateObject private var toastController = VoiceToastController()
     @StateObject private var cursorBuddyController = CursorBuddyOverlayController()
     @StateObject private var meetingNotesOverlayController = MeetingNotesOverlayController()
+    @StateObject private var agentInbox = AgentInboxStore()
 
     // Drives Sparkle auto-updates in release builds. Debug builds skip Sparkle
     // so an unavailable appcast cannot show native updater error dialogs.
@@ -33,13 +34,22 @@ struct DragonFruitMiniApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MeetingPopoverView(store: store, pomodoro: pomodoro, updater: updaterController?.updater)
-                .frame(width: 360)
-                .onAppear {
-                    toastController.bind(to: store)
-                    cursorBuddyController.bind(to: store)
-                    meetingNotesOverlayController.bind(to: store)
-                }
+            MeetingPopoverView(
+                store: store,
+                pomodoro: pomodoro,
+                agentInbox: agentInbox,
+                updater: updaterController?.updater
+            )
+            .frame(width: 360)
+            .onAppear {
+                toastController.bind(to: store)
+                cursorBuddyController.bind(to: store)
+                meetingNotesOverlayController.bind(to: store)
+                agentInbox.startPolling(
+                    makeClient: { try store.makeClientPublic() },
+                    workspaceSlug: { store.selectedWorkspaceSlug }
+                )
+            }
         } label: {
             Label {
                 Text(pomodoro.menuBarLabel ?? "Atlas")

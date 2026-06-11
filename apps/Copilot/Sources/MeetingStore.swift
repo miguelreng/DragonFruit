@@ -1781,6 +1781,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         return APIClient(baseURL: url, apiToken: apiToken.isEmpty ? nil : apiToken)
     }
 
+    /// Public façade for sibling stores (e.g. AgentInboxStore) that need a
+    /// correctly-credentialed APIClient without duplicating the construction logic.
+    func makeClientPublic() throws -> APIClient {
+        try makeClient()
+    }
+
     private func persistCredentials() {
         let defaults = UserDefaults.standard
         defaults.set(baseURL, forKey: "df_base_url")

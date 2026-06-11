@@ -5,6 +5,7 @@ import SwiftUI
 struct MeetingPopoverView: View {
     @ObservedObject var store: MeetingStore
     @ObservedObject var pomodoro: PomodoroTimerModel
+    @ObservedObject var agentInbox: AgentInboxStore
     var updater: SPUUpdater? = nil
     @State private var isSettingsExpanded = false
     @State private var isPanelRevealed = false
@@ -31,6 +32,7 @@ struct MeetingPopoverView: View {
                 if store.lastVoiceActionResult != nil {
                     voiceActionResultCard
                 }
+                agentInboxCard
                 myTasksCard
                 pomodoroCard
                 settingsCard
@@ -351,6 +353,32 @@ struct MeetingPopoverView: View {
                         .foregroundStyle(theme.textSecondary)
                 }
                 Spacer()
+            }
+        }
+    }
+
+    // MARK: - Agent inbox card
+
+    @ViewBuilder
+    private var agentInboxCard: some View {
+        let hasItems = agentInbox.items.contains { $0.status == "needs_input" || $0.status == "completed" || $0.status == "failed" }
+        if hasItems {
+            card {
+                HStack(spacing: 6) {
+                    sectionLabel("Atlas follow-ups")
+                    Spacer()
+                    if agentInbox.isLoading {
+                        ProgressView()
+                            .controlSize(.mini)
+                    }
+                }
+                AgentInboxView(
+                    inboxStore: agentInbox,
+                    theme: theme,
+                    makeClient: { try store.makeClientPublic() },
+                    workspaceSlug: store.selectedWorkspaceSlug,
+                    appURL: store.appURL
+                )
             }
         }
     }
