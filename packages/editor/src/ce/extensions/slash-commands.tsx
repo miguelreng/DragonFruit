@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Globe, Link, Sparkles } from "@plane/icons";
+import { Globe, Link, Quotes, Sparkles } from "@plane/icons";
 // helpers
 import { searchWikipedia, fetchWikipediaSummary } from "@/helpers/wikipedia-client";
 // extensions
@@ -179,6 +179,85 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
                 },
               ],
               text: hit.title,
+            },
+          ])
+          .run();
+      })();
+    },
+  },
+  {
+    // Phase E — "Cite this" inline citation.
+    //
+    // Takes the selection text as the search query (the primary use-case:
+    // select a claim → /cite → best Wikipedia hit inserted as a citation).
+    // Falls back to the current paragraph text when there is no selection.
+    //
+    // Superscript (<sup>) is not registered as a TipTap mark in this
+    // schema, so we take the documented fallback: insert a plain inline
+    // link "[wiki]" immediately after the cursor.  This keeps the
+    // citation grounded to the prose without requiring a new footnote
+    // subsystem.
+    commandKey: "cite",
+    key: "cite",
+    title: "Cite this",
+    description: "Find the best Wikipedia source for the selected text and insert an inline citation.",
+    searchTerms: ["cite", "citation", "source", "reference", "wikipedia", "wiki", "footnote"],
+    icon: <Quotes className="size-3.5" />,
+    section: "general",
+    pushAfter: "wiki-link",
+    command: ({ editor, range }) => {
+      // Prefer an active text selection — the canonical "Cite this" flow:
+      // user selects a claim, types /cite, hits Enter.
+      const selectionText = editor.state.doc
+        .textBetween(editor.state.selection.from, editor.state.selection.to, " ")
+        .trim();
+
+      // Fall back to the paragraph text, stripping the slash trigger.
+      const $from = editor.state.doc.resolve(range.from);
+      const blockNode = $from.node($from.depth);
+      const rawText = blockNode?.textContent ?? "";
+      const paragraphQuery = rawText.replace(/^\/cite\s*/i, "").trim();
+
+      const query = selectionText || paragraphQuery;
+
+      // Remove the slash-command trigger before inserting.
+      editor.chain().focus().deleteRange(range).run();
+
+      if (!query) return;
+
+      void (async () => {
+        const hits = await searchWikipedia(query, { limit: 1 });
+        if (!hits.length) return;
+
+        const hit = hits[0];
+        const summary = await fetchWikipediaSummary(hit.title);
+        const articleUrl = summary?.url ?? `https://en.wikipedia.org/wiki/${encodeURIComponent(hit.key)}`;
+
+        // Insert a plain inline citation link "[wiki]" after the cursor.
+        // The <sup> wrapper is omitted because TipTap's schema in this
+        // project does not register a superscript mark — adding one would
+        // be a new footnote subsystem, which is out of scope for v1.
+        editor
+          .chain()
+          .focus()
+          .insertContent([
+            {
+              type: "text",
+              text: " ",
+            },
+            {
+              type: "text",
+              marks: [
+                {
+                  type: "link",
+                  attrs: {
+                    href: articleUrl,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                  },
+                },
+              ],
+              text: "[wiki]",
             },
           ])
           .run();
