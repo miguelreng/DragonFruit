@@ -18,6 +18,10 @@ export type TPublicPageResponse = {
   description_html: string;
   description_json: Record<string, unknown> | null;
   embeds?: TPublicDocEmbed[];
+  mentions?: {
+    users?: Record<string, string>;
+    issues?: Record<string, string>;
+  };
   logo_props: Record<string, unknown> | null;
   owned_by?: {
     id: string;

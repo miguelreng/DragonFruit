@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchWikipediaSummary } from "@plane/editor";
+import type { TWikipediaSummary } from "@plane/editor";
 import { ListChecks, Whiteboard, StickyNote } from "@/components/icons/lucide-shim";
 import type { TPublicDocEmbed } from "@/services/page/public-page.service";
 
@@ -116,6 +118,160 @@ export function getPublicDocHeadings(html: string): TPublicDocHeading[] {
     text: heading.textContent?.trim() || "Untitled section",
     sequence: index,
   }));
+}
+
+export type TPublicDocMentions = {
+  users?: Record<string, string>;
+  issues?: Record<string, string>;
+};
+
+/**
+ * description_html serializes mentions as empty <mention-component> custom
+ * elements (attributes only, no text), which browsers render as nothing.
+ * Replace them with real content: Wikipedia mentions become links derived
+ * from the article URL; user/task mentions use the server-resolved labels
+ * when available and a neutral fallback otherwise.
+ */
+export function transformPublicDocMentions(html: string, mentions?: TPublicDocMentions): string {
+  if (typeof window === "undefined" || !html.includes("mention-component")) return html;
+
+  const template = document.createElement("template");
+  template.innerHTML = html || "<p></p>";
+
+  template.content.querySelectorAll("mention-component").forEach((el) => {
+    const entityName = el.getAttribute("entity_name");
+    const entityId = el.getAttribute("entity_identifier") ?? "";
+
+    if (entityName === "wiki") {
+      const link = document.createElement("a");
+      link.href = entityId;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.className = "public-doc-mention";
+      let title = "Wikipedia";
+      try {
+        const parts = new URL(entityId).pathname.split("/");
+        title = decodeURIComponent(parts[parts.length - 1] ?? "").replace(/_/g, " ") || title;
+      } catch {
+        // keep the default label
+      }
+      link.textContent = `@${title}`;
+      link.setAttribute("data-wiki-title", title);
+      el.replaceWith(link);
+      return;
+    }
+
+    const span = document.createElement("span");
+    span.className = "public-doc-mention";
+    if (entityName === "issue") span.textContent = mentions?.issues?.[entityId] ?? "a task";
+    else span.textContent = `@${mentions?.users?.[entityId] ?? "member"}`;
+    el.replaceWith(span);
+  });
+
+  return template.innerHTML;
+}
+
+/**
+ * Hover card for Wikipedia mention links in the published view. The doc body
+ * is injected via dangerouslySetInnerHTML, so this uses document-level event
+ * delegation instead of per-chip React components. Mount once per page.
+ */
+export function PublicDocWikiHoverCard() {
+  const [card, setCard] = useState<{ title: string; url: string; x: number; y: number } | null>(null);
+  const [summary, setSummary] = useState<TWikipediaSummary | null>(null);
+  const cacheRef = useRef(new Map<string, TWikipediaSummary | null>());
+  const activeTitleRef = useRef<string | null>(null);
+  const hideTimerRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    const cancelHide = () => window.clearTimeout(hideTimerRef.current);
+    const scheduleHide = () => {
+      cancelHide();
+      hideTimerRef.current = window.setTimeout(() => {
+        activeTitleRef.current = null;
+        setCard(null);
+      }, 180);
+    };
+
+    const handleMouseOver = (event: MouseEvent) => {
+      const link = (event.target as HTMLElement)?.closest?.("a.public-doc-mention[data-wiki-title]");
+      if (!(link instanceof HTMLAnchorElement)) return;
+      cancelHide();
+      const title = link.getAttribute("data-wiki-title") ?? "";
+      if (activeTitleRef.current === title) return;
+      activeTitleRef.current = title;
+      const rect = link.getBoundingClientRect();
+      setCard({
+        title,
+        url: link.href,
+        x: Math.max(8, Math.min(rect.left, window.innerWidth - 300)),
+        y: rect.bottom + 6,
+      });
+      const cached = cacheRef.current.get(title);
+      if (cached !== undefined) {
+        setSummary(cached);
+        return;
+      }
+      setSummary(null);
+      void fetchWikipediaSummary(title).then((result) => {
+        cacheRef.current.set(title, result);
+        if (activeTitleRef.current === title) setSummary(result);
+        return undefined;
+      });
+    };
+
+    const handleMouseOut = (event: MouseEvent) => {
+      const link = (event.target as HTMLElement)?.closest?.("a.public-doc-mention[data-wiki-title]");
+      if (link) scheduleHide();
+    };
+
+    document.addEventListener("mouseover", handleMouseOver);
+    document.addEventListener("mouseout", handleMouseOut);
+    return () => {
+      cancelHide();
+      document.removeEventListener("mouseover", handleMouseOver);
+      document.removeEventListener("mouseout", handleMouseOut);
+    };
+  }, []);
+
+  if (!card) return null;
+
+  return (
+    <div
+      className="fixed z-50 w-72 rounded-lg border border-strong bg-white p-3 shadow-raised-200"
+      style={{ left: card.x, top: card.y }}
+      onMouseEnter={() => window.clearTimeout(hideTimerRef.current)}
+      onMouseLeave={() => {
+        activeTitleRef.current = null;
+        setCard(null);
+      }}
+    >
+      {summary ? (
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            {summary.thumbnail ? (
+              <img src={summary.thumbnail} alt="" className="size-10 flex-shrink-0 rounded object-cover" />
+            ) : null}
+            <div className="min-w-0">
+              <div className="truncate text-13 font-semibold text-primary">{summary.title}</div>
+              <div className="text-11 text-tertiary">Wikipedia</div>
+            </div>
+          </div>
+          <p className="line-clamp-4 text-12 leading-5 text-secondary">{summary.extract}</p>
+          <a
+            href={card.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-12 font-medium text-accent-primary hover:underline"
+          >
+            Read on Wikipedia →
+          </a>
+        </div>
+      ) : (
+        <div className="text-12 text-tertiary">Loading {card.title}…</div>
+      )}
+    </div>
+  );
 }
 
 export function addPublicDocHeadingIds(html: string): string {

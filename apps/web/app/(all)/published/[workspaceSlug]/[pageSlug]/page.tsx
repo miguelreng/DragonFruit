@@ -15,6 +15,8 @@ import {
   getPublicDocHeadings,
   PublicDocContent,
   PublicDocIndex,
+  PublicDocWikiHoverCard,
+  transformPublicDocMentions,
 } from "@/components/pages/published/public-doc-content";
 import { normalizeDocFontStyle } from "@/helpers/doc-font";
 import type { Route } from "./+types/page";
@@ -50,7 +52,10 @@ function PublishedPage({ params }: Route.ComponentProps) {
     () => publicPageService.retrieve(workspaceSlug, pageSlug),
     { revalidateOnFocus: false }
   );
-  const docHtml = useMemo(() => addPublicDocHeadingIds(data?.description_html || "<p></p>"), [data?.description_html]);
+  const docHtml = useMemo(
+    () => addPublicDocHeadingIds(transformPublicDocMentions(data?.description_html || "<p></p>", data?.mentions)),
+    [data?.description_html, data?.mentions]
+  );
   const docHeadings = useMemo(() => getPublicDocHeadings(docHtml), [docHtml]);
 
   if (isLoading) {
@@ -94,6 +99,7 @@ function PublishedPage({ params }: Route.ComponentProps) {
               )}
             </div>
             <PublicDocContent html={docHtml} embeds={data.embeds ?? []} />
+            <PublicDocWikiHoverCard />
           </div>
         )}
       </div>

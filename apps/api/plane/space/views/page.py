@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .base import BaseAPIView
-from plane.db.models import DeployBoard, Issue, IssueView, Page, Project, Sticky
+from plane.db.models import DeployBoard, Issue, IssueView, Page, Project, Sticky, WorkspaceMember
 from plane.utils.issue_filters import issue_filters
 
 
@@ -21,6 +21,41 @@ def _public_page_owner_payload(page):
         "display_name": owner.display_name,
         "avatar_url": owner.avatar_url,
     }
+
+
+def _public_page_mentions(page):
+    """Resolve mention-component ids in the page body to display labels.
+
+    description_html serializes mentions as empty custom elements, so the
+    public view can't show them without these lookups. Scoped to the page's
+    own workspace so forged ids can't leak data from other workspaces.
+    """
+    soup = BeautifulSoup(page.description_html or "", "html.parser")
+    user_ids = set()
+    issue_ids = set()
+    for node in soup.find_all("mention-component"):
+        entity_name = node.get("entity_name")
+        entity_id = node.get("entity_identifier")
+        if not entity_id:
+            continue
+        if entity_name == "user_mention":
+            user_ids.add(entity_id)
+        elif entity_name == "issue":
+            issue_ids.add(entity_id)
+
+    users = {}
+    if user_ids:
+        members = WorkspaceMember.objects.filter(
+            workspace=page.workspace, member_id__in=user_ids, is_active=True
+        ).select_related("member")
+        users = {str(m.member_id): m.member.display_name for m in members}
+
+    issues = {}
+    if issue_ids:
+        for issue in Issue.issue_objects.filter(workspace=page.workspace, id__in=issue_ids).select_related("project"):
+            issues[str(issue.id)] = f"{issue.project.identifier}-{issue.sequence_id} {issue.name}"
+
+    return {"users": users, "issues": issues}
 
 
 def _extract_doc_embed_refs(description_html):
@@ -169,6 +204,7 @@ class PublicPageBySlugEndpoint(BaseAPIView):
                 "description_html": page.description_html,
                 "description_json": page.description_json,
                 "embeds": [_resolve_public_embed(ref) for ref in _extract_doc_embed_refs(page.description_html)],
+                "mentions": _public_page_mentions(page),
                 "logo_props": page.logo_props,
                 "owned_by": _public_page_owner_payload(page),
                 "updated_at": page.updated_at,
