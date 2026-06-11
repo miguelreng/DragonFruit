@@ -868,3 +868,52 @@ class AgentStopEndpoint(BaseAPIView):
         payload = AgentSerializer(agent).data
         payload["cancelled_runs"] = cancelled
         return Response(payload, status=status.HTTP_200_OK)
+
+
+class AgentRunRespondEndpoint(BaseAPIView):
+    """Submit a human response to a paused AgentRun.
+
+    Accepts POST with:
+      {
+        "response": "<human answer to the question>",  // optional
+        "approved": true | false                        // optional (for approval runs)
+      }
+
+    Guards: the run must be in needs_input status and belong to this workspace.
+    Enqueues resume_agent_run.delay() and returns 202 Accepted immediately.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def post(self, request, slug, run_id):
+        from plane.bgtasks.agent_dispatch_task import resume_agent_run
+
+        run = (
+            AgentRun.objects.filter(
+                agent__workspace__slug=slug,
+                pk=run_id,
+                deleted_at__isnull=True,
+            )
+            .select_related("agent")
+            .first()
+        )
+        if run is None:
+            return Response({"error": "run not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if run.status != "needs_input":
+            return Response(
+                {"error": f"run is not waiting for input (status={run.status})"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        human_response = (request.data.get("response") or "").strip() or None
+        approved_raw = request.data.get("approved")
+        approved: bool | None = None
+        if approved_raw is not None:
+            approved = bool(approved_raw)
+
+        resume_agent_run.delay(str(run.id), human_response=human_response, approved=approved)
+
+        return Response(
+            {"run_id": str(run.id), "status": "resuming"},
+            status=status.HTTP_202_ACCEPTED,
+        )

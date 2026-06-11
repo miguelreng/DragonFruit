@@ -352,3 +352,518 @@ class TestAgentAPI:
         result = _handler({})
         assert result.startswith("tool_error:")
         assert "network error" in result
+
+
+# ------------------------------------------------------------------ #
+# Helpers shared by resume tests                                      #
+# ------------------------------------------------------------------ #
+
+
+def _make_mock_completion(responses):
+    """Return a litellm.completion mock that steps through `responses`.
+
+    Each element of `responses` is one of:
+      - None              → no tool call, empty text → completes loop
+      - str               → no tool call, this text → completes loop
+      - (tool_name, args) → one tool call, empty content
+    """
+    call_count = [0]
+
+    def mock_completion(**kwargs):
+        idx = min(call_count[0], len(responses) - 1)
+        resp = responses[idx]
+        call_count[0] += 1
+
+        if resp is None or isinstance(resp, str):
+            text = resp or ""
+
+            class FakeMessage:
+                content = text
+                tool_calls = []
+                provider_specific_fields = None
+
+            class FakeChoice:
+                message = FakeMessage()
+
+            class FakeCompletion:
+                choices = [FakeChoice()]
+                usage = None
+
+            return FakeCompletion()
+
+        # (tool_name, args_dict) tuple
+        tool_name, tool_args = resp
+        import json
+
+        class FakeFunction:
+            name = tool_name
+            arguments = json.dumps(tool_args)
+
+        class FakeToolCall:
+            id = f"tc-{call_count[0]}"
+            function = FakeFunction()
+
+        class FakeMessage:
+            content = ""
+            tool_calls = [FakeToolCall()]
+            provider_specific_fields = None
+
+        class FakeChoice:
+            message = FakeMessage()
+
+        class FakeCompletion:
+            choices = [FakeChoice()]
+            usage = None
+
+        return FakeCompletion()
+
+    return mock_completion
+
+
+def _make_agent_and_issue(workspace, bot_user):
+    """Create a minimal Agent + Issue pair for dispatch tests."""
+    from plane.db.models import Agent, Issue, Project, State
+
+    agent = Agent.objects.create(
+        workspace=workspace,
+        bot_user=bot_user,
+        name="Test Bot",
+        provider_model="openai/gpt-4o",
+        api_key_encrypted="",
+    )
+
+    # Minimal project + state.
+    project = Project.objects.create(
+        name="Test Project",
+        identifier="TP",
+        workspace=workspace,
+        network=0,
+    )
+    state = State.objects.create(
+        name="Open",
+        group="started",
+        project=project,
+        workspace=workspace,
+        color="#fff",
+    )
+    issue = Issue.objects.create(
+        name="Test Issue",
+        project=project,
+        workspace=workspace,
+        state=state,
+    )
+    return agent, issue
+
+
+@pytest.mark.contract
+class TestAgentResumeAPI:
+    """Tests for the pausable/resumable agent run flow (plan 017)."""
+
+    # ------------------------------------------------------------------ #
+    # Step 2: request_help tool                                           #
+    # ------------------------------------------------------------------ #
+
+    @pytest.mark.django_db
+    def test_request_help_tool_sets_needs_input_and_posts_comment(
+        self, monkeypatch, workspace, create_bot_user
+    ):
+        """When the model calls request_help, the run enters needs_input and
+        a comment is posted on the issue."""
+        import litellm
+        from plane.bgtasks.agent_dispatch_task import _run_agent_loop
+        from plane.db.models import AgentRun, IssueComment
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="running",
+            tool_calls=[{"kind": "lifecycle", "phase": "run_started", "trigger_event": "assigned"}],
+        )
+
+        # Model calls request_help on the first turn, then (if loop continued) returns text.
+        mock = _make_mock_completion([
+            ("request_help", {"question": "What is the acceptance criterion?"}),
+            "Done",
+        ])
+        monkeypatch.setattr(litellm, "completion", mock)
+
+        # Build a provider directly (bypasses BYOK lookup).
+        from plane.llm.provider import LLMProvider
+        provider = LLMProvider(model="openai/gpt-4o", api_key="test-key")
+
+        _run_agent_loop(run, provider=provider, agent=agent, issue=issue)
+
+        run.refresh_from_db()
+        assert run.status == "needs_input", f"expected needs_input, got {run.status}"
+        assert run.pending_request is not None
+        assert run.pending_request["kind"] == "question"
+        assert "acceptance criterion" in run.pending_request["message"]
+
+        # A comment should have been posted.
+        comment_exists = IssueComment.objects.filter(
+            issue=issue,
+            actor=agent.bot_user,
+        ).exists()
+        assert comment_exists, "request_help should post a comment"
+
+    @pytest.mark.django_db
+    def test_request_help_loop_stops_after_pause(self, monkeypatch, workspace, create_bot_user):
+        """After request_help fires, the loop must NOT continue to a second LLM call."""
+        import litellm
+        from plane.bgtasks.agent_dispatch_task import _run_agent_loop
+        from plane.db.models import AgentRun
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="running",
+            tool_calls=[],
+        )
+
+        call_count = [0]
+        original_mock = _make_mock_completion([
+            ("request_help", {"question": "Need more info?"}),
+            "Should never reach this",
+        ])
+
+        def counting_mock(**kwargs):
+            call_count[0] += 1
+            return original_mock(**kwargs)
+
+        monkeypatch.setattr(litellm, "completion", counting_mock)
+
+        from plane.llm.provider import LLMProvider
+        provider = LLMProvider(model="openai/gpt-4o", api_key="test-key")
+
+        _run_agent_loop(run, provider=provider, agent=agent, issue=issue)
+
+        # Exactly 1 LLM call: the one that returned request_help. The loop
+        # stopped before a second call was made.
+        assert call_count[0] == 1, f"expected 1 LLM call, got {call_count[0]}"
+
+    # ------------------------------------------------------------------ #
+    # Step 3: approval-gate pauses the run                                #
+    # ------------------------------------------------------------------ #
+
+    @pytest.mark.django_db
+    def test_approval_gate_pauses_run_without_executing_tool(
+        self, monkeypatch, workspace, create_bot_user
+    ):
+        """When the model calls an ask-gated tool, the run pauses and the
+        tool does NOT execute (the real tool's side-effect must not happen)."""
+        import litellm
+        from plane.bgtasks.agent_dispatch_task import _run_agent_loop
+        from plane.db.models import AgentRun
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+
+        # configure change_state as ask-gated
+        agent.tool_policies = {
+            "change_state": "ask",
+            "post_comment": "auto",
+            "add_label": "auto",
+            "search_issues": "auto",
+            "list_attachments": "auto",
+            "plan_next_steps": "auto",
+            "record_step": "auto",
+        }
+        agent.save()
+
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="running",
+            tool_calls=[],
+        )
+
+        mock = _make_mock_completion([
+            ("change_state", {"state_name": "Done"}),
+            "Done",
+        ])
+        monkeypatch.setattr(litellm, "completion", mock)
+
+        from plane.llm.provider import LLMProvider
+        provider = LLMProvider(model="openai/gpt-4o", api_key="test-key")
+
+        original_state = issue.state
+
+        _run_agent_loop(run, provider=provider, agent=agent, issue=issue)
+
+        run.refresh_from_db()
+        assert run.status == "needs_input"
+        assert run.pending_request is not None
+        assert run.pending_request["kind"] == "approval"
+        assert run.pending_request["tool"] == "change_state"
+
+        # The issue state must NOT have changed (tool didn't execute).
+        issue.refresh_from_db()
+        assert issue.state_id == original_state.id, "ask-gated tool must not execute before approval"
+
+    # ------------------------------------------------------------------ #
+    # Step 4: resume after question → loop continues and completes        #
+    # ------------------------------------------------------------------ #
+
+    @pytest.mark.django_db
+    def test_resume_after_question_reruns_loop_to_completion(
+        self, monkeypatch, workspace, create_bot_user
+    ):
+        """After request_help pauses the run, calling resume_agent_run with a
+        human_response should re-dispatch the loop which then completes."""
+        import litellm
+        from plane.bgtasks.agent_dispatch_task import resume_agent_run
+        from plane.db.models import AgentRun
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+
+        # Simulate a paused run.
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="needs_input",
+            pending_request={
+                "kind": "question",
+                "message": "What is the acceptance criterion?",
+                "tool": None,
+                "arguments": None,
+            },
+            tool_calls=[{"kind": "lifecycle", "phase": "run_started", "trigger_event": "assigned"}],
+        )
+
+        # On resume the loop runs fresh and posts a comment then completes.
+        mock = _make_mock_completion([
+            ("post_comment", {"comment_html": "<p>Thanks, I'll proceed.</p>"}),
+            "All done",
+        ])
+        monkeypatch.setattr(litellm, "completion", mock)
+
+        # Patch LLMProvider.from_agent to avoid BYOK lookup.
+        from plane.llm.provider import LLMProvider
+
+        def mock_from_agent(ag):
+            return LLMProvider(model="openai/gpt-4o", api_key="test-key")
+
+        monkeypatch.setattr(LLMProvider, "from_agent", staticmethod(mock_from_agent))
+
+        # Call synchronously (not via Celery in tests).
+        resume_agent_run(str(run.id), human_response="The criterion is that the button turns green.")
+
+        run.refresh_from_db()
+        assert run.status == "completed", f"expected completed, got {run.status}"
+        assert run.pending_request is None
+
+    @pytest.mark.django_db
+    def test_resume_approved_executes_tool_then_continues(
+        self, monkeypatch, workspace, create_bot_user
+    ):
+        """When approved=True, the pending tool is executed and then the loop
+        continues to completion."""
+        import litellm
+        from plane.bgtasks.agent_dispatch_task import resume_agent_run
+        from plane.db.models import AgentRun, State
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+
+        # Create a "Done" state to transition to.
+        State.objects.create(
+            name="Done",
+            group="completed",
+            project=issue.project,
+            workspace=workspace,
+            color="#00ff00",
+        )
+
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="needs_input",
+            pending_request={
+                "kind": "approval",
+                "message": "Atlas wants to run `change_state`",
+                "tool": "change_state",
+                "arguments": {"state_name": "Done"},
+            },
+            tool_calls=[],
+        )
+
+        # After approval, loop resumes with a note and then posts a comment.
+        mock = _make_mock_completion([
+            ("post_comment", {"comment_html": "<p>State changed.</p>"}),
+            "Finished",
+        ])
+        monkeypatch.setattr(litellm, "completion", mock)
+
+        from plane.llm.provider import LLMProvider
+
+        def mock_from_agent(ag):
+            return LLMProvider(model="openai/gpt-4o", api_key="test-key")
+
+        monkeypatch.setattr(LLMProvider, "from_agent", staticmethod(mock_from_agent))
+
+        resume_agent_run(str(run.id), approved=True)
+
+        run.refresh_from_db()
+        assert run.status == "completed", f"expected completed, got {run.status}"
+
+        # The state should have been updated by the approved tool execution.
+        issue.refresh_from_db()
+        assert issue.state.name == "Done", f"expected Done state, got {issue.state.name}"
+
+    @pytest.mark.django_db
+    def test_resume_declined_does_not_execute_tool(
+        self, monkeypatch, workspace, create_bot_user
+    ):
+        """When approved=False, the tool must NOT execute and the loop
+        continues with a decline note."""
+        import litellm
+        from plane.bgtasks.agent_dispatch_task import resume_agent_run
+        from plane.db.models import AgentRun
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        original_state_id = issue.state_id
+
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="needs_input",
+            pending_request={
+                "kind": "approval",
+                "message": "Atlas wants to run `change_state`",
+                "tool": "change_state",
+                "arguments": {"state_name": "Done"},
+            },
+            tool_calls=[],
+        )
+
+        mock = _make_mock_completion([
+            ("post_comment", {"comment_html": "<p>Understood, not changing state.</p>"}),
+            "Finished",
+        ])
+        monkeypatch.setattr(litellm, "completion", mock)
+
+        from plane.llm.provider import LLMProvider
+
+        def mock_from_agent(ag):
+            return LLMProvider(model="openai/gpt-4o", api_key="test-key")
+
+        monkeypatch.setattr(LLMProvider, "from_agent", staticmethod(mock_from_agent))
+
+        resume_agent_run(str(run.id), approved=False)
+
+        # State unchanged.
+        issue.refresh_from_db()
+        assert issue.state_id == original_state_id, "declined approval must not change state"
+
+    @pytest.mark.django_db
+    def test_respond_endpoint_returns_202_for_needs_input_run(
+        self, monkeypatch, session_client, workspace, create_bot_user
+    ):
+        """POST /agent-runs/{run_id}/respond/ returns 202 for a needs_input run."""
+        from plane.db.models import AgentRun
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="needs_input",
+            pending_request={"kind": "question", "message": "Need info", "tool": None, "arguments": None},
+            tool_calls=[],
+        )
+
+        # Patch out the async Celery task so it doesn't actually run.
+        from plane.bgtasks import agent_dispatch_task
+
+        called_with = {}
+
+        def mock_delay(run_id, **kwargs):
+            called_with.update({"run_id": run_id, **kwargs})
+
+        monkeypatch.setattr(agent_dispatch_task.resume_agent_run, "delay", mock_delay)
+
+        url = f"/api/workspaces/{workspace.slug}/agent-runs/{run.id}/respond/"
+        response = session_client.post(url, {"response": "Here is the info"}, format="json")
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert called_with["run_id"] == str(run.id)
+        assert called_with.get("human_response") == "Here is the info"
+
+    @pytest.mark.django_db
+    def test_respond_endpoint_returns_409_for_non_paused_run(
+        self, session_client, workspace, create_bot_user
+    ):
+        """POST /agent-runs/{run_id}/respond/ returns 409 if run is not needs_input."""
+        from plane.db.models import AgentRun
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="completed",
+            tool_calls=[],
+        )
+
+        url = f"/api/workspaces/{workspace.slug}/agent-runs/{run.id}/respond/"
+        response = session_client.post(url, {"response": "Too late"}, format="json")
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    # ------------------------------------------------------------------ #
+    # Step 5: notifications on needs_input                                #
+    # ------------------------------------------------------------------ #
+
+    @pytest.mark.django_db
+    def test_needs_input_creates_notification_for_issue_creator(
+        self, monkeypatch, workspace, create_user, create_bot_user
+    ):
+        """Entering needs_input creates a Notification row for the issue creator."""
+        import litellm
+        from plane.bgtasks.agent_dispatch_task import _run_agent_loop
+        from plane.db.models import AgentRun, Notification
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        # Set issue creator to create_user (a human, not a bot).
+        # Use disable_auto_set_user=True so BaseModel.save() doesn't wipe
+        # the created_by field in the no-request test context.
+        issue.created_by = create_user
+        issue.save(update_fields=["created_by"], disable_auto_set_user=True)
+
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="running",
+            tool_calls=[],
+        )
+
+        mock = _make_mock_completion([
+            ("request_help", {"question": "What should I do?"}),
+        ])
+        monkeypatch.setattr(litellm, "completion", mock)
+
+        from plane.llm.provider import LLMProvider
+        provider = LLMProvider(model="openai/gpt-4o", api_key="test-key")
+
+        _run_agent_loop(run, provider=provider, agent=agent, issue=issue)
+
+        run.refresh_from_db()
+        assert run.status == "needs_input"
+
+        # A Notification row must exist for the issue creator.
+        notif = Notification.objects.filter(
+            receiver=create_user,
+            entity_name="agent_run",
+        ).first()
+        assert notif is not None, "should have created a Notification for the issue creator"
+        assert str(run.id) == str(notif.entity_identifier)
+        assert notif.data is not None
+        assert notif.data.get("kind") == "needs_input"
+        assert notif.data.get("run_id") == str(run.id)

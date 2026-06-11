@@ -12,6 +12,7 @@ from .base import (
     AgentMemoryEndpoint,
     AgentRunCancelEndpoint,
     AgentRunListEndpoint,
+    AgentRunRespondEndpoint,
     AgentStopEndpoint,
 )
 from .chat import (

@@ -22,6 +22,7 @@ from plane.app.views.agent import (
     AgentMemoryEndpoint,
     AgentRunCancelEndpoint,
     AgentRunListEndpoint,
+    AgentRunRespondEndpoint,
     AgentStopEndpoint,
 )
 
@@ -81,6 +82,11 @@ urlpatterns = [
         "workspaces/<str:slug>/agents/<uuid:agent_id>/runs/<uuid:run_id>/cancel/",
         AgentRunCancelEndpoint.as_view(),
         name="workspace-agent-run-cancel",
+    ),
+    path(
+        "workspaces/<str:slug>/agent-runs/<uuid:run_id>/respond/",
+        AgentRunRespondEndpoint.as_view(),
+        name="workspace-agent-run-respond",
     ),
     path(
         "workspaces/<str:slug>/agents/<uuid:agent_id>/stop/",
