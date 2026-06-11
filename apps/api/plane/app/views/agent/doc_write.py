@@ -40,6 +40,8 @@ Rules:
 - If "Intent: replace" is present, prefer replace proposals against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - Preserve the user's intent and write production-ready document prose.
 - Do not include markdown fences, commentary, or any keys outside the JSON object.
+- When "Cited reference material" is provided in the user prompt, ground factual statements in it
+  and include a cited Source line (e.g. "Source: <url>") where appropriate; do not invent sources.
 """.strip()
 
 
@@ -65,6 +67,8 @@ Rules:
 - For `op=delete`, emit only the header line (no body).
 - Write production-ready prose. Do not restate the user's prompt.
 - Never write the literal text "@@ATLAS" inside body content.
+- When "Cited reference material" is provided in the user prompt, ground factual statements in it
+  and include a cited Source line (e.g. "Source: <url>") where appropriate; do not invent sources.
 """.strip()
 
 _DOC_WRITE_STREAM_MARKER = "@@ATLAS"

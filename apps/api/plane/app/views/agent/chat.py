@@ -54,6 +54,7 @@ from plane.utils.html_builders import link_html, list_html
 from plane.llm.persona import ATLAS_PERSONA
 from plane.llm.pricing import estimate_cost_usd
 from plane.llm.provider import LLMConfigError, LLMProvider, LLMTool
+from plane.llm.wikipedia import search_wikipedia, wikipedia_summary
 
 from ..base import BaseAPIView
 from .doc_write import (
@@ -90,6 +91,61 @@ _DOCUMENT_CREATION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Matches definitional / explanatory doc-write requests that benefit from
+# Wikipedia grounding (explain, define, add background on, describe, etc.)
+_DEFINITIONAL_DOC_REQUEST_RE = re.compile(
+    r"\b(explain|define|describe|overview|introduction|background|what is|who is|about|summarize)\b",
+    re.IGNORECASE,
+)
+
+
+def _extract_doc_write_topic(content: str) -> str:
+    """Best-effort extraction of the main topic from a doc-write prompt.
+
+    Strips leading definitional verbs and returns the remaining phrase,
+    capped at 120 characters, so it can be used as a Wikipedia query.
+    """
+    stripped = re.sub(
+        r"^\s*(explain|define|describe|write about|write an? (overview|introduction|summary) (of|on|about)|"
+        r"add (a )?(background|overview|introduction) (section )?(on|about|for)|what is|who is|about)\s*",
+        "",
+        content,
+        flags=re.IGNORECASE,
+    ).strip()
+    return stripped[:120] or content[:120]
+
+
+def _fetch_doc_write_reference_material(content: str) -> str:
+    """Fetch ≤3 Wikipedia summaries for the topic in a doc-write prompt.
+
+    Returns a formatted string ready to inject into the user prompt, or an
+    empty string if nothing useful is found. Never raises.
+    """
+    topic = _extract_doc_write_topic(content)
+    if not topic:
+        return ""
+    try:
+        hits = search_wikipedia(topic, limit=3)
+        if not hits:
+            return ""
+        parts: list[str] = []
+        for hit in hits[:3]:
+            summary = wikipedia_summary(hit["title"])
+            if summary is None:
+                continue
+            extract = (summary.get("extract") or "")[:800]
+            url = summary.get("url") or ""
+            title = summary.get("title") or hit["title"]
+            if extract:
+                citation = f" (source: {url})" if url else ""
+                parts.append(f"- {title}: {extract}{citation}")
+        if not parts:
+            return ""
+        return "Cited reference material (use and cite the URLs):\n" + "\n".join(parts)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 _CHAT_INTENT_SYSTEM_PROMPT = """
 Before answering, silently classify the user's real intent.
 
@@ -110,6 +166,9 @@ If the user asks about information in their files, docs, tasks, notes, stickies,
 call `search_workspace` first and answer only from the returned context unless you clearly label outside knowledge.
 Only if the user explicitly asks you to create a task, call `create_task`.
 Only if the user explicitly asks you to create a sticky/note, call `create_sticky`.
+For factual questions about real-world entities, history, science, or definitions, call `lookup_wikipedia`
+to ground your answer and cite the returned URL — prefer it over stating facts from memory.
+In document Sources sections, use real URLs returned by `lookup_wikipedia`, never invented ones.
 Do not reveal private chain-of-thought; only share a brief rationale if it helps the user.
 """.strip()
 
@@ -852,6 +911,51 @@ def _make_create_sticky_tool(*, workspace: Workspace, user) -> LLMTool:
     )
 
 
+def _make_wikipedia_lookup_tool() -> LLMTool:
+    def _handler(args: dict) -> str:
+        query = str(args.get("query") or "").strip()
+        lang = str(args.get("lang") or "en").strip() or "en"
+        if not query:
+            return "wikipedia_error: `query` is required"
+        try:
+            hits = search_wikipedia(query, lang=lang, limit=3)
+            if not hits:
+                return f"No Wikipedia article found for '{query}'."
+            top = hits[0]
+            summary = wikipedia_summary(top["title"], lang=lang)
+            if summary is None:
+                return f"No Wikipedia article found for '{query}'."
+            extract = (summary.get("extract") or "")[:1500]
+            url = summary.get("url") or ""
+            title = summary.get("title") or top["title"]
+            if url:
+                return f"{title}: {extract}\n(source: {url})"
+            return f"{title}: {extract}"
+        except Exception as exc:  # noqa: BLE001
+            return f"wikipedia_error: {exc}"
+
+    return LLMTool(
+        name="lookup_wikipedia",
+        description=(
+            "Look up a real-world entity, concept, person, place, event, or scientific topic on Wikipedia. "
+            "Returns a brief summary and a citable URL. Use this to ground factual answers and avoid stating "
+            "facts from memory — prefer it for history, science, geography, definitions, and notable entities."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The entity or topic to look up"},
+                "lang": {
+                    "type": "string",
+                    "description": "Wikipedia language code (default: en)",
+                },
+            },
+            "required": ["query"],
+        },
+        handler=_handler,
+    )
+
+
 def _fallback_tool_confirmation(result) -> str:
     """Give users a useful reply if the model stops after an action tool call."""
     for tool_call in reversed(result.tool_calls):
@@ -1137,12 +1241,20 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             block_context = "\n".join(
                 f"- id: {block['id']}\n  type: {block['type']}\n  text: {block['text']}" for block in blocks
             )
+
+            # Phase C: pre-fetch Wikipedia grounding for definitional requests so
+            # the streaming path (which has no tool access) can cite real sources.
+            reference_material = ""
+            if _DEFINITIONAL_DOC_REQUEST_RE.search(content):
+                reference_material = _fetch_doc_write_reference_material(content)
+
             user_prompt = "\n\n".join(
                 part
                 for part in [
                     f"Mode: {mode}",
                     f"Intent: {intent}",
                     f"User request:\n{content}",
+                    reference_material if reference_material else "",
                     f"Selected text:\n{selection_text}" if selection_text else "",
                     (
                         "Private Atlas context (do not quote this block unless the user asks):\n"
@@ -1505,6 +1617,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     workspace=session.workspace,
                     user=request.user,
                 ),
+                _make_wikipedia_lookup_tool(),
             ]
 
         try:
