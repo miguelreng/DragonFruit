@@ -9,7 +9,7 @@ import { useParams } from "next/navigation";
 // plane editor
 import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
 // plane types
-import type { TSearchEntities, TSearchEntityRequestPayload, TSearchResponse, TUserSearchResponse } from "@plane/types";
+import type { TSearchEntityRequestPayload, TSearchResponse, TUserSearchResponse } from "@plane/types";
 // plane ui
 import { Avatar } from "@plane/ui";
 // helpers
@@ -29,7 +29,7 @@ export const useEditorMention = (args: TArgs) => {
   // router
   const { workspaceSlug } = useParams();
   // additional mentions
-  const { editorMentionTypes, updateAdditionalSections } = useAdditionalEditorMention({
+  const { editorMentionTypes, updateAdditionalSections, fetchWikiSections } = useAdditionalEditorMention({
     enableAdvancedMentions,
   });
   // agent store — used to surface workspace agents alongside human mentions.
@@ -70,7 +70,9 @@ export const useEditorMention = (args: TArgs) => {
           throw new Error("No response found");
         }
         Object.keys(res).map((key) => {
-          const responseKey = key as TSearchEntities;
+          // Cast to keyof TSearchResponse (not TSearchEntities) because "wiki"
+          // is a client-side-only entity type not present in TSearchResponse.
+          const responseKey = key as keyof TSearchResponse;
           const response = res[responseKey];
           if (responseKey === "user_mention" && response && response.length > 0) {
             const items: TMentionSuggestion[] = (response as TUserSearchResponse[]).map((user) => ({
@@ -106,13 +108,16 @@ export const useEditorMention = (args: TArgs) => {
         const { sections } = updateAdditionalSections({
           response: res,
         });
-        return [...suggestionSections, ...sections];
+        // Append Wikipedia results (client-side only, never sent to the API).
+        // fetchWikiSections is a no-op for queries shorter than 3 chars.
+        const wikiSections = fetchWikiSections ? await fetchWikiSections(query) : [];
+        return [...suggestionSections, ...sections, ...wikiSections];
       } catch (error) {
         console.error("Error in fetching mentions:", error);
         throw error;
       }
     },
-    [editorMentionTypes, searchEntity, updateAdditionalSections, workspaceSlug, agentStore]
+    [editorMentionTypes, searchEntity, updateAdditionalSections, fetchWikiSections, workspaceSlug, agentStore]
   );
 
   return {
