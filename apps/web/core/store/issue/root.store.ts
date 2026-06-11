@@ -208,26 +208,51 @@ export class IssueRootStore implements IIssueRootStore {
     this.rootStore = rootStore;
 
     autorun(() => {
+      // Reads must stay outside runInAction: action bodies are untracked, so
+      // reading inside would leave this autorun observing nothing and it
+      // would never re-run (currentUserId etc. would stay undefined forever).
+      const currentUserId = rootStore?.user?.data?.id;
+      const { workspaceSlug, teamspaceId, projectId, cycleId, moduleId, viewId, userId } = rootStore.router;
+      const stateMap = rootStore?.state?.stateMap;
+      const projectStates = rootStore?.state?.projectStates;
+      const workspaceStates = rootStore?.state?.workspaceStates;
+      const labelMap = rootStore?.label?.labelMap;
+      const workspaceMemberMap = rootStore?.memberRoot?.workspace?.workspaceMemberMap;
+      const workspaceMemberRolesMap = rootStore?.memberRoot?.workspace?.memberMap;
+      const memberMap = rootStore?.memberRoot?.memberMap;
+      const projectMap = rootStore?.projectRoot?.project?.projectMap;
+      const moduleMap = rootStore?.module?.moduleMap;
+      const cycleMap = rootStore?.cycle?.cycleMap;
+      // isEmpty iterates keys — these maps are mutated in place, so the
+      // empty checks must also happen in tracked (non-action) code.
+      const hasStates = !isEmpty(stateMap);
+      const hasProjectStates = !isEmpty(projectStates);
+      const hasWorkspaceStates = !isEmpty(workspaceStates);
+      const hasLabels = !isEmpty(labelMap);
+      const hasWorkspaceMembers = !isEmpty(workspaceMemberMap);
+      const hasMembers = !isEmpty(memberMap);
+      const hasProjects = !isEmpty(projectMap);
+      const hasModules = !isEmpty(moduleMap);
+      const hasCycles = !isEmpty(cycleMap);
+
       runInAction(() => {
-        if (rootStore?.user?.data?.id) this.currentUserId = rootStore?.user?.data?.id;
-        if (this.workspaceSlug !== rootStore.router.workspaceSlug) this.workspaceSlug = rootStore.router.workspaceSlug;
-        if (this.teamspaceId !== rootStore.router.teamspaceId) this.teamspaceId = rootStore.router.teamspaceId;
-        if (this.projectId !== rootStore.router.projectId) this.projectId = rootStore.router.projectId;
-        if (this.cycleId !== rootStore.router.cycleId) this.cycleId = rootStore.router.cycleId;
-        if (this.moduleId !== rootStore.router.moduleId) this.moduleId = rootStore.router.moduleId;
-        if (this.viewId !== rootStore.router.viewId) this.viewId = rootStore.router.viewId;
-        if (this.userId !== rootStore.router.userId) this.userId = rootStore.router.userId;
-        if (!isEmpty(rootStore?.state?.stateMap)) this.stateMap = rootStore?.state?.stateMap;
-        if (!isEmpty(rootStore?.state?.projectStates)) this.stateDetails = rootStore?.state?.projectStates;
-        if (!isEmpty(rootStore?.state?.workspaceStates)) this.workspaceStateDetails = rootStore?.state?.workspaceStates;
-        if (!isEmpty(rootStore?.label?.labelMap)) this.labelMap = rootStore?.label?.labelMap;
-        if (!isEmpty(rootStore?.memberRoot?.workspace?.workspaceMemberMap))
-          this.workSpaceMemberRolesMap = rootStore?.memberRoot?.workspace?.memberMap || undefined;
-        if (!isEmpty(rootStore?.memberRoot?.memberMap)) this.memberMap = rootStore?.memberRoot?.memberMap || undefined;
-        if (!isEmpty(rootStore?.projectRoot?.project?.projectMap))
-          this.projectMap = rootStore?.projectRoot?.project?.projectMap;
-        if (!isEmpty(rootStore?.module?.moduleMap)) this.moduleMap = rootStore?.module?.moduleMap;
-        if (!isEmpty(rootStore?.cycle?.cycleMap)) this.cycleMap = rootStore?.cycle?.cycleMap;
+        if (currentUserId) this.currentUserId = currentUserId;
+        if (this.workspaceSlug !== workspaceSlug) this.workspaceSlug = workspaceSlug;
+        if (this.teamspaceId !== teamspaceId) this.teamspaceId = teamspaceId;
+        if (this.projectId !== projectId) this.projectId = projectId;
+        if (this.cycleId !== cycleId) this.cycleId = cycleId;
+        if (this.moduleId !== moduleId) this.moduleId = moduleId;
+        if (this.viewId !== viewId) this.viewId = viewId;
+        if (this.userId !== userId) this.userId = userId;
+        if (hasStates) this.stateMap = stateMap;
+        if (hasProjectStates) this.stateDetails = projectStates;
+        if (hasWorkspaceStates) this.workspaceStateDetails = workspaceStates;
+        if (hasLabels) this.labelMap = labelMap;
+        if (hasWorkspaceMembers) this.workSpaceMemberRolesMap = workspaceMemberRolesMap || undefined;
+        if (hasMembers) this.memberMap = memberMap || undefined;
+        if (hasProjects) this.projectMap = projectMap;
+        if (hasModules) this.moduleMap = moduleMap;
+        if (hasCycles) this.cycleMap = cycleMap;
       });
     });
 
