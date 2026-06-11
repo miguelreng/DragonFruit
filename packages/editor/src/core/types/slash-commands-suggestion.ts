@@ -25,4 +25,10 @@ export type ISlashCommandItem = {
   iconContainerStyle?: CSSProperties;
   command: ({ editor, range }: CommandProps) => void;
   badge?: React.ReactNode;
+  /**
+   * Keeps the command selected in the dropdown while the user types an
+   * argument after it ("/wiki photosynthesis"), so Enter executes the
+   * command with the typed argument instead of dismissing the menu.
+   */
+  acceptsArguments?: boolean;
 };

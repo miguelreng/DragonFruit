@@ -41,6 +41,9 @@ const Command = Extension.create<SlashCommandOptions>({
     return {
       suggestion: {
         char: "/",
+        // Keep the suggestion active across spaces so argument-taking
+        // commands ("/wiki photosynthesis") stay selected until Enter.
+        allowSpaces: true,
         command: ({ editor, range, props }) => {
           props.command({ editor, range });
         },

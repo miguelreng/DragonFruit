@@ -24,6 +24,7 @@ import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { fetchWikipediaSummary } from "@plane/editor";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -52,6 +53,7 @@ import {
   domainFromUrl,
   normalizeTags,
   openImageUrl,
+  wikipediaArticleTitleFromUrl,
 } from "./helpers";
 import { ImportBookmarksModal } from "./import-bookmarks-modal";
 import { SuggestedTagChips } from "./suggested-tag-chips";
@@ -1007,6 +1009,33 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     lastFetchedUrlRef.current = url;
     setIsFetchingMetadata(true);
     try {
+      // Wikipedia articles get a rich preview straight from the summary API
+      // (clean title, extract, thumbnail) plus an automatic "wiki" tag.
+      const wikiTitle = wikipediaArticleTitleFromUrl(url);
+      if (wikiTitle) {
+        const summary = await fetchWikipediaSummary(wikiTitle);
+        if (summary) {
+          setDraft((prev) => ({
+            ...prev,
+            title: prev.title.trim() ? prev.title : summary.title,
+            description: prev.description.trim() ? prev.description : summary.extract.slice(0, 500),
+            tags: prev.tags.trim()
+              ? prev.tags
+                  .split(",")
+                  .map((t) => t.trim())
+                  .includes("wiki")
+                ? prev.tags
+                : `${prev.tags}, wiki`
+              : "wiki",
+            metadata: {
+              ...prev.metadata,
+              site_name: "Wikipedia",
+              ...(summary.thumbnail ? { image_url: summary.thumbnail } : {}),
+            },
+          }));
+          return;
+        }
+      }
       const data = await bookmarkStore.fetchUrlMetadata(workspaceSlug, url);
       setDraft((prev) => ({
         ...prev,

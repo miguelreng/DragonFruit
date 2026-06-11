@@ -7,6 +7,8 @@
 import { Globe, Quotes, Sparkles } from "@plane/icons";
 // helpers
 import { searchWikipedia, fetchWikipediaSummary } from "@/helpers/wikipedia-client";
+import { checkWikipediaCitations } from "@/helpers/wiki-citations";
+import { linkGlossaryTerms } from "@/helpers/wiki-glossary";
 // extensions
 import type { TSlashCommandAdditionalOption } from "@/extensions";
 // types
@@ -59,6 +61,7 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
     icon: <Globe className="size-3.5" />,
     section: "general",
     pushAfter: "agent",
+    acceptsArguments: true,
     command: ({ editor, range }) => {
       // Pull query text from the current paragraph (best-effort) so typing
       // `/wiki photosynthesis` pre-fills the topic automatically.
@@ -66,7 +69,8 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
       const blockNode = $from.node($from.depth);
       // The node text includes the typed "/wiki " prefix — strip it.
       const rawText = blockNode?.textContent ?? "";
-      const query = rawText.replace(/^\/wiki\s*/i, "").trim();
+      // Strip the typed slash trigger (any alias, e.g. "/wiki", "/wikipedia").
+      const query = rawText.replace(/^\/\S*\s*/, "").trim();
 
       // Remove the slash-command trigger before inserting the result.
       editor.chain().focus().deleteRange(range).run();
@@ -131,6 +135,7 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
     icon: <Quotes className="size-3.5" />,
     section: "general",
     pushAfter: "wiki",
+    acceptsArguments: true,
     command: ({ editor, range }) => {
       // Prefer an active text selection — the canonical "Cite this" flow:
       // user selects a claim, types /cite, hits Enter.
@@ -142,7 +147,7 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
       const $from = editor.state.doc.resolve(range.from);
       const blockNode = $from.node($from.depth);
       const rawText = blockNode?.textContent ?? "";
-      const paragraphQuery = rawText.replace(/^\/cite\s*/i, "").trim();
+      const paragraphQuery = rawText.replace(/^\/\S*\s*/, "").trim();
 
       const query = selectionText || paragraphQuery;
 
@@ -188,6 +193,39 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
           ])
           .run();
       })();
+    },
+  },
+  {
+    commandKey: "link-terms",
+    key: "link-terms",
+    title: "Link terms",
+    description: "Find notable terms in this doc and link them to Wikipedia.",
+    searchTerms: ["link terms", "glossary", "auto link", "wikipedia", "wiki", "terms"],
+    icon: <Globe className="size-3.5" />,
+    section: "general",
+    pushAfter: "cite",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      void linkGlossaryTerms(editor).then((count) => {
+        editor.view.dom.dispatchEvent(
+          new CustomEvent("dragonfruit:glossary-linked", { bubbles: true, detail: { count } })
+        );
+        return undefined;
+      });
+    },
+  },
+  {
+    commandKey: "check-citations",
+    key: "check-citations",
+    title: "Check citations",
+    description: "Verify every Wikipedia citation in this doc still resolves.",
+    searchTerms: ["check citations", "citations", "verify", "sources", "wikipedia", "wiki"],
+    icon: <Quotes className="size-3.5" />,
+    section: "general",
+    pushAfter: "link-terms",
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      void checkWikipediaCitations(editor);
     },
   },
 ];

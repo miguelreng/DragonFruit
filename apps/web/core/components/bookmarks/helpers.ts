@@ -125,3 +125,20 @@ export const openBookmarkLink = (href: string, isExternal: boolean) => {
   if (!href) return;
   if (isExternal) window.open(href, "_blank", "noopener,noreferrer");
 };
+
+/**
+ * Returns the decoded article title when the URL is a Wikipedia article
+ * (any language subdomain), or null for everything else.
+ */
+export const wikipediaArticleTitleFromUrl = (rawUrl: string): string | null => {
+  try {
+    const url = new URL(rawUrl);
+    if (!/(^|\.)wikipedia\.org$/.test(url.hostname)) return null;
+    const match = url.pathname.match(/^\/wiki\/(.+)$/);
+    if (!match) return null;
+    const title = decodeURIComponent(match[1]).replace(/_/g, " ").trim();
+    return title || null;
+  } catch {
+    return null;
+  }
+};

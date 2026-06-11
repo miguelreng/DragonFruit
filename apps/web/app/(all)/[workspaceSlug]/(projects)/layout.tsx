@@ -7,6 +7,8 @@
 import { observer } from "mobx-react";
 import { Outlet } from "react-router";
 import { AgentDispatchListener } from "@/components/agent/agent-dispatch-listener";
+import { WikiExplainListener } from "@/components/editor/wiki-explain-listener";
+import { WikiToolsListener } from "@/components/editor/wiki-tools-listener";
 import { ProjectsAppPowerKProvider } from "@/components/power-k/projects-app-provider";
 
 function WorkspaceLayout() {
@@ -18,6 +20,8 @@ function WorkspaceLayout() {
         <div className="relative flex size-full gap-2 overflow-hidden">
           <main className="relative flex h-full w-full flex-col overflow-hidden bg-surface-1">
             <AgentDispatchListener />
+            <WikiExplainListener />
+            <WikiToolsListener />
             <Outlet />
           </main>
         </div>

@@ -759,17 +759,27 @@ export const getSlashCommandFilteredSections =
     });
 
     const lowercaseQuery = typeof query === "string" ? query.toLowerCase() : null;
+    // "/wiki photosynthesis" — the first word selects an argument-taking
+    // command; the rest is its argument and must not break the match.
+    const [queryCommandWord = ""] = lowercaseQuery?.split(/\s+/) ?? [];
+    const queryHasArgument = !!lowercaseQuery?.trim().includes(" ");
     for (const section of SLASH_COMMAND_SECTIONS) {
       if (lowercaseQuery === null) {
         section.items = [];
         continue;
       }
-      section.items = section.items.filter(
-        (item) =>
+      section.items = section.items.filter((item) => {
+        const matchesFullQuery =
           item.title.toLowerCase().includes(lowercaseQuery) ||
           item.description.toLowerCase().includes(lowercaseQuery) ||
-          item.searchTerms.some((t) => t.includes(lowercaseQuery))
-      );
+          item.searchTerms.some((t) => t.includes(lowercaseQuery));
+        if (!queryHasArgument) return matchesFullQuery;
+        return (
+          matchesFullQuery ||
+          (item.acceptsArguments === true &&
+            (item.key === queryCommandWord || item.searchTerms.includes(queryCommandWord)))
+        );
+      });
     }
 
     return SLASH_COMMAND_SECTIONS.filter((s) => s.items.length !== 0);

@@ -19,6 +19,8 @@ export * from "@/constants/common";
 export * from "@/helpers/common";
 export * from "@/helpers/yjs-utils";
 export * from "@/helpers/wikipedia-client";
+export * from "@/helpers/wiki-glossary";
+export * from "@/helpers/wiki-citations";
 
 export { CORE_EXTENSIONS } from "@/constants/extension";
 export { ADDITIONAL_EXTENSIONS } from "@/plane-editor/constants/extensions";

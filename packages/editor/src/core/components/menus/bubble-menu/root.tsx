@@ -8,7 +8,7 @@ import { isNodeSelection } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import { BubbleMenu, useEditorState } from "@tiptap/react";
 import type { BubbleMenuProps } from "@tiptap/react";
-import { MessageCircle, Sparkles } from "@plane/icons";
+import { Globe, MessageCircle, Sparkles } from "@plane/icons";
 import { useEffect, useState, useRef } from "react";
 import { v4 as generateUuid } from "uuid";
 // plane utils
@@ -264,6 +264,33 @@ export function EditorBubbleMenu(props: Props) {
             >
               <Sparkles className="size-4" />
               <span>Reply with Atlas</span>
+            </button>
+          </div>
+          <div className="flex gap-0.5 px-2">
+            {/* Select-to-explain: the host app catches
+                `dragonfruit:explain-selection` and shows a Wikipedia
+                summary card anchored at the selection. */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const { from, to } = editor.state.selection;
+                if (from === to) return;
+                const text = editor.state.doc.textBetween(from, to, " ").trim();
+                if (!text) return;
+                const coords = editor.view.coordsAtPos(from);
+                editor.view.dom.dispatchEvent(
+                  new CustomEvent("dragonfruit:explain-selection", {
+                    bubbles: true,
+                    detail: { text, x: coords.left, y: coords.bottom },
+                  })
+                );
+              }}
+              aria-label="Explain selection with Wikipedia"
+              title="Explain"
+              className="grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
+            >
+              <Globe className="size-4" />
             </button>
           </div>
           <div className="flex gap-0.5 px-2">
