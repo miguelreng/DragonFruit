@@ -153,25 +153,55 @@ struct PomodoroCardContent: View {
             .frame(height: 4)
 
             HStack(spacing: 8) {
-                Button(pomodoro.isRunning ? "Pause" : (pomodoro.isActive ? "Resume" : "Start focus")) {
+                Button {
                     pomodoro.toggle()
+                } label: {
+                    Image(systemName: pomodoro.isRunning ? "pause.fill" : "play.fill")
                 }
-                .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
+                .buttonStyle(PomodoroIconButtonStyle(theme: theme, prominent: true))
+                .help(pomodoro.isRunning ? "Pause" : (pomodoro.isActive ? "Resume" : "Start focus"))
 
                 if pomodoro.isActive {
-                    Button("Skip") {
+                    Button {
                         pomodoro.skipPhase()
+                    } label: {
+                        Image(systemName: "forward.end.fill")
                     }
-                    .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+                    .buttonStyle(PomodoroIconButtonStyle(theme: theme))
+                    .help(pomodoro.phase == .focus ? "Skip to break" : "Skip to focus")
 
-                    Button("Reset") {
+                    Button {
                         pomodoro.reset()
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise")
                     }
-                    .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
+                    .buttonStyle(PomodoroIconButtonStyle(theme: theme))
+                    .help("Reset")
                 }
 
                 Spacer(minLength: 0)
             }
         }
+    }
+}
+
+private struct PomodoroIconButtonStyle: ButtonStyle {
+    let theme: CopilotThemeTokens
+    var prominent = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(prominent ? theme.textOnAccent : theme.textSecondary)
+            .frame(width: 26, height: 26)
+            .background(
+                Circle()
+                    .fill(
+                        prominent
+                            ? theme.accent.opacity(configuration.isPressed ? 0.85 : 1)
+                            : theme.layer1.opacity(configuration.isPressed ? 0.72 : 1)
+                    )
+            )
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
     }
 }

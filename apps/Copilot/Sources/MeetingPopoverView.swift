@@ -863,12 +863,14 @@ private struct MenuWindowBorderCleaner: NSViewRepresentable {
         window.contentView?.superview?.wantsLayer = true
         window.contentView?.superview?.layer?.backgroundColor = clearColor.cgColor
         window.contentView?.superview?.layer?.cornerRadius = cornerRadius
+        window.contentView?.superview?.layer?.cornerCurve = .continuous
         window.contentView?.superview?.layer?.masksToBounds = true
         window.contentView?.superview?.layer?.borderWidth = 0
         window.contentView?.superview?.layer?.borderColor = clearColor.cgColor
         window.contentView?.superview?.layer?.shadowOpacity = 0
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.cornerRadius = cornerRadius
+        window.contentView?.layer?.cornerCurve = .continuous
         window.contentView?.layer?.masksToBounds = true
         window.contentView?.layer?.borderWidth = 0
         window.contentView?.layer?.borderColor = clearColor.cgColor
