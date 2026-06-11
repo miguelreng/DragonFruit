@@ -32,6 +32,9 @@ struct MeetingPopoverView: View {
                 if store.lastVoiceActionResult != nil {
                     voiceActionResultCard
                 }
+                if store.wikiLookup != nil {
+                    wikiLookupCard
+                }
                 agentInboxCard
                 myTasksCard
                 pomodoroCard
@@ -455,6 +458,12 @@ struct MeetingPopoverView: View {
         }
     }
 
+    private var wikiLookupCard: some View {
+        card {
+            WikiLookupCardContent(store: store, theme: theme)
+        }
+    }
+
     private var settingsCard: some View {
         card {
             Button {
@@ -756,6 +765,8 @@ struct MeetingPopoverView: View {
             return .bookmark
         case .agent:
             return .message
+        case .lookup:
+            return .info
         }
     }
 

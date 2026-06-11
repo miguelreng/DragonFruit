@@ -91,6 +91,7 @@ enum VoiceCaptureType: String {
     case sticky = "Sticky"
     case bookmark = "Bookmark"
     case agent = "Agent"
+    case lookup = "Lookup"
 }
 
 enum VoiceCaptureMode {
@@ -614,6 +615,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
     }
     @Published var myTasks: [MyTaskSummary] = []
+    @Published var wikiLookup: WikiLookupState?
     @Published var isLoadingMyTasks = false
     @Published var hasLoadedMyTasks = false
     private var currentUserId = ""
@@ -1593,6 +1595,77 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 self.statusMessage = "Could not complete task: \(error.localizedDescription)"
             }
         }
+    }
+
+    // MARK: - Voice Wikipedia lookup
+
+    private let wikiSpeechSynthesizer = AVSpeechSynthesizer()
+
+    func performWikiLookup(query: String) async {
+        wikiLookup = WikiLookupState(query: query, status: .loading)
+        statusMessage = "Looking up \(query)..."
+        do {
+            let hits = try await WikipediaLookupClient.search(query)
+            guard let top = hits.first,
+                  let summary = try await WikipediaLookupClient.summary(forTitle: top.title)
+            else {
+                wikiLookup = WikiLookupState(query: query, status: .notFound)
+                statusMessage = "No Wikipedia article for \(query)"
+                return
+            }
+            wikiLookup = WikiLookupState(query: query, status: .ready, summary: summary)
+            statusMessage = "Found: \(summary.title)"
+        } catch {
+            wikiLookup = WikiLookupState(query: query, status: .notFound)
+            statusMessage = "Lookup failed: \(error.localizedDescription)"
+        }
+    }
+
+    func toggleWikiLookupExpanded() {
+        guard var lookup = wikiLookup, let summary = lookup.summary else { return }
+        if lookup.isExpanded {
+            lookup.isExpanded = false
+            wikiLookup = lookup
+            return
+        }
+        if lookup.fullExtract != nil {
+            lookup.isExpanded = true
+            wikiLookup = lookup
+            return
+        }
+        lookup.isLoadingFullExtract = true
+        wikiLookup = lookup
+        Task { @MainActor [weak self] in
+            let full = try? await WikipediaLookupClient.fullIntro(forTitle: summary.title)
+            guard var current = self?.wikiLookup, current.query == lookup.query else { return }
+            current.isLoadingFullExtract = false
+            current.fullExtract = full ?? summary.extract
+            current.isExpanded = true
+            self?.wikiLookup = current
+        }
+    }
+
+    func toggleWikiLookupSpeech() {
+        guard var lookup = wikiLookup, let summary = lookup.summary else { return }
+        if wikiSpeechSynthesizer.isSpeaking {
+            wikiSpeechSynthesizer.stopSpeaking(at: .immediate)
+            lookup.isSpeaking = false
+            wikiLookup = lookup
+            return
+        }
+        let text = lookup.isExpanded ? (lookup.fullExtract ?? summary.extract) : summary.extract
+        let utterance = AVSpeechUtterance(string: "\(summary.title). \(text)")
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        wikiSpeechSynthesizer.speak(utterance)
+        lookup.isSpeaking = true
+        wikiLookup = lookup
+    }
+
+    func dismissWikiLookup() {
+        if wikiSpeechSynthesizer.isSpeaking {
+            wikiSpeechSynthesizer.stopSpeaking(at: .immediate)
+        }
+        wikiLookup = nil
     }
 
     func openTaskInWeb(_ task: MyTaskSummary) {
@@ -3446,6 +3519,16 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let docMarkers = ["doc", "document", "documento", "spec", "file", "archivo", "page", "pagina", "nota larga", "brief"]
         let taskMarkers = ["task", "todo", "to do", "tarea", "issue", "bug", "ticket", "accion", "action", "follow up", "reminder", "recordatorio"]
 
+        if let lookupQuery = extractLookupQuery(from: transcript, normalized: normalized) {
+            return VoiceCaptureResult(
+                type: .lookup,
+                projectHint: project,
+                title: lookupQuery.prefix(80).description,
+                body: lookupQuery,
+                rawTranscript: transcript
+            )
+        }
+
         if isExplicitCreationRequest(normalized, verbs: bookmarkCreationVerbs, markers: bookmarkMarkers) {
             type = .bookmark
         } else if isExplicitCreationRequest(normalized, verbs: stickyCreationVerbs, markers: stickyMarkers) {
@@ -3468,6 +3551,26 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             body: payload,
             rawTranscript: transcript
         )
+    }
+
+    /// "look up X" / "what is X" / "define X" → returns X, or nil when the
+    /// transcript isn't a lookup request. Checked before every other intent
+    /// so quick definitions never round-trip through the agent.
+    private func extractLookupQuery(from transcript: String, normalized: String) -> String? {
+        let markers = [
+            "look up ", "lookup ", "what is ", "what's ", "whats ", "who is ", "who was ",
+            "define ", "definition of ", "look for the definition of ",
+            "que es ", "quien es ", "quien fue ", "definicion de ", "busca en wikipedia ",
+        ]
+        for marker in markers {
+            guard normalized.contains(marker) else { continue }
+            guard let tail = tailAfter(marker: marker, in: transcript) else { continue }
+            let query = tail
+                .trimmingCharacters(in: CharacterSet(charactersIn: "\"'“”‘’.,:;?¿"))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !query.isEmpty { return query }
+        }
+        return nil
     }
 
     private func normalizedForIntent(_ transcript: String) -> String {
@@ -3513,6 +3616,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             return "Creating sticky..."
         case .bookmark:
             return "Saving bookmark..."
+        case .lookup:
+            return "Looking it up..."
         }
     }
 
@@ -3576,6 +3681,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             ]
         case .agent:
             specific = ["pregunta ", "ask ", "agent ", "dragonfruit agent "]
+        case .lookup:
+            specific = ["look up", "lookup", "define", "que es", "quien es"]
         }
         return specific + general
     }
@@ -3656,6 +3763,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     private func persistVoiceIntent(_ intent: VoiceCaptureResult) async {
         defer { isVoiceActionProcessing = false }
+        // Lookups never touch the DragonFruit API — answer straight from
+        // Wikipedia (with a Google fallback) without resolving a project.
+        if intent.type == .lookup {
+            await performWikiLookup(query: intent.body)
+            return
+        }
         do {
             let client = try makeClient()
             let routing = try await resolveRouting(client: client, projectHint: intent.projectHint)
@@ -3754,6 +3867,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     intent.body,
                     contextNote: contextNoteForPrompt(intent.body)
                 )
+            case .lookup:
+                // Handled before the API round-trip at the top of this method.
+                return
             }
         } catch {
             statusMessage = "Could not save voice note: \(error.localizedDescription)"
@@ -3778,6 +3894,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             path = "/\(workspaceSlug)/projects/\(projectId)/bookmarks"
         case .agent:
             path = "/\(workspaceSlug)/settings/agents"
+        case .lookup:
+            return nil
         }
         return URL(string: path, relativeTo: base)?.absoluteURL
     }
