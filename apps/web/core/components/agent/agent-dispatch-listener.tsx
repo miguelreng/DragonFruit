@@ -410,6 +410,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
   const [mode, setMode] = useState<TAIMode>("quick-ask");
   const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
   const [pendingProposals, setPendingProposals] = useState(0);
+  const [selectedProposals, setSelectedProposals] = useState(0);
   const [isDrafting, setIsDrafting] = useState(false);
   // Two-step inline confirm for the destructive "clear conversation".
   const [confirmingClear, setConfirmingClear] = useState(false);
@@ -487,6 +488,19 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
       return;
     }
     const sync = () => setPendingProposals(activePageEditorRef.getActiveAtlasProposalCount());
+    sync();
+    const unsubscribe = activePageEditorRef.onStateChange?.(sync);
+    return () => unsubscribe?.();
+  }, [activePageEditorRef, isDocPage]);
+
+  // Track how many proposals are individually selected so the bar can surface
+  // Accept/Reject selected when ≥1 is checked.
+  useEffect(() => {
+    if (!isDocPage || !activePageEditorRef) {
+      setSelectedProposals(0);
+      return;
+    }
+    const sync = () => setSelectedProposals(activePageEditorRef.getSelectedAtlasProposalCount?.() ?? 0);
     sync();
     const unsubscribe = activePageEditorRef.onStateChange?.(sync);
     return () => unsubscribe?.();
@@ -1135,6 +1149,24 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
                 <span className="min-w-0 flex-1 truncate text-[11px] text-tertiary">
                   {pendingProposals} {pendingProposals === 1 ? "edit" : "edits"} awaiting review
                 </span>
+                {selectedProposals > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => activePageEditorRef?.acceptSelectedAtlasProposals?.()}
+                      className="inline-flex h-6 shrink-0 items-center rounded-full bg-accent-primary px-2.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90"
+                    >
+                      Accept selected ({selectedProposals})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => activePageEditorRef?.rejectSelectedAtlasProposals?.()}
+                      className="inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                    >
+                      Reject selected ({selectedProposals})
+                    </button>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => activePageEditorRef?.acceptAllAtlasProposals()}

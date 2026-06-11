@@ -26,6 +26,8 @@ type TAtlasDocReviewState = {
   // Cached DecorationSet — rebuilt only when proposals change, mapped through
   // tr.mapping on every other transaction (typing, cursor moves, etc.).
   decorations: DecorationSet;
+  // Ids of proposals the user has individually selected (for Accept/Reject selected).
+  selectedIds: string[];
 };
 
 type TFoundNode = { node: ProseMirrorNode; pos: number };
@@ -35,7 +37,9 @@ type TAtlasDocReviewAction =
   | { type: "append"; proposal: TTrackedProposal }
   | { type: "update"; id: string; patch: TAtlasDocReviewProposalUpdate; from: number; to: number }
   | { type: "remove"; id: string }
+  | { type: "remove-many"; ids: string[] }
   | { type: "set-loading"; loading: boolean }
+  | { type: "toggle-select"; id: string }
   | { type: "clear" };
 
 export const atlasDocReviewPluginKey = new PluginKey<TAtlasDocReviewState>("atlasDocReview");
@@ -51,6 +55,9 @@ declare module "@tiptap/core" {
       rejectAtlasProposal: (id: string) => ReturnType;
       acceptAllAtlasProposals: () => ReturnType;
       rejectAllAtlasProposals: () => ReturnType;
+      toggleAtlasProposalSelection: (id: string) => ReturnType;
+      acceptSelectedAtlasProposals: () => ReturnType;
+      rejectSelectedAtlasProposals: () => ReturnType;
     };
   }
 }
@@ -60,6 +67,7 @@ const initialState: TAtlasDocReviewState = {
   proposals: [],
   loading: false,
   decorations: DecorationSet.empty,
+  selectedIds: [],
 };
 
 const getReviewState = (state: EditorState) => atlasDocReviewPluginKey.getState(state) ?? initialState;
@@ -191,11 +199,51 @@ const rejectAllProposals = (view: EditorView) => {
   view.dispatch(tr);
 };
 
+// Accept/reject only the proposals that have been individually selected.
+// Mirrors acceptAllProposals/rejectAllProposals — delete targets HIGH-TO-LOW
+// so earlier positions remain valid after each deletion. Uses remove-many so
+// all removals are batched into a single transaction meta (setMeta overwrites,
+// so dispatching remove per-id in one transaction would lose all but the last).
+const acceptSelectedProposals = (view: EditorView) => {
+  const { proposals, selectedIds } = getReviewState(view.state);
+  const selected = proposals.filter((p) => selectedIds.includes(p.id));
+  if (selected.length === 0) return;
+  let tr = view.state.tr;
+  const targets = selected
+    .filter((p) => p.operation === "replace" || p.operation === "delete")
+    .map((p) => findNodeById(view.state, p.targetBlockId))
+    .filter((t): t is TFoundNode => t !== null)
+    .toSorted((a, b) => b.pos - a.pos);
+  for (const target of targets) tr = tr.delete(target.pos, target.pos + target.node.nodeSize);
+  tr = tr.setMeta(atlasDocReviewPluginKey, {
+    type: "remove-many",
+    ids: selected.map((p) => p.id),
+  } satisfies TAtlasDocReviewAction);
+  view.dispatch(tr);
+};
+
+const rejectSelectedProposals = (view: EditorView) => {
+  const { proposals, selectedIds } = getReviewState(view.state);
+  const selected = proposals.filter((p) => selectedIds.includes(p.id));
+  if (selected.length === 0) return;
+  let tr = view.state.tr;
+  const ranges = selected
+    .filter((p) => p.operation !== "delete")
+    .map((p) => ({ from: clampPos(view.state, p.from), to: clampPos(view.state, p.to) }))
+    .toSorted((a, b) => b.from - a.from);
+  for (const range of ranges) tr = tr.delete(range.from, range.to);
+  tr = tr.setMeta(atlasDocReviewPluginKey, {
+    type: "remove-many",
+    ids: selected.map((p) => p.id),
+  } satisfies TAtlasDocReviewAction);
+  view.dispatch(tr);
+};
+
 // --------------------------------------------------------------------------
 // Decorations — pink highlight over the real content + floating controls.
 // --------------------------------------------------------------------------
 
-const buildProposalControls = (view: EditorView, proposal: TTrackedProposal) => {
+const buildProposalControls = (view: EditorView, proposal: TTrackedProposal, isSelected: boolean) => {
   // `controls` is a zero-height anchor at the block boundary; `inner` is
   // pushed into the right margin so the buttons sit next to the paragraph
   // rather than floating over its text.
@@ -206,6 +254,23 @@ const buildProposalControls = (view: EditorView, proposal: TTrackedProposal) => 
 
   const inner = document.createElement("div");
   inner.className = "atlas-doc-review-controls-inner";
+
+  // Checkbox-style select toggle — prepended before Accept/Reject.
+  const select = document.createElement("button");
+  select.type = "button";
+  select.className = isSelected
+    ? "atlas-doc-review-button atlas-doc-review-select is-selected"
+    : "atlas-doc-review-button atlas-doc-review-select";
+  select.textContent = "◻";
+  select.title = isSelected ? "Deselect" : "Select";
+  select.setAttribute("aria-label", isSelected ? "Deselect proposal" : "Select proposal");
+  select.setAttribute("aria-pressed", String(isSelected));
+  select.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dispatchReviewEvent(view, "atlas-doc-review-toggle-select", proposal.id);
+  });
+  inner.appendChild(select);
 
   const acceptLabel = proposal.operation === "delete" ? "Delete" : "Accept";
   const accept = document.createElement("button");
@@ -239,7 +304,7 @@ const buildProposalControls = (view: EditorView, proposal: TTrackedProposal) => 
   return controls;
 };
 
-const buildDecorations = (proposals: TTrackedProposal[], state: EditorState): DecorationSet => {
+const buildDecorations = (proposals: TTrackedProposal[], selectedIds: string[], state: EditorState): DecorationSet => {
   const visibleProposals = proposals.filter((proposal) => !["accepted", "rejected"].includes(proposal.status));
 
   // Fast path: no visible proposals → return the singleton empty set immediately.
@@ -255,22 +320,24 @@ const buildDecorations = (proposals: TTrackedProposal[], state: EditorState): De
   for (const proposal of visibleProposals) {
     const from = clampPos(state, proposal.from);
     const to = clampPos(state, proposal.to);
+    const isSelected = selectedIds.includes(proposal.id);
 
     // Highlight just the proposal's text — inline so the tint hugs the words
     // (like a selection) instead of filling the whole block width.
     if (to > from) {
       decorations.push(
         Decoration.inline(from, to, {
-          class: "atlas-doc-review-pending",
+          class: isSelected ? "atlas-doc-review-pending is-selected" : "atlas-doc-review-pending",
           "data-atlas-proposal-id": proposal.id,
         })
       );
     }
 
     // Floating Accept/Reject pinned to the top-right of the highlighted range.
+    // Key includes selection state so the widget re-renders when selection toggles.
     decorations.push(
-      Decoration.widget(from, (view) => buildProposalControls(view, proposal), {
-        key: `atlas-controls-${proposal.id}-${proposal.status}`,
+      Decoration.widget(from, (view) => buildProposalControls(view, proposal, isSelected), {
+        key: `atlas-controls-${proposal.id}-${proposal.status}-${isSelected ? "sel" : "unsel"}`,
         side: -1,
       })
     );
@@ -385,6 +452,31 @@ export const AtlasDocReviewExtension = Extension.create({
           rejectAllProposals(view);
           return true;
         },
+      toggleAtlasProposalSelection:
+        (id) =>
+        ({ view }) => {
+          if (!view) return false;
+          const tr = view.state.tr.setMeta(atlasDocReviewPluginKey, {
+            type: "toggle-select",
+            id,
+          } satisfies TAtlasDocReviewAction);
+          view.dispatch(tr);
+          return true;
+        },
+      acceptSelectedAtlasProposals:
+        () =>
+        ({ view }) => {
+          if (!view) return false;
+          acceptSelectedProposals(view);
+          return true;
+        },
+      rejectSelectedAtlasProposals:
+        () =>
+        ({ view }) => {
+          if (!view) return false;
+          rejectSelectedProposals(view);
+          return true;
+        },
     };
   },
 
@@ -401,6 +493,9 @@ export const AtlasDocReviewExtension = Extension.create({
               to: transaction.mapping.map(proposal.to, -1),
               anchorPos: proposal.anchorPos === undefined ? undefined : transaction.mapping.map(proposal.anchorPos, 1),
             }));
+            // Prune selectedIds to only ids that are still present after mapping.
+            const mappedProposalIds = new Set(mappedProposals.map((p) => p.id));
+            const prunedSelectedIds = previous.selectedIds.filter((id) => mappedProposalIds.has(id));
             const mapped: TAtlasDocReviewState = {
               session: previous.session
                 ? {
@@ -414,6 +509,7 @@ export const AtlasDocReviewExtension = Extension.create({
               // deletions). When there is no review action this is the only cost —
               // no full rebuild needed.
               decorations: previous.decorations.map(transaction.mapping, newState.doc),
+              selectedIds: prunedSelectedIds,
             };
 
             const action = transaction.getMeta(atlasDocReviewPluginKey) as TAtlasDocReviewAction | undefined;
@@ -423,7 +519,13 @@ export const AtlasDocReviewExtension = Extension.create({
             // decoration rebuild. Actions that only affect loading/session state
             // do not change decorations.
             if (action.type === "start") {
-              return { session: action.session, proposals: [], loading: true, decorations: DecorationSet.empty };
+              return {
+                session: action.session,
+                proposals: [],
+                loading: true,
+                decorations: DecorationSet.empty,
+                selectedIds: [],
+              };
             }
             if (action.type === "set-loading") {
               return { ...mapped, loading: action.loading };
@@ -434,7 +536,7 @@ export const AtlasDocReviewExtension = Extension.create({
                 ...mapped,
                 proposals: newProposals,
                 loading: false,
-                decorations: buildDecorations(newProposals, newState),
+                decorations: buildDecorations(newProposals, mapped.selectedIds, newState),
               };
             }
             if (action.type === "update") {
@@ -443,11 +545,45 @@ export const AtlasDocReviewExtension = Extension.create({
                   ? { ...proposal, ...action.patch, from: action.from, to: action.to }
                   : proposal
               );
-              return { ...mapped, proposals: newProposals, decorations: buildDecorations(newProposals, newState) };
+              return {
+                ...mapped,
+                proposals: newProposals,
+                decorations: buildDecorations(newProposals, mapped.selectedIds, newState),
+              };
             }
             if (action.type === "remove") {
               const newProposals = mapped.proposals.filter((proposal) => proposal.id !== action.id);
-              return { ...mapped, proposals: newProposals, decorations: buildDecorations(newProposals, newState) };
+              // Also remove from selectedIds if it was selected.
+              const newSelectedIds = mapped.selectedIds.filter((id) => id !== action.id);
+              return {
+                ...mapped,
+                proposals: newProposals,
+                selectedIds: newSelectedIds,
+                decorations: buildDecorations(newProposals, newSelectedIds, newState),
+              };
+            }
+            if (action.type === "remove-many") {
+              const removedSet = new Set(action.ids);
+              const newProposals = mapped.proposals.filter((proposal) => !removedSet.has(proposal.id));
+              const newSelectedIds = mapped.selectedIds.filter((id) => !removedSet.has(id));
+              return {
+                ...mapped,
+                proposals: newProposals,
+                selectedIds: newSelectedIds,
+                decorations: buildDecorations(newProposals, newSelectedIds, newState),
+              };
+            }
+            if (action.type === "toggle-select") {
+              // Toggle the id in selectedIds; rebuild decorations so the widget updates.
+              const alreadySelected = mapped.selectedIds.includes(action.id);
+              const newSelectedIds = alreadySelected
+                ? mapped.selectedIds.filter((id) => id !== action.id)
+                : [...mapped.selectedIds, action.id];
+              return {
+                ...mapped,
+                selectedIds: newSelectedIds,
+                decorations: buildDecorations(mapped.proposals, newSelectedIds, newState),
+              };
             }
             // "clear" action
             return { ...initialState };
@@ -472,6 +608,16 @@ export const AtlasDocReviewExtension = Extension.create({
             },
             "atlas-doc-review-reject-all": (view) => {
               rejectAllProposals(view);
+              return true;
+            },
+            "atlas-doc-review-toggle-select": (view, event) => {
+              const id = (event as CustomEvent<{ id?: string }>).detail?.id;
+              if (!id) return false;
+              const tr = view.state.tr.setMeta(atlasDocReviewPluginKey, {
+                type: "toggle-select",
+                id,
+              } satisfies TAtlasDocReviewAction);
+              view.dispatch(tr);
               return true;
             },
           },

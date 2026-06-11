@@ -321,6 +321,21 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
     rejectAllAtlasProposals: () => {
       editor?.commands.rejectAllAtlasProposals();
     },
+    toggleAtlasProposalSelection: (id) => {
+      editor?.commands.toggleAtlasProposalSelection(id);
+    },
+    getSelectedAtlasProposalCount: () => {
+      if (!editor) return 0;
+      const reviewState = atlasDocReviewPluginKey.getState(editor.state);
+      if (!reviewState) return 0;
+      return reviewState.selectedIds.length;
+    },
+    acceptSelectedAtlasProposals: () => {
+      editor?.commands.acceptSelectedAtlasProposals();
+    },
+    rejectSelectedAtlasProposals: () => {
+      editor?.commands.rejectSelectedAtlasProposals();
+    },
     undo: () => editor?.commands.undo(),
   };
 };
