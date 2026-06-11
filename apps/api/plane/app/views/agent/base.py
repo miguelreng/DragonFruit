@@ -870,6 +870,112 @@ class AgentStopEndpoint(BaseAPIView):
         return Response(payload, status=status.HTTP_200_OK)
 
 
+class AgentRunInboxEndpoint(BaseAPIView):
+    """Current user's actionable agent runs.
+
+    Returns up to 25 items newest-first:
+    - needs_input: runs waiting for this user's response (question or approval).
+    - completed/failed: recently finished runs where the current user is the
+      issue creator or a non-bot assignee.
+
+    Each item:
+    {
+      "run_id": str,
+      "issue": {"id": str, "sequence_id": int, "name": str} | null,
+      "kind": "question" | "approval" | "completed" | "failed",
+      "message": str,
+      "status": str,
+      "updated_at": str (ISO-8601),
+    }
+    """
+
+    _CAP = 25
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
+    def get(self, request, slug):
+        from datetime import timedelta
+
+        from django.db.models import Q
+        from django.utils import timezone as dj_timezone
+        from plane.db.models import IssueAssignee
+
+        user = request.user
+        cutoff = dj_timezone.now() - timedelta(days=7)
+
+        # Issues the current user can "see" — creator or (non-bot) assignee.
+        accessible_issue_ids = Issue.objects.filter(
+            Q(created_by=user) |
+            Q(
+                id__in=IssueAssignee.objects.filter(
+                    assignee=user,
+                    assignee__is_bot=False,
+                    deleted_at__isnull=True,
+                ).values("issue_id")
+            ),
+            workspace__slug=slug,
+            deleted_at__isnull=True,
+        ).values("id")
+
+        runs = (
+            AgentRun.objects.filter(
+                agent__workspace__slug=slug,
+                deleted_at__isnull=True,
+            )
+            .filter(
+                Q(
+                    status="needs_input",
+                    issue__isnull=False,
+                    issue__deleted_at__isnull=True,
+                    issue__in=accessible_issue_ids,
+                ) |
+                Q(issue__isnull=True, status="needs_input") |
+                Q(
+                    status__in=("completed", "failed"),
+                    updated_at__gte=cutoff,
+                    issue__isnull=False,
+                    issue__deleted_at__isnull=True,
+                    issue__in=accessible_issue_ids,
+                )
+            )
+            .select_related("issue", "agent")
+            .order_by("-updated_at")[: self._CAP]
+        )
+
+        items = []
+        for run in runs:
+            issue = run.issue
+            issue_data = None
+            if issue:
+                issue_data = {
+                    "id": str(issue.id),
+                    "sequence_id": issue.sequence_id,
+                    "name": issue.name,
+                }
+
+            pending = run.pending_request or {}
+            if run.status == "needs_input":
+                kind = pending.get("kind") or "question"
+                message = pending.get("message") or "Atlas needs your input."
+            else:
+                kind = run.status  # "completed" or "failed"
+                message = (
+                    "Atlas finished working on this."
+                    if run.status == "completed"
+                    else f"Atlas encountered an error: {run.error[:120]}" if run.error else "Atlas failed."
+                )
+
+            items.append({
+                "run_id": str(run.id),
+                "issue": issue_data,
+                "kind": kind,
+                "message": message,
+                "status": run.status,
+                "updated_at": run.updated_at.isoformat() if run.updated_at else None,
+            })
+
+        return Response(items, status=status.HTTP_200_OK)
+
+
 class AgentRunRespondEndpoint(BaseAPIView):
     """Submit a human response to a paused AgentRun.
 

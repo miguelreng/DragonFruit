@@ -11,6 +11,7 @@ from .base import (
     AgentMemoryDetailEndpoint,
     AgentMemoryEndpoint,
     AgentRunCancelEndpoint,
+    AgentRunInboxEndpoint,
     AgentRunListEndpoint,
     AgentRunRespondEndpoint,
     AgentStopEndpoint,

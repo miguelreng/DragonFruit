@@ -867,3 +867,128 @@ class TestAgentResumeAPI:
         assert notif.data is not None
         assert notif.data.get("kind") == "needs_input"
         assert notif.data.get("run_id") == str(run.id)
+
+
+@pytest.mark.contract
+class TestAgentRunInboxEndpoint:
+    """Contract tests for GET /api/workspaces/{slug}/agent-runs/inbox/."""
+
+    # ------------------------------------------------------------------ #
+    # Helpers                                                              #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _make_agent_with_bot(workspace, bot_user):
+        from plane.db.models import Agent
+
+        bot_user.is_bot = True
+        bot_user.save(update_fields=["is_bot"])
+
+        agent = Agent.objects.create(
+            workspace=workspace,
+            bot_user=bot_user,
+            name="Inbox Test Agent",
+        )
+        return agent
+
+    @staticmethod
+    def _make_issue(workspace, created_by):
+        from plane.db.models import Issue, Project
+
+        project, _ = Project.objects.get_or_create(
+            name="Inbox Project", identifier="INBX", workspace=workspace,
+            defaults={"created_by": created_by, "updated_by": created_by},
+        )
+        issue = Issue(
+            name="Inbox test issue",
+            project=project,
+            workspace=workspace,
+            created_by=created_by,
+            updated_by=created_by,
+        )
+        issue.save(disable_auto_set_user=True)
+        return issue
+
+    @staticmethod
+    def _make_run(agent, issue, status, pending_request=None):
+        from plane.db.models import AgentRun
+
+        run = AgentRun(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status=status,
+            pending_request=pending_request,
+        )
+        run.save(disable_auto_set_user=True)
+        return run
+
+    # ------------------------------------------------------------------ #
+    # Test: needs_input run appears for the right user with message       #
+    # ------------------------------------------------------------------ #
+
+    @pytest.mark.django_db
+    def test_inbox_returns_needs_input_run_for_issue_creator(
+        self, session_client, workspace, create_user, create_bot_user
+    ):
+        """A needs_input run appears in the inbox for the issue creator
+        and includes the pending_request message."""
+        agent = self._make_agent_with_bot(workspace, create_bot_user)
+        issue = self._make_issue(workspace, create_user)
+
+        pending = {"kind": "question", "message": "Should I close this?", "tool": None, "arguments": None}
+        run = self._make_run(agent, issue, "needs_input", pending_request=pending)
+
+        url = f"/api/workspaces/{workspace.slug}/agent-runs/inbox/"
+        resp = session_client.get(url)
+        assert resp.status_code == status.HTTP_200_OK
+
+        items = resp.data
+        assert isinstance(items, list)
+        run_ids = [item["run_id"] for item in items]
+        assert str(run.id) in run_ids, "needs_input run must appear in inbox for issue creator"
+
+        item = next(i for i in items if i["run_id"] == str(run.id))
+        assert item["kind"] == "question"
+        assert item["message"] == "Should I close this?"
+        assert item["status"] == "needs_input"
+        assert item["issue"] is not None
+        assert item["issue"]["id"] == str(issue.id)
+
+    # ------------------------------------------------------------------ #
+    # Test: unrelated user does NOT see the run                           #
+    # ------------------------------------------------------------------ #
+
+    @pytest.mark.django_db
+    def test_inbox_excludes_run_for_unrelated_user(
+        self, workspace, create_user, create_bot_user
+    ):
+        """A needs_input run for an issue the requesting user didn't create
+        and is not assigned to must NOT appear in their inbox."""
+        from rest_framework.test import APIClient
+        from plane.db.models import User, WorkspaceMember
+
+        # Create a second "other" user who is not the issue creator.
+        other_user = User.objects.create(
+            email="other-inbox-test@plane.so",
+            username="other-inbox-test",
+        )
+        other_user.set_password("pass")
+        other_user.save()
+        WorkspaceMember.objects.create(workspace=workspace, member=other_user, role=15)
+
+        agent = self._make_agent_with_bot(workspace, create_bot_user)
+        issue = self._make_issue(workspace, create_user)  # creator = create_user, not other_user
+
+        pending = {"kind": "approval", "message": "Approve label?", "tool": "add_label", "arguments": {}}
+        run = self._make_run(agent, issue, "needs_input", pending_request=pending)
+
+        other_client = APIClient()
+        other_client.force_authenticate(user=other_user)
+
+        url = f"/api/workspaces/{workspace.slug}/agent-runs/inbox/"
+        resp = other_client.get(url)
+        assert resp.status_code == status.HTTP_200_OK
+
+        run_ids = [item["run_id"] for item in resp.data]
+        assert str(run.id) not in run_ids, "unrelated user must NOT see this needs_input run"
