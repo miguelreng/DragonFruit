@@ -60,6 +60,8 @@ import { AlertModalCore, Avatar, Spinner } from "@plane/ui";
 import { calculateTimeAgo, cn } from "@plane/utils";
 // components
 import {
+  AlertCircle,
+  CheckCircle,
   Eraser,
   FileText,
   History,
@@ -88,7 +90,7 @@ import type {
   TAtlasDocWriteMode,
 } from "@/services/agent-chat.service";
 import { AgentService } from "@/services/agent.service";
-import type { TAgent } from "@/services/agent.service";
+import type { TAgent, TAgentInboxItem } from "@/services/agent.service";
 // local imports — `./reply-context` (not the barrel) avoids a self-import cycle
 import { consumePendingReplyContext, subscribePendingReplyContext, type PendingReplyContext } from "./reply-context";
 
@@ -290,6 +292,46 @@ function ChatView(props: {
     onSentRefreshSessions,
   } = props;
 
+  // ---- Agent inbox polling (needs_input runs for this user) ----
+  // Poll at 60 s — quick enough to surface Atlas asking a question
+  // without hammering the API on every drawer open.
+  const { data: inboxData, mutate: mutateInbox } = useSWR<TAgentInboxItem[]>(
+    workspaceSlug ? `agent-inbox/${workspaceSlug}` : null,
+    () => agentService.inbox(workspaceSlug),
+    { refreshInterval: 60_000, revalidateOnFocus: false }
+  );
+  const inboxItems = inboxData ?? [];
+  // Locally dismissed completed/failed rows — cleared when inbox refreshes.
+  const [dismissedRunIds, setDismissedRunIds] = useState<Set<string>>(new Set());
+  const [inboxDrafts, setInboxDrafts] = useState<Record<string, string>>({});
+  const [inboxSubmitting, setInboxSubmitting] = useState<Set<string>>(new Set());
+
+  const handleInboxRespond = useCallback(
+    async (runId: string, payload: { response?: string; approved?: boolean }) => {
+      if (!workspaceSlug) return;
+      setInboxSubmitting((s) => new Set(s).add(runId));
+      try {
+        await agentService.respondToRun(workspaceSlug, runId, payload);
+        // Optimistic: remove the run from the list immediately.
+        void mutateInbox((cur) => (cur ?? []).filter((r) => r.run_id !== runId), { revalidate: true });
+        setInboxDrafts((d) => {
+          const next = { ...d };
+          delete next[runId];
+          return next;
+        });
+      } catch {
+        // Silent — the strip will just stay visible until the next poll.
+      } finally {
+        setInboxSubmitting((s) => {
+          const next = new Set(s);
+          next.delete(runId);
+          return next;
+        });
+      }
+    },
+    [workspaceSlug, mutateInbox]
+  );
+
   // "Clear conversation" confirmation. We snapshot the pending Atlas
   // proposal count when the modal opens so the copy can promise the
   // user their in-doc edits are kept.
@@ -357,6 +399,17 @@ function ChatView(props: {
         primaryButtonText={{ loading: "Clearing", default: "Clear chat" }}
       />
 
+      <AgentInboxStrip
+        workspaceSlug={workspaceSlug}
+        items={inboxItems}
+        dismissedRunIds={dismissedRunIds}
+        drafts={inboxDrafts}
+        submitting={inboxSubmitting}
+        onDraftChange={(runId, text) => setInboxDrafts((d) => ({ ...d, [runId]: text }))}
+        onRespond={handleInboxRespond}
+        onDismiss={(runId) => setDismissedRunIds((s) => new Set(s).add(runId))}
+      />
+
       {sessionId ? (
         <ChatThread
           key={sessionId}
@@ -372,6 +425,135 @@ function ChatView(props: {
         <NewChatLanding onStartSession={onStartSession} />
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------- //
+// Agent inbox strip                                                  //
+// ---------------------------------------------------------------- //
+
+/**
+ * Compact strip that surfaces needs_input agent runs (+ recent
+ * completed/failed) at the top of the chat view.  Renders nothing
+ * when there are no items to show so the drawer stays clean for the
+ * common "no pending runs" case.
+ */
+function AgentInboxStrip(props: {
+  workspaceSlug: string;
+  items: TAgentInboxItem[];
+  dismissedRunIds: Set<string>;
+  drafts: Record<string, string>;
+  submitting: Set<string>;
+  onDraftChange: (runId: string, text: string) => void;
+  onRespond: (runId: string, payload: { response?: string; approved?: boolean }) => Promise<void>;
+  onDismiss: (runId: string) => void;
+}) {
+  const { items, dismissedRunIds, drafts, submitting, onDraftChange, onRespond, onDismiss } = props;
+
+  const actionable = items.filter((i) => i.status === "needs_input");
+  const recent = items.filter((i) => (i.status === "completed" || i.status === "failed") && !dismissedRunIds.has(i.run_id));
+
+  if (actionable.length === 0 && recent.length === 0) return null;
+
+  return (
+    <div className="flex-shrink-0 border-b border-subtle bg-surface-1 px-3 py-2">
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <Sparkles className="size-3 text-[#e548a5]" />
+        <span className="text-11 font-medium text-[#e548a5]">Atlas needs you</span>
+      </div>
+      <div className="flex flex-col gap-2">
+        {actionable.map((item) => (
+          <div
+            key={item.run_id}
+            className="flex flex-col gap-1.5 rounded-lg border-[0.5px] border-subtle bg-layer-1 p-2"
+          >
+            {/* Issue + message */}
+            <div className="flex items-start gap-1.5">
+              <Sparkles className="mt-0.5 size-3 shrink-0 text-[#e548a5]" />
+              <div className="min-w-0 flex-1">
+                {item.issue && (
+                  <div className="truncate text-11 font-medium text-primary">
+                    #{item.issue.sequence_id} {item.issue.name}
+                  </div>
+                )}
+                <div className="text-11 text-secondary">{item.message}</div>
+              </div>
+            </div>
+            {/* Action controls */}
+            {item.kind === "approval" ? (
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  disabled={submitting.has(item.run_id)}
+                  onClick={() => void onRespond(item.run_id, { approved: true })}
+                  className="t-press rounded-md bg-[#e548a5] px-2.5 py-1 text-11 font-medium text-white disabled:opacity-50 hover:bg-[#d93d9a]"
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting.has(item.run_id)}
+                  onClick={() => void onRespond(item.run_id, { approved: false })}
+                  className="t-press rounded-md border-[0.5px] border-subtle bg-layer-2 px-2.5 py-1 text-11 font-medium text-secondary disabled:opacity-50 hover:bg-layer-1"
+                >
+                  Decline
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={drafts[item.run_id] ?? ""}
+                  onChange={(e) => onDraftChange(item.run_id, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && (drafts[item.run_id] ?? "").trim()) {
+                      e.preventDefault();
+                      void onRespond(item.run_id, { response: (drafts[item.run_id] ?? "").trim() });
+                    }
+                  }}
+                  placeholder="Reply to Atlas…"
+                  className="min-w-0 flex-1 rounded-md border-[0.5px] border-subtle bg-layer-2 px-2 py-1 text-11 text-primary placeholder:text-placeholder focus:border-strong focus:outline-none"
+                />
+                <button
+                  type="button"
+                  disabled={submitting.has(item.run_id) || !(drafts[item.run_id] ?? "").trim()}
+                  onClick={() => void onRespond(item.run_id, { response: (drafts[item.run_id] ?? "").trim() })}
+                  className="t-press rounded-md bg-[#e548a5] px-2.5 py-1 text-11 font-medium text-white disabled:opacity-50 hover:bg-[#d93d9a]"
+                >
+                  Send
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+        {recent.map((item) => (
+          <div
+            key={item.run_id}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1"
+          >
+            {item.status === "completed" ? (
+              <CheckCircle className="size-3 shrink-0 text-secondary" />
+            ) : (
+              <AlertCircle className="size-3 shrink-0 text-tertiary" />
+            )}
+            {item.issue && (
+              <span className="text-11 font-medium text-secondary">#{item.issue.sequence_id}</span>
+            )}
+            <span className="flex-1 truncate text-11 text-tertiary">
+              {item.status === "completed" ? "Atlas finished" : "Atlas failed"}
+            </span>
+            <button
+              type="button"
+              onClick={() => onDismiss(item.run_id)}
+              className="t-press grid size-4 place-items-center rounded text-tertiary hover:bg-layer-2 hover:text-primary"
+              aria-label="Dismiss"
+            >
+              <X className="size-2.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

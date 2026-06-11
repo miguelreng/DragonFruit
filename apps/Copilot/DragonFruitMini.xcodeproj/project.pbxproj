@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		018A1B2CA3E4D5F6B7890ABC /* AgentInboxStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018A1B2CA3E4D5F6B789ABCD /* AgentInboxStore.swift */; };
+		018A1B2DA3E4D5F6B7890DEF /* AgentInboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018A1B2DA3E4D5F6B789DEFF /* AgentInboxView.swift */; };
 		03A834AC0384982974F9DFEC /* PomodoroTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81FA362363146EA52D21E736 /* PomodoroTimer.swift */; };
 		1008CA5A44D842BEC3EC9D84 /* dragon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 2EB47D528126A59CF59D4029 /* dragon.svg */; };
 		1239D328E3E9E06B1069B3CB /* SystemAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7A4EF497751D0535570020 /* SystemAudioCapture.swift */; };
@@ -36,6 +38,8 @@
 /* Begin PBXFileReference section */
 		2EB47D528126A59CF59D4029 /* dragon.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = dragon.svg; path = Resources/dragon.svg; sourceTree = "<group>"; };
 		2F1D5D43500B4B5480F1C16E /* buddy-idle.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-idle.svg"; path = "Resources/buddy-idle.svg"; sourceTree = "<group>"; };
+		018A1B2CA3E4D5F6B789ABCD /* AgentInboxStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AgentInboxStore.swift; path = Sources/AgentInboxStore.swift; sourceTree = "<group>"; };
+		018A1B2DA3E4D5F6B789DEFF /* AgentInboxView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AgentInboxView.swift; path = Sources/AgentInboxView.swift; sourceTree = "<group>"; };
 		302AF68C2A17B14F39C37D13 /* MeetingStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeetingStore.swift; path = Sources/MeetingStore.swift; sourceTree = "<group>"; };
 		393D1C4AD71DD6F40ED5F59C /* buddy-thinking.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-thinking.svg"; path = "Resources/buddy-thinking.svg"; sourceTree = "<group>"; };
 		3B43100C3DF42ED3C274DD88 /* logo.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = logo.svg; path = Resources/logo.svg; sourceTree = "<group>"; };
@@ -94,6 +98,8 @@
 		73B3BB8C0428EC055E8F74F0 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				018A1B2CA3E4D5F6B789ABCD /* AgentInboxStore.swift */,
+				018A1B2DA3E4D5F6B789DEFF /* AgentInboxView.swift */,
 				E576C6ABE0586B8578818DFB /* APIClient.swift */,
 				86DFBB6F8DF1C807CF1FA8B3 /* AtlasIcons.swift */,
 				A43D206D7AA8296DDA038D01 /* KeychainStore.swift */,
@@ -226,6 +232,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				018A1B2CA3E4D5F6B7890ABC /* AgentInboxStore.swift in Sources */,
+				018A1B2DA3E4D5F6B7890DEF /* AgentInboxView.swift in Sources */,
 				9BD394FAB207D35C38D03ADA /* APIClient.swift in Sources */,
 				BB1306893AAFEC34E489F6E0 /* AtlasIcons.swift in Sources */,
 				6A3C9AB0C4A86AC0E362907C /* KeychainStore.swift in Sources */,

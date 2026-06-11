@@ -97,6 +97,27 @@ struct AgentSummary: Codable, Identifiable {
     let is_enabled: Bool
 }
 
+// MARK: - Agent inbox
+
+struct AgentInboxIssue: Codable {
+    let id: String
+    let sequence_id: Int
+    let name: String
+}
+
+/// One item from GET /api/workspaces/{slug}/agent-runs/inbox/
+struct AgentInboxItem: Codable, Identifiable {
+    /// run_id is the stable identity for diff-tracking.
+    var id: String { run_id }
+    let run_id: String
+    let issue: AgentInboxIssue?
+    /// "question" | "approval" | "completed" | "failed"
+    let kind: String
+    let message: String
+    let status: String
+    let updated_at: String?
+}
+
 struct AgentChatSession: Codable, Identifiable {
     let id: String
     let agent: String
@@ -465,6 +486,36 @@ struct APIClient {
         request.httpBody = try JSONSerialization.data(withJSONObject: ["state_id": stateId])
         let (data, response) = try await send(request, endpoint: "PATCH task state")
         try ensureStatus(response, data: data, allowed: [200])
+    }
+
+    // MARK: - Agent inbox
+
+    /// GET /api/workspaces/{slug}/agent-runs/inbox/
+    func fetchAgentInbox(workspaceSlug: String) async throws -> [AgentInboxItem] {
+        let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agent-runs/inbox/")
+        let request = authorizedRequest(url: url)
+        let (data, response) = try await send(request, endpoint: "GET agent inbox")
+        try ensureStatus(response, allowed: [200])
+        return try JSONDecoder().decode([AgentInboxItem].self, from: data)
+    }
+
+    /// POST /api/workspaces/{slug}/agent-runs/{runId}/respond/
+    func respondToAgentRun(
+        workspaceSlug: String,
+        runId: String,
+        response humanResponse: String? = nil,
+        approved: Bool? = nil
+    ) async throws {
+        let url = baseURL.appending(path: "api/workspaces/\(workspaceSlug)/agent-runs/\(runId)/respond/")
+        var request = authorizedRequest(url: url, method: "POST")
+        request.timeoutInterval = 20
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var body: [String: Any] = [:]
+        if let humanResponse { body["response"] = humanResponse }
+        if let approved { body["approved"] = approved }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (_, resp) = try await send(request, endpoint: "POST agent respond")
+        try ensureStatus(resp, allowed: [202])
     }
 
     func listAgents(workspaceSlug: String) async throws -> [AgentSummary] {
