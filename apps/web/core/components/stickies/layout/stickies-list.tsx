@@ -19,12 +19,14 @@ import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { PlusIcon } from "@plane/propel/icons";
 import { EUserWorkspaceRoles } from "@plane/types";
+import { cn } from "@plane/utils";
 // assets
 import darkStickiesAsset from "@/app/assets/empty-state/stickies/stickies-dark.webp?url";
 import lightStickiesAsset from "@/app/assets/empty-state/stickies/stickies-light.webp?url";
 import darkStickiesSearchAsset from "@/app/assets/empty-state/stickies/stickies-search-dark.webp?url";
 import lightStickiesSearchAsset from "@/app/assets/empty-state/stickies/stickies-search-light.webp?url";
 // components
+import type { ViewMode } from "@/components/core/view-mode-toggle";
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 import { StickiesEmptyState } from "@/components/home/widgets/empty-states/stickies";
@@ -40,6 +42,7 @@ import { getInstructionFromPayload } from "./sticky.helpers";
 type TStickiesLayout = {
   workspaceSlug: string;
   intersectionElement?: React.ReactNode | null;
+  viewMode?: ViewMode;
 };
 
 type TProps = TStickiesLayout & {
@@ -57,7 +60,7 @@ const getStickyColumnCount = (width: number | null): number => {
 };
 
 export const StickiesList = observer(function StickiesList(props: TProps) {
-  const { workspaceSlug, intersectionElement, columnCount } = props;
+  const { workspaceSlug, intersectionElement, columnCount, viewMode = "grid" } = props;
   // navigation
   const pathname = usePathname();
   // theme hook
@@ -72,7 +75,6 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   // derived values
   const workspaceStickyIds = getWorkspaceStickyIds(workspaceSlug?.toString());
   const itemWidth = "100%";
-  const totalRows = Math.ceil(workspaceStickyIds.length / columnCount);
   const isStickiesPage = pathname?.includes("stickies");
   const hasGuestLevelPermissions = allowPermissions(
     [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
@@ -80,15 +82,6 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   );
   const stickiesResolvedPath = resolvedTheme === "light" ? lightStickiesAsset : darkStickiesAsset;
   const stickiesSearchResolvedPath = resolvedTheme === "light" ? lightStickiesSearchAsset : darkStickiesSearchAsset;
-
-  // Function to determine if an item is in first or last row
-  const getRowPositions = (index: number) => {
-    const currentRow = Math.floor(index / columnCount);
-    return {
-      isInFirstRow: currentRow === 0,
-      isInLastRow: currentRow === totalRows - 1 || index >= workspaceStickyIds.length - columnCount,
-    };
-  };
 
   const handleDrop = (self: DropTargetRecord, source: ElementDragPayload, location: DragLocationHistory) => {
     const dropTargets = location?.current?.dropTargets ?? [];
@@ -149,15 +142,13 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   }
 
   return (
-    <div
-      className="grid gap-0 transition-opacity duration-300 ease-in-out"
-      style={{
-        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-      }}
-    >
-      {workspaceStickyIds.map((stickyId, index) => {
-        const { isInFirstRow, isInLastRow } = getRowPositions(index);
-        return (
+    <>
+      <div
+        className={cn("transition-opacity duration-300 ease-in-out", viewMode === "list" ? "flex flex-col" : "gap-4")}
+        // Masonry: CSS multi-columns let stickies keep their natural heights.
+        style={viewMode === "grid" ? { columnCount } : undefined}
+      >
+        {workspaceStickyIds.map((stickyId, index) => (
           <StickyDNDWrapper
             key={stickyId}
             stickyId={stickyId}
@@ -165,14 +156,16 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
             itemWidth={itemWidth}
             handleDrop={handleDrop}
             isLastChild={index === workspaceStickyIds.length - 1}
-            isInFirstRow={isInFirstRow}
-            isInLastRow={isInLastRow}
+            isInFirstRow={index === 0}
             handleLayout={handleStickyLayout}
+            // Vertical rhythm lives in padding (not margin) so the gap below each card
+            // stays inside its droppable area — drops over the gap still register.
+            className={cn("pb-4", { "break-inside-avoid": viewMode === "grid" })}
           />
-        );
-      })}
-      {intersectionElement && <div className="col-span-full">{intersectionElement}</div>}
-    </div>
+        ))}
+      </div>
+      {intersectionElement}
+    </>
   );
 });
 
