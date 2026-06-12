@@ -684,12 +684,77 @@ a.public-doc-mention:hover {
   border-bottom-width: 1px !important;
 }
 
+/* Focus (zen) mode — the doc's scroll container takes over the viewport so
+   the app rail, header and toolbar disappear behind it. `position` can't
+   transition, so entering plays a fade/scale-in and leaving plays a short
+   settle fade (`.page-focus-mode-exit`, applied from editor-body.tsx). */
+.page-focus-mode {
+  position: fixed;
+  inset: 0;
+  /* Strictly above the in-layout chrome — app rail (z-[26]), app header
+     (z-[18]), floating Ask Atlas button (z-20) and AI bar — instead of tying
+     the rail's 26 and winning only by DOM order. Stays below the editor's
+     bubble-menu tippy (z 90), floating-ui portals (z 99/100) and dialogs
+     (overlay z-90, panel z-100) so popovers and modals still paint on top. */
+  z-index: 40;
+  background-color: var(--bg-surface-1);
+  animation: page-zen-enter 0.3s ease-out;
+}
+
+/* The Atlas chat drawer must stay usable over the zen canvas: below 1920px
+   it's an absolute z-30 overlay, and at >=1920px it drops into the layout
+   flow as `relative z-auto` (content-wrapper.tsx) — both would now sit under
+   the z-40 canvas. While focus mode is on, lift the open drawer just above
+   the canvas; editor popovers and dialogs (z-90+) still win. */
+body:has(.page-focus-mode) [data-atlas-drawer] {
+  z-index: 41;
+}
+
+.page-focus-mode-exit {
+  animation: page-zen-exit 0.35s ease-out;
+}
+
+@keyframes page-zen-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes page-zen-exit {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .page-focus-mode .page-header-container {
-  padding-top: 20px;
+  padding-top: 48px;
 }
 
 .page-focus-mode .page-summary-container {
   display: none !important;
+}
+
+/* Typewriter dimming: only the block(s) under the caret render at full
+   strength. `zen-dimming` + `zen-active-block` are applied from the web
+   side (selectionchange handler in editor-body.tsx). */
+.page-focus-mode .ProseMirror > * {
+  transition: opacity 0.3s ease;
+}
+
+.page-focus-mode .ProseMirror.zen-dimming > * {
+  opacity: 0.3;
+}
+
+.page-focus-mode .ProseMirror.zen-dimming > .zen-active-block {
+  opacity: 1;
 }
 
 .page-drop-cap .ProseMirror > p:first-of-type::first-letter {
