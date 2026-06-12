@@ -23,6 +23,9 @@ const createTaskItemDragHandleElement = (): HTMLButtonElement => {
   const element = document.createElement("button");
   element.type = "button";
   element.draggable = true;
+  // mouse-only affordance — keep it out of the tab order and name it for AT
+  element.tabIndex = -1;
+  element.setAttribute("aria-label", "Drag to reorder");
   element.dataset.taskItemDragHandle = "";
   element.classList.value =
     "task-item-drag-handle hidden sm:flex items-center justify-center w-4 h-5 rounded-xs cursor-grab outline-none hover:bg-layer-1-hover active:bg-layer-1 active:cursor-grabbing transition-[background-color,_opacity] duration-200 ease-linear";
@@ -85,12 +88,20 @@ const TaskItemDragHandlePlugin = (): Plugin => {
 
   const positionHandle = (item: HTMLElement) => {
     if (!handleElement) return;
+    // The handle is absolutely positioned within the editor's offset context
+    // (the always-`relative` `.editor-container`) rather than fixed to the
+    // viewport: `position: fixed` resolves against the nearest transformed /
+    // `will-change: transform` ancestor, which mispositions the handle inside
+    // popper-positioned floating composers and `.t-modal`.
+    const offsetParent = handleElement.offsetParent;
+    if (!(offsetParent instanceof HTMLElement)) return;
     const rect = item.getBoundingClientRect();
+    const parentRect = offsetParent.getBoundingClientRect();
     const compStyle = window.getComputedStyle(item);
     const lineHeight = parseInt(compStyle.lineHeight, 10) || rect.height;
     const paddingTop = parseInt(compStyle.paddingTop, 10) || 0;
-    handleElement.style.left = `${rect.left - HANDLE_WIDTH - HANDLE_GAP}px`;
-    handleElement.style.top = `${rect.top + paddingTop + (lineHeight - HANDLE_HEIGHT) / 2}px`;
+    handleElement.style.left = `${rect.left - parentRect.left + offsetParent.scrollLeft - HANDLE_WIDTH - HANDLE_GAP}px`;
+    handleElement.style.top = `${rect.top - parentRect.top + offsetParent.scrollTop + paddingTop + (lineHeight - HANDLE_HEIGHT) / 2}px`;
   };
 
   const selectActiveItem = (view: EditorView): NodeSelection | null => {
@@ -120,14 +131,26 @@ const TaskItemDragHandlePlugin = (): Plugin => {
     view.dragging = { slice, move: !event.ctrlKey };
   };
 
+  const handleDragEnd = (view: EditorView) => {
+    hideHandle();
+    // ProseMirror's own dragend cleanup is bound to `view.dom`, but this
+    // drag's source is the handle — a sibling of `view.dom` — so a cancelled
+    // drag (Esc / drop outside any target) would leave `view.dragging`
+    // holding the task-item slice and corrupt the next drop. Mirror PM's
+    // cleanup: clear it slightly delayed so a same-view drop can still read it.
+    const dragging = view.dragging;
+    window.setTimeout(() => {
+      if (view.dragging === dragging) view.dragging = null;
+    }, 50);
+  };
+
   return new Plugin({
     key: new PluginKey("taskItemDragHandle"),
     view: (view) => {
-      handleElement = createTaskItemDragHandleElement();
-      hideHandle();
+      let mounted = false;
 
       const onDragStart = (e: DragEvent) => handleDragStart(e, view);
-      const onDragEnd = () => hideHandle();
+      const onDragEnd = () => handleDragEnd(view);
       const onClick = (e: MouseEvent) => {
         e.preventDefault();
         selectActiveItem(view);
@@ -138,19 +161,43 @@ const TaskItemDragHandlePlugin = (): Plugin => {
         if (e.relatedTarget instanceof Node && view.dom.contains(e.relatedTarget)) return;
         hideHandle();
       };
-      handleElement.addEventListener("dragstart", onDragStart);
-      handleElement.addEventListener("dragend", onDragEnd);
-      handleElement.addEventListener("click", onClick);
-      handleElement.addEventListener("mouseleave", onMouseLeave);
+      // The handle's position is computed on mousemove, so it goes stale as
+      // soon as anything scrolls or the window resizes — hide it until the
+      // pointer moves again.
+      const onScrollOrResize = () => hideHandle();
 
-      view.dom.parentElement?.appendChild(handleElement);
+      const mountHandle = () => {
+        if (!view.dom.parentElement) return;
+        handleElement = createTaskItemDragHandleElement();
+        hideHandle();
+        handleElement.addEventListener("dragstart", onDragStart);
+        handleElement.addEventListener("dragend", onDragEnd);
+        handleElement.addEventListener("click", onClick);
+        handleElement.addEventListener("mouseleave", onMouseLeave);
+        view.dom.parentElement.appendChild(handleElement);
+        window.addEventListener("scroll", onScrollOrResize, true);
+        window.addEventListener("resize", onScrollOrResize);
+        mounted = true;
+      };
+      const unmountHandle = () => {
+        window.removeEventListener("scroll", onScrollOrResize, true);
+        window.removeEventListener("resize", onScrollOrResize);
+        handleElement?.remove();
+        handleElement = null;
+        activeItem = null;
+        mounted = false;
+      };
+
+      // The handle is an editing affordance — don't mount it in read-only
+      // editors (issue comments, notification cards).
+      if (view.editable) mountHandle();
 
       return {
-        destroy: () => {
-          handleElement?.remove();
-          handleElement = null;
-          activeItem = null;
+        update: () => {
+          if (view.editable && !mounted) mountHandle();
+          else if (!view.editable && mounted) unmountHandle();
         },
+        destroy: () => unmountHandle(),
       };
     },
     props: {

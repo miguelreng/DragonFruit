@@ -26,7 +26,10 @@
 
 /* task item drag handle */
 .task-item-drag-handle {
-  position: fixed;
+  /* absolute within the editor's `relative` container — `fixed` resolves
+  against transformed/`will-change: transform` ancestors (e.g. floating
+  composers, modals) and mispositions the handle there */
+  position: absolute;
   z-index: 5;
   opacity: 1;
   transition: opacity 0.2s ease;
