@@ -995,7 +995,11 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
   const promptHighlightParts = prompt ? getAtlasPromptHighlightParts(prompt) : [];
 
   return (
-    <div aria-live="polite" className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
+    <div
+      aria-live="polite"
+      data-atlas-ai-bar="true"
+      className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4"
+    >
       <div className="relative isolate w-full">
         <div
           aria-hidden="true"
@@ -1388,7 +1392,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
             </div>
 
             {contextText && (
-              <div className="relative mt-1 truncate pl-0.5 text-[10px] text-tertiary">
+              <div className="relative mt-1 truncate pl-0.5 text-[10px] text-accent-primary">
                 Replying to selection: "{contextText.slice(0, 96)}"
               </div>
             )}

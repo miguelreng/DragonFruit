@@ -70,14 +70,17 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     };
   }, [openAgentChat]);
 
-  // "Reply to selection": the editor bubble menu dispatches a snippet; stash
-  // it and open the drawer so the composer can pin it as a "replying to" chip.
-  // Lives here (always mounted) because the drawer mounts only once open and
-  // would otherwise miss the event that opens it.
+  // "Reply to selection": the editor bubble menu dispatches a snippet. On doc
+  // pages the floating AI bar picks it up itself (it pins the passage as its
+  // context), so opening the Atlas drawer here is only the fallback for
+  // surfaces without an AI bar (e.g. task descriptions). Lives here (always
+  // mounted) because the drawer mounts only once open and would otherwise
+  // miss the event that opens it.
   useEffect(() => {
     const onReplyToSelection = (event: Event) => {
       const detail = (event as CustomEvent<ReplyToSelectionDetail>).detail;
       if (!detail?.text) return;
+      if (document.querySelector("[data-atlas-ai-bar]")) return;
       setPendingReplyContext({ text: detail.text, from: detail.from, to: detail.to });
       toggleAgentChat(true);
     };
