@@ -8,7 +8,7 @@ import { forwardRef, useMemo } from "react";
 // components
 import { EditorWrapper } from "@/components/editors/editor-wrapper";
 // extensions
-import { EnterKeyExtension } from "@/extensions";
+import { EnterKeyExtension, TaskItemDragHandleExtension } from "@/extensions";
 // types
 import type { EditorRefApi, ILiteTextEditorProps } from "@/types";
 
@@ -21,6 +21,10 @@ function LiteTextEditor(props: ILiteTextEditorProps) {
     if (!disabledExtensions?.includes("enter-key")) {
       resolvedExtensions.push(EnterKeyExtension(onEnterKeyPress));
     }
+
+    // The lite text editor has no side menu, so task list items get their own
+    // per-item drag handle for reordering.
+    resolvedExtensions.push(TaskItemDragHandleExtension);
 
     return resolvedExtensions;
   }, [externalExtensions, disabledExtensions, onEnterKeyPress]);

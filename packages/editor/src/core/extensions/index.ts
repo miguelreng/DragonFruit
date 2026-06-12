@@ -27,5 +27,6 @@ export * from "./horizontal-rule";
 export * from "./keymap";
 export * from "./quote";
 export * from "./side-menu";
+export * from "./task-item-drag-handle";
 export * from "./text-align";
 export * from "./utility";

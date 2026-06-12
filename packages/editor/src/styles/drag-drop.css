@@ -24,6 +24,20 @@
 }
 /* end drag handle */
 
+/* task item drag handle */
+.task-item-drag-handle {
+  position: fixed;
+  z-index: 5;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+
+  &.task-item-drag-handle-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+/* end task item drag handle */
+
 /* ai handle */
 #ai-handle {
   opacity: 1;
