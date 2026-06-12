@@ -12,14 +12,12 @@ import {
   Copy01Icon,
   Delete02Icon,
   FilterIcon,
-  GridIcon,
   LinkSquare01Icon,
-  ListViewIcon,
   MoreHorizontal,
   PlusSignIcon,
   Upload03Icon,
 } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
@@ -34,6 +32,7 @@ import { cn, renderFormattedDate } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { AppHeader } from "@/components/core/app-header";
 import { ListItem } from "@/components/core/list";
+import { ViewModeToggle, type ViewMode } from "@/components/core/view-mode-toggle";
 import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { PageSearchInput } from "@/components/pages/list/search-input";
 import { useBookmark } from "@/hooks/store/use-bookmark";
@@ -71,8 +70,6 @@ type BookmarkDraft = {
   tags: string;
   metadata: TProjectBookmark["metadata"];
 };
-
-type ViewMode = "list" | "grid";
 
 const EMPTY_DRAFT: BookmarkDraft = {
   title: "",
@@ -642,41 +639,6 @@ function BookmarkListItem(props: {
         </div>
       }
     />
-  );
-}
-
-type ViewModeToggleProps = {
-  mode: ViewMode;
-  onChange: (mode: ViewMode) => void;
-};
-
-function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
-  const options: Array<{ value: ViewMode; icon: IconSvgElement; label: string }> = [
-    { value: "list", icon: ListViewIcon, label: "List view" },
-    { value: "grid", icon: GridIcon, label: "Grid view" },
-  ];
-
-  return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-subtle p-0.5">
-      {options.map(({ value, icon, label }) => {
-        const isActive = mode === value;
-        return (
-          <button
-            key={value}
-            type="button"
-            aria-label={label}
-            aria-pressed={isActive}
-            onClick={() => onChange(value)}
-            className={cn(
-              "grid size-6 place-items-center rounded-lg text-tertiary transition-colors hover:text-primary",
-              { "bg-layer-1 text-primary": isActive }
-            )}
-          >
-            <HugeiconsIcon icon={icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
