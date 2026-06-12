@@ -40,10 +40,21 @@ const getAtlasProfile = (agents: TAgent[]): TAgent | undefined => {
   })[0];
 };
 
-function IntegrationLettermark({ integration }: { integration: TIntegration }) {
+function IntegrationMark({ integration }: { integration: TIntegration }) {
+  const Logo = integration.logo;
+  if (Logo) {
+    return (
+      <div
+        className="grid size-9 shrink-0 place-items-center rounded-lg border border-subtle bg-layer-1 text-primary select-none"
+        aria-hidden
+      >
+        <Logo className="size-5" />
+      </div>
+    );
+  }
   return (
     <div
-      className="grid size-9 shrink-0 place-items-center rounded-lg text-15 font-semibold text-white select-none"
+      className="text-15 grid size-9 shrink-0 place-items-center rounded-lg font-semibold text-white select-none"
       style={{ backgroundColor: integration.accent }}
       aria-hidden
     >
@@ -155,7 +166,7 @@ function WorkspaceIntegrationsPage() {
             return (
               <div key={integration.key} className="flex flex-col gap-3 rounded-lg border border-subtle bg-layer-2 p-4">
                 <div className="flex items-start gap-3">
-                  <IntegrationLettermark integration={integration} />
+                  <IntegrationMark integration={integration} />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <div className="flex items-center gap-2">
                       <h4 className="truncate text-body-sm-medium text-primary">{integration.name}</h4>
