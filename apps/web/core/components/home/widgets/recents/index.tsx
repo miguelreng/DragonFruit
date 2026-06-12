@@ -14,6 +14,8 @@ import type { TActivityEntityData, THomeWidgetProps, TRecentActivityFilterKeys }
 // plane ui
 // components
 import { ContentOverflowWrapper } from "@/components/core/content-overflow-HOC";
+// constants
+import { WORKSPACE_RECENT_ACTIVITY } from "@/constants/fetch-keys";
 // plane web services
 import { WorkspaceService } from "@/services/workspace.service";
 import { RecentsEmptyState } from "../empty-states";
@@ -46,7 +48,7 @@ export const RecentActivityWidget = observer(function RecentActivityWidget(props
   const ref = useRef<HTMLDivElement>(null);
 
   const { data: recents, isLoading } = useSWR(
-    workspaceSlug ? `WORKSPACE_RECENT_ACTIVITY_${workspaceSlug}_${filter}` : null,
+    workspaceSlug ? WORKSPACE_RECENT_ACTIVITY(workspaceSlug.toString(), filter) : null,
     workspaceSlug
       ? () =>
           workspaceService.fetchWorkspaceRecents(

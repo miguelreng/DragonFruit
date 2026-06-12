@@ -58,7 +58,8 @@ import { WorkspaceService } from "@/services/workspace.service";
 // local imports
 import { AppSidebarItemsRoot } from "./items-root";
 import { generateFavoriteItemLink } from "@/components/workspace/sidebar/favorites/favorite-items/common";
-import { WORKSPACE_FAVORITE } from "@/constants/fetch-keys";
+import { getBriefPageDisplayName, isBriefPageName } from "@/components/project/brief/constants";
+import { WORKSPACE_FAVORITE, WORKSPACE_RECENT_ACTIVITY } from "@/constants/fetch-keys";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 import type {
   IFavorite,
@@ -112,6 +113,11 @@ const isRouteMatch = (targetPath: string, pathname: string) => {
 
   return pathname === normalizedTargetPath || pathname.startsWith(`${normalizedTargetPath}/`);
 };
+
+// The backend only records a recent visit when a project, work item, or page is
+// fetched — i.e. on project sub-routes (issues, pages, brief, …) and the
+// /browse work-item route. Anything else can't change Recents.
+const canPathnameRecordVisit = (pathname: string) => /^\/[^/]+\/(?:projects\/[^/]+\/|browse\/)/.test(pathname);
 
 const getFavoriteLayoutRailIcon = (layout: EIssueLayoutTypes | undefined) => {
   if (!layout) return null;
@@ -172,10 +178,10 @@ const generateRecentVisitLink = (workspaceSlug: string, visit: TActivityEntityDa
       return `/${workspaceSlug}/projects/${visit.entity_identifier}/issues`;
     case "page":
     case "workspace_page": {
+      // Pages are only routable through their project in this app (workspace
+      // docs live under /docs, there is no /:slug/pages/:id route).
       const page = visit.entity_data as TPageEntityData | undefined;
-      return page?.project_id
-        ? `/${workspaceSlug}/projects/${page.project_id}/pages/${visit.entity_identifier}`
-        : `/${workspaceSlug}/pages/${visit.entity_identifier}`;
+      return page?.project_id ? `/${workspaceSlug}/projects/${page.project_id}/pages/${visit.entity_identifier}` : null;
     }
     case "issue": {
       const issue = visit.entity_data as TIssueEntityData | undefined;
@@ -927,7 +933,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
     isLoading: isRecentsLoading,
     mutate: mutateRecents,
   } = useSWR(
-    slug ? `WORKSPACE_RECENT_ACTIVITY_${slug}_all item` : null,
+    slug ? WORKSPACE_RECENT_ACTIVITY(slug) : null,
     slug ? () => workspaceService.fetchWorkspaceRecents(slug) : null,
     {
       revalidateIfStale: false,
@@ -995,6 +1001,21 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
     "desc"
   )
     .map((visit) => {
+      // The project Brief is backed by a hidden doc page, so visiting it
+      // records a "page" visit. Route those rows to the Brief surface (and
+      // label them like the Brief UI) instead of exposing the raw doc.
+      const page = visit.entity_name === "page" ? (visit.entity_data as TPageEntityData | undefined) : undefined;
+      if (page && isBriefPageName(page.name)) {
+        if (!page.project_id) return null;
+        const briefHref = `/${slug}/projects/${page.project_id}/brief`;
+        return {
+          id: visit.id,
+          href: briefHref,
+          label: getBriefPageDisplayName(getPartialProjectById(page.project_id)?.name),
+          icon: <TextSelect className={RAIL_INLINE_ICON_CLASS} />,
+          isActive: isRouteMatch(briefHref, pathname),
+        };
+      }
       const href = generateRecentVisitLink(slug, visit);
       if (!href) return null;
       return {
@@ -1020,11 +1041,18 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   useEffect(() => {
     suppressAutoOpenRef.current = false;
   }, [pathname]);
-  // Refresh recents after each in-app navigation so the section tracks the
-  // latest visits. The backend records a visit asynchronously when the entity
-  // is fetched, so wait a beat before revalidating.
+  // Refresh recents after in-app navigation to a route that can record a visit
+  // (project sub-routes and /browse) so the section tracks the latest visits.
+  // The backend records the visit asynchronously when the entity is fetched, so
+  // wait a beat before revalidating. The initial mount is skipped — the SWR
+  // fetch already returns the latest data.
+  const isInitialPathnameRef = useRef(true);
   useEffect(() => {
-    if (!slug) return;
+    if (isInitialPathnameRef.current) {
+      isInitialPathnameRef.current = false;
+      return;
+    }
+    if (!slug || !canPathnameRecordVisit(pathname)) return;
     const timeout = setTimeout(() => void mutateRecents(), 1500);
     return () => clearTimeout(timeout);
   }, [pathname, slug, mutateRecents]);
