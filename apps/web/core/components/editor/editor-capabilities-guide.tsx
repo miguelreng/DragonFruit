@@ -20,6 +20,7 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
       { keys: "/", label: "Open the command menu — headings, lists, tables, images, quotes, code" },
       { keys: "Select text", label: "Bubble menu: bold, italic, color, alignment, links" },
       { keys: "Icon · Cover", label: "Give the doc an icon and a cover image" },
+      { keys: "Drag ⋮⋮", label: "Reorder blocks — to-do items get a grab handle on hover, even in stickies" },
     ],
   },
   {
@@ -30,7 +31,7 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
       { keys: "/cite", label: "Select a claim first — attaches the best Wikipedia source" },
       { keys: "/link-terms", label: "Auto-link notable terms in the doc to Wikipedia" },
       { keys: "/check-citations", label: "Verify every Wikipedia citation still resolves" },
-      { keys: "Select → 🌐", label: "Explain the selected phrase with a Wikipedia card" },
+      { keys: "Select → Explain", label: "Explain the selected phrase with a Wikipedia card" },
     ],
   },
   {

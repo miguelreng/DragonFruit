@@ -12,6 +12,9 @@ export {
   RichTextEditorWithRef,
 } from "@/components/editors";
 
+// brand logos
+export * from "@/components/logos";
+
 // constants
 export * from "@/constants/common";
 
