@@ -124,6 +124,11 @@ function BookmarkForm(props: {
     onAcceptSuggestedTag,
     onDismissSuggestedTag,
   } = props;
+  // Same dead-URL handling as BookmarkCard: a broken preview image falls back
+  // to the "no preview" placeholder, and a new URL gets a fresh load attempt.
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  const previewImageUrl =
+    draft.metadata?.image_url && draft.metadata.image_url !== failedPreviewUrl ? draft.metadata.image_url : undefined;
   return (
     <form
       className="flex flex-col gap-3"
@@ -172,8 +177,13 @@ function BookmarkForm(props: {
       </div>
       {(isFetchingMetadata || draft.metadata?.image_url || draft.metadata?.site_name) && (
         <div className="flex items-center gap-3 rounded-lg border border-subtle bg-layer-1/40 p-2.5">
-          {draft.metadata?.image_url ? (
-            <img src={draft.metadata.image_url} alt="" className="h-12 w-20 shrink-0 rounded-md object-cover" />
+          {previewImageUrl ? (
+            <img
+              src={previewImageUrl}
+              alt=""
+              className="h-12 w-20 shrink-0 rounded-md object-cover"
+              onError={() => setFailedPreviewUrl(previewImageUrl)}
+            />
           ) : (
             <div className="grid h-12 w-20 shrink-0 place-items-center rounded-md bg-layer-1 text-tertiary">
               <HugeiconsIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
@@ -185,7 +195,7 @@ function BookmarkForm(props: {
             ) : (
               <span className="line-clamp-2">
                 {draft.metadata?.site_name || domainFromUrl(draft.url)}
-                {draft.metadata?.image_url ? "" : " · no preview image found"}
+                {previewImageUrl ? "" : " · no preview image found"}
               </span>
             )}
           </div>
@@ -321,6 +331,11 @@ function BookmarkCard(props: {
   // ratio until the image loads, then lock to its measured ratio.
   const [measuredRatio, setMeasuredRatio] = useState<string | undefined>(undefined);
   const imageRatio = storedRatio ?? measuredRatio ?? "4 / 5";
+  // Broken/dead preview URLs fall back to the no-image text layout instead of
+  // showing the browser's broken-image glyph. Track the URL that failed (not a
+  // boolean) so an in-place edit that swaps in a new image_url retries cleanly.
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const imageFailed = !!imageUrl && failedImageUrl === imageUrl;
   // The open-link button is the only way to follow the URL; clicking the rest of
   // the card opens the detail modal. Clicks inside this cluster never bubble up.
   const openLinkClasses =
@@ -424,7 +439,7 @@ function BookmarkCard(props: {
           </CustomMenu.MenuItem>
         </CustomMenu>
       </div>
-      {imageUrl ? (
+      {imageUrl && !imageFailed ? (
         <>
           <img
             src={imageUrl}
@@ -433,6 +448,7 @@ function BookmarkCard(props: {
             decoding="async"
             className="block h-auto w-full bg-layer-1/40"
             style={{ aspectRatio: imageRatio }}
+            onError={() => setFailedImageUrl(imageUrl)}
             onLoad={
               storedRatio
                 ? undefined
