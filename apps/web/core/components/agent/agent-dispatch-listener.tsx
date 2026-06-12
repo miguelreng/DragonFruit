@@ -1333,7 +1333,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
                     <ChevronDown className="size-3" />
                   </button>
                   {isModeMenuOpen && (
-                    <div className="absolute bottom-full left-0 mb-1.5 min-w-36 rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
+                    <div className="absolute bottom-full left-0 z-30 mb-1.5 min-w-36 rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
                       {AI_MODES.map((entry) => (
                         <button
                           key={entry.id}
