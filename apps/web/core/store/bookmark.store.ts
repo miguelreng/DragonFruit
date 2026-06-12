@@ -297,12 +297,7 @@ export class BookmarkStore implements IBookmarkStore {
     return updated;
   };
 
-  deleteBookmarkComment = async (
-    workspaceSlug: string,
-    projectId: string,
-    bookmarkId: string,
-    commentId: string
-  ) => {
+  deleteBookmarkComment = async (workspaceSlug: string, projectId: string, bookmarkId: string, commentId: string) => {
     const previous = this.commentsByBookmark[bookmarkId] ?? [];
     runInAction(() => {
       this.commentsByBookmark[bookmarkId] = previous.filter((existing) => existing.id !== commentId);

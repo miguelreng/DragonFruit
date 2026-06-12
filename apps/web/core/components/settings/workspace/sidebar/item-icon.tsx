@@ -6,7 +6,19 @@
 
 import type { FC } from "react";
 // plane imports
-import { Boxes, Download, FileText, House, Info, Network, Rocket, Sparkle, UploadCloud, Users, Webhook } from "@plane/icons";
+import {
+  Boxes,
+  Download,
+  FileText,
+  House,
+  Info,
+  Network,
+  Rocket,
+  Sparkle,
+  UploadCloud,
+  Users,
+  Webhook,
+} from "@plane/icons";
 import type { ISvgIcons } from "@plane/propel/icons";
 import type { TWorkspaceSettingsTabs } from "@plane/types";
 

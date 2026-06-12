@@ -302,7 +302,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
           <div className="min-w-0 flex-1">
             {canEdit ? (
               <input
-                className="w-full rounded-md bg-transparent px-2 py-0.5 text-16 font-semibold text-primary outline-none transition-colors placeholder:text-tertiary hover:bg-layer-1/60 focus:bg-layer-1"
+                className="w-full rounded-md bg-transparent px-2 py-0.5 text-16 font-semibold text-primary transition-colors outline-none placeholder:text-tertiary hover:bg-layer-1/60 focus:bg-layer-1"
                 value={title}
                 placeholder="Untitled"
                 onChange={(event) => setTitle(event.target.value)}
@@ -374,11 +374,11 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
         </div>
 
         {/* Body — fields read as content, editing reveals on hover/focus */}
-        <div className="vertical-scrollbar scrollbar-sm flex flex-col gap-3 overflow-y-auto px-5 pt-3 pb-5">
+        <div className="vertical-scrollbar flex scrollbar-sm flex-col gap-3 overflow-y-auto px-5 pt-3 pb-5">
           {imageUrl && <img src={imageUrl} alt="" className="max-h-64 w-full rounded-xl bg-layer-1/40 object-cover" />}
 
           {canEdit ? (
-            <div className="flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-layer-1/60 focus-within:bg-layer-1">
+            <div className="flex items-center gap-2 rounded-md px-2 py-1 transition-colors focus-within:bg-layer-1 hover:bg-layer-1/60">
               <HugeiconsIcon
                 icon={LinkSquare01Icon}
                 className="size-3.5 shrink-0 text-tertiary"
@@ -414,7 +414,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
 
           {canEdit ? (
             <textarea
-              className="min-h-9 w-full resize-none rounded-md bg-transparent px-2 py-1.5 text-13 leading-relaxed text-primary outline-none transition-colors placeholder:text-tertiary hover:bg-layer-1/60 focus:bg-layer-1"
+              className="min-h-9 w-full resize-none rounded-md bg-transparent px-2 py-1.5 text-13 leading-relaxed text-primary transition-colors outline-none placeholder:text-tertiary hover:bg-layer-1/60 focus:bg-layer-1"
               rows={2}
               placeholder="Add a note…"
               value={note}
@@ -442,7 +442,12 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
                       onClick={() => removeTag(tag)}
                       className="hover:text-red-500 grid place-items-center text-tertiary opacity-0 transition-opacity group-hover/tag:opacity-100"
                     >
-                      <HugeiconsIcon icon={CancelCircleIcon} className="size-3" color="currentColor" strokeWidth={1.5} />
+                      <HugeiconsIcon
+                        icon={CancelCircleIcon}
+                        className="size-3"
+                        color="currentColor"
+                        strokeWidth={1.5}
+                      />
                     </button>
                   )}
                 </span>
@@ -488,7 +493,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
               {canEdit && (
                 <div className="flex flex-col gap-2">
                   <textarea
-                    className="min-h-9 w-full resize-none rounded-md bg-transparent px-2 py-1.5 text-13 text-primary outline-none transition-colors placeholder:text-tertiary hover:bg-layer-1/60 focus:bg-layer-1"
+                    className="min-h-9 w-full resize-none rounded-md bg-transparent px-2 py-1.5 text-13 text-primary transition-colors outline-none placeholder:text-tertiary hover:bg-layer-1/60 focus:bg-layer-1"
                     rows={1}
                     placeholder="Write a comment…"
                     value={newComment}
