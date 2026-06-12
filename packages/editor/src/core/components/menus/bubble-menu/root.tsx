@@ -8,12 +8,13 @@ import { isNodeSelection } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import { BubbleMenu, useEditorState } from "@tiptap/react";
 import type { BubbleMenuProps } from "@tiptap/react";
-import { Globe, MessageCircle, Sparkles } from "@plane/icons";
+import { MessageCircle, Sparkles } from "@plane/icons";
 import { useEffect, useState, useRef } from "react";
 import { v4 as generateUuid } from "uuid";
 // plane utils
 import { cn } from "@plane/utils";
 // components
+import { GoogleLogo } from "@/components/logos";
 import type { EditorMenuItem } from "@/components/menus";
 import {
   BackgroundColorItem,
@@ -286,11 +287,12 @@ export function EditorBubbleMenu(props: Props) {
                   })
                 );
               }}
-              aria-label="Explain selection with Wikipedia"
+              aria-label="Explain selection"
               title="Explain"
-              className="grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
+              className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-12 font-medium text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
             >
-              <Globe className="size-4" />
+              <GoogleLogo className="size-3.5 flex-shrink-0" />
+              <span>Explain</span>
             </button>
           </div>
           <div className="flex gap-0.5 px-2">

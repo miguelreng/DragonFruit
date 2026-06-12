@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { Globe, Quotes, Sparkles } from "@plane/icons";
+import { Sparkles } from "@plane/icons";
+// components
+import { WikipediaLogo } from "@/components/logos";
 // helpers
 import { searchWikipedia, fetchWikipediaSummary } from "@/helpers/wikipedia-client";
 import { checkWikipediaCitations } from "@/helpers/wiki-citations";
@@ -58,7 +60,7 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
     title: "Wikipedia lookup",
     description: "Search Wikipedia and insert a cited summary block.",
     searchTerms: ["wiki", "wikipedia", "lookup", "definition", "reference", "cite", "source"],
-    icon: <Globe className="size-3.5" />,
+    icon: <WikipediaLogo className="size-3.5" />,
     section: "general",
     pushAfter: "agent",
     acceptsArguments: true,
@@ -129,7 +131,7 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
     title: "Cite this",
     description: "Find the best Wikipedia source for the selected text and insert an inline citation.",
     searchTerms: ["cite", "citation", "source", "reference", "wikipedia", "wiki", "footnote"],
-    icon: <Quotes className="size-3.5" />,
+    icon: <WikipediaLogo className="size-3.5" />,
     section: "general",
     pushAfter: "wiki",
     acceptsArguments: true,
@@ -201,7 +203,7 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
     title: "Link terms",
     description: "Find notable terms in this doc and link them to Wikipedia.",
     searchTerms: ["link-terms", "link terms", "glossary", "auto link", "wikipedia", "wiki", "terms"],
-    icon: <Globe className="size-3.5" />,
+    icon: <WikipediaLogo className="size-3.5" />,
     section: "general",
     pushAfter: "cite",
     command: ({ editor, range }) => {
@@ -220,7 +222,7 @@ export const coreEditorAdditionalSlashCommandOptions = (_props: Props): TSlashCo
     title: "Check citations",
     description: "Verify every Wikipedia citation in this doc still resolves.",
     searchTerms: ["check-citations", "check citations", "citations", "verify", "sources", "wikipedia", "wiki"],
-    icon: <Quotes className="size-3.5" />,
+    icon: <WikipediaLogo className="size-3.5" />,
     section: "general",
     pushAfter: "link-terms",
     command: ({ editor, range }) => {

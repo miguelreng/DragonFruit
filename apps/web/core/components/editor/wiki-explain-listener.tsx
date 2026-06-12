@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { fetchWikipediaSummary, searchWikipedia } from "@plane/editor";
+import { fetchWikipediaSummary, GoogleLogo, searchWikipedia, WikipediaLogo } from "@plane/editor";
 import type { TWikipediaSummary } from "@plane/editor";
 
 type TExplainCard = {
@@ -85,9 +85,10 @@ export function WikiExplainListener() {
             href={`https://www.google.com/search?q=${encodeURIComponent(card.query)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-12 font-medium text-accent-primary hover:underline"
+            className="inline-flex items-center gap-1.5 text-12 font-medium text-accent-primary hover:underline"
           >
-            Search Google →
+            <GoogleLogo className="size-3 flex-shrink-0" />
+            <span>Search Google →</span>
           </a>
         </div>
       )}
@@ -99,7 +100,10 @@ export function WikiExplainListener() {
             ) : null}
             <div className="min-w-0">
               <div className="truncate text-13 font-semibold text-primary">{summary.title}</div>
-              <div className="text-11 text-tertiary">Wikipedia</div>
+              <div className="flex items-center gap-1 text-11 text-tertiary">
+                <WikipediaLogo className="size-2.5 flex-shrink-0" />
+                <span>Wikipedia</span>
+              </div>
             </div>
           </div>
           <p className="line-clamp-5 text-12 leading-5 text-secondary">{summary.extract}</p>

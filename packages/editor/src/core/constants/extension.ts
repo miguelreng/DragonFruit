@@ -40,6 +40,7 @@ export enum CORE_EXTENSIONS {
   TABLE_HEADER = "tableHeader",
   TABLE_ROW = "tableRow",
   TASK_ITEM = "taskItem",
+  TASK_ITEM_DRAG_HANDLE = "taskItemDragHandle",
   TASK_LIST = "taskList",
   TEXT_ALIGN = "textAlign",
   TEXT_STYLE = "textStyle",
