@@ -12,7 +12,16 @@ import useSWR, { useSWRConfig } from "swr";
 import { Archive02Icon, Copy01Icon, Delete02Icon, LinkSquare01Icon, MoreHorizontal } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ListBullets, SquaresFour } from "@phosphor-icons/react";
-import { ChevronDown, FileText, Folder, ListFilter, Search, Whiteboard, X } from "@/components/icons/lucide-shim";
+import {
+  ChevronDown,
+  File as FileIcon,
+  FileText,
+  Folder,
+  ListFilter,
+  Search,
+  Whiteboard,
+  X,
+} from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
@@ -57,6 +66,9 @@ type ViewMode = "list" | "grid";
 
 type Props = {
   workspaceSlug: string;
+  /** Scope the list (and doc creation) to a single project. Hides the
+   * project filter — the type filter covers in-project narrowing. */
+  projectId?: string;
   /** Filter the workspace pages list by type. Omit to show docs only. */
   pageType?: TPageType;
   /** Filter the workspace pages list by multiple page types. */
@@ -75,6 +87,7 @@ type Props = {
 
 export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   workspaceSlug,
+  projectId: scopeProjectId,
   pageType = "doc",
   pageTypes,
   headerLabel,
@@ -98,6 +111,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<TPageType[]>([]);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   // The last single-toggled doc; shift-click selects the range from here to the target.
   const [anchorDocId, setAnchorDocId] = useState<string | null>(null);
@@ -121,8 +135,14 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   );
 
   const visiblePages = useMemo(
-    () => (pages ?? []).filter((p) => !p.archived_at && activePageTypes.includes(p.page_type ?? "doc")),
-    [activePageTypes, pages]
+    () =>
+      (pages ?? []).filter(
+        (p) =>
+          !p.archived_at &&
+          activePageTypes.includes(p.page_type ?? "doc") &&
+          (!scopeProjectId || (p.project_ids ?? []).includes(scopeProjectId))
+      ),
+    [activePageTypes, pages, scopeProjectId]
   );
   const pagesById = useMemo(() => {
     const map = new Map<string, TPage>();
@@ -155,14 +175,18 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         const projectIds = p.project_ids ?? [];
         if (!projectIds.some((id) => selectedProjectIds.includes(id))) return false;
       }
+      if (selectedTypes.length > 0 && !selectedTypes.includes(p.page_type ?? "doc")) return false;
       return true;
     });
-  }, [visiblePages, searchQuery, selectedProjectIds, getProjectById]);
+  }, [visiblePages, searchQuery, selectedProjectIds, selectedTypes, getProjectById]);
 
   const toggleProject = (projectId: string) => {
     setSelectedProjectIds((prev) =>
       prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
     );
+  };
+  const toggleType = (type: TPageType) => {
+    setSelectedTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
   };
   const toggleDocSelection = (pageId: string) => {
     setSelectedDocIds((prev) => (prev.includes(pageId) ? prev.filter((id) => id !== pageId) : [...prev, pageId]));
@@ -198,7 +222,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     await mutatePages();
   };
 
-  const hasFilters = searchQuery.length > 0 || selectedProjectIds.length > 0;
+  const hasFilters = searchQuery.length > 0 || selectedProjectIds.length > 0 || selectedTypes.length > 0;
   const isSelectionActive = selectedDocIds.length > 0;
 
   const headerNode = (
@@ -215,15 +239,31 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           icon={<ListFilter className="h-3 w-3" />}
           title="Filters"
           placement="bottom-end"
-          isFiltersApplied={selectedProjectIds.length > 0}
+          isFiltersApplied={selectedProjectIds.length > 0 || selectedTypes.length > 0}
         >
-          <ProjectFilterSection
-            appliedFilters={selectedProjectIds}
-            onToggle={toggleProject}
-            onClear={() => setSelectedProjectIds([])}
-          />
+          <div className="flex flex-col">
+            {activePageTypes.length > 1 && (
+              <TypeFilterSection
+                availableTypes={activePageTypes}
+                appliedFilters={selectedTypes}
+                onToggle={toggleType}
+                onClear={() => setSelectedTypes([])}
+              />
+            )}
+            {!scopeProjectId && (
+              <ProjectFilterSection
+                appliedFilters={selectedProjectIds}
+                onToggle={toggleProject}
+                onClear={() => setSelectedProjectIds([])}
+              />
+            )}
+          </div>
         </FiltersDropdown>
-        <WorkspaceCreateDocButton workspaceSlug={workspaceSlug} defaultType={pageType} />
+        <WorkspaceCreateDocButton
+          workspaceSlug={workspaceSlug}
+          defaultType={pageType}
+          lockedProjectId={scopeProjectId}
+        />
       </Header.RightItem>
     </Header>
   );
@@ -1107,6 +1147,56 @@ function DocsBulkActionBar({
         </div>
       </div>
     </>
+  );
+}
+
+const TYPE_FILTER_META: Record<TPageType, { label: string; Icon: typeof FileText }> = {
+  doc: { label: "Docs", Icon: FileText },
+  whiteboard: { label: "Whiteboards", Icon: Whiteboard },
+  pdf: { label: "PDFs", Icon: FileIcon },
+};
+
+type TypeFilterSectionProps = {
+  availableTypes: TPageType[];
+  appliedFilters: TPageType[];
+  onToggle: (type: TPageType) => void;
+  onClear: () => void;
+};
+
+/** Doc-type filter — same FilterHeader/FilterOption pattern as My Tasks. */
+function TypeFilterSection({ availableTypes, appliedFilters, onToggle, onClear }: TypeFilterSectionProps) {
+  const [previewEnabled, setPreviewEnabled] = useState(true);
+
+  return (
+    <div className="flex flex-col px-2 pt-2">
+      <FilterHeader
+        title={`Type${appliedFilters.length > 0 ? ` (${appliedFilters.length})` : ""}`}
+        isPreviewEnabled={previewEnabled}
+        handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
+      />
+      {previewEnabled &&
+        availableTypes.map((type) => {
+          const meta = TYPE_FILTER_META[type];
+          return (
+            <FilterOption
+              key={`doc-type-${type}`}
+              isChecked={appliedFilters.includes(type)}
+              onClick={() => onToggle(type)}
+              icon={<meta.Icon className="h-3.5 w-3.5 flex-shrink-0 text-tertiary" />}
+              title={meta.label}
+            />
+          );
+        })}
+      {previewEnabled && appliedFilters.length > 0 && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="mt-1 w-full text-left text-11 text-tertiary hover:text-primary"
+        >
+          Clear filter
+        </button>
+      )}
+    </div>
   );
 }
 

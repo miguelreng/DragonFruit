@@ -6,18 +6,15 @@
 
 // components
 import { Outlet } from "react-router";
-import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
-// local components
-import { PagesListHeader } from "./header";
 
+// The list page renders the shared WorkspaceDocsRoot, which brings its own
+// AppHeader (breadcrumbs, view toggle, search, filters, New doc) — same
+// layout as the workspace Docs page.
 export default function ProjectPagesListLayout() {
   return (
-    <>
-      <AppHeader header={<PagesListHeader />} />
-      <ContentWrapper>
-        <Outlet />
-      </ContentWrapper>
-    </>
+    <ContentWrapper>
+      <Outlet />
+    </ContentWrapper>
   );
 }

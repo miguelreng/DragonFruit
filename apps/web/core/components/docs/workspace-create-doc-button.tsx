@@ -45,11 +45,14 @@ const ALLOWED_ROLES = new Set<EUserPermissions | EUserProjectRoles>([
 type Props = {
   workspaceSlug: string;
   defaultType?: TPageType;
+  /** Create directly in this project and hide the project picker. */
+  lockedProjectId?: string;
 };
 
 export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButton({
   workspaceSlug,
   defaultType = "doc",
+  lockedProjectId,
 }: Props) {
   const navigate = useNavigate();
   const { joinedProjectIds, getProjectById } = useProject();
@@ -102,12 +105,13 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
     }
   };
 
-  const handleCreate = async (projectId: string) => {
+  const handleCreate = async (projectId: string, typeOverride?: TPageType) => {
     if (isCreating) return;
+    const createType = typeOverride ?? currentType;
     setSubmittingProjectId(projectId);
     const payload: Partial<TPage> = {
-      access: currentType === "whiteboard" ? EPageAccess.PUBLIC : EPageAccess.PRIVATE,
-      page_type: currentType,
+      access: createType === "whiteboard" ? EPageAccess.PUBLIC : EPageAccess.PRIVATE,
+      page_type: createType,
     };
     try {
       const page = await pageService.create(workspaceSlug, projectId, payload);
@@ -199,9 +203,9 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
     }
   };
 
-  const handleProjectSelect = (projectId: string) => {
-    if (currentType !== "pdf") {
-      void handleCreate(projectId);
+  const handleProjectSelect = (projectId: string, typeOverride?: TPageType) => {
+    if ((typeOverride ?? currentType) !== "pdf") {
+      void handleCreate(projectId, typeOverride);
       return;
     }
 
@@ -229,9 +233,21 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
         onChange={handleSelectedPdfFile}
       />
       <div ref={setReferenceElement} className="flex items-stretch">
-        <Menu.Button as={Button} variant="primary" size="lg" loading={isCreating} className="rounded-r-none">
-          {isCreating ? "Adding" : buttonLabel}
-        </Menu.Button>
+        {lockedProjectId ? (
+          <Button
+            variant="primary"
+            size="lg"
+            loading={isCreating}
+            className="rounded-r-none"
+            onClick={() => handleProjectSelect(lockedProjectId)}
+          >
+            {isCreating ? "Adding" : buttonLabel}
+          </Button>
+        ) : (
+          <Menu.Button as={Button} variant="primary" size="lg" loading={isCreating} className="rounded-r-none">
+            {isCreating ? "Adding" : buttonLabel}
+          </Menu.Button>
+        )}
         <Menu.Button
           aria-label="Choose type and project"
           className="flex items-center rounded-r-lg bg-[#e548a5] px-1.5 text-white hover:bg-[#d93d9a] active:bg-[#c9368e]"
@@ -258,6 +274,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
                   e.preventDefault();
                   e.stopPropagation();
                   setCurrentType(t);
+                  if (lockedProjectId) handleProjectSelect(lockedProjectId, t);
                 }}
                 className={cn(
                   "flex flex-1 items-center justify-center gap-1 rounded-lg border border-subtle px-2 py-1 text-11 text-secondary transition-colors hover:bg-layer-1",
@@ -270,52 +287,56 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
             );
           })}
         </div>
-        <div className="border-t border-subtle" />
-        <div className="px-2 pt-2 pb-1.5 text-11 font-medium text-tertiary uppercase">Project</div>
-        <div className="px-2 pb-2">
-          <div className="flex items-center gap-1.5 rounded-lg border border-subtle bg-canvas px-2 py-1">
-            <Search className="size-3 text-tertiary" />
-            <input
-              type="text"
-              value={projectSearch}
-              onChange={(e) => setProjectSearch(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Search projects"
-              className="w-full bg-transparent text-11 text-primary outline-none placeholder:text-placeholder"
-            />
-          </div>
-        </div>
-        <div className="max-h-56 overflow-y-auto pb-1">
-          {hasEligibleProjects ? (
-            eligibleProjects.map((project) => (
-              <Menu.Item key={project.id}>
-                {({ active }) => (
-                  <button
-                    type="button"
-                    onClick={() => handleProjectSelect(project.id)}
-                    disabled={isCreating}
-                    className={cn("flex w-full items-center gap-2 px-3 py-1.5 text-left text-12 text-primary", {
-                      "bg-layer-1-hover": active,
-                      "opacity-50": isCreating,
-                    })}
-                  >
-                    <span className="grid h-4 w-4 flex-shrink-0 place-items-center">
-                      <Logo logo={project.logo_props} size={12} />
-                    </span>
-                    <span className="truncate">{project.name}</span>
-                    {submittingProjectId === project.id && (
-                      <span className="ml-auto text-11 text-tertiary">Adding…</span>
+        {!lockedProjectId && (
+          <>
+            <div className="border-t border-subtle" />
+            <div className="px-2 pt-2 pb-1.5 text-11 font-medium text-tertiary uppercase">Project</div>
+            <div className="px-2 pb-2">
+              <div className="flex items-center gap-1.5 rounded-lg border border-subtle bg-canvas px-2 py-1">
+                <Search className="size-3 text-tertiary" />
+                <input
+                  type="text"
+                  value={projectSearch}
+                  onChange={(e) => setProjectSearch(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  placeholder="Search projects"
+                  className="w-full bg-transparent text-11 text-primary outline-none placeholder:text-placeholder"
+                />
+              </div>
+            </div>
+            <div className="max-h-56 overflow-y-auto pb-1">
+              {hasEligibleProjects ? (
+                eligibleProjects.map((project) => (
+                  <Menu.Item key={project.id}>
+                    {({ active }) => (
+                      <button
+                        type="button"
+                        onClick={() => handleProjectSelect(project.id)}
+                        disabled={isCreating}
+                        className={cn("flex w-full items-center gap-2 px-3 py-1.5 text-left text-12 text-primary", {
+                          "bg-layer-1-hover": active,
+                          "opacity-50": isCreating,
+                        })}
+                      >
+                        <span className="grid h-4 w-4 flex-shrink-0 place-items-center">
+                          <Logo logo={project.logo_props} size={12} />
+                        </span>
+                        <span className="truncate">{project.name}</span>
+                        {submittingProjectId === project.id && (
+                          <span className="ml-auto text-11 text-tertiary">Adding…</span>
+                        )}
+                      </button>
                     )}
-                  </button>
-                )}
-              </Menu.Item>
-            ))
-          ) : (
-            <p className="px-3 py-2 text-11 text-placeholder italic">
-              {projectSearch.trim() ? "No matching projects" : "Join a project to create a page"}
-            </p>
-          )}
-        </div>
+                  </Menu.Item>
+                ))
+              ) : (
+                <p className="px-3 py-2 text-11 text-placeholder italic">
+                  {projectSearch.trim() ? "No matching projects" : "Join a project to create a page"}
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </Menu.Items>
     </Menu>
   );
