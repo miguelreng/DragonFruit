@@ -152,6 +152,17 @@ def _get_workspace_companion(workspace: Workspace) -> Agent:
     """
     existing = _get_existing_workspace_companion(workspace)
     if existing is not None:
+        # Atlas has one fixed identity — self-heal historical rows that still
+        # carry a stale name (e.g. "Bot") so member lists and @-mentions
+        # always show "Atlas".
+        if existing.name != _DEFAULT_ASSISTANT_NAME:
+            existing.name = _DEFAULT_ASSISTANT_NAME
+            existing.save(update_fields=["name"])
+        bot_user = existing.bot_user
+        if bot_user and bot_user.display_name != _DEFAULT_ASSISTANT_NAME:
+            bot_user.display_name = _DEFAULT_ASSISTANT_NAME
+            bot_user.first_name = _DEFAULT_ASSISTANT_NAME
+            bot_user.save(update_fields=["display_name", "first_name"])
         return existing
 
     bot_user = _build_bot_user(workspace.slug, _DEFAULT_ASSISTANT_NAME)

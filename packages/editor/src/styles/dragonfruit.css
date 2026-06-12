@@ -356,7 +356,7 @@
   background: var(--atlas-review-button-bg);
   color: var(--atlas-review-button-text);
   box-shadow: var(--atlas-review-shadow);
-  opacity: 0.82;
+  opacity: 0.92;
   transition:
     opacity 0.15s ease,
     color 0.15s ease,
@@ -383,24 +383,60 @@
   color: var(--atlas-review-button-primary);
 }
 
-/* Select toggle — quiet checkbox-style button; filled when selected. */
+/* Select toggle — a real checkbox: empty box by default, faint check preview
+   on hover, accent-filled box with a white check when selected. */
 .atlas-doc-review-controls .atlas-doc-review-select {
-  opacity: 0.55;
+  opacity: 0.75;
+}
+
+.atlas-doc-review-controls .atlas-doc-review-select .atlas-doc-review-checkbox-tick {
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
 .atlas-doc-review-controls .atlas-doc-review-select:hover {
   opacity: 1;
+  color: var(--atlas-review-button-primary, #e548a5);
+}
+
+.atlas-doc-review-controls .atlas-doc-review-select:hover .atlas-doc-review-checkbox-tick {
+  opacity: 0.45;
 }
 
 .atlas-doc-review-controls .atlas-doc-review-select.is-selected {
   opacity: 1;
-  background: var(--atlas-review-button-primary, #e548a5);
-  border-color: var(--atlas-review-button-primary, #e548a5);
-  color: #fff;
+  color: var(--atlas-review-button-primary, #e548a5);
+}
+
+.atlas-doc-review-controls .atlas-doc-review-select.is-selected .atlas-doc-review-checkbox-box {
+  fill: var(--atlas-review-button-primary, #e548a5);
+  stroke: var(--atlas-review-button-primary, #e548a5);
+}
+
+.atlas-doc-review-controls .atlas-doc-review-select.is-selected .atlas-doc-review-checkbox-tick {
+  opacity: 1;
+  stroke: #fff;
 }
 
 .atlas-doc-review-controls .atlas-doc-review-select.is-selected:hover {
   opacity: 0.85;
+}
+
+/* Accept gets a soft accent tint so it reads as the primary action; reject
+   stays neutral and warns red only on hover. Obvious, but quiet. */
+.atlas-doc-review-controls .atlas-doc-review-button.is-primary {
+  background: color-mix(in srgb, var(--atlas-review-button-primary, #e548a5) 10%, var(--atlas-review-button-bg));
+  border-color: color-mix(in srgb, var(--atlas-review-button-primary, #e548a5) 35%, var(--atlas-review-border));
+}
+
+.atlas-doc-review-controls .atlas-doc-review-button.is-primary:hover {
+  background: color-mix(in srgb, var(--atlas-review-button-primary, #e548a5) 18%, var(--atlas-review-button-bg));
+}
+
+.atlas-doc-review-controls .atlas-doc-review-button:not(.is-primary):not(.atlas-doc-review-select):hover {
+  color: #dc2626;
+  border-color: color-mix(in srgb, #dc2626 35%, var(--atlas-review-border));
+  background: color-mix(in srgb, #dc2626 8%, var(--atlas-review-button-bg));
 }
 
 /* Tighten the pending highlight when the proposal is selected. */

@@ -136,7 +136,7 @@ const ReplyRow = observer(function ReplyRow(props: {
 
   const userDetails = getUserDetails(reply.actor);
   const displayName = reply.actor_detail?.is_bot
-    ? (reply.actor_detail?.first_name ?? "") + "Bot"
+    ? reply.actor_detail?.first_name || "Atlas"
     : (userDetails?.display_name ?? reply.actor_detail?.display_name ?? "");
   const avatarUrl = userDetails?.avatar_url ?? reply.actor_detail?.avatar_url;
 

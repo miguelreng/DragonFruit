@@ -243,6 +243,13 @@ const rejectSelectedProposals = (view: EditorView) => {
 // Decorations — pink highlight over the real content + floating controls.
 // --------------------------------------------------------------------------
 
+// Inline SVGs so the controls read as what they are: a real checkbox for
+// select, a crisp check/cross for accept/reject (text glyphs rendered
+// inconsistently across platforms and looked ambiguous at 12px).
+const SELECT_CHECKBOX_SVG = `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect class="atlas-doc-review-checkbox-box" x="1.5" y="1.5" width="13" height="13" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path class="atlas-doc-review-checkbox-tick" d="M4.6 8.4l2.3 2.4 4.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ACCEPT_CHECK_SVG = `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false"><path d="M3.2 8.6l3.2 3.2 6.4-7.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const REJECT_CROSS_SVG = `<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+
 const buildProposalControls = (view: EditorView, proposal: TTrackedProposal, isSelected: boolean) => {
   // `controls` is a zero-height anchor at the block boundary; `inner` is
   // pushed into the right margin so the buttons sit next to the paragraph
@@ -261,7 +268,7 @@ const buildProposalControls = (view: EditorView, proposal: TTrackedProposal, isS
   select.className = isSelected
     ? "atlas-doc-review-button atlas-doc-review-select is-selected"
     : "atlas-doc-review-button atlas-doc-review-select";
-  select.textContent = "◻";
+  select.innerHTML = SELECT_CHECKBOX_SVG;
   select.title = isSelected ? "Deselect" : "Select";
   select.setAttribute("aria-label", isSelected ? "Deselect proposal" : "Select proposal");
   select.setAttribute("aria-pressed", String(isSelected));
@@ -276,7 +283,7 @@ const buildProposalControls = (view: EditorView, proposal: TTrackedProposal, isS
   const accept = document.createElement("button");
   accept.type = "button";
   accept.className = "atlas-doc-review-button is-primary";
-  accept.textContent = "✓";
+  accept.innerHTML = ACCEPT_CHECK_SVG;
   accept.title = acceptLabel;
   accept.setAttribute("aria-label", acceptLabel);
   accept.addEventListener("click", (event) => {
@@ -290,7 +297,7 @@ const buildProposalControls = (view: EditorView, proposal: TTrackedProposal, isS
   const reject = document.createElement("button");
   reject.type = "button";
   reject.className = "atlas-doc-review-button";
-  reject.textContent = "✕";
+  reject.innerHTML = REJECT_CROSS_SVG;
   reject.title = rejectLabel;
   reject.setAttribute("aria-label", rejectLabel);
   reject.addEventListener("click", (event) => {
