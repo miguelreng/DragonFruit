@@ -37,11 +37,21 @@ type Props = {
   isInLastRow: boolean;
   handleDrop: (self: DropTargetRecord, source: ElementDragPayload, location: DragLocationHistory) => void;
   handleLayout: () => void;
+  className?: string;
 };
 
 export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props) {
-  const { stickyId, workspaceSlug, itemWidth, isLastChild, isInFirstRow, isInLastRow, handleDrop, handleLayout } =
-    props;
+  const {
+    stickyId,
+    workspaceSlug,
+    itemWidth,
+    isLastChild,
+    isInFirstRow,
+    isInLastRow,
+    handleDrop,
+    handleLayout,
+    className,
+  } = props;
   // states
   const [isDragging, setIsDragging] = useState(false);
   const [instruction, setInstruction] = useState<InstructionType | undefined>(undefined);
@@ -151,10 +161,11 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
     <div
       ref={elementRef}
       className={cn(
-        "box-border flex flex-col p-2 motion-safe:transition-[opacity,transform,filter] motion-safe:duration-200 motion-safe:ease-out",
+        "box-border flex flex-col motion-safe:transition-[opacity,transform,filter] motion-safe:duration-200 motion-safe:ease-out",
         {
           "z-[1] scale-[0.985] opacity-30 grayscale-[0.2]": isDragging,
-        }
+        },
+        className
       )}
       style={{
         width: itemWidth,

@@ -11,9 +11,11 @@ import useSWR from "swr";
 import { STICKIES_PER_PAGE } from "@plane/constants";
 import { ContentWrapper, Loader } from "@plane/ui";
 import { cn } from "@plane/utils";
+import type { ViewMode } from "@/components/core/view-mode-toggle";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
+import useLocalStorage from "@/hooks/use-local-storage";
 import { useSticky } from "@/hooks/use-stickies";
-import { StickiesLayout } from "./stickies-list";
+import { STICKIES_VIEW_MODE_STORAGE_KEY, StickiesLayout } from "./stickies-list";
 
 export const StickiesInfinite = observer(function StickiesInfinite() {
   const { workspaceSlug } = useParams();
@@ -25,6 +27,9 @@ export const StickiesInfinite = observer(function StickiesInfinite() {
 
   // ref
   const containerRef = useRef<HTMLDivElement>(null);
+  // view mode (kept in sync with the header toggle via the shared local storage key)
+  const { storedValue: storedViewMode } = useLocalStorage<ViewMode>(STICKIES_VIEW_MODE_STORAGE_KEY, "grid");
+  const viewMode: ViewMode = storedViewMode ?? "grid";
 
   useSWR(
     workspaceSlug ? `WORKSPACE_STICKIES_${workspaceSlug}` : null,
@@ -46,6 +51,7 @@ export const StickiesInfinite = observer(function StickiesInfinite() {
     <ContentWrapper ref={containerRef} className="space-y-4">
       <StickiesLayout
         workspaceSlug={workspaceSlug.toString()}
+        viewMode={viewMode}
         intersectionElement={
           hasNextPage &&
           workspaceStickies?.length >= STICKIES_PER_PAGE && (
