@@ -321,6 +321,9 @@ function BookmarkCard(props: {
   // ratio until the image loads, then lock to its measured ratio.
   const [measuredRatio, setMeasuredRatio] = useState<string | undefined>(undefined);
   const imageRatio = storedRatio ?? measuredRatio ?? "4 / 5";
+  // Broken/dead preview URLs fall back to the no-image text layout instead of
+  // showing the browser's broken-image glyph.
+  const [imageFailed, setImageFailed] = useState(false);
   // The open-link button is the only way to follow the URL; clicking the rest of
   // the card opens the detail modal. Clicks inside this cluster never bubble up.
   const openLinkClasses =
@@ -424,7 +427,7 @@ function BookmarkCard(props: {
           </CustomMenu.MenuItem>
         </CustomMenu>
       </div>
-      {imageUrl ? (
+      {imageUrl && !imageFailed ? (
         <>
           <img
             src={imageUrl}
@@ -433,6 +436,7 @@ function BookmarkCard(props: {
             decoding="async"
             className="block h-auto w-full bg-layer-1/40"
             style={{ aspectRatio: imageRatio }}
+            onError={() => setImageFailed(true)}
             onLoad={
               storedRatio
                 ? undefined
