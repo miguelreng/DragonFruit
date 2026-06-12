@@ -684,12 +684,64 @@ a.public-doc-mention:hover {
   border-bottom-width: 1px !important;
 }
 
+/* Focus (zen) mode — the doc's scroll container takes over the viewport so
+   the app rail, header and toolbar disappear behind it. `position` can't
+   transition, so entering plays a fade/scale-in and leaving plays a short
+   settle fade (`.page-focus-mode-exit`, applied from editor-body.tsx). */
+.page-focus-mode {
+  position: fixed;
+  inset: 0;
+  /* above the app header (z-[18]) and the floating Ask Atlas affordances (z-20) */
+  z-index: 26;
+  background-color: var(--bg-surface-1);
+  animation: page-zen-enter 0.3s ease-out;
+}
+
+.page-focus-mode-exit {
+  animation: page-zen-exit 0.35s ease-out;
+}
+
+@keyframes page-zen-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes page-zen-exit {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .page-focus-mode .page-header-container {
-  padding-top: 20px;
+  padding-top: 48px;
 }
 
 .page-focus-mode .page-summary-container {
   display: none !important;
+}
+
+/* Typewriter dimming: only the block(s) under the caret render at full
+   strength. `zen-dimming` + `zen-active-block` are applied from the web
+   side (selectionchange handler in editor-body.tsx). */
+.page-focus-mode .ProseMirror > * {
+  transition: opacity 0.3s ease;
+}
+
+.page-focus-mode .ProseMirror.zen-dimming > * {
+  opacity: 0.3;
+}
+
+.page-focus-mode .ProseMirror.zen-dimming > .zen-active-block {
+  opacity: 1;
 }
 
 .page-drop-cap .ProseMirror > p:first-of-type::first-letter {

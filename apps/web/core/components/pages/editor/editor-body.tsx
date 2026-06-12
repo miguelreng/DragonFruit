@@ -20,9 +20,12 @@ import type {
   TServerHandler,
 } from "@plane/editor";
 import { useTranslation } from "@plane/i18n";
+import { IconButton } from "@plane/propel/icon-button";
+import { Tooltip } from "@plane/propel/tooltip";
 import type { TSearchEntityRequestPayload, TSearchResponse, TWebhookConnectionQueryParams } from "@plane/types";
 import { ERowVariant, Row } from "@plane/ui";
 import { cn, generateRandomColor, hslToHex } from "@plane/utils";
+import { Minimize2 } from "@/components/icons/lucide-shim";
 // components
 import {
   BLOCK_COMMENT_REQUEST_EVENT,
@@ -128,7 +131,9 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     editor: { editorRef, updateAssetsList },
     setSyncingStatus,
   } = page;
-  const isFocusMode = Boolean(view_props?.focus_mode);
+  // Focus (zen) mode never applies to chromeless embeds (the Brief) — they
+  // have no toolbar to toggle it back off from.
+  const isFocusMode = Boolean(view_props?.focus_mode) && !chromeless;
   const isDropCapEnabled = Boolean(view_props?.drop_cap);
   const workspaceId = getWorkspaceBySlug(workspaceSlug)?.id ?? "";
   // use editor mention
@@ -246,6 +251,116 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     setFloatingAnchor(null);
     setFloatingBlockId(null);
   }, []);
+
+  // Focus (zen) mode — the scroll container becomes a fixed, full-viewport
+  // canvas (see `.page-focus-mode` in globals.css) so the app rail, header
+  // and toolbar disappear behind it. The same element keeps scrolling, so we
+  // also drive typewriter centering against it. Held in state (callback ref)
+  // because the container mounts after the loading early-return — the
+  // typewriter effect below must re-run once it exists.
+  const [zenScrollEl, setZenScrollEl] = useState<HTMLDivElement | null>(null);
+  const [isZenExiting, setIsZenExiting] = useState(false);
+  const wasFocusModeRef = useRef(isFocusMode);
+
+  const handleExitFocusMode = useCallback(() => {
+    void page.updateViewProps({ focus_mode: false });
+  }, [page]);
+
+  // `position` can't transition, so leaving focus mode plays a short settle
+  // animation (`.page-focus-mode-exit`) once the canvas snaps back into the
+  // layout flow.
+  useEffect(() => {
+    const wasFocusMode = wasFocusModeRef.current;
+    wasFocusModeRef.current = isFocusMode;
+    if (!wasFocusMode || isFocusMode) return;
+    setIsZenExiting(true);
+    const timer = setTimeout(() => setIsZenExiting(false), 350);
+    return () => clearTimeout(timer);
+  }, [isFocusMode]);
+
+  // Esc exits focus mode. Skip if something upstream (slash menu, suggestion
+  // dropdowns) already consumed the key, or a dialog is open — Esc should
+  // close that instead.
+  useEffect(() => {
+    if (!isFocusMode) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (document.querySelector("[role='dialog']")) return;
+      handleExitFocusMode();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFocusMode, handleExitFocusMode]);
+
+  // Typewriter scrolling + block dimming. The caret is tracked from the web
+  // side (`selectionchange` + the rendered ProseMirror DOM) so the editor
+  // package stays untouched: top-level blocks the selection touches get
+  // `zen-active-block` (everything else dims via CSS) and the scroll
+  // container keeps the caret line pinned near the vertical center.
+  useEffect(() => {
+    if (!isFocusMode || !pageId) return;
+    const scrollEl = zenScrollEl;
+    if (!scrollEl) return;
+    // The doc body's ProseMirror root — the title editor lives in its own
+    // `editor-container-${pageId}-title` wrapper, so scope to the doc's.
+    const getEditorRoot = () =>
+      document.getElementById(`editor-container-${pageId}`)?.querySelector<HTMLElement>(".ProseMirror") ?? null;
+    const clearDimming = (root: HTMLElement | null) => {
+      if (!root) return;
+      root.classList.remove("zen-dimming");
+      root.querySelectorAll(".zen-active-block").forEach((el) => el.classList.remove("zen-active-block"));
+    };
+    let rafId: number | null = null;
+    const update = () => {
+      rafId = null;
+      const root = getEditorRoot();
+      if (!root) return;
+      const selection = document.getSelection();
+      const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+      if (!selection || !range || !root.contains(range.startContainer)) {
+        // Caret left the doc body (title, exit button, …) — undim everything.
+        clearDimming(root);
+        return;
+      }
+      // Dim every top-level block the selection doesn't touch.
+      let hasActiveBlock = false;
+      for (const block of Array.from(root.children)) {
+        const isActive = range.intersectsNode(block);
+        block.classList.toggle("zen-active-block", isActive);
+        if (isActive) hasActiveBlock = true;
+      }
+      root.classList.toggle("zen-dimming", hasActiveBlock);
+      // Typewriter: only recenter a collapsed caret — chasing the focus end
+      // of a mouse drag would fight the selection.
+      if (!selection.isCollapsed) return;
+      let caretRect = range.getBoundingClientRect();
+      if (caretRect.width === 0 && caretRect.height === 0) {
+        // Collapsed ranges in empty blocks report a zero rect — fall back
+        // to the caret's closest element.
+        const node = range.startContainer;
+        const el = node instanceof HTMLElement ? node : node.parentElement;
+        if (!el) return;
+        caretRect = el.getBoundingClientRect();
+      }
+      const scrollRect = scrollEl.getBoundingClientRect();
+      const delta = caretRect.top + caretRect.height / 2 - (scrollRect.top + scrollRect.height * 0.42);
+      // Same line → zero-ish delta → no scroll; new line → one smooth nudge.
+      if (Math.abs(delta) < 2) return;
+      scrollEl.scrollTo({ top: scrollEl.scrollTop + delta, behavior: "smooth" });
+    };
+    const requestUpdate = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(update);
+    };
+    document.addEventListener("selectionchange", requestUpdate);
+    // Center the caret once on entering focus mode.
+    requestUpdate();
+    return () => {
+      document.removeEventListener("selectionchange", requestUpdate);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      clearDimming(getEditorRoot());
+    };
+  }, [isFocusMode, pageId, zenScrollEl]);
 
   // editor flaggings
   const { document: documentEditorExtensions } = useEditorFlagging({
@@ -374,15 +489,34 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
 
   return (
     <Row
+      ref={setZenScrollEl}
       className={cn(
         "vertical-scrollbar relative flex scrollbar-md size-full flex-col overflow-x-hidden overflow-y-auto duration-200",
         {
           "page-focus-mode": isFocusMode,
+          "page-focus-mode-exit": isZenExiting,
           "page-drop-cap": isDropCapEnabled,
         }
       )}
       variant={ERowVariant.HUGGING}
     >
+      {/* Subtle, always-reachable way out of the zen canvas (Esc works too). */}
+      {isFocusMode && (
+        <div className="fixed top-4 right-4 z-10">
+          <Tooltip tooltipContent="Exit focus mode (Esc)" position="left">
+            <IconButton
+              type="button"
+              variant="ghost"
+              size="lg"
+              icon={Minimize2}
+              aria-label="Exit focus mode"
+              aria-keyshortcuts="Escape"
+              onClick={handleExitFocusMode}
+              className="text-tertiary opacity-50 transition-opacity duration-200 hover:opacity-100"
+            />
+          </Tooltip>
+        </div>
+      )}
       <div id="page-content-container" className="relative w-full flex-shrink-0">
         {/* table of content */}
         {!isNavigationPaneOpen && !isFocusMode && (
