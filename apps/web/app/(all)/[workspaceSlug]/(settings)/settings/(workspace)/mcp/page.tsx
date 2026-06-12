@@ -6,18 +6,27 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import useSWR from "swr";
 // plane imports
+import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { APITokenService } from "@plane/services";
 import { cn } from "@plane/utils";
 // components
+import { CreateApiTokenModal } from "@/components/api-token/modal/create-token-modal";
+import { ApiTokenListItem } from "@/components/api-token/token-list-item";
 import { Copy, ExternalLink } from "@/components/icons/lucide-shim";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { SettingsHeading } from "@/components/settings/heading";
+// constants
+import { API_TOKENS_LIST } from "@/constants/fetch-keys";
 // local
 import type { Route } from "./+types/page";
 import { MCPWorkspaceSettingsHeader } from "./header";
 
-// The 8 tools Dragon Fruit's MCP server exposes today. Kept in sync
+const apiTokenService = new APITokenService();
+
+// The 8 tools DragonFruit's MCP server exposes today. Kept in sync
 // with apps/api/plane/app/views/mcp/base.py:TOOLS. When that list
 // changes, update here — there's no runtime introspection at this
 // level since the page renders before the user has a token.
@@ -33,32 +42,6 @@ const SERVER_TOOLS: Array<{ name: string; description: string }> = [
   { name: "list_projects", description: "Discover projects in the workspace." },
   { name: "search_pages", description: "Full-text search across docs (up to 25 matches)." },
   { name: "get_page", description: "Read a single doc's text content (up to 8000 chars)." },
-];
-
-// MCP servers worth highlighting as good starting points for the
-// "agents consume MCP" direction. None of these are endorsements; the
-// list is illustrative and easy to expand. Keep URLs short and stable.
-const EXAMPLE_MCP_SERVERS: Array<{ name: string; description: string; url: string }> = [
-  {
-    name: "GitHub (official)",
-    description: "Read issues, PRs, file contents; comment on issues; trigger workflows.",
-    url: "https://github.com/github/github-mcp-server",
-  },
-  {
-    name: "Slack",
-    description: "Send messages, look up users, search channel history.",
-    url: "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
-  },
-  {
-    name: "Linear",
-    description: "Read and create issues, list teams and projects.",
-    url: "https://github.com/jerhadf/linear-mcp-server",
-  },
-  {
-    name: "Filesystem (local)",
-    description: "Run an MCP server locally to expose files on the agent host. Mostly useful for self-hosted setups.",
-    url: "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
-  },
 ];
 
 // Terminal-styled code block: black bg + green monospace, compact font.
@@ -101,6 +84,39 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
   );
 }
 
+// Compact create/list panel for personal API tokens, reusing the same
+// service + modal as Settings → API Tokens so tokens minted here show
+// up there (and vice versa) without any extra state.
+function ApiTokensPanel() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { data: tokens } = useSWR(API_TOKENS_LIST, () => apiTokenService.list());
+
+  return (
+    <div className="rounded-lg border border-subtle bg-layer-1 p-3">
+      <CreateApiTokenModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-caption-md-medium text-primary">Your API tokens</h4>
+        <Button variant="secondary" size="sm" onClick={() => setIsCreateModalOpen(true)}>
+          New token
+        </Button>
+      </div>
+      {!tokens ? (
+        <p className="text-caption-sm mt-2 text-tertiary">Loading tokens…</p>
+      ) : tokens.length > 0 ? (
+        <div className="mt-1">
+          {tokens.map((token) => (
+            <ApiTokenListItem key={token.id} token={token} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-caption-sm mt-2 text-tertiary">
+          No tokens yet. Create one to connect your first MCP client — the secret is shown once and downloaded as a CSV.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function MCPSettingsPage({ params }: Route.ComponentProps) {
   const { workspaceSlug } = params;
   const slug = workspaceSlug?.toString() ?? "";
@@ -114,7 +130,9 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
     return window.location.origin;
   });
   const mcpUrl = useMemo(() => `${origin}/api/workspaces/${slug}/mcp/`, [origin, slug]);
-  const tokensHref = useMemo(() => `/${slug}/settings/api-tokens/`, [slug]);
+  // Personal API tokens live under profile settings (the old
+  // /:workspaceSlug/settings/api-tokens URL redirects here too).
+  const tokensHref = "/settings/profile/api-tokens/";
 
   const claudeCodeSnippet = `claude mcp add dragon-fruit \\
   --transport http \\
@@ -144,16 +162,35 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
           title="MCP — Model Context Protocol"
           description={
             <span>
-              MCP lets AI tools talk to each other through a standard protocol. Dragon Fruit can play both roles: an MCP
-              server that external tools (Claude Code, Cursor, ChatGPT desktop, etc.) connect to, and an MCP client for
-              Atlas to consume tools from other services (GitHub, Slack, Linear, your own internal MCP servers).
+              MCP is the standard protocol AI tools use to talk to each other. DragonFruit speaks it in both directions
+              — and each direction has its own home in Settings.
             </span>
           }
         />
 
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-subtle bg-layer-1 p-3">
+            <h4 className="text-caption-md-medium text-primary">Give Atlas tools from external services</h4>
+            <p className="text-caption-sm mt-0.5 text-tertiary">
+              Connect GitHub, Linear, Stripe, and more so Atlas can use them in docs, chat, and automations. Managed on{" "}
+              <Link href={`/${slug}/settings/integrations/`} className="text-accent-primary hover:underline">
+                Settings → Integrations
+              </Link>
+              .
+            </p>
+          </div>
+          <div className="rounded-lg border border-subtle bg-layer-1 p-3">
+            <h4 className="text-caption-md-medium text-primary">Connect external AI clients into DragonFruit</h4>
+            <p className="text-caption-sm mt-0.5 text-tertiary">
+              Point Claude Code, Cursor, or ChatGPT at this workspace's MCP endpoint so they can read and write tasks
+              and docs here. That's this page — setup below.
+            </p>
+          </div>
+        </div>
+
         <Section
-          title="1 · Connect external AI tools to this workspace"
-          subtitle="Dragon Fruit acts as the MCP server. Any MCP-capable AI tool can read and write tasks, comments, and pages here."
+          title="1 · Connect external AI clients to this workspace"
+          subtitle="DragonFruit acts as the MCP server. Any MCP-capable AI client can read and write tasks, comments, and docs here."
         >
           <Step n={1} label="Your workspace's MCP endpoint">
             <CodeBlock code={mcpUrl} label="MCP URL" />
@@ -168,7 +205,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
 
           <Step n={2} label="Mint an API token">
             <p className="text-caption-md text-secondary">
-              Generate a workspace-scoped token under{" "}
+              Every MCP request authenticates with a personal API token. Create one right here, or manage them all under{" "}
               <Link
                 href={tokensHref}
                 className="decoration-tertiary inline-flex items-center gap-1 underline underline-offset-2 hover:text-primary"
@@ -179,6 +216,9 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
               . The token's owning user determines who writes from the MCP client are attributed to — use a dedicated
               bot user if you want agent-style attribution.
             </p>
+            <div className="mt-2">
+              <ApiTokensPanel />
+            </div>
           </Step>
 
           <Step n={3} label="Configure your MCP client">
@@ -212,11 +252,20 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
 
         <Section
           title="2 · Give Atlas tools from other services"
-          subtitle="Dragon Fruit acts as the MCP client. Atlas can use one or more external MCP servers; their tools merge into Atlas's toolbelt at dispatch time."
+          subtitle="DragonFruit acts as the MCP client. Atlas can use one or more external MCP servers; their tools merge into Atlas's toolbelt at dispatch time."
           className="mt-8"
         >
           <p className="text-caption-md text-secondary">
-            Atlas owns outgoing MCP tools for the workspace. The model and API key live in{" "}
+            The easiest path is{" "}
+            <Link
+              href={`/${slug}/settings/integrations/`}
+              className="decoration-tertiary inline-flex items-center gap-1 underline underline-offset-2 hover:text-primary"
+            >
+              Settings → Integrations
+              <ExternalLink className="size-3" />
+            </Link>{" "}
+            — a curated catalog of remote MCP servers (GitHub, Linear, Stripe, PostHog, and more) you can connect with
+            one click and, where needed, an API key. Atlas's model and provider key live in{" "}
             <Link
               href={`/${slug}/settings/ai/`}
               className="decoration-tertiary inline-flex items-center gap-1 underline underline-offset-2 hover:text-primary"
@@ -224,52 +273,34 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
               Settings → AI
               <ExternalLink className="size-3" />
             </Link>
-            ; MCP servers are stored on the Atlas profile so they can follow the companion across docs, chat, tasks, and
-            automations. Add each server with{" "}
-            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">name</code>,{" "}
-            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">url</code>, and an optional{" "}
-            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">auth_header</code> (Fernet-encrypted
-            at rest).
+            .
           </p>
 
           <p className="text-caption-md mt-2 text-secondary">
-            Tools from each server appear in the agent's toolbelt prefixed with the server's name (e.g.{" "}
-            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">github__list_issues</code>) so you can
-            run multiple servers side-by-side without collisions. If a server is unreachable at dispatch time, the agent
-            silently falls back to its built-in tools — one broken integration doesn't kill the run.
+            Under the hood each connection is an entry on the Atlas profile with a{" "}
+            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">name</code>,{" "}
+            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">url</code>, and an optional{" "}
+            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">auth_header</code> (Fernet-encrypted
+            at rest), so the tools follow Atlas across docs, chat, tasks, and automations. Anything that speaks
+            MCP-over-HTTP with Bearer or no auth works — custom or self-hosted servers can be attached the same way via
+            the API. The protocol spec is at{" "}
+            <a
+              href="https://modelcontextprotocol.io/"
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-primary"
+            >
+              modelcontextprotocol.io
+            </a>
+            .
           </p>
 
-          <div className="mt-4 rounded-lg border border-subtle bg-layer-1 p-3">
-            <h4 className="mb-1.5 text-caption-md-medium text-primary">Example MCP servers worth trying</h4>
-            <ul className="flex flex-col gap-2">
-              {EXAMPLE_MCP_SERVERS.map((s) => (
-                <li key={s.name} className="text-caption-sm">
-                  <a
-                    href={s.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-caption-md-medium text-primary hover:underline"
-                  >
-                    {s.name}
-                    <ExternalLink className="size-3" />
-                  </a>
-                  <div className="text-tertiary">{s.description}</div>
-                </li>
-              ))}
-            </ul>
-            <p className="text-caption-sm mt-3 text-tertiary">
-              Anything that speaks MCP-over-HTTP works. The protocol spec is at{" "}
-              <a
-                href="https://modelcontextprotocol.io/"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:text-primary"
-              >
-                modelcontextprotocol.io
-              </a>
-              .
-            </p>
-          </div>
+          <p className="text-caption-md mt-2 text-secondary">
+            Tools from each server appear in Atlas's toolbelt prefixed with the server's name (e.g.{" "}
+            <code className="font-mono rounded bg-layer-3 px-1 py-px text-[10px]">github__list_issues</code>) so you can
+            run multiple servers side-by-side without collisions. If a server is unreachable at dispatch time, Atlas
+            silently falls back to its built-in tools — one broken integration doesn't kill the run.
+          </p>
         </Section>
 
         <Section title="Security notes" subtitle="" className="mt-8">
