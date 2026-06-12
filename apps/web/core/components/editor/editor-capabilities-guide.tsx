@@ -17,9 +17,10 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
   {
     group: "Write & format",
     items: [
-      { keys: "/", label: "Open the command menu — headings, lists, tables, images, quotes, code" },
+      { keys: "/", label: "Open the command menu — headings, lists, tables, images, callouts, quotes, code" },
       { keys: "Select text", label: "Bubble menu: bold, italic, color, alignment, links" },
       { keys: "Icon · Cover", label: "Give the doc an icon and a cover image" },
+      { keys: "Options ⋯", label: "Focus mode (fade all but the block you're writing), full width, font, drop cap" },
     ],
   },
   {
@@ -27,7 +28,7 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
     items: [
       { keys: "@topic", label: "Mention a Wikipedia article — linked chip with hover summary" },
       { keys: "/wiki topic", label: "Insert a cited summary block" },
-      { keys: "/cite", label: "Select a claim first — attaches the best Wikipedia source" },
+      { keys: "/cite claim", label: "Type a claim or select one first — attaches the best Wikipedia source" },
       { keys: "/link-terms", label: "Auto-link notable terms in the doc to Wikipedia" },
       { keys: "/check-citations", label: "Verify every Wikipedia citation still resolves" },
       { keys: "Select → 🌐", label: "Explain the selected phrase with a Wikipedia card" },
@@ -36,9 +37,14 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
   {
     group: "Atlas",
     items: [
-      { keys: "Ask Atlas", label: "Bottom bar — ask about or edit what you're writing" },
-      { keys: "/agent", label: "Send the current block to Atlas as a prompt" },
-      { keys: "Select → Reply", label: "Reply to a passage with Atlas in the drawer" },
+      { keys: "Ask Atlas", label: "Bottom bar — Quick ask, Rewrite, Plan, or Summarize what you're writing" },
+      { keys: "/agent", label: "Open the Ask-Atlas bar with the current block as context" },
+      { keys: "Select → Reply", label: "Pin a passage to the Ask-Atlas bar and reply to it" },
+      {
+        keys: "✓ · ✕ proposals",
+        label:
+          "Atlas edits arrive as proposals — accept or reject each in the margin, tick several, or Accept all / Reject all from the bar",
+      },
       { keys: "brief me on X", label: "Atlas researches the topic on Wikipedia and creates a sourced doc" },
       { keys: "✓ in chat", label: "Fact-check mode — every claim gets a Wikipedia citation" },
     ],
@@ -53,9 +59,25 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
   },
 ];
 
+/**
+ * Open the guide from anywhere in the doc UI (e.g. the page options menu)
+ * without threading state down to the floating button.
+ */
+const OPEN_GUIDE_EVENT = "dragonfruit:open-editor-guide";
+
+export function openEditorCapabilitiesGuide() {
+  window.dispatchEvent(new CustomEvent(OPEN_GUIDE_EVENT));
+}
+
 export function EditorCapabilitiesGuide() {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener(OPEN_GUIDE_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_GUIDE_EVENT, handleOpen);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;

@@ -63,7 +63,8 @@ export type TPageActions =
   | "turn-into-task"
   | "export"
   | "save-as-template"
-  | "move";
+  | "move"
+  | "how-to-use";
 
 type Props = {
   extraOptions?: (TContextMenuItem & { key: TPageActions })[];
