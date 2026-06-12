@@ -22,7 +22,10 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
       { keys: "Select text", label: "Bubble menu: bold, italic, color, alignment, links" },
       { keys: "Icon · Cover", label: "Give the doc an icon and a cover image" },
       { keys: "Drag ⋮⋮", label: "Reorder blocks — to-do items get a grab handle on hover, even in stickies" },
-      { keys: "Options ⋯", label: "Focus mode (fade all but the block you're writing), full width, font, drop cap" },
+      {
+        keys: "Options ⋯",
+        label: "Focus mode: full-canvas writing with typewriter scrolling, block dimming, and Esc to exit",
+      },
     ],
   },
   {
