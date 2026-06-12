@@ -5,7 +5,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { HelpCircle } from "@plane/icons";
+import { HelpCircle, Maximize2, Minimize2 } from "@plane/icons";
+import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 
 /**
@@ -61,7 +62,7 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
 
 /**
  * Open the guide from anywhere in the doc UI (e.g. the page options menu)
- * without threading state down to the floating button.
+ * without threading state down to the header control.
  */
 const OPEN_GUIDE_EVENT = "dragonfruit:open-editor-guide";
 
@@ -69,9 +70,17 @@ export function openEditorCapabilitiesGuide() {
   window.dispatchEvent(new CustomEvent(OPEN_GUIDE_EVENT));
 }
 
+/**
+ * The one entry point for the guide: a "?" control in the page header (next to
+ * the lock control) that drops the panel down over the editor area. The
+ * page-options "How to use this editor" item opens the same panel via
+ * OPEN_GUIDE_EVENT. The panel can expand into a wider two-column view for
+ * comfortable reading.
+ */
 export function EditorCapabilitiesGuide() {
   const [isOpen, setIsOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleOpen = () => setIsOpen(true);
@@ -80,13 +89,17 @@ export function EditorCapabilitiesGuide() {
   }, []);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Reopen compact: the expanded view is a per-read affordance, not a mode.
+      setIsExpanded(false);
+      return;
+    }
     const handleDismiss = (event: MouseEvent | KeyboardEvent) => {
       if (event instanceof KeyboardEvent) {
         if (event.key === "Escape") setIsOpen(false);
         return;
       }
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) setIsOpen(false);
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setIsOpen(false);
     };
     document.addEventListener("mousedown", handleDismiss);
     document.addEventListener("keydown", handleDismiss);
@@ -97,11 +110,50 @@ export function EditorCapabilitiesGuide() {
   }, [isOpen]);
 
   return (
-    <div ref={panelRef} className="fixed bottom-6 left-6 z-40">
-      {isOpen && (
-        <div className="vertical-scrollbar mb-2 scrollbar-sm max-h-[70vh] w-80 overflow-y-auto rounded-xl border border-strong bg-surface-1 p-4 shadow-raised-200">
-          <div className="mb-3 text-13 font-semibold text-primary">What this editor can do</div>
-          <div className="space-y-4">
+    <div ref={rootRef} className="relative">
+      <Tooltip tooltipContent="What this editor can do" position="bottom">
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-label="What this editor can do"
+          className={cn(
+            "grid size-6 flex-shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary",
+            isOpen && "bg-layer-1 text-primary"
+          )}
+        >
+          <HelpCircle className="size-3.5" />
+        </button>
+      </Tooltip>
+      <div
+        data-state={isOpen ? "open" : "closed"}
+        data-origin="top-right"
+        aria-hidden={!isOpen}
+        className={cn(
+          "t-dropdown absolute top-full right-0 z-30 mt-2 rounded-xl border border-strong bg-surface-1 shadow-raised-200 transition-[width] duration-200 ease-out",
+          isExpanded ? "w-[40rem] max-w-[calc(100vw-3rem)]" : "w-[340px]"
+        )}
+      >
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          <div className="text-13 font-semibold text-primary">What this editor can do</div>
+          <Tooltip tooltipContent={isExpanded ? "Collapse" : "Expand"} position="bottom">
+            <button
+              type="button"
+              onClick={() => setIsExpanded((expanded) => !expanded)}
+              aria-label={isExpanded ? "Collapse the guide" : "Expand the guide"}
+              tabIndex={isOpen ? 0 : -1}
+              className="grid size-6 shrink-0 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+            >
+              {isExpanded ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+            </button>
+          </Tooltip>
+        </div>
+        <div
+          className={cn(
+            "vertical-scrollbar scrollbar-sm overflow-y-auto p-4 pt-3",
+            isExpanded ? "max-h-[75vh]" : "max-h-[60vh]"
+          )}
+        >
+          <div className={cn(isExpanded ? "grid grid-cols-2 gap-x-8 gap-y-5" : "space-y-4")}>
             {EDITOR_CAPABILITIES.map((section) => (
               <div key={section.group}>
                 <div className="mb-1.5 text-10 font-medium tracking-wide text-tertiary uppercase">{section.group}</div>
@@ -119,19 +171,7 @@ export function EditorCapabilitiesGuide() {
             ))}
           </div>
         </div>
-      )}
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        aria-label="Editor capabilities guide"
-        title="What can this editor do?"
-        className={cn(
-          "grid size-9 place-items-center rounded-full border border-strong bg-surface-1 text-tertiary shadow-raised-100 transition-colors hover:text-primary",
-          isOpen && "text-primary"
-        )}
-      >
-        <HelpCircle className="size-4" />
-      </button>
+      </div>
     </div>
   );
 }

@@ -29,7 +29,6 @@ import {
   BlockCommentFloating,
   type BlockCommentRequestDetail,
 } from "@/components/editor/comments";
-import { EditorCapabilitiesGuide } from "@/components/editor/editor-capabilities-guide";
 import { EditorMentionsRoot } from "@/components/editor/embeds/mentions";
 // hooks
 import { useEditorMention } from "@/hooks/editor";
@@ -462,7 +461,6 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
           {renderTranscriptModal()}
           {/* One floating widget for both "add comment" and "view
               thread / reply". Anchored to the marked span via Popper. */}
-          <EditorCapabilitiesGuide />
           <BlockCommentFloating
             referenceEl={floatingAnchor}
             blockId={floatingBlockId}
