@@ -34,24 +34,13 @@ type Props = {
   itemWidth: string;
   isLastChild: boolean;
   isInFirstRow: boolean;
-  isInLastRow: boolean;
   handleDrop: (self: DropTargetRecord, source: ElementDragPayload, location: DragLocationHistory) => void;
   handleLayout: () => void;
   className?: string;
 };
 
 export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props) {
-  const {
-    stickyId,
-    workspaceSlug,
-    itemWidth,
-    isLastChild,
-    isInFirstRow,
-    isInLastRow,
-    handleDrop,
-    handleLayout,
-    className,
-  } = props;
+  const { stickyId, workspaceSlug, itemWidth, isLastChild, isInFirstRow, handleDrop, handleLayout, className } = props;
   // states
   const [isDragging, setIsDragging] = useState(false);
   const [instruction, setInstruction] = useState<InstructionType | undefined>(undefined);
@@ -171,11 +160,17 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
         width: itemWidth,
       }}
     >
+      {/* Zero-footprint indicators: h-0 containers keep masonry column tops aligned while
+          visible indicators overlay the pb-4 gap between cards instead of taking up space. */}
       {!isInFirstRow && (
-        <DropIndicator
-          classNames="my-1 rounded-full motion-safe:transition-colors"
-          isVisible={instruction === "reorder-above"}
-        />
+        <div className="relative h-0">
+          <div className="absolute inset-x-0 -top-[9px]">
+            <DropIndicator
+              classNames="rounded-full motion-safe:transition-colors"
+              isVisible={instruction === "reorder-above"}
+            />
+          </div>
+        </div>
       )}
       <StickyNote
         key={stickyId || "new"}
@@ -185,12 +180,14 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
         dragHandleRef={dragHandleRef}
         isDragging={isDragging}
       />
-      {(isInLastRow || isLastChild) && (
-        <DropIndicator
-          classNames="my-1 rounded-full motion-safe:transition-colors"
-          isVisible={instruction === "reorder-below"}
-        />
-      )}
+      <div className="relative h-0">
+        <div className="absolute inset-x-0 top-[7px]">
+          <DropIndicator
+            classNames="rounded-full motion-safe:transition-colors"
+            isVisible={instruction === "reorder-below"}
+          />
+        </div>
+      </div>
     </div>
   );
 });

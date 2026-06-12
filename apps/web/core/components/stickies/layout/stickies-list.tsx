@@ -49,9 +49,6 @@ type TProps = TStickiesLayout & {
   columnCount: number;
 };
 
-// Local storage key shared by the stickies page header toggle and the layout.
-export const STICKIES_VIEW_MODE_STORAGE_KEY = "stickies_view_mode";
-
 const handleStickyLayout = () => {};
 
 const getStickyColumnCount = (width: number | null): number => {
@@ -160,9 +157,10 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
             handleDrop={handleDrop}
             isLastChild={index === workspaceStickyIds.length - 1}
             isInFirstRow={index === 0}
-            isInLastRow={false}
             handleLayout={handleStickyLayout}
-            className={cn("mb-4", { "break-inside-avoid": viewMode === "grid" })}
+            // Vertical rhythm lives in padding (not margin) so the gap below each card
+            // stays inside its droppable area — drops over the gap still register.
+            className={cn("pb-4", { "break-inside-avoid": viewMode === "grid" })}
           />
         ))}
       </div>

@@ -13,8 +13,7 @@ import { Button } from "@plane/propel/button";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-import { ViewModeToggle, type ViewMode } from "@/components/core/view-mode-toggle";
-import { STICKIES_VIEW_MODE_STORAGE_KEY } from "@/components/stickies/layout/stickies-list";
+import { STICKIES_VIEW_MODE_STORAGE_KEY, ViewModeToggle, type ViewMode } from "@/components/core/view-mode-toggle";
 import { StickySearch } from "@/components/stickies/modal/search";
 import { useStickyOperations } from "@/components/stickies/sticky/use-operations";
 // hooks

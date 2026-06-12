@@ -11,6 +11,9 @@ import { cn } from "@plane/utils";
 
 export type ViewMode = "list" | "grid";
 
+// Local storage key shared by the stickies page header toggle and the layout.
+export const STICKIES_VIEW_MODE_STORAGE_KEY = "stickies_view_mode";
+
 type ViewModeToggleProps = {
   mode: ViewMode;
   onChange: (mode: ViewMode) => void;

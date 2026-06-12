@@ -11,11 +11,11 @@ import useSWR from "swr";
 import { STICKIES_PER_PAGE } from "@plane/constants";
 import { ContentWrapper, Loader } from "@plane/ui";
 import { cn } from "@plane/utils";
-import type { ViewMode } from "@/components/core/view-mode-toggle";
+import { STICKIES_VIEW_MODE_STORAGE_KEY, type ViewMode } from "@/components/core/view-mode-toggle";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { useSticky } from "@/hooks/use-stickies";
-import { STICKIES_VIEW_MODE_STORAGE_KEY, StickiesLayout } from "./stickies-list";
+import { StickiesLayout } from "./stickies-list";
 
 export const StickiesInfinite = observer(function StickiesInfinite() {
   const { workspaceSlug } = useParams();
