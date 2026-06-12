@@ -130,25 +130,33 @@ export function EditorCapabilitiesGuide(props: Props = {}) {
       setExpandedMaxWidth(null);
       return;
     }
+    const findClippingAncestor = () => {
+      let ancestor = rootRef.current?.parentElement ?? null;
+      while (ancestor && ancestor !== document.body) {
+        const { overflowX } = window.getComputedStyle(ancestor);
+        if (overflowX === "hidden" || overflowX === "clip") return ancestor;
+        ancestor = ancestor.parentElement;
+      }
+      return null;
+    };
+    const clippingAncestor = findClippingAncestor();
     const updateMaxWidth = () => {
       const root = rootRef.current;
       if (!root) return;
       const anchorRight = root.getBoundingClientRect().right;
-      let clipLeft = 0;
-      let ancestor = root.parentElement;
-      while (ancestor && ancestor !== document.body) {
-        const { overflowX } = window.getComputedStyle(ancestor);
-        if (overflowX === "hidden" || overflowX === "clip") {
-          clipLeft = ancestor.getBoundingClientRect().left;
-          break;
-        }
-        ancestor = ancestor.parentElement;
-      }
+      const clipLeft = clippingAncestor?.getBoundingClientRect().left ?? 0;
       setExpandedMaxWidth(Math.max(anchorRight - clipLeft - 16, 0));
     };
     updateMaxWidth();
     window.addEventListener("resize", updateMaxWidth);
-    return () => window.removeEventListener("resize", updateMaxWidth);
+    // The app rail animates its own width without firing a window resize, which
+    // moves the content column's left edge — watch the clipping ancestor too.
+    const resizeObserver = clippingAncestor ? new ResizeObserver(updateMaxWidth) : null;
+    if (clippingAncestor && resizeObserver) resizeObserver.observe(clippingAncestor);
+    return () => {
+      window.removeEventListener("resize", updateMaxWidth);
+      resizeObserver?.disconnect();
+    };
   }, [isExpanded]);
 
   return (
