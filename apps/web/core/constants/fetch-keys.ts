@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { EUserPermissions, IJiraMetadata } from "@plane/types";
+import type { EUserPermissions, IJiraMetadata, TRecentActivityFilterKeys } from "@plane/types";
 
 const paramsToKey = (params: any) => {
   const {
@@ -85,6 +85,11 @@ export const WORKSPACE_PROJECTS_ROLES_INFORMATION = (workspaceSlug: string) =>
   `WORKSPACE_PROJECTS_ROLES_INFORMATION_${workspaceSlug.toUpperCase()}`;
 
 export const WORKSPACE_FAVORITE = (workspaceSlug: string) => `WORKSPACE_FAVORITE_${workspaceSlug.toUpperCase()}`;
+
+// Shared by the home "Recents" widget and the sidebar rail so both surfaces
+// read/write the same SWR cache entry.
+export const WORKSPACE_RECENT_ACTIVITY = (workspaceSlug: string, filter: TRecentActivityFilterKeys = "all item") =>
+  `WORKSPACE_RECENT_ACTIVITY_${workspaceSlug}_${filter}`;
 
 export const WORKSPACE_STATES = (workspaceSlug: string) => `WORKSPACE_STATES_${workspaceSlug.toUpperCase()}`;
 

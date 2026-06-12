@@ -19,6 +19,7 @@ import {
   FileText,
   Folder,
   FolderOpen,
+  History,
   Info,
   TextSelect,
   Settings,
@@ -36,7 +37,7 @@ import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { CustomMenu, EModalPosition, EModalWidth, Input, Loader, ModalCore } from "@plane/ui";
-import { cn, copyTextToClipboard } from "@plane/utils";
+import { cn, copyTextToClipboard, generateWorkItemLink, getPageName } from "@plane/utils";
 import { orderBy } from "lodash-es";
 import { NotificationsBell } from "@/plane-web/components/navigations/notifications-bell";
 // components
@@ -52,13 +53,27 @@ import { useUserPermissions } from "@/hooks/store/user";
 // hooks
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
+// services
+import { WorkspaceService } from "@/services/workspace.service";
 // local imports
 import { AppSidebarItemsRoot } from "./items-root";
 import { generateFavoriteItemLink } from "@/components/workspace/sidebar/favorites/favorite-items/common";
-import { WORKSPACE_FAVORITE } from "@/constants/fetch-keys";
+import { getBriefPageDisplayName, isBriefPageName } from "@/components/project/brief/constants";
+import { WORKSPACE_FAVORITE, WORKSPACE_RECENT_ACTIVITY } from "@/constants/fetch-keys";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
-import type { IFavorite, EIssueLayoutTypes, TLogoProps, TPartialProject } from "@plane/types";
+import type {
+  IFavorite,
+  EIssueLayoutTypes,
+  TActivityEntityData,
+  TIssueEntityData,
+  TLogoProps,
+  TPageEntityData,
+  TPartialProject,
+  TProjectEntityData,
+} from "@plane/types";
 import { DeleteProjectModal } from "@/components/project/delete-project-modal";
+
+const workspaceService = new WorkspaceService();
 
 type TCompactRailItem = {
   id: string;
@@ -76,6 +91,7 @@ type TProjectRailItem = TCompactRailItem & {
 };
 
 const MAX_COMPACT_RAIL_ITEMS = 3;
+const MAX_RECENT_RAIL_ITEMS = 10;
 const RAIL_INLINE_ICON_CLASS = "size-4 flex-shrink-0 text-current";
 const COMPRESSED_ICON_CLASS =
   "relative grid size-8 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
@@ -97,6 +113,11 @@ const isRouteMatch = (targetPath: string, pathname: string) => {
 
   return pathname === normalizedTargetPath || pathname.startsWith(`${normalizedTargetPath}/`);
 };
+
+// The backend only records a recent visit when a project, work item, or page is
+// fetched — i.e. on project sub-routes (issues, pages, brief, …) and the
+// /browse work-item route. Anything else can't change Recents.
+const canPathnameRecordVisit = (pathname: string) => /^\/[^/]+\/(?:projects\/[^/]+\/|browse\/)/.test(pathname);
 
 const getFavoriteLayoutRailIcon = (layout: EIssueLayoutTypes | undefined) => {
   if (!layout) return null;
@@ -129,6 +150,60 @@ const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps |
     default:
       return <Folder className={RAIL_INLINE_ICON_CLASS} />;
   }
+};
+
+const getRecentVisitRailIcon = (visit: TActivityEntityData) => {
+  switch (visit.entity_name) {
+    case "project": {
+      const logoProps = (visit.entity_data as TProjectEntityData | undefined)?.logo_props;
+      if (logoProps?.in_use) return <Logo logo={logoProps} size={RAIL_LOGO_ICON_SIZE} type="material" />;
+      return <Folder className={RAIL_INLINE_ICON_CLASS} />;
+    }
+    case "page":
+    case "workspace_page": {
+      const logoProps = (visit.entity_data as TPageEntityData | undefined)?.logo_props;
+      if (logoProps?.in_use) return <Logo logo={logoProps} size={RAIL_LOGO_ICON_SIZE} type="lucide" />;
+      return <FileText className={RAIL_INLINE_ICON_CLASS} />;
+    }
+    case "issue":
+      return <ListTodo className={RAIL_INLINE_ICON_CLASS} />;
+    default:
+      return <Folder className={RAIL_INLINE_ICON_CLASS} />;
+  }
+};
+
+const generateRecentVisitLink = (workspaceSlug: string, visit: TActivityEntityData): string | null => {
+  switch (visit.entity_name) {
+    case "project":
+      return `/${workspaceSlug}/projects/${visit.entity_identifier}/issues`;
+    case "page":
+    case "workspace_page": {
+      // Pages are only routable through their project in this app (workspace
+      // docs live under /docs, there is no /:slug/pages/:id route).
+      const page = visit.entity_data as TPageEntityData | undefined;
+      return page?.project_id ? `/${workspaceSlug}/projects/${page.project_id}/pages/${visit.entity_identifier}` : null;
+    }
+    case "issue": {
+      const issue = visit.entity_data as TIssueEntityData | undefined;
+      if (!issue) return null;
+      return generateWorkItemLink({
+        workspaceSlug,
+        projectId: issue.project_id,
+        issueId: issue.id,
+        projectIdentifier: issue.project_identifier,
+        sequenceId: issue.sequence_id,
+        isEpic: issue.is_epic,
+      });
+    }
+    default:
+      return null;
+  }
+};
+
+const getRecentVisitLabel = (visit: TActivityEntityData) => {
+  if (visit.entity_name === "page" || visit.entity_name === "workspace_page")
+    return getPageName(visit.entity_data?.name);
+  return visit.entity_data?.name ?? "";
 };
 
 const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => void }) => {
@@ -271,7 +346,7 @@ const CompactRailItemGroup = (props: {
   );
 };
 
-const FavoritesRailSkeleton = (props: { isCompact: boolean }) => {
+const RailItemsSkeleton = (props: { isCompact: boolean }) => {
   const { isCompact } = props;
   const rows = [0, 1, 2];
 
@@ -837,6 +912,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const { t } = useTranslation();
   const surfaceTheme = useTopBarTheme();
   const [isFavoritesCategoryOpen, setIsFavoritesCategoryOpen] = useState(true);
+  const [isRecentsCategoryOpen, setIsRecentsCategoryOpen] = useState(true);
   const [isProjectsCategoryOpen, setIsProjectsCategoryOpen] = useState(true);
   const [isDownloadAppsModalOpen, setIsDownloadAppsModalOpen] = useState(false);
   // derived values
@@ -849,6 +925,22 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   // workspace wrapper, so the rail can show a skeleton while favorites load instead
   // of a placeholder item that looks like a real favorite.
   const { isLoading: isFavoritesLoading } = useSWR(slug ? WORKSPACE_FAVORITE(slug) : null);
+  // Recent visits are tracked server-side (UserRecentVisit) whenever the user opens
+  // a project, work item, or page. The key matches the home "Recents" widget so the
+  // two surfaces share one SWR cache entry.
+  const {
+    data: recentVisits,
+    isLoading: isRecentsLoading,
+    mutate: mutateRecents,
+  } = useSWR(
+    slug ? WORKSPACE_RECENT_ACTIVITY(slug) : null,
+    slug ? () => workspaceService.fetchWorkspaceRecents(slug) : null,
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  );
   const canCreateIssue = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.WORKSPACE
@@ -903,6 +995,40 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
           },
         ];
 
+  const recentItems = orderBy(
+    (recentVisits ?? []).filter((visit) => !!visit.entity_data),
+    "visited_at",
+    "desc"
+  )
+    .map((visit) => {
+      // The project Brief is backed by a hidden doc page, so visiting it
+      // records a "page" visit. Route those rows to the Brief surface (and
+      // label them like the Brief UI) instead of exposing the raw doc.
+      const page = visit.entity_name === "page" ? (visit.entity_data as TPageEntityData | undefined) : undefined;
+      if (page && isBriefPageName(page.name)) {
+        if (!page.project_id) return null;
+        const briefHref = `/${slug}/projects/${page.project_id}/brief`;
+        return {
+          id: visit.id,
+          href: briefHref,
+          label: getBriefPageDisplayName(getPartialProjectById(page.project_id)?.name),
+          icon: <TextSelect className={RAIL_INLINE_ICON_CLASS} />,
+          isActive: isRouteMatch(briefHref, pathname),
+        };
+      }
+      const href = generateRecentVisitLink(slug, visit);
+      if (!href) return null;
+      return {
+        id: visit.id,
+        href,
+        label: getRecentVisitLabel(visit),
+        icon: getRecentVisitRailIcon(visit),
+        isActive: isRouteMatch(href, pathname),
+      };
+    })
+    .filter((item): item is TCompactRailItem => !!item)
+    .slice(0, MAX_RECENT_RAIL_ITEMS);
+
   const handleCreateTask = () => {
     if (!isCreateTaskDisabled) {
       toggleCreateIssueModal(true);
@@ -915,6 +1041,21 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   useEffect(() => {
     suppressAutoOpenRef.current = false;
   }, [pathname]);
+  // Refresh recents after in-app navigation to a route that can record a visit
+  // (project sub-routes and /browse) so the section tracks the latest visits.
+  // The backend records the visit asynchronously when the entity is fetched, so
+  // wait a beat before revalidating. The initial mount is skipped — the SWR
+  // fetch already returns the latest data.
+  const isInitialPathnameRef = useRef(true);
+  useEffect(() => {
+    if (isInitialPathnameRef.current) {
+      isInitialPathnameRef.current = false;
+      return;
+    }
+    if (!slug || !canPathnameRecordVisit(pathname)) return;
+    const timeout = setTimeout(() => void mutateRecents(), 1500);
+    return () => clearTimeout(timeout);
+  }, [pathname, slug, mutateRecents]);
   const handleFavoriteNavigation = (href: string) => {
     suppressAutoOpenRef.current = true;
     router.push(href);
@@ -1008,7 +1149,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               onToggle={() => setIsFavoritesCategoryOpen((isOpen) => !isOpen)}
             >
               {isFavoritesLoading && favorites.length === 0 ? (
-                <FavoritesRailSkeleton isCompact={!isRailExpanded} />
+                <RailItemsSkeleton isCompact={!isRailExpanded} />
               ) : (
                 <CompactRailItemGroup
                   primaryItems={favoriteItemsForRail.slice(0, MAX_COMPACT_RAIL_ITEMS)}
@@ -1022,6 +1163,30 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 />
               )}
             </RailCategory>
+            {(isRecentsLoading || recentItems.length > 0) && (
+              <RailCategory
+                title="Recents"
+                icon={<History />}
+                isExpanded={isRailExpanded}
+                isOpen={isRecentsCategoryOpen}
+                onToggle={() => setIsRecentsCategoryOpen((isOpen) => !isOpen)}
+              >
+                {isRecentsLoading && recentItems.length === 0 ? (
+                  <RailItemsSkeleton isCompact={!isRailExpanded} />
+                ) : (
+                  <CompactRailItemGroup
+                    primaryItems={recentItems.slice(0, MAX_COMPACT_RAIL_ITEMS)}
+                    overflowItems={recentItems.slice(MAX_COMPACT_RAIL_ITEMS)}
+                    isCompact={!isRailExpanded}
+                    onNavigate={handleFavoriteNavigation}
+                    onItemActivate={() => {
+                      suppressAutoOpenRef.current = true;
+                    }}
+                    panelDataTheme={surfaceTheme}
+                  />
+                )}
+              </RailCategory>
+            )}
             <RailCategory
               title="Projects"
               isExpanded={isRailExpanded}
