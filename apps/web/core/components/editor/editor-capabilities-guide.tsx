@@ -4,8 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
-import { HelpCircle } from "@plane/icons";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { HelpCircle, Maximize2, Minimize2 } from "@plane/icons";
+import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 
 /**
@@ -17,10 +18,11 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
   {
     group: "Write & format",
     items: [
-      { keys: "/", label: "Open the command menu — headings, lists, tables, images, quotes, code" },
+      { keys: "/", label: "Open the command menu — headings, lists, tables, images, callouts, quotes, code" },
       { keys: "Select text", label: "Bubble menu: bold, italic, color, alignment, links" },
       { keys: "Icon · Cover", label: "Give the doc an icon and a cover image" },
       { keys: "Drag ⋮⋮", label: "Reorder blocks — to-do items get a grab handle on hover, even in stickies" },
+      { keys: "Options ⋯", label: "Focus mode (fade all but the block you're writing), full width, font, drop cap" },
     ],
   },
   {
@@ -28,7 +30,7 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
     items: [
       { keys: "@topic", label: "Mention a Wikipedia article — linked chip with hover summary" },
       { keys: "/wiki topic", label: "Insert a cited summary block" },
-      { keys: "/cite", label: "Select a claim first — attaches the best Wikipedia source" },
+      { keys: "/cite claim", label: "Type a claim or select one first — attaches the best Wikipedia source" },
       { keys: "/link-terms", label: "Auto-link notable terms in the doc to Wikipedia" },
       { keys: "/check-citations", label: "Verify every Wikipedia citation still resolves" },
       { keys: "Select → Explain", label: "Explain the selected phrase with a Wikipedia card" },
@@ -37,9 +39,14 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
   {
     group: "Atlas",
     items: [
-      { keys: "Ask Atlas", label: "Bottom bar — ask about or edit what you're writing" },
-      { keys: "/agent", label: "Send the current block to Atlas as a prompt" },
-      { keys: "Select → Reply", label: "Reply to a passage with Atlas in the drawer" },
+      { keys: "Ask Atlas", label: "Bottom bar — Quick ask, Rewrite, Plan, or Summarize what you're writing" },
+      { keys: "/agent", label: "Open the Ask-Atlas bar with the current block as context" },
+      { keys: "Select → Reply", label: "Pin a passage to the Ask-Atlas bar and reply to it" },
+      {
+        keys: "✓ · ✕ proposals",
+        label:
+          "Atlas edits arrive as proposals — accept or reject each in the margin, tick several, or Accept all / Reject all from the bar",
+      },
       { keys: "brief me on X", label: "Atlas researches the topic on Wikipedia and creates a sourced doc" },
       { keys: "✓ in chat", label: "Fact-check mode — every claim gets a Wikipedia citation" },
     ],
@@ -54,18 +61,54 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
   },
 ];
 
-export function EditorCapabilitiesGuide() {
+/**
+ * Open the guide from anywhere in the doc UI (e.g. the page options menu)
+ * without threading state down to the header control.
+ */
+const OPEN_GUIDE_EVENT = "dragonfruit:open-editor-guide";
+
+export function openEditorCapabilitiesGuide() {
+  window.dispatchEvent(new CustomEvent(OPEN_GUIDE_EVENT));
+}
+
+/**
+ * The one entry point for the guide: a "?" control in the page header (next to
+ * the lock control) that drops the panel down over the editor area. The
+ * page-options "How to use this editor" item opens the same panel via
+ * OPEN_GUIDE_EVENT. The panel can expand into a wider two-column view for
+ * comfortable reading.
+ */
+type Props = {
+  /** Extra classes for the "?" trigger, so hosts (e.g. the Brief header) can match their own button styling. */
+  buttonClassName?: string;
+};
+
+export function EditorCapabilitiesGuide(props: Props = {}) {
+  const { buttonClassName } = props;
   const [isOpen, setIsOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  // Available space (px) left of the panel's right-anchored edge when expanded.
+  const [expandedMaxWidth, setExpandedMaxWidth] = useState<number | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener(OPEN_GUIDE_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_GUIDE_EVENT, handleOpen);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      // Reopen compact: the expanded view is a per-read affordance, not a mode.
+      setIsExpanded(false);
+      return;
+    }
     const handleDismiss = (event: MouseEvent | KeyboardEvent) => {
       if (event instanceof KeyboardEvent) {
         if (event.key === "Escape") setIsOpen(false);
         return;
       }
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) setIsOpen(false);
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setIsOpen(false);
     };
     document.addEventListener("mousedown", handleDismiss);
     document.addEventListener("keydown", handleDismiss);
@@ -75,12 +118,102 @@ export function EditorCapabilitiesGuide() {
     };
   }, [isOpen]);
 
+  // The panel is right-anchored, so on narrow windows the expanded 40rem width
+  // could run past the LEFT edge of whatever clips it. That edge is NOT the
+  // viewport: the route content column (and the Brief's chromeless container)
+  // are overflow-hidden, and with the sidebar open their left edge sits a few
+  // hundred px in. Clamp to the space between the nearest clipping ancestor's
+  // left edge and the anchor (minus a 1rem gutter), falling back to the
+  // viewport when nothing clips, re-measuring on resize. Layout effect so the
+  // clamp lands before first paint of the expanded state.
+  useLayoutEffect(() => {
+    if (!isExpanded) {
+      setExpandedMaxWidth(null);
+      return;
+    }
+    const findClippingAncestor = () => {
+      let ancestor = rootRef.current?.parentElement ?? null;
+      while (ancestor && ancestor !== document.body) {
+        const { overflowX } = window.getComputedStyle(ancestor);
+        if (overflowX === "hidden" || overflowX === "clip") return ancestor;
+        ancestor = ancestor.parentElement;
+      }
+      return null;
+    };
+    const clippingAncestor = findClippingAncestor();
+    const updateMaxWidth = () => {
+      const root = rootRef.current;
+      if (!root) return;
+      const anchorRight = root.getBoundingClientRect().right;
+      const clipLeft = clippingAncestor?.getBoundingClientRect().left ?? 0;
+      setExpandedMaxWidth(Math.max(anchorRight - clipLeft - 16, 0));
+    };
+    updateMaxWidth();
+    window.addEventListener("resize", updateMaxWidth);
+    // The app rail animates its own width without firing a window resize, which
+    // moves the content column's left edge — watch the clipping ancestor too.
+    const resizeObserver = clippingAncestor ? new ResizeObserver(updateMaxWidth) : null;
+    if (clippingAncestor && resizeObserver) resizeObserver.observe(clippingAncestor);
+    return () => {
+      window.removeEventListener("resize", updateMaxWidth);
+      resizeObserver?.disconnect();
+    };
+  }, [isExpanded]);
+
   return (
-    <div ref={panelRef} className="fixed bottom-6 left-6 z-40">
-      {isOpen && (
-        <div className="vertical-scrollbar mb-2 scrollbar-sm max-h-[70vh] w-80 overflow-y-auto rounded-xl border border-strong bg-surface-1 p-4 shadow-raised-200">
-          <div className="mb-3 text-13 font-semibold text-primary">What this editor can do</div>
-          <div className="space-y-4">
+    <div ref={rootRef} className="relative">
+      <Tooltip tooltipContent="What this editor can do" position="bottom">
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-label="What this editor can do"
+          className={cn(
+            "grid size-6 flex-shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary",
+            buttonClassName,
+            isOpen && "bg-layer-1 text-primary"
+          )}
+        >
+          <HelpCircle className="size-3.5" />
+        </button>
+      </Tooltip>
+      <div
+        data-state={isOpen ? "open" : "closed"}
+        data-origin="top-right"
+        aria-hidden={!isOpen}
+        className={cn(
+          "t-dropdown absolute top-full right-0 z-30 mt-2 rounded-xl border border-strong bg-surface-1 shadow-raised-200",
+          isExpanded ? "w-[40rem] max-w-[calc(100vw-3rem)]" : "w-[340px]"
+        )}
+        style={{
+          // t-dropdown's unlayered `transition` shorthand overrides layered
+          // Tailwind transition utilities, so register the width transition
+          // inline. Durations/easing still come from the t-dropdown vars, and
+          // reduced-motion still wins via its `transition: none !important`.
+          transitionProperty: "transform, opacity, width, max-width",
+          maxWidth: isExpanded && expandedMaxWidth !== null ? `${expandedMaxWidth}px` : undefined,
+        }}
+      >
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          <div className="text-13 font-semibold text-primary">What this editor can do</div>
+          <Tooltip tooltipContent={isExpanded ? "Collapse" : "Expand"} position="bottom">
+            <button
+              type="button"
+              onClick={() => setIsExpanded((expanded) => !expanded)}
+              aria-label={isExpanded ? "Collapse the guide" : "Expand the guide"}
+              tabIndex={isOpen ? 0 : -1}
+              className="grid size-6 shrink-0 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+            >
+              {isExpanded ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+            </button>
+          </Tooltip>
+        </div>
+        <div
+          className={cn(
+            "vertical-scrollbar scrollbar-sm overflow-y-auto p-4 pt-3",
+            isExpanded ? "max-h-[75vh]" : "max-h-[60vh]"
+          )}
+        >
+          <div className={cn(isExpanded ? "grid grid-cols-2 gap-x-8 gap-y-5" : "space-y-4")}>
             {EDITOR_CAPABILITIES.map((section) => (
               <div key={section.group}>
                 <div className="mb-1.5 text-10 font-medium tracking-wide text-tertiary uppercase">{section.group}</div>
@@ -98,19 +231,7 @@ export function EditorCapabilitiesGuide() {
             ))}
           </div>
         </div>
-      )}
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        aria-label="Editor capabilities guide"
-        title="What can this editor do?"
-        className={cn(
-          "grid size-9 place-items-center rounded-full border border-strong bg-surface-1 text-tertiary shadow-raised-100 transition-colors hover:text-primary",
-          isOpen && "text-primary"
-        )}
-      >
-        <HelpCircle className="size-4" />
-      </button>
+      </div>
     </div>
   );
 }

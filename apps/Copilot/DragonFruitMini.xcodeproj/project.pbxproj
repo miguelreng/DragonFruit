@@ -12,6 +12,7 @@
 		14DCAD76BE785A2277E4D86B /* MeetingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7933A817F2DF39C9E7C8BE7 /* MeetingStore.swift */; };
 		1BA332CD94E688C70BC819F7 /* buddy-idle.svg in Resources */ = {isa = PBXBuildFile; fileRef = 902F7F2A574AC5279310A500 /* buddy-idle.svg */; };
 		1C6E1FA66D2CF5AEAC60F8C6 /* AtlasIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1631A3EE69CD61817C614C62 /* AtlasIcons.swift */; };
+		7E3B82C4D5E6F70819203A4C /* HowToUseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2A91B3C4D5E6071829A0B1 /* HowToUseView.swift */; };
 		243B07ACAF641ACCCB12C6E8 /* DragonFruitMiniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A86A580221E5B7E3BF255BE3 /* DragonFruitMiniApp.swift */; };
 		3FF7688B12D0F1FFFD617950 /* MeetingPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93A8F306CEB4486210124B83 /* MeetingPopoverView.swift */; };
 		4047B2ADEA392B7D03D5D1A1 /* dragon.svg in Resources */ = {isa = PBXBuildFile; fileRef = BC6A262C872EC59B6A00B23E /* dragon.svg */; };
@@ -42,6 +43,7 @@
 		090901C4B8B9525E62E98727 /* buddy-thinking.svg */ = {isa = PBXFileReference; includeInIndex = 1; name = "buddy-thinking.svg"; path = "Resources/buddy-thinking.svg"; sourceTree = "<group>"; };
 		0AB4A212235B3B264CB99153 /* Newsreader-Italic-Variable.ttf */ = {isa = PBXFileReference; includeInIndex = 1; name = "Newsreader-Italic-Variable.ttf"; path = "Resources/Fonts/Newsreader-Italic-Variable.ttf"; sourceTree = "<group>"; };
 		1631A3EE69CD61817C614C62 /* AtlasIcons.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AtlasIcons.swift; path = Sources/AtlasIcons.swift; sourceTree = "<group>"; };
+		6F2A91B3C4D5E6071829A0B1 /* HowToUseView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HowToUseView.swift; path = Sources/HowToUseView.swift; sourceTree = "<group>"; };
 		2FE344440183CBCCA5A8608E /* DragonFruitMini.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = DragonFruitMini.app; path = DragonFruitMini.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		30BEEF276843786DFB6B0296 /* APIClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = APIClient.swift; path = Sources/APIClient.swift; sourceTree = "<group>"; };
 		3568BF5D464FCA0CFA1F3470 /* AgentInboxStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AgentInboxStore.swift; path = Sources/AgentInboxStore.swift; sourceTree = "<group>"; };
@@ -87,6 +89,7 @@
 				30BEEF276843786DFB6B0296 /* APIClient.swift */,
 				1631A3EE69CD61817C614C62 /* AtlasIcons.swift */,
 				5CC825D3796D3798C444D763 /* AgentInboxView.swift */,
+				6F2A91B3C4D5E6071829A0B1 /* HowToUseView.swift */,
 				9CDDF7CA376AFB0114F733D0 /* WikipediaLookup.swift */,
 				E1BDF8A66DAD619A84418A3E /* KeychainStore.swift */,
 				93A8F306CEB4486210124B83 /* MeetingPopoverView.swift */,
@@ -240,6 +243,7 @@
 				632CC86C0C6E3B9D9EABB04E /* APIClient.swift in Sources */,
 				1C6E1FA66D2CF5AEAC60F8C6 /* AtlasIcons.swift in Sources */,
 				E39883FCD313393B83A9AEC3 /* AgentInboxView.swift in Sources */,
+				7E3B82C4D5E6F70819203A4C /* HowToUseView.swift in Sources */,
 				75F1920E980FA3F350672C37 /* WikipediaLookup.swift in Sources */,
 				A7D58B29B0CAAD7942D05E41 /* KeychainStore.swift in Sources */,
 				3FF7688B12D0F1FFFD617950 /* MeetingPopoverView.swift in Sources */,

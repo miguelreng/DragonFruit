@@ -12,6 +12,9 @@ import { ArrowUpToLine, CaseSensitive, CheckSquare, Clipboard, History } from "@
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { CheckIcon } from "@plane/propel/icons";
 import { ToggleSwitch } from "@plane/ui";
+import { HelpCircle } from "@plane/icons";
+// components
+import { openEditorCapabilitiesGuide } from "@/components/editor/editor-capabilities-guide";
 // hooks
 import { useAppRouter } from "@/hooks/use-app-router";
 import { DOC_FONT_STYLE_OPTIONS, normalizeDocFontStyle } from "@/helpers/doc-font";
@@ -204,6 +207,13 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
           icon: ArrowUpToLine,
           shouldRender: true,
         },
+        {
+          key: "how-to-use",
+          action: () => openEditorCapabilitiesGuide(),
+          title: "How to use this editor",
+          icon: HelpCircle,
+          shouldRender: true,
+        },
       ];
     },
     [
@@ -262,6 +272,7 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
           "archive-restore",
           "delete",
           "export",
+          "how-to-use",
         ]}
         page={page}
         storeType={storeType}

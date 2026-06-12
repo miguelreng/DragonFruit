@@ -9,6 +9,7 @@ struct MeetingPopoverView: View {
     var updater: SPUUpdater? = nil
     @State private var isSettingsExpanded = false
     @State private var isPanelRevealed = false
+    @State private var isShowingHowToUse = false
     private let shellCornerRadius: CGFloat = 12
 
     private var theme: CopilotThemeTokens {
@@ -23,6 +24,12 @@ struct MeetingPopoverView: View {
                 loadingCard
             } else if !store.isAuthenticated {
                 loginCard
+            } else if isShowingHowToUse {
+                HowToUseView(theme: theme) {
+                    withAnimation(.easeInOut(duration: AtlasMotion.fastDuration)) {
+                        isShowingHowToUse = false
+                    }
+                }
             } else if store.needsPermissionOnboarding && !store.permissionsOnboardingDismissed {
                 permissionsOnboardingCard
             } else {
@@ -70,6 +77,13 @@ struct MeetingPopoverView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             store.refreshPermissionStatuses()
         }
+        .onChange(of: store.isAuthenticated) { isAuthenticated in
+            // Don't let the instructions screen survive a logout — the next
+            // login should land on the regular cards, not "How to use".
+            if !isAuthenticated {
+                isShowingHowToUse = false
+            }
+        }
     }
 
     private var header: some View {
@@ -79,6 +93,20 @@ struct MeetingPopoverView: View {
                 .foregroundStyle(theme.textPrimary.opacity(0.82))
             Spacer()
             if store.isAuthenticated {
+                Button {
+                    withAnimation(.easeInOut(duration: AtlasMotion.fastDuration)) {
+                        isShowingHowToUse.toggle()
+                    }
+                } label: {
+                    AtlasIcon(.info)
+                        .frame(width: 12, height: 12)
+                        .foregroundStyle(isShowingHowToUse ? theme.textPrimary : theme.textSecondary)
+                        .frame(width: 18, height: 18)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("How to use Atlas")
+
                 Button("Log out") {
                     store.logout()
                 }
@@ -499,6 +527,7 @@ struct MeetingPopoverView: View {
                 if store.meetingNotesEnabled {
                     featureToggle("Open notes when done", isOn: $store.autoOpenMeetingNotesEnabled)
                 }
+                howToUseButton
                 resetAccessibilityButton
                 if updater != nil {
                     checkForUpdatesButton
@@ -515,6 +544,28 @@ struct MeetingPopoverView: View {
                 AtlasIcon(.download)
                     .frame(width: 13, height: 13)
                 Text("Check for Updates…")
+                    .font(.custom("Figtree", size: 11).weight(.semibold))
+                Spacer(minLength: 8)
+            }
+            .foregroundStyle(theme.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(theme.layer1)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var howToUseButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: AtlasMotion.fastDuration)) {
+                isShowingHowToUse = true
+            }
+        } label: {
+            HStack(spacing: 8) {
+                AtlasIcon(.info)
+                    .frame(width: 13, height: 13)
+                Text("How to use Atlas")
                     .font(.custom("Figtree", size: 11).weight(.semibold))
                 Spacer(minLength: 8)
             }
