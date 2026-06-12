@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { LIVE_BASE_PATH, LIVE_BASE_URL } from "@plane/constants";
@@ -268,29 +268,80 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
 
   // `position` can't transition, so leaving focus mode plays a short settle
   // animation (`.page-focus-mode-exit`) once the canvas snaps back into the
-  // layout flow.
-  useEffect(() => {
+  // layout flow. Layout effect so the class is committed before the first
+  // post-exit paint — a passive effect runs after paint, flashing one fully
+  // opaque frame before the animation dips to 0.4 and fades back in.
+  useLayoutEffect(() => {
     const wasFocusMode = wasFocusModeRef.current;
     wasFocusModeRef.current = isFocusMode;
     if (!wasFocusMode || isFocusMode) return;
     setIsZenExiting(true);
-    const timer = setTimeout(() => setIsZenExiting(false), 350);
-    return () => clearTimeout(timer);
   }, [isFocusMode]);
 
-  // Esc exits focus mode. Skip if something upstream (slash menu, suggestion
-  // dropdowns) already consumed the key, or a dialog is open — Esc should
-  // close that instead.
+  useEffect(() => {
+    if (!isZenExiting) return;
+    const timer = setTimeout(() => setIsZenExiting(false), 350);
+    return () => clearTimeout(timer);
+  }, [isZenExiting]);
+
+  // Esc exits focus mode — but only as a last resort: skip if something
+  // upstream (slash menu, suggestion dropdowns) already consumed the key,
+  // and yield to any open surface that Esc should close or collapse first.
   useEffect(() => {
     if (!isFocusMode) return;
+    // A dialog only blocks Esc when it's genuinely visible — the mobile rail
+    // drawer keeps a `role="dialog"` panel MOUNTED below the md breakpoint
+    // (just translated fully off-screen), which must not eat Esc forever.
+    const hasOpenDialog = () =>
+      Array.from(document.querySelectorAll<HTMLElement>("[role='dialog']")).some((dialog) => {
+        if (typeof dialog.checkVisibility === "function" && !dialog.checkVisibility()) return false;
+        const rect = dialog.getBoundingClientRect();
+        // Zero-sized or fully off-canvas (e.g. translateX(-100%)) → closed.
+        return (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.right > 0 &&
+          rect.bottom > 0 &&
+          rect.left < window.innerWidth &&
+          rect.top < window.innerHeight
+        );
+      });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
-      if (document.querySelector("[role='dialog']")) return;
+      if (hasOpenDialog()) return;
+      // Non-collapsed selection in the doc → the text bubble menu is showing.
+      // Esc should collapse/leave the selection, not yank the user out of zen
+      // mid-selection.
+      const selection = document.getSelection();
+      const editorContainer = document.getElementById(`editor-container-${pageId}`);
+      if (
+        selection &&
+        !selection.isCollapsed &&
+        selection.rangeCount > 0 &&
+        editorContainer?.contains(selection.getRangeAt(0).startContainer)
+      ) {
+        return;
+      }
+      const active = document.activeElement;
+      // Focus sits inside the bubble menu (tippy popper) or its link input /
+      // block menu (floating-ui portals) — Esc belongs to those surfaces.
+      if (active?.closest("[data-tippy-root], [data-floating-ui-portal]")) return;
+      // An editor dropbar (bubble menu, block menu, …) is open — let it
+      // handle/close on Esc instead of exiting zen.
+      if (editorRef?.isAnyDropbarOpen()) return;
+      // The block menu closes itself on a document-level Escape WITHOUT
+      // preventDefault and unregisters its dropbar synchronously, so by the
+      // time this window listener runs the check above is already false.
+      // Its floating-ui portal node is still in the DOM until React commits,
+      // though — detect it by its (package-internal) container classes.
+      if (document.querySelector("[data-floating-ui-portal] .max-h-60.min-w-\\[7rem\\]")) return;
+      // Focus is inside the Atlas chat drawer — Esc is the drawer's to handle.
+      if (active?.closest("[data-atlas-drawer]")) return;
       handleExitFocusMode();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isFocusMode, handleExitFocusMode]);
+  }, [isFocusMode, handleExitFocusMode, editorRef, pageId]);
 
   // Typewriter scrolling + block dimming. The caret is tracked from the web
   // side (`selectionchange` + the rendered ProseMirror DOM) so the editor
@@ -353,14 +404,19 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
       rafId = requestAnimationFrame(update);
     };
     document.addEventListener("selectionchange", requestUpdate);
+    // Re-apply on editor transactions too — a ProseMirror redraw can recreate
+    // the active block element (dropping `zen-active-block`) without any
+    // selectionchange firing until the caret next moves.
+    const unsubscribeFromEditor = editorRef?.onStateChange(requestUpdate);
     // Center the caret once on entering focus mode.
     requestUpdate();
     return () => {
       document.removeEventListener("selectionchange", requestUpdate);
+      unsubscribeFromEditor?.();
       if (rafId !== null) cancelAnimationFrame(rafId);
       clearDimming(getEditorRoot());
     };
-  }, [isFocusMode, pageId, zenScrollEl]);
+  }, [isFocusMode, pageId, zenScrollEl, editorRef]);
 
   // editor flaggings
   const { document: documentEditorExtensions } = useEditorFlagging({

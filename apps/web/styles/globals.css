@@ -691,10 +691,23 @@ a.public-doc-mention:hover {
 .page-focus-mode {
   position: fixed;
   inset: 0;
-  /* above the app header (z-[18]) and the floating Ask Atlas affordances (z-20) */
-  z-index: 26;
+  /* Strictly above the in-layout chrome — app rail (z-[26]), app header
+     (z-[18]), floating Ask Atlas button (z-20) and AI bar — instead of tying
+     the rail's 26 and winning only by DOM order. Stays below the editor's
+     bubble-menu tippy (z 90), floating-ui portals (z 99/100) and dialogs
+     (overlay z-90, panel z-100) so popovers and modals still paint on top. */
+  z-index: 40;
   background-color: var(--bg-surface-1);
   animation: page-zen-enter 0.3s ease-out;
+}
+
+/* The Atlas chat drawer must stay usable over the zen canvas: below 1920px
+   it's an absolute z-30 overlay, and at >=1920px it drops into the layout
+   flow as `relative z-auto` (content-wrapper.tsx) — both would now sit under
+   the z-40 canvas. While focus mode is on, lift the open drawer just above
+   the canvas; editor popovers and dialogs (z-90+) still win. */
+body:has(.page-focus-mode) [data-atlas-drawer] {
+  z-index: 41;
 }
 
 .page-focus-mode-exit {
