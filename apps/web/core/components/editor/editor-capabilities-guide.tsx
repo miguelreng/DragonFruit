@@ -118,18 +118,33 @@ export function EditorCapabilitiesGuide(props: Props = {}) {
   }, [isOpen]);
 
   // The panel is right-anchored, so on narrow windows the expanded 40rem width
-  // could run past the LEFT viewport edge. Clamp it to the space between the
-  // viewport's left edge and the anchor (minus a 1rem gutter), re-measuring on
-  // resize. Layout effect so the clamp lands before first paint of the
-  // expanded state.
+  // could run past the LEFT edge of whatever clips it. That edge is NOT the
+  // viewport: the route content column (and the Brief's chromeless container)
+  // are overflow-hidden, and with the sidebar open their left edge sits a few
+  // hundred px in. Clamp to the space between the nearest clipping ancestor's
+  // left edge and the anchor (minus a 1rem gutter), falling back to the
+  // viewport when nothing clips, re-measuring on resize. Layout effect so the
+  // clamp lands before first paint of the expanded state.
   useLayoutEffect(() => {
     if (!isExpanded) {
       setExpandedMaxWidth(null);
       return;
     }
     const updateMaxWidth = () => {
-      const anchorRight = rootRef.current?.getBoundingClientRect().right;
-      if (anchorRight !== undefined) setExpandedMaxWidth(Math.max(anchorRight - 16, 0));
+      const root = rootRef.current;
+      if (!root) return;
+      const anchorRight = root.getBoundingClientRect().right;
+      let clipLeft = 0;
+      let ancestor = root.parentElement;
+      while (ancestor && ancestor !== document.body) {
+        const { overflowX } = window.getComputedStyle(ancestor);
+        if (overflowX === "hidden" || overflowX === "clip") {
+          clipLeft = ancestor.getBoundingClientRect().left;
+          break;
+        }
+        ancestor = ancestor.parentElement;
+      }
+      setExpandedMaxWidth(Math.max(anchorRight - clipLeft - 16, 0));
     };
     updateMaxWidth();
     window.addEventListener("resize", updateMaxWidth);
