@@ -107,6 +107,11 @@ function Menu(props: TMenuProps) {
       submenuClosersRef.current.delete(closeSubmenu);
     };
   }, []);
+  const menuContextValue = React.useMemo(
+    () => ({ closeAllSubmenus, registerSubmenu }),
+    [closeAllSubmenus, registerSubmenu]
+  );
+
   const openDropdown = () => {
     setIsOpen(true);
   };
@@ -161,7 +166,7 @@ function Menu(props: TMenuProps) {
           ) : (
             <BaseMenu.Trigger
               type="button"
-              className={`flex items-center justify-between gap-1 rounded-lg px-2.5 py-1 text-11 whitespace-nowrap t-press outline-none ${
+              className={`t-press flex items-center justify-between gap-1 rounded-lg px-2.5 py-1 text-11 whitespace-nowrap outline-none ${
                 isOpen ? "bg-surface-2 text-primary" : "text-secondary"
               } ${noBorder ? "" : "shadow-sm border border-strong focus:outline-none"} ${
                 disabled ? "cursor-not-allowed text-secondary" : "cursor-pointer hover:bg-layer-1"
@@ -200,7 +205,7 @@ function Menu(props: TMenuProps) {
             data-main-menu="true"
             data-origin="top-left"
           >
-            <MenuContext.Provider value={{ closeAllSubmenus, registerSubmenu }}>{children}</MenuContext.Provider>
+            <MenuContext.Provider value={menuContextValue}>{children}</MenuContext.Provider>
           </BaseMenu.Popup>
         </BaseMenu.Positioner>
       </BaseMenu.Portal>
