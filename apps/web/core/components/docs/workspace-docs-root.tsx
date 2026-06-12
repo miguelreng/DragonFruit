@@ -167,6 +167,17 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     });
   }, [pagesById]);
 
+  // Per-type counts for the topbar pills (post archive/scope filtering,
+  // pre type/search so pill counts stay stable while filtering).
+  const typeCounts = useMemo(() => {
+    const counts = new Map<TPageType, number>();
+    visiblePages.forEach((p) => {
+      const type = (p.page_type ?? "doc") as TPageType;
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    });
+    return counts;
+  }, [visiblePages]);
+
   const filteredPages = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return visiblePages.filter((p) => {
@@ -237,12 +248,48 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     showArchived;
   const isSelectionActive = selectedDocIds.length > 0;
 
+  const pillBase = "rounded-full px-2.5 py-0.5 text-12 font-medium transition-colors";
+  const pillActive = "bg-accent-subtle text-accent-primary";
+  const pillInactive = "bg-layer-1 text-tertiary hover:text-secondary";
+  const isAllTypesActive = selectedTypes.length === 0;
+
   const headerNode = (
     <Header>
       <Header.LeftItem>
         <Breadcrumbs>
           <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} icon={headerIcon} />} />
         </Breadcrumbs>
+        <span className="text-13 text-tertiary">{visiblePages.length}</span>
+        {/* Type pills — same quick-filter pattern as My Tasks. Single-select:
+            a pill narrows to that type, All (or re-clicking) resets. Kept in
+            sync with the Type section in the Filters dropdown via selectedTypes. */}
+        {activePageTypes.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSelectedTypes([])}
+              className={cn(pillBase, isAllTypesActive ? pillActive : pillInactive)}
+            >
+              All
+            </button>
+            {activePageTypes.map((type) => {
+              const count = typeCounts.get(type) ?? 0;
+              if (count === 0) return null;
+              const isActive = selectedTypes.length === 1 && selectedTypes[0] === type;
+              return (
+                <button
+                  key={`type-pill-${type}`}
+                  type="button"
+                  onClick={() => setSelectedTypes(isActive ? [] : [type])}
+                  className={cn("flex items-center gap-1", pillBase, isActive ? pillActive : pillInactive)}
+                >
+                  {TYPE_FILTER_META[type].label}
+                  <span className={cn("text-11", isActive ? "text-tertiary" : "text-placeholder")}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </Header.LeftItem>
       <Header.RightItem className="items-center">
         <ViewModeToggle mode={viewMode} onChange={setViewMode} />
