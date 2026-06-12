@@ -77,6 +77,13 @@ struct MeetingPopoverView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             store.refreshPermissionStatuses()
         }
+        .onChange(of: store.isAuthenticated) { isAuthenticated in
+            // Don't let the instructions screen survive a logout — the next
+            // login should land on the regular cards, not "How to use".
+            if !isAuthenticated {
+                isShowingHowToUse = false
+            }
+        }
     }
 
     private var header: some View {

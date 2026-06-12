@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { HelpCircle, Maximize2, Minimize2 } from "@plane/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
@@ -77,9 +77,17 @@ export function openEditorCapabilitiesGuide() {
  * OPEN_GUIDE_EVENT. The panel can expand into a wider two-column view for
  * comfortable reading.
  */
-export function EditorCapabilitiesGuide() {
+type Props = {
+  /** Extra classes for the "?" trigger, so hosts (e.g. the Brief header) can match their own button styling. */
+  buttonClassName?: string;
+};
+
+export function EditorCapabilitiesGuide(props: Props = {}) {
+  const { buttonClassName } = props;
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  // Available space (px) left of the panel's right-anchored edge when expanded.
+  const [expandedMaxWidth, setExpandedMaxWidth] = useState<number | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -109,6 +117,25 @@ export function EditorCapabilitiesGuide() {
     };
   }, [isOpen]);
 
+  // The panel is right-anchored, so on narrow windows the expanded 40rem width
+  // could run past the LEFT viewport edge. Clamp it to the space between the
+  // viewport's left edge and the anchor (minus a 1rem gutter), re-measuring on
+  // resize. Layout effect so the clamp lands before first paint of the
+  // expanded state.
+  useLayoutEffect(() => {
+    if (!isExpanded) {
+      setExpandedMaxWidth(null);
+      return;
+    }
+    const updateMaxWidth = () => {
+      const anchorRight = rootRef.current?.getBoundingClientRect().right;
+      if (anchorRight !== undefined) setExpandedMaxWidth(Math.max(anchorRight - 16, 0));
+    };
+    updateMaxWidth();
+    window.addEventListener("resize", updateMaxWidth);
+    return () => window.removeEventListener("resize", updateMaxWidth);
+  }, [isExpanded]);
+
   return (
     <div ref={rootRef} className="relative">
       <Tooltip tooltipContent="What this editor can do" position="bottom">
@@ -118,6 +145,7 @@ export function EditorCapabilitiesGuide() {
           aria-label="What this editor can do"
           className={cn(
             "grid size-6 flex-shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary",
+            buttonClassName,
             isOpen && "bg-layer-1 text-primary"
           )}
         >
@@ -129,9 +157,17 @@ export function EditorCapabilitiesGuide() {
         data-origin="top-right"
         aria-hidden={!isOpen}
         className={cn(
-          "t-dropdown absolute top-full right-0 z-30 mt-2 rounded-xl border border-strong bg-surface-1 shadow-raised-200 transition-[width] duration-200 ease-out",
+          "t-dropdown absolute top-full right-0 z-30 mt-2 rounded-xl border border-strong bg-surface-1 shadow-raised-200",
           isExpanded ? "w-[40rem] max-w-[calc(100vw-3rem)]" : "w-[340px]"
         )}
+        style={{
+          // t-dropdown's unlayered `transition` shorthand overrides layered
+          // Tailwind transition utilities, so register the width transition
+          // inline. Durations/easing still come from the t-dropdown vars, and
+          // reduced-motion still wins via its `transition: none !important`.
+          transitionProperty: "transform, opacity, width, max-width",
+          maxWidth: isExpanded && expandedMaxWidth !== null ? `${expandedMaxWidth}px` : undefined,
+        }}
       >
         <div className="flex items-center justify-between gap-2 px-4 pt-4">
           <div className="text-13 font-semibold text-primary">What this editor can do</div>

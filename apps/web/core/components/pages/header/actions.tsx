@@ -36,7 +36,9 @@ export const PageHeaderActions = observer(function PageHeaderActions(props: Prop
       <PageArchivedBadge page={page} />
       <PageOfflineBadge page={page} />
       <PageLockControl page={page} />
-      <EditorCapabilitiesGuide />
+      {/* The guide documents the rich-text editor — skip it on whiteboards/PDFs
+          (same condition page-root.tsx uses for shouldShowToolbar). */}
+      {page.page_type === "doc" && <EditorCapabilitiesGuide />}
       <PageMoveControl page={page} />
       <PageCopyLinkControl page={page} />
       <PageFavoriteControl page={page} />
