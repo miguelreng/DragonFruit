@@ -7,10 +7,14 @@
 /**
  * Official brand marks for the integrations catalog, inlined as React
  * components so they ship with the bundle and theme correctly. Path
- * data comes from the Simple Icons set (CC0). Marks whose brand
- * guidelines allow a single-color treatment render in `currentColor`
- * so they adapt to light/dark themes; marks whose identity depends on
- * color (Stripe, Linear, Microsoft) keep their official colors.
+ * data for GitHub, Stripe, Hugging Face, Linear, and PostHog comes
+ * from the Simple Icons set (CC0). The Microsoft mark is not in
+ * Simple Icons; it's the colored four-square logo drawn per
+ * Microsoft's brand guidelines (a trademark of Microsoft Corp.).
+ * Marks whose brand guidelines allow a single-color treatment render
+ * in `currentColor` so they adapt to light/dark themes; marks whose
+ * identity depends on color (Stripe, Linear, Microsoft) keep their
+ * official colors.
  *
  * Integrations without a component here fall back to the accent
  * lettermark tile on the integrations page.

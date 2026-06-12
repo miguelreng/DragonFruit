@@ -89,7 +89,7 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 // up there (and vice versa) without any extra state.
 function ApiTokensPanel() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const { data: tokens } = useSWR(API_TOKENS_LIST, () => apiTokenService.list());
+  const { data: tokens, error } = useSWR(API_TOKENS_LIST, () => apiTokenService.list());
 
   return (
     <div className="rounded-lg border border-subtle bg-layer-1 p-3">
@@ -100,7 +100,15 @@ function ApiTokensPanel() {
           New token
         </Button>
       </div>
-      {!tokens ? (
+      {error ? (
+        <p className="text-caption-sm mt-2 text-tertiary">
+          Couldn't load your tokens. Try again, or manage them on{" "}
+          <Link href="/settings/profile/api-tokens/" className="underline underline-offset-2 hover:text-primary">
+            Settings → API Tokens
+          </Link>
+          .
+        </p>
+      ) : !tokens ? (
         <p className="text-caption-sm mt-2 text-tertiary">Loading tokens…</p>
       ) : tokens.length > 0 ? (
         <div className="mt-1">
