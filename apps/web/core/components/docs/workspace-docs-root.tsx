@@ -30,6 +30,7 @@ import { ArchiveRestoreIcon } from "@plane/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, Header } from "@plane/ui";
 import { cn, convertBytesToSize, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
+import { EPageAccess } from "@plane/types";
 import type { TPage, TPageType } from "@plane/types";
 import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
@@ -112,6 +113,8 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<TPageType[]>([]);
+  const [selectedAccess, setSelectedAccess] = useState<EPageAccess[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   // The last single-toggled doc; shift-click selects the range from here to the target.
   const [anchorDocId, setAnchorDocId] = useState<string | null>(null);
@@ -138,11 +141,11 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     () =>
       (pages ?? []).filter(
         (p) =>
-          !p.archived_at &&
+          (showArchived ? Boolean(p.archived_at) : !p.archived_at) &&
           activePageTypes.includes(p.page_type ?? "doc") &&
           (!scopeProjectId || (p.project_ids ?? []).includes(scopeProjectId))
       ),
-    [activePageTypes, pages, scopeProjectId]
+    [activePageTypes, pages, scopeProjectId, showArchived]
   );
   const pagesById = useMemo(() => {
     const map = new Map<string, TPage>();
@@ -176,9 +179,10 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         if (!projectIds.some((id) => selectedProjectIds.includes(id))) return false;
       }
       if (selectedTypes.length > 0 && !selectedTypes.includes(p.page_type ?? "doc")) return false;
+      if (selectedAccess.length > 0 && !selectedAccess.includes(p.access ?? EPageAccess.PUBLIC)) return false;
       return true;
     });
-  }, [visiblePages, searchQuery, selectedProjectIds, selectedTypes, getProjectById]);
+  }, [visiblePages, searchQuery, selectedProjectIds, selectedTypes, selectedAccess, getProjectById]);
 
   const toggleProject = (projectId: string) => {
     setSelectedProjectIds((prev) =>
@@ -187,6 +191,9 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   };
   const toggleType = (type: TPageType) => {
     setSelectedTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
+  };
+  const toggleAccess = (access: EPageAccess) => {
+    setSelectedAccess((prev) => (prev.includes(access) ? prev.filter((a) => a !== access) : [...prev, access]));
   };
   const toggleDocSelection = (pageId: string) => {
     setSelectedDocIds((prev) => (prev.includes(pageId) ? prev.filter((id) => id !== pageId) : [...prev, pageId]));
@@ -222,7 +229,12 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     await mutatePages();
   };
 
-  const hasFilters = searchQuery.length > 0 || selectedProjectIds.length > 0 || selectedTypes.length > 0;
+  const hasFilters =
+    searchQuery.length > 0 ||
+    selectedProjectIds.length > 0 ||
+    selectedTypes.length > 0 ||
+    selectedAccess.length > 0 ||
+    showArchived;
   const isSelectionActive = selectedDocIds.length > 0;
 
   const headerNode = (
@@ -239,7 +251,9 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           icon={<ListFilter className="h-3 w-3" />}
           title="Filters"
           placement="bottom-end"
-          isFiltersApplied={selectedProjectIds.length > 0 || selectedTypes.length > 0}
+          isFiltersApplied={
+            selectedProjectIds.length > 0 || selectedTypes.length > 0 || selectedAccess.length > 0 || showArchived
+          }
         >
           <div className="flex flex-col">
             {activePageTypes.length > 1 && (
@@ -250,6 +264,16 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 onClear={() => setSelectedTypes([])}
               />
             )}
+            <AccessFilterSection
+              appliedFilters={selectedAccess}
+              showArchived={showArchived}
+              onToggle={toggleAccess}
+              onToggleArchived={() => setShowArchived((prev) => !prev)}
+              onClear={() => {
+                setSelectedAccess([]);
+                setShowArchived(false);
+              }}
+            />
             {!scopeProjectId && (
               <ProjectFilterSection
                 appliedFilters={selectedProjectIds}
@@ -1195,6 +1219,68 @@ function TypeFilterSection({ availableTypes, appliedFilters, onToggle, onClear }
         >
           Clear filter
         </button>
+      )}
+    </div>
+  );
+}
+
+const ACCESS_FILTER_OPTIONS: { value: EPageAccess; label: string }[] = [
+  { value: EPageAccess.PUBLIC, label: "Public" },
+  { value: EPageAccess.PRIVATE, label: "Private" },
+];
+
+type AccessFilterSectionProps = {
+  appliedFilters: EPageAccess[];
+  showArchived: boolean;
+  onToggle: (access: EPageAccess) => void;
+  onToggleArchived: () => void;
+  onClear: () => void;
+};
+
+/** Access filter (Public/Private + Archived) — same pattern as My Tasks. */
+function AccessFilterSection({
+  appliedFilters,
+  showArchived,
+  onToggle,
+  onToggleArchived,
+  onClear,
+}: AccessFilterSectionProps) {
+  const [previewEnabled, setPreviewEnabled] = useState(true);
+  const appliedCount = appliedFilters.length + (showArchived ? 1 : 0);
+
+  return (
+    <div className="flex flex-col px-2 pt-2">
+      <FilterHeader
+        title={`Access${appliedCount > 0 ? ` (${appliedCount})` : ""}`}
+        isPreviewEnabled={previewEnabled}
+        handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
+      />
+      {previewEnabled && (
+        <>
+          {ACCESS_FILTER_OPTIONS.map((option) => (
+            <FilterOption
+              key={`doc-access-${option.value}`}
+              isChecked={appliedFilters.includes(option.value)}
+              onClick={() => onToggle(option.value)}
+              title={option.label}
+            />
+          ))}
+          <FilterOption
+            key="doc-access-archived"
+            isChecked={showArchived}
+            onClick={onToggleArchived}
+            title="Archived"
+          />
+          {appliedCount > 0 && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="mt-1 w-full text-left text-11 text-tertiary hover:text-primary"
+            >
+              Clear filter
+            </button>
+          )}
+        </>
       )}
     </div>
   );
