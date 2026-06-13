@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Script from "next/script";
 import { Links, Meta, Outlet, Scripts, useLocation } from "react-router";
 import type { LinksFunction } from "react-router";
@@ -132,8 +132,13 @@ export const meta: Route.MetaFunction = () => [
 
 export default function Root() {
   const { pathname } = useLocation();
+  const [hasMounted, setHasMounted] = useState(false);
   const isPublicRoute =
     pathname === "/google-oauth" || pathname.startsWith("/legal/") || pathname.startsWith("/published/");
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   if (isPublicRoute) {
     return (
@@ -144,6 +149,8 @@ export default function Root() {
       </div>
     );
   }
+
+  if (!hasMounted) return <AppLoadingScreen />;
 
   return (
     <AppProvider>

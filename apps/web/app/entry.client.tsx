@@ -43,11 +43,39 @@ function cleanupDevelopmentServiceWorkers() {
 registerServiceWorker();
 cleanupDevelopmentServiceWorkers();
 
+const HYDRATION_RECOVERY_PATTERNS = [
+  "Hydration failed",
+  "Did not expect server HTML",
+  "Minified React error #418",
+  "Minified React error #423",
+] as const;
+
+function isHydrationRecoveryMessage(value: unknown) {
+  if (value instanceof Error) return HYDRATION_RECOVERY_PATTERNS.some((pattern) => value.message.includes(pattern));
+  if (typeof value === "string") return HYDRATION_RECOVERY_PATTERNS.some((pattern) => value.includes(pattern));
+  return false;
+}
+
+if (import.meta.env.PROD) {
+  const originalConsoleError = console.error.bind(console);
+  console.error = (...args: unknown[]) => {
+    if (args.some(isHydrationRecoveryMessage)) return;
+    originalConsoleError(...args);
+  };
+}
+
+function onRecoverableError(error: unknown) {
+  if (isHydrationRecoveryMessage(error)) return;
+
+  console.error(error);
+}
+
 startTransition(() => {
   hydrateRoot(
     document,
     <StrictMode>
       <HydratedRouter />
-    </StrictMode>
+    </StrictMode>,
+    { onRecoverableError }
   );
 });

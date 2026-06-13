@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // components
@@ -19,8 +19,13 @@ type TInstanceWrapper = {
 
 const InstanceWrapper = observer(function InstanceWrapper(props: TInstanceWrapper) {
   const { children } = props;
+  const [hasMounted, setHasMounted] = useState(false);
   // store
   const { isLoading, instance, error, fetchInstanceInfo } = useInstance();
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const { isLoading: isInstanceSWRLoading, error: instanceSWRError } = useSWR(
     "INSTANCE_INFORMATION",
@@ -28,7 +33,7 @@ const InstanceWrapper = observer(function InstanceWrapper(props: TInstanceWrappe
     { revalidateOnFocus: false }
   );
 
-  const showLoader = (isLoading || isInstanceSWRLoading) && !instance;
+  const showLoader = !hasMounted || ((isLoading || isInstanceSWRLoading) && !instance);
   if (showLoader) return <AppLoadingScreen />;
 
   if (instanceSWRError) return <MaintenanceView />;
