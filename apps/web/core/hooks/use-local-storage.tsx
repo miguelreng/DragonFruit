@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 export const getValueFromLocalStorage = (key: string, defaultValue: any) => {
-  if (typeof window === undefined || typeof window === "undefined") return defaultValue;
+  if (typeof window === "undefined") return defaultValue;
   try {
     const item = window.localStorage.getItem(key);
     return item ? JSON.parse(item) : defaultValue;
@@ -18,7 +18,7 @@ export const getValueFromLocalStorage = (key: string, defaultValue: any) => {
 };
 
 export const setValueIntoLocalStorage = (key: string, value: any) => {
-  if (typeof window === undefined || typeof window === "undefined") return false;
+  if (typeof window === "undefined") return false;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
     return true;
@@ -29,7 +29,7 @@ export const setValueIntoLocalStorage = (key: string, value: any) => {
 
 // TODO: Remove this once we migrate to the new hooks from plane/helpers
 const useLocalStorage = <T,>(key: string, initialValue: T) => {
-  const [storedValue, setStoredValue] = useState<T | null>(() => getValueFromLocalStorage(key, initialValue));
+  const [storedValue, setStoredValue] = useState<T | null>(initialValue);
 
   const setValue = useCallback(
     (value: T) => {
