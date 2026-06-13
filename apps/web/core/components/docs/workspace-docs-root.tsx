@@ -167,17 +167,6 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     });
   }, [pagesById]);
 
-  // Per-type counts for the topbar pills (post archive/scope filtering,
-  // pre type/search so pill counts stay stable while filtering).
-  const typeCounts = useMemo(() => {
-    const counts = new Map<TPageType, number>();
-    visiblePages.forEach((p) => {
-      const type = (p.page_type ?? "doc") as TPageType;
-      counts.set(type, (counts.get(type) ?? 0) + 1);
-    });
-    return counts;
-  }, [visiblePages]);
-
   const filteredPages = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return visiblePages.filter((p) => {
@@ -251,45 +240,62 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const pillBase = "rounded-full px-2.5 py-0.5 text-12 font-medium transition-colors";
   const pillActive = "bg-accent-subtle text-accent-primary";
   const pillInactive = "bg-layer-1 text-tertiary hover:text-secondary";
-  const isAllTypesActive = selectedTypes.length === 0;
+  const projectFilterPillLabel = useMemo(() => {
+    if (selectedProjectIds.length === 0) return "Project";
+    if (selectedProjectIds.length > 1) return `${selectedProjectIds.length} projects`;
+    return getProjectById(selectedProjectIds[0])?.name ?? "Project";
+  }, [getProjectById, selectedProjectIds]);
+  const accessFilterPillLabel = useMemo(() => {
+    const accessLabels = [
+      ...selectedAccess.map(
+        (access) => ACCESS_FILTER_OPTIONS.find((option) => option.value === access)?.label ?? String(access)
+      ),
+      ...(showArchived ? ["Archived"] : []),
+    ];
+    if (accessLabels.length === 0) return "Access";
+    if (accessLabels.length === 1) return accessLabels[0];
+    return `${accessLabels.length} access`;
+  }, [selectedAccess, showArchived]);
+  const typeFilterPillLabel = useMemo(() => {
+    if (selectedTypes.length === 0) return "Type";
+    if (selectedTypes.length > 1) return `${selectedTypes.length} types`;
+    return TYPE_FILTER_META[selectedTypes[0]].label;
+  }, [selectedTypes]);
 
   const headerNode = (
     <Header>
       <Header.LeftItem>
-        <Breadcrumbs>
+        <Breadcrumbs className="flex-grow-0">
           <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} icon={headerIcon} />} />
         </Breadcrumbs>
+        <div className="flex flex-wrap items-center gap-1">
+          {!scopeProjectId && (
+            <FilterSummaryPill
+              label={projectFilterPillLabel}
+              isActive={selectedProjectIds.length > 0}
+              onClear={() => setSelectedProjectIds([])}
+              className={cn(pillBase, selectedProjectIds.length > 0 ? pillActive : pillInactive)}
+            />
+          )}
+          <FilterSummaryPill
+            label={accessFilterPillLabel}
+            isActive={selectedAccess.length > 0 || showArchived}
+            onClear={() => {
+              setSelectedAccess([]);
+              setShowArchived(false);
+            }}
+            className={cn(pillBase, selectedAccess.length > 0 || showArchived ? pillActive : pillInactive)}
+          />
+          {activePageTypes.length > 1 && (
+            <FilterSummaryPill
+              label={typeFilterPillLabel}
+              isActive={selectedTypes.length > 0}
+              onClear={() => setSelectedTypes([])}
+              className={cn(pillBase, selectedTypes.length > 0 ? pillActive : pillInactive)}
+            />
+          )}
+        </div>
         <span className="text-13 text-tertiary">{visiblePages.length}</span>
-        {/* Type pills — same quick-filter pattern as My Tasks. Single-select:
-            a pill narrows to that type, All (or re-clicking) resets. Kept in
-            sync with the Type section in the Filters dropdown via selectedTypes. */}
-        {activePageTypes.length > 1 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setSelectedTypes([])}
-              className={cn(pillBase, isAllTypesActive ? pillActive : pillInactive)}
-            >
-              All
-            </button>
-            {activePageTypes.map((type) => {
-              const count = typeCounts.get(type) ?? 0;
-              if (count === 0) return null;
-              const isActive = selectedTypes.length === 1 && selectedTypes[0] === type;
-              return (
-                <button
-                  key={`type-pill-${type}`}
-                  type="button"
-                  onClick={() => setSelectedTypes(isActive ? [] : [type])}
-                  className={cn("flex items-center gap-1", pillBase, isActive ? pillActive : pillInactive)}
-                >
-                  {TYPE_FILTER_META[type].label}
-                  <span className={cn("text-11", isActive ? "text-tertiary" : "text-placeholder")}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </Header.LeftItem>
       <Header.RightItem className="items-center">
         <ViewModeToggle mode={viewMode} onChange={setViewMode} />
@@ -303,12 +309,11 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           }
         >
           <div className="flex flex-col">
-            {activePageTypes.length > 1 && (
-              <TypeFilterSection
-                availableTypes={activePageTypes}
-                appliedFilters={selectedTypes}
-                onToggle={toggleType}
-                onClear={() => setSelectedTypes([])}
+            {!scopeProjectId && (
+              <ProjectFilterSection
+                appliedFilters={selectedProjectIds}
+                onToggle={toggleProject}
+                onClear={() => setSelectedProjectIds([])}
               />
             )}
             <AccessFilterSection
@@ -321,11 +326,12 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 setShowArchived(false);
               }}
             />
-            {!scopeProjectId && (
-              <ProjectFilterSection
-                appliedFilters={selectedProjectIds}
-                onToggle={toggleProject}
-                onClear={() => setSelectedProjectIds([])}
+            {activePageTypes.length > 1 && (
+              <TypeFilterSection
+                availableTypes={activePageTypes}
+                appliedFilters={selectedTypes}
+                onToggle={toggleType}
+                onClear={() => setSelectedTypes([])}
               />
             )}
           </div>
@@ -413,6 +419,28 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     </>
   );
 });
+
+type FilterSummaryPillProps = {
+  label: string;
+  isActive: boolean;
+  onClear: () => void;
+  className?: string;
+};
+
+function FilterSummaryPill({ label, isActive, onClear, className }: FilterSummaryPillProps) {
+  return (
+    <button
+      type="button"
+      onClick={isActive ? onClear : undefined}
+      disabled={!isActive}
+      aria-pressed={isActive}
+      className={cn("inline-flex items-center gap-1 disabled:cursor-default", className)}
+    >
+      <span>{label}</span>
+      {isActive && <X className="size-3" />}
+    </button>
+  );
+}
 
 type ViewModeToggleProps = {
   mode: ViewMode;

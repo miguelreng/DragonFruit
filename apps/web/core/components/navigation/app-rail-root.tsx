@@ -19,7 +19,6 @@ import {
   FileText,
   Folder,
   FolderOpen,
-  History,
   Info,
   TextSelect,
   Settings,
@@ -369,6 +368,20 @@ const RailItemsSkeleton = (props: { isCompact: boolean }) => {
         </div>
       ))}
     </Loader>
+  );
+};
+
+const RailSectionSeparator = (props: { isExpanded: boolean }) => {
+  const { isExpanded } = props;
+
+  return (
+    <div
+      aria-hidden
+      className={cn("bg-[var(--border-color-subtle)] dark:bg-white/[0.12]", {
+        "my-1 h-px w-full": isExpanded,
+        "my-0.5 h-px w-6": !isExpanded,
+      })}
+    />
   );
 };
 
@@ -1117,8 +1130,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
         </div>
         <div
           className={cn("min-h-0 flex-1 overflow-x-hidden overflow-y-auto pt-3 pb-[22px]", {
-            "flex flex-col items-start gap-1.5": isRailExpanded,
-            "flex flex-col items-center gap-1.5": !isRailExpanded,
+            "flex flex-col items-start gap-1": isRailExpanded,
+            "flex flex-col items-center gap-1": !isRailExpanded,
           })}
           style={{
             WebkitMaskImage:
@@ -1129,8 +1142,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
         >
           <div
             className={cn({
-              "flex w-full flex-col items-start gap-1.5": isRailExpanded,
-              "flex flex-col items-center gap-1.5": !isRailExpanded,
+              "flex w-full flex-col items-start gap-1": isRailExpanded,
+              "flex flex-col items-center gap-1": !isRailExpanded,
             })}
           >
             <div
@@ -1143,7 +1156,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             </div>
             <RailCategory
               title="Favs"
-              icon={<Star />}
               isExpanded={isRailExpanded}
               isOpen={isFavoritesCategoryOpen}
               onToggle={() => setIsFavoritesCategoryOpen((isOpen) => !isOpen)}
@@ -1163,30 +1175,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 />
               )}
             </RailCategory>
-            {(isRecentsLoading || recentItems.length > 0) && (
-              <RailCategory
-                title="Recents"
-                icon={<History />}
-                isExpanded={isRailExpanded}
-                isOpen={isRecentsCategoryOpen}
-                onToggle={() => setIsRecentsCategoryOpen((isOpen) => !isOpen)}
-              >
-                {isRecentsLoading && recentItems.length === 0 ? (
-                  <RailItemsSkeleton isCompact={!isRailExpanded} />
-                ) : (
-                  <CompactRailItemGroup
-                    primaryItems={recentItems.slice(0, MAX_COMPACT_RAIL_ITEMS)}
-                    overflowItems={recentItems.slice(MAX_COMPACT_RAIL_ITEMS)}
-                    isCompact={!isRailExpanded}
-                    onNavigate={handleFavoriteNavigation}
-                    onItemActivate={() => {
-                      suppressAutoOpenRef.current = true;
-                    }}
-                    panelDataTheme={surfaceTheme}
-                  />
-                )}
-              </RailCategory>
-            )}
             <RailCategory
               title="Projects"
               isExpanded={isRailExpanded}
@@ -1228,6 +1216,32 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 />
               )}
             </RailCategory>
+            {(isRecentsLoading || recentItems.length > 0) && (
+              <>
+                <RailSectionSeparator isExpanded={isRailExpanded} />
+                <RailCategory
+                  title="Recents"
+                  isExpanded={isRailExpanded}
+                  isOpen={isRecentsCategoryOpen}
+                  onToggle={() => setIsRecentsCategoryOpen((isOpen) => !isOpen)}
+                >
+                  {isRecentsLoading && recentItems.length === 0 ? (
+                    <RailItemsSkeleton isCompact={!isRailExpanded} />
+                  ) : (
+                    <CompactRailItemGroup
+                      primaryItems={recentItems.slice(0, MAX_COMPACT_RAIL_ITEMS)}
+                      overflowItems={recentItems.slice(MAX_COMPACT_RAIL_ITEMS)}
+                      isCompact={!isRailExpanded}
+                      onNavigate={handleFavoriteNavigation}
+                      onItemActivate={() => {
+                        suppressAutoOpenRef.current = true;
+                      }}
+                      panelDataTheme={surfaceTheme}
+                    />
+                  )}
+                </RailCategory>
+              </>
+            )}
           </div>
         </div>
         <div
