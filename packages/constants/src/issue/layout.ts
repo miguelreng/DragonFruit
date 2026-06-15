@@ -66,4 +66,10 @@ export const ISSUE_LAYOUTS: {
   key: EIssueLayoutTypes;
   i18n_title: string;
   i18n_label: string;
-}[] = Object.values(ISSUE_LAYOUT_MAP);
+}[] = [
+  ISSUE_LAYOUT_MAP[EIssueLayoutTypes.SPREADSHEET],
+  ISSUE_LAYOUT_MAP[EIssueLayoutTypes.LIST],
+  ISSUE_LAYOUT_MAP[EIssueLayoutTypes.KANBAN],
+  ISSUE_LAYOUT_MAP[EIssueLayoutTypes.CALENDAR],
+  ISSUE_LAYOUT_MAP[EIssueLayoutTypes.GANTT],
+];

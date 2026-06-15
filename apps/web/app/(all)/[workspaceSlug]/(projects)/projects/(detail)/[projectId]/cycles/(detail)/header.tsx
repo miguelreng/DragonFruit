@@ -71,7 +71,7 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
   const { isMobile } = usePlatformOS();
   const { allowPermissions } = useUserPermissions();
 
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
 
   const { setValue, storedValue } = useLocalStorage("cycle_sidebar_collapsed", false);
 
@@ -186,10 +186,10 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
             <div className="hidden @4xl:flex">
               <LayoutSelection
                 layouts={[
+                  EIssueLayoutTypes.SPREADSHEET,
                   EIssueLayoutTypes.LIST,
                   EIssueLayoutTypes.KANBAN,
                   EIssueLayoutTypes.CALENDAR,
-                  EIssueLayoutTypes.SPREADSHEET,
                   EIssueLayoutTypes.GANTT,
                 ]}
                 onChange={(layout) => handleLayoutChange(layout)}
@@ -199,10 +199,10 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
             <div className="flex @4xl:hidden">
               <MobileLayoutSelection
                 layouts={[
+                  EIssueLayoutTypes.SPREADSHEET,
                   EIssueLayoutTypes.LIST,
                   EIssueLayoutTypes.KANBAN,
                   EIssueLayoutTypes.CALENDAR,
-                  EIssueLayoutTypes.SPREADSHEET,
                   EIssueLayoutTypes.GANTT,
                 ]}
                 onChange={(layout) => handleLayoutChange(layout)}

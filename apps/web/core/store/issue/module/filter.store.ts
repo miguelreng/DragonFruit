@@ -20,7 +20,7 @@ import type {
   TWorkItemFilterExpression,
   TSupportedFilterForUpdate,
 } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 import { handleIssueQueryParamsByLayout } from "@plane/utils";
 import { IssueFiltersService } from "@/services/issue_filter.service";
 import type { IBaseIssueFilterStore } from "../helpers/issue-filter-helper.store";
@@ -149,7 +149,9 @@ export class ModuleIssuesFilter extends IssueFilterHelperStore implements IModul
     const _filters = await this.issueFilterService.fetchModuleIssueFilters(workspaceSlug, projectId, moduleId);
 
     const richFilters: TWorkItemFilterExpression = _filters?.rich_filters;
-    const displayFilters: IIssueDisplayFilterOptions = this.computedDisplayFilters(_filters?.display_filters);
+    const displayFilters: IIssueDisplayFilterOptions = this.computedDisplayFilters(_filters?.display_filters, {
+      layout: EIssueLayoutTypes.SPREADSHEET,
+    });
     const displayProperties: IIssueDisplayProperties = this.computedDisplayProperties(_filters?.display_properties);
 
     // fetching the kanban toggle helpers in the local storage

@@ -32,10 +32,10 @@ type Props = {
   storeType?: EIssuesStoreType.PROJECT | EIssuesStoreType.EPIC;
 };
 const LAYOUTS = [
+  EIssueLayoutTypes.SPREADSHEET,
   EIssueLayoutTypes.LIST,
   EIssueLayoutTypes.KANBAN,
   EIssueLayoutTypes.CALENDAR,
-  EIssueLayoutTypes.SPREADSHEET,
   EIssueLayoutTypes.GANTT,
 ];
 
@@ -48,7 +48,7 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
     issuesFilter: { issueFilters, updateFilters },
   } = useIssues(storeType);
   // derived values
-  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.LIST;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
   const layoutDisplayFiltersOptions = ISSUE_STORE_TO_FILTERS_MAP[storeType]?.layoutOptions[activeLayout];
 
   const handleLayoutChange = useCallback(

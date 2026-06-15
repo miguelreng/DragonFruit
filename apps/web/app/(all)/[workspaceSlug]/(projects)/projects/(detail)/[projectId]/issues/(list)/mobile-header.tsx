@@ -35,7 +35,7 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
   const {
     issuesFilter: { issueFilters, updateFilters },
   } = useIssues(EIssuesStoreType.PROJECT);
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
 
   const handleLayoutChange = useCallback(
     (layout: EIssueLayoutTypes) => {
@@ -70,8 +70,14 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
       />
       <div className="z-[13] flex justify-evenly border-b border-subtle bg-surface-1 py-2 md:hidden">
         <MobileLayoutSelection
-          layouts={[EIssueLayoutTypes.LIST, EIssueLayoutTypes.KANBAN, EIssueLayoutTypes.CALENDAR]}
+          layouts={[
+            EIssueLayoutTypes.SPREADSHEET,
+            EIssueLayoutTypes.LIST,
+            EIssueLayoutTypes.KANBAN,
+            EIssueLayoutTypes.CALENDAR,
+          ]}
           onChange={handleLayoutChange}
+          activeLayout={activeLayout}
         />
         <div className="flex flex-grow items-center justify-center border-l border-subtle text-13 text-secondary">
           <FiltersDropdown

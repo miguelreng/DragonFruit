@@ -25,7 +25,7 @@ export function LayoutSelection(props: Props) {
   const { layouts, onChange, selectedLayout } = props;
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
-  const activeLayout = selectedLayout ?? EIssueLayoutTypes.LIST;
+  const activeLayout = selectedLayout ?? layouts[0] ?? EIssueLayoutTypes.LIST;
   const handleOnChange = (layoutKey: EIssueLayoutTypes) => {
     if (activeLayout !== layoutKey) {
       onChange(layoutKey);

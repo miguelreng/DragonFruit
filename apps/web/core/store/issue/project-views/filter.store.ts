@@ -21,7 +21,7 @@ import type {
   TWorkItemFilterExpression,
   TSupportedFilterForUpdate,
 } from "@plane/types";
-import { EIssuesStoreType } from "@plane/types";
+import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 import { handleIssueQueryParamsByLayout } from "@plane/utils";
 // services
 import { ViewService } from "@/services/view.service";
@@ -145,7 +145,9 @@ export class ProjectViewIssuesFilter extends IssueFilterHelperStore implements I
 
   mutateFilters: IProjectViewIssuesFilter["mutateFilters"] = action((workspaceSlug, viewId, viewDetails) => {
     const richFilters: TWorkItemFilterExpression = viewDetails?.rich_filters;
-    const displayFilters: IIssueDisplayFilterOptions = this.computedDisplayFilters(viewDetails?.display_filters);
+    const displayFilters: IIssueDisplayFilterOptions = this.computedDisplayFilters(viewDetails?.display_filters, {
+      layout: EIssueLayoutTypes.SPREADSHEET,
+    });
     const displayProperties: IIssueDisplayProperties = this.computedDisplayProperties(viewDetails?.display_properties);
 
     // fetching the kanban toggle helpers in the local storage

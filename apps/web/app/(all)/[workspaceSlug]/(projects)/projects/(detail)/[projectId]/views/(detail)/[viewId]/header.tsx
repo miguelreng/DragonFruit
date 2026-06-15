@@ -55,7 +55,7 @@ export const ProjectViewIssuesHeader = observer(function ProjectViewIssuesHeader
   const { currentProjectDetails, loader } = useProject();
   const { projectViewIds, getViewById } = useProjectView();
 
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
 
   const handleLayoutChange = useCallback(
     (layout: EIssueLayoutTypes) => {
@@ -169,10 +169,10 @@ export const ProjectViewIssuesHeader = observer(function ProjectViewIssuesHeader
           {!viewDetails.is_locked && (
             <LayoutSelection
               layouts={[
+                EIssueLayoutTypes.SPREADSHEET,
                 EIssueLayoutTypes.LIST,
                 EIssueLayoutTypes.KANBAN,
                 EIssueLayoutTypes.CALENDAR,
-                EIssueLayoutTypes.SPREADSHEET,
                 EIssueLayoutTypes.GANTT,
               ]}
               onChange={(layout) => handleLayoutChange(layout)}
