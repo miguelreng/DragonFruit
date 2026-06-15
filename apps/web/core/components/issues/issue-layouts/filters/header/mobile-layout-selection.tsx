@@ -23,7 +23,7 @@ export function MobileLayoutSelection({
   isMobile?: boolean;
 }) {
   const { t } = useTranslation();
-  const selectedLayout = activeLayout ?? EIssueLayoutTypes.LIST;
+  const selectedLayout = activeLayout ?? layouts[0] ?? EIssueLayoutTypes.LIST;
   return (
     <CustomMenu
       maxHeight={"md"}

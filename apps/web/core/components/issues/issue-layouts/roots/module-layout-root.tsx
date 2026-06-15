@@ -52,7 +52,7 @@ export const ModuleLayoutRoot = observer(function ModuleLayoutRoot() {
   const { issuesFilter } = useIssues(EIssuesStoreType.MODULE);
   // derived values
   const workItemFilters = moduleId ? issuesFilter?.getIssueFilters(moduleId) : undefined;
-  const activeLayout = workItemFilters?.displayFilters?.layout ?? EIssueLayoutTypes.LIST;
+  const activeLayout = workItemFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
 
   useSWR(
     workspaceSlug && projectId && moduleId

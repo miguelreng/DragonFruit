@@ -62,7 +62,7 @@ export const CycleLayoutRoot = observer(function CycleLayoutRoot() {
   const [transferIssuesModal, setTransferIssuesModal] = useState(false);
   // derived values
   const workItemFilters = cycleId ? issuesFilter?.getIssueFilters(cycleId) : undefined;
-  const activeLayout = workItemFilters?.displayFilters?.layout ?? EIssueLayoutTypes.LIST;
+  const activeLayout = workItemFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
 
   useSWR(
     workspaceSlug && projectId && cycleId ? `CYCLE_ISSUES_${workspaceSlug}_${projectId}_${cycleId}` : null,

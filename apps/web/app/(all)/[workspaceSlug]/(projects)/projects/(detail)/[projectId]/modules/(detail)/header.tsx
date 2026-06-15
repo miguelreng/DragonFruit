@@ -75,7 +75,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
   const { setValue, storedValue } = useLocalStorage("module_sidebar_collapsed", "false");
   // derived values
   const isSidebarCollapsed = storedValue ? (storedValue === "true" ? true : false) : false;
-  const activeLayout = issueFilters?.displayFilters?.layout;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
   const moduleDetails = moduleId ? getModuleById(moduleId) : undefined;
   const canUserCreateIssue = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
@@ -180,10 +180,10 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
             <div className="hidden @4xl:flex">
               <LayoutSelection
                 layouts={[
+                  EIssueLayoutTypes.SPREADSHEET,
                   EIssueLayoutTypes.LIST,
                   EIssueLayoutTypes.KANBAN,
                   EIssueLayoutTypes.CALENDAR,
-                  EIssueLayoutTypes.SPREADSHEET,
                   EIssueLayoutTypes.GANTT,
                 ]}
                 onChange={(layout) => handleLayoutChange(layout)}
@@ -193,10 +193,10 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
             <div className="flex @4xl:hidden">
               <MobileLayoutSelection
                 layouts={[
+                  EIssueLayoutTypes.SPREADSHEET,
                   EIssueLayoutTypes.LIST,
                   EIssueLayoutTypes.KANBAN,
                   EIssueLayoutTypes.CALENDAR,
-                  EIssueLayoutTypes.SPREADSHEET,
                   EIssueLayoutTypes.GANTT,
                 ]}
                 onChange={(layout) => handleLayoutChange(layout)}

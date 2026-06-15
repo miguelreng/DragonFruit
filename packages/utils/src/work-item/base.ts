@@ -271,7 +271,7 @@ export const getComputedDisplayFilters = (
   displayFilters: IIssueDisplayFilterOptions = {},
   defaultValues?: IIssueDisplayFilterOptions
 ): IIssueDisplayFilterOptions => {
-  const filters = !isEmpty(displayFilters) ? displayFilters : defaultValues;
+  const filters = !isEmpty(displayFilters) ? { ...defaultValues, ...displayFilters } : defaultValues;
   return {
     calendar: {
       show_weekends: filters?.calendar?.show_weekends || false,
