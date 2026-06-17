@@ -31,7 +31,17 @@ import {
   PanelLeft,
   PanelRight,
 } from "@/components/icons/lucide-shim";
-import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@plane/propel/icons";
+import {
+  ChevronRightIcon,
+  CopyIcon,
+  EditIcon,
+  CellsIcon,
+  FolderClockIcon,
+  FolderFavouriteIcon,
+  FolderKanbanIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@plane/propel/icons";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -394,9 +404,10 @@ const RailCategory = (props: {
   action?: React.ReactNode;
   // Optional custom header icon; falls back to the folder open/closed icons.
   icon?: React.ReactNode;
+  closedIcon?: React.ReactNode;
   children: React.ReactNode;
 }) => {
-  const { title, isExpanded, isOpen, onToggle, action, icon, children, className = "" } = props;
+  const { title, isExpanded, isOpen, onToggle, action, icon, closedIcon, children, className = "" } = props;
 
   if (!isExpanded) return <>{children}</>;
 
@@ -412,7 +423,7 @@ const RailCategory = (props: {
             aria-expanded={isOpen}
           >
             <span className="flex size-5 flex-shrink-0 items-center justify-center text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current">
-              {icon ?? (isOpen ? <FolderOpen /> : <Folder />)}
+              {icon ?? (isOpen ? <FolderOpen /> : (closedIcon ?? <Folder />))}
             </span>
             <span className="min-w-0 flex-1 truncate">{title}</span>
           </button>
@@ -1154,76 +1165,20 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             >
               <AppSidebarItemsRoot showLabel={showRailLabels} isInline={isRailExpanded} />
             </div>
-            <RailCategory
-              title="Favs"
-              isExpanded={isRailExpanded}
-              isOpen={isFavoritesCategoryOpen}
-              onToggle={() => setIsFavoritesCategoryOpen((isOpen) => !isOpen)}
+            <RailSectionSeparator isExpanded={isRailExpanded} />
+            <div
+              className={cn({
+                "flex w-full flex-col items-start gap-1": isRailExpanded,
+                "flex flex-col items-center gap-1": !isRailExpanded,
+              })}
             >
-              {isFavoritesLoading && favorites.length === 0 ? (
-                <RailItemsSkeleton isCompact={!isRailExpanded} />
-              ) : (
-                <CompactRailItemGroup
-                  primaryItems={favoriteItemsForRail.slice(0, MAX_COMPACT_RAIL_ITEMS)}
-                  overflowItems={favoriteItemsForRail.slice(MAX_COMPACT_RAIL_ITEMS)}
-                  isCompact={!isRailExpanded}
-                  onNavigate={handleFavoriteNavigation}
-                  onItemActivate={() => {
-                    suppressAutoOpenRef.current = true;
-                  }}
-                  panelDataTheme={surfaceTheme}
-                />
-              )}
-            </RailCategory>
-            <RailCategory
-              title="Projects"
-              isExpanded={isRailExpanded}
-              isOpen={isProjectsCategoryOpen}
-              onToggle={() => setIsProjectsCategoryOpen((isOpen) => !isOpen)}
-              className="mt-[-4px]"
-              action={
-                canCreateProject ? (
-                  <AppSidebarTooltip tooltipContent={t("create_project")}>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleCreateProjectModal(true);
-                      }}
-                      className="grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary opacity-0 transition-opacity group-hover/category:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-3.5 [&_svg]:text-current"
-                      aria-label={t("aria_labels.projects_sidebar.create_new_project")}
-                    >
-                      <PlusIcon />
-                    </button>
-                  </AppSidebarTooltip>
-                ) : null
-              }
-            >
-              {isRailExpanded ? (
-                <ProjectRailTree
-                  projects={projects}
-                  pathname={pathname}
-                  workspaceSlug={slug}
-                  suppressAutoOpenRef={suppressAutoOpenRef}
-                />
-              ) : (
-                <CompactRailItemGroup
-                  primaryItems={projects.slice(0, MAX_COMPACT_RAIL_ITEMS)}
-                  overflowItems={projects.slice(MAX_COMPACT_RAIL_ITEMS)}
-                  isCompact
-                  onNavigate={handleFavoriteNavigation}
-                  panelDataTheme={surfaceTheme}
-                />
-              )}
-            </RailCategory>
-            {(isRecentsLoading || recentItems.length > 0) && (
-              <>
-                <RailSectionSeparator isExpanded={isRailExpanded} />
+              {(isRecentsLoading || recentItems.length > 0) && (
                 <RailCategory
                   title="Recents"
                   isExpanded={isRailExpanded}
                   isOpen={isRecentsCategoryOpen}
                   onToggle={() => setIsRecentsCategoryOpen((isOpen) => !isOpen)}
+                  closedIcon={<FolderClockIcon />}
                 >
                   {isRecentsLoading && recentItems.length === 0 ? (
                     <RailItemsSkeleton isCompact={!isRailExpanded} />
@@ -1240,8 +1195,72 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                     />
                   )}
                 </RailCategory>
-              </>
-            )}
+              )}
+              <RailCategory
+                title="Favs"
+                isExpanded={isRailExpanded}
+                isOpen={isFavoritesCategoryOpen}
+                onToggle={() => setIsFavoritesCategoryOpen((isOpen) => !isOpen)}
+                closedIcon={<FolderFavouriteIcon />}
+              >
+                {isFavoritesLoading && favorites.length === 0 ? (
+                  <RailItemsSkeleton isCompact={!isRailExpanded} />
+                ) : (
+                  <CompactRailItemGroup
+                    primaryItems={favoriteItemsForRail.slice(0, MAX_COMPACT_RAIL_ITEMS)}
+                    overflowItems={favoriteItemsForRail.slice(MAX_COMPACT_RAIL_ITEMS)}
+                    isCompact={!isRailExpanded}
+                    onNavigate={handleFavoriteNavigation}
+                    onItemActivate={() => {
+                      suppressAutoOpenRef.current = true;
+                    }}
+                    panelDataTheme={surfaceTheme}
+                  />
+                )}
+              </RailCategory>
+              <RailCategory
+                title="Projects"
+                isExpanded={isRailExpanded}
+                isOpen={isProjectsCategoryOpen}
+                onToggle={() => setIsProjectsCategoryOpen((isOpen) => !isOpen)}
+                className="mt-[-4px]"
+                closedIcon={<FolderKanbanIcon />}
+                action={
+                  canCreateProject ? (
+                    <AppSidebarTooltip tooltipContent={t("create_project")}>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleCreateProjectModal(true);
+                        }}
+                        className="grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary opacity-0 transition-opacity group-hover/category:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-3.5 [&_svg]:text-current"
+                        aria-label={t("aria_labels.projects_sidebar.create_new_project")}
+                      >
+                        <PlusIcon />
+                      </button>
+                    </AppSidebarTooltip>
+                  ) : null
+                }
+              >
+                {isRailExpanded ? (
+                  <ProjectRailTree
+                    projects={projects}
+                    pathname={pathname}
+                    workspaceSlug={slug}
+                    suppressAutoOpenRef={suppressAutoOpenRef}
+                  />
+                ) : (
+                  <CompactRailItemGroup
+                    primaryItems={projects.slice(0, MAX_COMPACT_RAIL_ITEMS)}
+                    overflowItems={projects.slice(MAX_COMPACT_RAIL_ITEMS)}
+                    isCompact
+                    onNavigate={handleFavoriteNavigation}
+                    panelDataTheme={surfaceTheme}
+                  />
+                )}
+              </RailCategory>
+            </div>
           </div>
         </div>
         <div
@@ -1277,6 +1296,17 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               label: "Download Apps",
               icon: <Download />,
               onClick: () => setIsDownloadAppsModalOpen(true),
+              isInline: isRailExpanded,
+              showLabel: showRailLabels,
+            }}
+          />
+          <AppSidebarItem
+            variant="link"
+            item={{
+              label: "Integrations",
+              href: `/${slug}/settings/integrations`,
+              icon: <CellsIcon />,
+              isActive: pathname.startsWith(`/${slug}/settings/integrations`),
               isInline: isRailExpanded,
               showLabel: showRailLabels,
             }}

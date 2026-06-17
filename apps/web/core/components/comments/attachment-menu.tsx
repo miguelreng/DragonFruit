@@ -31,6 +31,7 @@ type TCommentAttachmentMenu = {
   commentId?: string;
   editorRef: RefObject<EditorRefApi>;
   onAssetUploaded?: (assetId: string) => void;
+  variant?: "floating" | "toolbar";
 };
 
 const insertLinkedText = (editorRef: RefObject<EditorRefApi>, text: string, href: string) => {
@@ -52,7 +53,7 @@ const insertLinkedText = (editorRef: RefObject<EditorRefApi>, text: string, href
 };
 
 export function CommentAttachmentMenu(props: TCommentAttachmentMenu) {
-  const { activityOperations, className, commentId, editorRef, onAssetUploaded } = props;
+  const { activityOperations, className, commentId, editorRef, onAssetUploaded, variant = "floating" } = props;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -109,7 +110,9 @@ export function CommentAttachmentMenu(props: TCommentAttachmentMenu) {
           <Plus className={cn("size-4", isUploading ? "animate-spin" : "")} aria-hidden="true" strokeWidth={2.5} />
         }
         customButtonClassName={cn(
-          "shadow-sm grid size-8 place-items-center rounded-full border border-subtle bg-surface-1 text-secondary transition-colors hover:bg-surface-2 hover:text-primary",
+          variant === "toolbar"
+            ? "grid size-7 place-items-center rounded-lg text-placeholder transition-colors hover:bg-layer-1 hover:text-primary"
+            : "shadow-sm grid size-8 place-items-center rounded-full border border-subtle bg-surface-1 text-secondary transition-colors hover:bg-surface-2 hover:text-primary",
           className
         )}
         menuItemsClassName="z-[45]"

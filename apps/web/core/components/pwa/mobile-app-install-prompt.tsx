@@ -36,10 +36,12 @@ export function MobileAppInstallPrompt() {
     if (isStandaloneApp() || window.localStorage.getItem(DISMISSED_KEY) === "1") return;
 
     const handleBeforeInstallPrompt = (event: Event) => {
+      if (!isMobileViewport()) return;
+
       event.preventDefault();
       const promptEvent = event as BeforeInstallPromptEvent;
       setInstallEvent(promptEvent);
-      setIsVisible(isMobileViewport());
+      setIsVisible(true);
     };
 
     const handleResize = () => {

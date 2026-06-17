@@ -5,8 +5,6 @@
  */
 
 import { observer } from "mobx-react";
-// plane imports
-import { WORKSPACE_SETTINGS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Breadcrumbs } from "@plane/ui";
 // components
@@ -16,7 +14,6 @@ import { WORKSPACE_SETTINGS_ICONS } from "@/components/settings/workspace/sideba
 
 export const AIWorkspaceSettingsHeader = observer(function AIWorkspaceSettingsHeader() {
   const { t } = useTranslation();
-  const settingsDetails = WORKSPACE_SETTINGS.ai;
   const Icon = WORKSPACE_SETTINGS_ICONS.ai;
 
   return (
@@ -27,7 +24,7 @@ export const AIWorkspaceSettingsHeader = observer(function AIWorkspaceSettingsHe
             <Breadcrumbs.Item
               component={
                 <BreadcrumbLink
-                  label={t(settingsDetails.i18n_label)}
+                  label={t("workspace_settings.settings.ai.title")}
                   icon={<Icon className="size-4 text-tertiary" />}
                 />
               }

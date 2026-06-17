@@ -167,6 +167,14 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
                   return asset_id;
                 }}
                 showToolbarInitially={showToolbarInitially}
+                toolbarLeadingAction={
+                  <CommentAttachmentMenu
+                    activityOperations={activityOperations}
+                    editorRef={editorRef}
+                    onAssetUploaded={(assetId) => setUploadedAssetIds((prev) => [...prev, assetId])}
+                    variant="toolbar"
+                  />
+                }
                 parentClassName="p-2"
                 displayConfig={{
                   fontSize: "small-font",
@@ -176,13 +184,6 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
           />
         )}
       />
-      <div className="flex items-center justify-start px-2 pb-2">
-        <CommentAttachmentMenu
-          activityOperations={activityOperations}
-          editorRef={editorRef}
-          onAssetUploaded={(assetId) => setUploadedAssetIds((prev) => [...prev, assetId])}
-        />
-      </div>
     </div>
   );
 });

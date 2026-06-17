@@ -20,7 +20,6 @@ import { generateFileUploadPayload, getAssetIdFromUrl, getFileMetaDataForUpload 
  * @remarks This service is only available for plane sites
  */
 export class SitesFileService extends FileService {
-  private cancelSource: any;
   fileUploadService: FileUploadService;
 
   /**
@@ -93,7 +92,7 @@ export class SitesFileService extends FileService {
         return signedURLResponse;
       })
       .catch((error) => {
-        throw error?.response?.data;
+        throw error?.response?.data ?? error ?? { error: "Asset upload failed. Please try again." };
       });
   }
 
@@ -118,6 +117,6 @@ export class SitesFileService extends FileService {
    * Cancels the upload
    */
   cancelUpload() {
-    this.cancelSource.cancelUpload();
+    this.fileUploadService.cancelUpload();
   }
 }

@@ -76,11 +76,10 @@ export const WorkspaceImageUploadModal = observer(function WorkspaceImageUploadM
       updateWorkspaceLogo(workspaceSlug.toString(), asset_url);
       onSuccess(asset_url);
     } catch (error: any) {
-      console.log("error", error);
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error",
-        message: error.error || "Something went wrong",
+        message: error?.error || "Could not upload workspace logo. Please try again.",
       });
     } finally {
       setIsImageUploading(false);

@@ -1049,7 +1049,7 @@ async function getActionIconImageData(state, path) {
 
       const bitmap = await createImageBitmap(await response.blob());
       const canvas = new OffscreenCanvas(Number(size), Number(size));
-      const context = canvas.getContext("2d");
+      const context = canvas.getContext("2d", { willReadFrequently: true });
       if (!context) throw new Error(`Icon canvas unavailable: ${iconPath}`);
 
       context.clearRect(0, 0, canvas.width, canvas.height);

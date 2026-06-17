@@ -40,6 +40,7 @@ type LiteTextEditorWrapperProps = MakeOptional<
   showSubmitButton?: boolean;
   isSubmitting?: boolean;
   showToolbarInitially?: boolean;
+  toolbarLeadingAction?: React.ReactNode;
   variant?: "full" | "lite" | "none";
   issue_id?: string;
   parentClassName?: string;
@@ -74,6 +75,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
     showSubmitButton = true,
     isSubmitting = false,
     showToolbarInitially = true,
+    toolbarLeadingAction,
     variant = "full",
     parentClassName = "",
     placeholder = t("issue.comments.placeholder"),
@@ -232,6 +234,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
         >
           <IssueCommentToolbar
             accessSpecifier={accessSpecifier}
+            leadingAction={toolbarLeadingAction}
             executeCommand={(item) => {
               // TODO: update this while toolbar homogenization
               // @ts-expect-error type mismatch here

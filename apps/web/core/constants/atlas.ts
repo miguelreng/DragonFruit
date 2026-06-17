@@ -10,7 +10,7 @@
  * Atlas is one canonical companion across every workspace — its name,
  * personality, and brand mark are owned here in code, not editable per
  * workspace. The only thing that legitimately varies per workspace is the
- * model + BYOK key, which lives on the Settings → AI page.
+ * model + BYOK key, which lives on the Settings → Atlas page.
  *
  * Display surfaces should read these constants instead of the agent's
  * stored `name` / `description` / `avatar_url` so the identity can never

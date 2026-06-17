@@ -28,7 +28,12 @@ export const PageEditorHeaderLogoPicker = observer(function PageEditorHeaderLogo
   const isOverlayVariant = variant === "overlay";
   const containerClassName = cn(
     className,
-    isOverlayVariant ? "pointer-events-auto" : "pointer-events-none max-h-0 transition-all duration-300 ease-linear",
+    "transition-all duration-300 ease-linear",
+    isOverlayVariant
+      ? "pointer-events-auto"
+      : isLogoSelected
+        ? "pointer-events-auto"
+        : "pointer-events-none max-h-0",
     {
       "max-h-[56px]": !isOverlayVariant && isLogoSelected,
     }

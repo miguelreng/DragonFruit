@@ -992,3 +992,20 @@ class TestAgentRunInboxEndpoint:
 
         run_ids = [item["run_id"] for item in resp.data]
         assert str(run.id) not in run_ids, "unrelated user must NOT see this needs_input run"
+
+    @pytest.mark.django_db
+    def test_inbox_tolerates_malformed_pending_request(
+        self, session_client, workspace, create_user, create_bot_user
+    ):
+        """Malformed pending_request JSON must not make the whole inbox 500."""
+        agent = self._make_agent_with_bot(workspace, create_bot_user)
+        issue = self._make_issue(workspace, create_user)
+        run = self._make_run(agent, issue, "needs_input", pending_request=["not", "a", "dict"])
+
+        url = f"/api/workspaces/{workspace.slug}/agent-runs/inbox/"
+        resp = session_client.get(url)
+        assert resp.status_code == status.HTTP_200_OK
+
+        item = next(i for i in resp.data if i["run_id"] == str(run.id))
+        assert item["kind"] == "question"
+        assert item["message"] == "Atlas needs your input."

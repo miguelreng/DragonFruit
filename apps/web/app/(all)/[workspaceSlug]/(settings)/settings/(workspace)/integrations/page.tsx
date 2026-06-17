@@ -150,7 +150,7 @@ function WorkspaceIntegrationsPage() {
           <div className="rounded-lg border border-subtle bg-layer-2 px-4 py-4 text-13 text-tertiary">
             Atlas isn’t set up in this workspace yet. Initialize it on{" "}
             <a className="text-accent-primary hover:underline" href={`/${workspaceSlug}/settings/ai`}>
-              Settings → AI
+              Settings → Atlas
             </a>{" "}
             to connect integrations.
           </div>

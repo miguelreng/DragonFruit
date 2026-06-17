@@ -44,6 +44,10 @@ const SERVER_TOOLS: Array<{ name: string; description: string }> = [
   { name: "get_page", description: "Read a single doc's text content (up to 8000 chars)." },
 ];
 
+const READ_ONLY_SERVER_TOOLS = SERVER_TOOLS.filter((tool) =>
+  ["list_tasks", "get_task", "list_projects", "search_pages", "get_page"].includes(tool.name)
+);
+
 // Terminal-styled code block: black bg + green monospace, compact font.
 // Stays the same in light and dark mode — code samples on the guide
 // page are commands and configs, which read most clearly with this
@@ -138,6 +142,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
     return window.location.origin;
   });
   const mcpUrl = useMemo(() => `${origin}/api/workspaces/${slug}/mcp/`, [origin, slug]);
+  const readOnlyMcpUrl = useMemo(() => `${origin}/api/workspaces/${slug}/mcp/read-only/`, [origin, slug]);
   // Personal API tokens live under profile settings (the old
   // /:workspaceSlug/settings/api-tokens URL redirects here too).
   const tokensHref = "/settings/profile/api-tokens/";
@@ -161,7 +166,25 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
     2
   );
 
+  const hermesJson = JSON.stringify(
+    {
+      mcpServers: {
+        "dragon-fruit-readonly": {
+          url: readOnlyMcpUrl,
+          transport: "streamable-http",
+          headers: { Authorization: "Bearer HERMES_READ_ONLY_API_TOKEN" },
+        },
+      },
+    },
+    null,
+    2
+  );
+
+  const hermesEnv = `DRAGONFRUIT_MCP_URL=${readOnlyMcpUrl}
+DRAGONFRUIT_AUTHORIZATION="Bearer HERMES_READ_ONLY_API_TOKEN"`;
+
   const curlProbe = `curl -s ${mcpUrl} | jq .`;
+  const readOnlyCurlProbe = `curl -s ${readOnlyMcpUrl} | jq .`;
 
   return (
     <SettingsContentWrapper header={<MCPWorkspaceSettingsHeader />}>
@@ -259,7 +282,55 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
         </Section>
 
         <Section
-          title="2 · Give Atlas tools from other services"
+          title="2 · Connect Hermes without replacing Atlas"
+          subtitle="Use the read-only MCP endpoint for Hermes or another external agent that should understand the workspace but never mutate it."
+          className="mt-8"
+        >
+          <Step n={1} label="Use the read-only workspace endpoint">
+            <CodeBlock code={readOnlyMcpUrl} label="Read-only MCP URL" />
+            <p className="text-caption-md mt-1.5 text-tertiary">
+              This endpoint has a server-side guard: it only advertises read tools, and write tools remain unavailable
+              even if a client guesses their names.
+            </p>
+            <div className="mt-1.5">
+              <CodeBlock code={readOnlyCurlProbe} />
+            </div>
+          </Step>
+
+          <Step n={2} label="Create a Hermes token">
+            <p className="text-caption-md text-secondary">
+              Create a dedicated API token for the Hermes bot user, then keep that user at the minimum workspace/project
+              role you want Hermes to read with. Atlas keeps its own configuration under Settings → Atlas and is not
+              changed by this connection.
+            </p>
+          </Step>
+
+          <Step n={3} label="Configure Hermes on the Raspberry Pi">
+            <p className="text-caption-md mb-1.5 text-secondary">Generic MCP client config:</p>
+            <CodeBlock code={hermesJson} label="Hermes MCP config" />
+            <p className="text-caption-md mt-3 mb-1.5 text-secondary">Environment-style config:</p>
+            <CodeBlock code={hermesEnv} label="Hermes env config" />
+          </Step>
+
+          <div className="mt-4 rounded-lg border border-subtle bg-layer-1 p-3">
+            <h4 className="mb-1.5 text-caption-md-medium text-primary">
+              Read-only tools exposed to Hermes ({READ_ONLY_SERVER_TOOLS.length})
+            </h4>
+            <ul className="flex flex-col gap-1.5">
+              {READ_ONLY_SERVER_TOOLS.map((t) => (
+                <li key={t.name} className="text-caption-sm text-secondary">
+                  <code className="font-mono text-caption-sm mr-2 rounded bg-layer-3 px-1.5 py-0.5 text-primary">
+                    {t.name}
+                  </code>
+                  <span className="text-tertiary">{t.description}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Section>
+
+        <Section
+          title="3 · Give Atlas tools from other services"
           subtitle="DragonFruit acts as the MCP client. Atlas can use one or more external MCP servers; their tools merge into Atlas's toolbelt at dispatch time."
           className="mt-8"
         >
@@ -278,7 +349,7 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
               href={`/${slug}/settings/ai/`}
               className="decoration-tertiary inline-flex items-center gap-1 underline underline-offset-2 hover:text-primary"
             >
-              Settings → AI
+              Settings → Atlas
               <ExternalLink className="size-3" />
             </Link>
             .

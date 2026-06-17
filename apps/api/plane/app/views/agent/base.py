@@ -921,11 +921,11 @@ class AgentRunInboxEndpoint(BaseAPIView):
                     assignee=user,
                     assignee__is_bot=False,
                     deleted_at__isnull=True,
-                ).values("issue_id")
+                ).values_list("issue_id", flat=True)
             ),
             workspace__slug=slug,
             deleted_at__isnull=True,
-        ).values("id")
+        ).values_list("id", flat=True)
 
         runs = (
             AgentRun.objects.filter(
@@ -963,7 +963,7 @@ class AgentRunInboxEndpoint(BaseAPIView):
                     "name": issue.name,
                 }
 
-            pending = run.pending_request or {}
+            pending = run.pending_request if isinstance(run.pending_request, dict) else {}
             if run.status == "needs_input":
                 kind = pending.get("kind") or "question"
                 message = pending.get("message") or "Atlas needs your input."

@@ -252,7 +252,7 @@ export const TopNavPowerK = observer(() => {
           onClick={(e) => {
             // Only open on real user clicks — extensions probing the input
             // dispatch synthetic clicks/focuses, which used to pop the panel
-            // when the AI settings page (with its password field) mounted.
+            // when the Atlas settings page (with its password field) mounted.
             if (!e.nativeEvent.isTrusted) return;
             inputRef.current?.focus();
             if (!isOpen) openPanel();
@@ -281,7 +281,7 @@ export const TopNavPowerK = observer(() => {
             value={searchTerm}
             onChange={(e) => {
               // Ignore synthetic events from browser extensions (password managers
-              // probe nearby inputs when a password field mounts — e.g. on the AI
+              // probe nearby inputs when a password field mounts — e.g. on the Atlas
               // settings page — which was popping the panel on navigation).
               if (!e.nativeEvent.isTrusted) return;
               setSearchTerm(e.target.value);
