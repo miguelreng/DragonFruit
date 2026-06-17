@@ -7,10 +7,19 @@ from django.urls import path
 from plane.app.views.mcp import MCPEndpoint
 
 
+class ReadOnlyMCPEndpoint(MCPEndpoint):
+    read_only = True
+
+
 urlpatterns = [
     path(
         "workspaces/<str:slug>/mcp/",
         MCPEndpoint.as_view(),
         name="workspace-mcp",
+    ),
+    path(
+        "workspaces/<str:slug>/mcp/read-only/",
+        ReadOnlyMCPEndpoint.as_view(),
+        name="workspace-mcp-read-only",
     ),
 ]

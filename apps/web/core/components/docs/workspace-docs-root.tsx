@@ -12,16 +12,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { Archive02Icon, Copy01Icon, Delete02Icon, LinkSquare01Icon, MoreHorizontal } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ListBullets, SquaresFour } from "@phosphor-icons/react";
-import {
-  ChevronDown,
-  File as FileIcon,
-  FileText,
-  Folder,
-  ListFilter,
-  Search,
-  Whiteboard,
-  X,
-} from "@/components/icons/lucide-shim";
+import { ChevronDown, File as FileIcon, FileText, Folder, Search, Whiteboard, X } from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
@@ -252,9 +243,9 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
       ),
       ...(showArchived ? ["Archived"] : []),
     ];
-    if (accessLabels.length === 0) return "Access";
+    if (accessLabels.length === 0) return "Privacy";
     if (accessLabels.length === 1) return accessLabels[0];
-    return `${accessLabels.length} access`;
+    return `${accessLabels.length} privacy`;
   }, [selectedAccess, showArchived]);
   const typeFilterPillLabel = useMemo(() => {
     if (selectedTypes.length === 0) return "Type";
@@ -268,54 +259,56 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         <Breadcrumbs className="flex-grow-0">
           <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} icon={headerIcon} />} />
         </Breadcrumbs>
-        <div className="flex flex-wrap items-center gap-1">
-          {!scopeProjectId && (
-            <FilterSummaryPill
-              label={projectFilterPillLabel}
-              isActive={selectedProjectIds.length > 0}
-              onClear={() => setSelectedProjectIds([])}
-              className={cn(pillBase, selectedProjectIds.length > 0 ? pillActive : pillInactive)}
-            />
-          )}
-          <FilterSummaryPill
-            label={accessFilterPillLabel}
-            isActive={selectedAccess.length > 0 || showArchived}
-            onClear={() => {
-              setSelectedAccess([]);
-              setShowArchived(false);
-            }}
-            className={cn(pillBase, selectedAccess.length > 0 || showArchived ? pillActive : pillInactive)}
-          />
-          {activePageTypes.length > 1 && (
-            <FilterSummaryPill
-              label={typeFilterPillLabel}
-              isActive={selectedTypes.length > 0}
-              onClear={() => setSelectedTypes([])}
-              className={cn(pillBase, selectedTypes.length > 0 ? pillActive : pillInactive)}
-            />
-          )}
-        </div>
         <span className="text-13 text-tertiary">{visiblePages.length}</span>
-      </Header.LeftItem>
-      <Header.RightItem className="items-center">
-        <ViewModeToggle mode={viewMode} onChange={setViewMode} />
-        <PageSearchInput searchQuery={searchQuery} updateSearchQuery={setSearchQuery} />
-        <FiltersDropdown
-          icon={<ListFilter className="h-3 w-3" />}
-          title="Filters"
-          placement="bottom-end"
-          isFiltersApplied={
-            selectedProjectIds.length > 0 || selectedTypes.length > 0 || selectedAccess.length > 0 || showArchived
-          }
-        >
-          <div className="flex flex-col">
-            {!scopeProjectId && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {!scopeProjectId && (
+            <FiltersDropdown
+              placement="bottom-start"
+              menuButton={
+                <FilterSummaryPill
+                  label={projectFilterPillLabel}
+                  isActive={selectedProjectIds.length > 0}
+                  className={cn(pillBase, selectedProjectIds.length > 0 ? pillActive : pillInactive)}
+                />
+              }
+              isFiltersApplied={selectedProjectIds.length > 0}
+            >
               <ProjectFilterSection
                 appliedFilters={selectedProjectIds}
                 onToggle={toggleProject}
                 onClear={() => setSelectedProjectIds([])}
               />
-            )}
+            </FiltersDropdown>
+          )}
+          <FiltersDropdown
+            placement="bottom-start"
+            menuButton={
+              <FilterSummaryPill
+                label={typeFilterPillLabel}
+                isActive={selectedTypes.length > 0}
+                className={cn(pillBase, selectedTypes.length > 0 ? pillActive : pillInactive)}
+              />
+            }
+            isFiltersApplied={selectedTypes.length > 0}
+          >
+            <TypeFilterSection
+              availableTypes={activePageTypes}
+              appliedFilters={selectedTypes}
+              onToggle={toggleType}
+              onClear={() => setSelectedTypes([])}
+            />
+          </FiltersDropdown>
+          <FiltersDropdown
+            placement="bottom-start"
+            menuButton={
+              <FilterSummaryPill
+                label={accessFilterPillLabel}
+                isActive={selectedAccess.length > 0 || showArchived}
+                className={cn(pillBase, selectedAccess.length > 0 || showArchived ? pillActive : pillInactive)}
+              />
+            }
+            isFiltersApplied={selectedAccess.length > 0 || showArchived}
+          >
             <AccessFilterSection
               appliedFilters={selectedAccess}
               showArchived={showArchived}
@@ -326,16 +319,12 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 setShowArchived(false);
               }}
             />
-            {activePageTypes.length > 1 && (
-              <TypeFilterSection
-                availableTypes={activePageTypes}
-                appliedFilters={selectedTypes}
-                onToggle={toggleType}
-                onClear={() => setSelectedTypes([])}
-              />
-            )}
-          </div>
-        </FiltersDropdown>
+          </FiltersDropdown>
+        </div>
+      </Header.LeftItem>
+      <Header.RightItem className="items-center">
+        <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+        <PageSearchInput searchQuery={searchQuery} updateSearchQuery={setSearchQuery} />
         <WorkspaceCreateDocButton
           workspaceSlug={workspaceSlug}
           defaultType={pageType}
@@ -423,22 +412,15 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
 type FilterSummaryPillProps = {
   label: string;
   isActive: boolean;
-  onClear: () => void;
   className?: string;
 };
 
-function FilterSummaryPill({ label, isActive, onClear, className }: FilterSummaryPillProps) {
+function FilterSummaryPill({ label, isActive, className }: FilterSummaryPillProps) {
   return (
-    <button
-      type="button"
-      onClick={isActive ? onClear : undefined}
-      disabled={!isActive}
-      aria-pressed={isActive}
-      className={cn("inline-flex items-center gap-1 disabled:cursor-default", className)}
-    >
+    <span className={cn("inline-flex items-center gap-1", className)}>
       <span>{label}</span>
-      {isActive && <X className="size-3" />}
-    </button>
+      <ChevronDown className={cn("size-3", { "text-accent-primary": isActive })} />
+    </span>
   );
 }
 

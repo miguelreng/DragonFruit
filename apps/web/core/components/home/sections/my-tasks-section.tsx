@@ -27,7 +27,7 @@ const COMPLETE_ANIMATION_MS = 320;
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
 
 // --- Inline natural-language parsing (Todoist/Things-style) -----------------
-// `#label` → labels, `@date` → due date, `*priority` → priority.
+// `#label` → labels, `@date` → due date, `*priority` → priority, `/project` → project.
 const LABEL_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6"];
 const randomLabelColor = () => LABEL_COLORS[Math.floor(Math.random() * LABEL_COLORS.length)];
 
@@ -103,13 +103,17 @@ function parseDueToken(token: string): Date | undefined {
 type ParsedQuickInput = {
   name: string;
   labelNames: string[];
+  projectName?: string;
   priority?: TIssuePriorities;
   dueDate?: Date;
 };
 
-/** Strip recognized `#`/`@`/`*` tokens out of the title and return the rest. */
+const normalizeProjectToken = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/** Strip recognized `#`/`@`/`*`/`/` tokens out of the title and return the rest. */
 function parseQuickInput(raw: string): ParsedQuickInput {
   const labelNames: string[] = [];
+  let projectName: string | undefined;
   let priority: TIssuePriorities | undefined;
   let dueDate: Date | undefined;
   const kept: string[] = [];
@@ -149,9 +153,13 @@ function parseQuickInput(raw: string): ParsedQuickInput {
         continue;
       }
     }
+    if (/^\/[A-Za-z][\w-]*$/.test(part)) {
+      projectName = part.slice(1);
+      continue;
+    }
     kept.push(part);
   }
-  return { name: kept.join(" ").replace(/\s+/g, " ").trim(), labelNames, priority, dueDate };
+  return { name: kept.join(" ").replace(/\s+/g, " ").trim(), labelNames, projectName, priority, dueDate };
 }
 
 const issueService = new IssueService();
@@ -329,20 +337,44 @@ export const MyTasksSection = observer(function MyTasksSection({
     [slug, getProjectLabels, fetchProjectLabels, createLabel]
   );
 
+  const resolveProjectId = useCallback(
+    (name: string): string | undefined => {
+      const normalizedName = normalizeProjectToken(name);
+      if (!normalizedName) return undefined;
+      return joinedProjectIds.find((projectId) => {
+        const project = getProjectById(projectId);
+        return (
+          normalizeProjectToken(project?.name ?? "") === normalizedName ||
+          normalizeProjectToken(project?.identifier ?? "") === normalizedName
+        );
+      });
+    },
+    [joinedProjectIds, getProjectById]
+  );
+
   const handleCreate = useCallback(async () => {
     const parsed = parseQuickInput(newTaskName);
     if (!slug || !resolvedAddProjectId || !parsed.name || isCreating) return;
+    const targetProjectId = parsed.projectName ? resolveProjectId(parsed.projectName) : resolvedAddProjectId;
+    if (!targetProjectId) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Couldn't find project",
+        message: `No joined project matches /${parsed.projectName}.`,
+      });
+      return;
+    }
     setIsCreating(true);
     try {
-      const labelIds = await resolveLabelIds(resolvedAddProjectId, parsed.labelNames);
-      const payload = createIssuePayload(resolvedAddProjectId, {
+      const labelIds = await resolveLabelIds(targetProjectId, parsed.labelNames);
+      const payload = createIssuePayload(targetProjectId, {
         name: parsed.name,
         assignee_ids: userId ? [userId] : [],
         ...(parsed.priority ? { priority: parsed.priority } : {}),
         ...(parsed.dueDate ? { target_date: renderFormattedPayloadDate(parsed.dueDate) } : {}),
         ...(labelIds.length > 0 ? { label_ids: labelIds } : {}),
       });
-      const created = await issueService.createIssue(slug, resolvedAddProjectId, payload);
+      const created = await issueService.createIssue(slug, targetProjectId, payload);
       // Optimistically surface the new task without a full refetch.
       mutate(
         (prev) => {
@@ -367,7 +399,7 @@ export const MyTasksSection = observer(function MyTasksSection({
     } finally {
       setIsCreating(false);
     }
-  }, [slug, resolvedAddProjectId, newTaskName, isCreating, userId, mutate, resolveLabelIds]);
+  }, [slug, resolvedAddProjectId, newTaskName, isCreating, resolveProjectId, userId, mutate, resolveLabelIds]);
 
   const allIssues: TBaseIssue[] = Array.isArray(data?.results) ? (data!.results as TBaseIssue[]) : [];
 
@@ -402,7 +434,13 @@ export const MyTasksSection = observer(function MyTasksSection({
 
   // Live preview of what the inline tokens in the add input will resolve to.
   const inputPreview = parseQuickInput(newTaskName);
-  const hasInputPreview = !!inputPreview.dueDate || !!inputPreview.priority || inputPreview.labelNames.length > 0;
+  const inputPreviewProjectId = inputPreview.projectName ? resolveProjectId(inputPreview.projectName) : undefined;
+  const inputPreviewProject = inputPreviewProjectId ? getProjectById(inputPreviewProjectId) : undefined;
+  const hasInputPreview =
+    !!inputPreview.dueDate ||
+    !!inputPreview.priority ||
+    inputPreview.labelNames.length > 0 ||
+    !!inputPreview.projectName;
 
   return (
     <section className="flex flex-col gap-2">
@@ -533,7 +571,7 @@ export const MyTasksSection = observer(function MyTasksSection({
                         e.currentTarget.blur();
                       }
                     }}
-                    placeholder="Add a task —  #label  @date  *priority"
+                    placeholder="Add a task —  /project  #label  @date  *priority"
                     className="min-w-0 flex-1 bg-transparent text-13 text-secondary outline-none placeholder:text-placeholder"
                   />
                   {isCreating && <Loader className="size-3.5 flex-shrink-0 animate-spin text-placeholder" />}
@@ -552,6 +590,11 @@ export const MyTasksSection = observer(function MyTasksSection({
                 </div>
                 {hasInputPreview && (
                   <div className="font-newsreader mt-1.5 flex flex-wrap items-center gap-2 pl-[30px] text-12 text-primary">
+                    {inputPreview.projectName && (
+                      <span>
+                        {inputPreviewProject ? `/${inputPreviewProject.name}` : `/${inputPreview.projectName}`}
+                      </span>
+                    )}
                     {inputPreview.dueDate && <span>{renderFormattedDate(inputPreview.dueDate, "MMM d")}</span>}
                     {inputPreview.priority && <span className="capitalize">{inputPreview.priority}</span>}
                     {inputPreview.labelNames.map((labelName) => (

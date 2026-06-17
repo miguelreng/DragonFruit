@@ -39,7 +39,6 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   // store hooks
   const { toggleSidebar, toggleAnySidebarDropdown } = useAppTheme();
   const { config } = useInstance();
-  const { data: currentUser } = useUser();
   const { signOut } = useUser();
   const { updateUserProfile } = useUserProfile();
   const { currentWorkspace: activeWorkspace, workspaces } = useWorkspace();
@@ -168,17 +167,14 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
               <Menu.Items as={Fragment}>
                 <div
                   className={cn(
-                    "fixed z-21 mt-1 flex w-72 origin-top-left flex-col divide-y divide-subtle overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1 shadow-raised-200 outline-none",
+                    "fixed z-21 mt-1 flex w-64 origin-top-left flex-col divide-y divide-subtle overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1 p-1 shadow-raised-200 outline-none",
                     {
                       "top-11 left-14": variant === "sidebar",
                       "top-10 left-0": variant === "top-navigation",
                     }
                   )}
                 >
-                  <div className="vertical-scrollbar flex scrollbar-sm max-h-72 flex-col items-start justify-start overflow-x-hidden overflow-y-scroll">
-                    <span className="sticky top-0 z-21 w-full flex-shrink-0 truncate bg-surface-1 px-3 py-2 text-left text-12 font-medium text-placeholder">
-                      {currentUser?.email}
-                    </span>
+                  <div className="vertical-scrollbar flex scrollbar-sm max-h-56 flex-col items-start justify-start overflow-x-hidden overflow-y-auto">
                     {workspacesList ? (
                       <div className="flex size-full flex-col items-start justify-start">
                         {(activeWorkspace
@@ -206,12 +202,12 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       </div>
                     )}
                   </div>
-                  <div className="flex w-full flex-col items-start justify-start gap-0.5 px-2 py-1.5 text-13">
+                  <div className="flex w-full flex-col items-start justify-start gap-0.5 pt-1 text-13">
                     {canManageActiveWorkspace && (
                       <Link href={`/${activeWorkspace.slug}/settings`} className="w-full" onClick={handleItemClick}>
                         <Menu.Item
                           as="div"
-                          className="flex items-center gap-2 rounded-lg px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                          className="flex h-8 items-center gap-2 rounded-lg px-2 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
                         >
                           <Settings className="size-4 flex-shrink-0" />
                           <span>{t("settings")}</span>
@@ -227,7 +223,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       >
                         <Menu.Item
                           as="div"
-                          className="flex items-center gap-2 rounded-lg px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                          className="flex h-8 items-center gap-2 rounded-lg px-2 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
                         >
                           <UserPlus className="size-4 flex-shrink-0" />
                           <span>{t("project_settings.members.invite_members.title")}</span>
@@ -243,7 +239,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       <Link href="/create-workspace" className="w-full">
                         <Menu.Item
                           as="div"
-                          className="flex items-center gap-2 rounded-lg px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                          className="flex h-8 items-center gap-2 rounded-lg px-2 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
                         >
                           <CirclePlus className="size-4 flex-shrink-0" />
                           {t("create_workspace")}
@@ -254,7 +250,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                     <Link href="/invitations" className="w-full" onClick={handleItemClick}>
                       <Menu.Item
                         as="div"
-                        className="flex items-center gap-2 rounded-lg px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                        className="flex h-8 items-center gap-2 rounded-lg px-2 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
                       >
                         <Mails className="h-4 w-4 flex-shrink-0" />
                         {t("workspace_invites")}
@@ -265,7 +261,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       <Menu.Item
                         as="button"
                         type="button"
-                        className="flex w-full items-center gap-2 rounded-lg px-2 py-1 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                        className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
                         onClick={handleSignOut}
                       >
                         <LogOut className="size-4 flex-shrink-0" />

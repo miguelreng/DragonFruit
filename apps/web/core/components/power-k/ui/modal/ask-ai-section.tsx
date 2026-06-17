@@ -52,7 +52,7 @@ export function PowerKAskAISection(props: Props) {
         err?.data?.detail ||
         (typeof err?.data === "string" ? err.data : undefined) ||
         err?.statusText;
-      setError(detail || "Could not reach the configured LLM provider. Check Settings → AI.");
+      setError(detail || "Could not reach the configured LLM provider. Check Settings → Atlas.");
     } finally {
       setPending(false);
     }

@@ -21,7 +21,6 @@ import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view
 import { PageHead } from "@/components/core/page-title";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-import { SettingsHeading } from "@/components/settings/heading";
 // constants
 import { ATLAS_IDENTITY } from "@/constants/atlas";
 // hooks
@@ -94,7 +93,7 @@ function AISettingsLoader() {
           </div>
         </div>
       </div>
-      <span className="sr-only">Loading AI settings</span>
+      <span className="sr-only">Loading Atlas settings</span>
     </div>
   );
 }
@@ -190,7 +189,7 @@ function AISettingsPage() {
         apiKey: "",
       });
     } catch {
-      setError("Couldn't load AI settings.");
+      setError("Couldn't load Atlas settings.");
     } finally {
       setLoading(false);
     }
@@ -268,11 +267,6 @@ function AISettingsPage() {
     <SettingsContentWrapper header={<AIWorkspaceSettingsHeader />} hugging>
       <PageHead title={pageTitle} />
       <div className={cn("flex w-full flex-col gap-y-6", { "opacity-60": !canEdit })}>
-        <SettingsHeading
-          title={t("workspace_settings.settings.ai.heading")}
-          description={t("workspace_settings.settings.ai.description")}
-        />
-
         {/* Atlas — the one workspace companion. Identity & personality are
             fixed in code; only on/off, triggers, and automations are tunable
             here. The model + BYOK key it runs on are configured below. */}

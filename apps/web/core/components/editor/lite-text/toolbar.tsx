@@ -25,6 +25,7 @@ import { TOOLBAR_ITEMS } from "@/constants/editor";
 
 type Props = {
   accessSpecifier?: EIssueCommentAccessSpecifier;
+  leadingAction?: React.ReactNode;
   executeCommand: (item: ToolbarMenuItem) => void;
   handleAccessChange?: (accessKey: EIssueCommentAccessSpecifier) => void;
   handleSubmit: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
@@ -61,6 +62,7 @@ export function IssueCommentToolbar(props: Props) {
   const { t } = useTranslation();
   const {
     accessSpecifier,
+    leadingAction,
     executeCommand,
     handleAccessChange,
     handleSubmit,
@@ -132,10 +134,11 @@ export function IssueCommentToolbar(props: Props) {
       )}
       <div className="flex w-full items-stretch justify-between gap-2 rounded-lg border-[0.5px] border-subtle p-1">
         <div className="flex items-stretch">
+          {leadingAction && <div className="flex items-stretch border-r border-strong pr-2">{leadingAction}</div>}
           {Object.keys(toolbarItems).map((key, index) => (
             <div
               key={key}
-              className={cn("flex items-stretch gap-0.5 border-r border-subtle px-2.5", {
+              className={cn("flex items-stretch gap-0.5 border-r border-strong px-2.5", {
                 "pl-0": index === 0,
               })}
             >

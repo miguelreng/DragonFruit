@@ -7,7 +7,7 @@
 import type { PasteRuleMatch } from "@tiptap/core";
 import { Mark, markPasteRule, mergeAttributes } from "@tiptap/core";
 import type { Plugin } from "@tiptap/pm/state";
-import { find, registerCustomProtocol, reset } from "linkifyjs";
+import { find, registerCustomProtocol } from "linkifyjs";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
 // helpers
@@ -56,6 +56,21 @@ type LinkOptions = {
   validate?: (url: string) => boolean;
 };
 
+const BUILT_IN_PROTOCOLS = new Set(["http", "https"]);
+const REGISTERED_PROTOCOLS = new Set<string>();
+
+const registerLinkProtocol = (protocol: LinkProtocolOptions | string) => {
+  const scheme = typeof protocol === "string" ? protocol : protocol.scheme;
+  if (!scheme || BUILT_IN_PROTOCOLS.has(scheme)) return;
+
+  const optionalSlashes = typeof protocol === "string" ? undefined : protocol.optionalSlashes;
+  const key = `${scheme}:${optionalSlashes ?? ""}`;
+  if (REGISTERED_PROTOCOLS.has(key)) return;
+
+  registerCustomProtocol(scheme, optionalSlashes);
+  REGISTERED_PROTOCOLS.add(key);
+};
+
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     [CORE_EXTENSIONS.CUSTOM_LINK]: {
@@ -102,17 +117,7 @@ export const CustomLinkExtension = Mark.create<LinkOptions, CustomLinkStorage>({
   keepOnSplit: false,
 
   onCreate() {
-    this.options.protocols.forEach((protocol) => {
-      if (typeof protocol === "string") {
-        registerCustomProtocol(protocol);
-        return;
-      }
-      registerCustomProtocol(protocol.scheme, protocol.optionalSlashes);
-    });
-  },
-
-  onDestroy() {
-    reset();
+    this.options.protocols.forEach(registerLinkProtocol);
   },
 
   inclusive() {

@@ -33,14 +33,13 @@ export class FileUploadService extends APIService {
       .then((response) => response?.data)
       .catch((error) => {
         if (axios.isCancel(error)) {
-          console.log(error.message);
-        } else {
-          throw error?.response?.data;
+          throw { error: error.message || "Upload canceled" };
         }
+        throw error?.response?.data ?? { error: error?.message || "File upload failed. Please try again." };
       });
   }
 
   cancelUpload() {
-    this.cancelSource.cancel("Upload canceled");
+    this.cancelSource?.cancel("Upload canceled");
   }
 }

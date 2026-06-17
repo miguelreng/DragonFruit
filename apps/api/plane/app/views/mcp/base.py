@@ -6,9 +6,11 @@
 
 External AI tools — Claude Code, Cursor, ChatGPT desktop, anything that
 speaks MCP — can POST JSON-RPC to /api/workspaces/<slug>/mcp/ to read
-and write tasks, comments, and pages in this workspace. Auth is via
-the existing APIToken (Bearer or X-Api-Key header); the token's owning
-user determines who the writes are attributed to.
+and write tasks, comments, and pages in this workspace. Clients that
+must not mutate workspace state can use /api/workspaces/<slug>/mcp/read-only/,
+which advertises and allows only read tools. Auth is via the existing
+APIToken (Bearer or X-Api-Key header); the token's owning user determines
+who the writes are attributed to on the full endpoint.
 
 Transport: streamable HTTP, single-shot (no SSE in v1). One JSON-RPC
 2.0 request per POST, one response. Notifications (no `id`) return
@@ -50,11 +52,9 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import timedelta
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from django.db.models import Q
-from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -114,11 +114,12 @@ class ToolContext:
     to redo the auth dance themselves.
     """
 
-    __slots__ = ("workspace", "user")
+    __slots__ = ("workspace", "user", "read_only")
 
-    def __init__(self, workspace: Workspace, user: User) -> None:
+    def __init__(self, workspace: Workspace, user: User, read_only: bool = False) -> None:
         self.workspace = workspace
         self.user = user
+        self.read_only = read_only
 
 
 def _truncate(text: Optional[str], limit: int = 2000) -> str:
@@ -427,7 +428,9 @@ TOOLS: Dict[str, Dict[str, Any]] = {
         "handler": _tool_list_tasks,
     },
     "get_task": {
-        "description": "Get full details for a single task: description, state, assignees, labels, and last 10 comments.",
+        "description": (
+            "Get full details for a single task: description, state, assignees, labels, and last 10 comments."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {"task_id": {"type": "string", "description": "UUID of the task"}},
@@ -500,6 +503,14 @@ TOOLS: Dict[str, Dict[str, Any]] = {
         "handler": _tool_get_page,
     },
 }
+
+READ_ONLY_TOOL_NAMES = frozenset(("list_tasks", "get_task", "list_projects", "search_pages", "get_page"))
+
+
+def _tools_for_read_only(read_only: bool) -> Dict[str, Dict[str, Any]]:
+    if not read_only:
+        return TOOLS
+    return {name: spec for name, spec in TOOLS.items() if name in READ_ONLY_TOOL_NAMES}
 
 
 # =====================================================================
@@ -577,7 +588,8 @@ def _jsonrpc_error(req_id: Any, code: int, message: str, data: Any = None) -> Di
     return {"jsonrpc": "2.0", "id": req_id, "error": err}
 
 
-def _handle_initialize(_params: Dict[str, Any], _ctx: ToolContext) -> Dict[str, Any]:
+def _handle_initialize(_params: Dict[str, Any], ctx: ToolContext) -> Dict[str, Any]:
+    read_only = getattr(ctx, "read_only", False)
     return {
         "protocolVersion": MCP_PROTOCOL_VERSION,
         "capabilities": {
@@ -587,14 +599,21 @@ def _handle_initialize(_params: Dict[str, Any], _ctx: ToolContext) -> Dict[str, 
         },
         "serverInfo": SERVER_INFO,
         "instructions": (
-            "Dragon Fruit MCP server — tools for reading and writing tasks, comments, and "
-            "pages in this workspace. Tool writes are attributed to the API token's owning "
-            "user. Use list_projects + list_tasks to orient before any write operation."
+            "Dragon Fruit MCP server — read-only tools for tasks, projects, and pages in this "
+            "workspace. This endpoint does not expose write tools, so it is safe for external "
+            "agents that should not replace Atlas or mutate workspace state."
+            if read_only
+            else (
+                "Dragon Fruit MCP server — tools for reading and writing tasks, comments, and "
+                "pages in this workspace. Tool writes are attributed to the API token's owning "
+                "user. Use list_projects + list_tasks to orient before any write operation."
+            )
         ),
     }
 
 
-def _handle_tools_list(_params: Dict[str, Any], _ctx: ToolContext) -> Dict[str, Any]:
+def _handle_tools_list(_params: Dict[str, Any], ctx: ToolContext) -> Dict[str, Any]:
+    tools = _tools_for_read_only(getattr(ctx, "read_only", False))
     return {
         "tools": [
             {
@@ -602,7 +621,7 @@ def _handle_tools_list(_params: Dict[str, Any], _ctx: ToolContext) -> Dict[str, 
                 "description": spec["description"],
                 "inputSchema": spec["input_schema"],
             }
-            for name, spec in TOOLS.items()
+            for name, spec in tools.items()
         ]
     }
 
@@ -613,8 +632,14 @@ def _handle_tools_call(params: Dict[str, Any], ctx: ToolContext) -> Dict[str, An
     if not tool_name:
         raise _RpcError(ERR_INVALID_PARAMS, "`name` is required")
 
-    spec = TOOLS.get(tool_name)
+    tools = _tools_for_read_only(getattr(ctx, "read_only", False))
+    spec = tools.get(tool_name)
     if spec is None:
+        if getattr(ctx, "read_only", False) and tool_name in TOOLS:
+            raise _RpcError(
+                ERR_METHOD_NOT_FOUND,
+                f"tool '{tool_name}' is not available on the read-only MCP endpoint",
+            )
         raise _RpcError(ERR_METHOD_NOT_FOUND, f"unknown tool '{tool_name}'")
 
     try:
@@ -671,6 +696,7 @@ class MCPEndpoint(APIView):
 
     authentication_classes: list = []
     permission_classes: list = []
+    read_only = False
 
     def post(self, request, slug):
         user, workspace, auth_err = _resolve_token_and_workspace(request, slug)
@@ -689,7 +715,9 @@ class MCPEndpoint(APIView):
         # clients. Support them anyway — saves a round-trip if a client
         # ever batches initialize + tools/list together.
         if isinstance(payload, list):
-            responses = [r for r in (self._handle_single(item, user, workspace) for item in payload) if r is not None]
+            responses = [
+                r for r in (self._handle_single(item, user, workspace) for item in payload) if r is not None
+            ]
             return Response(responses, status=status.HTTP_200_OK)
 
         response_body = self._handle_single(payload, user, workspace)
@@ -711,9 +739,11 @@ class MCPEndpoint(APIView):
                 "serverInfo": SERVER_INFO,
                 "transport": "streamable-http",
                 "auth": "Authorization: Bearer <token> (or X-Api-Key: <token>)",
-                "tool_count": len(TOOLS),
+                "mode": "read-only" if self.read_only else "read-write",
+                "tool_count": len(_tools_for_read_only(self.read_only)),
                 "tools": [
-                    {"name": n, "description": s["description"]} for n, s in TOOLS.items()
+                    {"name": n, "description": s["description"]}
+                    for n, s in _tools_for_read_only(self.read_only).items()
                 ],
                 "note": (
                     "POST JSON-RPC 2.0 requests to this URL with an MCP client "
@@ -744,7 +774,7 @@ class MCPEndpoint(APIView):
             # No id + unknown method — still a notification per JSON-RPC.
             return None
 
-        ctx = ToolContext(workspace=workspace, user=user)
+        ctx = ToolContext(workspace=workspace, user=user, read_only=self.read_only)
 
         handler = _METHODS.get(method)
         if handler is None:

@@ -926,7 +926,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
       setMessages((current) => [
         ...current,
         {
-          content: detail || "Could not reach Atlas. Check the workspace AI settings.",
+          content: detail || "Could not reach Atlas. Check the workspace Atlas settings.",
           id: crypto.randomUUID(),
           role: "error",
         },

@@ -27,8 +27,6 @@ const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 const service = new HomePreferencesService();
 
-type Tab = "overview" | "by_type";
-
 const RANGE_LABELS: Record<TActivityRange, string> = {
   all: "All",
   "30d": "30d",
@@ -125,7 +123,6 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
   const { workspaceSlug } = useParams();
   const sectionRef = useRef<HTMLElement>(null);
   const [range, setRange] = useState<TActivityRange>("all");
-  const [tab, setTab] = useState<Tab>("overview");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -193,8 +190,8 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
     };
   }, [fullSummary, range]);
 
-  // Choose which series the grid colors are driven by. Overview = total;
-  // By type = whichever type the user filters to (default: top type).
+  // Choose which series the grid colors are driven by. The chips in the
+  // header act as the selector, defaulting to the dominant type.
   const [typeFocus, setTypeFocus] = useState<"docs" | "work_items">("docs");
   useEffect(() => {
     if (summary?.top_type) setTypeFocus(summary.top_type);
@@ -202,17 +199,10 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
 
   const visibleBuckets = useMemo(() => (summary?.daily_buckets ?? []).slice(-VISIBLE_DAYS), [summary?.daily_buckets]);
   const grid = useMemo(() => buildGrid(visibleBuckets), [visibleBuckets]);
-  // Drives the intensity ramp. Overview grades on the weighted `score` so
-  // the shade reflects the *kind* of action, not just the raw event count.
-  // By-type grades on the single focused type, where weighting is a no-op
-  // (ratio normalizes it away), so we use the raw type count directly.
   const maxValue = useMemo(() => {
     if (visibleBuckets.length === 0) return 0;
-    // `score` is a newer field; fall back to the unweighted `count` for any
-    // response that predates it so the ramp never collapses to NaN.
-    if (tab === "overview") return Math.max(0, ...visibleBuckets.map((b) => b.score ?? b.count));
     return Math.max(0, ...visibleBuckets.map((b) => (typeFocus === "docs" ? b.docs : b.work_items)));
-  }, [visibleBuckets, tab, typeFocus]);
+  }, [visibleBuckets, typeFocus]);
 
   const funFact = useMemo(() => {
     if (!summary) return null;
@@ -237,22 +227,30 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
       </div>
 
       <div className="rounded-[18px] border border-subtle bg-surface-1">
-        {/* Header row: tabs left, range filter right */}
+        {/* Header row: overview + type chips left, range filter right */}
         <div className="flex items-center justify-between border-b border-subtle px-3 py-2">
-          <div className="flex items-center gap-1">
-            {(["overview", "by_type"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className={
-                  "rounded-lg px-2 py-1 text-12 font-medium transition-colors " +
-                  (tab === t ? "bg-layer-2 text-primary" : "text-placeholder hover:text-secondary")
-                }
-              >
-                {t === "overview" ? "Overview" : "By type"}
-              </button>
-            ))}
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-12 font-medium text-secondary">Overview</span>
+            <div className="flex min-w-0 items-center gap-1">
+              {(["docs", "work_items"] as const).map((tf) => (
+                <button
+                  key={tf}
+                  type="button"
+                  onClick={() => setTypeFocus(tf)}
+                  className={
+                    "rounded-full border px-2.5 py-0.5 text-11 font-medium transition-colors " +
+                    (typeFocus === tf
+                      ? "border-accent-strong bg-accent-primary/10 text-accent-primary"
+                      : "border-subtle text-placeholder hover:text-secondary")
+                  }
+                >
+                  {tf === "docs" ? "Docs" : "Tasks"}
+                  <span className="ml-1.5 text-placeholder tabular-nums">
+                    {tf === "docs" ? summary?.totals.docs ?? 0 : summary?.totals.work_items ?? 0}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-1">
             {(["all", "30d", "7d"] as const).map((r) => (
@@ -275,40 +273,11 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
           <div className="px-3 py-8 text-center text-12 text-placeholder">Loading…</div>
         ) : (
           <div className="flex flex-col gap-3 px-3 py-3">
-            {tab === "by_type" && (
-              <div className="flex items-center gap-1">
-                {(["docs", "work_items"] as const).map((tf) => (
-                  <button
-                    key={tf}
-                    type="button"
-                    onClick={() => setTypeFocus(tf)}
-                    className={
-                      "rounded-full border px-2.5 py-0.5 text-11 font-medium transition-colors " +
-                      (typeFocus === tf
-                        ? "border-accent-strong bg-accent-primary/10 text-accent-primary"
-                        : "border-subtle text-placeholder hover:text-secondary")
-                    }
-                  >
-                    {tf === "docs" ? "Docs" : "Tasks"}
-                    <span className="ml-1.5 text-placeholder tabular-nums">
-                      {tf === "docs" ? summary.totals.docs : summary.totals.work_items}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* Stat cards */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <StatCard
-                label={tab === "overview" ? "Entries" : typeFocus === "docs" ? "Docs" : "Tasks"}
-                value={formatNumber(
-                  tab === "overview"
-                    ? summary.totals.items
-                    : typeFocus === "docs"
-                      ? summary.totals.docs
-                      : summary.totals.work_items
-                )}
+                label={typeFocus === "docs" ? "Docs" : "Tasks"}
+                value={formatNumber(typeFocus === "docs" ? summary.totals.docs : summary.totals.work_items)}
               />
               <StatCard label="Active days" value={summary.active_days.toString()} />
               <StatCard label="Current streak" value={`${summary.current_streak}d`} />
@@ -341,20 +310,14 @@ export const ActivityHeatmapSection = observer(function ActivityHeatmapSection({
                         {getRenderWeekCells(week, weekKey).map(({ key, cell }) => {
                           if (!cell) return <div key={key} className="aspect-square w-full" />;
                           // Tooltip shows the raw entry count; the shade is
-                          // graded on the weighted score (overview) or the
-                          // focused type's count (by type).
-                          const displayCount =
-                            tab === "overview" ? cell.count : typeFocus === "docs" ? cell.docs : cell.work_items;
-                          const intensityValue =
-                            tab === "overview"
-                              ? (cell.score ?? cell.count)
-                              : typeFocus === "docs"
-                                ? cell.docs
-                                : cell.work_items;
+                          // graded on the focused type's count.
+                          const displayCount = typeFocus === "docs" ? cell.docs : cell.work_items;
+                          const intensityValue = typeFocus === "docs" ? cell.docs : cell.work_items;
+                          const unitLabel = typeFocus === "docs" ? "doc" : "task";
                           return (
                             <div
                               key={key}
-                              title={`${cell.date} — ${displayCount} ${displayCount === 1 ? "entry" : "entries"}`}
+                              title={`${cell.date} — ${displayCount} ${displayCount === 1 ? unitLabel : `${unitLabel}s`}`}
                               className={
                                 "aspect-square w-full rounded-[3px] " + intensityClass(intensityValue, maxValue)
                               }

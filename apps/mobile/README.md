@@ -47,8 +47,11 @@ Then, because the custom-scheme auth redirect does **not** work in Expo Go, run 
 **development build**:
 
 ```bash
-# iOS (needs Xcode)
+# iOS simulator (needs Xcode)
 pnpm --filter mobile exec expo run:ios
+
+# iOS physical device
+pnpm --filter mobile exec expo run:ios --device --configuration Release
 
 # Android (needs Android Studio / SDK)
 pnpm --filter mobile exec expo run:android
@@ -131,7 +134,9 @@ widget target + App Group entitlement) and the runtime sync
    `app.config.js`, `targets/widget/expo-target.config.js`, and the `APP_GROUP`
    constant in `calendar-widget.ts` / `index.swift`.
 2. Widgets never run in Expo Go — use a **dev build** (or the Simulator).
-3. Add `ios.appleTeamId` to `app.json` for device signing.
+3. Leave personal Apple team ids out of committed native config. On the first
+   physical-device build, Expo will pick your local Xcode signing identity and
+   ask Xcode to create/register the development profile.
 4. The `expo-background-task` return value / registration API is the most likely
    spot to need a small tweak against the installed version — verify in the build.
 

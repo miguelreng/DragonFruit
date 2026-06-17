@@ -7,12 +7,10 @@
 import type { FC } from "react";
 // plane imports
 import {
-  Boxes,
   Download,
   FileText,
   House,
   Info,
-  Network,
   Rocket,
   Sparkle,
   UploadCloud,
@@ -20,6 +18,7 @@ import {
   Webhook,
 } from "@plane/icons";
 import type { ISvgIcons } from "@plane/propel/icons";
+import { CellsIcon, McpServerIcon } from "@plane/propel/icons";
 import type { TWorkspaceSettingsTabs } from "@plane/types";
 
 export const WORKSPACE_SETTINGS_ICONS: Record<TWorkspaceSettingsTabs, FC<ISvgIcons>> = {
@@ -30,8 +29,8 @@ export const WORKSPACE_SETTINGS_ICONS: Record<TWorkspaceSettingsTabs, FC<ISvgIco
   webhooks: Webhook,
   ai: Sparkle,
   agents: Rocket,
-  integrations: Boxes,
+  integrations: CellsIcon,
   about: Info,
-  mcp: Network,
+  mcp: McpServerIcon,
   templates: FileText,
 };

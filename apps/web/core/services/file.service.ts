@@ -15,6 +15,14 @@ import { getAssetIdFromUrl } from "@plane/utils";
 import { APIService } from "@/services/api.service";
 import { FileUploadService } from "@/services/file-upload.service";
 
+const getFileServiceError = (error: any, fallback = "Something went wrong. Please try again.") => {
+  if (error?.response?.data !== undefined) return error.response.data;
+  if (error?.error !== undefined) return error;
+  if (error instanceof Error) return { error: error.message || fallback };
+  if (typeof error === "string") return { error };
+  return { error: fallback };
+};
+
 export interface UnSplashImage {
   id: string;
   created_at: Date;
@@ -92,7 +100,7 @@ export class FileService extends APIService {
         return signedURLResponse;
       })
       .catch((error) => {
-        throw error?.response?.data;
+        throw getFileServiceError(error, "Workspace asset upload failed. Please try again.");
       });
   }
 
@@ -169,7 +177,7 @@ export class FileService extends APIService {
         return signedURLResponse;
       })
       .catch((error) => {
-        throw error?.response?.data;
+        throw getFileServiceError(error, "Project asset upload failed. Please try again.");
       });
   }
 
@@ -195,7 +203,7 @@ export class FileService extends APIService {
         return signedURLResponse;
       })
       .catch((error) => {
-        throw error?.response?.data;
+        throw getFileServiceError(error, "User asset upload failed. Please try again.");
       });
   }
 
@@ -266,7 +274,7 @@ export class FileService extends APIService {
   }
 
   cancelUpload() {
-    this.cancelSource.cancel("Upload canceled");
+    this.fileUploadService.cancelUpload();
   }
 
   async getUnsplashImages(query?: string): Promise<UnSplashImage[]> {

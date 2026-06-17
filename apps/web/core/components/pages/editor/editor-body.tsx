@@ -92,6 +92,25 @@ type Props = {
   editorPlaceholder?: string;
 };
 
+const DEFAULT_LIVE_BASE_PATH = "/live";
+
+const getLiveServerBaseUrl = () => {
+  const configuredUrl = LIVE_BASE_URL?.trim();
+  if (configuredUrl) return configuredUrl;
+
+  const currentUrl = new URL(window.location.origin);
+  if (currentUrl.hostname.startsWith("app.")) {
+    currentUrl.hostname = `live.${currentUrl.hostname.slice(4)}`;
+  }
+
+  return currentUrl.toString();
+};
+
+const getLiveCollaborationPath = () => {
+  const basePath = (LIVE_BASE_PATH?.trim() || DEFAULT_LIVE_BASE_PATH).replace(/\/+$/, "");
+  return `${basePath}/collaboration`;
+};
+
 export const PageEditorBody = observer(function PageEditorBody(props: Props) {
   const {
     config,
@@ -498,11 +517,10 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
   const realtimeConfig: TRealtimeConfig | undefined = useMemo(() => {
     // Construct the WebSocket Collaboration URL
     try {
-      const LIVE_SERVER_BASE_URL = LIVE_BASE_URL?.trim() || window.location.origin;
-      const WS_LIVE_URL = new URL(LIVE_SERVER_BASE_URL);
+      const WS_LIVE_URL = new URL(getLiveServerBaseUrl());
       const isSecureEnvironment = window.location.protocol === "https:";
       WS_LIVE_URL.protocol = isSecureEnvironment ? "wss" : "ws";
-      WS_LIVE_URL.pathname = `${LIVE_BASE_PATH}/collaboration`;
+      WS_LIVE_URL.pathname = getLiveCollaborationPath();
 
       // Append query parameters to the URL
       Object.entries(webhookConnectionParams)

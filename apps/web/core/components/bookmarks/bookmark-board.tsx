@@ -11,7 +11,6 @@ import {
   CancelCircleIcon,
   Copy01Icon,
   Delete02Icon,
-  FilterIcon,
   LinkSquare01Icon,
   MoreHorizontal,
   PlusSignIcon,
@@ -25,6 +24,7 @@ import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { fetchWikipediaSummary } from "@plane/editor";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Button } from "@plane/propel/button";
+import { ChevronDownIcon } from "@plane/propel/icons";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
 import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, EModalWidth, Header, Loader, ModalCore } from "@plane/ui";
@@ -658,31 +658,20 @@ function BookmarkListItem(props: {
   );
 }
 
-type BookmarkFilterSectionProps = {
-  mode: "project" | "workspace";
-  tags: string[];
+type BookmarkProjectFilterSectionProps = {
   selectedProjectIds: string[];
-  selectedTags: string[];
   onToggleProject: (projectId: string) => void;
-  onToggleTag: (tag: string) => void;
   onClearProjects: () => void;
-  onClearTags: () => void;
 };
 
-const BookmarkFilterSection = observer(function BookmarkFilterSection({
-  mode,
-  tags,
+const BookmarkProjectFilterSection = observer(function BookmarkProjectFilterSection({
   selectedProjectIds,
-  selectedTags,
   onToggleProject,
-  onToggleTag,
   onClearProjects,
-  onClearTags,
-}: BookmarkFilterSectionProps) {
+}: BookmarkProjectFilterSectionProps) {
   const { joinedProjectIds, getProjectById } = useProject();
   const [projectSearch, setProjectSearch] = useState("");
   const [projectsPreviewEnabled, setProjectsPreviewEnabled] = useState(true);
-  const [tagsPreviewEnabled, setTagsPreviewEnabled] = useState(true);
 
   const sortedProjects = useMemo(() => {
     const normalizedSearch = projectSearch.trim().toLowerCase();
@@ -698,48 +687,60 @@ const BookmarkFilterSection = observer(function BookmarkFilterSection({
 
   return (
     <div className="flex max-h-[24rem] flex-col overflow-y-auto">
-      {mode === "workspace" && (
-        <>
-          <div className="p-2">
-            <input
-              value={projectSearch}
-              onChange={(event) => setProjectSearch(event.target.value)}
-              placeholder="Search projects"
-              className="w-full rounded-lg border border-subtle bg-canvas px-2 py-1 text-11 text-primary outline-none placeholder:text-placeholder"
-            />
-          </div>
-          <div className="px-2 pb-2">
-            <FilterHeader
-              title={`Project${selectedProjectIds.length > 0 ? ` (${selectedProjectIds.length})` : ""}`}
-              isPreviewEnabled={projectsPreviewEnabled}
-              handleIsPreviewEnabled={() => setProjectsPreviewEnabled(!projectsPreviewEnabled)}
-            />
-            {projectsPreviewEnabled &&
-              (sortedProjects.length > 0 ? (
-                sortedProjects.map((project) => (
-                  <FilterOption
-                    key={`bookmark-project-${project.id}`}
-                    isChecked={selectedProjectIds.includes(project.id)}
-                    onClick={() => onToggleProject(project.id)}
-                    title={project.name}
-                  />
-                ))
-              ) : (
-                <p className="px-1.5 text-11 text-placeholder italic">No matches found</p>
-              ))}
-            {selectedProjectIds.length > 0 && (
-              <button
-                type="button"
-                onClick={onClearProjects}
-                className="mt-2 w-full text-left text-11 text-tertiary hover:text-primary"
-              >
-                Clear project filter
-              </button>
-            )}
-          </div>
-        </>
-      )}
-      <div className="px-2 pb-2">
+      <div className="p-2">
+        <input
+          value={projectSearch}
+          onChange={(event) => setProjectSearch(event.target.value)}
+          placeholder="Search projects"
+          className="w-full rounded-lg border border-subtle bg-canvas px-2 py-1 text-11 text-primary outline-none placeholder:text-placeholder"
+        />
+      </div>
+      <div className="px-2 pt-2 pb-2">
+        <FilterHeader
+          title={`Project${selectedProjectIds.length > 0 ? ` (${selectedProjectIds.length})` : ""}`}
+          isPreviewEnabled={projectsPreviewEnabled}
+          handleIsPreviewEnabled={() => setProjectsPreviewEnabled(!projectsPreviewEnabled)}
+        />
+        {projectsPreviewEnabled &&
+          (sortedProjects.length > 0 ? (
+            sortedProjects.map((project) => (
+              <FilterOption
+                key={`bookmark-project-${project.id}`}
+                isChecked={selectedProjectIds.includes(project.id)}
+                onClick={() => onToggleProject(project.id)}
+                title={project.name}
+              />
+            ))
+          ) : (
+            <p className="px-1.5 text-11 text-placeholder italic">No matches found</p>
+          ))}
+        {selectedProjectIds.length > 0 && (
+          <button
+            type="button"
+            onClick={onClearProjects}
+            className="mt-2 w-full text-left text-11 text-tertiary hover:text-primary"
+          >
+            Clear project filter
+          </button>
+        )}
+      </div>
+    </div>
+  );
+});
+
+type BookmarkTagFilterSectionProps = {
+  tags: string[];
+  selectedTags: string[];
+  onToggleTag: (tag: string) => void;
+  onClearTags: () => void;
+};
+
+function BookmarkTagFilterSection({ tags, selectedTags, onToggleTag, onClearTags }: BookmarkTagFilterSectionProps) {
+  const [tagsPreviewEnabled, setTagsPreviewEnabled] = useState(true);
+
+  return (
+    <div className="flex max-h-[24rem] flex-col overflow-y-auto">
+      <div className="px-2 pt-2 pb-2">
         <FilterHeader
           title={`Tag${selectedTags.length > 0 ? ` (${selectedTags.length})` : ""}`}
           isPreviewEnabled={tagsPreviewEnabled}
@@ -770,7 +771,22 @@ const BookmarkFilterSection = observer(function BookmarkFilterSection({
       </div>
     </div>
   );
-});
+}
+
+type FilterSummaryPillProps = {
+  label: string;
+  isActive: boolean;
+  className?: string;
+};
+
+function FilterSummaryPill({ label, isActive, className }: FilterSummaryPillProps) {
+  return (
+    <span className={cn("inline-flex items-center gap-1", className)}>
+      <span>{label}</span>
+      <ChevronDownIcon className={cn("size-3", { "text-accent-primary": isActive })} strokeWidth={2} />
+    </span>
+  );
+}
 
 function BookmarkBulkActionBar(props: { count: number; isBusy: boolean; onClear: () => void; onDelete: () => void }) {
   const { count, isBusy, onClear, onDelete } = props;
@@ -865,6 +881,19 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       ? bookmarkStore.projectBookmarks(projectId)
       : bookmarkStore.workspaceBookmarks(workspaceSlug);
   const tags = useMemo(() => sortBy([...new Set(bookmarks.flatMap((bookmark) => bookmark.tags))]), [bookmarks]);
+  const pillBase = "rounded-full px-2.5 py-0.5 text-12 font-medium transition-colors";
+  const pillActive = "bg-accent-subtle text-accent-primary";
+  const pillInactive = "bg-layer-1 text-tertiary hover:text-secondary";
+  const projectFilterPillLabel = useMemo(() => {
+    if (selectedProjectIds.length === 0) return "Project";
+    if (selectedProjectIds.length > 1) return `${selectedProjectIds.length} projects`;
+    return getPartialProjectById(selectedProjectIds[0])?.name ?? "Project";
+  }, [getPartialProjectById, selectedProjectIds]);
+  const tagFilterPillLabel = useMemo(() => {
+    if (selectedTags.length === 0) return "Tag";
+    if (selectedTags.length > 1) return `${selectedTags.length} tags`;
+    return selectedTags[0];
+  }, [selectedTags]);
   const filteredBookmarks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return bookmarks.filter((bookmark) => {
@@ -1204,28 +1233,51 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
               isLast
             />
           </Breadcrumbs>
+          <span className="text-13 text-tertiary">{bookmarks.length}</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {mode === "workspace" && (
+              <FiltersDropdown
+                placement="bottom-start"
+                menuButton={
+                  <FilterSummaryPill
+                    label={projectFilterPillLabel}
+                    isActive={selectedProjectIds.length > 0}
+                    className={cn(pillBase, selectedProjectIds.length > 0 ? pillActive : pillInactive)}
+                  />
+                }
+                isFiltersApplied={selectedProjectIds.length > 0}
+              >
+                <BookmarkProjectFilterSection
+                  selectedProjectIds={selectedProjectIds}
+                  onToggleProject={toggleProjectFilter}
+                  onClearProjects={() => setSelectedProjectIds([])}
+                />
+              </FiltersDropdown>
+            )}
+            <FiltersDropdown
+              placement="bottom-start"
+              menuButton={
+                <FilterSummaryPill
+                  label={tagFilterPillLabel}
+                  isActive={selectedTags.length > 0}
+                  className={cn(pillBase, selectedTags.length > 0 ? pillActive : pillInactive)}
+                />
+              }
+              isFiltersApplied={selectedTags.length > 0}
+            >
+              <BookmarkTagFilterSection
+                tags={tags}
+                selectedTags={selectedTags}
+                onToggleTag={toggleTagFilter}
+                onClearTags={() => setSelectedTags([])}
+              />
+            </FiltersDropdown>
+          </div>
         </div>
       </Header.LeftItem>
       <Header.RightItem className="items-center">
         <ViewModeToggle mode={viewMode} onChange={setViewMode} />
         <PageSearchInput searchQuery={query} updateSearchQuery={setQuery} placeholder="Search bookmarks" />
-        <FiltersDropdown
-          icon={<HugeiconsIcon icon={FilterIcon} className="h-3 w-3" color="currentColor" strokeWidth={1.5} />}
-          title="Filters"
-          placement="bottom-end"
-          isFiltersApplied={selectedProjectIds.length > 0 || selectedTags.length > 0}
-        >
-          <BookmarkFilterSection
-            mode={mode}
-            tags={tags}
-            selectedProjectIds={selectedProjectIds}
-            selectedTags={selectedTags}
-            onToggleProject={toggleProjectFilter}
-            onToggleTag={toggleTagFilter}
-            onClearProjects={() => setSelectedProjectIds([])}
-            onClearTags={() => setSelectedTags([])}
-          />
-        </FiltersDropdown>
         {canCreateBookmark && (
           <>
             <Button
