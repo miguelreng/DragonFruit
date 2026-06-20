@@ -5,7 +5,7 @@
  */
 
 "use client";
-import { type FormEvent, type MutableRefObject, useEffect, useRef, useState } from "react";
+import { type ComponentType, type FormEvent, type MutableRefObject, type SVGProps, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -13,35 +13,26 @@ import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
-  CalendarDays,
+  Calendar,
+  Checklist,
+  Document,
   Download,
-  ExternalLink,
   FileText,
   Folder,
+  FolderFavouriteStar,
   FolderOpen,
-  Info,
-  TextSelect,
-  Settings,
+  InfoCircle,
   Layers,
-  ListTodo,
+  LinkSquare,
+  MagicStick,
+  MenuDots,
+  Magnifier,
+  Settings,
+  Sidebar,
   Star,
-  Search,
-  Sparkles,
-  MoreHorizontal,
-  PanelLeft,
-  PanelRight,
-} from "@/components/icons/lucide-shim";
-import {
-  ChevronRightIcon,
-  CopyIcon,
-  EditIcon,
-  CellsIcon,
-  FolderClockIcon,
-  FolderFavouriteIcon,
-  FolderKanbanIcon,
-  PlusIcon,
-  TrashIcon,
-} from "@plane/propel/icons";
+  Widget,
+} from "@solar-icons/react/ssr";
+import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@plane/propel/icons";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -89,6 +80,7 @@ type TCompactRailItem = {
   href: string;
   label: string;
   icon: React.JSX.Element;
+  activeIcon: React.JSX.Element;
   isActive: boolean;
 };
 
@@ -107,7 +99,7 @@ const COMPRESSED_ICON_CLASS =
 const EXPANDED_ICON_CLASS =
   "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none t-press dark:text-white/70";
 const EXPANDED_ICON_ACTIVE =
-  "!bg-white/55 sepia:!bg-[#dbccb3] !text-primary dark:!bg-layer-1 dark:!text-accent-primary";
+  "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]";
 const EXPANDED_ICON_INACTIVE =
   "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]";
 const COMPACT_RAIL_ICON_CLASS = "grid size-5 place-items-center [&_svg]:size-5 [&_svg]:text-current";
@@ -116,6 +108,18 @@ const RAIL_ICON_ACTIVE = "text-current";
 const RAIL_ICON_INACTIVE = "text-icon-tertiary dark:text-white/60";
 const RAIL_TREE_LINE_CLASS = "absolute top-0 bottom-1 left-1 w-px bg-[var(--border-color-strong)] dark:bg-white/[0.28]";
 const RAIL_LOGO_ICON_SIZE = 14;
+const RAIL_SOLAR_ICON_WEIGHT_INACTIVE = "Outline" as const;
+const RAIL_SOLAR_ICON_WEIGHT_ACTIVE = "BoldDuotone" as const;
+
+const renderRailSolarIcon = (
+  Icon: ComponentType<SVGProps<SVGSVGElement> & { weight?: typeof RAIL_SOLAR_ICON_WEIGHT_INACTIVE | typeof RAIL_SOLAR_ICON_WEIGHT_ACTIVE }>,
+  isActive = false,
+  className = RAIL_INLINE_ICON_CLASS
+) => <Icon className={className} weight={isActive ? RAIL_SOLAR_ICON_WEIGHT_ACTIVE : RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />;
+
+const railSolarIconSet = (
+  Icon: ComponentType<SVGProps<SVGSVGElement> & { weight?: typeof RAIL_SOLAR_ICON_WEIGHT_INACTIVE | typeof RAIL_SOLAR_ICON_WEIGHT_ACTIVE }>
+) => railIconSet(renderRailSolarIcon(Icon, false), renderRailSolarIcon(Icon, true));
 
 const isRouteMatch = (targetPath: string, pathname: string) => {
   const normalizedTargetPath = targetPath.split("?")[0];
@@ -134,10 +138,18 @@ const getFavoriteLayoutRailIcon = (layout: EIssueLayoutTypes | undefined) => {
   return <IssueLayoutIcon layout={layout} className={RAIL_INLINE_ICON_CLASS} />;
 };
 
+const getActiveRailIcon = (item: Pick<TCompactRailItem, "icon" | "activeIcon" | "isActive">) =>
+  item.isActive && item.activeIcon ? item.activeIcon : item.icon;
+
+const railIconSet = (icon: React.JSX.Element, activeIcon: React.JSX.Element) => ({ icon, activeIcon });
+
 const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps | undefined) => {
   if (favorite.entity_type === "view") {
     const layout = favorite.entity_data?.view_layout as EIssueLayoutTypes | undefined;
-    return getFavoriteLayoutRailIcon(layout) ?? <ListTodo className={RAIL_INLINE_ICON_CLASS} />;
+    const layoutIcon = getFavoriteLayoutRailIcon(layout);
+    return layoutIcon
+      ? railIconSet(layoutIcon, layoutIcon)
+      : railSolarIconSet(Checklist);
   }
 
   switch (favorite.entity_type) {
@@ -145,19 +157,27 @@ const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps |
       const layout = favorite.entity_data?.view_layout as EIssueLayoutTypes | undefined;
       const iconProps = projectLogoProps ?? favorite.entity_data?.logo_props;
 
-      if (layout) return getFavoriteLayoutRailIcon(layout) ?? <ListTodo className={RAIL_INLINE_ICON_CLASS} />;
-      if (iconProps?.in_use) return <Logo logo={iconProps} size={RAIL_LOGO_ICON_SIZE} type="material" />;
+      if (layout) {
+        const layoutIcon = getFavoriteLayoutRailIcon(layout);
+        return layoutIcon
+          ? railIconSet(layoutIcon, layoutIcon)
+          : railSolarIconSet(Checklist);
+      }
+      if (iconProps?.in_use) {
+        const logo = <Logo logo={iconProps} size={RAIL_LOGO_ICON_SIZE} type="material" />;
+        return railIconSet(logo, logo);
+      }
 
-      return <Folder className={RAIL_INLINE_ICON_CLASS} />;
+      return railSolarIconSet(Folder);
     }
     case "page":
-      return <FileText className={RAIL_INLINE_ICON_CLASS} />;
+      return railSolarIconSet(Document);
     case "cycle":
-      return <CalendarDays className={RAIL_INLINE_ICON_CLASS} />;
+      return railSolarIconSet(Calendar);
     case "module":
-      return <Layers className={RAIL_INLINE_ICON_CLASS} />;
+      return railSolarIconSet(Layers);
     default:
-      return <Folder className={RAIL_INLINE_ICON_CLASS} />;
+      return railSolarIconSet(Folder);
   }
 };
 
@@ -165,19 +185,25 @@ const getRecentVisitRailIcon = (visit: TActivityEntityData) => {
   switch (visit.entity_name) {
     case "project": {
       const logoProps = (visit.entity_data as TProjectEntityData | undefined)?.logo_props;
-      if (logoProps?.in_use) return <Logo logo={logoProps} size={RAIL_LOGO_ICON_SIZE} type="material" />;
-      return <Folder className={RAIL_INLINE_ICON_CLASS} />;
+      if (logoProps?.in_use) {
+        const logo = <Logo logo={logoProps} size={RAIL_LOGO_ICON_SIZE} type="material" />;
+        return railIconSet(logo, logo);
+      }
+      return railSolarIconSet(Folder);
     }
     case "page":
     case "workspace_page": {
       const logoProps = (visit.entity_data as TPageEntityData | undefined)?.logo_props;
-      if (logoProps?.in_use) return <Logo logo={logoProps} size={RAIL_LOGO_ICON_SIZE} type="lucide" />;
-      return <FileText className={RAIL_INLINE_ICON_CLASS} />;
+      if (logoProps?.in_use) {
+        const logo = <Logo logo={logoProps} size={RAIL_LOGO_ICON_SIZE} type="lucide" />;
+        return railIconSet(logo, logo);
+      }
+      return railSolarIconSet(Document);
     }
     case "issue":
-      return <ListTodo className={RAIL_INLINE_ICON_CLASS} />;
+      return railSolarIconSet(Checklist);
     default:
-      return <Folder className={RAIL_INLINE_ICON_CLASS} />;
+      return railSolarIconSet(Folder);
   }
 };
 
@@ -225,7 +251,8 @@ const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => voi
         aria-label={item.label}
         onClick={onActivate}
         className={cn(COMPRESSED_ICON_CLASS, {
-          "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary sepia:!bg-[#dbccb3]": item.isActive,
+          "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]":
+            item.isActive,
         })}
       >
         <span
@@ -234,7 +261,7 @@ const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => voi
             [RAIL_ICON_INACTIVE]: !item.isActive,
           })}
         >
-          {item.icon}
+          {getActiveRailIcon(item)}
         </span>
       </Link>
     </AppSidebarTooltip>
@@ -261,7 +288,7 @@ const ExpandedCompactRailLink = (props: { item: TCompactRailItem; onActivate?: (
             [RAIL_ICON_INACTIVE]: !item.isActive,
           })}
         >
-          {item.icon}
+          {getActiveRailIcon(item)}
         </span>
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
       </Link>
@@ -284,12 +311,12 @@ const CompactRailOverflowMenu = (props: {
         isCompact ? (
           <AppSidebarTooltip tooltipContent="More">
             <span className="flex items-center justify-center">
-              <MoreHorizontal className={RAIL_INLINE_ICON_CLASS} />
+              <MenuDots className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
             </span>
           </AppSidebarTooltip>
         ) : (
           <span className="flex min-w-0 items-center gap-1.5">
-            <MoreHorizontal className={RAIL_INLINE_ICON_CLASS} />
+            <MenuDots className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
             <span className="min-w-0 flex-1 truncate">More</span>
           </span>
         )
@@ -313,7 +340,7 @@ const CompactRailOverflowMenu = (props: {
         <CustomMenu.MenuItem key={item.id} onClick={() => routerPush(item.href)} className="rounded-lg">
           <span className="text-sm flex w-full items-center gap-2 px-1.5 py-1 text-left font-medium">
             <span className="grid size-4 place-items-center text-icon-tertiary dark:text-white/60 [&_svg]:size-4 [&_svg]:text-current">
-              {item.icon}
+              {getActiveRailIcon(item)}
             </span>
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
           </span>
@@ -405,9 +432,10 @@ const RailCategory = (props: {
   // Optional custom header icon; falls back to the folder open/closed icons.
   icon?: React.ReactNode;
   closedIcon?: React.ReactNode;
+  openIcon?: React.ReactNode;
   children: React.ReactNode;
 }) => {
-  const { title, isExpanded, isOpen, onToggle, action, icon, closedIcon, children, className = "" } = props;
+  const { title, isExpanded, isOpen, onToggle, action, icon, closedIcon, openIcon, children, className = "" } = props;
 
   if (!isExpanded) return <>{children}</>;
 
@@ -423,7 +451,15 @@ const RailCategory = (props: {
             aria-expanded={isOpen}
           >
             <span className="flex size-5 flex-shrink-0 items-center justify-center text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current">
-              {icon ?? (isOpen ? <FolderOpen /> : (closedIcon ?? <Folder />))}
+              {
+                icon ?? (
+                  isOpen ? (
+                    openIcon ?? <FolderOpen weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+                  ) : (
+                    closedIcon ?? <Folder weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+                  )
+                )
+              }
             </span>
             <span className="min-w-0 flex-1 truncate">{title}</span>
           </button>
@@ -613,7 +649,7 @@ const ProjectRailTreeItem = (props: {
           <CustomMenu
             customButton={
               <span className="grid place-items-center">
-                <MoreHorizontal className="size-4 text-current" />
+                <MenuDots className="size-4 text-current" weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
               </span>
             }
             className="pointer-events-none flex-shrink-0 opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
@@ -634,7 +670,7 @@ const ProjectRailTreeItem = (props: {
               }}
             >
               <span className="flex items-center justify-start gap-2">
-                <Settings className="h-3.5 w-3.5 stroke-[1.5]" />
+                <Settings className="h-3.5 w-3.5" weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
                 <span>{t("settings")}</span>
               </span>
             </CustomMenu.MenuItem>
@@ -686,12 +722,16 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary sepia:!bg-[#dbccb3]":
+                    "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]":
                       isBriefActive,
                   }
                 )}
               >
-                <TextSelect className={RAIL_INLINE_ICON_CLASS} />
+                {isBriefActive ? (
+                  <FileText className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
+                ) : (
+                  <FileText className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+                )}
                 <span className="truncate">Brief</span>
               </Link>
             </AppSidebarTooltip>
@@ -702,12 +742,16 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary sepia:!bg-[#dbccb3]":
+                    "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]":
                       isTasksActive,
                   }
                 )}
               >
-                <ListTodo className={RAIL_INLINE_ICON_CLASS} />
+                {isTasksActive ? (
+                  <Checklist className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
+                ) : (
+                  <Checklist className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+                )}
                 <span className="truncate">Tasks</span>
               </Link>
             </AppSidebarTooltip>
@@ -718,12 +762,16 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "bg-white/55 !text-secondary dark:!bg-layer-1 dark:!text-accent-primary sepia:!bg-[#dbccb3]":
+                    "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]":
                       isPagesActive,
                   }
                 )}
               >
-                <FileText className={RAIL_INLINE_ICON_CLASS} />
+                {isPagesActive ? (
+                  <Document className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
+                ) : (
+                  <Document className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+                )}
                 <span className="truncate">Docs</span>
               </Link>
             </AppSidebarTooltip>
@@ -800,7 +848,7 @@ const DOWNLOAD_APPS: {
     download: "DragonFruit Atlas.dmg",
     icon: <AppleIcon />,
     cta: "Download",
-    ctaIcon: <Download />,
+    ctaIcon: <Download weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
     variant: "primary",
     note: "Beta build isn't notarized yet, so macOS blocks the first open. Allow it in System Settings → Privacy & Security → Open Anyway.",
     steps: [
@@ -816,7 +864,7 @@ const DOWNLOAD_APPS: {
     href: CHROME_EXTENSION_URL,
     icon: <ChromeWebStoreIcon />,
     cta: "Get extension",
-    ctaIcon: <ExternalLink />,
+    ctaIcon: <LinkSquare weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
     variant: "secondary",
     steps: [
       "Add it from the Chrome Web Store and pin it to your toolbar.",
@@ -895,7 +943,7 @@ const DownloadAppsModal = (props: { isOpen: boolean; onClose: () => void }) => {
                 {app.note && (
                   <div className="flex items-start gap-2 rounded-lg bg-layer-transparent-hover px-3 py-2.5 text-12 text-secondary">
                     <span className="mt-px flex-shrink-0 text-tertiary [&_svg]:size-3.5">
-                      <Info />
+                      <InfoCircle weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
                     </span>
                     <span className="flex-1">{app.note}</span>
                   </div>
@@ -978,6 +1026,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
       const tasksHref = `/${slug}/projects/${project.id}/issues/?layout=list`;
       const pagesHref = `/${slug}/projects/${project.id}/pages`;
       const briefHref = `/${slug}/projects/${project.id}/brief`;
+      const icon = <Logo logo={project.logo_props} size={RAIL_LOGO_ICON_SIZE} type="material" />;
       return {
         id: project.id,
         href: tasksHref,
@@ -986,7 +1035,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
         pagesHref,
         project,
         label: project.name,
-        icon: <Logo logo={project.logo_props} size={RAIL_LOGO_ICON_SIZE} type="material" />,
+        icon,
+        activeIcon: icon,
         isActive: pathname.includes(`/${slug}/projects/${project.id}`),
       };
     }) satisfies TProjectRailItem[];
@@ -998,11 +1048,13 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const favorites = rootFavorites.map((favorite) => {
     const project = favorite.project_id ? getPartialProjectById(favorite.project_id) : undefined;
     const href = generateFavoriteItemLink(slug, favorite);
+    const iconSet = getFavoriteRailIcon(favorite, project?.logo_props);
     return {
       id: favorite.id,
       href,
       label: favorite.entity_data?.name || favorite.name,
-      icon: getFavoriteRailIcon(favorite, project?.logo_props),
+      icon: iconSet.icon,
+      activeIcon: iconSet.activeIcon,
       isActive: isRouteMatch(href, pathname),
     };
   });
@@ -1014,7 +1066,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             id: "favorites-empty-state",
             href: `/${slug}/favorites`,
             label: t("favorites"),
-            icon: <Star className={RAIL_INLINE_ICON_CLASS} />,
+            icon: <Star className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
+            activeIcon: <Star className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
             isActive: isRouteMatch(`/${slug}/favorites`, pathname),
           },
         ];
@@ -1036,17 +1089,20 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
           id: visit.id,
           href: briefHref,
           label: getBriefPageDisplayName(getPartialProjectById(page.project_id)?.name),
-          icon: <TextSelect className={RAIL_INLINE_ICON_CLASS} />,
+          icon: <FileText className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
+          activeIcon: <FileText className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
           isActive: isRouteMatch(briefHref, pathname),
         };
       }
       const href = generateRecentVisitLink(slug, visit);
       if (!href) return null;
+      const iconSet = getRecentVisitRailIcon(visit);
       return {
         id: visit.id,
         href,
         label: getRecentVisitLabel(visit),
-        icon: getRecentVisitRailIcon(visit),
+        icon: iconSet.icon,
+        activeIcon: iconSet.activeIcon,
         isActive: isRouteMatch(href, pathname),
       };
     })
@@ -1121,7 +1177,11 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                   className="grid size-8 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-5 [&_svg]:text-current"
                   aria-label={isRailExpanded ? "Collapse app rail" : "Expand app rail"}
                 >
-                  {isRailExpanded ? <PanelLeft /> : <PanelRight />}
+                  {isRailExpanded ? (
+                    <Sidebar className="size-5" weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
+                  ) : (
+                    <Sidebar className="size-5" weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+                  )}
                 </button>
               </AppSidebarTooltip>
             )}
@@ -1130,7 +1190,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               variant="button"
               item={{
                 label: t("sidebar.new_work_item"),
-                icon: <PlusIcon />,
+                icon: <Checklist weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
                 onClick: handleCreateTask,
                 disabled: isCreateTaskDisabled,
                 isInline: isRailExpanded,
@@ -1178,7 +1238,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                   isExpanded={isRailExpanded}
                   isOpen={isRecentsCategoryOpen}
                   onToggle={() => setIsRecentsCategoryOpen((isOpen) => !isOpen)}
-                  closedIcon={<FolderClockIcon />}
+                  closedIcon={<Folder weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />}
+                  openIcon={<FolderOpen weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />}
                 >
                   {isRecentsLoading && recentItems.length === 0 ? (
                     <RailItemsSkeleton isCompact={!isRailExpanded} />
@@ -1201,7 +1262,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 isExpanded={isRailExpanded}
                 isOpen={isFavoritesCategoryOpen}
                 onToggle={() => setIsFavoritesCategoryOpen((isOpen) => !isOpen)}
-                closedIcon={<FolderFavouriteIcon />}
+                closedIcon={<FolderFavouriteStar weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />}
               >
                 {isFavoritesLoading && favorites.length === 0 ? (
                   <RailItemsSkeleton isCompact={!isRailExpanded} />
@@ -1224,7 +1285,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 isOpen={isProjectsCategoryOpen}
                 onToggle={() => setIsProjectsCategoryOpen((isOpen) => !isOpen)}
                 className="mt-[-4px]"
-                closedIcon={<FolderKanbanIcon />}
+                closedIcon={<Folder weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />}
                 action={
                   canCreateProject ? (
                     <AppSidebarTooltip tooltipContent={t("create_project")}>
@@ -1273,7 +1334,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             variant="button"
             item={{
               label: "Search",
-              icon: <Search />,
+              icon: <Magnifier weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
+              activeIcon: <Magnifier weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
               onClick: () => togglePowerKModal(true),
               isInline: isRailExpanded,
               showLabel: showRailLabels,
@@ -1283,7 +1345,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             variant="button"
             item={{
               label: "Ask Atlas",
-              icon: <Sparkles />,
+              icon: <MagicStick weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
+              activeIcon: <MagicStick weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
               isActive: agentChatOpen,
               onClick: () => toggleAgentChat(),
               isInline: isRailExpanded,
@@ -1294,7 +1357,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             variant="button"
             item={{
               label: "Download Apps",
-              icon: <Download />,
+              icon: <Download weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
+              activeIcon: <Download weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
               onClick: () => setIsDownloadAppsModalOpen(true),
               isInline: isRailExpanded,
               showLabel: showRailLabels,
@@ -1305,7 +1369,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             item={{
               label: "Integrations",
               href: `/${slug}/settings/integrations`,
-              icon: <CellsIcon />,
+              icon: <Widget weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
+              activeIcon: <Widget weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
               isActive: pathname.startsWith(`/${slug}/settings/integrations`),
               isInline: isRailExpanded,
               showLabel: showRailLabels,
