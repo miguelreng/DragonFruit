@@ -5,8 +5,7 @@
  */
 
 import React from "react";
-import { Attachment01Icon, GitBranchIcon, Link01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { Attachment, GitBranch, Link } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 // plane imports
 import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
@@ -18,8 +17,8 @@ import { IssueLinksActionButton } from "./links";
 import { RelationActionButton } from "./relations";
 import { IssueDetailWidgetButton } from "./widget-button";
 
-const WidgetActionIcon = ({ icon }: { icon: IconSvgElement }) => (
-  <HugeiconsIcon icon={icon} className="size-4 flex-shrink-0" color="currentColor" strokeWidth={1.5} size="1em" />
+const WidgetActionIcon = ({ icon: Icon }: { icon: React.ComponentType<{ className?: string; color?: string; size?: number | string }> }) => (
+  <Icon className="size-4 flex-shrink-0" color="currentColor" size="1em" />
 );
 
 type Props = {
@@ -44,7 +43,7 @@ export function IssueDetailWidgetActionButtons(props: Props) {
           customButton={
             <IssueDetailWidgetButton
               title={t("issue.add.relation")}
-              icon={<WidgetActionIcon icon={GitBranchIcon} />}
+              icon={<WidgetActionIcon icon={GitBranch} />}
               disabled={disabled}
             />
           }
@@ -57,7 +56,7 @@ export function IssueDetailWidgetActionButtons(props: Props) {
           customButton={
             <IssueDetailWidgetButton
               title={t("issue.add.link")}
-              icon={<WidgetActionIcon icon={Link01Icon} />}
+              icon={<WidgetActionIcon icon={Link} />}
               disabled={disabled}
             />
           }
@@ -73,7 +72,7 @@ export function IssueDetailWidgetActionButtons(props: Props) {
           customButton={
             <IssueDetailWidgetButton
               title={t("common.attach")}
-              icon={<WidgetActionIcon icon={Attachment01Icon} />}
+              icon={<WidgetActionIcon icon={Attachment} />}
               disabled={disabled}
             />
           }

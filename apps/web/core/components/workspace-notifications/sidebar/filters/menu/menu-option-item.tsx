@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 
 import type { ENotificationFilterType } from "@plane/constants";
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 // plane imports
 // helpers
 import { cn } from "@plane/utils";

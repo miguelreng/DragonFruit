@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 
 type Props = {
   icon?: React.ReactNode;
@@ -33,7 +33,7 @@ export function FilterOption(props: Props) {
       </div>
       <div className="flex items-center gap-2 truncate">
         {icon && <div className="grid w-5 flex-shrink-0 place-items-center">{icon}</div>}
-        <div className="flex-grow truncate text-caption-sm-regular text-secondary">{title}</div>
+        <div className="flex-grow truncate text-13 text-secondary">{title}</div>
       </div>
       {activePulse && (
         <div className="ml-auto h-2 w-2 flex-shrink-0 animate-pulse rounded-full bg-accent-primary text-caption-sm-regular" />

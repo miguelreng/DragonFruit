@@ -20,7 +20,7 @@ import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
-import { PROJECT_SETTINGS_ICONS } from "./item-icon";
+import { ACTIVE_PROJECT_SETTINGS_ICONS, PROJECT_SETTINGS_ICONS } from "./item-icon";
 
 type Props = {
   projectId: string;
@@ -67,6 +67,7 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
                     href={`/${workspaceSlug}/settings/projects/${projectId}${item.href}/`}
                     isActive={isItemActive}
                     icon={PROJECT_SETTINGS_ICONS[item.key]}
+                    activeIcon={ACTIVE_PROJECT_SETTINGS_ICONS[item.key]}
                     label={t(item.i18n_label)}
                   />
                 );

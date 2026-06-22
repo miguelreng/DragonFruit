@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Layers01Icon } from "@hugeicons/core-free-icons";
+import { LayersLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const LayersIcon = hugeIcon(Layers01Icon);
+export const LayersIcon = LayersLine;

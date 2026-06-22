@@ -8,7 +8,7 @@ import React, { useMemo, useState } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { EIconSize } from "@plane/constants";
-import { StateGroupIcon } from "@plane/propel/icons";
+import { StateGroupIcon } from "@/components/icons/propel-shim";
 import type { IState } from "@plane/types";
 // components
 import { Loader } from "@plane/ui";

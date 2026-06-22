@@ -13,7 +13,7 @@ import useSWR from "swr";
 import { LogOut } from "@/components/icons/lucide-shim";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { Button, getButtonStyling } from "@plane/propel/button";
-import { DragonfruitLogo } from "@plane/propel/icons";
+import { DragonfruitLogo } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";

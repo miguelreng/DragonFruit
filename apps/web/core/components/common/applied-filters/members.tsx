@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 // plane ui
 import { Avatar } from "@plane/ui";
 // helpers

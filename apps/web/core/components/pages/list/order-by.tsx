@@ -8,7 +8,7 @@ import { ArrowDownWideNarrow, ArrowUpWideNarrow } from "@/components/icons/lucid
 // plane imports
 import { getButtonStyling } from "@plane/propel/button";
 // types
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 import type { TPageFiltersSortBy, TPageFiltersSortKey } from "@plane/types";
 import { CustomMenu } from "@plane/ui";
 

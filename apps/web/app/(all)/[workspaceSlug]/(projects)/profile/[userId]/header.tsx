@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronRight, PanelRight } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
-import { YourWorkIcon } from "@plane/propel/icons";
+import { YourWorkIcon } from "@/components/icons/propel-shim";
 import type { IUserProfileProjectSegregation, TBaseIssue } from "@plane/types";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components

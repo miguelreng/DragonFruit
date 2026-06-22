@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { PAST_DURATION_FILTER_OPTIONS } from "@plane/constants";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 import type { TInboxIssueFilterDateKeys } from "@plane/types";
 // helpers
 import { Tag } from "@plane/ui";

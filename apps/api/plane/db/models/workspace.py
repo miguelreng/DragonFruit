@@ -150,6 +150,12 @@ class Workspace(BaseModel):
     # decrypt_data} for all access — never read or write this field directly
     # in serializers or API responses.
     llm_api_key_encrypted = models.TextField(blank=True, null=True)
+    # Workspace-scoped Composio configuration for Atlas external-app tools.
+    # The API key follows the same encrypted-at-rest rule as llm_api_key_encrypted.
+    composio_api_key_encrypted = models.TextField(blank=True, null=True)
+    composio_base_url = models.CharField(max_length=255, blank=True, null=True)
+    composio_toolkits = models.TextField(blank=True, null=True)
+    composio_allow_write_tools = models.BooleanField(default=False)
 
     def __str__(self):
         """Return name of the Workspace"""

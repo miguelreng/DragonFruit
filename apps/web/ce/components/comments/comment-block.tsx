@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { useRef } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { CommentReplyIcon } from "@plane/propel/icons";
+import { CommentReplyIcon } from "@/components/icons/propel-shim";
 import type { TIssueComment } from "@plane/types";
 import { cn } from "@plane/utils";
 // hooks

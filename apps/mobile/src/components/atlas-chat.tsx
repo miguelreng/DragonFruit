@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Markdown from "react-native-markdown-display";
-import { SentIcon, SparklesIcon } from "@hugeicons/core-free-icons";
+import { SentIcon, SparklesIcon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { PressableScale } from "@/components/pressable-scale";

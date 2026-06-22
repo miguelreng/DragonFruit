@@ -15,7 +15,7 @@ import {
   ChevronUpIcon,
   CheckCircleFilledIcon,
   CloseCircleFilledIcon,
-} from "@plane/propel/icons";
+} from "@/components/icons/propel-shim";
 import type { TNameDescriptionLoader } from "@plane/types";
 
 import { Header, CustomMenu, EHeaderVariant } from "@plane/ui";

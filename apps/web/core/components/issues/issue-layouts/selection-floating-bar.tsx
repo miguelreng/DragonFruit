@@ -13,7 +13,7 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EIssuesStoreType } from "@plane/types";
 // icons
-import { ArchiveIcon, StateGroupIcon } from "@plane/propel/icons";
+import { ArchiveIcon, StateGroupIcon } from "@/components/icons/propel-shim";
 import { ChevronDown, Trash2, X } from "@/components/icons/lucide-shim";
 // ui
 import { CustomMenu } from "@plane/ui";

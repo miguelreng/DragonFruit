@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { FilterIcon as FilterIconSvg } from "@hugeicons/core-free-icons";
+import { FilterLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const FilterIcon = hugeIcon(FilterIconSvg);
+export const FilterIcon = FilterLine;

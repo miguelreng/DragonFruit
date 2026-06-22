@@ -1,0 +1,17 @@
+{
+  "name": "@hugeicons/core-free-icons",
+  "version": "4.1.4",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@solar-icons/react-native": "^1.1.1"
+  }
+}

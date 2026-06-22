@@ -10,7 +10,7 @@ import { useTranslation } from "@plane/i18n";
 import { setPromiseToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IProject } from "@plane/types";
-import { IntakeIcon, PageIcon, ViewsIcon } from "@plane/propel/icons";
+import { IntakeIcon, PageIcon, ViewsIcon } from "@/components/icons/propel-shim";
 // components
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 import { SettingsHeading } from "@/components/settings/heading";

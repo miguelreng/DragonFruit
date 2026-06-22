@@ -4,17 +4,16 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
   Bookmark as BookmarkIcon,
-  CancelCircleIcon,
-  Copy01Icon,
-  Delete02Icon,
-  LinkSquare01Icon,
+  CancelCircle as CancelCircleIcon,
+  Copy as Copy01Icon,
+  Edit as PencilEdit02Icon,
+  ExternalLink as LinkSquare01Icon,
   MoreHorizontal,
-  PencilEdit02Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  Trash as Delete02Icon,
+} from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { Avatar } from "@plane/propel/avatar";
@@ -34,6 +33,27 @@ import {
   normalizeTags,
 } from "./helpers";
 import { SuggestedTagChips } from "./suggested-tag-chips";
+
+type DetailIconComponent = ComponentType<{
+  className?: string;
+  color?: string;
+  size?: number | string;
+  strokeWidth?: number | string;
+}>;
+
+const DetailIcon = ({
+  icon: Icon,
+  className,
+  color = "currentColor",
+  size = "1em",
+  strokeWidth,
+}: {
+  icon: DetailIconComponent;
+  className?: string;
+  color?: string;
+  size?: number | string;
+  strokeWidth?: number | string;
+}) => <Icon className={className} color={color} size={size} strokeWidth={strokeWidth} />;
 
 const actorName = (actor?: TBookmarkCommentActor) => {
   if (!actor) return "Removed member";
@@ -113,7 +133,7 @@ const CommentRow = observer(function CommentRow(props: {
             }}
             className="grid size-6 place-items-center rounded-md text-icon-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
           >
-            <HugeiconsIcon icon={PencilEdit02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <DetailIcon icon={PencilEdit02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
           <button
             type="button"
@@ -121,7 +141,7 @@ const CommentRow = observer(function CommentRow(props: {
             onClick={() => void onDelete(comment.id)}
             className="hover:bg-red-500/10 hover:text-red-500 grid size-6 place-items-center rounded-md text-icon-tertiary transition-colors"
           >
-            <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <DetailIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
         </div>
       )}
@@ -274,7 +294,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
         aria-label="Open link"
         className="grid size-8 place-items-center rounded-lg text-icon-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:scale-95"
       >
-        <HugeiconsIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+        <DetailIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
       </a>
     ) : (
       <Link
@@ -282,7 +302,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
         aria-label="Open link"
         className="grid size-8 place-items-center rounded-lg text-icon-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:scale-95"
       >
-        <HugeiconsIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+        <DetailIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
       </Link>
     )
   ) : null;
@@ -296,7 +316,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
             {bookmark.metadata?.favicon_url ? (
               <img src={bookmark.metadata.favicon_url} alt="" className="size-4 rounded" />
             ) : (
-              <HugeiconsIcon icon={BookmarkIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={BookmarkIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
             )}
           </span>
           <div className="min-w-0 flex-1">
@@ -334,14 +354,14 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
                 useCaptureForOutsideClick
                 customButton={
                   <span className="grid size-8 place-items-center rounded-lg text-icon-tertiary transition-colors hover:bg-layer-1 hover:text-primary">
-                    <HugeiconsIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
+                    <DetailIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
                   </span>
                 }
               >
                 {href && (
                   <CustomMenu.MenuItem onClick={() => void navigator.clipboard?.writeText(href)}>
                     <span className="flex items-center gap-2">
-                      <HugeiconsIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                      <DetailIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
                       Copy link
                     </span>
                   </CustomMenu.MenuItem>
@@ -355,7 +375,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
                     className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
                   >
                     <span className="flex items-center gap-2">
-                      <HugeiconsIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                      <DetailIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
                       Delete
                     </span>
                   </CustomMenu.MenuItem>
@@ -368,7 +388,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
               className="grid size-8 place-items-center rounded-lg text-icon-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:scale-95"
               aria-label="Close"
             >
-              <HugeiconsIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
             </button>
           </div>
         </div>
@@ -379,7 +399,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
 
           {canEdit ? (
             <div className="flex items-center gap-2 rounded-md px-2 py-1 transition-colors focus-within:bg-layer-1 hover:bg-layer-1/60">
-              <HugeiconsIcon
+              <DetailIcon
                 icon={LinkSquare01Icon}
                 className="size-3.5 shrink-0 text-tertiary"
                 color="currentColor"
@@ -401,7 +421,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
                 rel="noreferrer"
                 className="flex items-center gap-2 px-2 text-13 text-secondary hover:text-primary"
               >
-                <HugeiconsIcon
+                <DetailIcon
                   icon={LinkSquare01Icon}
                   className="size-3.5 shrink-0 text-tertiary"
                   color="currentColor"
@@ -442,7 +462,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
                       onClick={() => removeTag(tag)}
                       className="hover:text-red-500 grid place-items-center text-tertiary opacity-0 transition-opacity group-hover/tag:opacity-100"
                     >
-                      <HugeiconsIcon
+                      <DetailIcon
                         icon={CancelCircleIcon}
                         className="size-3"
                         color="currentColor"

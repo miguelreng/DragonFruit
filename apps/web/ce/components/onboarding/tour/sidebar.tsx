@@ -15,8 +15,8 @@ import {
   StickyNoteIcon,
   ViewsIcon,
   WorkItemsIcon,
-} from "@plane/propel/icons";
-import type { ISvgIcons } from "@plane/propel/icons";
+} from "@/components/icons/propel-shim";
+import type { ISvgIcons } from "@/components/icons/propel-shim";
 // types
 import type { TTourSteps } from "./root";
 

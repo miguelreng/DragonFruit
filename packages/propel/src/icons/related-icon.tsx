@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Link01Icon } from "@hugeicons/core-free-icons";
+import { LinkLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const RelatedIcon = hugeIcon(Link01Icon);
+export const RelatedIcon = LinkLine;

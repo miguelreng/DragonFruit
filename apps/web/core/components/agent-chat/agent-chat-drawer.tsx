@@ -75,6 +75,14 @@ import {
 } from "@/components/icons/lucide-shim";
 // constants
 import { ATLAS_IDENTITY } from "@/constants/atlas";
+import {
+  AGENT_CHAT_ACCEPTED_FILE_TYPES,
+  AGENT_CHAT_MAX_FILE_BYTES,
+  buildPendingAgentChatFiles,
+  classifyAgentChatFileKind,
+  fileToAgentChatAttachmentPayload,
+  formatAgentChatFileSize,
+} from "@/helpers/agent-chat-attachments";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
@@ -723,41 +731,15 @@ function ChatThread(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep this in sync with the server's `_MAX_IMAGE_BYTES`. JSON
-  // payload ceilings are tight (Django: 5MB) and base64 inflates by
-  // ~33%, so cap the *raw* image at 2.5MB on this side and let the
-  // server enforce again as a belt-and-braces measure.
-  const MAX_FILE_BYTES = 2_500_000;
-  const MAX_FILES = 6;
-
   const handleAttach = useCallback(
     (filesList: FileList | null) => {
       if (!filesList || filesList.length === 0) return;
-      const incoming = Array.from(filesList);
-      // Reject anything bigger than the cap, and stop adding once we
-      // hit the per-message file count. Surface a single toast per
-      // batch so spamming attach doesn't fire 20 toasts.
-      const accepted: { id: string; file: File }[] = [];
-      let rejectedSize = 0;
-      for (const f of incoming) {
-        if (pendingFiles.length + accepted.length >= MAX_FILES) break;
-        if (f.size > MAX_FILE_BYTES) {
-          rejectedSize += 1;
-          continue;
-        }
-        accepted.push({
-          // Date.now() + random is enough — these ids live for one
-          // composer session and only need uniqueness within the
-          // pending list.
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          file: f,
-        });
-      }
+      const { accepted, rejectedSize } = buildPendingAgentChatFiles(filesList, pendingFiles.length);
       if (rejectedSize > 0) {
         setToast({
           type: TOAST_TYPE.ERROR,
           title: "File too large",
-          message: `Files over ${Math.round(MAX_FILE_BYTES / 1_000_000)} MB were skipped.`,
+          message: `Files over ${Math.round(AGENT_CHAT_MAX_FILE_BYTES / 1_000_000)} MB were skipped.`,
         });
       }
       if (accepted.length > 0) setPendingFiles((cur) => [...cur, ...accepted]);
@@ -788,7 +770,7 @@ function ChatThread(props: {
     // cap so reading them in parallel is fine.
     let attachments: TAgentChatAttachmentPayload[] = [];
     try {
-      attachments = await Promise.all(pendingFiles.map((entry) => fileToAttachmentPayload(entry.file)));
+      attachments = await Promise.all(pendingFiles.map((entry) => fileToAgentChatAttachmentPayload(entry.file)));
     } catch {
       setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't read attachment" });
       setSending(false);
@@ -924,7 +906,7 @@ function ChatThread(props: {
         name: f.name,
         mime_type: f.type || "application/octet-stream",
         size: f.size,
-        kind: classifyFileKind(f.type || ""),
+        kind: classifyAgentChatFileKind(f.type || ""),
         data_url: attachments[i]?.content_base64
           ? `data:${attachments[i]!.mime_type};base64,${attachments[i]!.content_base64}`
           : undefined,
@@ -1055,7 +1037,7 @@ function ChatThread(props: {
           // Mirror the server-side accepted MIME types. The picker uses
           // both extension hints and mime types so the file dialog
           // filters sensibly on every OS.
-          accept="image/png,image/jpeg,image/gif,image/webp,text/csv,application/pdf,.csv,.pdf"
+          accept={AGENT_CHAT_ACCEPTED_FILE_TYPES}
           multiple
           className="hidden"
           onChange={(e) => {
@@ -1248,31 +1230,6 @@ function escapeHtml(value: string): string {
 // Attachment helpers                                                   //
 // ------------------------------------------------------------------ //
 
-function classifyFileKind(mime: string): TAgentChatAttachment["kind"] {
-  if (mime.startsWith("image/")) return "image";
-  if (mime === "application/pdf") return "pdf";
-  if (mime === "text/csv" || mime === "application/csv" || mime.startsWith("text/")) return "text";
-  return "other";
-}
-
-async function fileToAttachmentPayload(file: File): Promise<TAgentChatAttachmentPayload> {
-  // FileReader → base64 in two steps: read as data URL, then strip the
-  // `data:<mime>;base64,` prefix. ArrayBuffer + Uint8Array.toBase64
-  // isn't widely supported yet (Safari).
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(String(reader.result ?? "")));
-    reader.addEventListener("error", () => reject(reader.error ?? new Error("read failed")));
-    reader.readAsDataURL(file);
-  });
-  const commaAt = dataUrl.indexOf(",");
-  return {
-    name: file.name,
-    mime_type: file.type || "application/octet-stream",
-    content_base64: commaAt >= 0 ? dataUrl.slice(commaAt + 1) : "",
-  };
-}
-
 function PendingAttachmentChip({ file, onRemove }: { file: File; onRemove: () => void }) {
   const isImage = file.type.startsWith("image/");
   // Build a transient object URL just for the preview. Revoke when
@@ -1287,8 +1244,7 @@ function PendingAttachmentChip({ file, onRemove }: { file: File; onRemove: () =>
   }, [file, isImage]);
 
   const Icon = isImage ? ImageIconBase : FileText;
-  const kb = (file.size / 1024).toFixed(file.size > 1024 * 1024 ? 0 : 1);
-  const sizeLabel = file.size > 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${kb} KB`;
+  const sizeLabel = formatAgentChatFileSize(file.size);
 
   return (
     <li className="group relative inline-flex items-center gap-1.5 rounded-lg border-[0.5px] border-subtle bg-surface-1 py-1 pr-1 pl-1.5">

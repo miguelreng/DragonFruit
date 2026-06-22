@@ -11,7 +11,7 @@ import { MoreHorizontal } from "@/components/icons/lucide-shim";
 import { EIssueCommentAccessSpecifier } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { IconButton } from "@plane/propel/icon-button";
-import { LinkIcon, GlobeIcon, LockIcon, EditIcon, TrashIcon } from "@plane/propel/icons";
+import { LinkIcon, GlobeIcon, LockIcon, EditIcon, TrashIcon } from "@/components/icons/propel-shim";
 import type { TIssueComment, TCommentsOperations } from "@plane/types";
 import type { TContextMenuItem } from "@plane/ui";
 import { CustomMenu } from "@plane/ui";

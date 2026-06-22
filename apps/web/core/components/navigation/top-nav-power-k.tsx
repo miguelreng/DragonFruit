@@ -9,7 +9,7 @@ import { Command } from "cmdk";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // hooks
-import { CloseIcon, SearchIcon } from "@plane/propel/icons";
+import { CloseIcon, SearchIcon } from "@/components/icons/propel-shim";
 import { cn } from "@plane/utils";
 // power-k
 import type { TPowerKScope } from "@/components/power-k/core/scope";

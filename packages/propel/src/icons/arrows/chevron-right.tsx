@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { ArrowRightLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const ChevronRightIcon = hugeIcon(ArrowRight01Icon);
+export const ChevronRightIcon = ArrowRightLine;

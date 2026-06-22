@@ -1,6 +1,6 @@
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Constants from "expo-constants";
-import { ArrowRight01Icon, GlobeIcon, Logout03Icon, Mail01Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, GlobeIcon, Logout03Icon, Mail01Icon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { Avatar } from "@/components/avatar";

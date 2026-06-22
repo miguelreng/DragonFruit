@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { ISSUE_PRIORITIES } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { PriorityIcon, CloseIcon } from "@plane/propel/icons";
+import { PriorityIcon, CloseIcon } from "@/components/icons/propel-shim";
 import type { TIssuePriorities } from "@plane/types";
 import { Tag } from "@plane/ui";
 // hooks

@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { GlobalIcon } from "@hugeicons/core-free-icons";
+import { GlobeLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const GlobeIcon = hugeIcon(GlobalIcon);
+export const GlobeIcon = GlobeLine;

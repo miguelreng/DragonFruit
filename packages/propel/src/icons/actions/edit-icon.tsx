@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { PencilEdit02Icon } from "@hugeicons/core-free-icons";
+import { EditLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const EditIcon = hugeIcon(PencilEdit02Icon);
+export const EditIcon = EditLine;

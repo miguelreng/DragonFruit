@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { UserRemove01Icon } from "@hugeicons/core-free-icons";
+import { UserRemoveLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const SuspendedUserIcon = hugeIcon(UserRemove01Icon);
+export const SuspendedUserIcon = UserRemoveLine;

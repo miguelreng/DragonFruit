@@ -9,7 +9,7 @@ import { usePopper } from "react-popper";
 import { Popover } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 
 export function ForgotPasswordPopover() {
   // popper-js refs

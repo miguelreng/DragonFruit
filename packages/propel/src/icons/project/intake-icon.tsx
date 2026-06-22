@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { InboxDownloadIcon } from "@hugeicons/core-free-icons";
+import { Inbox2Line } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const IntakeIcon = hugeIcon(InboxDownloadIcon);
+export const IntakeIcon = Inbox2Line;

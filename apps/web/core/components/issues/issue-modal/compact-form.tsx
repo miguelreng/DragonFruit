@@ -11,7 +11,7 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { DEFAULT_WORK_ITEM_FORM_VALUES } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 import type { TIssue } from "@plane/types";
 import { TextArea } from "@plane/ui";
 import { renderFormattedPayloadDate } from "@plane/utils";

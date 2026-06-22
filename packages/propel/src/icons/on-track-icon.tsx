@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
+import { CheckCircleFill } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const OnTrackIcon = hugeIcon(CheckmarkCircle01Icon);
+export const OnTrackIcon = CheckCircleFill;

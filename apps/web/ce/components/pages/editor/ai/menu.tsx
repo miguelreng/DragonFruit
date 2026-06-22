@@ -9,7 +9,7 @@ import type { LucideIcon } from "@/components/icons/lucide-shim";
 import { CornerDownRight, RefreshCcw, Sparkles, TriangleAlert } from "@/components/icons/lucide-shim";
 // plane editor
 import type { EditorRefApi } from "@plane/editor";
-import { ChevronRightIcon } from "@plane/propel/icons";
+import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // plane ui
 import { Tooltip } from "@plane/propel/tooltip";
 // components

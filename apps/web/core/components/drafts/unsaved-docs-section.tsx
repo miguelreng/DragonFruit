@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { X } from "@/components/icons/lucide-shim";
-import { PageIcon } from "@plane/propel/icons";
+import { PageIcon } from "@/components/icons/propel-shim";
 import { cn, renderFormattedDate } from "@plane/utils";
 import { clearPageUnsynced, listUnsyncedPages, type TUnsyncedPageEntry } from "@/helpers/unsynced-pages";
 import { useProject } from "@/hooks/store/use-project";

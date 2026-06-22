@@ -7,7 +7,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { observer } from "mobx-react";
 
-import { LinkIcon, CheckIcon } from "@plane/propel/icons";
+import { LinkIcon, CheckIcon } from "@/components/icons/propel-shim";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
 import { IconButton } from "@plane/propel/icon-button";

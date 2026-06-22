@@ -8,8 +8,8 @@ import React from "react";
 import { observer } from "mobx-react";
 import { MODULE_STATUS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import type { TModuleStatus } from "@plane/propel/icons";
-import { ModuleStatusIcon } from "@plane/propel/icons";
+import type { TModuleStatus } from "@/components/icons/propel-shim";
+import { ModuleStatusIcon } from "@/components/icons/propel-shim";
 import type { IModule } from "@plane/types";
 import { CustomSelect } from "@plane/ui";
 

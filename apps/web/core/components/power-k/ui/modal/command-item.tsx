@@ -7,7 +7,7 @@
 import React from "react";
 import { Command } from "cmdk";
 
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 // plane imports
 import { cn } from "@plane/utils";
 // local imports

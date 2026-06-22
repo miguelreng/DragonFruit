@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 // icons
 import { ListFilter } from "@/components/icons/lucide-shim";
 import { useOutsideClickDetector } from "@plane/hooks";
-import { SearchIcon, CloseIcon } from "@plane/propel/icons";
+import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
 // plane helpers
 // helpers
 import { cn } from "@plane/utils";

@@ -10,8 +10,8 @@ import {
   CalendarLayoutIcon,
   SheetLayoutIcon,
   TimelineLayoutIcon,
-} from "@plane/propel/icons";
-import type { ISvgIcons } from "@plane/propel/icons";
+} from "@/components/icons/propel-shim";
+import type { ISvgIcons } from "@/components/icons/propel-shim";
 import { EIssueLayoutTypes } from "@plane/types";
 
 export function IssueLayoutIcon({

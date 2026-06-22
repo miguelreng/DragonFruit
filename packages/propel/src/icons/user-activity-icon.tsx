@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { UserIcon } from "@hugeicons/core-free-icons";
+import { User3Line } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const UserActivityIcon = hugeIcon(UserIcon);
+export const UserActivityIcon = User3Line;

@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { observer } from "mobx-react";
 import { LockKeyholeOpen } from "@/components/icons/lucide-shim";
 // plane imports
-import { LockIcon } from "@plane/propel/icons";
+import { LockIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";

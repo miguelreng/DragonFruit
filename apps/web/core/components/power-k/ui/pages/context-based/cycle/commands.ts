@@ -10,7 +10,7 @@ import { Star, StarOff } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { LinkIcon } from "@plane/propel/icons";
+import { LinkIcon } from "@/components/icons/propel-shim";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { copyTextToClipboard } from "@plane/utils";
 // components

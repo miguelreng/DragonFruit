@@ -61,7 +61,7 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
               active). */}
           <div className="flex h-full w-full items-center">
             {canSelectIssues && (
-              <div className="flex h-full w-7 flex-shrink-0 items-center justify-center">
+              <div className="flex h-full w-6 flex-shrink-0 items-center justify-center">
                 <MultipleSelectGroupAction
                   className={cn(
                     "pointer-events-none size-3.5 opacity-0 !outline-none group-hover/list-header:pointer-events-auto group-hover/list-header:opacity-100",
@@ -74,7 +74,12 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
                 />
               </div>
             )}
-            <span className="px-1.5 text-13 font-medium">{`${isEpic ? "Epics" : "Tasks"}`}</span>
+            {/* Spacer mirrors the row's sub-issue chevron slot (size-5) + gap so
+                the "Tasks" label lines up with the row titles below. */}
+            <div className="flex flex-grow items-center gap-0.5">
+              <div className="grid size-5 flex-shrink-0 place-items-center" />
+              <span className="text-13 font-medium">{`${isEpic ? "Epics" : "Tasks"}`}</span>
+            </div>
           </div>
         </th>
 

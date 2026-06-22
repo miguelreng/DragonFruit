@@ -8,7 +8,7 @@ import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
-import { CornerDownRight } from "@plane/icons";
+import { CornerDownRight } from "@/components/icons/lucide-shim";
 import { Avatar, Tooltip } from "@plane/ui";
 import type { TCommentsOperations } from "@plane/types";
 import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";

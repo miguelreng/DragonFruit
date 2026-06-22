@@ -8,7 +8,7 @@ import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
-import { ChevronDownIcon } from "@plane/propel/icons";
+import { ChevronDownIcon } from "@/components/icons/propel-shim";
 // plane imports
 import type { IUserLite } from "@plane/types";
 import { ComboDropDown } from "@plane/ui";

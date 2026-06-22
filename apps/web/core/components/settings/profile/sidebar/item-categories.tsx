@@ -4,9 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type React from "react";
-import type { LucideIcon } from "@/components/icons/lucide-shim";
-import { Activity, Bell, CircleUser, KeyRound, LockIcon, Settings2 } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
 // plane imports
@@ -16,19 +13,21 @@ import {
   PROFILE_SETTINGS_CATEGORY_LABELS,
 } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import type { ISvgIcons } from "@plane/propel/icons";
 import type { TProfileSettingsTabs } from "@plane/types";
 // local imports
+import type { SettingsSidebarIconPair } from "../../sidebar/item";
 import { SettingsSidebarItem } from "../../sidebar/item";
+import { Bell, History, Key, Settings, Shield, UserRounded } from "@solar-icons/react/ssr";
+import { createSolarSidebarIconPair } from "@/components/sidebar/solar-icon";
 import { ProfileSettingsSidebarWorkspaceOptions } from "./workspace-options";
 
-const ICONS: Record<TProfileSettingsTabs, LucideIcon | React.FC<ISvgIcons>> = {
-  general: CircleUser,
-  security: LockIcon,
-  activity: Activity,
-  preferences: Settings2,
-  notifications: Bell,
-  "api-tokens": KeyRound,
+const ICONS: Record<TProfileSettingsTabs, SettingsSidebarIconPair> = {
+  general: createSolarSidebarIconPair(UserRounded),
+  security: createSolarSidebarIconPair(Shield),
+  activity: createSolarSidebarIconPair(History),
+  preferences: createSolarSidebarIconPair(Settings),
+  notifications: createSolarSidebarIconPair(Bell),
+  "api-tokens": createSolarSidebarIconPair(Key),
 };
 
 type Props = {
@@ -64,7 +63,8 @@ export const ProfileSettingsSidebarItemCategories = observer(function ProfileSet
                   as="button"
                   onClick={() => updateActiveTab(item.key)}
                   isActive={activeTab === item.key}
-                  icon={ICONS[item.key]}
+                  icon={ICONS[item.key].icon}
+                  activeIcon={ICONS[item.key].activeIcon}
                   label={t(item.i18n_label)}
                 />
               ))}

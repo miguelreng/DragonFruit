@@ -6,9 +6,9 @@
 
 import { useState } from "react";
 import { observer } from "mobx-react";
-import type { TModuleStatus } from "@plane/propel/icons";
+import type { TModuleStatus } from "@/components/icons/propel-shim";
 // plane imports
-import { CloseIcon, SearchIcon } from "@plane/propel/icons";
+import { CloseIcon, SearchIcon } from "@/components/icons/propel-shim";
 import type { TModuleDisplayFilters, TModuleFilters } from "@plane/types";
 // components
 import { FilterOption } from "@/components/issues/issue-layouts/filters";

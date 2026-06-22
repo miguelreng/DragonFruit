@@ -6,7 +6,7 @@
 
 import { Command } from "cmdk";
 import { useTranslation } from "@plane/i18n";
-import { SearchIcon } from "@plane/propel/icons";
+import { SearchIcon } from "@/components/icons/propel-shim";
 // plane imports
 // components
 import type { TPowerKContext } from "@/components/power-k/core/types";

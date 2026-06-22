@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { MembersPropertyIcon } from "@plane/propel/icons";
+import { MembersPropertyIcon } from "@/components/icons/propel-shim";
 // plane ui
 import type { IUserLite } from "@plane/types";
 import { Avatar, AvatarGroup } from "@plane/ui";

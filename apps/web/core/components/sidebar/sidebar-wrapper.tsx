@@ -13,7 +13,8 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { ScrollArea } from "@plane/propel/scrollarea";
 import { cn } from "@plane/utils";
 // components
-import { Settings } from "@/components/icons/lucide-shim";
+import { Settings } from "@solar-icons/react/ssr";
+import { renderSolarSidebarIcon } from "@/components/sidebar/solar-icon";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -86,13 +87,13 @@ export const SidebarWrapper = observer(function SidebarWrapper(props: TSidebarWr
           className={cn(
             "flex w-full items-center gap-1.5 rounded-lg px-2 py-1 transition-colors outline-none",
             isSettingsActive
-              ? "bg-[#fff7f8] text-primary dark:bg-danger-subtle sepia:bg-[#dbccb3]"
-              : "text-secondary hover:bg-[#fffafb] active:bg-[#fff7f8] dark:hover:bg-danger-subtle-hover dark:active:bg-danger-subtle-active"
+              ? "bg-[var(--neutral-600)] text-[oklch(0.43_0_0)]"
+              : "text-secondary hover:bg-layer-2-hover active:bg-layer-2-active dark:hover:bg-white/[0.04] dark:active:bg-white/[0.08]"
           )}
           aria-label="Workspace settings"
           aria-current={isSettingsActive ? "page" : undefined}
         >
-          <Settings className="size-4 flex-shrink-0" />
+          {renderSolarSidebarIcon(Settings, isSettingsActive, "size-4 flex-shrink-0")}
           <span className="text-13 font-medium">Settings</span>
         </Link>
       </div>

@@ -7,7 +7,7 @@
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane ui
 import { useTranslation } from "@plane/i18n";
-import type { ISvgIcons } from "@plane/propel/icons";
+import type { ISvgIcons } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 // plane utils
 import { cn } from "@plane/utils";

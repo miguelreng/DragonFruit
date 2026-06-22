@@ -14,8 +14,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DrawerActions } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Add01Icon, ArrowRight01Icon, Calendar01Icon, SidebarLeftIcon } from "@hugeicons/core-free-icons";
-import type { IconSvgElement } from "@hugeicons/react-native";
+import { Add01Icon, ArrowRight01Icon, Calendar01Icon, SidebarLeftIcon } from "@/lib/icons";
+import type { AppIconComponent } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { BrandLogo } from "@/components/brand-logo";
@@ -131,7 +131,7 @@ function SectionHeader({
   flush,
 }: {
   label: string;
-  action?: { icon: IconSvgElement; label: string; onPress: () => void };
+  action?: { icon: AppIconComponent; label: string; onPress: () => void };
   flush?: boolean;
 }) {
   return (

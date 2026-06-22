@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CellsIcon as CellsIconSvg } from "@hugeicons/core-free-icons";
+import { GridLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const CellsIcon = hugeIcon(CellsIconSvg);
+export const CellsIcon = GridLine;

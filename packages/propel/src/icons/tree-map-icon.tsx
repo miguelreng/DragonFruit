@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { HierarchyIcon } from "@hugeicons/core-free-icons";
+import { TreeLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const TreeMapIcon = hugeIcon(HierarchyIcon);
+export const TreeMapIcon = TreeLine;

@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { PencilEdit01Icon } from "@hugeicons/core-free-icons";
+import { PencilLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const DraftIcon = hugeIcon(PencilEdit01Icon);
+export const DraftIcon = PencilLine;

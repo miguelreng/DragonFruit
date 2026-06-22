@@ -10,7 +10,7 @@ import { LogOut, MoreHorizontal, Settings, Share2, ArchiveIcon } from "@/compone
 // plane imports
 import { MEMBER_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { LinkIcon } from "@plane/propel/icons";
+import { LinkIcon } from "@/components/icons/propel-shim";
 import { CustomMenu } from "@plane/ui";
 
 type Props = {

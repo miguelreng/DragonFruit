@@ -7,7 +7,7 @@
 import React from "react";
 import { CalendarDays } from "@/components/icons/lucide-shim";
 // ui
-import { CalendarAfterIcon, CalendarBeforeIcon } from "@plane/propel/icons";
+import { CalendarAfterIcon, CalendarBeforeIcon } from "@/components/icons/propel-shim";
 import { CustomSelect } from "@plane/ui";
 
 type Props = {

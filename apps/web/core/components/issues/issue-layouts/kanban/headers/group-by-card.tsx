@@ -8,10 +8,9 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
-import { CollapseIcon, ExpandIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { Collapse, Expand } from "@/components/icons/lucide-shim";
 import { Circle } from "@/components/icons/lucide-shim";
-import { PlusIcon, StateGroupIcon } from "@plane/propel/icons";
+import { PlusIcon, StateGroupIcon } from "@/components/icons/propel-shim";
 import { EIconSize } from "@plane/constants";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue, ISearchIssueResponse, TIssueKanbanFilters, TIssueGroupByOptions } from "@plane/types";
@@ -192,9 +191,9 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
               onClick={() => handleCollapsedGroups("group_by", column_id)}
             >
               {verticalAlignPosition ? (
-                <HugeiconsIcon icon={ExpandIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+                <Expand className="size-3.5" color="currentColor" size="1em" />
               ) : (
-                <HugeiconsIcon icon={CollapseIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+                <Collapse className="size-3.5" color="currentColor" size="1em" />
               )}
             </button>
           )}

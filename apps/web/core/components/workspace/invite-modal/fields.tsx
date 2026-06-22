@@ -10,7 +10,7 @@ import { Controller } from "react-hook-form";
 // plane imports
 import { ROLE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 import { CustomSelect, Input } from "@plane/ui";
 import { cn } from "@plane/utils";
 // hooks

@@ -8,7 +8,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { AlertCircle, HardDrive } from "@/components/icons/lucide-shim";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
 import {

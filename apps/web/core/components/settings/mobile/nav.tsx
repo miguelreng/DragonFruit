@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { Menu } from "@/components/icons/lucide-shim";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
-import { ChevronRightIcon } from "@plane/propel/icons";
+import { ChevronRightIcon } from "@/components/icons/propel-shim";
 import { useUserSettings } from "@/hooks/store/user";
 import { IconButton } from "@plane/propel/icon-button";
 

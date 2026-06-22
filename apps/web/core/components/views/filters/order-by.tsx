@@ -9,7 +9,7 @@ import { ArrowDownWideNarrow, ArrowUpWideNarrow } from "@/components/icons/lucid
 import { VIEW_SORT_BY_OPTIONS, VIEW_SORTING_KEY_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { getButtonStyling } from "@plane/propel/button";
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 import type { TViewFiltersSortBy, TViewFiltersSortKey } from "@plane/types";
 import { CustomMenu } from "@plane/ui";
 

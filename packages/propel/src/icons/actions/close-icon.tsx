@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { CloseLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const CloseIcon = hugeIcon(Cancel01Icon);
+export const CloseIcon = CloseLine;

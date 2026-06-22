@@ -9,6 +9,7 @@ from plane.app.views import UnsplashEndpoint
 from plane.app.views import (
     GPTIntegrationEndpoint,
     TranscriptToDocEndpoint,
+    WorkspaceComposioConfigEndpoint,
     WorkspaceGPTIntegrationEndpoint,
     WorkspaceLLMConfigEndpoint,
 )
@@ -35,5 +36,10 @@ urlpatterns = [
         "workspaces/<str:slug>/llm-config/",
         WorkspaceLLMConfigEndpoint.as_view(),
         name="workspace-llm-config",
+    ),
+    path(
+        "workspaces/<str:slug>/composio-config/",
+        WorkspaceComposioConfigEndpoint.as_view(),
+        name="workspace-composio-config",
     ),
 ]

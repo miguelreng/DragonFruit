@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import useSWR from "swr";
 import { useTranslation } from "@plane/i18n";
 // plane types
-import { PageIcon, ProjectIcon, WorkItemsIcon } from "@plane/propel/icons";
+import { PageIcon, ProjectIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
 import type { TActivityEntityData, THomeWidgetProps, TRecentActivityFilterKeys } from "@plane/types";
 // plane ui
 // components

@@ -11,7 +11,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { EPageAccess } from "@plane/constants";
 // plane types
 import { Button } from "@plane/propel/button";
-import { PageIcon } from "@plane/propel/icons";
+import { PageIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TPage, TPageType } from "@plane/types";
 // plane ui

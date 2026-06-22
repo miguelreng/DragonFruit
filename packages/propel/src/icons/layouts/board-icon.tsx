@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { KanbanIcon } from "@hugeicons/core-free-icons";
+import { LayoutGridLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const BoardLayoutIcon = hugeIcon(KanbanIcon);
+export const BoardLayoutIcon = LayoutGridLine;

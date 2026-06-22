@@ -9,12 +9,33 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import MarkdownIt from "markdown-it";
 import type { EditorRefApi } from "@plane/editor";
-import { ChevronDown, Eraser, FileText, Link, ListChecks, PenTool, Plus, Sparkles, Whiteboard } from "@plane/icons";
+import {
+  ChevronDown,
+  Eraser,
+  FileText,
+  Link,
+  ListChecks,
+  Paperclip,
+  PenTool,
+  Plus,
+  Sparkles,
+  Whiteboard,
+  X,
+} from "@/components/icons/lucide-shim";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { Loader } from "@plane/ui";
+import {
+  AGENT_CHAT_ACCEPTED_FILE_TYPES,
+  AGENT_CHAT_MAX_FILE_BYTES,
+  buildPendingAgentChatFiles,
+  fileToAgentChatAttachmentPayload,
+  formatAgentChatFileSize,
+  type TPendingAgentChatFile,
+} from "@/helpers/agent-chat-attachments";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 import {
   AgentChatService,
+  type TAgentChatAttachmentPayload,
   type TAgentChatMessage,
   type TAgentChatSession,
   type TAtlasDocWriteEvent,
@@ -380,6 +401,24 @@ async function streamDocReview(args: TStreamDocReviewArgs) {
   });
 }
 
+function PendingFileChip({ file, onRemove }: { file: File; onRemove: () => void }) {
+  return (
+    <li className="inline-flex max-w-[180px] items-center gap-1 rounded-md border border-subtle bg-layer-1 px-1.5 py-0.5 text-[11px]">
+      <FileText className="size-3 shrink-0 text-tertiary" />
+      <span className="min-w-0 truncate text-primary">{file.name}</span>
+      <span className="shrink-0 text-tertiary">{formatAgentChatFileSize(file.size)}</span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="grid size-4 shrink-0 place-items-center rounded text-tertiary hover:bg-layer-2 hover:text-primary"
+        aria-label={`Remove ${file.name}`}
+      >
+        <X className="size-3" />
+      </button>
+    </li>
+  );
+}
+
 /**
  * Renders the floating Atlas bar for doc page editors.
  * Slash-command events can still prefill editor context, but the request
@@ -420,8 +459,10 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
   const [isSearchingDocs, setIsSearchingDocs] = useState(false);
   const [docMentionError, setDocMentionError] = useState<string | null>(null);
   const [mentionedDocs, setMentionedDocs] = useState<TAtlasMentionedReference[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<TPendingAgentChatFile[]>([]);
   const detailRef = useRef<InvokeDetail>({});
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const projectPages = usePageStore(EPageStoreType.PROJECT);
@@ -661,6 +702,13 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
     (isSearchingDocs || docMentionResults.length > 0 || docMentionError || docMentionMatch.query.trim())
   );
 
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+  }, [prompt]);
+
   const syncDocMentionMatch = useCallback((value: string, cursorPosition: number | null | undefined) => {
     const nextMatch = getAtlasMentionMatch(value, cursorPosition);
     setDocMentionMatch((current) => {
@@ -693,6 +741,26 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
       textareaRef.current?.setSelectionRange(nextCursor, nextCursor);
     });
   }, [prompt, syncDocMentionMatch]);
+
+  const handleAttach = useCallback(
+    (filesList: FileList | null) => {
+      if (!filesList || filesList.length === 0) return;
+      const { accepted, rejectedSize } = buildPendingAgentChatFiles(filesList, pendingFiles.length);
+      if (rejectedSize > 0) {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "File too large",
+          message: `Files over ${Math.round(AGENT_CHAT_MAX_FILE_BYTES / 1_000_000)} MB were skipped.`,
+        });
+      }
+      if (accepted.length > 0) setPendingFiles((current) => [...current, ...accepted]);
+    },
+    [pendingFiles.length]
+  );
+
+  const handleRemovePendingFile = useCallback((id: string) => {
+    setPendingFiles((current) => current.filter((entry) => entry.id !== id));
+  }, []);
 
   const selectDocMention = useCallback(
     (doc: TAtlasMentionedReference | undefined) => {
@@ -834,19 +902,33 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
 
   const handleSubmit = useCallback(async () => {
     const trimmed = prompt.trim();
-    if (!trimmed || !workspaceSlug || !projectId || !session) return;
+    const hasFiles = pendingFiles.length > 0;
+    if ((!trimmed && !hasFiles) || !workspaceSlug || !projectId || !session) return;
     let docsForRequest = mentionedDocs.filter((doc) => trimmed.includes(doc.insertText));
     setIsSending(true);
+
+    let attachments: TAgentChatAttachmentPayload[] = [];
+    try {
+      attachments = await Promise.all(pendingFiles.map((entry) => fileToAgentChatAttachmentPayload(entry.file)));
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't read attachment" });
+      setIsSending(false);
+      return;
+    }
+
+    const submittedFiles = pendingFiles;
     setPrompt("");
+    setPendingFiles([]);
     setMentionedDocs([]);
     setDocMentionMatch(null);
     const userMessageId = crypto.randomUUID();
     setMessages((current) => [
       ...current,
       {
-        content: trimmed,
+        content: trimmed || `Attached ${submittedFiles.length} ${submittedFiles.length === 1 ? "file" : "files"}.`,
         id: userMessageId,
         role: "user",
+        pills: submittedFiles.map((entry) => entry.file.name),
       },
     ]);
     try {
@@ -854,6 +936,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
       const referencedDocsContext = await resolveMentionedDocsContext(docsForRequest);
       const shouldWriteIntoEditor = Boolean(
         activePageEditorRef &&
+        !hasFiles &&
         (isEditorWritingRequest(trimmed) || Boolean(context.selectionText && isSelectionEditRequest(trimmed)))
       );
 
@@ -883,17 +966,28 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
       ]
         .filter(Boolean)
         .join("\n\n");
-      const res = await agentChatService.sendMessage(workspaceSlug, session.id, trimmed, [], {
-        project_id: projectId,
-        tool_mode: "none",
-        context_note: contextNote,
-      });
+      const res = await agentChatService.sendMessage(
+        workspaceSlug,
+        session.id,
+        trimmed || "Please describe the attached file(s).",
+        attachments,
+        {
+          project_id: projectId,
+          tool_mode: "auto",
+          context_note: contextNote,
+        }
+      );
       const text = res.assistant_message.error_message || res.assistant_message.content;
 
       if (text) {
         setMessages((current) => [
           ...current.map((message) =>
-            message.id === userMessageId ? mapChatMessageToDocMessage(res.user_message) : message
+            message.id === userMessageId
+              ? {
+                  ...mapChatMessageToDocMessage(res.user_message),
+                  pills: submittedFiles.map((entry) => entry.file.name),
+                }
+              : message
           ),
           {
             ...mapChatMessageToDocMessage(res.assistant_message),
@@ -932,6 +1026,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
         },
       ]);
       setPrompt(trimmed);
+      setPendingFiles(submittedFiles);
       setMentionedDocs(docsForRequest);
     } finally {
       setIsSending(false);
@@ -946,6 +1041,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
     mode,
     mentionedDocs,
     pageId,
+    pendingFiles,
     projectId,
     prompt,
     resolveMentionedDocsContext,
@@ -1139,6 +1235,17 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 rounded-[18px] bg-gradient-to-b from-surface-1/0 via-surface-1/35 to-surface-1/90 dark:from-transparent dark:via-black/10 dark:to-black/30"
             />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={AGENT_CHAT_ACCEPTED_FILE_TYPES}
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                handleAttach(e.target.files);
+                e.target.value = "";
+              }}
+            />
             {isDrafting ? (
               <div className="relative mb-1 flex items-center gap-2 border-b border-subtle pb-1.5">
                 <span className="text-[11px] text-tertiary">Atlas is drafting</span>
@@ -1246,7 +1353,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
               {promptHighlightParts.length > 0 && (
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 max-h-16 w-full overflow-hidden text-[14px] leading-5 break-words whitespace-pre-wrap text-primary"
+                  className="pointer-events-none absolute inset-0 max-h-40 w-full overflow-hidden text-[14px] leading-5 break-words whitespace-pre-wrap text-primary"
                 >
                   {promptHighlightParts.map((part) =>
                     part.isMention ? (
@@ -1307,11 +1414,23 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
                 onSelect={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
                 placeholder={activeMode.placeholder(Boolean(contextText))}
                 rows={1}
-                className={`relative z-10 max-h-16 min-h-[22px] w-full resize-none bg-transparent text-[14px] leading-5 outline-none placeholder:text-placeholder/70 ${
+                className={`relative z-10 max-h-40 min-h-[22px] w-full resize-none bg-transparent text-[14px] leading-5 outline-none placeholder:text-placeholder/70 ${
                   prompt ? "text-transparent caret-[#ff2da1]" : "text-primary"
                 }`}
               />
             </div>
+
+            {pendingFiles.length > 0 && (
+              <ul className="relative mt-2 flex flex-wrap gap-1">
+                {pendingFiles.map((entry) => (
+                  <PendingFileChip
+                    key={entry.id}
+                    file={entry.file}
+                    onRemove={() => handleRemovePendingFile(entry.id)}
+                  />
+                ))}
+              </ul>
+            )}
 
             <div className="relative my-0.5 flex items-center justify-between gap-1.5">
               <div className="text-sm flex min-w-0 items-center gap-1 text-tertiary">
@@ -1323,6 +1442,15 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
                   title="Add context"
                 >
                   <Plus className="size-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="grid size-6 shrink-0 place-items-center rounded-full border border-subtle bg-layer-2 text-tertiary transition-colors hover:bg-layer-3 hover:text-primary"
+                  aria-label="Attach file"
+                  title="Attach image, CSV, or PDF"
+                >
+                  <Paperclip className="size-3" />
                 </button>
                 <div ref={modeMenuRef} className="relative flex min-w-0 items-center gap-1">
                   <button
@@ -1378,7 +1506,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
                 <button
                   type="button"
                   onClick={() => void handleSubmit()}
-                  disabled={isSending || isLoadingSession || !session || !prompt.trim()}
+                  disabled={isSending || isLoadingSession || !session || (!prompt.trim() && pendingFiles.length === 0)}
                   className="inline-flex h-7 shrink-0 items-center rounded-lg border border-subtle bg-layer-2 px-2.5 text-[12px] font-medium text-primary transition-colors hover:bg-layer-3 disabled:opacity-50"
                   aria-label="Send prompt"
                 >

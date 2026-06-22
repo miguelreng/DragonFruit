@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { DownloadSimple, X } from "@phosphor-icons/react";
+import { Download, X } from "@/components/icons/lucide-shim";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -76,7 +76,7 @@ export function MobileAppInstallPrompt() {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[90] px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] md:hidden">
       <div className="pointer-events-auto mx-auto flex max-w-sm items-center gap-3 rounded-lg border border-subtle bg-surface-1 p-3 shadow-raised-200">
         <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-primary text-on-color">
-          <DownloadSimple size={18} weight="bold" />
+          <Download width={18} height={18} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-13 font-medium text-primary">Install Dragon Fruit</div>
@@ -95,7 +95,7 @@ export function MobileAppInstallPrompt() {
           onClick={dismiss}
           aria-label="Dismiss install prompt"
         >
-          <X size={16} />
+          <X width={16} height={16} />
         </button>
       </div>
     </div>

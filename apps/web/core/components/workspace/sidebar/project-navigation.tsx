@@ -8,14 +8,24 @@ import React, { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { FileText, Whiteboard, Star } from "@/components/icons/lucide-shim";
+import {
+  Bookmark,
+  Calendar,
+  Checklist,
+  Document,
+  Eye,
+  FileText,
+  Inbox,
+  Layers,
+  RulerPen,
+} from "@solar-icons/react/ssr";
 import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@plane/propel/icons";
 import type { EUserProjectRoles } from "@plane/types";
 // plane ui
 // components
 import { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
+import { createSolarSidebarIconPair } from "@/components/sidebar/solar-icon";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
@@ -26,6 +36,7 @@ export type TNavigationItem = {
   name: string;
   href: string;
   icon: React.ElementType;
+  activeIcon: React.ElementType;
   access: EUserPermissions[] | EUserProjectRoles[];
   shouldRender: boolean;
   sortOrder: number;
@@ -72,7 +83,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "brief",
         name: "Brief",
         href: `/${workspaceSlug}/projects/${projectId}/brief`,
-        icon: FileText,
+        ...createSolarSidebarIconPair(FileText),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: true,
         sortOrder: 0,
@@ -82,7 +93,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "work_items",
         name: "Tasks",
         href: `/${workspaceSlug}/projects/${projectId}/issues`,
-        icon: WorkItemsIcon,
+        ...createSolarSidebarIconPair(Checklist),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: true,
         sortOrder: 1,
@@ -92,7 +103,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "cycles",
         name: "Cycles",
         href: `/${workspaceSlug}/projects/${projectId}/cycles`,
-        icon: CycleIcon,
+        ...createSolarSidebarIconPair(Calendar),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
         shouldRender: project?.cycle_view ?? false,
         sortOrder: 2,
@@ -102,7 +113,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "modules",
         name: "Modules",
         href: `/${workspaceSlug}/projects/${projectId}/modules`,
-        icon: ModuleIcon,
+        ...createSolarSidebarIconPair(Layers),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
         shouldRender: project?.module_view ?? false,
         sortOrder: 3,
@@ -112,7 +123,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "views",
         name: "Views",
         href: `/${workspaceSlug}/projects/${projectId}/views`,
-        icon: ViewsIcon,
+        ...createSolarSidebarIconPair(Eye),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.issue_views_view ?? false,
         sortOrder: 4,
@@ -122,7 +133,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "pages",
         name: "Docs",
         href: `/${workspaceSlug}/projects/${projectId}/pages`,
-        icon: PageIcon,
+        ...createSolarSidebarIconPair(Document),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.page_view ?? false,
         sortOrder: 5,
@@ -132,7 +143,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "bookmarks",
         name: "Bookmarks",
         href: `/${workspaceSlug}/projects/${projectId}/bookmarks`,
-        icon: Star,
+        ...createSolarSidebarIconPair(Bookmark),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: true,
         sortOrder: 6,
@@ -142,7 +153,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "whiteboards",
         name: "Whiteboards",
         href: `/${workspaceSlug}/projects/${projectId}/whiteboards`,
-        icon: Whiteboard,
+        ...createSolarSidebarIconPair(RulerPen),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.page_view ?? false,
         sortOrder: 7,
@@ -152,7 +163,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         key: "intake",
         name: "Intake",
         href: `/${workspaceSlug}/projects/${projectId}/intake`,
-        icon: IntakeIcon,
+        ...createSolarSidebarIconPair(Inbox),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.inbox_view ?? false,
         sortOrder: 8,
@@ -207,16 +218,16 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         const hasAccess = allowPermissions(item.access, EUserPermissionsLevel.PROJECT, workspaceSlug, project.id);
         if (!hasAccess) return null;
 
+        const itemIsActive = !!isActive(item);
+        const Icon = itemIsActive ? item.activeIcon : item.icon;
         const shouldShowCount = item.key === "intake" && (project.intake_count ?? 0) > 0;
 
         return (
           <Link key={item.key} href={item.href} onClick={handleProjectClick}>
-            <SidebarNavItem isActive={!!isActive(item)}>
+            <SidebarNavItem isActive={itemIsActive}>
               <div className="flex w-full items-center justify-between gap-1.5 py-[1px]">
                 <div className="flex items-center gap-1.5">
-                  <item.icon
-                    className={`size-4 flex-shrink-0 ${item.name === "Intake" ? "stroke-1" : "stroke-[1.5]"}`}
-                  />
+                  <Icon className={`size-4 flex-shrink-0 ${item.name === "Intake" ? "stroke-1" : "stroke-[1.5]"}`} />
                   <span className="text-11 font-medium">{t(item.i18n_key)}</span>
                 </div>
                 {shouldShowCount && <span className="text-11 font-medium text-tertiary">{project.intake_count}</span>}

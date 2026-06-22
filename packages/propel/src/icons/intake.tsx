@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { InboxIcon as InboxIconSvg } from "@hugeicons/core-free-icons";
+import { InboxLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const Intake = hugeIcon(InboxIconSvg);
+export const Intake = InboxLine;

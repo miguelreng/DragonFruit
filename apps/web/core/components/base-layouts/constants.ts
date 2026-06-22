@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { BoardLayoutIcon, ListLayoutIcon, TimelineLayoutIcon } from "@plane/propel/icons";
+import { BoardLayoutIcon, ListLayoutIcon, TimelineLayoutIcon } from "@/components/icons/propel-shim";
 import type { IBaseLayoutConfig } from "@plane/types";
 
 export const BASE_LAYOUTS: IBaseLayoutConfig[] = [

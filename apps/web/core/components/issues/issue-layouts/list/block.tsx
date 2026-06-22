@@ -11,7 +11,7 @@ import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { GitBranch } from "@/components/icons/lucide-shim";
-import { ChevronRightIcon } from "@plane/propel/icons";
+import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
@@ -227,7 +227,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   }
                   disabled={issue.project_id === projectId}
                 >
-                  <div className="absolute left-1 grid w-3.5 flex-shrink-0 place-items-center">
+                  <div className="absolute left-[var(--padding-page-x)] grid w-3.5 flex-shrink-0 place-items-center">
                     {/* ClickUp-style: checkbox is always visible at half
                         opacity so a column of empty boxes anchors the row;
                         hover and selected states pop it to full opacity. */}

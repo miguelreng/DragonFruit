@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 // icons
 import { Info } from "@/components/icons/lucide-shim";
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 // ui
 import { CircularProgressIndicator } from "@plane/ui";
 // components

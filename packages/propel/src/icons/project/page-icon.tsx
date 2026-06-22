@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { File02Icon } from "@hugeicons/core-free-icons";
+import { DocumentLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const PageIcon = hugeIcon(File02Icon);
+export const PageIcon = DocumentLine;

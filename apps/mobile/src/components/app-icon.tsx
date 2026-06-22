@@ -1,18 +1,22 @@
 import { View } from "react-native";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react-native";
 
+import type { AppIconComponent } from "@/lib/icons";
 import { colors } from "@/lib/theme";
 
 type AppIconProps = {
-  icon: IconSvgElement;
+  icon: AppIconComponent;
   size?: number;
   color?: string;
+  /**
+   * Retained for call-site compatibility. Solar icons encode stroke via the
+   * icon weight (we use the thin "Linear" set), so this is intentionally ignored.
+   */
   strokeWidth?: number;
 };
 
 /**
- * Thin wrapper over Hugeicons so the app has one visual rhythm for icon size,
- * stroke, and color defaults.
+ * Thin wrapper over Solar icons so the app has one visual rhythm for icon size
+ * and color defaults.
  *
  * The icon is boxed in a fixed-size View: react-native-svg sets the SVG's size
  * via element props, not Yoga style, so under the New Architecture a bare <Svg>
@@ -21,10 +25,10 @@ type AppIconProps = {
  * concrete width/height gives Yoga a deterministic box, so icon+label rows lay
  * out reliably everywhere.
  */
-export function AppIcon({ icon, size = 20, color = colors.body, strokeWidth = 1.9 }: AppIconProps) {
+export function AppIcon({ icon: Icon, size = 20, color = colors.body }: AppIconProps) {
   return (
     <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      <HugeiconsIcon icon={icon} size={size} color={color} strokeWidth={strokeWidth} />
+      <Icon size={size} color={color} />
     </View>
   );
 }

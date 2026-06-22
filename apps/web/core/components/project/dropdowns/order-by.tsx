@@ -9,7 +9,7 @@ import { ArrowDownWideNarrow } from "@/components/icons/lucide-shim";
 import { PROJECT_ORDER_BY_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { getButtonStyling } from "@plane/propel/button";
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 import type { TProjectOrderByOptions } from "@plane/types";
 import { CustomMenu } from "@plane/ui";
 

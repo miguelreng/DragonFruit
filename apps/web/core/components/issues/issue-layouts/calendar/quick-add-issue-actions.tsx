@@ -11,7 +11,7 @@ import { useParams } from "next/navigation";
 
 import { useTranslation } from "@plane/i18n";
 // plane imports
-import { PlusIcon } from "@plane/propel/icons";
+import { PlusIcon } from "@/components/icons/propel-shim";
 import { setPromiseToast } from "@plane/propel/toast";
 import type { ISearchIssueResponse, TIssue } from "@plane/types";
 import { EIssueLayoutTypes } from "@plane/types";

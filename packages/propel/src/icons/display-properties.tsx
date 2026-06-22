@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { SlidersHorizontalIcon } from "@hugeicons/core-free-icons";
+import { Settings3Line } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const DisplayPropertiesIcon = hugeIcon(SlidersHorizontalIcon);
+export const DisplayPropertiesIcon = Settings3Line;

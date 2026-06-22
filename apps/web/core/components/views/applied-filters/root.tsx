@@ -5,7 +5,7 @@
  */
 
 import { useTranslation } from "@plane/i18n";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 // plane imports
 import type { EViewAccess, TViewFilterProps } from "@plane/types";
 import { Tag } from "@plane/ui";

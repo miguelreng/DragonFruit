@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Bookmark } from "@hugeicons/core-free-icons";
+import { FolderStarLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const FavoriteFolderIcon = hugeIcon(Bookmark);
+export const FavoriteFolderIcon = FolderStarLine;

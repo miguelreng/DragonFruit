@@ -10,7 +10,7 @@ import useSWR from "swr";
 // ui
 import { Banner } from "@plane/propel/banner";
 import { Button } from "@plane/propel/button";
-import { ArchiveIcon } from "@plane/propel/icons";
+import { ArchiveIcon } from "@/components/icons/propel-shim";
 import { Loader } from "@plane/ui";
 // components
 import { PageHead } from "@/components/core/page-title";

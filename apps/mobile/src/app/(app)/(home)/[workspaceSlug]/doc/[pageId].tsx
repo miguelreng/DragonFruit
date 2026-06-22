@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { GlobeIcon } from "@hugeicons/core-free-icons";
+import { GlobeIcon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { DocWebView } from "@/components/doc-web-view";

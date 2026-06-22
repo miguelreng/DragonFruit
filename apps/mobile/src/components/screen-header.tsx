@@ -3,7 +3,7 @@ import { router, useNavigation } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DrawerActions } from "@react-navigation/native";
-import { ArrowLeft01Icon, SidebarLeftIcon } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon, SidebarLeftIcon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { PressableScale } from "@/components/pressable-scale";

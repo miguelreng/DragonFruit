@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { AddCircleIcon as AddCircleIconSvg } from "@hugeicons/core-free-icons";
+import { AddCircleLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const AddCircleIcon = hugeIcon(AddCircleIconSvg);
+export const AddCircleIcon = AddCircleLine;

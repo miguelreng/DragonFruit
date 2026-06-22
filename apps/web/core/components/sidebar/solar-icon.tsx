@@ -11,22 +11,21 @@ type SolarSidebarIconComponent = ComponentType<SVGProps<SVGSVGElement> & { weigh
 type SolarSidebarIconProps = SVGProps<SVGSVGElement>;
 
 const INACTIVE_WEIGHT: IconWeight = "Outline";
-const ACTIVE_WEIGHT: IconWeight = "BoldDuotone";
-const INACTIVE_SCALE = 1.05;
+const ACTIVE_WEIGHT: IconWeight = "Bold";
+const INACTIVE_STROKE_WIDTH = 0.9;
 
 export const createSolarSidebarIcon = (Icon: SolarSidebarIconComponent, weight: IconWeight) => {
-  const SolarSidebarIcon = ({ className, style, ...props }: SolarSidebarIconProps) => {
-    const isInactive = weight === INACTIVE_WEIGHT;
-    const mergedStyle = isInactive
-      ? {
-          ...style,
-          transform: style?.transform ? `${style.transform} scale(${INACTIVE_SCALE})` : `scale(${INACTIVE_SCALE})`,
-          transformOrigin: style?.transformOrigin ?? "center",
-        }
-      : style;
-
-    return <Icon {...props} className={className} style={mergedStyle} weight={weight} />;
-  };
+  const SolarSidebarIcon = ({ className, ...props }: SolarSidebarIconProps) => (
+    <Icon
+      {...props}
+      className={className}
+      paintOrder={weight === INACTIVE_WEIGHT ? "stroke fill" : props.paintOrder}
+      strokeLinecap={weight === INACTIVE_WEIGHT ? "round" : props.strokeLinecap}
+      strokeLinejoin={weight === INACTIVE_WEIGHT ? "round" : props.strokeLinejoin}
+      strokeWidth={weight === INACTIVE_WEIGHT ? INACTIVE_STROKE_WIDTH : props.strokeWidth}
+      weight={weight}
+    />
+  );
 
   SolarSidebarIcon.displayName = `SolarSidebarIcon(${Icon.displayName ?? Icon.name ?? "Icon"}:${weight})`;
 
@@ -45,14 +44,10 @@ export const renderSolarSidebarIcon = (
 ) => (
   <Icon
     className={className}
-    style={
-      isActive
-        ? undefined
-        : {
-            transform: `scale(${INACTIVE_SCALE})`,
-            transformOrigin: "center",
-          }
-    }
+    paintOrder={isActive ? undefined : "stroke fill"}
+    strokeLinecap={isActive ? undefined : "round"}
+    strokeLinejoin={isActive ? undefined : "round"}
+    strokeWidth={isActive ? undefined : INACTIVE_STROKE_WIDTH}
     weight={isActive ? ACTIVE_WEIGHT : INACTIVE_WEIGHT}
   />
 );

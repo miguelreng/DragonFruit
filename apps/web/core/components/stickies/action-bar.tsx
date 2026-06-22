@@ -12,7 +12,7 @@ import { StickyNote as StickyIcon } from "@/components/icons/lucide-shim";
 // plane hooks
 import { useOutsideClickDetector } from "@plane/hooks";
 // plane ui
-import { RecentStickyIcon, StickyNoteIcon, PlusIcon, CloseIcon } from "@plane/propel/icons";
+import { RecentStickyIcon, StickyNoteIcon, PlusIcon, CloseIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 // plane utils
 import { cn } from "@plane/utils";

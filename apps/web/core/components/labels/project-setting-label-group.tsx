@@ -9,7 +9,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
-import { EditIcon, TrashIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { EditIcon, TrashIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import type { IIssueLabel } from "@plane/types";
 // components
 import type { TLabelOperationsCallbacks } from "./create-update-label-inline";

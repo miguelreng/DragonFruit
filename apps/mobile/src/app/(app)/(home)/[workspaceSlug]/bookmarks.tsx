@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { Image, type ImageLoadEventData } from "expo-image";
-import type { IconSvgElement } from "@hugeicons/react-native";
+import type { AppIconComponent } from "@/lib/icons";
 import {
   CodeIcon,
   FigmaIcon,
@@ -25,7 +25,7 @@ import {
   PlayCircle02Icon,
   ShoppingBag03Icon,
   NewTwitterIcon,
-} from "@hugeicons/core-free-icons";
+} from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { ScreenHeader } from "@/components/screen-header";
@@ -52,7 +52,7 @@ function hostOf(url: string): string {
 type BookmarkType = {
   key: string;
   label: string;
-  icon: IconSvgElement;
+  icon: AppIconComponent;
   tint: string;
 };
 

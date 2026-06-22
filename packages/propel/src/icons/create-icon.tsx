@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { PlusSignIcon } from "@hugeicons/core-free-icons";
+import { AddLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const CreateIcon = hugeIcon(PlusSignIcon);
+export const CreateIcon = AddLine;

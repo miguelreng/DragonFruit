@@ -8,7 +8,7 @@ import React, { useState } from "react";
 import { observer } from "mobx-react";
 import { GithubIcon, HelpCircle, User } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
-import { PageIcon } from "@plane/propel/icons";
+import { PageIcon } from "@/components/icons/propel-shim";
 // ui
 import { CustomMenu } from "@plane/ui";
 // components

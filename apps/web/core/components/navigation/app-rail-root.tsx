@@ -5,7 +5,7 @@
  */
 
 "use client";
-import { type ComponentType, type FormEvent, type MutableRefObject, type SVGProps, useEffect, useRef, useState } from "react";
+import { type FormEvent, type MutableRefObject, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -14,13 +14,12 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
   Calendar,
+  AddSquare,
   Checklist,
   Document,
   Download,
   FileText,
   Folder,
-  FolderFavouriteStar,
-  FolderOpen,
   InfoCircle,
   Layers,
   LinkSquare,
@@ -32,7 +31,7 @@ import {
   Star,
   Widget,
 } from "@solar-icons/react/ssr";
-import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@plane/propel/icons";
+import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@/components/icons/propel-shim";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -98,8 +97,7 @@ const COMPRESSED_ICON_CLASS =
   "relative grid size-8 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
 const EXPANDED_ICON_CLASS =
   "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none t-press dark:text-white/70";
-const EXPANDED_ICON_ACTIVE =
-  "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]";
+const EXPANDED_ICON_ACTIVE = "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]";
 const EXPANDED_ICON_INACTIVE =
   "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]";
 const COMPACT_RAIL_ICON_CLASS = "grid size-5 place-items-center [&_svg]:size-5 [&_svg]:text-current";
@@ -109,16 +107,16 @@ const RAIL_ICON_INACTIVE = "text-icon-tertiary dark:text-white/60";
 const RAIL_TREE_LINE_CLASS = "absolute top-0 bottom-1 left-1 w-px bg-[var(--border-color-strong)] dark:bg-white/[0.28]";
 const RAIL_LOGO_ICON_SIZE = 14;
 const RAIL_SOLAR_ICON_WEIGHT_INACTIVE = "Outline" as const;
-const RAIL_SOLAR_ICON_WEIGHT_ACTIVE = "BoldDuotone" as const;
+const RAIL_SOLAR_ICON_WEIGHT_ACTIVE = "Bold" as const;
 
-const renderRailSolarIcon = (
-  Icon: ComponentType<SVGProps<SVGSVGElement> & { weight?: typeof RAIL_SOLAR_ICON_WEIGHT_INACTIVE | typeof RAIL_SOLAR_ICON_WEIGHT_ACTIVE }>,
-  isActive = false,
-  className = RAIL_INLINE_ICON_CLASS
-) => <Icon className={className} weight={isActive ? RAIL_SOLAR_ICON_WEIGHT_ACTIVE : RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />;
+type RailSolarIconComponent = typeof Calendar;
+
+const renderRailSolarIcon = (Icon: RailSolarIconComponent, isActive = false, className = RAIL_INLINE_ICON_CLASS) => (
+  <Icon className={className} weight={isActive ? RAIL_SOLAR_ICON_WEIGHT_ACTIVE : RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+);
 
 const railSolarIconSet = (
-  Icon: ComponentType<SVGProps<SVGSVGElement> & { weight?: typeof RAIL_SOLAR_ICON_WEIGHT_INACTIVE | typeof RAIL_SOLAR_ICON_WEIGHT_ACTIVE }>
+  Icon: RailSolarIconComponent
 ) => railIconSet(renderRailSolarIcon(Icon, false), renderRailSolarIcon(Icon, true));
 
 const isRouteMatch = (targetPath: string, pathname: string) => {
@@ -251,8 +249,7 @@ const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => voi
         aria-label={item.label}
         onClick={onActivate}
         className={cn(COMPRESSED_ICON_CLASS, {
-          "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]":
-            item.isActive,
+          "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]": item.isActive,
         })}
       >
         <span
@@ -311,12 +308,12 @@ const CompactRailOverflowMenu = (props: {
         isCompact ? (
           <AppSidebarTooltip tooltipContent="More">
             <span className="flex items-center justify-center">
-              <MenuDots className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+              <MenuDots className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
             </span>
           </AppSidebarTooltip>
         ) : (
           <span className="flex min-w-0 items-center gap-1.5">
-            <MenuDots className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+            <MenuDots className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
             <span className="min-w-0 flex-1 truncate">More</span>
           </span>
         )
@@ -331,7 +328,9 @@ const CompactRailOverflowMenu = (props: {
             )
       }
       ariaLabel="More"
-      placement="right-start"
+      // Compact rail: pop out to the right. Expanded: the trigger is w-fit, so
+      // right-start would land the panel on top of the sidebar — drop it down instead.
+      placement={isCompact ? "right-start" : "bottom-start"}
       className="p-0"
       optionsClassName="min-w-52 p-1.5"
       panelDataTheme={panelDataTheme}
@@ -429,49 +428,41 @@ const RailCategory = (props: {
   onToggle: () => void;
   className?: string;
   action?: React.ReactNode;
-  // Optional custom header icon; falls back to the folder open/closed icons.
-  icon?: React.ReactNode;
-  closedIcon?: React.ReactNode;
-  openIcon?: React.ReactNode;
   children: React.ReactNode;
 }) => {
-  const { title, isExpanded, isOpen, onToggle, action, icon, closedIcon, openIcon, children, className = "" } = props;
+  const { title, isExpanded, isOpen, onToggle, action, children, className = "" } = props;
 
   if (!isExpanded) return <>{children}</>;
 
   return (
-    <div className={cn("flex w-full flex-col gap-1", className)}>
+    // An open category adds breathing room *below* itself to set its child list
+    // apart from the next category. No top margin, so opening never shifts the
+    // header or opens a gap with the category above it; collapsed categories stack
+    // tightly together.
+    <div className={cn("flex w-full flex-col gap-1", { "mb-2": isOpen }, className)}>
       <div className="group/category flex w-full items-center justify-between gap-1 rounded-lg pr-1 hover:bg-layer-transparent-hover dark:hover:bg-white/[0.08]">
         <AppSidebarTooltip tooltipContent={title}>
           <button
             type="button"
             onClick={onToggle}
-            className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left text-12 font-medium text-tertiary hover:text-secondary dark:text-white/60 dark:hover:text-white/90"
+            className="flex min-w-0 flex-1 items-center gap-1 px-2 py-1 text-left text-12 font-medium text-tertiary hover:text-secondary dark:text-white/60 dark:hover:text-white/90"
             aria-label={title}
             aria-expanded={isOpen}
           >
-            <span className="flex size-5 flex-shrink-0 items-center justify-center text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current">
-              {
-                icon ?? (
-                  isOpen ? (
-                    openIcon ?? <FolderOpen weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
-                  ) : (
-                    closedIcon ?? <Folder weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
-                  )
-                )
-              }
-            </span>
-            <span className="min-w-0 flex-1 truncate">{title}</span>
+            <span className="min-w-0 truncate">{title}</span>
+            <ChevronRightIcon
+              className={cn(
+                "size-3.5 flex-shrink-0 text-current opacity-0 transition group-hover/category:opacity-100 group-focus-within/category:opacity-100",
+                {
+                  "rotate-90": isOpen,
+                }
+              )}
+            />
           </button>
         </AppSidebarTooltip>
         {action}
       </div>
-      {isOpen && (
-        <div className="relative ml-3 flex w-[calc(100%-0.75rem)] flex-col gap-0.5 pl-3">
-          <div className={RAIL_TREE_LINE_CLASS} />
-          {children}
-        </div>
-      )}
+      {isOpen && <div className="flex w-full flex-col gap-1">{children}</div>}
     </div>
   );
 };
@@ -722,8 +713,7 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]":
-                      isBriefActive,
+                    "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]": isBriefActive,
                   }
                 )}
               >
@@ -742,8 +732,7 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]":
-                      isTasksActive,
+                    "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]": isTasksActive,
                   }
                 )}
               >
@@ -762,8 +751,7 @@ const ProjectRailTreeItem = (props: {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
                   {
-                    "!bg-[#ffddef] !text-[var(--txt-accent-primary)] dark:!bg-[#ffddef] dark:!text-[var(--txt-accent-primary)]":
-                      isPagesActive,
+                    "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]": isPagesActive,
                   }
                 )}
               >
@@ -1190,7 +1178,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               variant="button"
               item={{
                 label: t("sidebar.new_work_item"),
-                icon: <Checklist weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
+                icon: <AddSquare weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
                 onClick: handleCreateTask,
                 disabled: isCreateTaskDisabled,
                 isInline: isRailExpanded,
@@ -1238,8 +1226,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                   isExpanded={isRailExpanded}
                   isOpen={isRecentsCategoryOpen}
                   onToggle={() => setIsRecentsCategoryOpen((isOpen) => !isOpen)}
-                  closedIcon={<Folder weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />}
-                  openIcon={<FolderOpen weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />}
                 >
                   {isRecentsLoading && recentItems.length === 0 ? (
                     <RailItemsSkeleton isCompact={!isRailExpanded} />
@@ -1262,7 +1248,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 isExpanded={isRailExpanded}
                 isOpen={isFavoritesCategoryOpen}
                 onToggle={() => setIsFavoritesCategoryOpen((isOpen) => !isOpen)}
-                closedIcon={<FolderFavouriteStar weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />}
               >
                 {isFavoritesLoading && favorites.length === 0 ? (
                   <RailItemsSkeleton isCompact={!isRailExpanded} />
@@ -1284,8 +1269,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 isExpanded={isRailExpanded}
                 isOpen={isProjectsCategoryOpen}
                 onToggle={() => setIsProjectsCategoryOpen((isOpen) => !isOpen)}
-                className="mt-[-4px]"
-                closedIcon={<Folder weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />}
                 action={
                   canCreateProject ? (
                     <AppSidebarTooltip tooltipContent={t("create_project")}>

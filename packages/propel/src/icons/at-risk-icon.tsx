@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { AlertCircleIcon } from "@hugeicons/core-free-icons";
+import { AlertLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const AtRiskIcon = hugeIcon(AlertCircleIcon);
+export const AtRiskIcon = AlertLine;

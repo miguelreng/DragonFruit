@@ -10,9 +10,9 @@ import { useParams } from "react-router";
 import { ArrowUpToLine, CaseSensitive, CheckSquare, Clipboard, History } from "@/components/icons/lucide-shim";
 // plane imports
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 import { ToggleSwitch } from "@plane/ui";
-import { HelpCircle } from "@plane/icons";
+import { HelpCircle } from "@/components/icons/lucide-shim";
 // components
 import { openEditorCapabilitiesGuide } from "@/components/editor/editor-capabilities-guide";
 // hooks
@@ -109,9 +109,9 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
               <div className="flex w-full items-center justify-between gap-2">
                 <span className="truncate">{option.label}</span>
                 {currentFontStyle === option.value ? (
-                  <CheckIcon className="size-3.5 flex-shrink-0 text-accent-primary" />
+                  <CheckIcon className="size-4 flex-shrink-0 text-accent-primary" />
                 ) : (
-                  <span className="size-3.5 flex-shrink-0" />
+                  <span className="size-4 flex-shrink-0" />
                 )}
               </div>
             ),

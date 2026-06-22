@@ -8,7 +8,7 @@ import { observer } from "mobx-react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Boxes, Share2, Star, User2 } from "@/components/icons/lucide-shim";
-import { CheckIcon, CloseIcon } from "@plane/propel/icons";
+import { CheckIcon, CloseIcon } from "@/components/icons/propel-shim";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { EmptySpace, EmptySpaceItem } from "@/components/ui/empty-space";

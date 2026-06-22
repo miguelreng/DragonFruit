@@ -9,8 +9,7 @@ import * as React from "react";
 import ReactDOM from "react-dom";
 import { usePopper } from "react-popper";
 import { useOutsideClickDetector } from "@plane/hooks";
-import { MoreHorizontal } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { MenuDots } from "@solar-icons/react/ssr";
 import { ChevronDownIcon, ChevronRightIcon } from "@plane/propel/icons";
 // plane helpers
 // helpers
@@ -285,12 +284,7 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
                     tabIndex={customButtonTabIndex}
                     aria-label={ariaLabel}
                   >
-                    <HugeiconsIcon
-                      icon={MoreHorizontal}
-                      className={`size-4 ${verticalEllipsis ? "rotate-90" : ""}`}
-                      color="currentColor"
-                      strokeWidth={1.5}
-                    />
+                    <MenuDots weight="Bold" className={`size-4 ${verticalEllipsis ? "rotate-90" : ""}`} />
                   </button>
                 </Menu.Button>
               ) : (

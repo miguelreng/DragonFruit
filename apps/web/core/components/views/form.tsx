@@ -12,7 +12,7 @@ import { ETabIndices, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EmojiPicker, EmojiIconPickerTypes, Logo } from "@plane/propel/emoji-icon-picker";
-import { ViewsIcon } from "@plane/propel/icons";
+import { ViewsIcon } from "@/components/icons/propel-shim";
 import type {
   IIssueDisplayFilterOptions,
   IIssueDisplayProperties,

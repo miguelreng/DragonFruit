@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { GripVertical } from "@/components/icons/lucide-shim";
 import { EIconSize, STATE_TRACKER_ELEMENTS } from "@plane/constants";
 // plane imports
-import { EditIcon, StateGroupIcon } from "@plane/propel/icons";
+import { EditIcon, StateGroupIcon } from "@/components/icons/propel-shim";
 import type { IState, TStateOperationsCallbacks } from "@plane/types";
 // local imports
 import { useProjectState } from "@/hooks/store/use-project-state";

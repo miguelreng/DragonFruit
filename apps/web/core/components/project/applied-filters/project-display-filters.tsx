@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 // types
 import { PROJECT_DISPLAY_FILTER_OPTIONS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 import type { TProjectAppliedDisplayFilterKeys } from "@plane/types";
 // constants
 

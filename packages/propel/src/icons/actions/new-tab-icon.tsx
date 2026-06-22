@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { LinkSquare01Icon } from "@hugeicons/core-free-icons";
+import { ExternalLinkLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const NewTabIcon = hugeIcon(LinkSquare01Icon);
+export const NewTabIcon = ExternalLinkLine;

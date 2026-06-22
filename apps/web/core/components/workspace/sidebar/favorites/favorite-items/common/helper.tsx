@@ -5,7 +5,7 @@
  */
 
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { PageIcon } from "@plane/propel/icons";
+import { PageIcon } from "@/components/icons/propel-shim";
 // plane imports
 import { EIssueLayoutTypes } from "@plane/types";
 import type { IFavorite, TLogoProps } from "@plane/types";

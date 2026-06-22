@@ -61,6 +61,35 @@ export type TWorkspaceLLMConfigUpdate =
       llm_api_key?: string | null;
     };
 
+export type TWorkspaceComposioConfig = {
+  configured: boolean;
+  source: "workspace" | "environment" | "";
+  has_workspace_override: boolean;
+  composio_api_key_masked: string;
+  composio_base_url: string;
+  composio_toolkits: string[];
+  composio_allow_write_tools: boolean;
+  effective_toolkits: string[];
+  effective_allow_write_tools: boolean;
+};
+
+export type TWorkspaceComposioConfigUpdate =
+  | { clear: true }
+  | {
+      composio_api_key?: string | null;
+      composio_base_url?: string;
+      composio_toolkits?: string[];
+      composio_allow_write_tools?: boolean;
+    };
+
+export type TWorkspaceComposioTestResponse = {
+  ok: boolean;
+  error?: string;
+  session_id?: string;
+  source?: string;
+  preview?: unknown;
+};
+
 export class AIService extends APIService {
   constructor() {
     super(API_BASE_URL);
@@ -112,6 +141,33 @@ export class AIService extends APIService {
 
   async updateWorkspaceLLMConfig(workspaceSlug: string, data: TWorkspaceLLMConfigUpdate): Promise<TWorkspaceLLMConfig> {
     return this.patch(`/api/workspaces/${workspaceSlug}/llm-config/`, data)
+      .then((res) => res?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async getWorkspaceComposioConfig(workspaceSlug: string): Promise<TWorkspaceComposioConfig> {
+    return this.get(`/api/workspaces/${workspaceSlug}/composio-config/`)
+      .then((res) => res?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async updateWorkspaceComposioConfig(
+    workspaceSlug: string,
+    data: TWorkspaceComposioConfigUpdate
+  ): Promise<TWorkspaceComposioConfig> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/composio-config/`, data)
+      .then((res) => res?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async testWorkspaceComposioConfig(workspaceSlug: string): Promise<TWorkspaceComposioTestResponse> {
+    return this.post(`/api/workspaces/${workspaceSlug}/composio-config/`, {})
       .then((res) => res?.data)
       .catch((error) => {
         throw error?.response?.data;

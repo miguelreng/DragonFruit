@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { ChevronDownIcon, ChevronUpIcon } from "@plane/propel/icons";
+import { ChevronDownIcon, ChevronUpIcon } from "@/components/icons/propel-shim";
 
 type Props = {
   title: string;

@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane imports
-import { DragonfruitLockup, ChevronLeftIcon } from "@plane/propel/icons";
+import { DragonfruitLockup, ChevronLeftIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TOnboardingStep } from "@plane/types";
 import { EOnboardingSteps } from "@plane/types";

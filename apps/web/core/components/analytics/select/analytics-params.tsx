@@ -11,7 +11,7 @@ import { Controller } from "react-hook-form";
 import { SlidersHorizontal } from "@/components/icons/lucide-shim";
 // plane package imports
 import { ANALYTICS_X_AXIS_VALUES, ANALYTICS_Y_AXIS_VALUES } from "@plane/constants";
-import { CalendarLayoutIcon } from "@plane/propel/icons";
+import { CalendarLayoutIcon } from "@/components/icons/propel-shim";
 import type { IAnalyticsParams } from "@plane/types";
 import { ChartYAxisMetric } from "@plane/types";
 import { cn } from "@plane/utils";

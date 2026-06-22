@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // icons
 import { DATE_BEFORE_FILTER_OPTIONS } from "@plane/constants";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 // plane constants
 import { renderFormattedDate, capitalizeFirstLetter } from "@plane/utils";
 // helpers

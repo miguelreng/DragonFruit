@@ -16,7 +16,7 @@ import { Popover, Transition } from "@headlessui/react";
 import type { TSupportedFilterTypeForUpdate } from "@plane/constants";
 import { EIssueFilterType } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { CheckIcon, ChevronUpIcon } from "@plane/propel/icons";
+import { CheckIcon, ChevronUpIcon } from "@/components/icons/propel-shim";
 import type { TCalendarLayouts, TSupportedFilterForUpdate } from "@plane/types";
 import { ToggleSwitch } from "@plane/ui";
 // types

@@ -4,14 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import {
-  FolderClockIcon as FolderClockIconSvg,
-  FolderFavouriteIcon as FolderFavouriteIconSvg,
-  FolderKanbanIcon as FolderKanbanIconSvg,
-} from "@hugeicons/core-free-icons";
+import { ClockLine, FolderStarLine, LayoutGridLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const FolderClockIcon = hugeIcon(FolderClockIconSvg);
-export const FolderFavouriteIcon = hugeIcon(FolderFavouriteIconSvg);
-export const FolderKanbanIcon = hugeIcon(FolderKanbanIconSvg);
+export const FolderClockIcon = ClockLine;
+export const FolderFavouriteIcon = FolderStarLine;
+export const FolderKanbanIcon = LayoutGridLine;

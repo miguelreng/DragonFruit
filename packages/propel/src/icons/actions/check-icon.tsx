@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Tick02Icon } from "@hugeicons/core-free-icons";
+import { CheckLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const CheckIcon = hugeIcon(Tick02Icon);
+export const CheckIcon = CheckLine;

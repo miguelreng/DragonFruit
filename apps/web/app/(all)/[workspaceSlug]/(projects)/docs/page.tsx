@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { FileText } from "@/components/icons/lucide-shim";
+import { DocumentsMinimalistic } from "@solar-icons/react/ssr";
+import { renderSolarSidebarIcon } from "@/components/sidebar/solar-icon";
 import { PageHead } from "@/components/core/page-title";
 import { WorkspaceDocsRoot } from "@/components/docs/workspace-docs-root";
 import type { Route } from "./+types/page";
@@ -18,7 +19,7 @@ export default function WorkspaceDocsPage({ params }: Route.ComponentProps) {
         workspaceSlug={workspaceSlug}
         pageTypes={["doc", "pdf"]}
         headerLabel="Docs"
-        headerIcon={<FileText className="h-4 w-4 text-tertiary" />}
+        headerIcon={renderSolarSidebarIcon(DocumentsMinimalistic, false, "h-4 w-4 text-tertiary")}
       />
     </>
   );

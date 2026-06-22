@@ -38,7 +38,7 @@ import {
   PriorityPropertyIcon,
   StartDatePropertyIcon,
   StatePropertyIcon,
-} from "@plane/propel/icons";
+} from "@/components/icons/propel-shim";
 import { store } from "@/lib/store-context";
 import type { TProjectActivity } from "@/plane-web/types";
 

@@ -9,7 +9,7 @@ import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
 // ui
-import { CycleIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { CycleIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { ComboDropDown } from "@plane/ui";
 // helpers
 import { cn } from "@plane/utils";

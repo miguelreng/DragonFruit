@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { CloseIcon, ModuleIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { CloseIcon, ModuleIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // hooks

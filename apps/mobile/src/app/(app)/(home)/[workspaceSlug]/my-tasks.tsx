@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from "react-native";
-import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
+import { CheckmarkCircle02Icon } from "@/lib/icons";
 
 import { EmptyState } from "@/components/empty-state";
 import { IssueRow } from "@/components/issue-row";

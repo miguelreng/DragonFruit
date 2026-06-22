@@ -15,7 +15,7 @@ import type { TAgent } from "@/services/agent.service";
 // constants
 import { ATLAS_IDENTITY } from "@/constants/atlas";
 // local
-import { ChevronDown, ChevronRight } from "@plane/icons";
+import { ChevronDown, ChevronRight } from "@/components/icons/lucide-shim";
 import { AgentAvatar } from "./agent-avatar";
 import { AgentRunsPanel } from "./agent-runs-panel";
 

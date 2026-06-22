@@ -4,8 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { SearchIcon } from "@plane/propel/icons";
+import { Magnifer } from "@solar-icons/react/ssr";
 import { cn } from "@plane/utils";
+import { renderSolarSidebarIcon } from "@/components/sidebar/solar-icon";
 
 type Props = {
   isActive?: boolean;
@@ -22,11 +23,13 @@ export function SidebarSearchButton(props: Props) {
         }
       )}
     >
-      <SearchIcon
-        className={cn("size-4 text-tertiary", {
+      {renderSolarSidebarIcon(
+        Magnifer,
+        !!isActive,
+        cn("size-4 text-tertiary", {
           "text-accent-secondary": isActive,
-        })}
-      />
+        })
+      )}
     </div>
   );
 }

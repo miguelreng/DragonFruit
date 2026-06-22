@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { DashboardSquare01Icon } from "@hugeicons/core-free-icons";
+import { LayoutGridLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const SheetLayoutIcon = hugeIcon(DashboardSquare01Icon);
+export const SheetLayoutIcon = LayoutGridLine;

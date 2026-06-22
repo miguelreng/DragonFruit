@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowReloadHorizontalIcon } from "@hugeicons/core-free-icons";
+import { RefreshAnticlockwise1Line } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const TransferIcon = hugeIcon(ArrowReloadHorizontalIcon);
+export const TransferIcon = RefreshAnticlockwise1Line;

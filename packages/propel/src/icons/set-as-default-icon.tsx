@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { PinIcon } from "@hugeicons/core-free-icons";
+import { PinLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const SetAsDefaultIcon = hugeIcon(PinIcon);
+export const SetAsDefaultIcon = PinLine;

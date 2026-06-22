@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 import { searchWikipedia } from "@plane/editor";
 import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
 // plane imports
-import { WorkItemsIcon } from "@plane/propel/icons";
+import { WorkItemsIcon } from "@/components/icons/propel-shim";
 // plane types
 import type { TSearchEntities, TSearchResponse } from "@plane/types";
 // hooks

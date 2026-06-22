@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Copy01Icon } from "@hugeicons/core-free-icons";
+import { CopyLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const CopyIcon = hugeIcon(Copy01Icon);
+export const CopyIcon = CopyLine;

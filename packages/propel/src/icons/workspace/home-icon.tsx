@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Home01Icon } from "@hugeicons/core-free-icons";
+import { Home7Line } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const HomeIcon = hugeIcon(Home01Icon);
+export const HomeIcon = Home7Line;

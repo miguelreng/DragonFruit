@@ -14,7 +14,7 @@ import { Combobox } from "@headlessui/react";
 // i18n
 import { useTranslation } from "@plane/i18n";
 // icon
-import { CheckIcon, CycleGroupIcon, CycleIcon, SearchIcon } from "@plane/propel/icons";
+import { CheckIcon, CycleGroupIcon, CycleIcon, SearchIcon } from "@/components/icons/propel-shim";
 import type { TCycleGroups } from "@plane/types";
 // ui
 // store hooks

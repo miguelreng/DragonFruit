@@ -7,7 +7,7 @@
 import { useState, Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 // plane imports
-import { CloseIcon, SearchIcon } from "@plane/propel/icons";
+import { CloseIcon, SearchIcon } from "@/components/icons/propel-shim";
 import { ScrollArea } from "@plane/propel/scrollarea";
 import { Input } from "@plane/ui";
 // hooks

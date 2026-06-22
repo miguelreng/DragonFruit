@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { ArrowDownLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const DropdownIcon = hugeIcon(ArrowDown01Icon);
+export const DropdownIcon = ArrowDownLine;

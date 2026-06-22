@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -13,9 +14,11 @@ import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constan
 import { Popover } from "@plane/propel/popover";
 import { Spinner } from "@plane/ui";
 // icons
-import { Bell, CheckCheck } from "@/components/icons/lucide-shim";
+import { Bell } from "@solar-icons/react/ssr";
+import { CheckCheck } from "@/components/icons/lucide-shim";
 // components
 import { AppSidebarTooltip } from "@/components/sidebar/sidebar-item";
+import { renderSolarSidebarIcon } from "@/components/sidebar/solar-icon";
 import { NotificationItem } from "@/components/workspace-notifications/sidebar/notification-card/item";
 // hooks
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
@@ -32,6 +35,7 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
   const { workspaceSlug } = useParams();
   const slug = workspaceSlug?.toString();
   const surfaceTheme = useTopBarTheme();
+  const [isOpen, setIsOpen] = useState(false);
   // store hooks
   const { currentWorkspace } = useWorkspace();
   const {
@@ -72,7 +76,7 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
   };
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <AppSidebarTooltip tooltipContent="Notifications">
         <Popover.Button
           aria-label="Notifications"
@@ -80,7 +84,8 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
             "text-tertiary outline-none dark:text-white/65",
             isInline
               ? "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]"
-              : "group flex flex-col items-center justify-center gap-0.5"
+              : "group flex flex-col items-center justify-center gap-0.5",
+            isOpen && "!bg-layer-1-active !text-primary"
           )}
         >
           <div
@@ -88,11 +93,12 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
               "rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:text-current",
               isInline
                 ? "flex size-5 flex-shrink-0 items-center justify-center [&_svg]:size-4"
-                : "flex size-8 items-center justify-center gap-2 [&_svg]:size-5"
+                : "flex size-8 items-center justify-center gap-2 [&_svg]:size-5",
+              isOpen && "!bg-layer-1-active !text-primary"
             )}
           >
             <div className="relative">
-              <Bell />
+              {renderSolarSidebarIcon(Bell, isOpen)}
               {totalUnread > 0 && <span className="absolute top-0 right-0 size-2 rounded-full bg-danger-primary" />}
             </div>
           </div>

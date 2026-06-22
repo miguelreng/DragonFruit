@@ -7,7 +7,7 @@
 import React from "react";
 import { observer } from "mobx-react";
 import { Circle } from "@/components/icons/lucide-shim";
-import { ChevronDownIcon, ChevronUpIcon } from "@plane/propel/icons";
+import { ChevronDownIcon, ChevronUpIcon } from "@/components/icons/propel-shim";
 // DragonFruit
 import type { TIssueGroupByOptions, TIssueKanbanFilters } from "@plane/types";
 // DragonFruit-web

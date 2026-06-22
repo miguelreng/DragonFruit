@@ -5,14 +5,8 @@
  */
 
 import * as React from "react";
-import {
-  AlertCircleIcon,
-  ArrowDown02Icon,
-  ArrowRight02Icon,
-  ArrowUp02Icon,
-  MinusSignIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { AlertLine, ArrowDownLine, ArrowRightLine, ArrowUpLine } from "@mingcute/react";
+import { Minus } from "@plane/icons";
 import { cn } from "../utils";
 
 export type TIssuePriorities = "urgent" | "high" | "medium" | "low" | "none";
@@ -40,12 +34,12 @@ export function PriorityIcon(props: IPriorityIcon) {
   };
 
   // get priority icon
-  const icons: Record<TIssuePriorities, IconSvgElement> = {
-    urgent: AlertCircleIcon,
-    high: ArrowUp02Icon,
-    medium: ArrowRight02Icon,
-    low: ArrowDown02Icon,
-    none: MinusSignIcon,
+  const icons: Record<TIssuePriorities, React.ElementType> = {
+    urgent: AlertLine,
+    high: ArrowUpLine,
+    medium: ArrowRightLine,
+    low: ArrowDownLine,
+    none: Minus,
   };
   const Icon = icons[resolvedPriority];
 
@@ -61,20 +55,10 @@ export function PriorityIcon(props: IPriorityIcon) {
             containerClassName
           )}
         >
-          <HugeiconsIcon
-            icon={Icon}
-            size={size}
-            color="currentColor"
-            strokeWidth={1.5}
-            className={cn("stroke-2", className)}
-          />
+          <Icon className={cn("flex-shrink-0", className)} style={{ width: size, height: size }} aria-hidden />
         </div>
       ) : (
-        <HugeiconsIcon
-          icon={Icon}
-          size={size}
-          color="currentColor"
-          strokeWidth={1.5}
+        <Icon
           className={cn(
             "flex-shrink-0",
             {
@@ -86,6 +70,8 @@ export function PriorityIcon(props: IPriorityIcon) {
             },
             className
           )}
+          style={{ width: size, height: size }}
+          aria-hidden
         />
       )}
     </>

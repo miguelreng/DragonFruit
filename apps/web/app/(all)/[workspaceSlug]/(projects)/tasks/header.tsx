@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { YourWorkIcon } from "@plane/propel/icons";
+import { YourWorkIcon } from "@/components/icons/propel-shim";
 import type { TBaseIssue } from "@plane/types";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components
