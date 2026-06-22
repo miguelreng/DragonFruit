@@ -4,15 +4,28 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
-  "main": "./src/index.tsx",
-  "module": "./src/index.tsx",
-  "types": "./src/index.tsx",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.tsx",
+    ".": "./dist/index.js",
     "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch --no-clean",
+    "check:types": "tsc --noEmit",
+    "check:format": "oxfmt --check src package.json tsconfig.json tsdown.config.ts",
+    "fix:format": "oxfmt src package.json tsconfig.json tsdown.config.ts"
   },
   "dependencies": {
     "@solar-icons/react": "^1.1.1",
     "react": "catalog:"
+  },
+  "devDependencies": {
+    "@plane/typescript-config": "workspace:*",
+    "@types/react": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
   }
 }
