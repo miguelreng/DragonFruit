@@ -336,6 +336,9 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
     rejectSelectedAtlasProposals: () => {
       editor?.commands.rejectSelectedAtlasProposals();
     },
+    clearAtlasReview: () => {
+      editor?.commands.clearAtlasReview();
+    },
     undo: () => editor?.commands.undo(),
   };
 };

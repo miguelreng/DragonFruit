@@ -465,6 +465,10 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
+  // Snapshot of the document HTML captured at the start of each Atlas doc-write
+  // session. Used by "Discard Atlas changes" to revert in place via
+  // replaceProviderDocumentFromHTML. Cleared after discard / accept-all / reject-all.
+  const atlasSnapshotRef = useRef<string | null>(null);
   const projectPages = usePageStore(EPageStoreType.PROJECT);
   const activePage = pageId ? projectPages.getPageById(pageId) : undefined;
   const isDocPage = activePage?.page_type === "doc";
@@ -941,6 +945,9 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
       );
 
       if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
+        // Capture the pre-session snapshot BEFORE any Atlas proposal is written in.
+        // Used by "Discard Atlas changes" to revert the doc in place.
+        atlasSnapshotRef.current = activePageEditorRef.getDocument().html;
         setIsDrafting(true);
         await streamDocReview({
           activePageEditorRef,
@@ -1059,6 +1066,7 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
     if (!workspaceSlug || !projectId || !pageId) return;
     // Keep the result: bake any still-pending Atlas edits into the doc.
     if (activePageEditorRef && activePageEditorRef.getActiveAtlasProposalCount() > 0) {
+      atlasSnapshotRef.current = null;
       activePageEditorRef.acceptAllAtlasProposals();
     }
     const previous = session;
@@ -1280,18 +1288,46 @@ export const AgentDispatchListener = observer(function AgentDispatchListener(pro
                 )}
                 <button
                   type="button"
-                  onClick={() => activePageEditorRef?.acceptAllAtlasProposals()}
+                  onClick={() => {
+                    atlasSnapshotRef.current = null;
+                    activePageEditorRef?.acceptAllAtlasProposals();
+                  }}
                   className="inline-flex h-6 shrink-0 items-center rounded-full bg-accent-primary px-2.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90"
                 >
                   Accept all
                 </button>
                 <button
                   type="button"
-                  onClick={() => activePageEditorRef?.rejectAllAtlasProposals()}
+                  onClick={() => {
+                    atlasSnapshotRef.current = null;
+                    activePageEditorRef?.rejectAllAtlasProposals();
+                  }}
                   className="inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
                 >
                   Reject all
                 </button>
+                {atlasSnapshotRef.current !== null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          "Discard Atlas’s changes and revert the document to before this session? This also discards any manual edits you made since."
+                        )
+                      )
+                        return;
+                      const snapshot = atlasSnapshotRef.current;
+                      atlasSnapshotRef.current = null;
+                      if (snapshot !== null) {
+                        activePageEditorRef?.replaceProviderDocumentFromHTML(snapshot);
+                      }
+                      activePageEditorRef?.clearAtlasReview();
+                    }}
+                    className="inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                  >
+                    Discard Atlas changes
+                  </button>
+                )}
               </div>
             ) : null}
             {isDocMentionPickerOpen && (

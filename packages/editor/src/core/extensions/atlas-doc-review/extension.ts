@@ -58,6 +58,7 @@ declare module "@tiptap/core" {
       toggleAtlasProposalSelection: (id: string) => ReturnType;
       acceptSelectedAtlasProposals: () => ReturnType;
       rejectSelectedAtlasProposals: () => ReturnType;
+      clearAtlasReview: () => ReturnType;
     };
   }
 }
@@ -482,6 +483,12 @@ export const AtlasDocReviewExtension = Extension.create({
         ({ view }) => {
           if (!view) return false;
           rejectSelectedProposals(view);
+          return true;
+        },
+      clearAtlasReview:
+        () =>
+        ({ tr, dispatch }) => {
+          dispatch?.(tr.setMeta(atlasDocReviewPluginKey, { type: "clear" } satisfies TAtlasDocReviewAction));
           return true;
         },
     };
