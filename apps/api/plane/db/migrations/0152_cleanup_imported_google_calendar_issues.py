@@ -12,7 +12,10 @@ from django.utils import timezone
 
 def soft_delete_imported_google_calendar_issues(apps, schema_editor):
     Issue = apps.get_model("db", "Issue")
-    Issue.objects.filter(external_source="google_calendar", deleted_at__isnull=True).update(
+    # Historical models only carry managers flagged use_in_migrations; Issue's
+    # sole manager is `issue_objects`, so the rendered model has no `objects`.
+    # `_base_manager` always exists and (being unfiltered) sees every row.
+    Issue._base_manager.filter(external_source="google_calendar", deleted_at__isnull=True).update(
         deleted_at=timezone.now()
     )
 
