@@ -1399,6 +1399,9 @@ importers:
       '@base-ui-components/react':
         specifier: 1.0.0-beta.3
         version: 1.0.0-beta.3(@types/react@18.3.11)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@mingcute/react':
+        specifier: workspace:*
+        version: link:../mingcute-react
       '@plane/constants':
         specifier: workspace:*
         version: link:../constants
@@ -1411,6 +1414,9 @@ importers:
       '@plane/utils':
         specifier: workspace:*
         version: link:../utils
+      '@solar-icons/react':
+        specifier: ^1.1.1
+        version: 1.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

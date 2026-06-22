@@ -63,10 +63,12 @@
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-beta.3",
+    "@mingcute/react": "workspace:*",
     "@plane/constants": "workspace:*",
     "@plane/hooks": "workspace:*",
     "@plane/types": "workspace:*",
     "@plane/utils": "workspace:*",
+    "@solar-icons/react": "^1.1.1",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "0.7.1",
     "clsx": "^2.1.1",
