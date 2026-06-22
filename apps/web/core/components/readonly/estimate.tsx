@@ -7,7 +7,7 @@
 import { useEffect } from "react";
 import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
-import { EstimatePropertyIcon } from "@plane/propel/icons";
+import { EstimatePropertyIcon } from "@/components/icons/propel-shim";
 import { EEstimateSystem } from "@plane/types";
 import { cn, convertMinutesToHoursMinutesString } from "@plane/utils";
 // hooks

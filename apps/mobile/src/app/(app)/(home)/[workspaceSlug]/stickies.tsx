@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Delete02Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
+import { Delete02Icon, PlusSignIcon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { ScreenHeader } from "@/components/screen-header";

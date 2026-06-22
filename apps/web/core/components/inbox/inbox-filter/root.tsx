@@ -7,7 +7,7 @@
 import { ListFilter } from "@/components/icons/lucide-shim";
 import { getButtonStyling } from "@plane/propel/button";
 // plane imports
-import { ChevronDownIcon } from "@plane/propel/icons";
+import { ChevronDownIcon } from "@/components/icons/propel-shim";
 import { cn } from "@plane/utils";
 // components
 import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";

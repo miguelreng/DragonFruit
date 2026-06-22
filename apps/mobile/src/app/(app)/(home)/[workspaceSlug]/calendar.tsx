@@ -6,7 +6,7 @@ import {
   Location01Icon,
   UserGroupIcon,
   Video01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { ScreenHeader } from "@/components/screen-header";

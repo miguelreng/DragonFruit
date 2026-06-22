@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { StickyNote01Icon } from "@hugeicons/core-free-icons";
+import { NotebookLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const StickyNoteIcon = hugeIcon(StickyNote01Icon);
+export const StickyNoteIcon = NotebookLine;

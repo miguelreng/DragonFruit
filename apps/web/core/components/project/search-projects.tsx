@@ -10,7 +10,7 @@ import { observer } from "mobx-react";
 import { useOutsideClickDetector } from "@plane/hooks";
 // i18n
 import { useTranslation } from "@plane/i18n";
-import { SearchIcon, CloseIcon } from "@plane/propel/icons";
+import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
 // helpers
 import { cn } from "@plane/utils";
 // hooks

@@ -7,7 +7,7 @@
 import React from "react";
 import { observer } from "mobx-react";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { ChevronRightIcon } from "@plane/propel/icons";
+import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // icons
 import { Row } from "@plane/ui";
 // helpers

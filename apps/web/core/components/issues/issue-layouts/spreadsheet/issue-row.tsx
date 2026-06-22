@@ -12,13 +12,13 @@ import { GitBranch, MoreHorizontal } from "@/components/icons/lucide-shim";
 import { SPREADSHEET_SELECT_GROUP } from "@plane/constants";
 // plane helpers
 import { useOutsideClickDetector } from "@plane/hooks";
-import { ChevronRightIcon } from "@plane/propel/icons";
+import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // types
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IIssueDisplayProperties, TIssue } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // ui
-import { ControlLink, Row } from "@plane/ui";
+import { ControlLink, ERowVariant, Row } from "@plane/ui";
 import { cn, generateWorkItemLink } from "@plane/utils";
 // components
 import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
@@ -273,6 +273,9 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
           disabled={!!issueDetail?.tempId}
         >
           <Row
+            // Hug (px-0): the header th has no horizontal padding, so the default
+            // px-page-x here pushed the row's checkbox + title right of the header.
+            variant={ERowVariant.HUGGING}
             className={cn(
               // Tightened the row from h-11 (44px) → h-9 (36px) for a denser
               // spreadsheet — scanning a long task list, the extra 8px per row
@@ -302,7 +305,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                 }
                 disabled={issueDetail.project_id === projectId}
               >
-                <div className="flex h-full w-7 flex-shrink-0 items-center justify-center">
+                <div className="flex h-full w-6 flex-shrink-0 items-center justify-center">
                   <MultipleSelectEntityAction
                     className={cn("opacity-50 transition-opacity group-hover/list-block:opacity-100", {
                       "opacity-100": isIssueSelected,

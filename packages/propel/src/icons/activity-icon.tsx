@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Activity01Icon } from "@hugeicons/core-free-icons";
+import { HistoryLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const ActivityIcon = hugeIcon(Activity01Icon);
+export const ActivityIcon = HistoryLine;

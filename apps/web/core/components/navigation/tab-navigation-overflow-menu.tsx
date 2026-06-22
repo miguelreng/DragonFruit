@@ -9,7 +9,7 @@ import { Link } from "react-router";
 import { MoreHorizontal, Pin } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { SetAsDefaultIcon } from "@plane/propel/icons";
+import { SetAsDefaultIcon } from "@/components/icons/propel-shim";
 import { Menu } from "@plane/propel/menu";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";

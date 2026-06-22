@@ -16,7 +16,7 @@ import {
 } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 // plane imports
-import { LinkIcon, GlobeIcon, LockIcon } from "@plane/propel/icons";
+import { LinkIcon, GlobeIcon, LockIcon } from "@/components/icons/propel-shim";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { EPageAccess } from "@plane/types";
 import { copyTextToClipboard } from "@plane/utils";

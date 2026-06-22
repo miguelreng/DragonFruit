@@ -9,8 +9,8 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import type { EditorRefApi } from "@plane/editor";
 // ui
 import { useOutsideClickDetector } from "@plane/hooks";
-import { Palette } from "@plane/icons";
-import { TrashIcon } from "@plane/propel/icons";
+import { Palette } from "@/components/icons/lucide-shim";
+import { TrashIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TSticky } from "@plane/types";
 // constants

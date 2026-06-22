@@ -7,7 +7,7 @@
 import { Controller, useForm } from "react-hook-form";
 import { Button } from "@plane/propel/button";
 import { Calendar } from "@plane/propel/calendar";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 import { renderFormattedPayloadDate, renderFormattedDate, getDate } from "@plane/utils";
 import { DateFilterSelect } from "./date-filter-select";

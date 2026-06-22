@@ -1,5 +1,5 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
+import { CheckmarkCircle02Icon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { PressableScale } from "@/components/pressable-scale";

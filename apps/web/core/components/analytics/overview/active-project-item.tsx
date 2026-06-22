@@ -6,7 +6,7 @@
 
 // plane package imports
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { ProjectIcon } from "@plane/propel/icons";
+import { ProjectIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // plane web hooks

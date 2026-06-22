@@ -5,7 +5,7 @@
  */
 
 import { AlertTriangle, CheckCircle2, Clock, XCircle } from "@/components/icons/lucide-shim";
-import { CopyIcon } from "@plane/propel/icons";
+import { CopyIcon } from "@/components/icons/propel-shim";
 import type { TInboxIssueStatus } from "@plane/types";
 import { EInboxIssueStatus } from "@plane/types";
 import { cn } from "@plane/utils";

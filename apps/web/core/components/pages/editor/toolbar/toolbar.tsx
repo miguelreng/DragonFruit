@@ -7,7 +7,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import type { EditorRefApi } from "@plane/editor";
 // plane imports
-import { CheckIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { CheckIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { CustomMenu } from "@plane/ui";
 import { cn } from "@plane/utils";

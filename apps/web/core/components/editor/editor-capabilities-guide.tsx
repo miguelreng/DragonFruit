@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { HelpCircle, Maximize2, Minimize2 } from "@plane/icons";
+import { HelpCircle, Maximize2, Minimize2 } from "@/components/icons/lucide-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 

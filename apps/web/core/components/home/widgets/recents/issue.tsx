@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 // plane types
-import { PriorityIcon, StateGroupIcon, WorkItemsIcon } from "@plane/propel/icons";
+import { PriorityIcon, StateGroupIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TActivityEntityData, TIssueEntityData } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";

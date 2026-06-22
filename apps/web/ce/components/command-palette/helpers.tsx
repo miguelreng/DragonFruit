@@ -6,7 +6,7 @@
 
 import { LayoutGrid } from "@/components/icons/lucide-shim";
 // plane imports
-import { CycleIcon, ModuleIcon, PageIcon, ProjectIcon, ViewsIcon } from "@plane/propel/icons";
+import { CycleIcon, ModuleIcon, PageIcon, ProjectIcon, ViewsIcon } from "@/components/icons/propel-shim";
 import type {
   IWorkspaceDefaultSearchResult,
   IWorkspaceIssueSearchResult,

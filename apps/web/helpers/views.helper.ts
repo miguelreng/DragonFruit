@@ -6,9 +6,9 @@
 
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 import { VIEW_ACCESS_SPECIFIERS as VIEW_ACCESS_SPECIFIERS_CONSTANTS } from "@plane/constants";
-import { GlobeIcon, LockIcon } from "@plane/propel/icons";
+import { GlobeIcon, LockIcon } from "@/components/icons/propel-shim";
 
-import type { ISvgIcons } from "@plane/propel/icons";
+import type { ISvgIcons } from "@/components/icons/propel-shim";
 import { EViewAccess } from "@plane/types";
 
 const VIEW_ACCESS_ICONS = {

@@ -48,11 +48,12 @@ export const SidebarItemBase = observer(function SidebarItemBase({ item, additio
 
   const itemHref =
     item.key === "your_work" && data?.id ? joinUrlPath(slug, item.href, data?.id) : joinUrlPath(slug, item.href);
-  const icon = getSidebarNavigationItemIcon(item.key);
+  const isActive = item.highlight(pathname, itemHref);
+  const icon = getSidebarNavigationItemIcon(item.key, "", isActive);
 
   return (
     <Link href={itemHref} onClick={handleLinkClick}>
-      <SidebarNavItem isActive={item.highlight(pathname, itemHref)}>
+      <SidebarNavItem isActive={isActive}>
         <div className="flex items-center gap-1.5 py-[1px]">
           {icon}
           <p className="text-13 leading-5 font-medium">{t(item.labelTranslationKey)}</p>

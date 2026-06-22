@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { SquareLock01Icon } from "@hugeicons/core-free-icons";
+import { LockLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const LockIcon = hugeIcon(SquareLock01Icon);
+export const LockIcon = LockLine;

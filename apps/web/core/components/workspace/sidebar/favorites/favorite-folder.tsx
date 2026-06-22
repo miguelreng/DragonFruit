@@ -24,7 +24,7 @@ import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
-import { DraftIcon, FavoriteFolderIcon, ChevronRightIcon } from "@plane/propel/icons";
+import { DraftIcon, FavoriteFolderIcon, ChevronRightIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IFavorite, InstructionType } from "@plane/types";
 import { CustomMenu, DropIndicator, DragHandle } from "@plane/ui";

@@ -21,7 +21,7 @@ import { SettingsSidebarItem } from "@/components/settings/sidebar/item";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 // local imports
-import { WORKSPACE_SETTINGS_ICONS } from "./item-icon";
+import { ACTIVE_WORKSPACE_SETTINGS_ICONS, WORKSPACE_SETTINGS_ICONS } from "./item-icon";
 
 export const WorkspaceSettingsSidebarItemCategories = observer(function WorkspaceSettingsSidebarItemCategories() {
   // params
@@ -61,6 +61,7 @@ export const WorkspaceSettingsSidebarItemCategories = observer(function Workspac
                     href={joinUrlPath(workspaceSlug ?? "", item.href)}
                     isActive={isItemActive}
                     icon={WORKSPACE_SETTINGS_ICONS[item.key]}
+                    activeIcon={ACTIVE_WORKSPACE_SETTINGS_ICONS[item.key]}
                     label={t(item.i18n_label)}
                   />
                 );

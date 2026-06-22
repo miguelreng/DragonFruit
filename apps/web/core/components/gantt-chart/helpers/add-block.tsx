@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { addDays } from "date-fns";
 import { observer } from "mobx-react";
-import { PlusIcon } from "@plane/propel/icons";
+import { PlusIcon } from "@/components/icons/propel-shim";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IBlockUpdateData, IGanttBlock } from "@plane/types";

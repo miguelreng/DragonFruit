@@ -14,7 +14,7 @@ import { Combobox } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { SearchIcon } from "@plane/propel/icons";
+import { SearchIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISearchIssueResponse, IUser } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";

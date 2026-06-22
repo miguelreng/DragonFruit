@@ -277,11 +277,11 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
                   if (lockedProjectId) handleProjectSelect(lockedProjectId, t);
                 }}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1 rounded-lg border border-subtle px-2 py-1 text-11 text-secondary transition-colors hover:bg-layer-1",
+                  "flex flex-1 items-center justify-center gap-1 rounded-lg border border-subtle px-2 py-1 text-13 text-secondary transition-colors hover:bg-layer-1",
                   { "border-strong bg-layer-1 text-primary": isActive }
                 )}
               >
-                <Icon className="size-3" />
+                <Icon className="size-4" />
                 {label}
               </button>
             );
@@ -293,14 +293,14 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
             <div className="px-2 pt-2 pb-1.5 text-11 font-medium text-tertiary uppercase">Project</div>
             <div className="px-2 pb-2">
               <div className="flex items-center gap-1.5 rounded-lg border border-subtle bg-canvas px-2 py-1">
-                <Search className="size-3 text-tertiary" />
+                <Search className="size-4 text-tertiary" />
                 <input
                   type="text"
                   value={projectSearch}
                   onChange={(e) => setProjectSearch(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
                   placeholder="Search projects"
-                  className="w-full bg-transparent text-11 text-primary outline-none placeholder:text-placeholder"
+                  className="w-full bg-transparent text-13 text-primary outline-none placeholder:text-placeholder"
                 />
               </div>
             </div>
@@ -313,7 +313,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
                         type="button"
                         onClick={() => handleProjectSelect(project.id)}
                         disabled={isCreating}
-                        className={cn("flex w-full items-center gap-2 px-3 py-1.5 text-left text-12 text-primary", {
+                        className={cn("flex w-full items-center gap-2 px-3 py-1.5 text-left text-13 text-primary", {
                           "bg-layer-1-hover": active,
                           "opacity-50": isCreating,
                         })}
@@ -323,7 +323,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
                         </span>
                         <span className="truncate">{project.name}</span>
                         {submittingProjectId === project.id && (
-                          <span className="ml-auto text-11 text-tertiary">Adding…</span>
+                          <span className="ml-auto text-13 text-tertiary">Adding…</span>
                         )}
                       </button>
                     )}

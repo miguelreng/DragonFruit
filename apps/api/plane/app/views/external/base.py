@@ -23,6 +23,7 @@ from rest_framework.response import Response
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers import ProjectLiteSerializer, WorkspaceLiteSerializer
 from plane.db.models import Project, Workspace
+from plane.llm.composio import ComposioClient, ComposioConfig, get_composio_config_for_workspace
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 from plane.license.utils.instance_value import get_configuration_value
 from plane.utils.exception_logger import log_exception
@@ -639,6 +640,127 @@ class WorkspaceLLMConfigEndpoint(BaseAPIView):
                 "llm_model": workspace.llm_model or "",
                 "llm_api_key_masked": _mask_api_key(decrypted),
                 "has_workspace_override": bool(workspace.llm_api_key_encrypted),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+def _normalise_composio_toolkits(value) -> list[str]:
+    if isinstance(value, list):
+        raw_items = value
+    else:
+        raw_items = str(value or "").split(",")
+    return [str(item).strip().lower() for item in raw_items if str(item).strip()]
+
+
+def _workspace_composio_payload(workspace: Workspace) -> dict:
+    effective = get_composio_config_for_workspace(workspace)
+    workspace_key = decrypt_data(workspace.composio_api_key_encrypted) if workspace.composio_api_key_encrypted else ""
+    return {
+        "configured": effective is not None,
+        "source": effective.source if effective else "",
+        "has_workspace_override": bool(workspace.composio_api_key_encrypted),
+        "composio_api_key_masked": _mask_api_key(workspace_key),
+        "composio_base_url": workspace.composio_base_url or "",
+        "composio_toolkits": _normalise_composio_toolkits(workspace.composio_toolkits),
+        "composio_allow_write_tools": bool(workspace.composio_allow_write_tools),
+        "effective_toolkits": list(effective.toolkits) if effective else [],
+        "effective_allow_write_tools": bool(effective.allow_write_tools) if effective else False,
+    }
+
+
+class WorkspaceComposioConfigEndpoint(BaseAPIView):
+    """
+    GET   → current workspace Composio config, with only a masked key.
+    PATCH → update workspace-scoped Composio config.
+    POST  → test the effective config by creating a Tool Router session and searching tools.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def get(self, request, slug):
+        workspace = Workspace.objects.filter(slug=slug).first()
+        if workspace is None:
+            return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(_workspace_composio_payload(workspace), status=status.HTTP_200_OK)
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def patch(self, request, slug):
+        workspace = Workspace.objects.filter(slug=slug).first()
+        if workspace is None:
+            return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if bool(request.data.get("clear", False)):
+            workspace.composio_api_key_encrypted = None
+            workspace.composio_base_url = None
+            workspace.composio_toolkits = None
+            workspace.composio_allow_write_tools = False
+            workspace.save(
+                update_fields=[
+                    "composio_api_key_encrypted",
+                    "composio_base_url",
+                    "composio_toolkits",
+                    "composio_allow_write_tools",
+                ]
+            )
+            return Response(_workspace_composio_payload(workspace), status=status.HTTP_200_OK)
+
+        update_fields: list[str] = []
+        if "composio_api_key" in request.data:
+            api_key = request.data.get("composio_api_key")
+            workspace.composio_api_key_encrypted = encrypt_data(api_key) if api_key else None
+            update_fields.append("composio_api_key_encrypted")
+        if "composio_base_url" in request.data:
+            base_url = str(request.data.get("composio_base_url") or "").strip()
+            workspace.composio_base_url = base_url or None
+            update_fields.append("composio_base_url")
+        if "composio_toolkits" in request.data:
+            toolkits = _normalise_composio_toolkits(request.data.get("composio_toolkits"))
+            workspace.composio_toolkits = ",".join(toolkits) if toolkits else None
+            update_fields.append("composio_toolkits")
+        if "composio_allow_write_tools" in request.data:
+            workspace.composio_allow_write_tools = bool(request.data.get("composio_allow_write_tools"))
+            update_fields.append("composio_allow_write_tools")
+
+        if update_fields:
+            workspace.save(update_fields=update_fields)
+        return Response(_workspace_composio_payload(workspace), status=status.HTTP_200_OK)
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug):
+        workspace = Workspace.objects.filter(slug=slug).first()
+        if workspace is None:
+            return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        config = get_composio_config_for_workspace(workspace)
+        if config is None:
+            return Response({"error": "Composio is not configured"}, status=status.HTTP_400_BAD_REQUEST)
+
+        query = str(request.data.get("query") or "find github issue tools").strip()
+        try:
+            client = ComposioClient(
+                user_id=f"{workspace.id}:{request.user.id}:settings-test",
+                model="",
+                config=ComposioConfig(
+                    api_key=config.api_key,
+                    base_url=config.base_url,
+                    toolkits=config.toolkits,
+                    allow_write_tools=False,
+                    source=config.source,
+                ),
+            )
+            result = client.execute_meta(
+                "COMPOSIO_SEARCH_TOOLS",
+                {"queries": [query], "session": {"id": client.session_id}},
+            )
+        except Exception as exc:  # noqa: BLE001
+            return Response({"ok": False, "error": str(exc)}, status=status.HTTP_200_OK)
+
+        return Response(
+            {
+                "ok": True,
+                "session_id": client.session_id,
+                "source": config.source,
+                "preview": result,
             },
             status=status.HTTP_200_OK,
         )

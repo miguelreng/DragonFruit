@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { Earth, Info, Minus } from "@/components/icons/lucide-shim";
 // plane imports
-import { LockIcon } from "@plane/propel/icons";
+import { LockIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { Avatar, FavoriteStar } from "@plane/ui";
 import { renderFormattedDate, getFileURL } from "@plane/utils";

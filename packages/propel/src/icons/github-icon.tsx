@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Github01Icon } from "@hugeicons/core-free-icons";
+import { GithubLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const GithubIcon = hugeIcon(Github01Icon);
+export const GithubIcon = GithubLine;

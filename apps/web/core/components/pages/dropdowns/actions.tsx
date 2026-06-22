@@ -11,7 +11,7 @@ import { ArchiveRestoreIcon, FileOutput, FileText, LockKeyhole, LockKeyholeOpen 
 // constants
 import { EPageAccess, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // plane editor
-import { LinkIcon, CopyIcon, LockIcon, NewTabIcon, ArchiveIcon, TrashIcon, GlobeIcon } from "@plane/propel/icons";
+import { LinkIcon, CopyIcon, LockIcon, NewTabIcon, ArchiveIcon, TrashIcon, GlobeIcon } from "@/components/icons/propel-shim";
 // plane ui
 import type { TContextMenuItem } from "@plane/ui";
 import { ContextMenu, CustomMenu } from "@plane/ui";
@@ -302,7 +302,7 @@ export const PageActions = observer(function PageActions(props: Props) {
     return (
       item.customContent ?? (
         <>
-          {item.icon && <item.icon className="size-3" />}
+          {item.icon && <item.icon className="size-4" />}
           {item.title}
         </>
       )
@@ -319,7 +319,7 @@ export const PageActions = observer(function PageActions(props: Props) {
         storeType={storeType}
       />
       {parentRef && <ContextMenu parentRef={parentRef} items={arrangedOptions} />}
-      <CustomMenu placement="bottom-end" optionsClassName="max-h-[90vh]" ellipsis closeOnSelect={false}>
+      <CustomMenu placement="bottom-end" optionsClassName="max-h-[90vh] !text-13" ellipsis closeOnSelect={false}>
         {arrangedOptions.map((item) => {
           if (item.shouldRender === false) return null;
 
@@ -331,7 +331,7 @@ export const PageActions = observer(function PageActions(props: Props) {
                 disabled={item.disabled}
                 className={item.className}
               >
-                <CustomMenu.SubMenuContent className="min-w-[14rem]">
+                <CustomMenu.SubMenuContent className="min-w-[14rem] !text-13">
                   {item.nestedMenuItems
                     .filter((nestedItem) => nestedItem.shouldRender !== false)
                     .map((nestedItem) => (
@@ -345,7 +345,7 @@ export const PageActions = observer(function PageActions(props: Props) {
                       >
                         {nestedItem.customContent ?? (
                           <>
-                            {nestedItem.icon && <nestedItem.icon className="size-3" />}
+                            {nestedItem.icon && <nestedItem.icon className="size-4" />}
                             {nestedItem.title}
                           </>
                         )}

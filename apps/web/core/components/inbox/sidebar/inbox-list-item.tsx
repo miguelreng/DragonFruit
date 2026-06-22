@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 // plane imports
-import { PriorityIcon } from "@plane/propel/icons";
+import { PriorityIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { Row, Avatar } from "@plane/ui";
 import { cn, renderFormattedDate, getFileURL } from "@plane/utils";

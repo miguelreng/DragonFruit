@@ -26,6 +26,8 @@ export interface SidebarUserMenuItemProps {
     labelTranslationKey: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Icon: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ActiveIcon?: any;
   };
 }
 
@@ -41,6 +43,7 @@ export const SidebarUserMenuItem = observer(function SidebarUserMenuItem(props: 
   const { toggleSidebar } = useAppTheme();
 
   const isActive = pathname === item.href;
+  const Icon = isActive && item.ActiveIcon ? item.ActiveIcon : item.Icon;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!allowPermissions(item.access as any, EUserPermissionsLevel.WORKSPACE, workspaceSlug.toString())) return null;
@@ -55,7 +58,7 @@ export const SidebarUserMenuItem = observer(function SidebarUserMenuItem(props: 
     <Link href={item.href} onClick={handleLinkClick}>
       <SidebarNavItem isActive={isActive}>
         <div className="flex items-center gap-1.5 py-[1px]">
-          <item.Icon className="size-4 flex-shrink-0" />
+          <Icon className="size-4 flex-shrink-0" />
           <p className="text-13 leading-5 font-medium">{t(item.labelTranslationKey)}</p>
         </div>
         {item.key === "notifications" && <NotificationAppSidebarOption workspaceSlug={workspaceSlug.toString()} />}

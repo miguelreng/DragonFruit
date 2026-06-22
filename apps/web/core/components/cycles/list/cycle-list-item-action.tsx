@@ -14,7 +14,7 @@ import { Eye, ArrowRight, CalendarDays } from "@/components/icons/lucide-shim";
 import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
-import { TransferIcon, WorkItemsIcon, MembersPropertyIcon } from "@plane/propel/icons";
+import { TransferIcon, WorkItemsIcon, MembersPropertyIcon } from "@/components/icons/propel-shim";
 import { setPromiseToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { ICycle, TCycleGroups } from "@plane/types";

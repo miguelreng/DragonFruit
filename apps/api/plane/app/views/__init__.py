@@ -245,6 +245,7 @@ from .external.base import (
     GPTIntegrationEndpoint,
     TranscriptToDocEndpoint,
     UnsplashEndpoint,
+    WorkspaceComposioConfigEndpoint,
     WorkspaceGPTIntegrationEndpoint,
     WorkspaceLLMConfigEndpoint,
 )

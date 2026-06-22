@@ -11,8 +11,8 @@ import scrollIntoView from "smooth-scroll-into-view-if-needed";
 // plane types
 import { EIconSize, ISSUE_PRIORITIES, STATE_GROUPS } from "@plane/constants";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import type { ISvgIcons } from "@plane/propel/icons";
-import { CycleGroupIcon, CycleIcon, ModuleIcon, PriorityIcon, StateGroupIcon } from "@plane/propel/icons";
+import type { ISvgIcons } from "@/components/icons/propel-shim";
+import { CycleGroupIcon, CycleIcon, ModuleIcon, PriorityIcon, StateGroupIcon } from "@/components/icons/propel-shim";
 import type {
   GroupByColumnTypes,
   IGroupByColumn,
@@ -252,7 +252,7 @@ const getStateColumns = ({ projectId }: TGetColumns): IGroupByColumn[] | undefin
     id: state.id,
     name: state.name,
     icon: (
-      <div className="size-4 rounded-full">
+      <div className="grid size-4 place-items-center">
         <StateGroupIcon stateGroup={state.group} color={state.color} size={EIconSize.LG} percentage={state.order} />
       </div>
     ),
@@ -267,7 +267,7 @@ const getStateGroupColumns = (): IGroupByColumn[] => {
     id: stateGroup.key,
     name: stateGroup.label,
     icon: (
-      <div className="size-4 rounded-full">
+      <div className="grid size-4 place-items-center">
         <StateGroupIcon stateGroup={stateGroup.key} size={EIconSize.LG} />
       </div>
     ),

@@ -8,7 +8,7 @@ import React, { useMemo, useState } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { CycleGroupIcon } from "@plane/propel/icons";
+import { CycleGroupIcon } from "@/components/icons/propel-shim";
 import type { TCycleGroups } from "@plane/types";
 // components
 import { Loader } from "@plane/ui";

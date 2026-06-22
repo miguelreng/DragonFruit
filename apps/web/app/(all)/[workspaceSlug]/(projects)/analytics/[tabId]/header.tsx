@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
-import { AnalyticsIcon } from "@plane/propel/icons";
+import { AnalyticsIcon } from "@/components/icons/propel-shim";
 // plane imports
 import { Breadcrumbs, Header } from "@plane/ui";
 // components

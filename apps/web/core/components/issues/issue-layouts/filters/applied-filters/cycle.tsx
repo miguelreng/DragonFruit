@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { CloseIcon, CycleGroupIcon } from "@plane/propel/icons";
+import { CloseIcon, CycleGroupIcon } from "@/components/icons/propel-shim";
 import type { TCycleGroups } from "@plane/types";
 // hooks
 import { useCycle } from "@/hooks/store/use-cycle";

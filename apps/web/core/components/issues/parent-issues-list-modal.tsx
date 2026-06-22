@@ -12,7 +12,7 @@ import { Rocket } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 // i18n
 import { useTranslation } from "@plane/i18n";
-import { SearchIcon } from "@plane/propel/icons";
+import { SearchIcon } from "@/components/icons/propel-shim";
 // types
 import type { ISearchIssueResponse } from "@plane/types";
 // ui

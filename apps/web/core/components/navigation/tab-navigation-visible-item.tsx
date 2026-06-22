@@ -9,7 +9,7 @@ import { PinOff } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { ContextMenu } from "@plane/propel/context-menu";
-import { SetAsDefaultIcon } from "@plane/propel/icons";
+import { SetAsDefaultIcon } from "@/components/icons/propel-shim";
 import { TabNavigationItem } from "@plane/propel/tab-navigation";
 // local imports
 import type { TNavigationItem } from "./tab-navigation-root";

@@ -11,7 +11,7 @@ import { EUserPermissions, EUserPermissionsLevel, PROJECT_TRACKER_ELEMENTS } fro
 import { useTranslation } from "@plane/i18n";
 // ui
 import { Button } from "@plane/propel/button";
-import { ProjectIcon } from "@plane/propel/icons";
+import { ProjectIcon } from "@/components/icons/propel-shim";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";

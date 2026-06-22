@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { InformationCircleIcon } from "@hugeicons/core-free-icons";
+import { InformationLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const InfoIcon = hugeIcon(InformationCircleIcon);
+export const InfoIcon = InformationLine;

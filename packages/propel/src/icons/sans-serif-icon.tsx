@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { TextFontIcon } from "@hugeicons/core-free-icons";
+import { FontLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const SansSerifIcon = hugeIcon(TextFontIcon);
+export const SansSerifIcon = FontLine;

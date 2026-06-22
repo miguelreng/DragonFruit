@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 
 import { useTranslation } from "@plane/i18n";
-import { PlusIcon } from "@plane/propel/icons";
+import { PlusIcon } from "@/components/icons/propel-shim";
 import { Row } from "@plane/ui";
 import type { TQuickAddIssueButton } from "../root";
 

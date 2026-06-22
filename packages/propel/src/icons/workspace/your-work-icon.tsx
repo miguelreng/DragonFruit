@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CheckListIcon } from "@hugeicons/core-free-icons";
+import { Task2Line } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const YourWorkIcon = hugeIcon(CheckListIcon);
+export const YourWorkIcon = Task2Line;

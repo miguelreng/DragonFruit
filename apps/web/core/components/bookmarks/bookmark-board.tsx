@@ -4,19 +4,18 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Bookmark as BookmarkIcon,
-  CancelCircleIcon,
-  Copy01Icon,
-  Delete02Icon,
-  LinkSquare01Icon,
+  CancelCircle as CancelCircleIcon,
+  Copy as Copy01Icon,
+  ExternalLink as LinkSquare01Icon,
   MoreHorizontal,
-  PlusSignIcon,
-  Upload03Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  Plus as PlusSignIcon,
+  Trash as Delete02Icon,
+  UploadCloud as Upload03Icon,
+} from "@/components/icons/lucide-shim";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import Link from "next/link";
@@ -24,7 +23,7 @@ import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { fetchWikipediaSummary } from "@plane/editor";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { Button } from "@plane/propel/button";
-import { ChevronDownIcon } from "@plane/propel/icons";
+import { ChevronDownIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
 import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, EModalWidth, Header, Loader, ModalCore } from "@plane/ui";
@@ -56,6 +55,27 @@ import {
 } from "./helpers";
 import { ImportBookmarksModal } from "./import-bookmarks-modal";
 import { SuggestedTagChips } from "./suggested-tag-chips";
+
+type BoardIconComponent = ComponentType<{
+  className?: string;
+  color?: string;
+  size?: number | string;
+  strokeWidth?: number | string;
+}>;
+
+const DetailIcon = ({
+  icon: Icon,
+  className,
+  color = "currentColor",
+  size = "1em",
+  strokeWidth,
+}: {
+  icon: BoardIconComponent;
+  className?: string;
+  color?: string;
+  size?: number | string;
+  strokeWidth?: number | string;
+}) => <Icon className={className} color={color} size={size} strokeWidth={strokeWidth} />;
 
 type Props = {
   workspaceSlug: string;
@@ -183,7 +203,7 @@ function BookmarkForm(props: {
             />
           ) : (
             <div className="grid h-12 w-20 shrink-0 place-items-center rounded-md bg-layer-1 text-tertiary">
-              <HugeiconsIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
             </div>
           )}
           <div className="min-w-0 flex-1 text-12 text-secondary">
@@ -228,14 +248,14 @@ function BookmarkForm(props: {
           onClick={onCancel}
           className="inline-flex h-8 items-center gap-1 rounded-lg px-3 text-13 font-medium text-secondary hover:bg-layer-transparent-hover"
         >
-          <HugeiconsIcon icon={CancelCircleIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+          <DetailIcon icon={CancelCircleIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           Cancel
         </button>
         <button
           type="submit"
           className="inline-flex h-8 items-center gap-1 rounded-lg bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90"
         >
-          <HugeiconsIcon icon={PlusSignIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+          <DetailIcon icon={PlusSignIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           {submitLabel}
         </button>
       </div>
@@ -278,7 +298,7 @@ function BookmarkFormModal(props: {
             className="grid size-7 shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
             aria-label="Close bookmark modal"
           >
-            <HugeiconsIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+            <DetailIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
           </button>
         </div>
         <div className="px-5 py-4">
@@ -396,11 +416,11 @@ function BookmarkCard(props: {
         {href &&
           (isExternal ? (
             <a href={href} target="_blank" rel="noreferrer" className={openLinkClasses} aria-label="Open link">
-              <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
             </a>
           ) : (
             <Link href={href} className={openLinkClasses} aria-label="Open link">
-              <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
             </Link>
           ))}
         <CustomMenu
@@ -409,7 +429,7 @@ function BookmarkCard(props: {
           useCaptureForOutsideClick
           customButton={
             <span className="shadow-sm grid size-6 place-items-center rounded-lg bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
-              <HugeiconsIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
             </span>
           }
         >
@@ -419,7 +439,7 @@ function BookmarkCard(props: {
             }}
           >
             <span className="flex items-center gap-2">
-              <HugeiconsIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
               Copy link
             </span>
           </CustomMenu.MenuItem>
@@ -430,7 +450,7 @@ function BookmarkCard(props: {
             className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
           >
             <span className="flex items-center gap-2">
-              <HugeiconsIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
               Delete bookmark
             </span>
           </CustomMenu.MenuItem>
@@ -468,7 +488,7 @@ function BookmarkCard(props: {
               }}
               aria-label="Open Twitter screenshot"
             >
-              <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
             </button>
           )}
           <div
@@ -495,7 +515,7 @@ function BookmarkCard(props: {
         <div className="flex flex-col gap-2 p-4">
           <div className="flex items-start gap-2.5">
             <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
-              <HugeiconsIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              <DetailIcon icon={BookmarkIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
             </span>
             <div className="min-w-0 flex-1 pr-8">
               <h3 className="line-clamp-2 text-14 leading-snug font-medium text-primary">
@@ -591,7 +611,7 @@ function BookmarkListItem(props: {
             }}
             readOnly
           />
-          <HugeiconsIcon icon={BookmarkIcon} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
+          <DetailIcon icon={BookmarkIcon} className="size-4 text-tertiary" color="currentColor" strokeWidth={1.5} />
         </span>
       }
       actionableItems={
@@ -625,7 +645,7 @@ function BookmarkListItem(props: {
                 className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
                 aria-label="Open link"
               >
-                <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+                <DetailIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
               </a>
             ) : (
               <Link
@@ -633,7 +653,7 @@ function BookmarkListItem(props: {
                 className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
                 aria-label="Open link"
               >
-                <HugeiconsIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+                <DetailIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
               </Link>
             ))}
           <button
@@ -642,7 +662,7 @@ function BookmarkListItem(props: {
             onClick={() => void navigator.clipboard?.writeText(href)}
             aria-label="Copy bookmark link"
           >
-            <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <DetailIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
           <button
             type="button"
@@ -650,7 +670,7 @@ function BookmarkListItem(props: {
             onClick={() => onDelete(bookmark)}
             aria-label="Delete bookmark"
           >
-            <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <DetailIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           </button>
         </div>
       }
@@ -810,11 +830,11 @@ function BookmarkBulkActionBar(props: { count: number; isBusy: boolean; onClear:
         </span>
         <div className="bg-strong h-4 w-px" aria-hidden />
         <Button variant="ghost" size="lg" onClick={onClear} disabled={isBusy} aria-label="Clear selection">
-          <HugeiconsIcon icon={CancelCircleIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+          <DetailIcon icon={CancelCircleIcon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           <span>Clear</span>
         </Button>
         <Button variant="error-outline" size="lg" onClick={onDelete} disabled={isBusy} aria-label="Delete">
-          <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+          <DetailIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
           <span>{isBusy ? "Deleting..." : "Delete"}</span>
         </Button>
       </div>
@@ -1220,7 +1240,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                       : `/${workspaceSlug}/bookmarks`
                   }
                   icon={
-                    <HugeiconsIcon
+                    <DetailIcon
                       icon={BookmarkIcon}
                       className="size-4 text-secondary"
                       color="currentColor"
@@ -1284,7 +1304,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
               variant="secondary"
               size="lg"
               prependIcon={
-                <HugeiconsIcon icon={Upload03Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+                <DetailIcon icon={Upload03Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
               }
               onClick={() => setIsImportModalOpen(true)}
             >

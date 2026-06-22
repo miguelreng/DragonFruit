@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { INBOX_STATUS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 import type { TInboxIssueStatus } from "@plane/types";
 // constants
 import { Tag } from "@plane/ui";

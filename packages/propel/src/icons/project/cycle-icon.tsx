@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { RepeatIcon } from "@hugeicons/core-free-icons";
+import { RepeatLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const CycleIcon = hugeIcon(RepeatIcon);
+export const CycleIcon = RepeatLine;

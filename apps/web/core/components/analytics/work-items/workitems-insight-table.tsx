@@ -12,7 +12,7 @@ import useSWR from "swr";
 import { UserRound } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { ProjectIcon } from "@plane/propel/icons";
+import { ProjectIcon } from "@/components/icons/propel-shim";
 // plane package imports
 import type { AnalyticsTableDataMap, WorkItemInsightColumns } from "@plane/types";
 // plane web components

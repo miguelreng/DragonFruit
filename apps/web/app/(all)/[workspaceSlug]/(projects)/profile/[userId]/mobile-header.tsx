@@ -12,7 +12,7 @@ import { EIssueFilterType, ISSUE_LAYOUTS, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "
 // plane i18n
 import { useTranslation } from "@plane/i18n";
 // icons
-import { ChevronDownIcon } from "@plane/propel/icons";
+import { ChevronDownIcon } from "@/components/icons/propel-shim";
 // types
 import type {
   IIssueDisplayFilterOptions,

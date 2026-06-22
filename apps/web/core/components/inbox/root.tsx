@@ -10,7 +10,7 @@ import { PanelLeft } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
-import { IntakeIcon } from "@plane/propel/icons";
+import { IntakeIcon } from "@/components/icons/propel-shim";
 import { EInboxIssueCurrentTab } from "@plane/types";
 import { cn } from "@plane/utils";
 // components

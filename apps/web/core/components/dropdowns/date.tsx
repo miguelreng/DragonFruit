@@ -13,7 +13,7 @@ import { Combobox } from "@headlessui/react";
 // ui
 import type { Matcher } from "@plane/propel/calendar";
 import { Calendar } from "@plane/propel/calendar";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 import { ComboDropDown } from "@plane/ui";
 import { cn, renderFormattedDate, getDate } from "@plane/utils";
 // helpers

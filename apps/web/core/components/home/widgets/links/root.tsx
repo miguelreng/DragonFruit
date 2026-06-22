@@ -10,7 +10,7 @@ import useSWR from "swr";
 
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { PlusIcon } from "@plane/propel/icons";
+import { PlusIcon } from "@/components/icons/propel-shim";
 import type { THomeWidgetProps } from "@plane/types";
 import { useHome } from "@/hooks/store/use-home";
 import { LinkCreateUpdateModal } from "./create-update-link-modal";

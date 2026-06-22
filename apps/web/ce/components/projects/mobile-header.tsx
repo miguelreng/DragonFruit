@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 import { ListFilter } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { ChevronDownIcon } from "@plane/propel/icons";
+import { ChevronDownIcon } from "@/components/icons/propel-shim";
 import type { TProjectFilters } from "@plane/types";
 import { calculateTotalFilters } from "@plane/utils";
 // components

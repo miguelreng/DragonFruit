@@ -7,7 +7,7 @@
 import { FileText, FolderPlus, Layers, SquarePlus } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { ContrastIcon, DiceIcon, LayersIcon } from "@plane/propel/icons";
+import { ContrastIcon, DiceIcon, LayersIcon } from "@/components/icons/propel-shim";
 // components
 import { EUserProjectRoles } from "@plane/types";
 import type { TPowerKCommandConfig, TPowerKContext } from "@/components/power-k/core/types";

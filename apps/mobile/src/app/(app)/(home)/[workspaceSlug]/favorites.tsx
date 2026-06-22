@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { ArrowRight01Icon, File01Icon, Folder02Icon, RepeatIcon, Task01Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, File01Icon, Folder02Icon, RepeatIcon, Task01Icon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { ScreenHeader } from "@/components/screen-header";

@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Search01Icon } from "@hugeicons/core-free-icons";
+import { SearchLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const SearchIcon = hugeIcon(Search01Icon);
+export const SearchIcon = SearchLine;

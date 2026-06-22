@@ -11,7 +11,7 @@ import { ArchiveX } from "@/components/icons/lucide-shim";
 // plane imports
 import { PROJECT_AUTOMATION_MONTHS, EUserPermissions, EUserPermissionsLevel, EIconSize } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { StateGroupIcon, StatePropertyIcon } from "@plane/propel/icons";
+import { StateGroupIcon, StatePropertyIcon } from "@/components/icons/propel-shim";
 import type { IProject } from "@plane/types";
 import { CustomSelect, CustomSearchSelect, ToggleSwitch, Loader } from "@plane/ui";
 import { SelectMonthModal } from "@/components/automation";

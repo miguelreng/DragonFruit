@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { ArchiveIcon, CycleIcon, ModuleIcon, WorkItemsIcon } from "@plane/propel/icons";
+import { ArchiveIcon, CycleIcon, ModuleIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { EIssuesStoreType } from "@plane/types";
 // ui

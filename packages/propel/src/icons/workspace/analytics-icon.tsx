@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ChartBarLineIcon } from "@hugeicons/core-free-icons";
+import { ChartBarLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const AnalyticsIcon = hugeIcon(ChartBarLineIcon);
+export const AnalyticsIcon = ChartBarLine;

@@ -9,7 +9,7 @@ import { Command } from "cmdk";
 import { X } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 // plane imports
-import { SearchIcon } from "@plane/propel/icons";
+import { SearchIcon } from "@/components/icons/propel-shim";
 // local imports
 import type { TPowerKContext, TPowerKPageType } from "../../core/types";
 import { POWER_K_MODAL_PAGE_DETAILS } from "./constants";

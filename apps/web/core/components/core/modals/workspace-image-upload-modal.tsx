@@ -11,7 +11,7 @@ import { useDropzone } from "react-dropzone";
 // plane imports
 import { ACCEPTED_AVATAR_IMAGE_MIME_TYPES_FOR_REACT_DROPZONE, MAX_FILE_SIZE } from "@plane/constants";
 import { Button } from "@plane/propel/button";
-import { UserCirclePropertyIcon } from "@plane/propel/icons";
+import { UserCirclePropertyIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EFileAssetType } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";

@@ -13,7 +13,7 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { IconButton } from "@plane/propel/icon-button";
-import { EditIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { EditIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IUserProfileProjectSegregation } from "@plane/types";
 import { Loader } from "@plane/ui";

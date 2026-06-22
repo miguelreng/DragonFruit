@@ -9,7 +9,7 @@ import Link from "next/link";
 import { observer } from "mobx-react";
 import { useParams, useSearchParams } from "next/navigation";
 import { TOAST_TYPE, dismissToast, setToast } from "@plane/propel/toast";
-import { YourWorkIcon } from "@plane/propel/icons";
+import { YourWorkIcon } from "@/components/icons/propel-shim";
 import type { TBaseIssue, TIssuePriorities, TIssuesResponse } from "@plane/types";
 import { cn, createIssuePayload, getDate, renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
 import { Check, Loader, Plus } from "@/components/icons/lucide-shim";

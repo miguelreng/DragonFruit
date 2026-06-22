@@ -8,7 +8,7 @@ import { USER_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // ui
 import { getButtonStyling } from "@plane/propel/button";
-import { DragonfruitLogo } from "@plane/propel/icons";
+import { DragonfruitLogo } from "@/components/icons/propel-shim";
 // helpers
 import { cn } from "@plane/utils";
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { Cancel01Icon, File01Icon, Folder02Icon, Task01Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, File01Icon, Folder02Icon, Task01Icon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { ScreenHeader } from "@/components/screen-header";

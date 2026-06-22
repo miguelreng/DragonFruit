@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { LeftToRightListStarIcon } from "@hugeicons/core-free-icons";
+import { ScrollableListLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const ListLayoutIcon = hugeIcon(LeftToRightListStarIcon);
+export const ListLayoutIcon = ScrollableListLine;

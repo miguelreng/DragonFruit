@@ -8,8 +8,13 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
-import { FileText } from "@/components/icons/lucide-shim";
-import { HomeIcon, PiChatLogo, YourWorkIcon, DashboardIcon } from "@plane/propel/icons";
+import {
+  Box,
+  Checklist,
+  ChatRound,
+  Document,
+  Home,
+} from "@solar-icons/react/ssr";
 import { EUserWorkspaceRoles } from "@plane/types";
 // hooks
 import { useUser } from "@/hooks/store/user";
@@ -28,35 +33,35 @@ export const SidebarUserMenu = observer(function SidebarUserMenu() {
       labelTranslationKey: "sidebar.home",
       href: `/${workspaceSlug.toString()}/`,
       access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
-      Icon: HomeIcon,
+      Icon: Home,
     },
     {
       key: "dashboards",
       labelTranslationKey: "workspace_dashboards",
       href: `/${workspaceSlug.toString()}/dashboards/`,
       access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
-      Icon: DashboardIcon,
+      Icon: Box,
     },
     {
       key: "your-work",
       labelTranslationKey: "sidebar.your_work",
       href: `/${workspaceSlug.toString()}/profile/${currentUser?.id}/`,
       access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
-      Icon: YourWorkIcon,
+      Icon: Checklist,
     },
     {
       key: "docs",
       labelTranslationKey: "sidebar.docs",
       href: `/${workspaceSlug.toString()}/docs/`,
       access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
-      Icon: FileText,
+      Icon: Document,
     },
     {
       key: "pi-chat",
       labelTranslationKey: "sidebar.pi_chat",
       href: `/${workspaceSlug.toString()}/pi-chat/`,
       access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
-      Icon: PiChatLogo,
+      Icon: ChatRound,
     },
   ];
 

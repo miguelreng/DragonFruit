@@ -10,8 +10,8 @@ import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane helpers
 import { PROJECT_SETTINGS_TRACKER_ELEMENTS } from "@plane/constants";
 import { useOutsideClickDetector } from "@plane/hooks";
-import type { ISvgIcons } from "@plane/propel/icons";
-import { CloseIcon } from "@plane/propel/icons";
+import type { ISvgIcons } from "@/components/icons/propel-shim";
+import { CloseIcon } from "@/components/icons/propel-shim";
 // types
 import type { IIssueLabel } from "@plane/types";
 // ui

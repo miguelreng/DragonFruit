@@ -25,6 +25,8 @@ import re
 import urllib.parse
 import urllib.request
 
+import requests
+from bs4 import BeautifulSoup
 from django.http import StreamingHttpResponse
 from django.db import transaction
 from django.db.models import Q
@@ -49,8 +51,10 @@ from plane.db.models import (
     Workspace,
     WorkspaceMember,
 )
+from plane.bgtasks.work_item_link_task import safe_get
 from plane.utils.content_validator import validate_html_content
 from plane.utils.html_builders import escape_text, link_html, list_html, paragraphs_html
+from plane.llm.composio import build_composio_tools, get_composio_config_for_workspace
 from plane.llm.persona import ATLAS_PERSONA
 from plane.llm.pricing import estimate_cost_usd
 from plane.llm.provider import LLMConfigError, LLMProvider, LLMTool
@@ -86,6 +90,12 @@ _MAX_IMAGE_BYTES = 2_500_000
 _MAX_TEXT_EXCERPT_CHARS = 50_000       # cap CSV / plaintext at ~50KB
 _IMAGE_MIME_PREFIXES = ("image/png", "image/jpeg", "image/gif", "image/webp")
 _TEXT_MIME_TYPES = {"text/csv", "text/plain", "application/csv"}
+_FETCH_URL_MAX_BYTES = 120_000
+_FETCH_URL_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Accept": "text/html,text/plain,text/markdown,application/json,text/*;q=0.9,*/*;q=0.1",
+}
 _DOCUMENT_CREATION_RE = re.compile(
     r"\b(create|write|draft|generate|make|prepare|crear|crea|redacta|genera|prepara|escribe)\b.{0,120}\b(document|doc|page|documento|pagina|página)\b",
     re.IGNORECASE,
@@ -164,6 +174,13 @@ If the user asks a question, asks for retrieval ("get/find/show/list/fetch X fro
 brainstorming, analysis, or a normal chat answer, respond normally.
 If the user asks about information in their files, docs, tasks, notes, stickies, workspace, or project,
 call `search_workspace` first and answer only from the returned context unless you clearly label outside knowledge.
+If the user asks to use an external app or service through Composio:
+- call `composio_search_tools` first to discover valid tool slugs
+- call `composio_get_tool_schemas` before preparing exact app-tool arguments
+- call `composio_manage_connections` if the search/schema result says the user's account is not connected, then return
+  the auth link to the user and wait for them to finish connecting
+- call `composio_execute_tool` only after the user has explicitly approved the exact external action and arguments
+Do not invent Composio tool slugs or auth URLs.
 Only if the user explicitly asks you to create a task, call `create_task`.
 Only if the user explicitly asks you to create a sticky/note, call `create_sticky`.
 For factual questions about real-world entities, history, science, or definitions, call `lookup_wikipedia`
@@ -788,6 +805,59 @@ def _make_web_search_tool() -> LLMTool:
                 "limit": {"type": "integer", "minimum": 1, "maximum": 5},
             },
             "required": ["query"],
+        },
+        handler=_handler,
+    )
+
+
+def _text_from_fetched_response(response: requests.Response) -> str:
+    content_type = response.headers.get("content-type", "").lower()
+    body = response.content[:_FETCH_URL_MAX_BYTES]
+    text = body.decode(response.encoding or "utf-8", errors="replace")
+
+    if "html" not in content_type:
+        return text.strip()
+
+    soup = BeautifulSoup(text, "html.parser")
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+    return soup.get_text("\n", strip=True)
+
+
+def _make_fetch_url_tool() -> LLMTool:
+    def _handler(args: dict) -> str:
+        url = str(args.get("url") or "").strip()
+        if not url:
+            return "tool_error: `url` is required"
+
+        try:
+            response, final_url = safe_get(url, headers=_FETCH_URL_HEADERS, timeout=8)
+        except (ValueError, RuntimeError, requests.RequestException) as exc:
+            return f"tool_error: could not fetch URL: {exc}"
+
+        if response.status_code >= 400:
+            return f"tool_error: URL returned HTTP {response.status_code}: {final_url}"
+
+        text = _text_from_fetched_response(response)
+        if not text:
+            return f"tool_error: URL had no readable text: {final_url}"
+
+        truncated = len(response.content) > _FETCH_URL_MAX_BYTES
+        note = "\n[Note: fetched content truncated]" if truncated else ""
+        return f"Fetched URL: {final_url}\n\n{text[:_FETCH_URL_MAX_BYTES]}{note}"
+
+    return LLMTool(
+        name="fetch_url",
+        description=(
+            "Fetch the readable text from an exact public http(s) URL the user provided. "
+            "Use this when the user asks you to inspect a source link, markdown file, brief, or document URL."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "Public http(s) URL to fetch"},
+            },
+            "required": ["url"],
         },
         handler=_handler,
     )
@@ -1624,6 +1694,16 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 f"{context_note}\n\n"
                 "Use this context only to resolve references like 'this/that' and improve grounding."
             )
+        composio_config = get_composio_config_for_workspace(session.workspace)
+        if composio_config is not None:
+            write_status = "enabled" if composio_config.allow_write_tools else "disabled"
+            system = (
+                f"{system}\n\n"
+                "Composio external-app tools are available for this request. "
+                f"Composio write execution is {write_status}. "
+                "For any write/destructive external action, first summarize the exact app action and arguments "
+                "and ask the user to approve before execution."
+            )
 
         try:
             provider = LLMProvider.from_agent(agent)
@@ -1675,6 +1755,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         tools = []
         if use_agent_tools:
             tools = [
+                _make_fetch_url_tool(),
                 _make_web_search_tool(),
                 _make_search_workspace_tool(
                     workspace=session.workspace,
@@ -1702,6 +1783,13 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     project_id=project_id,
                 ),
             ]
+            tools.extend(
+                build_composio_tools(
+                    user_id=f"{session.workspace.id}:{request.user.id}",
+                    model=provider.model,
+                    workspace=session.workspace,
+                )
+            )
 
         try:
             result = provider.run(

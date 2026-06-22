@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Star } from "lucide-react";
+import { Star } from "@solar-icons/react/ssr";
 import React from "react";
 // helpers
 import { cn } from "./utils";
@@ -23,17 +23,18 @@ export const FavoriteStar = React.forwardRef<HTMLButtonElement, Props>(function 
     <button
       ref={ref}
       type="button"
-      className={cn("grid h-4 w-4 place-items-center", buttonClassName)}
+      // outline-none kills the default focus rectangle; a subtle ring still shows
+      // for keyboard users (focus-visible) so the control stays accessible.
+      className={cn(
+        "grid h-4 w-4 place-items-center rounded outline-none focus-visible:ring-1 focus-visible:ring-accent-primary/40",
+        buttonClassName
+      )}
       onClick={onClick}
     >
       <Star
-        className={cn(
-          "h-4 w-4 text-tertiary transition-all",
-          {
-            "fill-[#facc15] stroke-[#ca8a04]": selected,
-          },
-          iconClassName
-        )}
+        weight={selected ? "Bold" : "Linear"}
+        color={selected ? "#facc15" : undefined}
+        className={cn("h-4 w-4 transition-all", selected ? "" : "text-tertiary", iconClassName)}
       />
     </button>
   );

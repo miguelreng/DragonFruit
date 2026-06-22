@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowExpand01Icon } from "@hugeicons/core-free-icons";
+import { FullscreenLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const FullScreenPanelIcon = hugeIcon(ArrowExpand01Icon);
+export const FullScreenPanelIcon = FullscreenLine;

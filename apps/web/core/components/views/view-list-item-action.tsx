@@ -11,7 +11,7 @@ import { Earth } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, IS_FAVORITE_MENU_OPEN } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
-import { LockIcon } from "@plane/propel/icons";
+import { LockIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IProjectView } from "@plane/types";
 import { EViewAccess } from "@plane/types";

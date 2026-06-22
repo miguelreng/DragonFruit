@@ -5,11 +5,14 @@
  */
 
 import { observer } from "mobx-react";
-import { PanelLeft } from "@/components/icons/lucide-shim";
+import { SidebarMinimalistic } from "@solar-icons/react/ssr";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { isSidebarToggleVisible } from "@/plane-web/components/desktop";
+import { createSolarSidebarIcon } from "@/components/sidebar/solar-icon";
 import { IconButton } from "@plane/propel/icon-button";
+
+const SidebarToggleIcon = createSolarSidebarIcon(SidebarMinimalistic, "Outline");
 
 export const AppSidebarToggleButton = observer(function AppSidebarToggleButton() {
   // store hooks
@@ -20,7 +23,7 @@ export const AppSidebarToggleButton = observer(function AppSidebarToggleButton()
     <IconButton
       size="base"
       variant="ghost"
-      icon={PanelLeft}
+      icon={SidebarToggleIcon}
       onClick={() => {
         if (sidebarPeek) toggleSidebarPeek(false);
         toggleSidebar();

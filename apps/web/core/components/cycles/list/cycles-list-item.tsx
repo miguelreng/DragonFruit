@@ -8,7 +8,7 @@ import type { MouseEvent } from "react";
 import { useRef } from "react";
 import { observer } from "mobx-react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { CheckIcon } from "@plane/propel/icons";
+import { CheckIcon } from "@/components/icons/propel-shim";
 // plane imports
 import type { TCycleGroups } from "@plane/types";
 import { CircularProgressIndicator } from "@plane/ui";

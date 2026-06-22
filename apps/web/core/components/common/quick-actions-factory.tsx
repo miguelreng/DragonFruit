@@ -6,7 +6,7 @@
 
 import { Pencil, ExternalLink, Link, Trash2, ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
-import { ArchiveIcon } from "@plane/propel/icons";
+import { ArchiveIcon } from "@/components/icons/propel-shim";
 import type { TContextMenuItem } from "@plane/ui";
 
 /**

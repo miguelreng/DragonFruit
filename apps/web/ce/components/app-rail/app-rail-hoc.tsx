@@ -52,6 +52,7 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
               ? "Whiteboard"
               : t(item.labelTranslationKey),
         icon: getSidebarNavigationItemIcon(item.key),
+        activeIcon: getSidebarNavigationItemIcon(item.key, "", true),
         href,
         isActive: item.highlight(pathname || "", href),
         shouldRender: item.key !== "your_work" || !!currentUser?.id,

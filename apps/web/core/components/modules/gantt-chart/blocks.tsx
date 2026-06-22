@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 // ui
 import { MODULE_STATUS } from "@plane/constants";
-import { ModuleStatusIcon } from "@plane/propel/icons";
+import { ModuleStatusIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 // components
 import { SIDEBAR_WIDTH } from "@/components/gantt-chart/constants";

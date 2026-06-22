@@ -24,6 +24,13 @@ This module is the single seam — search for `from plane.llm import` and
 you've found every place in the codebase that talks to a model.
 """
 
+from .composio import (
+    ComposioClient,
+    ComposioClientError,
+    ComposioConfig,
+    build_composio_tools,
+    get_composio_config_for_workspace,
+)
 from .mcp_client import MCPClient, MCPClientError, wrap_mcp_server_as_tools
 from .pricing import estimate_cost_usd
 from .provider import (
@@ -39,8 +46,13 @@ __all__ = [
     "LLMProvider",
     "LLMRunResult",
     "LLMTool",
+    "ComposioClient",
+    "ComposioConfig",
+    "ComposioClientError",
     "MCPClient",
     "MCPClientError",
+    "build_composio_tools",
     "estimate_cost_usd",
+    "get_composio_config_for_workspace",
     "wrap_mcp_server_as_tools",
 ]

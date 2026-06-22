@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 import { EIconSize } from "@plane/constants";
-import { StateGroupIcon } from "@plane/propel/icons";
+import { StateGroupIcon } from "@/components/icons/propel-shim";
 import type { IState } from "@plane/types";
 import { Loader } from "@plane/ui";
 // components

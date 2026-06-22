@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { TaskAdd01Icon } from "@hugeicons/core-free-icons";
+import { TaskLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const AddWorkItemIcon = hugeIcon(TaskAdd01Icon);
+export const AddWorkItemIcon = TaskLine;

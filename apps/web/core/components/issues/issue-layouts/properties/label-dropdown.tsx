@@ -13,7 +13,7 @@ import { Combobox } from "@headlessui/react";
 import { EUserPermissionsLevel, getRandomLabelColor } from "@plane/constants";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
-import { CheckIcon, SearchIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { CheckIcon, SearchIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 // types
 import type { IIssueLabel } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";

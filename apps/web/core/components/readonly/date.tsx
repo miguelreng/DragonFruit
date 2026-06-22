@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { CalendarLayoutIcon } from "@plane/propel/icons";
+import { CalendarLayoutIcon } from "@/components/icons/propel-shim";
 import { cn, renderFormattedDate, getDate } from "@plane/utils";
 
 export type TReadonlyDateProps = {

@@ -5,8 +5,7 @@
  */
 
 import { useRef, useState } from "react";
-import { CancelCircleIcon, CsvIcon, Upload03Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { CancelCircle, Csv, UploadCloud } from "@/components/icons/lucide-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } from "@plane/types";
 import { EModalWidth, ModalCore } from "@plane/ui";
@@ -117,7 +116,7 @@ export function ImportBookmarksModal(props: Props) {
             className="grid size-7 shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
             aria-label="Close import modal"
           >
-            <HugeiconsIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+            <CancelCircle className="size-4" color="currentColor" size="1em" />
           </button>
         </div>
         <div className="flex flex-col gap-3 px-5 py-4">
@@ -164,12 +163,11 @@ export function ImportBookmarksModal(props: Props) {
             )}
           >
             <span className="grid size-9 place-items-center rounded-lg bg-layer-1 text-tertiary">
-              <HugeiconsIcon
-                icon={fileName ? CsvIcon : Upload03Icon}
-                className="size-4"
-                color="currentColor"
-                strokeWidth={1.5}
-              />
+              {fileName ? (
+                <Csv className="size-4" color="currentColor" size="1em" />
+              ) : (
+                <UploadCloud className="size-4" color="currentColor" size="1em" />
+              )}
             </span>
             <span className="text-13 font-medium text-primary">{fileName || "Choose a CSV file or drag it here"}</span>
             <span className="text-11 text-tertiary">
@@ -217,7 +215,7 @@ export function ImportBookmarksModal(props: Props) {
             disabled={!result || result.imported === 0 || isImporting}
             className="inline-flex h-8 items-center gap-1 rounded-lg bg-accent-primary px-3 text-13 font-medium text-on-color hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <HugeiconsIcon icon={Upload03Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <UploadCloud className="size-3.5" color="currentColor" size="1em" />
             {isImporting
               ? "Importing…"
               : result

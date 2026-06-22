@@ -23,7 +23,7 @@ import type { EUserPermissions } from "@plane/constants";
 import { ROLE, ROLE_DETAILS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { PlusIcon, CheckIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { PlusIcon, CheckIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EOnboardingSteps } from "@plane/types";
 import { Input, Spinner } from "@plane/ui";

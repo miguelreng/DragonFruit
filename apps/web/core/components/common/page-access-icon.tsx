@@ -6,7 +6,7 @@
 
 import { ArchiveIcon, Earth } from "@/components/icons/lucide-shim";
 import { EPageAccess } from "@plane/constants";
-import { LockIcon } from "@plane/propel/icons";
+import { LockIcon } from "@/components/icons/propel-shim";
 import type { TPage } from "@plane/types";
 
 export function PageAccessIcon(page: TPage) {

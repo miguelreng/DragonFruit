@@ -10,7 +10,7 @@ import { observer } from "mobx-react";
 // plane imports
 import { estimateCount } from "@plane/constants";
 import { Button } from "@plane/propel/button";
-import { PlusIcon } from "@plane/propel/icons";
+import { PlusIcon } from "@/components/icons/propel-shim";
 import type { TEstimatePointsObject, TEstimateSystemKeys, TEstimateTypeError } from "@plane/types";
 import { Sortable } from "@plane/ui";
 // local imports

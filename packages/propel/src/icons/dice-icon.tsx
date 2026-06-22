@@ -4,8 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { Dice } from "@hugeicons/core-free-icons";
+import { Gamepad } from "@solar-icons/react/ssr";
 
-import { hugeIcon } from "./_hugeicons-shim";
+import type { ISvgIcons } from "./type";
 
-export const DiceIcon = hugeIcon(Dice);
+export function DiceIcon({ color, width, height, ...rest }: ISvgIcons) {
+  const size = (width ?? height) as number | string | undefined;
+
+  return <Gamepad {...rest} color={(color as string) ?? "currentColor"} size={size ?? "1em"} />;
+}

@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
 // ui
-import { CycleIcon } from "@plane/propel/icons";
+import { CycleIcon } from "@/components/icons/propel-shim";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";

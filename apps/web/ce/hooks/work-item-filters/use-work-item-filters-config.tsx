@@ -31,7 +31,7 @@ import {
   DueDatePropertyIcon,
   UserCirclePropertyIcon,
   PriorityPropertyIcon,
-} from "@plane/propel/icons";
+} from "@/components/icons/propel-shim";
 import type {
   ICycle,
   IState,

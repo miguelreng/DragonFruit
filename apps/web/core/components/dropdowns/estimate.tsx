@@ -12,7 +12,7 @@ import { usePopper } from "react-popper";
 import { Combobox } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { CheckIcon, SearchIcon, EstimatePropertyIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { CheckIcon, SearchIcon, EstimatePropertyIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { EEstimateSystem } from "@plane/types";
 import { ComboDropDown } from "@plane/ui";
 import { convertMinutesToHoursMinutesString, cn } from "@plane/utils";

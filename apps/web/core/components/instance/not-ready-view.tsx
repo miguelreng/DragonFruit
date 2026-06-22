@@ -6,7 +6,7 @@
 
 import { GOD_MODE_URL } from "@plane/constants";
 import DefaultLayout from "@/layouts/default-layout";
-import { DragonfruitLockup, DragonfruitLogo } from "@plane/propel/icons";
+import { DragonfruitLockup, DragonfruitLogo } from "@/components/icons/propel-shim";
 import { Button } from "@plane/propel/button";
 
 export function InstanceNotReady() {

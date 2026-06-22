@@ -7,14 +7,7 @@
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { usePopper } from "react-popper";
-import {
-  AlertCircleIcon,
-  ArrowDown02Icon,
-  ArrowRight02Icon,
-  ArrowUp02Icon,
-  MinusSignIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { ArrowRight, FireMinimalistic, MinusCircle, ShieldWarning, Snowflake } from "@solar-icons/react/ssr";
 import {
   Check as CheckIcon,
   ChevronDown as ChevronDownIcon,
@@ -47,33 +40,29 @@ const PRIORITY_SIGNAL_STYLES: Record<
   }
 > = {
   urgent: {
-    badge:
-      "border border-[color-mix(in_srgb,var(--priority-urgent)_42%,white)] bg-[color-mix(in_srgb,var(--priority-urgent)_30%,var(--bg-layer-2))] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
-    icon: "text-[color-mix(in_srgb,var(--priority-urgent)_98%,black)]",
-    text: "text-[color-mix(in_srgb,var(--priority-urgent)_98%,black)]",
+    badge: "bg-[color-mix(in_srgb,var(--priority-urgent)_28%,transparent)]",
+    icon: "text-[color-mix(in_srgb,var(--priority-urgent)_78%,black)]",
+    text: "text-[color-mix(in_srgb,var(--priority-urgent)_78%,black)]",
   },
   high: {
-    badge:
-      "border border-[color-mix(in_srgb,var(--priority-high)_38%,white)] bg-[color-mix(in_srgb,var(--priority-high)_28%,var(--bg-layer-2))] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
-    icon: "text-[color-mix(in_srgb,var(--priority-high)_96%,black)]",
-    text: "text-[color-mix(in_srgb,var(--priority-high)_96%,black)]",
+    badge: "bg-[color-mix(in_srgb,var(--priority-high)_28%,transparent)]",
+    icon: "text-[color-mix(in_srgb,var(--priority-high)_68%,black)]",
+    text: "text-[color-mix(in_srgb,var(--priority-high)_68%,black)]",
   },
   medium: {
-    badge:
-      "border border-[color-mix(in_srgb,var(--priority-medium)_38%,white)] bg-[color-mix(in_srgb,var(--priority-medium)_30%,var(--bg-layer-2))] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
-    icon: "text-[color-mix(in_srgb,var(--priority-medium)_95%,black)]",
-    text: "text-[color-mix(in_srgb,var(--priority-medium)_95%,black)]",
+    badge: "bg-[color-mix(in_srgb,var(--priority-medium)_28%,transparent)]",
+    icon: "text-[color-mix(in_srgb,var(--priority-medium)_55%,black)]",
+    text: "text-[color-mix(in_srgb,var(--priority-medium)_55%,black)]",
   },
   low: {
-    badge:
-      "border border-[color-mix(in_srgb,var(--priority-low)_38%,white)] bg-[color-mix(in_srgb,var(--priority-low)_28%,var(--bg-layer-2))] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]",
-    icon: "text-[color-mix(in_srgb,var(--priority-low)_96%,black)]",
-    text: "text-[color-mix(in_srgb,var(--priority-low)_96%,black)]",
+    badge: "bg-[color-mix(in_srgb,var(--priority-low)_28%,transparent)]",
+    icon: "text-[color-mix(in_srgb,var(--priority-low)_78%,black)]",
+    text: "text-[color-mix(in_srgb,var(--priority-low)_78%,black)]",
   },
   none: {
-    badge: "border border-subtle bg-layer-3 text-placeholder",
-    icon: "text-priority-none",
-    text: "text-placeholder",
+    badge: "bg-[color-mix(in_srgb,var(--text-color-primary)_12%,transparent)]",
+    icon: "text-secondary",
+    text: "text-secondary",
   },
 };
 
@@ -105,17 +94,17 @@ type ButtonProps = {
 function PrioritySignalIcon(props: { className?: string; priority: TIssuePriorities }) {
   const { className, priority } = props;
 
-  const icons: Record<TIssuePriorities, IconSvgElement> = {
-    urgent: AlertCircleIcon,
-    high: ArrowUp02Icon,
-    medium: ArrowRight02Icon,
-    low: ArrowDown02Icon,
-    none: MinusSignIcon,
+  const icons = {
+    urgent: ShieldWarning,
+    high: FireMinimalistic,
+    medium: ArrowRight,
+    low: Snowflake,
+    none: MinusCircle,
   };
 
-  return (
-    <HugeiconsIcon icon={icons[priority]} className={className} color="currentColor" strokeWidth={1.5} size="1em" />
-  );
+  const Icon = icons[priority];
+  // BoldDuotone for the priority label/pill icon (per the priority-label rule).
+  return <Icon className={className} weight="BoldDuotone" aria-hidden />;
 }
 
 function PrioritySignalValue(props: {
@@ -463,7 +452,7 @@ export function PriorityDropdown(props: Props) {
                     className={({ active, selected }) =>
                       cn(
                         `flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1.5 py-1.5 transition-colors select-none ${
-                          active ? "bg-[color-mix(in_srgb,var(--priority-medium)_12%,var(--bg-layer-1))]" : ""
+                          active ? "bg-layer-transparent-hover" : ""
                         } ${selected ? "text-primary" : "text-secondary"}`
                       )
                     }

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { ArrowRight01Icon, Calendar03Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, Calendar03Icon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { PressableScale } from "@/components/pressable-scale";

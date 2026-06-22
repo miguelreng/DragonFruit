@@ -7,7 +7,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useTranslation } from "@plane/i18n";
-import { LinkIcon, EditIcon, TrashIcon, CloseIcon } from "@plane/propel/icons";
+import { LinkIcon, EditIcon, TrashIcon, CloseIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";

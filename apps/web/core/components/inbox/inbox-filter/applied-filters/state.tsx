@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { EIconSize } from "@plane/constants";
-import { StateGroupIcon, CloseIcon } from "@plane/propel/icons";
+import { StateGroupIcon, CloseIcon } from "@/components/icons/propel-shim";
 import { Tag } from "@plane/ui";
 // hooks
 import { useProjectInbox } from "@/hooks/store/use-project-inbox";

@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { SparklesIcon } from "@hugeicons/core-free-icons";
+import { SparklesLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const AiIcon = hugeIcon(SparklesIcon);
+export const AiIcon = SparklesLine;

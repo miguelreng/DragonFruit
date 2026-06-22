@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useTranslation } from "@plane/i18n";
 // ui
 import { Button } from "@plane/propel/button";
-import { TrashIcon } from "@plane/propel/icons";
+import { TrashIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 // hooks

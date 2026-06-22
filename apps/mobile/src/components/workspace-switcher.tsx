@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CheckmarkCircle02Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
+import { CheckmarkCircle02Icon, PlusSignIcon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { Avatar } from "@/components/avatar";

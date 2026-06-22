@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 

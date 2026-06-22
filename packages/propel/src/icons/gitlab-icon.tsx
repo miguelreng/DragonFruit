@@ -4,8 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { GitlabIcon as GitlabIconSvg } from "@hugeicons/core-free-icons";
+import { BranchingPathsDown } from "@solar-icons/react/ssr";
 
-import { hugeIcon } from "./_hugeicons-shim";
+import type { ISvgIcons } from "./type";
 
-export const GitlabIcon = hugeIcon(GitlabIconSvg);
+export function GitlabIcon({ color, width, height, ...rest }: ISvgIcons) {
+  const size = (width ?? height) as number | string | undefined;
+
+  return <BranchingPathsDown {...rest} color={(color as string) ?? "currentColor"} size={size ?? "1em"} />;
+}

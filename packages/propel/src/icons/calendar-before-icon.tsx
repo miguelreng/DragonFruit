@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Calendar01Icon } from "@hugeicons/core-free-icons";
+import { CalendarLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const CalendarBeforeIcon = hugeIcon(Calendar01Icon);
+export const CalendarBeforeIcon = CalendarLine;

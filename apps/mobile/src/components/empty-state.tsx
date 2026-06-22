@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { IconSvgElement } from "@hugeicons/react-native";
+import type { AppIconComponent } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { colors, font, radius, spacing } from "@/lib/theme";
@@ -14,7 +14,7 @@ export function EmptyState({
   title,
   body,
 }: {
-  icon: IconSvgElement;
+  icon: AppIconComponent;
   title: string;
   body?: string | null;
 }) {

@@ -5,8 +5,7 @@
  */
 
 import type { MouseEvent } from "react";
-import { CancelCircleIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { CancelCircle } from "@/components/icons/lucide-shim";
 import { cn } from "@plane/utils";
 
 export function SuggestedTagChips(props: {
@@ -44,7 +43,7 @@ export function SuggestedTagChips(props: {
             onClick={guard(onDismiss, tag)}
             className="hover:text-red-500 grid place-items-center text-tertiary"
           >
-            <HugeiconsIcon icon={CancelCircleIcon} className="size-3" color="currentColor" strokeWidth={1.5} />
+            <CancelCircle className="size-3" color="currentColor" size="1em" />
           </button>
         </span>
       ))}

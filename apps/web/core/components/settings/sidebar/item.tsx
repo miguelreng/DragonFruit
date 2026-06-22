@@ -8,8 +8,12 @@ import React from "react";
 import Link from "next/link";
 // plane imports
 import { cn } from "@plane/utils";
-import type { LucideIcon } from "@/components/icons/lucide-shim";
-import type { ISvgIcons } from "@plane/propel/icons";
+
+export type SettingsSidebarIcon = React.ComponentType<React.SVGProps<SVGSVGElement>>;
+export type SettingsSidebarIconPair = {
+  icon: SettingsSidebarIcon;
+  activeIcon: SettingsSidebarIcon;
+};
 
 type Props = {
   isActive: boolean;
@@ -17,7 +21,8 @@ type Props = {
 } & ({ as: "button"; onClick: () => void } | { as: "link"; href: string }) &
   (
     | {
-        icon: LucideIcon | React.FC<ISvgIcons>;
+        icon: SettingsSidebarIcon;
+        activeIcon?: SettingsSidebarIcon;
       }
     | { iconNode: React.ReactElement }
   );
@@ -28,7 +33,7 @@ export function SettingsSidebarItem(props: Props) {
   const className = cn(
     "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-13 leading-5 font-medium text-secondary transition-colors",
     {
-      "bg-layer-3 text-primary dark:bg-white/[0.08]": isActive,
+      "!bg-layer-1-active !text-primary": isActive,
       "hover:bg-layer-2-hover hover:text-primary active:bg-layer-2-active dark:hover:bg-white/[0.04] dark:active:bg-white/[0.08]":
         !isActive,
     }
@@ -38,7 +43,10 @@ export function SettingsSidebarItem(props: Props) {
     <>
       {"icon" in props ? (
         <span className="grid size-4 shrink-0 place-items-center">
-          <props.icon className="size-3.5" />
+          {(() => {
+            const Icon = isActive && props.activeIcon ? props.activeIcon : props.icon;
+            return <Icon className="size-3.5" />;
+          })()}
         </span>
       ) : (
         props.iconNode

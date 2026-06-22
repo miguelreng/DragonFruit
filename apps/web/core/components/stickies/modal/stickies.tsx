@@ -9,7 +9,7 @@ import { useParams } from "next/navigation";
 
 // plane ui
 import { Button } from "@plane/propel/button";
-import { RecentStickyIcon, PlusIcon, CloseIcon } from "@plane/propel/icons";
+import { RecentStickyIcon, PlusIcon, CloseIcon } from "@/components/icons/propel-shim";
 // hooks
 import { useSticky } from "@/hooks/use-stickies";
 // components

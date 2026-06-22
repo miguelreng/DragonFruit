@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { SidebarLeft01Icon } from "@hugeicons/core-free-icons";
+import { LayoutLeftbarCloseLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const SidePanelIcon = hugeIcon(SidebarLeft01Icon);
+export const SidePanelIcon = LayoutLeftbarCloseLine;

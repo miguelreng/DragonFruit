@@ -4,14 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { HugeiconsIcon } from "@hugeicons/react";
-import { StickyNote02Icon } from "@hugeicons/core-free-icons";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { StickerSquare } from "@solar-icons/react/ssr";
 // plane imports
 import { Button } from "@plane/propel/button";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components
+import { renderSolarSidebarIcon } from "@/components/sidebar/solar-icon";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { STICKIES_VIEW_MODE_STORAGE_KEY, ViewModeToggle, type ViewMode } from "@/components/core/view-mode-toggle";
 import { StickySearch } from "@/components/stickies/modal/search";
@@ -40,19 +40,12 @@ export const WorkspaceStickyHeader = observer(function WorkspaceStickyHeader() {
             <Breadcrumbs>
               <Breadcrumbs.Item
                 component={
-                  <BreadcrumbLink
-                    label={`Stickies`}
-                    icon={
-                      <HugeiconsIcon
-                        icon={StickyNote02Icon}
-                        className="size-4 text-secondary"
-                        color="currentColor"
-                        strokeWidth={1.5}
-                      />
-                    }
-                  />
-                }
-              />
+                    <BreadcrumbLink
+                      label={`Stickies`}
+                      icon={renderSolarSidebarIcon(StickerSquare, false, "size-4 text-secondary")}
+                    />
+                  }
+                />
             </Breadcrumbs>
           </div>
         </Header.LeftItem>

@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { StateGroupIcon } from "@plane/propel/icons";
+import { StateGroupIcon } from "@/components/icons/propel-shim";
 import { Loader } from "@plane/ui";
 import { cn } from "@plane/utils";
 // hooks

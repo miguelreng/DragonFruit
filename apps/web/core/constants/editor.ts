@@ -32,7 +32,7 @@ import {
 } from "@/components/icons/lucide-shim";
 // plane imports
 import type { TCommandExtraProps, TEditorCommands, TEditorFontStyle } from "@plane/editor";
-import { MonospaceIcon, SansSerifIcon, SerifIcon } from "@plane/propel/icons";
+import { MonospaceIcon, SansSerifIcon, SerifIcon } from "@/components/icons/propel-shim";
 import { convertRemToPixel } from "@plane/utils";
 
 type TEditorTypes = "lite" | "document" | "sticky";

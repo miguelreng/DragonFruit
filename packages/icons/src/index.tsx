@@ -3,195 +3,189 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  *
- * Lucide-named HugeIcons shim.
+ * Lucide-named MingCute shim.
  *
  * Codebases across the monorepo (apps/web, packages/editor) import icons by
  * Lucide names; this package re-exports each name as a thin wrapper around a
- * matching HugeIcons (stroke-rounded) icon, so call sites don't have to change
- * when the icon library evolves. If a name is missing here, add it: find the
- * closest match at https://hugeicons.com/icons and alias it below.
+ * matching MingCute icon, so call sites don't have to change when the icon
+ * library evolves. If a name is missing here, add it: find the closest match
+ * at https://www.mingcute.com/icons and alias it below.
  */
 
 import * as React from "react";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
-  AlertCircleIcon,
-  AlertSquareIcon,
-  AlertTriangle as AlertTriangleSvg,
-  ArrowDataTransferHorizontalIcon,
-  ArrowDown01Icon,
-  ArrowDownLeft01Icon,
-  ArrowExpand01Icon,
-  ArrowExpandIcon,
-  ArrowLeft01Icon,
-  ArrowLeftRightIcon,
-  ArrowReloadHorizontalIcon,
-  ArrowRight01Icon,
-  ArrowShrink01Icon,
-  ArrowShrinkIcon,
-  ArrowUp01Icon,
-  ArrowUp02Icon,
-  ArrowUpRight01Icon,
-  AtIcon,
-  Attachment01Icon,
-  BarChartIcon,
-  Bell as BellSvg,
-  BriefcaseIcon,
-  BubbleChatIcon,
-  BulbIcon,
-  BuildingIcon,
-  Calendar01Icon,
-  CancelCircleIcon,
-  ChartBarLineIcon,
-  ChartLineData01Icon,
-  CheckListIcon,
-  CheckmarkCircle01Icon,
-  CheckmarkSquare01Icon,
-  Circle as CircleSvg,
-  CircleArrowUp01Icon,
-  ClipboardIcon,
-  Clock01Icon,
-  Cloud,
-  CloudUploadIcon,
-  CodeIcon as HugeCodeIcon,
-  Comment01Icon,
-  Copy01Icon,
-  CreditCardIcon,
-  CrownIcon,
-  Delete02Icon,
-  Download01Icon,
-  Drag04Icon,
-  EnergyIcon,
-  EraserIcon,
-  EyeIcon as EyeIconSvg,
-  ViewOffIcon,
-  File02Icon,
-  FilterIcon,
-  Folder01Icon,
-  Folder02Icon,
-  FolderAddIcon,
-  FolderTreeIcon as FolderTreeIconSvg,
-  GitBranchIcon,
-  GithubIcon as GithubIconSvg,
-  GlobalIcon,
-  GridIcon,
-  Hashtag,
-  Heading01Icon,
-  Heading02Icon,
-  Heading03Icon,
-  Heading04Icon,
-  Heading05Icon,
-  Heading06Icon,
-  HelpCircleIcon,
-  Home01Icon,
-  HotelIcon,
-  Image01Icon,
-  InboxIcon,
-  InformationCircleIcon,
-  Key01Icon,
-  Layers01Icon,
-  Layout01Icon,
-  Link01Icon,
-  LinkSquare01Icon,
-  ListViewIcon,
-  Loading01Icon,
-  LockIcon as LockIconSvg,
-  MagicWand01Icon,
-  Mail01Icon,
-  MaximizeIcon,
-  Maximize02Icon,
-  Menu01Icon,
-  MicroscopeIcon,
-  MinusSignIcon,
-  MoreHorizontalIcon,
-  MoreVerticalIcon as MoreVerticalIconSvg,
-  PaintBoardIcon,
-  Pencil as PencilSvg,
-  PencilEdit02Icon,
-  Pen01Icon,
-  PinIcon,
-  PlusSignIcon,
-  PlusSignCircleIcon,
-  PlusSignSquareIcon,
-  QuestionIcon,
-  QuoteDownIcon,
-  RemoveCircleIcon,
-  Rocket01Icon,
-  Rotate01Icon,
-  RotateClockwiseIcon,
-  Search01Icon,
-  Sent02Icon,
-  Settings01Icon,
-  Settings02Icon,
-  Share01Icon,
-  Share08Icon,
-  ShapesIcon,
-  SidebarLeft01Icon,
-  SidebarRight01Icon,
-  SignalIcon,
-  SlidersHorizontalIcon,
-  SmileIcon,
-  SortByDown01Icon,
-  SortByUp01Icon,
-  Sparkles as SparklesSvg,
-  SparklesIcon,
-  Square01Icon,
-  StarIcon,
-  StickyNote01Icon,
-  Tag01Icon,
-  TableIcon as HugeTableIcon,
-  TextAlignCenterIcon,
-  TextAlignLeftIcon,
-  TextAlignRightIcon,
-  TextBoldIcon,
-  TextFontIcon,
-  TextItalicIcon,
-  TextStrikethroughIcon,
-  TextUnderlineIcon,
-  TextSelectIcon as HugeTextSelectIcon,
-  TextIcon,
-  Ticket01Icon,
-  Tick02Icon,
-  TickDouble01Icon,
-  Timer01Icon,
-  ToggleOffIcon,
-  ToggleOnIcon,
-  TranslateIcon,
-  TriangleIcon,
-  UserAdd01Icon,
-  UserCircleIcon,
-  UserIcon,
-  UserMinus01Icon,
-  UserMultipleIcon,
-  WebhookIcon,
-  WhiteboardIcon,
-  ZapIcon,
-} from "@hugeicons/core-free-icons";
+  AlertLine as AlertCircleIcon,
+  AlertOctagonLine as AlertSquareIcon,
+  AlertLine as AlertTriangleSvg,
+  TransferHorizontalLine as ArrowDataTransferHorizontalIcon,
+  ArrowDownLine as ArrowDown01Icon,
+  ArrowLeftDownLine as ArrowDownLeft01Icon,
+  FullscreenLine as ArrowExpand01Icon,
+  FullscreenLine as ArrowExpandIcon,
+  ArrowLeftLine as ArrowLeft01Icon,
+  TransferHorizontalLine as ArrowLeftRightIcon,
+  RefreshAnticlockwise1Line as ArrowReloadHorizontalIcon,
+  ArrowRightLine as ArrowRight01Icon,
+  FullscreenExitLine as ArrowShrink01Icon,
+  FullscreenExitLine as ArrowShrinkIcon,
+  ArrowUpLine as ArrowUp01Icon,
+  ArrowToUpLine as ArrowUp02Icon,
+  ArrowRightUpLine as ArrowUpRight01Icon,
+  AtLine as AtIcon,
+  AttachmentLine as Attachment01Icon,
+  ChartBarLine as BarChartIcon,
+  NotificationLine as BellSvg,
+  NotificationOffLine,
+  BriefcaseLine as BriefcaseIcon,
+  BubbleLine as BubbleChatIcon,
+  BulbLine as BulbIcon,
+  Building2Line as BuildingIcon,
+  CalendarLine as Calendar01Icon,
+  CloseCircleLine as CancelCircleIcon,
+  ChartBarLine as ChartBarLineIcon,
+  ChartLineLine as ChartLineData01Icon,
+  ListCheckLine as CheckListIcon,
+  CheckCircleLine as CheckmarkCircle01Icon,
+  CheckboxLine as CheckmarkSquare01Icon,
+  DotCircleLine as CircleSvg,
+  ArrowUpCircleLine as CircleArrowUp01Icon,
+  ClipboardLine as ClipboardIcon,
+  ClockLine as Clock01Icon,
+  CloudLine as Cloud,
+  UploadLine as CloudUploadIcon,
+  CodeLine as HugeCodeIcon,
+  CommentLine as Comment01Icon,
+  CopyLine as Copy01Icon,
+  BankCardLine as CreditCardIcon,
+  AwardLine as CrownIcon,
+  DeleteLine as Delete02Icon,
+  DownloadLine as Download01Icon,
+  FileCodeLine,
+  MoveLine as Drag04Icon,
+  LightningLine as EnergyIcon,
+  EraserLine as EraserIcon,
+  EyeLine as EyeIconSvg,
+  EyeCloseLine as ViewOffIcon,
+  FileLine as File02Icon,
+  FilterLine as FilterIcon,
+  FolderLine as Folder01Icon,
+  FolderOpenLine as Folder02Icon,
+  NewFolderLine as FolderAddIcon,
+  TreeLine as FolderTreeIconSvg,
+  GitBranchLine as GitBranchIcon,
+  GithubLine as GithubIconSvg,
+  GlobeLine as GlobalIcon,
+  GridLine as GridIcon,
+  HashtagLine as Hashtag,
+  Heading1Line as Heading01Icon,
+  Heading2Line as Heading02Icon,
+  Heading3Line as Heading03Icon,
+  Heading3Line as Heading04Icon,
+  Heading3Line as Heading05Icon,
+  Heading3Line as Heading06Icon,
+  QuestionLine as HelpCircleIcon,
+  Home7Line as Home01Icon,
+  HotelLine as HotelIcon,
+  PhotoAlbumLine as Image01Icon,
+  InboxLine as InboxIcon,
+  InformationLine as InformationCircleIcon,
+  Key2Line as Key01Icon,
+  LayersLine as Layers01Icon,
+  LayoutLine as Layout01Icon,
+  LinkLine as Link01Icon,
+  ExternalLinkLine as LinkSquare01Icon,
+  ScrollableListLine as ListViewIcon,
+  LoadingLine as Loading01Icon,
+  LockLine as LockIconSvg,
+  Magic1Line as MagicWand01Icon,
+  MailLine as Mail01Icon,
+  FullscreenLine as MaximizeIcon,
+  FullscreenLine as Maximize02Icon,
+  MenuLine as Menu01Icon,
+  MicroscopeLine as MicroscopeIcon,
+  MinusCircleLine as MinusSignIcon,
+  DotsLine as MoreHorizontalIcon,
+  DotsVerticalLine as MoreVerticalIconSvg,
+  PaletteLine as PaintBoardIcon,
+  PencilLine as PencilSvg,
+  Pencil2Line as PencilEdit02Icon,
+  PencilLine as Pen01Icon,
+  PinLine as PinIcon,
+  PlusLine as PlusSignIcon,
+  AddCircleLine as PlusSignCircleIcon,
+  AddSquareLine as PlusSignSquareIcon,
+  QuestionLine as QuestionIcon,
+  QuoteLeftLine as QuoteDownIcon,
+  MinusCircleLine as RemoveCircleIcon,
+  RocketLine as Rocket01Icon,
+  HistoryLine as Rotate01Icon,
+  Refresh1Line as RotateClockwiseIcon,
+  SearchLine as Search01Icon,
+  SendPlaneLine as Sent02Icon,
+  Settings3Line as Settings01Icon,
+  Settings3Line as Settings02Icon,
+  Share2Line as Share01Icon,
+  ShareForwardLine as Share08Icon,
+  DotGridLine as ShapesIcon,
+  LayoutLeftbarOpenLine as SidebarLeft01Icon,
+  LayoutRightbarOpenLine as SidebarRight01Icon,
+  SignalLine as SignalIcon,
+  FilterLine as SlidersHorizontalIcon,
+  HappyLine as SmileIcon,
+  SortDescendingLine as SortByDown01Icon,
+  SortAscendingLine as SortByUp01Icon,
+  SparklesLine as SparklesSvg,
+  SparklesLine as SparklesIcon,
+  SquareLine as Square01Icon,
+  StarLine as StarIcon,
+  NotebookLine as StickyNote01Icon,
+  TagLine as Tag01Icon,
+  TableLine as HugeTableIcon,
+  AlignCenterLine as TextAlignCenterIcon,
+  AlignLeftLine as TextAlignLeftIcon,
+  AlignRightLine as TextAlignRightIcon,
+  BoldLine as TextBoldIcon,
+  FontLine as TextFontIcon,
+  ItalicLine as TextItalicIcon,
+  StrikethroughLine as TextStrikethroughIcon,
+  UnderlineLine as TextUnderlineIcon,
+  CursorTextLine as HugeTextSelectIcon,
+  TextLine as TextIcon,
+  TicketLine as Ticket01Icon,
+  CheckLine as Tick02Icon,
+  ChecksLine as TickDouble01Icon,
+  Clock2Line as Timer01Icon,
+  ToggleLeftLine as ToggleOffIcon,
+  ToggleRightLine as ToggleOnIcon,
+  TranslateLine as TranslateIcon,
+  TriangleLine as TriangleIcon,
+  UserAddLine as UserAdd01Icon,
+  User2Line as UserCircleIcon,
+  User1Line as UserIcon,
+  UserRemoveLine as UserMinus01Icon,
+  GroupLine as UserMultipleIcon,
+  WebhookLine as WebhookIcon,
+  WhiteboardLine as WhiteboardIcon,
+  FlashLine as ZapIcon,
+  BookmarkLine,
+  FullscreenExitLine,
+} from "@mingcute/react";
 
-/**
- * Wraps a HugeIcons icon definition as a component that accepts the same prop
- * shape callers used for the previous Phosphor/Lucide exports (className,
- * color, etc.) — drop-in replacement so call sites stay unchanged.
- */
 type LucideShimProps = React.SVGAttributes<SVGSVGElement> & {
   size?: number | string;
   color?: string;
   strokeWidth?: number | string;
 };
 
-function huge(icon: IconSvgElement) {
-  return function HugeShim({ color = "currentColor", strokeWidth, size, width, height, ...rest }: LucideShimProps) {
+/**
+ * Wraps a MingCute icon definition as a component that accepts the same prop
+ * shape our Lucide-style exports used (className, color, etc.), so call-sites
+ * importing icons from "@plane/icons" keep working unchanged after the swap.
+ */
+function huge(Icon: React.ComponentType<LucideShimProps>) {
+  return function HugeShim({ color = "currentColor", size, width, height, ...rest }: LucideShimProps) {
     const resolvedSize = (size ?? width ?? height) as number | string | undefined;
-    const parsedStrokeWidth = typeof strokeWidth === "number" ? strokeWidth : Number(strokeWidth);
-    return (
-      <HugeiconsIcon
-        {...rest}
-        icon={icon}
-        color={color}
-        strokeWidth={Number.isFinite(parsedStrokeWidth) ? parsedStrokeWidth : 1.5}
-        size={resolvedSize ?? "1em"}
-      />
-    );
+    return <Icon {...rest} color={color} size={resolvedSize ?? "1em"} />;
   };
 }
 
@@ -230,6 +224,8 @@ export const AlignLeft = huge(TextAlignLeftIcon);
 export const AlignRight = huge(TextAlignRightIcon);
 export const Archive = huge(Folder02Icon /* placeholder until Archive02 */);
 export const ArchiveIcon = Archive;
+export const Bookmark = huge(BookmarkLine);
+export const Attachment = huge(Attachment01Icon);
 export const ArchiveRestore = huge(ArrowReloadHorizontalIcon);
 export const ArchiveRestoreIcon = ArchiveRestore;
 export const ArchiveX = huge(CancelCircleIcon);
@@ -298,6 +294,7 @@ export const Ellipsis = huge(MoreHorizontalIcon);
 export const EllipsisVertical = huge(MoreVerticalIconSvg);
 export const Eraser = huge(EraserIcon);
 export const Expand = huge(Maximize02Icon);
+export const Collapse = huge(FullscreenExitLine);
 export const ExternalLink = huge(LinkSquare01Icon);
 export const Eye = huge(EyeIconSvg);
 export const EyeClosed = huge(ViewOffIcon);
@@ -522,6 +519,7 @@ export const PencilSimple = huge(PencilSvg);
 export const Copy = huge(Copy01Icon);
 export const CopySimple = Copy;
 export const CopyPlus = Copy;
+export const Csv = huge(FileCodeLine);
 export const Cube = huge(Square01Icon);
 export const Component = Cube;
 export const Globe = huge(GlobalIcon);
@@ -538,7 +536,7 @@ export const MessageSquare = Chat;
 export const MessageSquareIcon = MessageSquare;
 export const MessageSquareText = MessageSquare;
 export const Notification = huge(BellSvg);
-export const BellSlash = huge(BellSvg);
+export const BellSlash = huge(NotificationOffLine);
 export const User = huge(UserIcon);
 export const User2 = User;
 export const UserRound = User;
@@ -560,6 +558,7 @@ export const WebhooksLogo = huge(WebhookIcon);
 export const Webhook = WebhooksLogo;
 export const X = huge(CancelCircleIcon);
 export const XCircle = huge(CancelCircleIcon);
+export const CancelCircle = huge(CancelCircleIcon);
 export const XIcon = X;
 export const Zap = huge(ZapIcon);
 

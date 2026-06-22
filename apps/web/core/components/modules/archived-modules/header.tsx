@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 // icons
 import { ListFilter } from "@/components/icons/lucide-shim";
 import { useOutsideClickDetector } from "@plane/hooks";
-import { SearchIcon, CloseIcon } from "@plane/propel/icons";
+import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
 // plane helpers
 // types
 import type { TModuleFilters } from "@plane/types";

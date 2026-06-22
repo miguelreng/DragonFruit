@@ -11,7 +11,7 @@ import { useSearchParams } from "next/navigation";
 import { Disclosure, Transition } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { ChevronUpIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { ChevronUpIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import type { ICycle, TCyclePlotType, TProgressSnapshot } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { getDate } from "@plane/utils";

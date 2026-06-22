@@ -17,6 +17,7 @@ interface AppSidebarItemData {
   href?: string;
   label?: string;
   icon?: React.ReactNode;
+  activeIcon?: React.ReactNode;
   isActive?: boolean;
   onClick?: () => void;
   disabled?: boolean;
@@ -77,17 +78,17 @@ const styles = {
   baseInline:
     "group relative flex w-fit max-w-full cursor-pointer items-center rounded-lg px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
   icon: "flex items-center justify-center gap-2 size-8 rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:size-5 [&_svg]:text-current",
-  iconActive: "bg-white/55 sepia:!bg-[#dbccb3] !text-secondary dark:!bg-layer-1 dark:!text-accent-primary",
+  iconActive: "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]",
   iconInactive:
     "group-hover:text-icon-secondary group-hover:bg-layer-transparent-hover !text-icon-tertiary dark:!text-white/55 dark:group-hover:!text-white/85 dark:group-hover:bg-white/[0.08]",
   iconInline: "flex size-5 flex-shrink-0 items-center justify-center [&_svg]:size-4 [&_svg]:text-current",
-  iconInlineActive: "!text-current",
+  iconInlineActive: "!text-[oklch(0.43_0_0)]",
   iconInlineInactive: "text-icon-tertiary dark:text-white/55",
   label: "text-11 font-medium",
   labelInline: "flex h-5 items-center text-13 leading-5 font-medium",
-  labelActive: "text-secondary dark:text-white",
+  labelActive: "!text-[oklch(0.43_0_0)]",
   labelInactive: "group-hover:text-secondary text-tertiary dark:text-white/65 dark:group-hover:text-white/90",
-  inlineActive: "!bg-white/55 sepia:!bg-[#dbccb3] !text-primary dark:!bg-layer-1 dark:!text-accent-primary",
+  inlineActive: "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]",
   inlineInactive:
     "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]",
 } as const;
@@ -222,12 +223,13 @@ export type AppSidebarItemComponent = React.FC<AppSidebarItemProps> & {
 function AppSidebarItem({ variant = "link", item }: AppSidebarItemProps) {
   if (!item) return null;
 
-  const { icon, isActive, isInline, label, href, onClick, disabled, showLabel = true } = item;
+  const { icon, activeIcon, isActive, isInline, label, href, onClick, disabled, showLabel = true } = item;
   const tooltipContent = label || undefined;
+  const resolvedIcon = isActive && activeIcon ? activeIcon : icon;
 
   const commonItems = (
     <>
-      <AppSidebarItemIcon icon={icon} highlight={isActive} isInline={isInline} />
+      <AppSidebarItemIcon icon={resolvedIcon} highlight={isActive} isInline={isInline} />
       {showLabel && <AppSidebarItemLabel highlight={isActive} label={label} isInline={isInline} />}
     </>
   );

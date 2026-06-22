@@ -4,20 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { Link } from "react-router";
 import useSWR, { useSWRConfig } from "swr";
-import { Archive02Icon, Copy01Icon, Delete02Icon, LinkSquare01Icon, MoreHorizontal } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { ListBullets, SquaresFour } from "@phosphor-icons/react";
+import { Archive as Archive02Icon, Copy as Copy01Icon, ExternalLink as LinkSquare01Icon, MoreHorizontal, Trash as Delete02Icon } from "@/components/icons/lucide-shim";
+import { List as ListBullets, LayoutGrid as SquaresFour } from "@/components/icons/lucide-shim";
 import { ChevronDown, File as FileIcon, FileText, Folder, Search, Whiteboard, X } from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { PageIcon } from "@plane/propel/icons";
-import { ArchiveRestoreIcon } from "@plane/icons";
+import { PageIcon } from "@/components/icons/propel-shim";
+import { ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, Header } from "@plane/ui";
 import { cn, convertBytesToSize, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
@@ -38,6 +37,27 @@ import useLocalStorage from "@/hooks/use-local-storage";
 import { normalizeTags } from "@/helpers/tags";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
+
+type DocsIconComponent = ComponentType<{
+  className?: string;
+  color?: string;
+  size?: number | string;
+  strokeWidth?: number | string;
+}>;
+
+const DetailIcon = ({
+  icon: Icon,
+  className,
+  color = "currentColor",
+  size = "1em",
+  strokeWidth,
+}: {
+  icon: DocsIconComponent;
+  className?: string;
+  color?: string;
+  size?: number | string;
+  strokeWidth?: number | string;
+}) => <Icon className={className} color={color} size={size} strokeWidth={strokeWidth} />;
 
 const pageService = new ProjectPageService();
 
@@ -788,19 +808,19 @@ function DocCard({
             useCaptureForOutsideClick
             customButton={
               <span className="shadow-sm grid size-6 place-items-center rounded-lg bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
-                <HugeiconsIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
+                <DetailIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
               </span>
             }
           >
             <CustomMenu.MenuItem onClick={() => void handleCopyLink()}>
               <span className="flex items-center gap-2">
-                <HugeiconsIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                <DetailIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
                 Copy link
               </span>
             </CustomMenu.MenuItem>
             <CustomMenu.MenuItem onClick={() => void handleDuplicate()}>
               <span className="flex items-center gap-2">
-                <HugeiconsIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                <DetailIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
                 Duplicate
               </span>
             </CustomMenu.MenuItem>
@@ -811,7 +831,7 @@ function DocCard({
                     {page.archived_at ? (
                       <ArchiveRestoreIcon className="size-4" />
                     ) : (
-                      <HugeiconsIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                      <DetailIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
                     )}
                     {page.archived_at ? "Restore" : "Archive"}
                   </span>
@@ -821,7 +841,7 @@ function DocCard({
                   className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
                 >
                   <span className="flex items-center gap-2">
-                    <HugeiconsIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                    <DetailIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
                     Delete
                   </span>
                 </CustomMenu.MenuItem>
@@ -1212,7 +1232,7 @@ function DocsBulkActionBar({
             )}
           </CustomMenu>
           <Button variant="secondary" size="lg" onClick={handleBulkDuplicate} disabled={isBusy} aria-label="Duplicate">
-            <HugeiconsIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <DetailIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
             <span>{operation === "duplicate" ? "Duplicating..." : "Duplicate"}</span>
           </Button>
           <Button
@@ -1222,7 +1242,7 @@ function DocsBulkActionBar({
             disabled={isBusy || deletablePages.length === 0}
             aria-label="Delete"
           >
-            <HugeiconsIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <DetailIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
             <span>{operation === "delete" ? "Deleting..." : "Delete"}</span>
           </Button>
         </div>

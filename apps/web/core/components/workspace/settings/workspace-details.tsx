@@ -11,7 +11,7 @@ import { Controller, useForm } from "react-hook-form";
 import { ORGANIZATION_SIZE, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { EditIcon } from "@plane/propel/icons";
+import { EditIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { Copy, RefreshCw } from "@/components/icons/lucide-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";

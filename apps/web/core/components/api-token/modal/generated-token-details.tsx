@@ -6,7 +6,7 @@
 
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { CopyIcon } from "@plane/propel/icons";
+import { CopyIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IApiToken } from "@plane/types";

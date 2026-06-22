@@ -8,7 +8,7 @@ import { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
-import { DueDatePropertyIcon, StartDatePropertyIcon } from "@plane/propel/icons";
+import { DueDatePropertyIcon, StartDatePropertyIcon } from "@/components/icons/propel-shim";
 // types
 import type { TIssuePriorities, TWorkspaceDraftIssue } from "@plane/types";
 import { getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";

@@ -7,7 +7,7 @@
 import { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { ProjectIcon } from "@plane/propel/icons";
+import { ProjectIcon } from "@/components/icons/propel-shim";
 import type { ICustomSearchSelectOption } from "@plane/types";
 import { CustomSearchSelect } from "@plane/ui";
 // hooks

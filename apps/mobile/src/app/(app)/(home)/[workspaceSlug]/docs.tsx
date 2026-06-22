@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { File01Icon, GridViewIcon } from "@hugeicons/core-free-icons";
+import { File01Icon, GridViewIcon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { EmptyState } from "@/components/empty-state";

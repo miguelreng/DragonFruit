@@ -20,7 +20,7 @@ import {
 } from "@/services/agent.service";
 import { IssueLabelService } from "@/services/issue/issue_label.service";
 import { ProjectService } from "@/services/project/project.service";
-import { ArrowRight } from "@plane/icons";
+import { ArrowRight } from "@/components/icons/lucide-shim";
 
 type Props = {
   workspaceSlug: string;

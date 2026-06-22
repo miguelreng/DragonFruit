@@ -11,7 +11,7 @@ import { observer } from "mobx-react";
 import { useOutsideClickDetector } from "@plane/hooks";
 // i18n
 import { useTranslation } from "@plane/i18n";
-import { LabelPropertyIcon } from "@plane/propel/icons";
+import { LabelPropertyIcon } from "@/components/icons/propel-shim";
 // types
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IIssueLabel } from "@plane/types";

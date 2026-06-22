@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
-import { ChevronRightIcon } from "@plane/propel/icons";
+import { ChevronRightIcon } from "@/components/icons/propel-shim";
 import { EPillVariant, Pill, EPillSize } from "@plane/propel/pill";
 import { ToggleSwitch } from "@plane/ui";
 import { joinUrlPath } from "@plane/utils";

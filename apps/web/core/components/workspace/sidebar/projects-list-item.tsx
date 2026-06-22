@@ -21,7 +21,7 @@ import { EUserPermissions, EUserPermissionsLevel, MEMBER_TRACKER_ELEMENTS } from
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { LinkIcon, ArchiveIcon, ChevronRightIcon } from "@plane/propel/icons";
+import { LinkIcon, ArchiveIcon, ChevronRightIcon } from "@/components/icons/propel-shim";
 import { IconButton, getIconButtonStyling } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";

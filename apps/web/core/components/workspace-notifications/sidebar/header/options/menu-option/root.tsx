@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { CheckCircle, Clock, MoreVertical } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 // plane imports
-import { ArchiveIcon, CheckIcon } from "@plane/propel/icons";
+import { ArchiveIcon, CheckIcon } from "@/components/icons/propel-shim";
 import type { TNotificationFilter } from "@plane/types";
 import { PopoverMenu } from "@plane/ui";
 // hooks

@@ -8,7 +8,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane ui
-import { WorkItemsIcon } from "@plane/propel/icons";
+import { WorkItemsIcon } from "@/components/icons/propel-shim";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";

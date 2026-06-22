@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { GridIcon, ListViewIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import type { ComponentType } from "react";
+import { GridIconShim as GridIcon, List as ListViewIcon } from "@/components/icons/lucide-shim";
 // plane utils
 import { cn } from "@plane/utils";
 
@@ -19,15 +19,21 @@ type ViewModeToggleProps = {
   onChange: (mode: ViewMode) => void;
 };
 
+type ViewModeIcon = ComponentType<{
+  className?: string;
+  color?: string;
+  size?: number | string;
+}>;
+
 export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
-  const options: Array<{ value: ViewMode; icon: IconSvgElement; label: string }> = [
+  const options: Array<{ value: ViewMode; icon: ViewModeIcon; label: string }> = [
     { value: "list", icon: ListViewIcon, label: "List view" },
     { value: "grid", icon: GridIcon, label: "Grid view" },
   ];
 
   return (
     <div className="flex items-center gap-0.5 rounded-lg border border-subtle p-0.5">
-      {options.map(({ value, icon, label }) => {
+      {options.map(({ value, icon: Icon, label }) => {
         const isActive = mode === value;
         return (
           <button
@@ -41,7 +47,7 @@ export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
               { "bg-layer-1 text-primary": isActive }
             )}
           >
-            <HugeiconsIcon icon={icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
+            <Icon className="size-3.5" color="currentColor" size="1em" />
           </button>
         );
       })}

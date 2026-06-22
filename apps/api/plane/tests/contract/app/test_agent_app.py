@@ -168,6 +168,30 @@ class TestAgentAPI:
     def test_chat_tool_mode_can_disable_agent_tools(self, tool_mode, expected):
         assert _should_use_agent_tools(tool_mode) is expected
 
+    def test_composio_tools_are_absent_without_api_key(self, monkeypatch):
+        from plane.llm.composio import build_composio_tools
+
+        monkeypatch.delenv("COMPOSIO_API_KEY", raising=False)
+
+        assert build_composio_tools(user_id="user-1") == []
+
+    def test_composio_execute_tool_is_disabled_by_default(self, monkeypatch):
+        from plane.llm.composio import build_composio_tools
+
+        monkeypatch.setenv("COMPOSIO_API_KEY", "test-key")
+        monkeypatch.delenv("COMPOSIO_ALLOW_WRITE_TOOLS", raising=False)
+
+        tool = next(t for t in build_composio_tools(user_id="user-1") if t.name == "composio_execute_tool")
+        result = tool.handler(
+            {
+                "tool_slug": "GITHUB_CREATE_ISSUE",
+                "arguments": {"owner": "acme", "repo": "app", "title": "Bug"},
+                "confirmed_by_user": True,
+            }
+        )
+
+        assert result.startswith("tool_error: Composio write execution is disabled")
+
     # ------------------------------------------------------------------ #
     # Atlas baseline: tool-use loop caps iterations                       #
     # ------------------------------------------------------------------ #

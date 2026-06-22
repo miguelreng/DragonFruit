@@ -11,7 +11,7 @@ import { usePopper } from "react-popper";
 import { Combobox } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { CheckIcon, SearchIcon, ModuleIcon } from "@plane/propel/icons";
+import { CheckIcon, SearchIcon, ModuleIcon } from "@/components/icons/propel-shim";
 import type { IModule } from "@plane/types";
 import { cn, sortBySelectedFirst } from "@plane/utils";
 // hooks

@@ -155,7 +155,7 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
         placement={placements}
         customButton={customActionButton}
         portalElement={portalElement}
-        menuItemsClassName="z-[14]"
+        menuItemsClassName="z-[14]" optionsClassName="!text-13"
         maxHeight="lg"
         closeOnSelect
       >
@@ -169,7 +169,7 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
                 key={item.key}
                 trigger={
                   <div className="flex items-center gap-2">
-                    {item.icon && <item.icon className={cn("h-3 w-3", item.iconClassName)} />}
+                    {item.icon && <item.icon className={cn("h-4 w-4", item.iconClassName)} />}
                     <h5>{item.title}</h5>
                     {item.description && (
                       <p
@@ -206,7 +206,7 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
                     )}
                     disabled={nestedItem.disabled}
                   >
-                    {nestedItem.icon && <nestedItem.icon className={cn("h-3 w-3", nestedItem.iconClassName)} />}
+                    {nestedItem.icon && <nestedItem.icon className={cn("h-4 w-4", nestedItem.iconClassName)} />}
                     <div>
                       <h5>{nestedItem.title}</h5>
                       {nestedItem.description && (
@@ -241,7 +241,7 @@ export const ProjectIssueQuickActions = observer(function ProjectIssueQuickActio
               )}
               disabled={item.disabled}
             >
-              {item.icon && <item.icon className={cn("h-3 w-3", item.iconClassName)} />}
+              {item.icon && <item.icon className={cn("h-4 w-4", item.iconClassName)} />}
               <div>
                 <h5>{item.title}</h5>
                 {item.description && (

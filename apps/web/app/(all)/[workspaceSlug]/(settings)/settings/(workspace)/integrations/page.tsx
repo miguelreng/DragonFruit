@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
@@ -25,11 +25,21 @@ import { INTEGRATIONS, type TIntegration } from "@/constants/integrations";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserPermissions } from "@/hooks/store/user";
 // services
+import { AIService } from "@/services/ai.service";
+import type { TWorkspaceComposioConfig } from "@/services/ai.service";
 import { AgentService, type TAgent, type TMcpServerWrite } from "@/services/agent.service";
 // local
 import { IntegrationsWorkspaceSettingsHeader } from "./header";
 
 const agentService = new AgentService();
+const aiService = new AIService();
+
+type ComposioFormState = {
+  apiKey: string;
+  baseUrl: string;
+  toolkits: string;
+  allowWriteTools: boolean;
+};
 
 // Atlas is the single workspace companion; resolve to the oldest enabled row.
 const getAtlasProfile = (agents: TAgent[]): TAgent | undefined => {
@@ -83,6 +93,124 @@ function WorkspaceIntegrationsPage() {
   const [keyEntryFor, setKeyEntryFor] = useState<string | null>(null);
   const [keyValue, setKeyValue] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [composioConfig, setComposioConfig] = useState<TWorkspaceComposioConfig | null>(null);
+  const [composioForm, setComposioForm] = useState<ComposioFormState>({
+    apiKey: "",
+    baseUrl: "",
+    toolkits: "",
+    allowWriteTools: false,
+  });
+  const [loadingComposio, setLoadingComposio] = useState(true);
+  const [savingComposio, setSavingComposio] = useState(false);
+  const [testingComposio, setTestingComposio] = useState(false);
+  const [editingComposio, setEditingComposio] = useState(false);
+  const [composioStatus, setComposioStatus] = useState<"idle" | "saved" | "tested" | "error">("idle");
+  const [composioError, setComposioError] = useState<string | null>(null);
+
+  const loadComposioConfig = useCallback(async () => {
+    if (!workspaceSlug) return;
+    setLoadingComposio(true);
+    try {
+      const res = await aiService.getWorkspaceComposioConfig(workspaceSlug);
+      setComposioConfig(res);
+      setComposioForm({
+        apiKey: "",
+        baseUrl: res.composio_base_url || "",
+        toolkits: res.composio_toolkits.join(", "),
+        allowWriteTools: res.composio_allow_write_tools,
+      });
+    } catch {
+      setComposioError("Couldn't load Composio settings.");
+      setComposioStatus("error");
+    } finally {
+      setLoadingComposio(false);
+    }
+  }, [workspaceSlug]);
+
+  useEffect(() => {
+    void loadComposioConfig();
+  }, [loadComposioConfig]);
+
+  const canSubmitComposio = useMemo(
+    () => Boolean((composioForm.apiKey || composioConfig?.has_workspace_override) && !savingComposio),
+    [composioForm.apiKey, composioConfig?.has_workspace_override, savingComposio]
+  );
+
+  const handleSaveComposio = useCallback(async () => {
+    if (!workspaceSlug) return;
+    setSavingComposio(true);
+    setComposioStatus("idle");
+    setComposioError(null);
+    try {
+      const payload: Record<string, unknown> = {
+        composio_base_url: composioForm.baseUrl.trim(),
+        composio_toolkits: composioForm.toolkits
+          .split(",")
+          .map((toolkit) => toolkit.trim())
+          .filter(Boolean),
+        composio_allow_write_tools: composioForm.allowWriteTools,
+      };
+      if (composioForm.apiKey) payload.composio_api_key = composioForm.apiKey;
+      const res = await aiService.updateWorkspaceComposioConfig(workspaceSlug, payload as never);
+      setComposioConfig(res);
+      setComposioForm((prev) => ({ ...prev, apiKey: "" }));
+      setEditingComposio(false);
+      setComposioStatus("saved");
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "error" in err && typeof (err as { error: unknown }).error === "string"
+          ? (err as { error: string }).error
+          : "Couldn't save Composio settings.";
+      setComposioError(message);
+      setComposioStatus("error");
+    } finally {
+      setSavingComposio(false);
+    }
+  }, [workspaceSlug, composioForm]);
+
+  const handleClearComposio = useCallback(async () => {
+    if (!workspaceSlug) return;
+    setSavingComposio(true);
+    setComposioStatus("idle");
+    setComposioError(null);
+    try {
+      const res = await aiService.updateWorkspaceComposioConfig(workspaceSlug, { clear: true });
+      setComposioConfig(res);
+      setComposioForm({ apiKey: "", baseUrl: "", toolkits: "", allowWriteTools: false });
+      setEditingComposio(false);
+      setComposioStatus("saved");
+    } catch {
+      setComposioError("Couldn't clear Composio settings.");
+      setComposioStatus("error");
+    } finally {
+      setSavingComposio(false);
+    }
+  }, [workspaceSlug]);
+
+  const handleTestComposio = useCallback(async () => {
+    if (!workspaceSlug) return;
+    setTestingComposio(true);
+    setComposioStatus("idle");
+    setComposioError(null);
+    try {
+      const res = await aiService.testWorkspaceComposioConfig(workspaceSlug);
+      if (!res.ok) {
+        setComposioError(res.error ?? "Composio test failed.");
+        setComposioStatus("error");
+        return;
+      }
+      setComposioStatus("tested");
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "error" in err && typeof (err as { error: unknown }).error === "string"
+          ? (err as { error: string }).error
+          : "Composio test failed.";
+      setComposioError(message);
+      setComposioStatus("error");
+    } finally {
+      setTestingComposio(false);
+    }
+  }, [workspaceSlug]);
 
   // Re-send the full desired set. Existing entries are sent WITHOUT auth_header
   // so the server preserves their stored token (matched by name).
@@ -132,6 +260,7 @@ function WorkspaceIntegrationsPage() {
   const pageTitle = currentWorkspace?.name
     ? `${currentWorkspace.name} - ${t("workspace_settings.settings.integrations.title")}`
     : undefined;
+  const composioConnected = Boolean(composioConfig?.configured);
 
   if (workspaceUserInfo && !canEdit) {
     return <NotAuthorizedView section="settings" className="h-auto" />;
@@ -157,6 +286,164 @@ function WorkspaceIntegrationsPage() {
         )}
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-3 rounded-lg border border-subtle bg-layer-2 p-4">
+            <div className="flex items-start gap-3">
+              <div
+                className="text-15 grid size-9 shrink-0 place-items-center rounded-lg font-semibold text-white select-none"
+                style={{ backgroundColor: "#111827" }}
+                aria-hidden
+              >
+                C
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <h4 className="truncate text-body-sm-medium text-primary">Composio</h4>
+                  {composioConnected && (
+                    <span className="rounded-full bg-layer-1 px-2 py-0.5 text-11 font-medium text-success-primary">
+                      Connected
+                    </span>
+                  )}
+                </div>
+                <p className="text-caption-md-regular text-tertiary">
+                  Connect Atlas to authenticated tools across external apps.
+                </p>
+              </div>
+            </div>
+
+            <ul className="flex flex-col gap-1">
+              {[
+                "Search and use 1,000+ app tools",
+                "Start OAuth connection flows",
+                "Restrict toolkits and write actions",
+              ].map((cap) => (
+                <li key={cap} className="flex items-start gap-1.5 text-caption-sm-regular text-secondary">
+                  <span className="shrink-0 text-tertiary">•</span>
+                  <span>{cap}</span>
+                </li>
+              ))}
+            </ul>
+
+            {loadingComposio ? (
+              <div className="flex flex-col gap-2">
+                <span className="h-9 w-full animate-pulse rounded-lg bg-layer-1" />
+                <span className="h-8 w-28 animate-pulse self-end rounded-lg bg-layer-1" />
+              </div>
+            ) : editingComposio ? (
+              <div className="flex flex-col gap-2">
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  className="w-full"
+                  value={composioForm.apiKey}
+                  onChange={(e) => setComposioForm((prev) => ({ ...prev, apiKey: e.target.value }))}
+                  placeholder={composioConfig?.composio_api_key_masked || "Composio API key"}
+                />
+                <Input
+                  type="text"
+                  className="w-full"
+                  value={composioForm.toolkits}
+                  onChange={(e) => setComposioForm((prev) => ({ ...prev, toolkits: e.target.value }))}
+                  placeholder="Toolkits: github, slack, gmail"
+                />
+                <Input
+                  type="url"
+                  className="w-full"
+                  value={composioForm.baseUrl}
+                  onChange={(e) => setComposioForm((prev) => ({ ...prev, baseUrl: e.target.value }))}
+                  placeholder="Custom base URL"
+                />
+                <label className="flex items-center gap-2 text-caption-md-regular text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={composioForm.allowWriteTools}
+                    onChange={(e) => setComposioForm((prev) => ({ ...prev, allowWriteTools: e.target.checked }))}
+                    disabled={!canEdit || savingComposio}
+                    className="size-4"
+                  />
+                  Allow write actions
+                </label>
+                {(composioError || composioStatus === "saved" || composioStatus === "tested") && (
+                  <p
+                    className={
+                      composioError
+                        ? "text-caption-sm-regular text-danger-primary"
+                        : "text-caption-sm-regular text-success-primary"
+                    }
+                  >
+                    {composioError || (composioStatus === "tested" ? "Composio connection works." : "Composio saved.")}
+                  </p>
+                )}
+                <div className="flex items-center justify-end gap-2">
+                  {editingComposio && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={savingComposio}
+                      onClick={() => {
+                        setEditingComposio(false);
+                        setComposioError(null);
+                      }}
+                    >
+                      {t("cancel")}
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={savingComposio}
+                    disabled={!canEdit || !canSubmitComposio || testingComposio}
+                    onClick={() => void handleSaveComposio()}
+                  >
+                    {composioConnected ? "Save" : "Connect"}
+                  </Button>
+                </div>
+              </div>
+            ) : composioConnected ? (
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!canEdit || testingComposio}
+                  onClick={() => void handleTestComposio()}
+                >
+                  {testingComposio ? "…" : "Test"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!canEdit || savingComposio || testingComposio}
+                  onClick={() => setEditingComposio(true)}
+                >
+                  Configure
+                </Button>
+                {composioConfig?.has_workspace_override && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!canEdit || savingComposio || testingComposio}
+                    onClick={() => void handleClearComposio()}
+                  >
+                    Disconnect
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-end">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!canEdit}
+                  onClick={() => {
+                    setEditingComposio(true);
+                    setComposioError(null);
+                  }}
+                >
+                  Connect
+                </Button>
+              </div>
+            )}
+          </div>
+
           {INTEGRATIONS.map((integration) => {
             const connected = connectedKeys.has(integration.key);
             const busy = busyKey === integration.key;

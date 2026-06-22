@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
-import { LockIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { LockIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { PasswordInput, PasswordStrengthIndicator } from "@plane/ui";
 import { cn } from "@plane/utils";
 

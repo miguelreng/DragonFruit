@@ -11,7 +11,7 @@ import { SquareUser } from "@/components/icons/lucide-shim";
 // plane types
 import { EEstimateSystem } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { MembersPropertyIcon, WorkItemsIcon } from "@plane/propel/icons";
+import { MembersPropertyIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
 import type { ICycle } from "@plane/types";
 // plane ui
 import { Avatar, AvatarGroup, TextArea } from "@plane/ui";

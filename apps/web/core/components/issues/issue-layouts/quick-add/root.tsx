@@ -12,7 +12,7 @@ import type { UseFormRegister } from "react-hook-form";
 import { useForm } from "react-hook-form";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { PlusIcon } from "@plane/propel/icons";
+import { PlusIcon } from "@/components/icons/propel-shim";
 import { setPromiseToast } from "@plane/propel/toast";
 import type { IProject, TIssue, EIssueLayoutTypes } from "@plane/types";
 import { cn, createIssuePayload } from "@plane/utils";

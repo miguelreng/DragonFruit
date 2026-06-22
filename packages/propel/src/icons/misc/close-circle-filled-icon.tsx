@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CancelCircleIcon } from "@hugeicons/core-free-icons";
+import { CloseCircleFill } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const CloseCircleFilledIcon = hugeIcon(CancelCircleIcon);
+export const CloseCircleFilledIcon = CloseCircleFill;

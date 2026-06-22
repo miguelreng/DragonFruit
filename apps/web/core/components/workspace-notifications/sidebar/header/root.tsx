@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { InboxIcon } from "@plane/propel/icons";
+import { InboxIcon } from "@/components/icons/propel-shim";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";

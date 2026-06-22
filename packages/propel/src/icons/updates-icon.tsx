@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Comment01Icon } from "@hugeicons/core-free-icons";
+import { CommentLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const UpdatesIcon = hugeIcon(Comment01Icon);
+export const UpdatesIcon = CommentLine;

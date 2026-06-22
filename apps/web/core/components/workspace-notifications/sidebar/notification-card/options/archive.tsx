@@ -8,7 +8,7 @@ import { observer } from "mobx-react";
 import { ArchiveRestore } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { ArchiveIcon } from "@plane/propel/icons";
+import { ArchiveIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // store
 import type { INotification } from "@/store/notifications/notification";

@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Delete02Icon } from "@hugeicons/core-free-icons";
+import { DeleteLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const TrashIcon = hugeIcon(Delete02Icon);
+export const TrashIcon = DeleteLine;

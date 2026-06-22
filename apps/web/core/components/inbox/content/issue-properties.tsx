@@ -12,7 +12,7 @@ import {
   DueDatePropertyIcon,
   LabelPropertyIcon,
   DuplicatePropertyIcon,
-} from "@plane/propel/icons";
+} from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TInboxDuplicateIssueDetails, TIssue } from "@plane/types";
 import { ControlLink } from "@plane/ui";

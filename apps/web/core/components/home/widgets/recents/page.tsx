@@ -6,7 +6,7 @@
 
 import { useRouter } from "next/navigation";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { PageIcon } from "@plane/propel/icons";
+import { PageIcon } from "@/components/icons/propel-shim";
 // plane import
 import type { TActivityEntityData, TPageEntityData } from "@plane/types";
 import { Avatar } from "@plane/ui";

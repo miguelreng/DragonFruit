@@ -10,7 +10,7 @@ import { AlertOctagon, BarChart4, CircleDashed, Folder, Microscope } from "@/com
 import { MARKETING_PRICING_PAGE_LINK } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { getButtonStyling } from "@plane/propel/button";
-import { SearchIcon } from "@plane/propel/icons";
+import { SearchIcon } from "@/components/icons/propel-shim";
 import { ContentWrapper } from "@plane/ui";
 import { cn } from "@plane/utils";
 // assets

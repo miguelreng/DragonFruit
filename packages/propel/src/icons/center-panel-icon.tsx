@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Square01Icon } from "@hugeicons/core-free-icons";
+import { SquareLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const CenterPanelIcon = hugeIcon(Square01Icon);
+export const CenterPanelIcon = SquareLine;

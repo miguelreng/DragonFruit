@@ -90,7 +90,7 @@ export const ArchivedIssueQuickActions = observer(function ArchivedIssueQuickAct
         customButton={customActionButton}
         portalElement={portalElement}
         placement={placements}
-        menuItemsClassName="z-[14]"
+        menuItemsClassName="z-[14]" optionsClassName="!text-13"
         maxHeight="lg"
         useCaptureForOutsideClick
         closeOnSelect
@@ -112,7 +112,7 @@ export const ArchivedIssueQuickActions = observer(function ArchivedIssueQuickAct
               )}
               disabled={item.disabled}
             >
-              {item.icon && <item.icon className={cn("h-3 w-3", item.iconClassName)} />}
+              {item.icon && <item.icon className={cn("h-4 w-4", item.iconClassName)} />}
               <div>
                 <h5>{item.title}</h5>
                 {item.description && (

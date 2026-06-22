@@ -8,7 +8,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { CircleDashed } from "@/components/icons/lucide-shim";
-import { ChevronRightIcon, PlusIcon } from "@plane/propel/icons";
+import { ChevronRightIcon, PlusIcon } from "@/components/icons/propel-shim";
 // types
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue, ISearchIssueResponse, TIssueGroupByOptions } from "@plane/types";
@@ -112,7 +112,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             />
           </div>
         )}
-        <div className="grid flex-shrink-0 place-items-center overflow-hidden text-secondary">
+        <div className="grid flex-shrink-0 place-items-center text-secondary">
           {icon ?? <CircleDashed className="size-3.5" strokeWidth={2} />}
         </div>
 
@@ -131,19 +131,19 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           tabIndex={0}
           aria-expanded={isExpanded}
         >
+          <div className="line-clamp-1 inline-block truncate text-13 font-medium">{title}</div>
+          <div className="pl-2 text-13 font-medium">{count || 0}</div>
           {/* Disclosure chevron — points right when collapsed, rotates 90° to
               point down when expanded. Same rotation pattern as the subtask
               chevron on each row so the affordance reads consistently across
               the list. Slightly stronger color than tertiary text so the
               control reads as "this is clickable". */}
           <ChevronRightIcon
-            className={cn("size-4 flex-shrink-0 text-secondary transition-transform", {
+            className={cn("ml-1 size-4 flex-shrink-0 text-secondary transition-transform", {
               "rotate-90": isExpanded,
             })}
             strokeWidth={2.5}
           />
-          <div className="line-clamp-1 inline-block truncate text-13 font-medium">{title}</div>
-          <div className="pl-2 text-13 font-medium">{count || 0}</div>
           <div className="px-2.5">
             <WorkFlowGroupTree groupBy={groupBy} groupId={groupID} />
           </div>

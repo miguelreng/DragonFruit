@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { TimelineLayoutIcon, GridLayoutIcon, ListLayoutIcon } from "@plane/propel/icons";
+import { TimelineLayoutIcon, GridLayoutIcon, ListLayoutIcon } from "@/components/icons/propel-shim";
 import type { TModuleLayoutOptions } from "@plane/types";
 import { cn } from "@plane/utils";
 

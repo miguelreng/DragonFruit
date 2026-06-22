@@ -6,7 +6,7 @@
 
 import React from "react";
 // types
-import { CycleGroupIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { CycleGroupIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import type { TCycleGroups } from "@plane/types";
 // icons
 import { Row } from "@plane/ui";

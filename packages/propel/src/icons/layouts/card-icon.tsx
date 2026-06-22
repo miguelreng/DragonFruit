@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Cards01Icon } from "@hugeicons/core-free-icons";
+import { LayoutGridLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const CardLayoutIcon = hugeIcon(Cards01Icon);
+export const CardLayoutIcon = LayoutGridLine;

@@ -15,7 +15,7 @@ import { ROLE } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // types
 import { Button } from "@plane/propel/button";
-import { DragonfruitLogo } from "@plane/propel/icons";
+import { DragonfruitLogo } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspaceMemberInvitation } from "@plane/types";
 import { truncateText } from "@plane/utils";

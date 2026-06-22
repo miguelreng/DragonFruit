@@ -6,7 +6,7 @@
 
 import { Briefcase, FileText, Layers, LayoutGrid } from "@/components/icons/lucide-shim";
 // plane imports
-import { ContrastIcon, DiceIcon } from "@plane/propel/icons";
+import { ContrastIcon, DiceIcon } from "@/components/icons/propel-shim";
 import type {
   IWorkspaceDefaultSearchResult,
   IWorkspaceIssueSearchResult,

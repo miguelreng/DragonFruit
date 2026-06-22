@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { PickerSheet } from "@/components/picker-sheet";

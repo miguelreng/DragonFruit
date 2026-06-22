@@ -11,7 +11,7 @@ import useSWR from "swr";
 import { Disclosure } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { ChevronDownIcon } from "@plane/propel/icons";
+import { ChevronDownIcon } from "@/components/icons/propel-shim";
 import { Collapsible } from "@plane/ui";
 // components
 import { CountChip } from "@/components/common/count-chip";

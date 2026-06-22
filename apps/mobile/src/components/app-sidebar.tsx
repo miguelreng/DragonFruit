@@ -19,7 +19,7 @@ import {
   SparklesIcon,
   StickyNote02Icon,
   Task01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { PressableScale } from "@/components/pressable-scale";

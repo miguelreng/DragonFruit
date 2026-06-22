@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { McpServerIcon as McpServerIconSvg } from "@hugeicons/core-free-icons";
+import { McpLine } from "@mingcute/react";
 
-import { hugeIcon } from "./_hugeicons-shim";
-
-export const McpServerIcon = hugeIcon(McpServerIconSvg);
+export const McpServerIcon = McpLine;

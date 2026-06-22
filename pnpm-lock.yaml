@@ -214,7 +214,7 @@ importers:
         version: 4.18.0
       lucide-react:
         specifier: 'catalog:'
-        version: 0.469.0(react@18.3.1)
+        version: link:../../packages/lucide-react
       mobx:
         specifier: 'catalog:'
         version: 6.12.0
@@ -458,15 +458,12 @@ importers:
       '@expo/ui':
         specifier: ~56.0.15
         version: 56.0.15(@babel/core@7.28.4)(@types/react-dom@18.3.1)(@types/react@19.2.15)(expo@56.0.8)(react-dom@19.2.3(react@19.2.3))(react-native-reanimated@4.3.1(react-native-worklets@0.8.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native-worklets@0.8.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
-      '@hugeicons/core-free-icons':
-        specifier: ^4.1.4
-        version: 4.1.4
-      '@hugeicons/react-native':
-        specifier: ^1.0.13
-        version: 1.0.13(react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
       '@react-navigation/native':
         specifier: 7.2.5
         version: 7.2.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
+      '@solar-icons/react-native':
+        specifier: ^1.1.1
+        version: 1.1.1(react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
       expo:
         specifier: ~56.0.8
         version: 56.0.8(@babel/core@7.28.4)(@expo/dom-webview@56.0.5)(@expo/metro-runtime@56.0.13)(expo-router@56.2.8)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native-webview@13.16.1(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native-worklets@0.8.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)(typescript@5.8.3)
@@ -641,7 +638,7 @@ importers:
         version: 4.18.0
       lucide-react:
         specifier: 'catalog:'
-        version: 0.469.0(react@18.3.1)
+        version: link:../../packages/lucide-react
       mobx:
         specifier: 'catalog:'
         version: 6.12.0
@@ -742,18 +739,12 @@ importers:
       '@headlessui/react':
         specifier: ^1.7.19
         version: 1.7.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@hugeicons/core-free-icons':
-        specifier: ^4.1.4
-        version: 4.1.4
-      '@hugeicons/react':
-        specifier: ^1.1.6
-        version: 1.1.6(react@18.3.1)
       '@js-temporal/polyfill':
         specifier: ^0.5.1
         version: 0.5.1
-      '@phosphor-icons/react':
-        specifier: ^2.1.10
-        version: 2.1.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@mingcute/react':
+        specifier: ^1.4.1
+        version: 1.4.1(react@18.3.1)
       '@plane/constants':
         specifier: workspace:*
         version: link:../../packages/constants
@@ -811,6 +802,9 @@ importers:
       '@schedule-x/theme-default':
         specifier: ^4.6.0
         version: 4.6.0
+      '@solar-icons/react':
+        specifier: ^1.1.1
+        version: 1.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1157,7 +1151,7 @@ importers:
         version: 3.3.0
       lucide-react:
         specifier: 'catalog:'
-        version: 0.469.0(react@18.3.1)
+        version: link:../lucide-react
       prosemirror-codemark:
         specifier: ^0.4.2
         version: 0.4.2(prosemirror-inputrules@1.5.0)(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)
@@ -1239,6 +1233,21 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  packages/hugeicons-core-free-icons:
+    dependencies:
+      '@solar-icons/react-native':
+        specifier: ^1.1.1
+        version: 1.1.1(react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
+
+  packages/hugeicons-react-native:
+    dependencies:
+      '@solar-icons/react-native':
+        specifier: ^1.1.1
+        version: 1.1.1(react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1))(react@18.3.1))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+
   packages/i18n:
     dependencies:
       i18next:
@@ -1278,12 +1287,9 @@ importers:
 
   packages/icons:
     dependencies:
-      '@hugeicons/core-free-icons':
-        specifier: ^4.1.4
-        version: 4.1.4
-      '@hugeicons/react':
-        specifier: ^1.1.6
-        version: 1.1.6(react@18.3.1)
+      '@mingcute/react':
+        specifier: ^1.4.1
+        version: 1.4.1(react@18.3.1)
       react:
         specifier: 'catalog:'
         version: 18.3.1
@@ -1326,6 +1332,31 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  packages/lucide-react:
+    dependencies:
+      '@plane/icons':
+        specifier: workspace:*
+        version: link:../icons
+      '@solar-icons/react':
+        specifier: ^1.1.1
+        version: 1.1.1(react-dom@19.2.3(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+    devDependencies:
+      '@plane/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.11
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.16.0(typescript@5.8.3)(unrun@0.2.34(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0))
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
   packages/mcp-server:
     dependencies:
       xmcp:
@@ -1345,20 +1376,29 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  packages/mingcute-react:
+    dependencies:
+      '@solar-icons/react':
+        specifier: ^1.1.1
+        version: 1.1.1(react-dom@19.2.3(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+
+  packages/phosphor-icons-react:
+    dependencies:
+      '@plane/icons':
+        specifier: workspace:*
+        version: link:../icons
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+
   packages/propel:
     dependencies:
       '@base-ui-components/react':
         specifier: 1.0.0-beta.3
         version: 1.0.0-beta.3(@types/react@18.3.11)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@hugeicons/core-free-icons':
-        specifier: ^4.1.4
-        version: 4.1.4
-      '@hugeicons/react':
-        specifier: ^1.1.6
-        version: 1.1.6(react@18.3.1)
-      '@phosphor-icons/react':
-        specifier: ^2.1.10
-        version: 2.1.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@plane/constants':
         specifier: workspace:*
         version: link:../constants
@@ -1391,7 +1431,7 @@ importers:
         version: 0.3.0(react@18.3.1)(typescript@5.8.3)
       lucide-react:
         specifier: 'catalog:'
-        version: 0.469.0(react@18.3.1)
+        version: link:../lucide-react
       react:
         specifier: 'catalog:'
         version: 18.3.1
@@ -1570,12 +1610,6 @@ importers:
       '@headlessui/react':
         specifier: ^1.7.3
         version: 1.7.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@hugeicons/core-free-icons':
-        specifier: ^4.1.4
-        version: 4.1.4
-      '@hugeicons/react':
-        specifier: ^1.1.6
-        version: 1.1.6(react@18.3.1)
       '@plane/constants':
         specifier: workspace:*
         version: link:../constants
@@ -1597,6 +1631,9 @@ importers:
       '@radix-ui/react-scroll-area':
         specifier: ^1.2.3
         version: 1.2.10(@types/react-dom@18.3.1)(@types/react@18.3.11)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@solar-icons/react':
+        specifier: ^1.1.1
+        version: 1.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
@@ -1605,7 +1642,7 @@ importers:
         version: 4.18.0
       lucide-react:
         specifier: 'catalog:'
-        version: 0.469.0(react@18.3.1)
+        version: link:../lucide-react
       react:
         specifier: 'catalog:'
         version: 18.3.1
@@ -1702,7 +1739,7 @@ importers:
         version: 4.18.0
       lucide-react:
         specifier: 'catalog:'
-        version: 0.469.0(react@18.3.1)
+        version: link:../lucide-react
       mdast:
         specifier: ^3.0.0
         version: 3.0.0
@@ -3019,21 +3056,6 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hugeicons/core-free-icons@4.1.4':
-    resolution: {integrity: sha512-vkMvlnW7Atqh7juhZCadYDvqABWcEeVAkavAK6HJBFbYkLCme5CN51Oc91D5j5ruDja+HQPjMfWkTxxulcwvAQ==}
-
-  '@hugeicons/react-native@1.0.13':
-    resolution: {integrity: sha512-C6vA/AHTWSbgeVR93fpfnOKZaijh0RZIW7Ud5Xnh1f5RcV88q3Bn4fqE53k+rcjto6gNylzfs73ksHASgc5tPw==}
-    peerDependencies:
-      react: '>=16.0.0'
-      react-native: '>=0.60.0'
-      react-native-svg: '>=12.0.0'
-
-  '@hugeicons/react@1.1.6':
-    resolution: {integrity: sha512-c2LhXJMAW5wN1pC/smBXG0YPqUON6ceR/ZdXHCjEI9KvB+hjtqYjmzIxok5hAQOeXGz0WtORgCQMzqewFKAZwg==}
-    peerDependencies:
-      react: '>=16.0.0'
-
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
     engines: {node: '>=18.18.0'}
@@ -3408,6 +3430,11 @@ packages:
 
   '@mermaid-js/parser@1.1.1':
     resolution: {integrity: sha512-VuHdsYMK1bT6X2JbcAaWAhugTRvRBRyuZgd+c22swUeI9g/ntaxF7CY7dYarhZovofCbUNO0G7JesfmNtjYOCw==}
+
+  '@mingcute/react@1.4.1':
+    resolution: {integrity: sha512-efVOsE6P2+w75tUudBYNAcB7LhXUVeKoGrAAaxOUgs+wLHKZxzLLq4swes7uf9qnMdtACGt10TKusFVxj4hC8A==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
 
   '@mjackson/node-fetch-server@0.2.0':
     resolution: {integrity: sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng==}
@@ -3944,13 +3971,6 @@ packages:
   '@parcel/watcher@2.5.4':
     resolution: {integrity: sha512-WYa2tUVV5HiArWPB3ydlOc4R2ivq0IDrlqhMi3l7mVsFEXNcTfxYFPIHXHXIh/ca/y/V5N4E1zecyxdIBjYnkQ==}
     engines: {node: '>= 10.0.0'}
-
-  '@phosphor-icons/react@2.1.10':
-    resolution: {integrity: sha512-vt8Tvq8GLjheAZZYa+YG/pW7HDbov8El/MANW8pOAz4eGxrwhnbfrQZq0Cp4q8zBEu8NIhHdnr+r8thnfRSNYA==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      react: '>= 16.8'
-      react-dom: '>= 16.8'
 
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
@@ -5192,6 +5212,21 @@ packages:
 
   '@sinclair/typebox@0.27.10':
     resolution: {integrity: sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA==}
+
+  '@solar-icons/react-native@1.1.1':
+    resolution: {integrity: sha512-k84mFWkVQPhI1r10P8QfDNPRNnoKvaTSAfW0AvVprXojYKXDg5BcXNZvOxfGoYmrhYWGgviy7eRoFGQtyil9BA==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      react: '>= 16.8'
+      react-native: '>= 0.72.0'
+      react-native-svg: '>= 13.0.0'
+
+  '@solar-icons/react@1.1.1':
+    resolution: {integrity: sha512-7cuzHyfXKk+P4HyoW+EXbauiBm01AZzqcEqTsr/m0f77aDYPU0XayejV9IXscxiyYB+twh+UsSgqwIS/ap/rgA==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      react: '>= 16.8'
+      react-dom: '>= 16.8'
 
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
@@ -9514,11 +9549,6 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@0.469.0:
-    resolution: {integrity: sha512-28vvUnnKQ/dBwiCQtwJw7QauYnE7yd2Cyp4tTTJpvglX4EMpbflcdBgrgToX2j71B3YvugK/NH3BGUk+E/p/Fw==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
@@ -11089,6 +11119,7 @@ packages:
   recharts@2.15.4:
     resolution: {integrity: sha512-UT/q6fwS3c1dHbXv2uFgYJ9BMFHu3fwnd7AYZaEQhXuYQ4hgsxLvsUXzGdKeZrW5xopzDCvuA2N41WJ88I7zIw==}
     engines: {node: '>=14'}
+    deprecated: 1.x and 2.x branches are no longer active. Bump to Recharts v3 to receive latest features and bugfixes. See https://github.com/recharts/recharts/wiki/3.0-migration-guide
     peerDependencies:
       react: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -11979,6 +12010,7 @@ packages:
   tsconfck@3.1.6:
     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
     engines: {node: ^18 || >=20}
+    deprecated: unmaintained
     hasBin: true
     peerDependencies:
       typescript: 5.8.3
@@ -14538,18 +14570,6 @@ snapshots:
     dependencies:
       hono: 4.12.22
 
-  '@hugeicons/core-free-icons@4.1.4': {}
-
-  '@hugeicons/react-native@1.0.13(react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)':
-    dependencies:
-      react: 19.2.3
-      react-native: 0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3)
-      react-native-svg: 15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
-
-  '@hugeicons/react@1.1.6(react@18.3.1)':
-    dependencies:
-      react: 18.3.1
-
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -14903,6 +14923,10 @@ snapshots:
     dependencies:
       '@chevrotain/types': 11.1.2
 
+  '@mingcute/react@1.4.1(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+
   '@mjackson/node-fetch-server@0.2.0': {}
 
   '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
@@ -15251,11 +15275,6 @@ snapshots:
       '@parcel/watcher-win32-arm64': 2.5.4
       '@parcel/watcher-win32-ia32': 2.5.4
       '@parcel/watcher-win32-x64': 2.5.4
-
-  '@phosphor-icons/react@2.1.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
 
   '@popperjs/core@2.11.8': {}
 
@@ -16047,6 +16066,15 @@ snapshots:
 
   '@react-native/normalize-colors@0.85.3': {}
 
+  '@react-native/virtualized-lists@0.85.3(@types/react@19.2.15)(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      invariant: 2.2.4
+      nullthrows: 1.1.1
+      react: 18.3.1
+      react-native: 0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1)
+    optionalDependencies:
+      '@types/react': 19.2.15
+
   '@react-native/virtualized-lists@0.85.3(@types/react@19.2.15)(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)':
     dependencies:
       invariant: 2.2.4
@@ -16678,6 +16706,28 @@ snapshots:
   '@shikijs/vscode-textmate@10.0.2': {}
 
   '@sinclair/typebox@0.27.10': {}
+
+  '@solar-icons/react-native@1.1.1(react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1))(react@18.3.1))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-native: 0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1)
+      react-native-svg: 15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1))(react@18.3.1)
+
+  '@solar-icons/react-native@1.1.1(react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+      react-native: 0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3)
+      react-native-svg: 15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
+
+  '@solar-icons/react@1.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@solar-icons/react@1.1.1(react-dom@19.2.3(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 19.2.3(react@18.3.1)
 
   '@standard-schema/spec@1.0.0': {}
 
@@ -21641,10 +21691,6 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.469.0(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-
   lz-string@1.5.0: {}
 
   magic-string@0.30.21:
@@ -23418,6 +23464,11 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
+  react-dom@19.2.3(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      scheduler: 0.27.0
+
   react-dom@19.2.3(react@19.2.3):
     dependencies:
       react: 19.2.3
@@ -23564,6 +23615,13 @@ snapshots:
       react-native: 0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3)
       warn-once: 0.1.1
 
+  react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1))(react@18.3.1):
+    dependencies:
+      css-select: 5.2.2
+      css-tree: 1.1.3
+      react: 18.3.1
+      react-native: 0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1)
+
   react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3):
     dependencies:
       css-select: 5.2.2
@@ -23612,6 +23670,51 @@ snapshots:
       semver: 7.7.4
     transitivePeerDependencies:
       - supports-color
+
+  react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1):
+    dependencies:
+      '@react-native/assets-registry': 0.85.3
+      '@react-native/codegen': 0.85.3(@babel/core@7.28.4)
+      '@react-native/community-cli-plugin': 0.85.3(@react-native/metro-config@0.85.3(@babel/core@7.28.4))
+      '@react-native/gradle-plugin': 0.85.3
+      '@react-native/js-polyfills': 0.85.3
+      '@react-native/normalize-colors': 0.85.3
+      '@react-native/virtualized-lists': 0.85.3(@types/react@19.2.15)(react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@18.3.1))(react@18.3.1)
+      abort-controller: 3.0.0
+      anser: 1.4.10
+      ansi-regex: 5.0.1
+      babel-plugin-syntax-hermes-parser: 0.33.3
+      base64-js: 1.5.1
+      commander: 12.1.0
+      flow-enums-runtime: 0.0.6
+      hermes-compiler: 250829098.0.10
+      invariant: 2.2.4
+      memoize-one: 5.2.1
+      metro-runtime: 0.84.4
+      metro-source-map: 0.84.4
+      nullthrows: 1.1.1
+      pretty-format: 29.7.0
+      promise: 8.3.0
+      react: 18.3.1
+      react-devtools-core: 6.1.5
+      react-refresh: 0.14.2
+      regenerator-runtime: 0.13.11
+      scheduler: 0.27.0
+      semver: 7.7.4
+      stacktrace-parser: 0.1.11
+      tinyglobby: 0.2.15
+      whatwg-fetch: 3.6.20
+      ws: 7.5.10
+      yargs: 17.7.2
+    optionalDependencies:
+      '@types/react': 19.2.15
+    transitivePeerDependencies:
+      - '@babel/core'
+      - '@react-native-community/cli'
+      - '@react-native/metro-config'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
 
   react-native@0.85.3(@babel/core@7.28.4)(@react-native/metro-config@0.85.3(@babel/core@7.28.4))(@types/react@19.2.15)(react@19.2.3):
     dependencies:

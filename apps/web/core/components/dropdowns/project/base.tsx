@@ -12,7 +12,7 @@ import { Combobox } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { Logo } from "@plane/propel/emoji-icon-picker";
-import { CheckIcon, SearchIcon, ProjectIcon, ChevronDownIcon } from "@plane/propel/icons";
+import { CheckIcon, SearchIcon, ProjectIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { ComboDropDown } from "@plane/ui";
 import { cn, sortBySelectedFirst } from "@plane/utils";
 // components

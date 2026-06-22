@@ -10,7 +10,7 @@ import { GripVertical } from "@/components/icons/lucide-shim";
 // plane imports
 import { EEstimateSystem, estimateCount } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { EditIcon, TrashIcon } from "@plane/propel/icons";
+import { EditIcon, TrashIcon } from "@/components/icons/propel-shim";
 import type { TEstimatePointsObject, TEstimateSystemKeys, TEstimateTypeErrorObject } from "@plane/types";
 import { convertMinutesToHoursMinutesString } from "@plane/utils";
 // plane web imports

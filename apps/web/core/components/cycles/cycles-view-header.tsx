@@ -11,7 +11,7 @@ import { ListFilter } from "@/components/icons/lucide-shim";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { IconButton } from "@plane/propel/icon-button";
 import { useTranslation } from "@plane/i18n";
-import { SearchIcon, CloseIcon } from "@plane/propel/icons";
+import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
 import type { TCycleFilters } from "@plane/types";
 import { cn, calculateTotalFilters } from "@plane/utils";
 // components

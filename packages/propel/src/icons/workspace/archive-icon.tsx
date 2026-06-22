@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Archive02Icon } from "@hugeicons/core-free-icons";
+import { ArchiveLine } from "@mingcute/react";
 
-import { hugeIcon } from "../_hugeicons-shim";
-
-export const ArchiveIcon = hugeIcon(Archive02Icon);
+export const ArchiveIcon = ArchiveLine;

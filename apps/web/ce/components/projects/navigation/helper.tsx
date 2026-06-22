@@ -6,9 +6,17 @@
 
 // plane imports
 import { EUserPermissions, EProjectFeatureKey } from "@plane/constants";
-import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@plane/propel/icons";
+import {
+  Calendar,
+  Checklist,
+  Document,
+  Eye,
+  Inbox,
+  Layers,
+} from "@solar-icons/react/ssr";
 // components
 import type { TNavigationItem } from "@/components/workspace/sidebar/project-navigation";
+import { createSolarSidebarIconPair } from "@/components/sidebar/solar-icon";
 
 export const getProjectFeatureNavigation = (
   workspaceSlug: string,
@@ -26,7 +34,7 @@ export const getProjectFeatureNavigation = (
     key: EProjectFeatureKey.WORK_ITEMS,
     name: "Tasks",
     href: `/${workspaceSlug}/projects/${projectId}/issues`,
-    icon: WorkItemsIcon,
+    ...createSolarSidebarIconPair(Checklist),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
     shouldRender: true,
     sortOrder: 1,
@@ -36,7 +44,7 @@ export const getProjectFeatureNavigation = (
     key: EProjectFeatureKey.CYCLES,
     name: "Cycles",
     href: `/${workspaceSlug}/projects/${projectId}/cycles`,
-    icon: CycleIcon,
+    ...createSolarSidebarIconPair(Calendar),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     shouldRender: project.cycle_view,
     sortOrder: 2,
@@ -46,7 +54,7 @@ export const getProjectFeatureNavigation = (
     key: EProjectFeatureKey.MODULES,
     name: "Modules",
     href: `/${workspaceSlug}/projects/${projectId}/modules`,
-    icon: ModuleIcon,
+    ...createSolarSidebarIconPair(Layers),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     shouldRender: project.module_view,
     sortOrder: 3,
@@ -56,7 +64,7 @@ export const getProjectFeatureNavigation = (
     key: EProjectFeatureKey.VIEWS,
     name: "Views",
     href: `/${workspaceSlug}/projects/${projectId}/views`,
-    icon: ViewsIcon,
+    ...createSolarSidebarIconPair(Eye),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
     shouldRender: project.issue_views_view,
     sortOrder: 4,
@@ -66,7 +74,7 @@ export const getProjectFeatureNavigation = (
     key: EProjectFeatureKey.PAGES,
     name: "Pages",
     href: `/${workspaceSlug}/projects/${projectId}/pages`,
-    icon: PageIcon,
+    ...createSolarSidebarIconPair(Document),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
     shouldRender: project.page_view,
     sortOrder: 5,
@@ -76,7 +84,7 @@ export const getProjectFeatureNavigation = (
     key: EProjectFeatureKey.INTAKE,
     name: "Intake",
     href: `/${workspaceSlug}/projects/${projectId}/intake`,
-    icon: IntakeIcon,
+    ...createSolarSidebarIconPair(Inbox),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
     shouldRender: project.inbox_view,
     sortOrder: 6,

@@ -4,59 +4,55 @@
  * See the LICENSE file for details.
  */
 
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import {
-  AiBrain01Icon,
-  Archive02Icon,
-  Bookmark,
-  BriefcaseIcon,
-  Calendar01Icon,
-  ChartBarLineIcon,
-  CheckListIcon,
-  File02Icon,
-  Home01Icon,
-  InboxIcon,
-  PencilEdit01Icon,
-  RepeatIcon,
-  StickyNote02Icon,
-  WhiteboardIcon,
-} from "@hugeicons/core-free-icons";
 import { cn } from "@plane/utils";
+import {
+  Archive,
+  Calendar,
+  Chart,
+  Checklist,
+  DocumentsMinimalistic,
+  Home,
+  Inbox,
+  MagicStick,
+  Pen,
+  Bookmark,
+  FolderWithFiles,
+  RulerCrossPen,
+  Repeat,
+  StickerSquare,
+} from "@solar-icons/react/ssr";
+import { renderSolarSidebarIcon } from "@/components/sidebar/solar-icon";
 
-const SidebarNavIcon = ({ icon, className }: { icon: IconSvgElement; className: string }) => (
-  <HugeiconsIcon icon={icon} className={className} color="currentColor" strokeWidth={1.5} size="1em" />
-);
-
-export const getSidebarNavigationItemIcon = (key: string, className: string = "") => {
+export const getSidebarNavigationItemIcon = (key: string, className: string = "", isActive = false) => {
   const cls = cn("size-4 flex-shrink-0", className);
   switch (key) {
     case "home":
-      return <SidebarNavIcon icon={Home01Icon} className={cls} />;
+      return renderSolarSidebarIcon(Home, isActive, cls);
     case "inbox":
-      return <SidebarNavIcon icon={InboxIcon} className={cls} />;
+      return renderSolarSidebarIcon(Inbox, isActive, cls);
     case "projects":
-      return <SidebarNavIcon icon={BriefcaseIcon} className={cls} />;
+      return renderSolarSidebarIcon(FolderWithFiles, isActive, cls);
     case "active_cycles":
-      return <SidebarNavIcon icon={RepeatIcon} className={cls} />;
+      return renderSolarSidebarIcon(Repeat, isActive, cls);
     case "analytics":
-      return <SidebarNavIcon icon={ChartBarLineIcon} className={cls} />;
+      return renderSolarSidebarIcon(Chart, isActive, cls);
     case "your_work":
-      return <SidebarNavIcon icon={CheckListIcon} className={cls} />;
+      return renderSolarSidebarIcon(Checklist, isActive, cls);
     case "drafts":
-      return <SidebarNavIcon icon={PencilEdit01Icon} className={cls} />;
+      return renderSolarSidebarIcon(Pen, isActive, cls);
     case "archives":
-      return <SidebarNavIcon icon={Archive02Icon} className={cls} />;
+      return renderSolarSidebarIcon(Archive, isActive, cls);
     case "stickies":
-      return <SidebarNavIcon icon={StickyNote02Icon} className={cls} />;
+      return renderSolarSidebarIcon(StickerSquare, isActive, cls);
     case "docs":
-      return <SidebarNavIcon icon={File02Icon} className={cls} />;
+      return renderSolarSidebarIcon(DocumentsMinimalistic, isActive, cls);
     case "bookmarks":
-      return <SidebarNavIcon icon={Bookmark} className={cls} />;
+      return renderSolarSidebarIcon(Bookmark, isActive, cls);
     case "whiteboards":
-      return <SidebarNavIcon icon={WhiteboardIcon} className={cls} />;
+      return renderSolarSidebarIcon(RulerCrossPen, isActive, cls);
     case "calendar":
-      return <SidebarNavIcon icon={Calendar01Icon} className={cls} />;
+      return renderSolarSidebarIcon(Calendar, isActive, cls);
     case "agents":
-      return <SidebarNavIcon icon={AiBrain01Icon} className={cls} />;
+      return renderSolarSidebarIcon(MagicStick, isActive, cls);
   }
 };

@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
 import { ETabIndices } from "@plane/constants";
-import { CloseIcon } from "@plane/propel/icons";
+import { CloseIcon } from "@/components/icons/propel-shim";
 // plane imports
 // types
 import type { ISearchIssueResponse, TIssue } from "@plane/types";
