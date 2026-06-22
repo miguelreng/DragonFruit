@@ -117,7 +117,7 @@ export const ArchivedIssueQuickActions = observer(function ArchivedIssueQuickAct
                 <h5>{item.title}</h5>
                 {item.description && (
                   <p
-                    className={cn("whitespace-pre-line text-tertiary", {
+                    className={cn("whitespace-pre-line text-xs leading-snug text-tertiary", {
                       "text-placeholder": item.disabled,
                     })}
                   >
