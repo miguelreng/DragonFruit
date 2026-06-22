@@ -12,14 +12,16 @@ def canonicalize_agent_names(apps, schema_editor):
     Agent = apps.get_model("db", "Agent")
     User = apps.get_model("db", "User")
 
-    agents = Agent.objects.filter(deleted_at__isnull=True).exclude(name=CANONICAL_NAME)
+    # Historical models only carry managers flagged use_in_migrations, so the
+    # rendered Agent/User models may lack `objects`; `_base_manager` always exists.
+    agents = Agent._base_manager.filter(deleted_at__isnull=True).exclude(name=CANONICAL_NAME)
     bot_user_ids = list(agents.values_list("bot_user_id", flat=True))
     agents.update(name=CANONICAL_NAME)
 
     # Bot users that back agents — keep their display in sync.
-    stale_bots = User.objects.filter(is_bot=True, bot_type="AGENT").exclude(display_name=CANONICAL_NAME)
+    stale_bots = User._base_manager.filter(is_bot=True, bot_type="AGENT").exclude(display_name=CANONICAL_NAME)
     if bot_user_ids:
-        stale_bots = stale_bots | User.objects.filter(id__in=bot_user_ids).exclude(display_name=CANONICAL_NAME)
+        stale_bots = stale_bots | User._base_manager.filter(id__in=bot_user_ids).exclude(display_name=CANONICAL_NAME)
     stale_bots.distinct().update(display_name=CANONICAL_NAME, first_name=CANONICAL_NAME)
 
 
