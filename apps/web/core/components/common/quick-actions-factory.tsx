@@ -48,7 +48,7 @@ export const useQuickActionsFactory = () => {
       icon: ArchiveIcon,
       action: handler,
       className: "items-start",
-      iconClassName: "mt-1",
+      iconClassName: "size-[18px] mt-0.5",
       description: opts.description,
       disabled: opts.disabled,
       shouldRender: opts.shouldRender,

@@ -227,7 +227,7 @@ export const useMenuItemFactory = (props: MenuItemFactoryProps) => {
     description: isInArchivableGroup ? undefined : t("issue.archive.description"),
     icon: ArchiveIcon,
     className: "items-start",
-    iconClassName: "mt-1",
+    iconClassName: "size-[18px] mt-0.5",
     action: () => handleOptionalAction(setArchiveIssueModal, "Archive", true),
     disabled: !isInArchivableGroup,
     shouldRender: isArchivingAllowed,

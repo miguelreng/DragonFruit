@@ -163,7 +163,7 @@
       "label": "Sibling tasks"
     },
     "archive": {
-      "description": "Only completed or canceled tasks can be archived",
+      "description": "Only completed or canceled tasks",
       "label": "Archive Task",
       "confirm_message": "Are you sure you want to archive the task? All your archived tasks can be restored later.",
       "success": {

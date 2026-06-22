@@ -172,7 +172,7 @@ export const ModuleIssueQuickActions = observer(function ModuleIssueQuickActions
                     <h5>{item.title}</h5>
                     {item.description && (
                       <p
-                        className={cn("whitespace-pre-line text-tertiary", {
+                        className={cn("whitespace-pre-line text-xs leading-snug text-tertiary", {
                           "text-placeholder": item.disabled,
                         })}
                       >
@@ -210,7 +210,7 @@ export const ModuleIssueQuickActions = observer(function ModuleIssueQuickActions
                       <h5>{nestedItem.title}</h5>
                       {nestedItem.description && (
                         <p
-                          className={cn("whitespace-pre-line text-tertiary", {
+                          className={cn("whitespace-pre-line text-xs leading-snug text-tertiary", {
                             "text-placeholder": nestedItem.disabled,
                           })}
                         >
@@ -245,7 +245,7 @@ export const ModuleIssueQuickActions = observer(function ModuleIssueQuickActions
                 <h5>{item.title}</h5>
                 {item.description && (
                   <p
-                    className={cn("whitespace-pre-line text-tertiary", {
+                    className={cn("whitespace-pre-line text-xs leading-snug text-tertiary", {
                       "text-placeholder": item.disabled,
                     })}
                   >
