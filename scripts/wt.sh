@@ -52,6 +52,20 @@ pick_port() {
   echo "$p"
 }
 
+# Copy local (gitignored) .env files from the main repo into the new worktree,
+# so it renders identically to how the main repo runs locally. Scoped to root +
+# apps/<app>/ + packages/<pkg>/ env files (never node_modules/dist).
+copy_local_env() {
+  local dest="$1" rel
+  git -C "$main_repo" ls-files --others --ignored --exclude-standard \
+    | grep -E '^(\.env|apps/[^/]+/\.env|packages/[^/]+/\.env)(\.[a-zA-Z.]+)?$' \
+    | while read -r rel; do
+        mkdir -p "$dest/$(dirname "$rel")"
+        cp "$main_repo/$rel" "$dest/$rel"
+        echo "  copied $rel"
+      done
+}
+
 cmd_new() {
   local name="" base="main" branch="" do_install=1 do_build=0
   while [ $# -gt 0 ]; do
@@ -82,6 +96,9 @@ cmd_new() {
 
   cyan "Creating worktree: $dest  (branch $branch off $start)"
   git -C "$main_repo" worktree add -b "$branch" "$dest" "$start"
+
+  cyan "Copying local .env files (for local dev) ..."
+  copy_local_env "$dest"
 
   if [ "$do_install" -eq 1 ]; then
     cyan "Installing deps (pnpm, hoisted) ..."
