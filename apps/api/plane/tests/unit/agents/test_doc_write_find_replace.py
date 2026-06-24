@@ -91,6 +91,27 @@ class TestParseFindReplace:
     def test_missing_replacement_returns_none(self):
         assert parse_find_replace("replace foo with") is None
 
+    def test_quoted_terms_with_leading_filler_word(self):
+        # `word` is filler between the keyword and the first quoted term; the
+        # quoted-terms path must ignore it and extract just the quoted strings.
+        assert parse_find_replace('replace word "rengi" for "antonio"') == ("rengi", "antonio")
+
+    def test_quoted_terms_with_leading_all(self):
+        assert parse_find_replace('replace all "rengi" with "antonio"') == ("rengi", "antonio")
+
+    def test_unquoted_the_word_filler_is_stripped(self):
+        assert parse_find_replace("replace the word rengi with antonio") == ("rengi", "antonio")
+
+    def test_quoted_priority_keeps_filler_inside_quotes(self):
+        # Quoted-terms priority must NOT strip a filler word that lives INSIDE
+        # the quotes — "the cat"/"the dog" are the literal terms the user typed.
+        assert parse_find_replace('replace "the cat" with "the dog"') == ("the cat", "the dog")
+
+    def test_single_quoted_segment_falls_through_to_positional(self):
+        # Only one quoted segment: not the two-quoted case, so the positional
+        # patterns handle it and the conservative filler strip applies.
+        assert parse_find_replace('replace the word "rengi" with antonio') == ("rengi", "antonio")
+
 
 @pytest.mark.unit
 class TestBuildFindReplaceProposals:
@@ -183,6 +204,35 @@ class TestBuildFindReplaceProposals:
         document = _document(_pm_block("p-1", "paragraph", "no occurrence at all"))
         blocks = _document_blocks_from_json(document)
         assert build_find_replace_proposals(blocks, "Renji", "Rengi") == []
+
+    def test_filler_prompt_end_to_end_rewrites_filename_token(self):
+        # Regression for the filler-word bug: `replace the word rengi with antonio`
+        # used to extract `the word rengi` (matching no block) and fall through to
+        # the LLM, which missed tokens like `rengi.mp4`. With the conservative
+        # filler strip the deterministic path turns `rengi.mp4` into `antonio.mp4`.
+        search, replacement = parse_find_replace("replace the word rengi with antonio")
+        assert (search, replacement) == ("rengi", "antonio")
+
+        document = _document(_pm_block("title-1", "heading", "Brief de Marca: rengi.mp4"))
+        blocks = _document_blocks_from_json(document)
+        proposals = build_find_replace_proposals(blocks, search, replacement)
+
+        assert len(proposals) == 1
+        assert proposals[0]["target_block_id"] == "title-1"
+        assert proposals[0]["content_text"] == "Brief de Marca: antonio.mp4"
+        assert proposals[0]["target_original_text"] == "Brief de Marca: rengi.mp4"
+
+    def test_quoted_terms_prompt_end_to_end(self):
+        # `replace all "rengi" with "antonio"` should drive the same edit.
+        search, replacement = parse_find_replace('replace all "rengi" with "antonio"')
+        assert (search, replacement) == ("rengi", "antonio")
+
+        document = _document(_pm_block("title-1", "heading", "Brief de Marca: rengi.mp4"))
+        blocks = _document_blocks_from_json(document)
+        proposals = build_find_replace_proposals(blocks, search, replacement)
+
+        assert len(proposals) == 1
+        assert proposals[0]["content_text"] == "Brief de Marca: antonio.mp4"
 
 
 @pytest.mark.unit
