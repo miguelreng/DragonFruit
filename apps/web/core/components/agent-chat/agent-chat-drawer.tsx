@@ -448,10 +448,7 @@ function ChatView(props: {
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Avatar size="md" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
-          <div className="flex min-w-0 flex-col">
-            <div className="truncate text-13 font-medium text-primary">Atlas</div>
-            <div className="truncate text-11 text-tertiary">{agent?.provider_model || "Workspace companion"}</div>
-          </div>
+          <span className="truncate text-13 font-semibold text-primary">Atlas</span>
         </div>
         {sessionId && (
           <IconButton
