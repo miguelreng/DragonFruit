@@ -4,38 +4,29 @@
  * See the LICENSE file for details.
  */
 
-import {
-  ListLayoutIcon,
-  BoardLayoutIcon,
-  CalendarLayoutIcon,
-  SheetLayoutIcon,
-  TimelineLayoutIcon,
-} from "@/components/icons/propel-shim";
-import type { ISvgIcons } from "@/components/icons/propel-shim";
+import type { SVGProps } from "react";
+// Direct Solar glyphs, one distinct icon per layout. (The previous propel
+// composites routed board AND spreadsheet through the same mingcute glyph,
+// so two view-switcher buttons rendered identically.)
+import type { IconWeight } from "@solar-icons/react";
+import { List, Widget, Calendar, Bill, SortHorizontal } from "@solar-icons/react/ssr";
 import { EIssueLayoutTypes } from "@plane/types";
+
+const LAYOUT_ICON: Record<EIssueLayoutTypes, typeof List> = {
+  [EIssueLayoutTypes.LIST]: List,
+  [EIssueLayoutTypes.KANBAN]: Widget,
+  [EIssueLayoutTypes.CALENDAR]: Calendar,
+  [EIssueLayoutTypes.SPREADSHEET]: Bill,
+  [EIssueLayoutTypes.GANTT]: SortHorizontal,
+};
 
 export function IssueLayoutIcon({
   layout,
   size,
+  weight,
   ...props
-}: { layout: EIssueLayoutTypes; size?: number } & Omit<ISvgIcons, "width" | "height">) {
-  const iconProps = {
-    ...props,
-    ...(size && { width: size, height: size }),
-  };
-
-  switch (layout) {
-    case EIssueLayoutTypes.LIST:
-      return <ListLayoutIcon {...iconProps} />;
-    case EIssueLayoutTypes.KANBAN:
-      return <BoardLayoutIcon {...iconProps} />;
-    case EIssueLayoutTypes.CALENDAR:
-      return <CalendarLayoutIcon {...iconProps} />;
-    case EIssueLayoutTypes.SPREADSHEET:
-      return <SheetLayoutIcon {...iconProps} />;
-    case EIssueLayoutTypes.GANTT:
-      return <TimelineLayoutIcon {...iconProps} />;
-    default:
-      return null;
-  }
+}: { layout: EIssueLayoutTypes; size?: number; weight?: IconWeight } & SVGProps<SVGSVGElement>) {
+  const Icon = LAYOUT_ICON[layout];
+  if (!Icon) return null;
+  return <Icon weight={weight ?? "Linear"} {...props} {...(size ? { width: size, height: size } : {})} />;
 }
