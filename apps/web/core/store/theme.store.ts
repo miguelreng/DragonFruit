@@ -4,7 +4,23 @@
  * See the LICENSE file for details.
  */
 
-import { action, observable, makeObservable, runInAction } from "mobx";
+import { action, observable, makeObservable } from "mobx";
+
+const ATLAS_SIDEBAR_OPEN_KEY = "atlas_sidebar_open";
+
+/**
+ * Atlas docks open by default. A fresh localStorage key (not the legacy
+ * "agent_chat_open") makes the docked-by-default rollout take effect for
+ * everyone, while still persisting whatever the user chooses afterwards.
+ */
+function readAtlasSidebarOpen(): boolean {
+  if (typeof window === "undefined") return false;
+  const stored = window.localStorage.getItem(ATLAS_SIDEBAR_OPEN_KEY);
+  if (stored !== null) return stored === "true";
+  // First run: dock open on desktop widths only. Below the 768px breakpoint the
+  // drawer is a full-width overlay, so don't cover the page on initial load.
+  return window.innerWidth >= 768;
+}
 
 export interface IThemeStore {
   // observables
@@ -43,7 +59,7 @@ export class ThemeStore implements IThemeStore {
   epicDetailSidebarCollapsed: boolean | undefined = undefined;
   initiativesSidebarCollapsed: boolean | undefined = undefined;
   projectOverviewSidebarCollapsed: boolean | undefined = undefined;
-  agentChatOpen: boolean = false;
+  agentChatOpen: boolean = readAtlasSidebarOpen();
 
   constructor() {
     makeObservable(this, {
@@ -168,9 +184,9 @@ export class ThemeStore implements IThemeStore {
   };
 
   /**
-   * Toggle the "Talk to AI" right-side panel. Persists across reloads
-   * so a user who left the panel open last session sees it back. Stored
-   * as a plain "true"/"false" string in localStorage.
+   * Toggle the docked Atlas sidebar. Persists across reloads so a user who
+   * collapsed (or reopened) it last session sees the same on return. Stored as
+   * a plain "true"/"false" string in localStorage.
    */
   toggleAgentChat = (open?: boolean) => {
     if (open === undefined) {
@@ -178,6 +194,6 @@ export class ThemeStore implements IThemeStore {
     } else {
       this.agentChatOpen = open;
     }
-    localStorage.setItem("agent_chat_open", this.agentChatOpen.toString());
+    localStorage.setItem(ATLAS_SIDEBAR_OPEN_KEY, this.agentChatOpen.toString());
   };
 }

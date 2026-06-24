@@ -104,6 +104,7 @@ import type {
 import { AgentService } from "@/services/agent.service";
 import type { TAgent, TAgentInboxItem } from "@/services/agent.service";
 // local imports — `./reply-context` (not the barrel) avoids a self-import cycle
+import { useActiveDocPageId } from "./active-doc-page";
 import { consumePendingReplyContext, subscribePendingReplyContext, type PendingReplyContext } from "./reply-context";
 
 const chatService = new AgentChatService();
@@ -130,7 +131,10 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
   const { workspaceSlug: rawSlug, projectId: rawProjectId, pageId: rawPageId } = useParams();
   const workspaceSlug = rawSlug?.toString();
   const projectId = rawProjectId?.toString();
-  const pageId = rawPageId?.toString();
+  // Most doc routes carry :pageId; the Brief publishes its resolved page id via
+  // the active-doc-page bridge so co-writing works there too.
+  const overrideDocPageId = useActiveDocPageId();
+  const pageId = rawPageId?.toString() ?? overrideDocPageId ?? undefined;
   const { toggleAgentChat } = useAppTheme();
   const projectPages = usePageStore(EPageStoreType.PROJECT);
   const { joinedProjectIds, getProjectById } = useProject();
