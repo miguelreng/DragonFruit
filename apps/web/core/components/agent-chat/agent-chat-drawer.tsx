@@ -66,7 +66,6 @@ import {
   CheckCircle,
   Eraser,
   FileText,
-  Folder,
   History,
   Image as ImageIconBase,
   Paperclip,
@@ -90,6 +89,7 @@ import {
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";
+import { useWorkspace } from "@/hooks/store/use-workspace";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // services
 import { AgentChatService } from "@/services/agent-chat.service";
@@ -326,13 +326,14 @@ export const AgentChatDrawer = observer(function AgentChatDrawer({
 // the header so the current scope is always visible, one click to change.
 function AgentChatScopeBar(props: {
   projectId: string | undefined;
+  workspaceName: string;
   joinedProjectIds: string[];
   getProjectById: (projectId: string | undefined | null) => TProject | undefined;
   onChange: (projectId: string | undefined) => void;
 }) {
-  const { projectId, joinedProjectIds, getProjectById, onChange } = props;
+  const { projectId, workspaceName, joinedProjectIds, getProjectById, onChange } = props;
   const current = projectId ? getProjectById(projectId) : undefined;
-  const label = current?.name ?? "Whole workspace";
+  const label = current?.name ?? workspaceName;
   return (
     <div className="flex min-w-0 items-center">
       <CustomMenu
@@ -341,17 +342,18 @@ function AgentChatScopeBar(props: {
         customButtonClassName="outline-none"
         customButton={
           <span className="flex h-6 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1">
-            <Folder className="size-3 text-tertiary" />
-            <span className="max-w-[90px] truncate">{label}</span>
+            <span className="max-w-[120px] truncate">{label}</span>
           </span>
         }
       >
-        <CustomMenu.MenuItem onClick={() => onChange(undefined)}>Whole workspace</CustomMenu.MenuItem>
+        <CustomMenu.MenuItem className="text-13" onClick={() => onChange(undefined)}>
+          {workspaceName}
+        </CustomMenu.MenuItem>
         {joinedProjectIds.map((id) => {
           const project = getProjectById(id);
           if (!project) return null;
           return (
-            <CustomMenu.MenuItem key={id} onClick={() => onChange(id)}>
+            <CustomMenu.MenuItem key={id} className="text-13" onClick={() => onChange(id)}>
               <span className="block max-w-[200px] truncate">{project.name}</span>
             </CustomMenu.MenuItem>
           );
@@ -829,6 +831,8 @@ function ChatThread(props: {
     onScopeChange,
     onSentRefreshSessions,
   } = props;
+  const { getWorkspaceBySlug } = useWorkspace();
+  const workspaceName = getWorkspaceBySlug(workspaceSlug)?.name ?? "Whole workspace";
   const { data, mutate } = useSWR(
     `agent-chat/${workspaceSlug}/${sessionId}`,
     () => chatService.getSession(workspaceSlug, sessionId),
@@ -1450,6 +1454,15 @@ function ChatThread(props: {
           </div>
         </div>
         <div className="mt-0.5 flex items-center gap-1 px-1">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="t-press grid size-6 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="Attach file"
+            title="Attach image, CSV, or PDF"
+          >
+            <Paperclip className="size-3.5" />
+          </button>
           <CustomMenu
             placement="top-start"
             closeOnSelect
@@ -1461,26 +1474,18 @@ function ChatThread(props: {
             }
           >
             {AI_MODES.map((m) => (
-              <CustomMenu.MenuItem key={m.id} onClick={() => setAiMode(m.id)}>
+              <CustomMenu.MenuItem key={m.id} className="text-13" onClick={() => setAiMode(m.id)}>
                 {m.label}
               </CustomMenu.MenuItem>
             ))}
           </CustomMenu>
           <AgentChatScopeBar
             projectId={projectId}
+            workspaceName={workspaceName}
             joinedProjectIds={joinedProjectIds}
             getProjectById={getProjectById}
             onChange={onScopeChange}
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="t-press grid size-6 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
-            aria-label="Attach file"
-            title="Attach image, CSV, or PDF"
-          >
-            <Paperclip className="size-3.5" />
-          </button>
         </div>
       </div>
     </>
