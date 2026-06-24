@@ -319,16 +319,16 @@ function AgentChatScopeBar(props: {
   const current = projectId ? getProjectById(projectId) : undefined;
   const label = current?.name ?? "Whole workspace";
   return (
-    <div className="flex flex-shrink-0 items-center gap-1.5 border-b border-subtle px-3 py-1.5">
-      <span className="text-11 text-tertiary">Talking about</span>
+    <div className="flex min-w-0 items-center gap-1">
+      <span className="text-11 text-tertiary">Context</span>
       <CustomMenu
-        placement="bottom-start"
+        placement="bottom-end"
         closeOnSelect
         customButtonClassName="outline-none"
         customButton={
           <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-11 font-medium text-secondary hover:bg-surface-2">
             <Folder className="size-3 text-tertiary" />
-            <span className="max-w-[150px] truncate">{label}</span>
+            <span className="max-w-[90px] truncate">{label}</span>
             <ChevronDown className="size-3 text-tertiary" />
           </span>
         }
@@ -456,10 +456,15 @@ function ChatView(props: {
       {/* Header — agent identity on the left, clear + history + close on
           the right. Sits at h-11 to match the page-level header strip. */}
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Avatar size="md" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
-          <span className="truncate text-13 font-semibold text-primary">Atlas</span>
-        </div>
+        <img src="/atlas-app-icon.svg" alt="Atlas" className="size-6 shrink-0 rounded-md" />
+        <span className="text-13 font-medium text-primary">Atlas</span>
+        <span className="min-w-0 flex-1" />
+        <AgentChatScopeBar
+          projectId={projectId}
+          joinedProjectIds={joinedProjectIds}
+          getProjectById={getProjectById}
+          onChange={onScopeChange}
+        />
         {sessionId && (
           <IconButton
             variant="tertiary"
@@ -474,13 +479,6 @@ function ChatView(props: {
           <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
         )}
       </header>
-
-      <AgentChatScopeBar
-        projectId={projectId}
-        joinedProjectIds={joinedProjectIds}
-        getProjectById={getProjectById}
-        onChange={onScopeChange}
-      />
 
       <AlertModalCore
         isOpen={confirmClearOpen}
@@ -1123,7 +1121,7 @@ function ChatThread(props: {
           embedded — Cursor/ChatGPT shape. */}
       <div
         role="presentation"
-        className="flex-shrink-0 border-t border-subtle bg-surface-1 px-3 py-3"
+        className="relative flex-shrink-0 bg-surface-1 px-3 py-3"
         onKeyDown={(e) => {
           if (
             e.key === "Enter" &&
@@ -1139,6 +1137,10 @@ function ChatThread(props: {
           }
         }}
       >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-surface-1 to-transparent"
+        />
         <input
           ref={fileInputRef}
           type="file"
@@ -1156,7 +1158,7 @@ function ChatThread(props: {
         />
         <div
           className={cn(
-            "flex flex-col gap-2 rounded-2xl border-[0.5px] border-subtle bg-layer-1 px-3 py-2 transition-colors focus-within:border-strong"
+            "flex flex-col gap-2 rounded-2xl border-[0.5px] border-subtle bg-surface-1 px-3 py-2 transition-colors focus-within:border-strong"
           )}
         >
           {replyContext && (
@@ -1186,25 +1188,23 @@ function ChatThread(props: {
               ))}
             </ul>
           )}
-          {pageId && (
-            <div className="flex flex-wrap gap-1.5">
-              {AI_MODES.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setAiMode(m.id)}
-                  className={cn(
-                    "t-press rounded-full px-2.5 py-0.5 text-11 transition-colors",
-                    aiMode === m.id
-                      ? "bg-accent-subtle font-medium text-accent-primary"
-                      : "border-[0.5px] border-subtle text-secondary hover:bg-layer-2 hover:text-primary"
-                  )}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1.5">
+            {AI_MODES.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setAiMode(m.id)}
+                className={cn(
+                  "t-press rounded-full px-2.5 py-0.5 text-11 transition-colors",
+                  aiMode === m.id
+                    ? "bg-accent-subtle font-medium text-accent-primary"
+                    : "border-[0.5px] border-subtle text-secondary hover:bg-layer-2 hover:text-primary"
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
           <textarea
             ref={textareaRef}
             value={draft}
@@ -1451,9 +1451,6 @@ const MessageRow = memo(function MessageRow({
           <AssistantMarkdown source={message.content} />
         ) : (
           <div className="text-13 text-tertiary italic">(empty reply)</div>
-        )}
-        {message.total_tokens > 0 && (
-          <div className="text-11 text-tertiary">{message.total_tokens.toLocaleString()} tokens</div>
         )}
       </div>
     </li>
