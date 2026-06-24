@@ -860,7 +860,7 @@ const DOWNLOAD_APPS: {
   },
 ];
 
-const DownloadAppsModal = (props: { isOpen: boolean; onClose: () => void }) => {
+export const DownloadAppsModal = (props: { isOpen: boolean; onClose: () => void }) => {
   const { isOpen, onClose } = props;
 
   const openApp = (app: (typeof DOWNLOAD_APPS)[number]) => {
@@ -971,7 +971,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const [isFavoritesCategoryOpen, setIsFavoritesCategoryOpen] = useState(true);
   const [isRecentsCategoryOpen, setIsRecentsCategoryOpen] = useState(true);
   const [isProjectsCategoryOpen, setIsProjectsCategoryOpen] = useState(true);
-  const [isDownloadAppsModalOpen, setIsDownloadAppsModalOpen] = useState(false);
   // derived values
   // In the mobile drawer the rail always shows labels and fills the panel.
   const isRailExpanded = isMobile || preferences.displayMode === "icon_with_label";
@@ -1322,17 +1321,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             }}
           />
           <AppSidebarItem
-            variant="button"
-            item={{
-              label: "Download Apps",
-              icon: <Download weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
-              activeIcon: <Download weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
-              onClick: () => setIsDownloadAppsModalOpen(true),
-              isInline: isRailExpanded,
-              showLabel: showRailLabels,
-            }}
-          />
-          <AppSidebarItem
             variant="link"
             item={{
               label: "Integrations",
@@ -1348,7 +1336,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
           <UserMenuRoot showLabel={showRailLabels} isInline={isRailExpanded} />
         </div>
       </div>
-      <DownloadAppsModal isOpen={isDownloadAppsModalOpen} onClose={() => setIsDownloadAppsModalOpen(false)} />
     </div>
   );
 });

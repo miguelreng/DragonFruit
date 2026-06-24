@@ -64,6 +64,7 @@ import { calculateTimeAgo, cn } from "@plane/utils";
 import {
   AlertCircle,
   CheckCircle,
+  Download,
   Eraser,
   FileText,
   History,
@@ -108,6 +109,7 @@ import { INTEGRATIONS } from "@/constants/integrations";
 import { WorkspaceService } from "@/services/workspace.service";
 import { BookmarkService } from "@/services/bookmark.service";
 // local imports — `./reply-context` (not the barrel) avoids a self-import cycle
+import { DownloadAppsModal } from "@/components/navigation/app-rail-root";
 import { useActiveDocPageId } from "./active-doc-page";
 import {
   getAtlasMentionMatch,
@@ -915,6 +917,7 @@ function ChatThread(props: {
   const [isSearchingDocs, setIsSearchingDocs] = useState(false);
   const [docMentionError, setDocMentionError] = useState<string | null>(null);
   const [mentionedDocs, setMentionedDocs] = useState<TAtlasMentionedReference[]>([]);
+  const [downloadAppsOpen, setDownloadAppsOpen] = useState(false);
   // Passage the user highlighted in the doc and chose to "Ask Atlas" about.
   // Seeded from the shared bridge on mount (the drawer opens *after* the pick,
   // so a window listener here would miss it), then kept live via subscribe.
@@ -1529,6 +1532,15 @@ function ChatThread(props: {
             <Paperclip className="size-3.5" />
           </button>
           <IntegrationsMenu workspaceSlug={workspaceSlug} agent={agent} />
+          <button
+            type="button"
+            onClick={() => setDownloadAppsOpen(true)}
+            className="t-press grid size-6 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="Download apps"
+            title="Download apps"
+          >
+            <Download className="size-3.5" />
+          </button>
           <CustomMenu
             placement="top-start"
             closeOnSelect
@@ -1554,6 +1566,7 @@ function ChatThread(props: {
           />
         </div>
       </div>
+      <DownloadAppsModal isOpen={downloadAppsOpen} onClose={() => setDownloadAppsOpen(false)} />
     </>
   );
 }
