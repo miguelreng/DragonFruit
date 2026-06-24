@@ -64,7 +64,6 @@ import {
   AlertCircle,
   CheckCircle,
   ChevronDown,
-  CornerDownLeft,
   Eraser,
   FileText,
   Folder,
@@ -74,6 +73,7 @@ import {
   Plus,
   Sparkles,
   Trash2,
+  UndoLeft,
   X,
 } from "@/components/icons/lucide-shim";
 // constants
@@ -760,6 +760,17 @@ function HistoryView(props: {
 // Active conversation                                                //
 // ---------------------------------------------------------------- //
 
+// Composer modes, shown as chips on doc surfaces. "Quick ask" is plain chat;
+// the others bias Atlas toward writing into the open document.
+type TAtlasAiMode = "quick-ask" | "rewrite" | "plan" | "summarize";
+
+const AI_MODES: { id: TAtlasAiMode; label: string }[] = [
+  { id: "quick-ask", label: "Quick ask" },
+  { id: "rewrite", label: "Rewrite" },
+  { id: "plan", label: "Plan" },
+  { id: "summarize", label: "Summarize" },
+];
+
 function ChatThread(props: {
   workspaceSlug: string;
   sessionId: string;
@@ -780,6 +791,7 @@ function ChatThread(props: {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [factCheck, setFactCheck] = useState(false);
+  const [aiMode, setAiMode] = useState<TAtlasAiMode>("quick-ask");
   // Passage the user highlighted in the doc and chose to "Ask Atlas" about.
   // Seeded from the shared bridge on mount (the drawer opens *after* the pick,
   // so a window listener here would miss it), then kept live via subscribe.
@@ -870,10 +882,13 @@ function ChatThread(props: {
       return;
     }
 
+    // Rewrite / Plan / Summarize explicitly target the open document; Quick ask
+    // stays plain chat unless the text itself reads like an edit request.
+    const isWriteMode = aiMode === "rewrite" || aiMode === "plan" || aiMode === "summarize";
     const shouldWriteIntoEditor = Boolean(
       activePageEditorRef &&
       !hasFiles &&
-      (isEditorWritingRequest(trimmed) || Boolean(replyContext && isSelectionEditRequest(trimmed)))
+      (isWriteMode || isEditorWritingRequest(trimmed) || Boolean(replyContext && isSelectionEditRequest(trimmed)))
     );
 
     if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
@@ -1053,6 +1068,7 @@ function ChatThread(props: {
   }, [
     activePageEditorRef,
     agent?.name,
+    aiMode,
     draft,
     factCheck,
     pendingFiles,
@@ -1170,21 +1186,63 @@ function ChatThread(props: {
               ))}
             </ul>
           )}
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={textareaRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={1}
-              placeholder="Message Atlas…"
-              className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
-            />
+          {pageId && (
+            <div className="flex flex-wrap gap-1.5">
+              {AI_MODES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setAiMode(m.id)}
+                  className={cn(
+                    "t-press rounded-full px-2.5 py-0.5 text-11 transition-colors",
+                    aiMode === m.id
+                      ? "bg-accent-subtle font-medium text-accent-primary"
+                      : "border-[0.5px] border-subtle text-secondary hover:bg-layer-2 hover:text-primary"
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={1}
+            placeholder="Message Atlas…  type @ to add a doc or task"
+            className="max-h-40 min-h-[24px] w-full resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
+          />
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setDraft((d) => `${d}@`);
+                textareaRef.current?.focus();
+              }}
+              className="t-press grid size-7 shrink-0 place-items-center rounded-full border-[0.5px] border-subtle text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
+              aria-label="Mention a doc or task"
+              title="Mention a doc or task"
+            >
+              <span className="text-13 leading-none">@</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="t-press grid size-7 shrink-0 place-items-center rounded-full border-[0.5px] border-subtle text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
+              aria-label="Attach file"
+              title="Attach image, CSV, or PDF"
+            >
+              <Paperclip className="size-3.5" />
+            </button>
             <button
               type="button"
               onClick={() => setFactCheck((on) => !on)}
               className={cn(
-                "t-press grid size-7 shrink-0 place-items-center rounded-full transition-colors",
-                factCheck ? "bg-accent-subtle text-accent-primary" : "text-tertiary hover:bg-layer-2 hover:text-primary"
+                "t-press grid size-7 shrink-0 place-items-center rounded-full border-[0.5px] transition-colors",
+                factCheck
+                  ? "border-transparent bg-accent-subtle text-accent-primary"
+                  : "border-subtle text-secondary hover:bg-layer-2 hover:text-primary"
               )}
               aria-label="Toggle fact-check mode"
               aria-pressed={factCheck}
@@ -1196,15 +1254,8 @@ function ChatThread(props: {
             >
               <CheckCircle className="size-3.5" />
             </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="t-press grid size-7 shrink-0 place-items-center rounded-full text-tertiary hover:bg-layer-2 hover:text-primary"
-              aria-label="Attach file"
-              title="Attach image, CSV, or PDF"
-            >
-              <Paperclip className="size-3.5" />
-            </button>
+            <span className="flex-1" />
+            <span className="text-11 text-tertiary">Enter to send</span>
             <button
               type="button"
               onClick={() => void handleSend()}
@@ -1215,14 +1266,10 @@ function ChatThread(props: {
               {sending ? (
                 <Spinner height="14px" width="14px" className="fill-current text-current/30" />
               ) : (
-                <CornerDownLeft className="size-4" />
+                <UndoLeft className="size-4 rotate-180" />
               )}
             </button>
           </div>
-        </div>
-        <div className="mt-1.5 px-1 text-11 text-tertiary">
-          <span className="font-medium">Enter</span> to send · <span className="font-medium">Shift+Enter</span> for
-          newline · attach images, CSV, PDF
         </div>
       </div>
     </>
@@ -1381,7 +1428,7 @@ const MessageRow = memo(function MessageRow({
             </ul>
           )}
           {visibleContent && (
-            <div className="rounded-2xl rounded-br-md bg-layer-2 px-3.5 py-2 text-13 whitespace-pre-wrap text-primary">
+            <div className="rounded-2xl rounded-br-md bg-layer-1 px-3.5 py-2 text-13 whitespace-pre-wrap text-primary">
               {visibleContent}
             </div>
           )}

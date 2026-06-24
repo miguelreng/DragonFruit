@@ -104,7 +104,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
           </div>
           {agentChatOpen && (
             <div
-              className="shadow-sm t-panel-slide is-open absolute top-0 right-0 z-30 h-full w-[min(560px,calc(100%-24px))] overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300 transition-all duration-300 ease-in-out md:relative md:z-auto md:w-[400px] md:flex-shrink-0 md:shadow-sm"
+              className="shadow-sm t-panel-slide is-open absolute top-0 right-0 z-30 h-full w-[min(560px,calc(100%-24px))] overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300 transition-all duration-300 ease-in-out md:relative md:z-auto md:w-[350px] md:flex-shrink-0 md:shadow-sm"
               data-open="true"
               // Stable hook for focus (zen) mode: globals.css lifts the open
               // drawer above the zen canvas, and the editor's Esc handler
