@@ -54,16 +54,19 @@ function ensureHljsRegistered() {
 }
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
+import type { TProject } from "@plane/types";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore, Avatar, Spinner } from "@plane/ui";
+import { AlertModalCore, Avatar, CustomMenu, Spinner } from "@plane/ui";
 import { calculateTimeAgo, cn } from "@plane/utils";
 // components
 import {
   AlertCircle,
   CheckCircle,
+  ChevronDown,
   Eraser,
   FileText,
+  Folder,
   History,
   Image as ImageIconBase,
   Paperclip,
@@ -85,6 +88,7 @@ import {
 } from "@/helpers/agent-chat-attachments";
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
+import { useProject } from "@/hooks/store/use-project";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // services
 import { AgentChatService } from "@/services/agent-chat.service";
@@ -129,7 +133,22 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
   const pageId = rawPageId?.toString();
   const { toggleAgentChat } = useAppTheme();
   const projectPages = usePageStore(EPageStoreType.PROJECT);
+  const { joinedProjectIds, getProjectById } = useProject();
   const onClose = () => toggleAgentChat(false);
+
+  // Which project Atlas grounds answers/tools in. Defaults to the project
+  // you're viewing and re-scopes when you navigate into a different one, but
+  // an explicit pick from the scope selector sticks until the route changes.
+  // `undefined` = whole workspace (no project filter — backend already
+  // treats project_id as optional across search/create tools).
+  const [scopeProjectId, setScopeProjectId] = useState<string | undefined>(projectId);
+  const lastRouteProjectRef = useRef(projectId);
+  useEffect(() => {
+    if (projectId !== lastRouteProjectRef.current) {
+      lastRouteProjectRef.current = projectId;
+      setScopeProjectId(projectId);
+    }
+  }, [projectId]);
 
   // Legacy agent rows still back Atlas internally. We only use them to
   // enrich existing sessions with avatar/model metadata during the transition.
@@ -237,7 +256,10 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
       {view === "chat" && (
         <ChatView
           workspaceSlug={workspaceSlug ?? ""}
-          projectId={projectId}
+          projectId={scopeProjectId}
+          joinedProjectIds={joinedProjectIds}
+          getProjectById={getProjectById}
+          onScopeChange={setScopeProjectId}
           sessionId={activeId}
           agent={activeAgent}
           sessions={sessions}
@@ -272,9 +294,54 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
 // Chat view                                                          //
 // ---------------------------------------------------------------- //
 
+// Project scope selector. Picks which project Atlas grounds its answers
+// and tools in — or "Whole workspace" for no filter. A slim strip under
+// the header so the current scope is always visible, one click to change.
+function AgentChatScopeBar(props: {
+  projectId: string | undefined;
+  joinedProjectIds: string[];
+  getProjectById: (projectId: string | undefined | null) => TProject | undefined;
+  onChange: (projectId: string | undefined) => void;
+}) {
+  const { projectId, joinedProjectIds, getProjectById, onChange } = props;
+  const current = projectId ? getProjectById(projectId) : undefined;
+  const label = current?.name ?? "Whole workspace";
+  return (
+    <div className="flex flex-shrink-0 items-center gap-1.5 border-b border-subtle px-3 py-1.5">
+      <span className="text-11 text-tertiary">Talking about</span>
+      <CustomMenu
+        placement="bottom-start"
+        closeOnSelect
+        customButtonClassName="outline-none"
+        customButton={
+          <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-11 font-medium text-secondary hover:bg-surface-2">
+            <Folder className="size-3 text-tertiary" />
+            <span className="max-w-[150px] truncate">{label}</span>
+            <ChevronDown className="size-3 text-tertiary" />
+          </span>
+        }
+      >
+        <CustomMenu.MenuItem onClick={() => onChange(undefined)}>Whole workspace</CustomMenu.MenuItem>
+        {joinedProjectIds.map((id) => {
+          const project = getProjectById(id);
+          if (!project) return null;
+          return (
+            <CustomMenu.MenuItem key={id} onClick={() => onChange(id)}>
+              <span className="block max-w-[200px] truncate">{project.name}</span>
+            </CustomMenu.MenuItem>
+          );
+        })}
+      </CustomMenu>
+    </div>
+  );
+}
+
 function ChatView(props: {
   workspaceSlug: string;
   projectId: string | undefined;
+  joinedProjectIds: string[];
+  getProjectById: (projectId: string | undefined | null) => TProject | undefined;
+  onScopeChange: (projectId: string | undefined) => void;
   pageId: string | undefined;
   sessionId: string | null;
   agent: TAgent | undefined;
@@ -289,6 +356,9 @@ function ChatView(props: {
   const {
     workspaceSlug,
     projectId,
+    joinedProjectIds,
+    getProjectById,
+    onScopeChange,
     pageId,
     sessionId,
     agent,
@@ -391,6 +461,13 @@ function ChatView(props: {
         <IconButton variant="tertiary" size="sm" icon={History} onClick={onOpenHistory} aria-label="Chat history" />
         <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
       </header>
+
+      <AgentChatScopeBar
+        projectId={projectId}
+        joinedProjectIds={joinedProjectIds}
+        getProjectById={getProjectById}
+        onChange={onScopeChange}
+      />
 
       <AlertModalCore
         isOpen={confirmClearOpen}
