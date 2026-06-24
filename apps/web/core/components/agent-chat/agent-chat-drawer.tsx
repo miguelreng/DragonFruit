@@ -22,6 +22,7 @@ import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import useSWR from "swr";
 
 // Register once. Aliases (`js`, `ts`, `py`) ride along via the language
@@ -339,7 +340,7 @@ function AgentChatScopeBar(props: {
         closeOnSelect
         customButtonClassName="outline-none"
         customButton={
-          <span className="flex h-7 items-center gap-1 rounded-md px-2 text-11 font-medium text-secondary transition-colors hover:bg-layer-1">
+          <span className="flex h-6 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1">
             <Folder className="size-3 text-tertiary" />
             <span className="max-w-[90px] truncate">{label}</span>
           </span>
@@ -470,19 +471,19 @@ function ChatView(props: {
       <header className="relative flex h-11 flex-shrink-0 items-center gap-2 px-3">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-full h-3 bg-gradient-to-b from-black/[0.05] to-transparent dark:from-white/[0.06]"
+          className="pointer-events-none absolute inset-x-0 top-full z-10 h-6 bg-gradient-to-b from-surface-1 to-transparent"
         />
         <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
         <span className="text-13 font-medium text-primary">Atlas</span>
         <span className="min-w-0 flex-1" />
-        <a
+        <Link
           href={`/${workspaceSlug}/settings/integrations`}
           className="t-press grid size-7 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
           aria-label="Integrations"
           title="Integrations"
         >
           <LayoutGrid className="size-4" />
-        </a>
+        </Link>
         {sessionId && (
           <IconButton
             variant="tertiary"
@@ -1298,7 +1299,7 @@ function ChatThread(props: {
           embedded — Cursor/ChatGPT shape. */}
       <div
         role="presentation"
-        className="relative flex-shrink-0 bg-surface-1 px-3 py-3"
+        className="relative flex-shrink-0 bg-surface-1 px-3 pt-2 pb-2.5"
         onKeyDown={(e) => {
           if (
             e.key === "Enter" &&
@@ -1437,7 +1438,7 @@ function ChatThread(props: {
               type="button"
               onClick={() => void handleSend()}
               disabled={sending || (draft.trim().length === 0 && pendingFiles.length === 0)}
-              className="t-press grid size-7 shrink-0 place-items-center rounded-md text-secondary transition-colors hover:text-primary disabled:opacity-40"
+              className="t-press grid size-6 shrink-0 place-items-center rounded-md text-secondary transition-colors hover:text-primary disabled:opacity-40"
               aria-label="Send message"
             >
               {sending ? (
@@ -1448,13 +1449,13 @@ function ChatThread(props: {
             </button>
           </div>
         </div>
-        <div className="mt-1.5 flex items-center gap-1 px-1">
+        <div className="mt-0.5 flex items-center gap-1 px-1">
           <CustomMenu
             placement="top-start"
             closeOnSelect
             customButtonClassName="outline-none"
             customButton={
-              <span className="flex h-7 items-center rounded-md px-2 text-11 font-medium text-secondary transition-colors hover:bg-layer-1">
+              <span className="flex h-6 items-center rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1">
                 {AI_MODES.find((m) => m.id === aiMode)?.label ?? "Ask"}
               </span>
             }
@@ -1474,7 +1475,7 @@ function ChatThread(props: {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="t-press grid size-7 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+            className="t-press grid size-6 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label="Attach file"
             title="Attach image, CSV, or PDF"
           >
