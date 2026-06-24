@@ -111,6 +111,120 @@ def _text_from_pm_node(node) -> str:
     return " ".join(part for part in (_text_from_pm_node(child) for child in content) if part)
 
 
+# Literal find-replace detection. A user request like "replace renji for rengi"
+# is a mechanical edit the LLM tends to botch (it drafts a couple of block edits
+# and misses occurrences such as the H1 title), so we recognise it here and build
+# the edits deterministically from the document JSON instead of asking the model.
+#
+# Each pattern captures (search, replacement). We accept optional surrounding
+# quotes around either term and a small set of common phrasings. Keep this
+# deliberately conservative: anything that isn't a clean single search→replacement
+# pair returns None so the caller falls back to the LLM path.
+_FIND_REPLACE_PATTERNS = [
+    # replace X for Y / replace X with Y
+    re.compile(r"^\s*replace\s+(?P<search>.+?)\s+(?:for|with)\s+(?P<replacement>.+?)\s*$", re.IGNORECASE),
+    # swap X for Y / swap X with Y
+    re.compile(r"^\s*swap\s+(?P<search>.+?)\s+(?:for|with)\s+(?P<replacement>.+?)\s*$", re.IGNORECASE),
+    # change X to Y / change X into Y
+    re.compile(r"^\s*change\s+(?P<search>.+?)\s+(?:to|into)\s+(?P<replacement>.+?)\s*$", re.IGNORECASE),
+    # rename X to Y
+    re.compile(r"^\s*rename\s+(?P<search>.+?)\s+to\s+(?P<replacement>.+?)\s*$", re.IGNORECASE),
+]
+
+
+def _strip_optional_quotes(value: str) -> str:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'`":
+        return value[1:-1].strip()
+    return value
+
+
+def parse_find_replace(prompt: str) -> tuple[str, str] | None:
+    """Detect a literal find-replace request and return (search, replacement).
+
+    Recognises common phrasings — "replace X for Y", "replace X with Y",
+    "change X to Y", "swap X for Y", "rename X to Y" — with optional quotes
+    around either term. Returns None when the prompt is not a clean literal
+    single search→replacement pair, so the caller falls back to the LLM.
+
+    The match is intentionally strict: the whole (single-line, trimmed) prompt
+    must be the command and nothing else. Multi-line prompts, empty terms, or a
+    search term that contains the connector word (which would make the split
+    ambiguous) all return None.
+    """
+    if not prompt:
+        return None
+    text = prompt.strip()
+    # A literal replace is a single instruction; reject multi-line prompts so we
+    # don't accidentally swallow a longer editorial request whose first line
+    # happens to look like a command.
+    if "\n" in text:
+        return None
+    for pattern in _FIND_REPLACE_PATTERNS:
+        match = pattern.match(text)
+        if not match:
+            continue
+        search = _strip_optional_quotes(match.group("search"))
+        replacement = _strip_optional_quotes(match.group("replacement"))
+        # Both terms must be non-empty. We allow the replacement to be empty only
+        # if it was explicitly quoted (an intentional deletion); a bare empty
+        # replacement means the phrasing didn't parse cleanly.
+        if not search or not replacement:
+            return None
+        return search, replacement
+    return None
+
+
+def _replace_all_case_insensitive(text: str, search: str, replacement: str) -> str:
+    """Replace every occurrence of ``search`` in ``text`` with ``replacement``.
+
+    Matching is case-insensitive; the replacement is inserted verbatim as the
+    user typed it (we do not try to mirror the original casing). This keeps the
+    behaviour simple and predictable — "replace renji for rengi" turns both
+    "Renji" and "renji" into "rengi".
+    """
+    if not search:
+        return text
+    return re.sub(re.escape(search), lambda _m: replacement, text, flags=re.IGNORECASE)
+
+
+def build_find_replace_proposals(blocks: list[dict], search: str, replacement: str) -> list[dict]:
+    """Build deterministic replace proposals for a literal find-replace.
+
+    Iterates over EVERY block from ``_document_blocks_from_json`` (including the
+    title / H1 / headings), and for each block whose text contains ``search``
+    case-insensitively emits ONE replace proposal whose new text is the block
+    text with ALL occurrences of ``search`` replaced by ``replacement``. No cap
+    and no early-stop: every matching block in the document gets an edit, and
+    every occurrence within a block is replaced.
+
+    The proposal/event shape matches ``_normalise_doc_write_proposals`` and the
+    streamed ``@@ATLAS`` path so the frontend review UI renders these unchanged.
+    """
+    proposals: list[dict] = []
+    if not search:
+        return proposals
+    needle = search.casefold()
+    index = 0
+    for block in blocks:
+        original = block.get("text") or ""
+        if needle not in original.casefold():
+            continue
+        new_text = _replace_all_case_insensitive(original, search, replacement)[:4_000]
+        index += 1
+        proposals.append(
+            {
+                "id": f"proposal-{index}",
+                "operation": "replace",
+                "target_block_id": block["id"],
+                "target_original_text": original,
+                "content_text": new_text,
+                "content_html": _plain_text_to_html(new_text),
+            }
+        )
+    return proposals
+
+
 def _normalise_doc_write_proposals(raw, *, mode: str, intent: str, blocks: list[dict], fallback_text: str) -> list[dict]:
     block_map = {block["id"]: block for block in blocks}
     first_block_id = blocks[0]["id"] if blocks else ""

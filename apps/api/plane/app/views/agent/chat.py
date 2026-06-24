@@ -70,6 +70,8 @@ from .doc_write import (
     _fallback_doc_write_text,
     _normalise_doc_write_proposals,
     _stream_doc_write_events,
+    build_find_replace_proposals,
+    parse_find_replace,
 )
 
 
@@ -1375,6 +1377,63 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             except LLMConfigError as exc:
                 yield _doc_write_event("error", error=str(exc))
                 return
+
+            # Deterministic literal find-replace. The LLM tends to miss
+            # occurrences on a mechanical word swap (notably the H1 title), so
+            # when the prompt is a clean "replace X for Y" we build the edits
+            # ourselves from the document JSON — covering every matching block
+            # and every occurrence — and skip the model entirely. Anything that
+            # doesn't parse as a literal replace falls through to the LLM path.
+            find_replace = parse_find_replace(content)
+            if find_replace is not None:
+                search, replacement = find_replace
+                deterministic = build_find_replace_proposals(blocks, search, replacement)
+                if deterministic:
+                    for proposal in deterministic:
+                        yield _doc_write_event(
+                            "proposal_started",
+                            proposal_id=proposal["id"],
+                            operation=proposal["operation"],
+                            target_block_id=proposal["target_block_id"],
+                            target_original_text=proposal["target_original_text"],
+                        )
+                        yield _doc_write_event(
+                            "proposal_delta",
+                            proposal_id=proposal["id"],
+                            content_text=proposal["content_text"],
+                            content_html=proposal["content_html"],
+                        )
+                        yield _doc_write_event(
+                            "proposal_completed",
+                            proposal_id=proposal["id"],
+                            operation=proposal["operation"],
+                            target_block_id=proposal["target_block_id"],
+                            target_original_text=proposal["target_original_text"],
+                            content_text=proposal["content_text"],
+                            content_html=proposal["content_html"],
+                        )
+                    completed_count = len(deterministic)
+                    assistant_msg = AgentChatMessage.objects.create(
+                        session=session,
+                        role="assistant",
+                        content=(
+                            f"I drafted {completed_count} reviewable document "
+                            f"{'edit' if completed_count == 1 else 'edits'} in the page."
+                        ),
+                        prompt_tokens=0,
+                        completion_tokens=0,
+                        total_tokens=0,
+                        cost_usd=0,
+                    )
+                    session.save(update_fields=["updated_at", "last_activity_at"])
+                    yield _doc_write_event(
+                        "session_completed",
+                        assistant_message=AgentChatMessageSerializer(assistant_msg).data,
+                    )
+                    return
+                # No block contains the search term — nothing to do
+                # deterministically. Fall through to the LLM path rather than
+                # silently returning zero edits.
 
             block_context = "\n".join(
                 f"- id: {block['id']}\n  type: {block['type']}\n  text: {block['text']}" for block in blocks
