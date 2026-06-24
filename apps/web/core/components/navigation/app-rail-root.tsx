@@ -1331,7 +1331,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               icon: <MagicStick weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
               activeIcon: <MagicStick weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
               isActive: agentChatOpen,
-              onClick: () => toggleAgentChat(),
+              onClick: () => toggleAgentChat(true),
               isInline: isRailExpanded,
               showLabel: showRailLabels,
             }}

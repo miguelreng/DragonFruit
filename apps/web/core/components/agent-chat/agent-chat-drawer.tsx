@@ -127,7 +127,13 @@ type View = "chat" | "history";
  * / ChatGPT — past sessions are an *occasional* navigation, not an
  * always-visible sidebar that eats half the drawer width.
  */
-export const AgentChatDrawer = observer(function AgentChatDrawer() {
+export const AgentChatDrawer = observer(function AgentChatDrawer({
+  dismissible = true,
+}: {
+  // Whether the user can close the sidebar. Desktop docks it permanently
+  // (false); mobile renders a dismissible overlay (true).
+  dismissible?: boolean;
+}) {
   const { workspaceSlug: rawSlug, projectId: rawProjectId, pageId: rawPageId } = useParams();
   const workspaceSlug = rawSlug?.toString();
   const projectId = rawProjectId?.toString();
@@ -270,6 +276,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
           pageId={pageId}
           activePageEditorRef={activePageEditorRef}
           onClose={onClose}
+          dismissible={dismissible}
           onOpenHistory={() => setView("history")}
           onStartSession={handleStartSession}
           onClearSession={handleClearSession}
@@ -287,6 +294,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
           onStartSession={handleStartSession}
           onDeleteSession={handleDeleteSession}
           onClose={onClose}
+          dismissible={dismissible}
           onBack={activeId ? () => setView("chat") : undefined}
         />
       )}
@@ -352,6 +360,7 @@ function ChatView(props: {
   sessions: TAgentChatSession[];
   activePageEditorRef: EditorRefApi | null;
   onClose: () => void;
+  dismissible: boolean;
   onOpenHistory: () => void;
   onStartSession: () => Promise<void>;
   onClearSession: () => Promise<void>;
@@ -368,6 +377,7 @@ function ChatView(props: {
     agent,
     activePageEditorRef,
     onClose,
+    dismissible,
     onOpenHistory,
     onStartSession,
     onClearSession,
@@ -460,7 +470,9 @@ function ChatView(props: {
           />
         )}
         <IconButton variant="tertiary" size="sm" icon={History} onClick={onOpenHistory} aria-label="Chat history" />
-        <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
+        {dismissible && (
+          <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
+        )}
       </header>
 
       <AgentChatScopeBar
@@ -673,9 +685,10 @@ function HistoryView(props: {
   onStartSession: () => Promise<void>;
   onDeleteSession: (id: string) => Promise<void>;
   onClose: () => void;
+  dismissible: boolean;
   onBack: (() => void) | undefined;
 }) {
-  const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onBack } = props;
+  const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onBack, dismissible } = props;
 
   return (
     <>
@@ -693,7 +706,9 @@ function HistoryView(props: {
             Back
           </button>
         )}
-        <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
+        {dismissible && (
+          <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
+        )}
       </header>
 
       <div className="border-b border-subtle px-3 py-2">

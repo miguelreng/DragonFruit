@@ -15,11 +15,10 @@ const ATLAS_SIDEBAR_OPEN_KEY = "atlas_sidebar_open";
  */
 function readAtlasSidebarOpen(): boolean {
   if (typeof window === "undefined") return false;
-  const stored = window.localStorage.getItem(ATLAS_SIDEBAR_OPEN_KEY);
-  if (stored !== null) return stored === "true";
-  // First run: dock open on desktop widths only. Below the 768px breakpoint the
-  // drawer is a full-width overlay, so don't cover the page on initial load.
-  return window.innerWidth >= 768;
+  // Desktop: Atlas is a permanent docked sidebar — always open, never closeable.
+  if (window.innerWidth >= 768) return true;
+  // Mobile: it's a dismissible overlay; respect the last choice, closed by default.
+  return window.localStorage.getItem(ATLAS_SIDEBAR_OPEN_KEY) === "true";
 }
 
 export interface IThemeStore {

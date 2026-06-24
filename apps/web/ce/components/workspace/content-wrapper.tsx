@@ -54,7 +54,9 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
       if (!isAskAtlasShortcut) return;
 
       event.preventDefault();
-      toggleAgentChat();
+      // Open-only: Atlas is a permanent docked sidebar and is never closed via
+      // the shortcut (on mobile it opens the overlay).
+      toggleAgentChat(true);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -109,7 +111,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
               // skips exiting while focus is inside it.
               data-atlas-drawer="true"
             >
-              <AgentChatDrawer />
+              <AgentChatDrawer dismissible={isMobile} />
             </div>
           )}
         </div>
