@@ -456,15 +456,8 @@ function ChatView(props: {
       {/* Header — agent identity on the left, clear + history + close on
           the right. Sits at h-11 to match the page-level header strip. */}
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
-        <img src="/atlas-app-icon.svg" alt="Atlas" className="size-6 shrink-0 rounded-md" />
         <span className="text-13 font-medium text-primary">Atlas</span>
         <span className="min-w-0 flex-1" />
-        <AgentChatScopeBar
-          projectId={projectId}
-          joinedProjectIds={joinedProjectIds}
-          getProjectById={getProjectById}
-          onChange={onScopeChange}
-        />
         {sessionId && (
           <IconButton
             variant="tertiary"
@@ -515,6 +508,9 @@ function ChatView(props: {
           pageId={pageId}
           agent={agent}
           activePageEditorRef={activePageEditorRef}
+          joinedProjectIds={joinedProjectIds}
+          getProjectById={getProjectById}
+          onScopeChange={onScopeChange}
           onSentRefreshSessions={onSentRefreshSessions}
         />
       ) : (
@@ -687,6 +683,10 @@ function HistoryView(props: {
   onBack: (() => void) | undefined;
 }) {
   const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onBack, dismissible } = props;
+  // Most recent first.
+  const sortedSessions = [...sessions].sort(
+    (a, b) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime()
+  );
 
   return (
     <>
@@ -716,13 +716,13 @@ function HistoryView(props: {
           className="t-press flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
         >
           <Plus className="size-3.5" />
-          New Atlas session
+          New chat
         </button>
       </div>
 
       <ul className="vertical-scrollbar scrollbar-sm flex-1 overflow-y-auto">
         {sessions.length === 0 && <li className="px-3 py-6 text-center text-12 text-tertiary">No past chats yet.</li>}
-        {sessions.map((s) => (
+        {sortedSessions.map((s) => (
           <li
             key={s.id}
             className={cn(
@@ -730,7 +730,6 @@ function HistoryView(props: {
               activeId === s.id ? "bg-layer-1" : "hover:bg-layer-1"
             )}
           >
-            <Avatar size="sm" name={s.agent_name || "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
             <button type="button" onClick={() => onPickSession(s.id)} className="min-w-0 flex-1 text-left">
               <div className="truncate text-13 text-primary">{s.title || "New chat"}</div>
               <div className="flex items-center gap-1 truncate text-11 text-tertiary">
@@ -769,6 +768,17 @@ const AI_MODES: { id: TAtlasAiMode; label: string }[] = [
   { id: "summarize", label: "Summarize" },
 ];
 
+// Best-effort intent detection so the mode pill follows what the user types
+// (e.g. "write a…" → Rewrite). Returns null when nothing clearly matches so a
+// manual pick is never overridden.
+function inferAiMode(text: string): TAtlasAiMode | null {
+  const t = text.toLowerCase();
+  if (/\b(summari[sz]e|summary|tl;?dr|resum)/.test(t)) return "summarize";
+  if (/\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step)\b/.test(t)) return "plan";
+  if (/\b(write|draft|compose|re-?write|rewrite|edit|revise|expand|continue|create|generate)\b/.test(t)) return "rewrite";
+  return null;
+}
+
 function ChatThread(props: {
   workspaceSlug: string;
   sessionId: string;
@@ -776,9 +786,23 @@ function ChatThread(props: {
   pageId: string | undefined;
   agent: TAgent | undefined;
   activePageEditorRef: EditorRefApi | null;
+  joinedProjectIds: string[];
+  getProjectById: (projectId: string | undefined | null) => TProject | undefined;
+  onScopeChange: (projectId: string | undefined) => void;
   onSentRefreshSessions: () => void;
 }) {
-  const { workspaceSlug, sessionId, projectId, pageId, agent, activePageEditorRef, onSentRefreshSessions } = props;
+  const {
+    workspaceSlug,
+    sessionId,
+    projectId,
+    pageId,
+    agent,
+    activePageEditorRef,
+    joinedProjectIds,
+    getProjectById,
+    onScopeChange,
+    onSentRefreshSessions,
+  } = props;
   const { data, mutate } = useSWR(
     `agent-chat/${workspaceSlug}/${sessionId}`,
     () => chatService.getSession(workspaceSlug, sessionId),
@@ -788,7 +812,6 @@ function ChatThread(props: {
 
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [factCheck, setFactCheck] = useState(false);
   const [aiMode, setAiMode] = useState<TAtlasAiMode>("quick-ask");
   // Passage the user highlighted in the doc and chose to "Ask Atlas" about.
   // Seeded from the shared bridge on mount (the drawer opens *after* the pick,
@@ -1042,7 +1065,7 @@ function ChatThread(props: {
         project_id: projectId,
         tool_mode: shouldWriteIntoEditor ? "none" : "auto",
         context_note: contextNote,
-        fact_check: factCheck,
+        fact_check: true,
       });
       const generatedContent = response.assistant_message.content?.trim();
       if (shouldWriteIntoEditor && generatedContent && !response.assistant_message.error_message) {
@@ -1068,7 +1091,6 @@ function ChatThread(props: {
     agent?.name,
     aiMode,
     draft,
-    factCheck,
     pendingFiles,
     replyContext,
     sending,
@@ -1205,14 +1227,34 @@ function ChatThread(props: {
               </button>
             ))}
           </div>
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={1}
-            placeholder="Message Atlas…  type @ to add a doc or task"
-            className="max-h-40 min-h-[24px] w-full resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
-          />
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(e) => {
+                const value = e.target.value;
+                setDraft(value);
+                const next = inferAiMode(value);
+                if (next) setAiMode(next);
+              }}
+              rows={1}
+              placeholder="Message Atlas…  type @ to add a doc or task"
+              className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => void handleSend()}
+              disabled={sending || (draft.trim().length === 0 && pendingFiles.length === 0)}
+              className="t-press grid size-7 shrink-0 place-items-center rounded-md text-secondary transition-colors hover:text-primary disabled:opacity-40"
+              aria-label="Send message"
+            >
+              {sending ? (
+                <Spinner height="14px" width="14px" className="fill-current text-current/30" />
+              ) : (
+                <UndoLeft className="size-4 rotate-180" />
+              )}
+            </button>
+          </div>
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -1235,40 +1277,12 @@ function ChatThread(props: {
             >
               <Paperclip className="size-3.5" />
             </button>
-            <button
-              type="button"
-              onClick={() => setFactCheck((on) => !on)}
-              className={cn(
-                "t-press grid size-7 shrink-0 place-items-center rounded-full border-[0.5px] transition-colors",
-                factCheck
-                  ? "border-transparent bg-accent-subtle text-accent-primary"
-                  : "border-subtle text-secondary hover:bg-layer-2 hover:text-primary"
-              )}
-              aria-label="Toggle fact-check mode"
-              aria-pressed={factCheck}
-              title={
-                factCheck
-                  ? "Fact-check mode ON — claims get Wikipedia citations"
-                  : "Fact-check mode — cite every claim from Wikipedia"
-              }
-            >
-              <CheckCircle className="size-3.5" />
-            </button>
-            <span className="flex-1" />
-            <span className="text-11 text-tertiary">Enter to send</span>
-            <button
-              type="button"
-              onClick={() => void handleSend()}
-              disabled={sending || (draft.trim().length === 0 && pendingFiles.length === 0)}
-              className="t-press grid size-7 shrink-0 place-items-center rounded-md text-secondary transition-colors hover:text-primary disabled:opacity-40"
-              aria-label="Send message"
-            >
-              {sending ? (
-                <Spinner height="14px" width="14px" className="fill-current text-current/30" />
-              ) : (
-                <UndoLeft className="size-4 rotate-180" />
-              )}
-            </button>
+            <AgentChatScopeBar
+              projectId={projectId}
+              joinedProjectIds={joinedProjectIds}
+              getProjectById={getProjectById}
+              onChange={onScopeChange}
+            />
           </div>
         </div>
       </div>
