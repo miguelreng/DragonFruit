@@ -139,6 +139,71 @@ def _strip_optional_quotes(value: str) -> str:
     return value
 
 
+# Replace-type keywords that may introduce a quoted-terms request such as
+# `replace word "rengi" for "antonio"`. When the prompt opens with one of these
+# AND carries exactly two quoted segments, we take the two quoted strings as the
+# (search, replacement) pair and ignore any filler words around them.
+_REPLACE_KEYWORDS = ("replace", "swap", "change", "rename")
+
+# Matches a single quoted segment: "...", '...', or `...`. Used only to detect
+# the "exactly two quoted segments" case; we do not parse arbitrary nesting.
+_QUOTED_SEGMENT_RE = re.compile(r"\"([^\"]*)\"|'([^']*)'|`([^`]*)`")
+
+# Clearly-meta leading phrases we strip from an UNQUOTED positional search term
+# so `replace the word rengi with antonio` extracts `rengi`. Intentionally
+# conservative: only these explicit phrases, never bare `the `/`all `/`every `.
+_FIND_REPLACE_FILLER_PREFIXES = (
+    "the word ",
+    "word ",
+    "the phrase ",
+    "phrase ",
+    "all instances of ",
+    "all occurrences of ",
+    "every instance of ",
+    "every occurrence of ",
+)
+
+
+def _strip_leading_filler(value: str) -> str:
+    """Strip a single leading meta phrase (case-insensitive) from ``value``.
+
+    Only the explicit phrases in ``_FIND_REPLACE_FILLER_PREFIXES`` are removed,
+    and only from the start. Bare articles/quantifiers are deliberately left
+    alone so we don't mangle a legitimate search term like "all hands".
+    """
+    for prefix in _FIND_REPLACE_FILLER_PREFIXES:
+        if value.lower().startswith(prefix):
+            return value[len(prefix):].strip()
+    return value
+
+
+def _quoted_terms_find_replace(text: str) -> tuple[str, str] | None:
+    """Quoted-terms priority path for ``parse_find_replace``.
+
+    If the (already trimmed, single-line) prompt begins with a replace-type
+    keyword AND contains exactly two quoted segments, return those two quoted
+    strings in order as (search, replacement) — ignoring any filler words such
+    as `word`/`all`/`the` around them. Quotes inside the segments are kept
+    verbatim, so `replace "the cat" with "the dog"` yields ("the cat", "the dog").
+
+    Returns None (so the caller falls through to the positional patterns) unless
+    there are EXACTLY two quoted segments and both are non-empty.
+    """
+    lowered = text.lower()
+    if not any(lowered.startswith(keyword) for keyword in _REPLACE_KEYWORDS):
+        return None
+    matches = _QUOTED_SEGMENT_RE.findall(text)
+    if len(matches) != 2:
+        return None
+    # findall returns a tuple of the three alternation groups per match; exactly
+    # one is the captured (possibly empty) content for that quote style.
+    segments = ["".join(groups) for groups in matches]
+    search, replacement = segments[0].strip(), segments[1].strip()
+    if not search or not replacement:
+        return None
+    return search, replacement
+
+
 def parse_find_replace(prompt: str) -> tuple[str, str] | None:
     """Detect a literal find-replace request and return (search, replacement).
 
@@ -160,12 +225,24 @@ def parse_find_replace(prompt: str) -> tuple[str, str] | None:
     # happens to look like a command.
     if "\n" in text:
         return None
+    # Quoted-terms priority: `replace word "rengi" for "antonio"` or
+    # `replace all "rengi" with "antonio"`. When the command opens with a
+    # replace-type keyword and carries exactly two quoted segments, use those two
+    # strings verbatim and ignore any filler words around them.
+    quoted = _quoted_terms_find_replace(text)
+    if quoted is not None:
+        return quoted
     for pattern in _FIND_REPLACE_PATTERNS:
         match = pattern.match(text)
         if not match:
             continue
-        search = _strip_optional_quotes(match.group("search"))
-        replacement = _strip_optional_quotes(match.group("replacement"))
+        # Strip the meta filler phrase first, then any quotes that now lead the
+        # term, so `the word "rengi"` reduces to `rengi` (filler -> `"rengi"` ->
+        # quote strip -> `rengi`), not `"rengi"`.
+        search = _strip_optional_quotes(_strip_leading_filler(_strip_optional_quotes(match.group("search"))))
+        replacement = _strip_optional_quotes(
+            _strip_leading_filler(_strip_optional_quotes(match.group("replacement")))
+        )
         # Both terms must be non-empty. We allow the replacement to be empty only
         # if it was explicitly quoted (an intentional deletion); a bare empty
         # replacement means the phrasing didn't parse cleanly.
