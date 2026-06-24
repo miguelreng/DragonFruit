@@ -64,6 +64,7 @@ import {
   AlertCircle,
   CheckCircle,
   ChevronDown,
+  CornerDownLeft,
   Eraser,
   FileText,
   Folder,
@@ -71,7 +72,6 @@ import {
   Image as ImageIconBase,
   Paperclip,
   Plus,
-  Send,
   Sparkles,
   Trash2,
   X,
@@ -1086,11 +1086,10 @@ function ChatThread(props: {
         {!isEmpty && (
           <ul className="flex flex-col gap-4">
             {messages.map((m) => (
-              <MessageRow key={m.id} message={m} agent={agent} />
+              <MessageRow key={m.id} message={m} />
             ))}
             {sending && (
               <li className="flex items-center gap-2">
-                <Avatar size="sm" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
                 <span className="flex items-center gap-1 text-12 text-tertiary">
                   <Spinner height="12px" width="12px" />
                   Thinking…
@@ -1210,18 +1209,13 @@ function ChatThread(props: {
               type="button"
               onClick={() => void handleSend()}
               disabled={sending || (draft.trim().length === 0 && pendingFiles.length === 0)}
-              className={cn(
-                "t-press grid size-7 shrink-0 place-items-center rounded-full",
-                (draft.trim().length === 0 && pendingFiles.length === 0) || sending
-                  ? "bg-layer-2 text-tertiary"
-                  : "bg-[#e548a5] text-white hover:bg-[#d93d9a]"
-              )}
+              className="t-press grid size-7 shrink-0 place-items-center rounded-md text-secondary transition-colors hover:text-primary disabled:opacity-40"
               aria-label="Send message"
             >
               {sending ? (
-                <Spinner height="14px" width="14px" className="fill-white text-white/35" />
+                <Spinner height="14px" width="14px" className="fill-current text-current/30" />
               ) : (
-                <Send className="size-3.5" />
+                <CornerDownLeft className="size-4" />
               )}
             </button>
           </div>
@@ -1362,10 +1356,8 @@ function PendingAttachmentChip({ file, onRemove }: { file: File; onRemove: () =>
 
 const MessageRow = memo(function MessageRow({
   message,
-  agent,
 }: {
   message: TAgentChatMessage;
-  agent: TAgent | undefined;
 }) {
   const isUser = message.role === "user";
 
@@ -1399,8 +1391,7 @@ const MessageRow = memo(function MessageRow({
   }
 
   return (
-    <li className="flex gap-2">
-      <Avatar size="sm" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="mt-0.5 shrink-0" />
+    <li className="flex">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {message.error_message ? (
           <div className="text-error max-w-full text-13">{message.error_message}</div>

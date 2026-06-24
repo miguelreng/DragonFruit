@@ -94,6 +94,7 @@ export const Collapse = shim(Solar.Minimize);
 export const Component = shim(Solar.Widget);
 export const Copy = shim(Solar.Copy);
 export const CopyPlus = shim(Solar.Copy);
+export const CornerDownLeft = shim(Solar.ArrowLeftDown);
 export const CornerDownRight = shim(Solar.ArrowRightDown);
 export const Crown = shim(Solar.Crown);
 export const Csv = shim(Solar.DocumentText);
