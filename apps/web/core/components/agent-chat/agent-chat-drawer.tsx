@@ -868,9 +868,14 @@ const AI_MODES: { id: TAtlasAiMode; label: string }[] = [
 // manual pick is never overridden.
 function inferAiMode(text: string): TAtlasAiMode | null {
   const t = text.toLowerCase();
-  if (/\b(summari[sz]e|summary|tl;?dr|resum)/.test(t)) return "summarize";
-  if (/\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step)\b/.test(t)) return "plan";
-  if (/\b(write|draft|compose|re-?write|rewrite|edit|revise|expand|continue|create|generate)\b/.test(t)) return "create";
+  if (/\b(summari[sz]e|summary|tl;?dr|recap|resum)/.test(t)) return "summarize";
+  if (/\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step|agenda)\b/.test(t)) return "plan";
+  if (
+    /\b(write|draft|compose|re-?write|rewrite|edit|revise|expand|continue|create|generate|make|build|prepare|produce|put\s+together|crea\w*|escrib\w*|red[aá]ct\w*|genera\w*|haz\w*|prepar\w*)\b/.test(
+      t
+    )
+  )
+    return "create";
   return null;
 }
 
