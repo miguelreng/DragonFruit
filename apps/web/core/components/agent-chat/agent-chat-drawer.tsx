@@ -23,7 +23,7 @@ import yaml from "highlight.js/lib/languages/yaml";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 
 // Register once. Aliases (`js`, `ts`, `py`) ride along via the language
 // definitions themselves. The `github-dark.css` theme is already loaded
@@ -58,7 +58,7 @@ import type { EditorRefApi } from "@plane/editor";
 import type { TProject } from "@plane/types";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore, Avatar, CustomMenu, Spinner } from "@plane/ui";
+import { AlertModalCore, Avatar, CustomMenu, Spinner, ToggleSwitch } from "@plane/ui";
 import { calculateTimeAgo, cn } from "@plane/utils";
 // components
 import {
@@ -103,7 +103,8 @@ import type {
   TAtlasDocWriteMode,
 } from "@/services/agent-chat.service";
 import { AgentService } from "@/services/agent.service";
-import type { TAgent, TAgentInboxItem } from "@/services/agent.service";
+import type { TAgent, TAgentInboxItem, TMcpServerSummary } from "@/services/agent.service";
+import { INTEGRATIONS } from "@/constants/integrations";
 import { WorkspaceService } from "@/services/workspace.service";
 import { BookmarkService } from "@/services/bookmark.service";
 // local imports — `./reply-context` (not the barrel) avoids a self-import cycle
@@ -478,14 +479,6 @@ function ChatView(props: {
         <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
         <span className="text-13 font-medium text-primary">Atlas</span>
         <span className="min-w-0 flex-1" />
-        <Link
-          href={`/${workspaceSlug}/settings/integrations`}
-          className="t-press grid size-7 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
-          aria-label="Integrations"
-          title="Integrations"
-        >
-          <LayoutGrid className="size-4" />
-        </Link>
         {sessionId && (
           <IconButton
             variant="tertiary"
@@ -784,6 +777,78 @@ function HistoryView(props: {
 // ---------------------------------------------------------------- //
 // Active conversation                                                //
 // ---------------------------------------------------------------- //
+
+// Connectors-style menu: lists the agent's connected integrations with on/off
+// toggles (flips `enabled` and preserves the stored token), plus a link to
+// Settings → Integrations to connect new ones.
+function IntegrationsMenu({ workspaceSlug, agent }: { workspaceSlug: string; agent: TAgent | undefined }) {
+  const servers = agent?.mcp_servers ?? [];
+  const [busy, setBusy] = useState(false);
+  const labelFor = (name: string) => INTEGRATIONS.find((i) => i.key === name)?.name ?? name;
+
+  const toggle = async (target: TMcpServerSummary) => {
+    if (!agent || !workspaceSlug || busy) return;
+    setBusy(true);
+    try {
+      await agentService.update(workspaceSlug, agent.id, {
+        mcp_servers_set: servers.map((s) => ({
+          name: s.name,
+          url: s.url,
+          enabled: s.name === target.name ? !s.enabled : s.enabled,
+        })),
+      });
+      await globalMutate(`agents/${workspaceSlug}`);
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't update integration" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <CustomMenu
+      placement="top-start"
+      closeOnSelect={false}
+      customButtonClassName="outline-none"
+      customButton={
+        <span
+          className="t-press grid size-6 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+          aria-label="Integrations"
+          title="Integrations"
+        >
+          <LayoutGrid className="size-3.5" />
+        </span>
+      }
+    >
+      <div className="min-w-[224px] p-1">
+        <div className="px-2 py-1 text-11 font-medium text-tertiary">Integrations</div>
+        {servers.length === 0 ? (
+          <div className="px-2 py-2 text-12 text-tertiary">No integrations connected yet.</div>
+        ) : (
+          <div className="max-h-64 overflow-y-auto">
+            {servers.map((s) => (
+              <div
+                key={s.name}
+                className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-13 text-secondary"
+              >
+                <span className="truncate">{labelFor(s.name)}</span>
+                <ToggleSwitch value={s.enabled} onChange={() => void toggle(s)} size="sm" disabled={busy} />
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="my-1 border-t border-subtle" />
+        <Link
+          href={`/${workspaceSlug}/settings/integrations`}
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-13 text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+        >
+          <Plus className="size-3.5" />
+          Manage integrations
+        </Link>
+      </div>
+    </CustomMenu>
+  );
+}
 
 // Composer modes, shown as chips on doc surfaces. "Quick ask" is plain chat;
 // the others bias Atlas toward writing into the open document.
@@ -1463,6 +1528,7 @@ function ChatThread(props: {
           >
             <Paperclip className="size-3.5" />
           </button>
+          <IntegrationsMenu workspaceSlug={workspaceSlug} agent={agent} />
           <CustomMenu
             placement="top-start"
             closeOnSelect
