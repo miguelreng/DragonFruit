@@ -63,7 +63,6 @@ import { calculateTimeAgo, cn } from "@plane/utils";
 import {
   AlertCircle,
   CheckCircle,
-  ChevronDown,
   Eraser,
   FileText,
   Folder,
@@ -72,6 +71,7 @@ import {
   Paperclip,
   Plus,
   Sparkles,
+  LayoutGrid,
   Trash2,
   UndoLeft,
   X,
@@ -339,10 +339,9 @@ function AgentChatScopeBar(props: {
         closeOnSelect
         customButtonClassName="outline-none"
         customButton={
-          <span className="flex h-7 items-center gap-1 rounded-md border-[0.5px] border-subtle px-2 text-11 font-medium text-secondary hover:bg-surface-2">
+          <span className="flex h-7 items-center gap-1 rounded-md px-2 text-11 font-medium text-secondary transition-colors hover:bg-layer-1">
             <Folder className="size-3 text-tertiary" />
             <span className="max-w-[90px] truncate">{label}</span>
-            <ChevronDown className="size-3 text-tertiary" />
           </span>
         }
       >
@@ -468,9 +467,22 @@ function ChatView(props: {
     <>
       {/* Header — agent identity on the left, clear + history + close on
           the right. Sits at h-11 to match the page-level header strip. */}
-      <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
+      <header className="relative flex h-11 flex-shrink-0 items-center gap-2 px-3">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-full h-3 bg-gradient-to-b from-black/[0.05] to-transparent dark:from-white/[0.06]"
+        />
+        <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
         <span className="text-13 font-medium text-primary">Atlas</span>
         <span className="min-w-0 flex-1" />
+        <a
+          href={`/${workspaceSlug}/settings/integrations`}
+          className="t-press grid size-7 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+          aria-label="Integrations"
+          title="Integrations"
+        >
+          <LayoutGrid className="size-4" />
+        </a>
         {sessionId && (
           <IconButton
             variant="tertiary"
@@ -1435,40 +1447,39 @@ function ChatThread(props: {
               )}
             </button>
           </div>
-          <div className="flex items-center gap-1.5">
-            <CustomMenu
-              placement="top-start"
-              closeOnSelect
-              customButtonClassName="outline-none"
-              customButton={
-                <span className="flex h-7 items-center gap-1 rounded-md border-[0.5px] border-subtle px-2 text-11 font-medium text-secondary hover:bg-surface-2">
-                  {AI_MODES.find((m) => m.id === aiMode)?.label ?? "Ask"}
-                  <ChevronDown className="size-3 text-tertiary" />
-                </span>
-              }
-            >
-              {AI_MODES.map((m) => (
-                <CustomMenu.MenuItem key={m.id} onClick={() => setAiMode(m.id)}>
-                  {m.label}
-                </CustomMenu.MenuItem>
-              ))}
-            </CustomMenu>
-            <AgentChatScopeBar
-              projectId={projectId}
-              joinedProjectIds={joinedProjectIds}
-              getProjectById={getProjectById}
-              onChange={onScopeChange}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="t-press grid size-7 shrink-0 place-items-center rounded-full border-[0.5px] border-subtle text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
-              aria-label="Attach file"
-              title="Attach image, CSV, or PDF"
-            >
-              <Paperclip className="size-3.5" />
-            </button>
-          </div>
+        </div>
+        <div className="mt-1.5 flex items-center gap-1 px-1">
+          <CustomMenu
+            placement="top-start"
+            closeOnSelect
+            customButtonClassName="outline-none"
+            customButton={
+              <span className="flex h-7 items-center rounded-md px-2 text-11 font-medium text-secondary transition-colors hover:bg-layer-1">
+                {AI_MODES.find((m) => m.id === aiMode)?.label ?? "Ask"}
+              </span>
+            }
+          >
+            {AI_MODES.map((m) => (
+              <CustomMenu.MenuItem key={m.id} onClick={() => setAiMode(m.id)}>
+                {m.label}
+              </CustomMenu.MenuItem>
+            ))}
+          </CustomMenu>
+          <AgentChatScopeBar
+            projectId={projectId}
+            joinedProjectIds={joinedProjectIds}
+            getProjectById={getProjectById}
+            onChange={onScopeChange}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="t-press grid size-7 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="Attach file"
+            title="Attach image, CSV, or PDF"
+          >
+            <Paperclip className="size-3.5" />
+          </button>
         </div>
       </div>
     </>
