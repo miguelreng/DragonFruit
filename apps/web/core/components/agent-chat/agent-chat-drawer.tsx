@@ -103,12 +103,26 @@ import type {
 } from "@/services/agent-chat.service";
 import { AgentService } from "@/services/agent.service";
 import type { TAgent, TAgentInboxItem } from "@/services/agent.service";
+import { WorkspaceService } from "@/services/workspace.service";
+import { BookmarkService } from "@/services/bookmark.service";
 // local imports — `./reply-context` (not the barrel) avoids a self-import cycle
 import { useActiveDocPageId } from "./active-doc-page";
+import {
+  getAtlasMentionMatch,
+  getAtlasReferenceTypeLabel,
+  referenceIdentity,
+  pageSearchResponseToMentionedReference,
+  issueSearchResponseToMentionedReference,
+  bookmarkToMentionedReference,
+  type TAtlasMentionedReference,
+  type TAtlasMentionMatch,
+} from "./atlas-doc-mentions";
 import { consumePendingReplyContext, subscribePendingReplyContext, type PendingReplyContext } from "./reply-context";
 
 const chatService = new AgentChatService();
 const agentService = new AgentService();
+const workspaceService = new WorkspaceService();
+const bookmarkService = new BookmarkService();
 
 type View = "chat" | "history";
 
@@ -319,14 +333,13 @@ function AgentChatScopeBar(props: {
   const current = projectId ? getProjectById(projectId) : undefined;
   const label = current?.name ?? "Whole workspace";
   return (
-    <div className="flex min-w-0 items-center gap-1">
-      <span className="text-11 text-tertiary">Context</span>
+    <div className="flex min-w-0 items-center">
       <CustomMenu
-        placement="bottom-end"
+        placement="top-start"
         closeOnSelect
         customButtonClassName="outline-none"
         customButton={
-          <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-11 font-medium text-secondary hover:bg-surface-2">
+          <span className="flex h-7 items-center gap-1 rounded-md border-[0.5px] border-subtle px-2 text-11 font-medium text-secondary hover:bg-surface-2">
             <Folder className="size-3 text-tertiary" />
             <span className="max-w-[90px] truncate">{label}</span>
             <ChevronDown className="size-3 text-tertiary" />
@@ -759,11 +772,11 @@ function HistoryView(props: {
 
 // Composer modes, shown as chips on doc surfaces. "Quick ask" is plain chat;
 // the others bias Atlas toward writing into the open document.
-type TAtlasAiMode = "quick-ask" | "rewrite" | "plan" | "summarize";
+type TAtlasAiMode = "quick-ask" | "create" | "plan" | "summarize";
 
 const AI_MODES: { id: TAtlasAiMode; label: string }[] = [
-  { id: "quick-ask", label: "Quick ask" },
-  { id: "rewrite", label: "Rewrite" },
+  { id: "quick-ask", label: "Ask" },
+  { id: "create", label: "Create" },
   { id: "plan", label: "Plan" },
   { id: "summarize", label: "Summarize" },
 ];
@@ -775,7 +788,7 @@ function inferAiMode(text: string): TAtlasAiMode | null {
   const t = text.toLowerCase();
   if (/\b(summari[sz]e|summary|tl;?dr|resum)/.test(t)) return "summarize";
   if (/\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step)\b/.test(t)) return "plan";
-  if (/\b(write|draft|compose|re-?write|rewrite|edit|revise|expand|continue|create|generate)\b/.test(t)) return "rewrite";
+  if (/\b(write|draft|compose|re-?write|rewrite|edit|revise|expand|continue|create|generate)\b/.test(t)) return "create";
   return null;
 }
 
@@ -813,6 +826,13 @@ function ChatThread(props: {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [aiMode, setAiMode] = useState<TAtlasAiMode>("quick-ask");
+  // @-mention: search docs / issues / bookmarks and pin them as context.
+  const [docMentionMatch, setDocMentionMatch] = useState<TAtlasMentionMatch | null>(null);
+  const [docMentionResults, setDocMentionResults] = useState<TAtlasMentionedReference[]>([]);
+  const [docMentionIndex, setDocMentionIndex] = useState(0);
+  const [isSearchingDocs, setIsSearchingDocs] = useState(false);
+  const [docMentionError, setDocMentionError] = useState<string | null>(null);
+  const [mentionedDocs, setMentionedDocs] = useState<TAtlasMentionedReference[]>([]);
   // Passage the user highlighted in the doc and chose to "Ask Atlas" about.
   // Seeded from the shared bridge on mount (the drawer opens *after* the pick,
   // so a window listener here would miss it), then kept live via subscribe.
@@ -877,6 +897,119 @@ function ChatThread(props: {
     setPendingFiles((cur) => cur.filter((entry) => entry.id !== id));
   }, []);
 
+  const searchMentionReferences = useCallback(
+    async (query: string): Promise<TAtlasMentionedReference[]> => {
+      if (!workspaceSlug || !projectId) return [];
+      let hadError = false;
+      const [entityResponse, bookmarkResponse] = await Promise.all([
+        workspaceService
+          .searchEntity(workspaceSlug, { count: 8, project_id: projectId, query, query_type: ["page", "issue"] })
+          .catch(() => {
+            hadError = true;
+            return { issue: [], page: [] } as Awaited<ReturnType<typeof workspaceService.searchEntity>>;
+          }),
+        bookmarkService.listProjectBookmarks(workspaceSlug, projectId, { query }).catch(() => {
+          hadError = true;
+          return { results: [] } as Awaited<ReturnType<typeof bookmarkService.listProjectBookmarks>>;
+        }),
+      ]);
+      const references = [
+        ...(entityResponse.issue ?? []).map(issueSearchResponseToMentionedReference),
+        ...(entityResponse.page ?? []).map(pageSearchResponseToMentionedReference),
+        ...(bookmarkResponse.results ?? []).slice(0, 8).map(bookmarkToMentionedReference),
+      ].filter((r): r is TAtlasMentionedReference => !!r);
+      const unique = references.filter(
+        (r, i, list) => list.findIndex((e) => referenceIdentity(e) === referenceIdentity(r)) === i
+      );
+      if (hadError && unique.length === 0) throw new Error("Could not search references.");
+      return unique.slice(0, 12);
+    },
+    [projectId, workspaceSlug]
+  );
+
+  useEffect(() => {
+    if (!workspaceSlug || !projectId || !docMentionMatch) {
+      setDocMentionResults([]);
+      setDocMentionError(null);
+      setIsSearchingDocs(false);
+      return;
+    }
+    let isActive = true;
+    setIsSearchingDocs(true);
+    setDocMentionError(null);
+    const handle = window.setTimeout(async () => {
+      const query = docMentionMatch.query.trim();
+      const fallback = query.replace(/[-_]+/g, " ").trim();
+      try {
+        let refs = await searchMentionReferences(query);
+        if (refs.length === 0 && fallback && fallback !== query) refs = await searchMentionReferences(fallback);
+        if (!isActive) return;
+        setDocMentionResults(refs);
+        setDocMentionIndex(0);
+      } catch {
+        if (!isActive) return;
+        setDocMentionResults([]);
+        setDocMentionError("Could not search references.");
+      } finally {
+        if (isActive) setIsSearchingDocs(false);
+      }
+    }, 180);
+    return () => {
+      isActive = false;
+      window.clearTimeout(handle);
+    };
+  }, [docMentionMatch, projectId, searchMentionReferences, workspaceSlug]);
+
+  // Drop pinned references whose token the user has since deleted.
+  useEffect(() => {
+    setMentionedDocs((current) => current.filter((doc) => draft.includes(doc.insertText)));
+  }, [draft]);
+
+  const syncDocMentionMatch = useCallback((value: string, cursorPosition: number | null | undefined) => {
+    const nextMatch = getAtlasMentionMatch(value, cursorPosition);
+    setDocMentionMatch((current) => {
+      if (!current && !nextMatch) return current;
+      if (
+        current &&
+        nextMatch &&
+        current.from === nextMatch.from &&
+        current.to === nextMatch.to &&
+        current.query === nextMatch.query
+      )
+        return current;
+      return nextMatch;
+    });
+  }, []);
+
+  const selectDocMention = useCallback(
+    (doc: TAtlasMentionedReference | undefined) => {
+      if (!docMentionMatch || !doc) return;
+      const insertText = `${doc.insertText} `;
+      const nextDraft = `${draft.slice(0, docMentionMatch.from)}${insertText}${draft
+        .slice(docMentionMatch.to)
+        .replace(/^\s+/, "")}`;
+      const nextCursor = docMentionMatch.from + insertText.length;
+      setDraft(nextDraft);
+      setMentionedDocs((current) =>
+        current.some((e) => referenceIdentity(e) === referenceIdentity(doc)) ? current : [...current, doc]
+      );
+      setDocMentionMatch(null);
+      setDocMentionResults([]);
+      setDocMentionError(null);
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.setSelectionRange(nextCursor, nextCursor);
+      });
+    },
+    [docMentionMatch, draft]
+  );
+
+  const selectedDocMention = docMentionResults[docMentionIndex] ?? docMentionResults[0];
+  const isDocMentionPickerOpen = Boolean(
+    docMentionMatch &&
+      (isSearchingDocs || docMentionResults.length > 0 || docMentionError || docMentionMatch.query.trim())
+  );
+
   const handleSend = useCallback(async () => {
     const trimmed = draft.trim();
     const hasFiles = pendingFiles.length > 0;
@@ -905,7 +1038,7 @@ function ChatThread(props: {
 
     // Rewrite / Plan / Summarize explicitly target the open document; Quick ask
     // stays plain chat unless the text itself reads like an edit request.
-    const isWriteMode = aiMode === "rewrite" || aiMode === "plan" || aiMode === "summarize";
+    const isWriteMode = aiMode === "create" || aiMode === "plan" || aiMode === "summarize";
     const shouldWriteIntoEditor = Boolean(
       activePageEditorRef &&
       !hasFiles &&
@@ -1054,12 +1187,21 @@ function ChatThread(props: {
     setDraft("");
     setPendingFiles([]);
     setReplyContext(null);
-    // A pinned passage that didn't read as an edit request rides along as
-    // private grounding so Atlas can resolve "this/that" against the exact
-    // text the user highlighted. The backend caps context_note at 4k chars.
-    const contextNote = reply
+    setMentionedDocs([]);
+    setDocMentionMatch(null);
+    // Private grounding context: a pinned passage (so Atlas can resolve
+    // "this/that") plus any @-mentioned docs/issues the user referenced. The
+    // backend caps context_note at 4k chars.
+    const mentionedRefs = mentionedDocs.filter((doc) => trimmed.includes(doc.insertText));
+    const mentionNote = mentionedRefs.length
+      ? `The user referenced:\n${mentionedRefs
+          .map((d) => `- ${d.title} (${getAtlasReferenceTypeLabel(d.type)})`)
+          .join("\n")}`
+      : "";
+    const replyNote = reply
       ? `The user highlighted this passage in the current document and is asking a follow-up about it:\n\n"""\n${reply.text}\n"""`
-      : undefined;
+      : "";
+    const contextNote = [replyNote, mentionNote].filter(Boolean).join("\n\n") || undefined;
     try {
       const response = await chatService.sendMessage(workspaceSlug, sessionId, trimmed, attachments, {
         project_id: projectId,
@@ -1091,6 +1233,7 @@ function ChatThread(props: {
     agent?.name,
     aiMode,
     draft,
+    mentionedDocs,
     pendingFiles,
     replyContext,
     sending,
@@ -1210,24 +1353,39 @@ function ChatThread(props: {
               ))}
             </ul>
           )}
-          <div className="flex flex-wrap gap-1.5">
-            {AI_MODES.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setAiMode(m.id)}
-                className={cn(
-                  "t-press rounded-full px-2.5 py-0.5 text-11 transition-colors",
-                  aiMode === m.id
-                    ? "bg-accent-subtle font-medium text-accent-primary"
-                    : "border-[0.5px] border-subtle text-secondary hover:bg-layer-2 hover:text-primary"
+          <div className="relative flex items-end gap-2">
+            {isDocMentionPickerOpen && (
+              <div className="absolute bottom-full left-0 z-30 mb-2 max-h-64 w-full overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
+                {isSearchingDocs ? (
+                  <div className="px-2 py-2 text-12 text-tertiary">Searching…</div>
+                ) : docMentionResults.length > 0 ? (
+                  <div className="space-y-0.5">
+                    {docMentionResults.map((doc, index) => (
+                      <button
+                        key={referenceIdentity(doc)}
+                        type="button"
+                        onMouseEnter={() => setDocMentionIndex(index)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectDocMention(doc)}
+                        className={cn(
+                          "flex w-full flex-col rounded-lg px-2 py-1.5 text-left transition-colors",
+                          index === docMentionIndex
+                            ? "bg-layer-1 text-primary"
+                            : "text-secondary hover:bg-layer-1 hover:text-primary"
+                        )}
+                      >
+                        <span className="truncate text-12">{doc.title}</span>
+                        <span className="truncate text-[10px] text-tertiary">
+                          {doc.subtitle ?? getAtlasReferenceTypeLabel(doc.type)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-2 py-2 text-12 text-tertiary">{docMentionError ?? "No results"}</div>
                 )}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-end gap-2">
+              </div>
+            )}
             <textarea
               ref={textareaRef}
               value={draft}
@@ -1236,7 +1394,29 @@ function ChatThread(props: {
                 setDraft(value);
                 const next = inferAiMode(value);
                 if (next) setAiMode(next);
+                syncDocMentionMatch(value, e.target.selectionStart);
               }}
+              onKeyDown={(e) => {
+                if (!docMentionMatch) return;
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setDocMentionIndex((i) => (docMentionResults.length ? (i + 1) % docMentionResults.length : 0));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setDocMentionIndex((i) =>
+                    docMentionResults.length ? (i - 1 + docMentionResults.length) % docMentionResults.length : 0
+                  );
+                } else if ((e.key === "Enter" || e.key === "Tab") && selectedDocMention) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  selectDocMention(selectedDocMention);
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setDocMentionMatch(null);
+                }
+              }}
+              onKeyUp={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
+              onClick={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
               rows={1}
               placeholder="Message Atlas…  type @ to add a doc or task"
               className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
@@ -1256,18 +1436,29 @@ function ChatThread(props: {
             </button>
           </div>
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setDraft((d) => `${d}@`);
-                textareaRef.current?.focus();
-              }}
-              className="t-press grid size-7 shrink-0 place-items-center rounded-full border-[0.5px] border-subtle text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
-              aria-label="Mention a doc or task"
-              title="Mention a doc or task"
+            <CustomMenu
+              placement="top-start"
+              closeOnSelect
+              customButtonClassName="outline-none"
+              customButton={
+                <span className="flex h-7 items-center gap-1 rounded-md border-[0.5px] border-subtle px-2 text-11 font-medium text-secondary hover:bg-surface-2">
+                  {AI_MODES.find((m) => m.id === aiMode)?.label ?? "Ask"}
+                  <ChevronDown className="size-3 text-tertiary" />
+                </span>
+              }
             >
-              <span className="text-13 leading-none">@</span>
-            </button>
+              {AI_MODES.map((m) => (
+                <CustomMenu.MenuItem key={m.id} onClick={() => setAiMode(m.id)}>
+                  {m.label}
+                </CustomMenu.MenuItem>
+              ))}
+            </CustomMenu>
+            <AgentChatScopeBar
+              projectId={projectId}
+              joinedProjectIds={joinedProjectIds}
+              getProjectById={getProjectById}
+              onChange={onScopeChange}
+            />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -1277,12 +1468,6 @@ function ChatThread(props: {
             >
               <Paperclip className="size-3.5" />
             </button>
-            <AgentChatScopeBar
-              projectId={projectId}
-              joinedProjectIds={joinedProjectIds}
-              getProjectById={getProjectById}
-              onChange={onScopeChange}
-            />
           </div>
         </div>
       </div>
