@@ -499,15 +499,18 @@ function ChatView(props: {
             Chats
           </button>
           {sessionId && (
-            <button
-              type="button"
-              onClick={openClearConfirm}
-              className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
-              aria-label="Clear conversation"
-              title="Clear conversation"
-            >
-              <Eraser className="size-4" />
-            </button>
+            <>
+              <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-subtle" />
+              <button
+                type="button"
+                onClick={openClearConfirm}
+                className="t-press grid size-7 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+                aria-label="Clear conversation"
+                title="Clear conversation"
+              >
+                <Eraser className="size-4" />
+              </button>
+            </>
           )}
           {dismissible && (
             <button
