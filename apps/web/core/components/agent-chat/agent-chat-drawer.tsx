@@ -111,11 +111,10 @@ import { BookmarkService } from "@/services/bookmark.service";
 import { useActiveDocPageId } from "./active-doc-page";
 import {
   getAtlasMentionMatch,
+  getAtlasMentionToken,
   getAtlasPromptHighlightParts,
   getAtlasReferenceTypeLabel,
   referenceIdentity,
-  pageSearchResponseToMentionedReference,
-  issueSearchResponseToMentionedReference,
   bookmarkToMentionedReference,
   type TAtlasMentionedReference,
   type TAtlasMentionMatch,
@@ -999,13 +998,14 @@ function ChatThread(props: {
     async (query: string): Promise<TAtlasMentionedReference[]> => {
       if (!workspaceSlug) return [];
       let hadError = false;
-      // Search the whole workspace (no project_id) so @-mentions can reach any
-      // doc/issue, regardless of the chat's scope. Bookmarks are project-scoped,
-      // so only include them when a project scope is active.
-      const [entityResponse, bookmarkResponse] = await Promise.all([
-        workspaceService.searchEntity(workspaceSlug, { count: 8, query, query_type: ["page", "issue"] }).catch(() => {
+      // Use the global workspace search (workspace_search: true) so @-mentions
+      // reach docs/tasks in ANY project — the entity-search endpoint only
+      // returns results when scoped to a single project_id. Bookmarks are
+      // project-scoped, so only fold them in when a project scope is active.
+      const [entity, bookmarkResponse] = await Promise.all([
+        workspaceService.searchWorkspace(workspaceSlug, { search: query, workspace_search: true }).catch(() => {
           hadError = true;
-          return { issue: [], page: [] } as Awaited<ReturnType<typeof workspaceService.searchEntity>>;
+          return null;
         }),
         projectId
           ? bookmarkService.listProjectBookmarks(workspaceSlug, projectId, { query }).catch(() => {
@@ -1014,11 +1014,34 @@ function ChatThread(props: {
             })
           : Promise.resolve({ results: [] } as Awaited<ReturnType<typeof bookmarkService.listProjectBookmarks>>),
       ]);
-      const references = [
-        ...(entityResponse.issue ?? []).map(issueSearchResponseToMentionedReference),
-        ...(entityResponse.page ?? []).map(pageSearchResponseToMentionedReference),
-        ...(bookmarkResponse.results ?? []).slice(0, 8).map(bookmarkToMentionedReference),
-      ].filter((r): r is TAtlasMentionedReference => !!r);
+
+      const references: TAtlasMentionedReference[] = [];
+      for (const issue of entity?.results.issue ?? []) {
+        const identifier = [issue.project__identifier, issue.sequence_id].filter(Boolean).join("-");
+        const title = issue.name?.trim() || identifier || "Untitled task";
+        references.push({
+          id: issue.id,
+          insertText: getAtlasMentionToken(title, "task"),
+          projectId: issue.project_id || undefined,
+          title,
+          type: "task",
+        });
+      }
+      for (const page of entity?.results.page ?? []) {
+        const title = page.name?.trim() || "Untitled doc";
+        references.push({
+          id: page.id,
+          insertText: getAtlasMentionToken(title, "doc"),
+          projectId: page.project_ids?.[0],
+          title,
+          type: "doc",
+        });
+      }
+      for (const bookmark of (bookmarkResponse.results ?? []).slice(0, 8)) {
+        const ref = bookmarkToMentionedReference(bookmark);
+        if (ref) references.push(ref);
+      }
+
       const unique = references.filter(
         (r, i, list) => list.findIndex((e) => referenceIdentity(e) === referenceIdentity(r)) === i
       );
