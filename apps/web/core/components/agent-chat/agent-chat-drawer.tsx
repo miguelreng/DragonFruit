@@ -863,20 +863,22 @@ const AI_MODES: { id: TAtlasAiMode; label: string }[] = [
   { id: "summarize", label: "Summarize" },
 ];
 
-// Best-effort intent detection so the mode pill follows what the user types
-// (e.g. "write a…" → Rewrite). Returns null when nothing clearly matches so a
-// manual pick is never overridden.
-function inferAiMode(text: string): TAtlasAiMode | null {
+// Best-effort intent detection so the mode pill follows what the user types:
+// "summarize…" → Summarize, "plan/outline…" → Plan, "write/create…" → Create,
+// and anything else → Ask. Always resolves to a mode so the pill tracks the
+// request both ways (a question after a "write…" draft flips back to Ask).
+function inferAiMode(text: string): TAtlasAiMode {
   const t = text.toLowerCase();
-  if (/\b(summari[sz]e|summary|tl;?dr|recap|resum)/.test(t)) return "summarize";
-  if (/\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step|agenda)\b/.test(t)) return "plan";
+  if (/\b(summari[sz]e|summary|tl;?dr|recap|condense|resum\w*)\b/.test(t)) return "summarize";
+  if (/\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step|agenda|break\s+(?:this|it)?\s*down|organi[sz]e)\b/.test(t))
+    return "plan";
   if (
     /\b(write|draft|compose|re-?write|rewrite|edit|revise|expand|continue|create|generate|make|build|prepare|produce|put\s+together|crea\w*|escrib\w*|red[aá]ct\w*|genera\w*|haz\w*|prepar\w*)\b/.test(
       t
     )
   )
     return "create";
-  return null;
+  return "quick-ask";
 }
 
 function ChatThread(props: {
@@ -1482,8 +1484,7 @@ function ChatThread(props: {
               onChange={(e) => {
                 const value = e.target.value;
                 setDraft(value);
-                const next = inferAiMode(value);
-                if (next) setAiMode(next);
+                setAiMode(inferAiMode(value));
                 syncDocMentionMatch(value, e.target.selectionStart);
               }}
               onKeyDown={(e) => {
