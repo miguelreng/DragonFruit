@@ -1595,7 +1595,7 @@ function ChatThread(props: {
               type="button"
               onClick={() => void handleSend()}
               disabled={sending || (draft.trim().length === 0 && pendingFiles.length === 0)}
-              className="t-press grid size-5 shrink-0 place-items-center rounded-md text-secondary transition-colors hover:text-primary disabled:opacity-40"
+              className="t-press flex shrink-0 items-center text-secondary transition-colors hover:text-primary disabled:opacity-40"
               aria-label="Send message"
             >
               {sending ? (
