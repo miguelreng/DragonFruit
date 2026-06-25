@@ -126,6 +126,10 @@ const agentService = new AgentService();
 const workspaceService = new WorkspaceService();
 const bookmarkService = new BookmarkService();
 
+// A drag carrying files (vs. selected text or a dragged element). Guards the
+// composer's drop overlay so it only appears for real file drags.
+const isFileDrag = (e: React.DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
+
 type View = "chat" | "history";
 
 /**
@@ -1017,6 +1021,44 @@ function ChatThread(props: {
     setPendingFiles((cur) => cur.filter((entry) => entry.id !== id));
   }, []);
 
+  // Drag-and-drop file attach. dragDepth counts enter/leave across nested
+  // children so the overlay doesn't flicker as the cursor moves over them.
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const dragDepthRef = useRef(0);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingFiles(true);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    dragDepthRef.current -= 1;
+    if (dragDepthRef.current <= 0) {
+      dragDepthRef.current = 0;
+      setIsDraggingFiles(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      dragDepthRef.current = 0;
+      setIsDraggingFiles(false);
+      handleAttach(e.dataTransfer.files);
+    },
+    [handleAttach]
+  );
+
   const searchMentionReferences = useCallback(
     async (query: string): Promise<TAtlasMentionedReference[]> => {
       if (!workspaceSlug) return [];
@@ -1434,6 +1476,10 @@ function ChatThread(props: {
       <div
         role="presentation"
         className="relative flex-shrink-0 bg-surface-1 px-3 pt-2 pb-2.5"
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         onKeyDown={(e) => {
           if (
             e.key === "Enter" &&
@@ -1453,6 +1499,12 @@ function ChatThread(props: {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-surface-1 to-transparent"
         />
+        {isDraggingFiles && (
+          <div className="pointer-events-none absolute inset-1 z-20 flex items-center justify-center gap-2 rounded-xl border border-dashed border-accent-primary bg-surface-1/90 text-13 font-medium text-accent-primary backdrop-blur-sm">
+            <Paperclip className="size-4" />
+            Drop files to attach
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -1470,7 +1522,7 @@ function ChatThread(props: {
         />
         <div
           className={cn(
-            "flex flex-col gap-1.5 rounded-xl border-[0.5px] border-subtle bg-surface-1 px-3 py-1 transition-colors focus-within:border-strong"
+            "flex flex-col gap-1.5 rounded-xl border-[0.5px] border-subtle bg-surface-1 px-3 py-2 transition-colors focus-within:border-strong"
           )}
         >
           {replyContext && (
@@ -1586,7 +1638,7 @@ function ChatThread(props: {
                 rows={1}
                 placeholder="Message Atlas…  type @ to add a doc or task"
                 className={cn(
-                  "relative z-[1] max-h-40 w-full resize-none bg-transparent p-0 text-13 leading-snug placeholder:text-placeholder focus:outline-none",
+                  "relative z-[1] block max-h-40 w-full resize-none bg-transparent p-0 text-13 leading-snug placeholder:text-placeholder focus:outline-none",
                   draft ? "text-transparent caret-[#e548a5]" : "text-primary"
                 )}
               />
