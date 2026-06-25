@@ -479,36 +479,47 @@ function ChatView(props: {
         <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
         <span className="text-13 font-medium text-primary">Atlas</span>
         <span className="min-w-0 flex-1" />
-        {sessionId && (
-          <IconButton
-            variant="tertiary"
-            size="sm"
-            icon={Eraser}
-            onClick={openClearConfirm}
-            aria-label="Clear conversation"
-          />
-        )}
-        <button
-          type="button"
-          onClick={() => void onStartSession()}
-          className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
-          aria-label="New chat"
-          title="New chat"
-        >
-          <Plus className="size-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onOpenHistory}
-          className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
-          aria-label="Chats"
-        >
-          <Dialog className="size-3.5" />
-          Chats
-        </button>
-        {dismissible && (
-          <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
-        )}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => void onStartSession()}
+            className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="New chat"
+          >
+            <Plus className="size-3.5" />
+            New chat
+          </button>
+          <button
+            type="button"
+            onClick={onOpenHistory}
+            className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="Chats"
+          >
+            <Dialog className="size-3.5" />
+            Chats
+          </button>
+          {sessionId && (
+            <button
+              type="button"
+              onClick={openClearConfirm}
+              className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+              aria-label="Clear conversation"
+            >
+              <Eraser className="size-3.5" />
+              Clear
+            </button>
+          )}
+          {dismissible && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+              aria-label="Close"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
       </header>
 
       <AlertModalCore
