@@ -1470,7 +1470,7 @@ function ChatThread(props: {
         />
         <div
           className={cn(
-            "flex flex-col gap-1.5 rounded-xl border-[0.5px] border-subtle bg-surface-1 px-3 py-1.5 transition-colors focus-within:border-strong"
+            "flex flex-col gap-1.5 rounded-xl border-[0.5px] border-subtle bg-surface-1 px-3 py-1 transition-colors focus-within:border-strong"
           )}
         >
           {replyContext && (
@@ -1595,7 +1595,7 @@ function ChatThread(props: {
               type="button"
               onClick={() => void handleSend()}
               disabled={sending || (draft.trim().length === 0 && pendingFiles.length === 0)}
-              className="t-press grid size-6 shrink-0 place-items-center rounded-md text-secondary transition-colors hover:text-primary disabled:opacity-40"
+              className="t-press grid size-5 shrink-0 place-items-center rounded-md text-secondary transition-colors hover:text-primary disabled:opacity-40"
               aria-label="Send message"
             >
               {sending ? (
