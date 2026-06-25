@@ -997,19 +997,22 @@ function ChatThread(props: {
 
   const searchMentionReferences = useCallback(
     async (query: string): Promise<TAtlasMentionedReference[]> => {
-      if (!workspaceSlug || !projectId) return [];
+      if (!workspaceSlug) return [];
       let hadError = false;
+      // Search the whole workspace (no project_id) so @-mentions can reach any
+      // doc/issue, regardless of the chat's scope. Bookmarks are project-scoped,
+      // so only include them when a project scope is active.
       const [entityResponse, bookmarkResponse] = await Promise.all([
-        workspaceService
-          .searchEntity(workspaceSlug, { count: 8, project_id: projectId, query, query_type: ["page", "issue"] })
-          .catch(() => {
-            hadError = true;
-            return { issue: [], page: [] } as Awaited<ReturnType<typeof workspaceService.searchEntity>>;
-          }),
-        bookmarkService.listProjectBookmarks(workspaceSlug, projectId, { query }).catch(() => {
+        workspaceService.searchEntity(workspaceSlug, { count: 8, query, query_type: ["page", "issue"] }).catch(() => {
           hadError = true;
-          return { results: [] } as Awaited<ReturnType<typeof bookmarkService.listProjectBookmarks>>;
+          return { issue: [], page: [] } as Awaited<ReturnType<typeof workspaceService.searchEntity>>;
         }),
+        projectId
+          ? bookmarkService.listProjectBookmarks(workspaceSlug, projectId, { query }).catch(() => {
+              hadError = true;
+              return { results: [] } as Awaited<ReturnType<typeof bookmarkService.listProjectBookmarks>>;
+            })
+          : Promise.resolve({ results: [] } as Awaited<ReturnType<typeof bookmarkService.listProjectBookmarks>>),
       ]);
       const references = [
         ...(entityResponse.issue ?? []).map(issueSearchResponseToMentionedReference),
@@ -1026,7 +1029,7 @@ function ChatThread(props: {
   );
 
   useEffect(() => {
-    if (!workspaceSlug || !projectId || !docMentionMatch) {
+    if (!workspaceSlug || !docMentionMatch) {
       setDocMentionResults([]);
       setDocMentionError(null);
       setIsSearchingDocs(false);
