@@ -490,7 +490,15 @@ function ChatView(props: {
             aria-label="Clear conversation"
           />
         )}
-        <IconButton variant="tertiary" size="sm" icon={History} onClick={onOpenHistory} aria-label="Chat history" />
+        <button
+          type="button"
+          onClick={onOpenHistory}
+          className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+          aria-label="Chats"
+        >
+          <History className="size-3.5" />
+          Chats
+        </button>
         {dismissible && (
           <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
         )}
@@ -716,7 +724,7 @@ function HistoryView(props: {
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex flex-1 items-center gap-2">
           <Sparkles className="size-4 text-accent-primary" />
-          <div className="text-13 font-medium text-primary">Atlas sessions</div>
+          <div className="text-13 font-medium text-primary">Chats</div>
         </div>
         {onBack && (
           <button
