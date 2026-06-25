@@ -1533,7 +1533,7 @@ function ChatThread(props: {
                 )}
               </div>
             )}
-            <div className="relative min-h-[24px] flex-1">
+            <div className="relative flex-1">
               {/* Highlight overlay: renders the draft with @mentions in pink
                   behind a transparent textarea (native textareas can't color a
                   substring). Must mirror the textarea's font/wrap exactly. */}
@@ -1586,7 +1586,7 @@ function ChatThread(props: {
                 rows={1}
                 placeholder="Message Atlas…  type @ to add a doc or task"
                 className={cn(
-                  "relative z-[1] max-h-40 min-h-[24px] w-full resize-none bg-transparent p-0 text-13 leading-snug placeholder:text-placeholder focus:outline-none",
+                  "relative z-[1] max-h-40 w-full resize-none bg-transparent p-0 text-13 leading-snug placeholder:text-placeholder focus:outline-none",
                   draft ? "text-transparent caret-[#e548a5]" : "text-primary"
                 )}
               />
