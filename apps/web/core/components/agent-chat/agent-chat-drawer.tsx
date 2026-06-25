@@ -64,9 +64,9 @@ import { calculateTimeAgo, cn } from "@plane/utils";
 import {
   AlertCircle,
   CheckCircle,
+  Dialog,
   Eraser,
   FileText,
-  History,
   Image as ImageIconBase,
   Paperclip,
   Plus,
@@ -490,11 +490,20 @@ function ChatView(props: {
         )}
         <button
           type="button"
+          onClick={() => void onStartSession()}
+          className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+          aria-label="New chat"
+          title="New chat"
+        >
+          <Plus className="size-4" />
+        </button>
+        <button
+          type="button"
           onClick={onOpenHistory}
           className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
           aria-label="Chats"
         >
-          <History className="size-3.5" />
+          <Dialog className="size-3.5" />
           Chats
         </button>
         {dismissible && (
@@ -680,7 +689,7 @@ function NewChatLanding(props: { onStartSession: () => Promise<void> }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
       <div className="grid size-12 place-items-center rounded-full bg-layer-1">
-        <Sparkles className="size-5 text-accent-primary" />
+        <img src="/atlas-dragon.svg" alt="Atlas" className="size-6" />
       </div>
       <div className="space-y-1">
         <div className="text-14 font-medium text-primary">Ask Atlas</div>
@@ -721,7 +730,7 @@ function HistoryView(props: {
     <>
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex flex-1 items-center gap-2">
-          <Sparkles className="size-4 text-accent-primary" />
+          <img src="/atlas-dragon.svg" alt="Atlas" className="size-4" />
           <div className="text-13 font-medium text-primary">Chats</div>
         </div>
         {onBack && (
@@ -1447,7 +1456,7 @@ function ChatThread(props: {
         />
         <div
           className={cn(
-            "flex flex-col gap-2 rounded-2xl border-[0.5px] border-subtle bg-surface-1 px-3 py-2 transition-colors focus-within:border-strong"
+            "flex flex-col gap-1.5 rounded-xl border-[0.5px] border-subtle bg-surface-1 px-3 py-1.5 transition-colors focus-within:border-strong"
           )}
         >
           {replyContext && (
@@ -1477,7 +1486,7 @@ function ChatThread(props: {
               ))}
             </ul>
           )}
-          <div className="relative flex items-end gap-2">
+          <div className="relative flex items-center gap-2">
             {isDocMentionPickerOpen && (
               <div className="absolute bottom-full left-0 z-30 mb-2 max-h-64 w-full overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
                 {isSearchingDocs ? (
