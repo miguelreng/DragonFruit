@@ -744,7 +744,7 @@ function HistoryView(props: {
     <>
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex flex-1 items-center gap-2">
-          <img src="/atlas-dragon.svg" alt="Atlas" className="size-4" />
+          <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
           <div className="text-13 font-medium text-primary">Chats</div>
         </div>
         {onBack && (
