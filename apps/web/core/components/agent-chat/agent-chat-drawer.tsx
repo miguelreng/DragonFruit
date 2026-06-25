@@ -111,6 +111,7 @@ import { BookmarkService } from "@/services/bookmark.service";
 import { useActiveDocPageId } from "./active-doc-page";
 import {
   getAtlasMentionMatch,
+  getAtlasPromptHighlightParts,
   getAtlasReferenceTypeLabel,
   referenceIdentity,
   pageSearchResponseToMentionedReference,
@@ -1473,7 +1474,7 @@ function ChatThread(props: {
                       >
                         <span className="truncate text-12">{doc.title}</span>
                         <span className="truncate text-[10px] text-tertiary">
-                          {doc.subtitle ?? getAtlasReferenceTypeLabel(doc.type)}
+                          {getProjectById(doc.projectId)?.name ?? doc.subtitle ?? getAtlasReferenceTypeLabel(doc.type)}
                         </span>
                       </button>
                     ))}
@@ -1483,40 +1484,64 @@ function ChatThread(props: {
                 )}
               </div>
             )}
-            <textarea
-              ref={textareaRef}
-              value={draft}
-              onChange={(e) => {
-                const value = e.target.value;
-                setDraft(value);
-                setAiMode(inferAiMode(value));
-                syncDocMentionMatch(value, e.target.selectionStart);
-              }}
-              onKeyDown={(e) => {
-                if (!docMentionMatch) return;
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setDocMentionIndex((i) => (docMentionResults.length ? (i + 1) % docMentionResults.length : 0));
-                } else if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setDocMentionIndex((i) =>
-                    docMentionResults.length ? (i - 1 + docMentionResults.length) % docMentionResults.length : 0
-                  );
-                } else if ((e.key === "Enter" || e.key === "Tab") && selectedDocMention) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  selectDocMention(selectedDocMention);
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  setDocMentionMatch(null);
-                }
-              }}
-              onKeyUp={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
-              onClick={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
-              rows={1}
-              placeholder="Message Atlas…  type @ to add a doc or task"
-              className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
-            />
+            <div className="relative min-h-[24px] flex-1">
+              {/* Highlight overlay: renders the draft with @mentions in pink
+                  behind a transparent textarea (native textareas can't color a
+                  substring). Must mirror the textarea's font/wrap exactly. */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 max-h-40 overflow-hidden text-13 leading-[1.4] break-words whitespace-pre-wrap"
+              >
+                {getAtlasPromptHighlightParts(draft).map((part) =>
+                  part.isMention ? (
+                    <span key={part.key} className="text-[#e548a5]">
+                      {part.text}
+                    </span>
+                  ) : (
+                    <span key={part.key} className="text-primary">
+                      {part.text}
+                    </span>
+                  )
+                )}
+              </div>
+              <textarea
+                ref={textareaRef}
+                value={draft}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDraft(value);
+                  setAiMode(inferAiMode(value));
+                  syncDocMentionMatch(value, e.target.selectionStart);
+                }}
+                onKeyDown={(e) => {
+                  if (!docMentionMatch) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setDocMentionIndex((i) => (docMentionResults.length ? (i + 1) % docMentionResults.length : 0));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setDocMentionIndex((i) =>
+                      docMentionResults.length ? (i - 1 + docMentionResults.length) % docMentionResults.length : 0
+                    );
+                  } else if ((e.key === "Enter" || e.key === "Tab") && selectedDocMention) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectDocMention(selectedDocMention);
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setDocMentionMatch(null);
+                  }
+                }}
+                onKeyUp={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
+                onClick={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
+                rows={1}
+                placeholder="Message Atlas…  type @ to add a doc or task"
+                className={cn(
+                  "relative z-[1] max-h-40 min-h-[24px] w-full resize-none bg-transparent p-0 text-13 leading-[1.4] placeholder:text-placeholder focus:outline-none",
+                  draft ? "text-transparent caret-[#e548a5]" : "text-primary"
+                )}
+              />
+            </div>
             <button
               type="button"
               onClick={() => void handleSend()}

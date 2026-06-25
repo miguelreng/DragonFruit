@@ -164,9 +164,10 @@ export function issueSearchResponseToMentionedReference(issue: TIssueSearchRespo
 
   return {
     id: issue.id,
-    insertText: identifier ? `@${identifier}` : getAtlasMentionToken(title, "task"),
+    // Mention by task name (not the PROJ-123 code) so the inserted token reads
+    // as the task's name.
+    insertText: getAtlasMentionToken(title, "task"),
     projectId: issue.project_id || undefined,
-    subtitle: identifier ? `Task ${identifier}` : "Task",
     title,
     type: "task",
   };
