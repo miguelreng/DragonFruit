@@ -483,11 +483,11 @@ function ChatView(props: {
           <button
             type="button"
             onClick={() => void onStartSession()}
-            className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label="New chat"
+            title="New chat"
           >
-            <Plus className="size-3.5" />
-            New chat
+            <Plus className="size-4" />
           </button>
           <button
             type="button"
@@ -502,11 +502,11 @@ function ChatView(props: {
             <button
               type="button"
               onClick={openClearConfirm}
-              className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+              className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
               aria-label="Clear conversation"
+              title="Clear conversation"
             >
-              <Eraser className="size-3.5" />
-              Clear
+              <Eraser className="size-4" />
             </button>
           )}
           {dismissible && (
