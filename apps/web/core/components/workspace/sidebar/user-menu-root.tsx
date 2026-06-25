@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings2 } from "@/components/icons/lucide-shim";
+import { Download, LogOut, Settings2 } from "@/components/icons/lucide-shim";
 // plane imports
 import { GOD_MODE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -25,10 +25,11 @@ import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 type TUserMenuRootProps = {
   showLabel?: boolean;
   isInline?: boolean;
+  onDownloadApps?: () => void;
 };
 
 export const UserMenuRoot = observer(function UserMenuRoot(props: TUserMenuRootProps) {
-  const { showLabel = true, isInline = false } = props;
+  const { showLabel = true, isInline = false, onDownloadApps } = props;
   // states
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   // router
@@ -119,6 +120,15 @@ export const UserMenuRoot = observer(function UserMenuRoot(props: TUserMenuRootP
           {t("preferences")}
         </CustomMenu.MenuItem>
       </div>
+      {onDownloadApps && (
+        <CustomMenu.MenuItem
+          onClick={onDownloadApps}
+          className="flex h-8 items-center gap-2 rounded-lg text-13 font-medium"
+        >
+          <Download className="size-3.5 shrink-0" />
+          Download apps
+        </CustomMenu.MenuItem>
+      )}
       <CustomMenu.MenuItem
         onClick={handleSignOut}
         className="flex h-8 items-center gap-2 rounded-lg text-13 font-medium"

@@ -12,7 +12,7 @@ import { CustomMenu } from "@plane/ui";
 import type { TSearchEntityRequestPayload, TWebhookConnectionQueryParams } from "@plane/types";
 import { EFileAssetType } from "@plane/types";
 // components
-import { AgentDispatchListener } from "@/components/agent/agent-dispatch-listener";
+import { setActiveDocPageId } from "@/components/agent-chat/active-doc-page";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { EditorCapabilitiesGuide } from "@/components/editor/editor-capabilities-guide";
 import type { TPageRootConfig, TPageRootHandlers } from "@/components/pages/editor/page-root";
@@ -207,6 +207,13 @@ const BriefPageEditor = observer(function BriefPageEditor(props: TBriefPageEdito
     void page.updateViewProps({ public_slug: desired });
   }, [page, projectName]);
 
+  // Tell the docked Atlas sidebar which page backs the Brief so its in-editor
+  // co-writing targets it — the /brief route carries no :pageId of its own.
+  useEffect(() => {
+    setActiveDocPageId(pageId);
+    return () => setActiveDocPageId(null);
+  }, [pageId]);
+
   const handlers: TPageRootHandlers = useMemo(
     () => ({
       create: createPage,
@@ -289,10 +296,6 @@ const BriefPageEditor = observer(function BriefPageEditor(props: TBriefPageEdito
         headerLabel={briefDisplayName}
         editorPlaceholder="Write an overview of this project…"
       />
-      {/* The Atlas AI bar is mounted globally in the projects layout but keys off
-          the route's :pageId (absent on /brief). Mount a brief-scoped instance
-          with the resolved page id so the bar lights up here too. */}
-      <AgentDispatchListener pageId={pageId} />
     </div>
   );
 });

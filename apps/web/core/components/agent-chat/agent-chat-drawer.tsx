@@ -22,7 +22,8 @@ import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import useSWR from "swr";
+import Link from "next/link";
+import useSWR, { mutate as globalMutate } from "swr";
 
 // Register once. Aliases (`js`, `ts`, `py`) ride along via the language
 // definitions themselves. The `github-dark.css` theme is already loaded
@@ -57,23 +58,22 @@ import type { EditorRefApi } from "@plane/editor";
 import type { TProject } from "@plane/types";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore, Avatar, CustomMenu, Spinner } from "@plane/ui";
+import { AlertModalCore, Avatar, CustomMenu, Spinner, ToggleSwitch } from "@plane/ui";
 import { calculateTimeAgo, cn } from "@plane/utils";
 // components
 import {
   AlertCircle,
   CheckCircle,
-  ChevronDown,
+  Dialog,
   Eraser,
   FileText,
-  Folder,
-  History,
   Image as ImageIconBase,
   Paperclip,
   Plus,
-  Send,
   Sparkles,
+  LayoutGrid,
   Trash2,
+  UndoLeft,
   X,
 } from "@/components/icons/lucide-shim";
 // constants
@@ -89,6 +89,7 @@ import {
 // hooks
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";
+import { useWorkspace } from "@/hooks/store/use-workspace";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // services
 import { AgentChatService } from "@/services/agent-chat.service";
@@ -102,12 +103,32 @@ import type {
   TAtlasDocWriteMode,
 } from "@/services/agent-chat.service";
 import { AgentService } from "@/services/agent.service";
-import type { TAgent, TAgentInboxItem } from "@/services/agent.service";
+import type { TAgent, TAgentInboxItem, TMcpServerSummary } from "@/services/agent.service";
+import { INTEGRATIONS } from "@/constants/integrations";
+import { WorkspaceService } from "@/services/workspace.service";
+import { BookmarkService } from "@/services/bookmark.service";
 // local imports — `./reply-context` (not the barrel) avoids a self-import cycle
+import { useActiveDocPageId } from "./active-doc-page";
+import {
+  getAtlasMentionMatch,
+  getAtlasMentionToken,
+  getAtlasPromptHighlightParts,
+  getAtlasReferenceTypeLabel,
+  referenceIdentity,
+  bookmarkToMentionedReference,
+  type TAtlasMentionedReference,
+  type TAtlasMentionMatch,
+} from "./atlas-doc-mentions";
 import { consumePendingReplyContext, subscribePendingReplyContext, type PendingReplyContext } from "./reply-context";
 
 const chatService = new AgentChatService();
 const agentService = new AgentService();
+const workspaceService = new WorkspaceService();
+const bookmarkService = new BookmarkService();
+
+// A drag carrying files (vs. selected text or a dragged element). Guards the
+// composer's drop overlay so it only appears for real file drags.
+const isFileDrag = (e: React.DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
 
 type View = "chat" | "history";
 
@@ -126,11 +147,20 @@ type View = "chat" | "history";
  * / ChatGPT — past sessions are an *occasional* navigation, not an
  * always-visible sidebar that eats half the drawer width.
  */
-export const AgentChatDrawer = observer(function AgentChatDrawer() {
+export const AgentChatDrawer = observer(function AgentChatDrawer({
+  dismissible = true,
+}: {
+  // Whether the user can close the sidebar. Desktop docks it permanently
+  // (false); mobile renders a dismissible overlay (true).
+  dismissible?: boolean;
+}) {
   const { workspaceSlug: rawSlug, projectId: rawProjectId, pageId: rawPageId } = useParams();
   const workspaceSlug = rawSlug?.toString();
   const projectId = rawProjectId?.toString();
-  const pageId = rawPageId?.toString();
+  // Most doc routes carry :pageId; the Brief publishes its resolved page id via
+  // the active-doc-page bridge so co-writing works there too.
+  const overrideDocPageId = useActiveDocPageId();
+  const pageId = rawPageId?.toString() ?? overrideDocPageId ?? undefined;
   const { toggleAgentChat } = useAppTheme();
   const projectPages = usePageStore(EPageStoreType.PROJECT);
   const { joinedProjectIds, getProjectById } = useProject();
@@ -266,6 +296,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
           pageId={pageId}
           activePageEditorRef={activePageEditorRef}
           onClose={onClose}
+          dismissible={dismissible}
           onOpenHistory={() => setView("history")}
           onStartSession={handleStartSession}
           onClearSession={handleClearSession}
@@ -283,6 +314,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
           onStartSession={handleStartSession}
           onDeleteSession={handleDeleteSession}
           onClose={onClose}
+          dismissible={dismissible}
           onBack={activeId ? () => setView("chat") : undefined}
         />
       )}
@@ -299,34 +331,34 @@ export const AgentChatDrawer = observer(function AgentChatDrawer() {
 // the header so the current scope is always visible, one click to change.
 function AgentChatScopeBar(props: {
   projectId: string | undefined;
+  workspaceName: string;
   joinedProjectIds: string[];
   getProjectById: (projectId: string | undefined | null) => TProject | undefined;
   onChange: (projectId: string | undefined) => void;
 }) {
-  const { projectId, joinedProjectIds, getProjectById, onChange } = props;
+  const { projectId, workspaceName, joinedProjectIds, getProjectById, onChange } = props;
   const current = projectId ? getProjectById(projectId) : undefined;
-  const label = current?.name ?? "Whole workspace";
+  const label = current?.name ?? workspaceName;
   return (
-    <div className="flex flex-shrink-0 items-center gap-1.5 border-b border-subtle px-3 py-1.5">
-      <span className="text-11 text-tertiary">Talking about</span>
+    <div className="flex min-w-0 items-center">
       <CustomMenu
-        placement="bottom-start"
+        placement="top-start"
         closeOnSelect
         customButtonClassName="outline-none"
         customButton={
-          <span className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-11 font-medium text-secondary hover:bg-surface-2">
-            <Folder className="size-3 text-tertiary" />
-            <span className="max-w-[150px] truncate">{label}</span>
-            <ChevronDown className="size-3 text-tertiary" />
+          <span className="flex h-6 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1">
+            <span className="max-w-[120px] truncate">{label}</span>
           </span>
         }
       >
-        <CustomMenu.MenuItem onClick={() => onChange(undefined)}>Whole workspace</CustomMenu.MenuItem>
+        <CustomMenu.MenuItem className="text-13" onClick={() => onChange(undefined)}>
+          {workspaceName}
+        </CustomMenu.MenuItem>
         {joinedProjectIds.map((id) => {
           const project = getProjectById(id);
           if (!project) return null;
           return (
-            <CustomMenu.MenuItem key={id} onClick={() => onChange(id)}>
+            <CustomMenu.MenuItem key={id} className="text-13" onClick={() => onChange(id)}>
               <span className="block max-w-[200px] truncate">{project.name}</span>
             </CustomMenu.MenuItem>
           );
@@ -348,6 +380,7 @@ function ChatView(props: {
   sessions: TAgentChatSession[];
   activePageEditorRef: EditorRefApi | null;
   onClose: () => void;
+  dismissible: boolean;
   onOpenHistory: () => void;
   onStartSession: () => Promise<void>;
   onClearSession: () => Promise<void>;
@@ -364,6 +397,7 @@ function ChatView(props: {
     agent,
     activePageEditorRef,
     onClose,
+    dismissible,
     onOpenHistory,
     onStartSession,
     onClearSession,
@@ -441,33 +475,59 @@ function ChatView(props: {
     <>
       {/* Header — agent identity on the left, clear + history + close on
           the right. Sits at h-11 to match the page-level header strip. */}
-      <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Avatar size="md" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
-          <div className="flex min-w-0 flex-col">
-            <div className="truncate text-13 font-medium text-primary">Atlas</div>
-            <div className="truncate text-11 text-tertiary">{agent?.provider_model || "Workspace companion"}</div>
-          </div>
+      <header className="relative flex h-11 flex-shrink-0 items-center gap-2 px-3">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-full z-10 h-6 bg-gradient-to-b from-surface-1 to-transparent"
+        />
+        <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
+        <span className="text-13 font-medium text-primary">Atlas</span>
+        <span className="min-w-0 flex-1" />
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => void onStartSession()}
+            className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="New chat"
+            title="New chat"
+          >
+            <Plus className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onOpenHistory}
+            className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="Chats"
+          >
+            <Dialog className="size-3.5" />
+            Chats
+          </button>
+          {sessionId && (
+            <>
+              <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-subtle" />
+              <button
+                type="button"
+                onClick={openClearConfirm}
+                className="t-press grid size-7 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+                aria-label="Clear conversation"
+                title="Clear conversation"
+              >
+                <Eraser className="size-4" />
+              </button>
+            </>
+          )}
+          {dismissible && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+              aria-label="Close"
+            >
+              <X className="size-4" />
+            </button>
+          )}
         </div>
-        {sessionId && (
-          <IconButton
-            variant="tertiary"
-            size="sm"
-            icon={Eraser}
-            onClick={openClearConfirm}
-            aria-label="Clear conversation"
-          />
-        )}
-        <IconButton variant="tertiary" size="sm" icon={History} onClick={onOpenHistory} aria-label="Chat history" />
-        <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
       </header>
-
-      <AgentChatScopeBar
-        projectId={projectId}
-        joinedProjectIds={joinedProjectIds}
-        getProjectById={getProjectById}
-        onChange={onScopeChange}
-      />
 
       <AlertModalCore
         isOpen={confirmClearOpen}
@@ -504,6 +564,9 @@ function ChatView(props: {
           pageId={pageId}
           agent={agent}
           activePageEditorRef={activePageEditorRef}
+          joinedProjectIds={joinedProjectIds}
+          getProjectById={getProjectById}
+          onScopeChange={onScopeChange}
           onSentRefreshSessions={onSentRefreshSessions}
         />
       ) : (
@@ -644,7 +707,7 @@ function NewChatLanding(props: { onStartSession: () => Promise<void> }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
       <div className="grid size-12 place-items-center rounded-full bg-layer-1">
-        <Sparkles className="size-5 text-accent-primary" />
+        <img src="/atlas-dragon.svg" alt="Atlas" className="size-6" />
       </div>
       <div className="space-y-1">
         <div className="text-14 font-medium text-primary">Ask Atlas</div>
@@ -672,16 +735,21 @@ function HistoryView(props: {
   onStartSession: () => Promise<void>;
   onDeleteSession: (id: string) => Promise<void>;
   onClose: () => void;
+  dismissible: boolean;
   onBack: (() => void) | undefined;
 }) {
-  const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onBack } = props;
+  const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onBack, dismissible } = props;
+  // Most recent first.
+  const sortedSessions = [...sessions].sort(
+    (a, b) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime()
+  );
 
   return (
     <>
       <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
         <div className="flex flex-1 items-center gap-2">
-          <Sparkles className="size-4 text-accent-primary" />
-          <div className="text-13 font-medium text-primary">Atlas sessions</div>
+          <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
+          <div className="text-13 font-medium text-primary">Chats</div>
         </div>
         {onBack && (
           <button
@@ -692,7 +760,9 @@ function HistoryView(props: {
             Back
           </button>
         )}
-        <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
+        {dismissible && (
+          <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
+        )}
       </header>
 
       <div className="border-b border-subtle px-3 py-2">
@@ -702,13 +772,13 @@ function HistoryView(props: {
           className="t-press flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-accent-strong bg-[#e548a5] px-3 py-2 text-13 font-medium text-white hover:bg-[#d93d9a]"
         >
           <Plus className="size-3.5" />
-          New Atlas session
+          New chat
         </button>
       </div>
 
       <ul className="vertical-scrollbar scrollbar-sm flex-1 overflow-y-auto">
         {sessions.length === 0 && <li className="px-3 py-6 text-center text-12 text-tertiary">No past chats yet.</li>}
-        {sessions.map((s) => (
+        {sortedSessions.map((s) => (
           <li
             key={s.id}
             className={cn(
@@ -716,7 +786,6 @@ function HistoryView(props: {
               activeId === s.id ? "bg-layer-1" : "hover:bg-layer-1"
             )}
           >
-            <Avatar size="sm" name={s.agent_name || "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
             <button type="button" onClick={() => onPickSession(s.id)} className="min-w-0 flex-1 text-left">
               <div className="truncate text-13 text-primary">{s.title || "New chat"}</div>
               <div className="flex items-center gap-1 truncate text-11 text-tertiary">
@@ -744,6 +813,107 @@ function HistoryView(props: {
 // Active conversation                                                //
 // ---------------------------------------------------------------- //
 
+// Connectors-style menu: lists the agent's connected integrations with on/off
+// toggles (flips `enabled` and preserves the stored token), plus a link to
+// Settings → Integrations to connect new ones.
+function IntegrationsMenu({ workspaceSlug, agent }: { workspaceSlug: string; agent: TAgent | undefined }) {
+  const servers = agent?.mcp_servers ?? [];
+  const [busy, setBusy] = useState(false);
+  const labelFor = (name: string) => INTEGRATIONS.find((i) => i.key === name)?.name ?? name;
+
+  const toggle = async (target: TMcpServerSummary) => {
+    if (!agent || !workspaceSlug || busy) return;
+    setBusy(true);
+    try {
+      await agentService.update(workspaceSlug, agent.id, {
+        mcp_servers_set: servers.map((s) => ({
+          name: s.name,
+          url: s.url,
+          enabled: s.name === target.name ? !s.enabled : s.enabled,
+        })),
+      });
+      await globalMutate(`agents/${workspaceSlug}`);
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't update integration" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <CustomMenu
+      placement="top-start"
+      closeOnSelect={false}
+      customButtonClassName="outline-none"
+      customButton={
+        <span
+          className="t-press grid size-6 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+          aria-label="Integrations"
+          title="Integrations"
+        >
+          <LayoutGrid className="size-3.5" />
+        </span>
+      }
+    >
+      <div className="min-w-[224px] p-1">
+        <div className="px-2 py-1 text-11 font-medium text-tertiary">Integrations</div>
+        {servers.length === 0 ? (
+          <div className="px-2 py-2 text-12 text-tertiary">No integrations connected yet.</div>
+        ) : (
+          <div className="max-h-64 overflow-y-auto">
+            {servers.map((s) => (
+              <div
+                key={s.name}
+                className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-13 text-secondary"
+              >
+                <span className="truncate">{labelFor(s.name)}</span>
+                <ToggleSwitch value={s.enabled} onChange={() => void toggle(s)} size="sm" disabled={busy} />
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="my-1 border-t border-subtle" />
+        <Link
+          href={`/${workspaceSlug}/settings/integrations`}
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-13 text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+        >
+          <Plus className="size-3.5" />
+          Manage integrations
+        </Link>
+      </div>
+    </CustomMenu>
+  );
+}
+
+// Composer modes, shown as chips on doc surfaces. "Quick ask" is plain chat;
+// the others bias Atlas toward writing into the open document.
+type TAtlasAiMode = "quick-ask" | "create" | "plan" | "summarize";
+
+const AI_MODES: { id: TAtlasAiMode; label: string }[] = [
+  { id: "quick-ask", label: "Ask" },
+  { id: "create", label: "Create" },
+  { id: "plan", label: "Plan" },
+  { id: "summarize", label: "Summarize" },
+];
+
+// Best-effort intent detection so the mode pill follows what the user types:
+// "summarize…" → Summarize, "plan/outline…" → Plan, "write/create…" → Create,
+// and anything else → Ask. Always resolves to a mode so the pill tracks the
+// request both ways (a question after a "write…" draft flips back to Ask).
+function inferAiMode(text: string): TAtlasAiMode {
+  const t = text.toLowerCase();
+  if (/\b(summari[sz]e|summary|tl;?dr|recap|condense|resum\w*)\b/.test(t)) return "summarize";
+  if (/\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step|agenda|break\s+(?:this|it)?\s*down|organi[sz]e)\b/.test(t))
+    return "plan";
+  if (
+    /\b(write|draft|compose|re-?write|rewrite|edit|revise|expand|continue|create|generate|make|build|prepare|produce|put\s+together|crea\w*|escrib\w*|red[aá]ct\w*|genera\w*|haz\w*|prepar\w*)\b/.test(
+      t
+    )
+  )
+    return "create";
+  return "quick-ask";
+}
+
 function ChatThread(props: {
   workspaceSlug: string;
   sessionId: string;
@@ -751,9 +921,25 @@ function ChatThread(props: {
   pageId: string | undefined;
   agent: TAgent | undefined;
   activePageEditorRef: EditorRefApi | null;
+  joinedProjectIds: string[];
+  getProjectById: (projectId: string | undefined | null) => TProject | undefined;
+  onScopeChange: (projectId: string | undefined) => void;
   onSentRefreshSessions: () => void;
 }) {
-  const { workspaceSlug, sessionId, projectId, pageId, agent, activePageEditorRef, onSentRefreshSessions } = props;
+  const {
+    workspaceSlug,
+    sessionId,
+    projectId,
+    pageId,
+    agent,
+    activePageEditorRef,
+    joinedProjectIds,
+    getProjectById,
+    onScopeChange,
+    onSentRefreshSessions,
+  } = props;
+  const { getWorkspaceBySlug } = useWorkspace();
+  const workspaceName = getWorkspaceBySlug(workspaceSlug)?.name ?? "Whole workspace";
   const { data, mutate } = useSWR(
     `agent-chat/${workspaceSlug}/${sessionId}`,
     () => chatService.getSession(workspaceSlug, sessionId),
@@ -763,7 +949,14 @@ function ChatThread(props: {
 
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [factCheck, setFactCheck] = useState(false);
+  const [aiMode, setAiMode] = useState<TAtlasAiMode>("quick-ask");
+  // @-mention: search docs / issues / bookmarks and pin them as context.
+  const [docMentionMatch, setDocMentionMatch] = useState<TAtlasMentionMatch | null>(null);
+  const [docMentionResults, setDocMentionResults] = useState<TAtlasMentionedReference[]>([]);
+  const [docMentionIndex, setDocMentionIndex] = useState(0);
+  const [isSearchingDocs, setIsSearchingDocs] = useState(false);
+  const [docMentionError, setDocMentionError] = useState<string | null>(null);
+  const [mentionedDocs, setMentionedDocs] = useState<TAtlasMentionedReference[]>([]);
   // Passage the user highlighted in the doc and chose to "Ask Atlas" about.
   // Seeded from the shared bridge on mount (the drawer opens *after* the pick,
   // so a window listener here would miss it), then kept live via subscribe.
@@ -828,6 +1021,184 @@ function ChatThread(props: {
     setPendingFiles((cur) => cur.filter((entry) => entry.id !== id));
   }, []);
 
+  // Drag-and-drop file attach. dragDepth counts enter/leave across nested
+  // children so the overlay doesn't flicker as the cursor moves over them.
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const dragDepthRef = useRef(0);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingFiles(true);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    dragDepthRef.current -= 1;
+    if (dragDepthRef.current <= 0) {
+      dragDepthRef.current = 0;
+      setIsDraggingFiles(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      dragDepthRef.current = 0;
+      setIsDraggingFiles(false);
+      handleAttach(e.dataTransfer.files);
+    },
+    [handleAttach]
+  );
+
+  const searchMentionReferences = useCallback(
+    async (query: string): Promise<TAtlasMentionedReference[]> => {
+      if (!workspaceSlug) return [];
+      let hadError = false;
+      // Use the global workspace search (workspace_search: true) so @-mentions
+      // reach docs/tasks in ANY project — the entity-search endpoint only
+      // returns results when scoped to a single project_id. Bookmarks are
+      // project-scoped, so only fold them in when a project scope is active.
+      const [entity, bookmarkResponse] = await Promise.all([
+        workspaceService.searchWorkspace(workspaceSlug, { search: query, workspace_search: true }).catch(() => {
+          hadError = true;
+          return null;
+        }),
+        projectId
+          ? bookmarkService.listProjectBookmarks(workspaceSlug, projectId, { query }).catch(() => {
+              hadError = true;
+              return { results: [] } as Awaited<ReturnType<typeof bookmarkService.listProjectBookmarks>>;
+            })
+          : Promise.resolve({ results: [] } as Awaited<ReturnType<typeof bookmarkService.listProjectBookmarks>>),
+      ]);
+
+      const references: TAtlasMentionedReference[] = [];
+      for (const issue of entity?.results.issue ?? []) {
+        const identifier = [issue.project__identifier, issue.sequence_id].filter(Boolean).join("-");
+        const title = issue.name?.trim() || identifier || "Untitled task";
+        references.push({
+          id: issue.id,
+          insertText: getAtlasMentionToken(title, "task"),
+          projectId: issue.project_id || undefined,
+          title,
+          type: "task",
+        });
+      }
+      for (const page of entity?.results.page ?? []) {
+        const title = page.name?.trim() || "Untitled doc";
+        references.push({
+          id: page.id,
+          insertText: getAtlasMentionToken(title, "doc"),
+          projectId: page.project_ids?.[0],
+          title,
+          type: "doc",
+        });
+      }
+      for (const bookmark of (bookmarkResponse.results ?? []).slice(0, 8)) {
+        const ref = bookmarkToMentionedReference(bookmark);
+        if (ref) references.push(ref);
+      }
+
+      const unique = references.filter(
+        (r, i, list) => list.findIndex((e) => referenceIdentity(e) === referenceIdentity(r)) === i
+      );
+      if (hadError && unique.length === 0) throw new Error("Could not search references.");
+      return unique.slice(0, 12);
+    },
+    [projectId, workspaceSlug]
+  );
+
+  useEffect(() => {
+    if (!workspaceSlug || !docMentionMatch) {
+      setDocMentionResults([]);
+      setDocMentionError(null);
+      setIsSearchingDocs(false);
+      return;
+    }
+    let isActive = true;
+    setIsSearchingDocs(true);
+    setDocMentionError(null);
+    const handle = window.setTimeout(async () => {
+      const query = docMentionMatch.query.trim();
+      const fallback = query.replace(/[-_]+/g, " ").trim();
+      try {
+        let refs = await searchMentionReferences(query);
+        if (refs.length === 0 && fallback && fallback !== query) refs = await searchMentionReferences(fallback);
+        if (!isActive) return;
+        setDocMentionResults(refs);
+        setDocMentionIndex(0);
+      } catch {
+        if (!isActive) return;
+        setDocMentionResults([]);
+        setDocMentionError("Could not search references.");
+      } finally {
+        if (isActive) setIsSearchingDocs(false);
+      }
+    }, 180);
+    return () => {
+      isActive = false;
+      window.clearTimeout(handle);
+    };
+  }, [docMentionMatch, projectId, searchMentionReferences, workspaceSlug]);
+
+  // Drop pinned references whose token the user has since deleted.
+  useEffect(() => {
+    setMentionedDocs((current) => current.filter((doc) => draft.includes(doc.insertText)));
+  }, [draft]);
+
+  const syncDocMentionMatch = useCallback((value: string, cursorPosition: number | null | undefined) => {
+    const nextMatch = getAtlasMentionMatch(value, cursorPosition);
+    setDocMentionMatch((current) => {
+      if (!current && !nextMatch) return current;
+      if (
+        current &&
+        nextMatch &&
+        current.from === nextMatch.from &&
+        current.to === nextMatch.to &&
+        current.query === nextMatch.query
+      )
+        return current;
+      return nextMatch;
+    });
+  }, []);
+
+  const selectDocMention = useCallback(
+    (doc: TAtlasMentionedReference | undefined) => {
+      if (!docMentionMatch || !doc) return;
+      const insertText = `${doc.insertText} `;
+      const nextDraft = `${draft.slice(0, docMentionMatch.from)}${insertText}${draft
+        .slice(docMentionMatch.to)
+        .replace(/^\s+/, "")}`;
+      const nextCursor = docMentionMatch.from + insertText.length;
+      setDraft(nextDraft);
+      setMentionedDocs((current) =>
+        current.some((e) => referenceIdentity(e) === referenceIdentity(doc)) ? current : [...current, doc]
+      );
+      setDocMentionMatch(null);
+      setDocMentionResults([]);
+      setDocMentionError(null);
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.setSelectionRange(nextCursor, nextCursor);
+      });
+    },
+    [docMentionMatch, draft]
+  );
+
+  const selectedDocMention = docMentionResults[docMentionIndex] ?? docMentionResults[0];
+  const isDocMentionPickerOpen = Boolean(
+    docMentionMatch &&
+      (isSearchingDocs || docMentionResults.length > 0 || docMentionError || docMentionMatch.query.trim())
+  );
+
   const handleSend = useCallback(async () => {
     const trimmed = draft.trim();
     const hasFiles = pendingFiles.length > 0;
@@ -854,10 +1225,13 @@ function ChatThread(props: {
       return;
     }
 
+    // Rewrite / Plan / Summarize explicitly target the open document; Quick ask
+    // stays plain chat unless the text itself reads like an edit request.
+    const isWriteMode = aiMode === "create" || aiMode === "plan" || aiMode === "summarize";
     const shouldWriteIntoEditor = Boolean(
       activePageEditorRef &&
       !hasFiles &&
-      (isEditorWritingRequest(trimmed) || Boolean(replyContext && isSelectionEditRequest(trimmed)))
+      (isWriteMode || isEditorWritingRequest(trimmed) || Boolean(replyContext && isSelectionEditRequest(trimmed)))
     );
 
     if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
@@ -1002,18 +1376,27 @@ function ChatThread(props: {
     setDraft("");
     setPendingFiles([]);
     setReplyContext(null);
-    // A pinned passage that didn't read as an edit request rides along as
-    // private grounding so Atlas can resolve "this/that" against the exact
-    // text the user highlighted. The backend caps context_note at 4k chars.
-    const contextNote = reply
+    setMentionedDocs([]);
+    setDocMentionMatch(null);
+    // Private grounding context: a pinned passage (so Atlas can resolve
+    // "this/that") plus any @-mentioned docs/issues the user referenced. The
+    // backend caps context_note at 4k chars.
+    const mentionedRefs = mentionedDocs.filter((doc) => trimmed.includes(doc.insertText));
+    const mentionNote = mentionedRefs.length
+      ? `The user referenced:\n${mentionedRefs
+          .map((d) => `- ${d.title} (${getAtlasReferenceTypeLabel(d.type)})`)
+          .join("\n")}`
+      : "";
+    const replyNote = reply
       ? `The user highlighted this passage in the current document and is asking a follow-up about it:\n\n"""\n${reply.text}\n"""`
-      : undefined;
+      : "";
+    const contextNote = [replyNote, mentionNote].filter(Boolean).join("\n\n") || undefined;
     try {
       const response = await chatService.sendMessage(workspaceSlug, sessionId, trimmed, attachments, {
         project_id: projectId,
         tool_mode: shouldWriteIntoEditor ? "none" : "auto",
         context_note: contextNote,
-        fact_check: factCheck,
+        fact_check: true,
       });
       const generatedContent = response.assistant_message.content?.trim();
       if (shouldWriteIntoEditor && generatedContent && !response.assistant_message.error_message) {
@@ -1037,8 +1420,9 @@ function ChatThread(props: {
   }, [
     activePageEditorRef,
     agent?.name,
+    aiMode,
     draft,
-    factCheck,
+    mentionedDocs,
     pendingFiles,
     replyContext,
     sending,
@@ -1070,11 +1454,10 @@ function ChatThread(props: {
         {!isEmpty && (
           <ul className="flex flex-col gap-4">
             {messages.map((m) => (
-              <MessageRow key={m.id} message={m} agent={agent} />
+              <MessageRow key={m.id} message={m} />
             ))}
             {sending && (
               <li className="flex items-center gap-2">
-                <Avatar size="sm" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
                 <span className="flex items-center gap-1 text-12 text-tertiary">
                   <Spinner height="12px" width="12px" />
                   Thinking…
@@ -1092,7 +1475,11 @@ function ChatThread(props: {
           embedded — Cursor/ChatGPT shape. */}
       <div
         role="presentation"
-        className="flex-shrink-0 border-t border-subtle bg-surface-1 px-3 py-3"
+        className="relative flex-shrink-0 bg-surface-1 px-3 pt-2 pb-2.5"
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         onKeyDown={(e) => {
           if (
             e.key === "Enter" &&
@@ -1108,6 +1495,16 @@ function ChatThread(props: {
           }
         }}
       >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-surface-1 to-transparent"
+        />
+        {isDraggingFiles && (
+          <div className="pointer-events-none absolute inset-1 z-20 flex items-center justify-center gap-2 rounded-xl border border-dashed border-accent-primary bg-surface-1/90 text-13 font-medium text-accent-primary backdrop-blur-sm">
+            <Paperclip className="size-4" />
+            Drop files to attach
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -1125,7 +1522,7 @@ function ChatThread(props: {
         />
         <div
           className={cn(
-            "flex flex-col gap-2 rounded-2xl border-[0.5px] border-subtle bg-layer-1 px-3 py-2 transition-colors focus-within:border-strong"
+            "flex flex-col gap-1.5 rounded-xl border-[0.5px] border-subtle bg-surface-1 px-3 py-2 transition-colors focus-within:border-strong"
           )}
         >
           {replyContext && (
@@ -1155,64 +1552,146 @@ function ChatThread(props: {
               ))}
             </ul>
           )}
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={textareaRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              rows={1}
-              placeholder="Message Atlas…"
-              className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent text-13 leading-[1.4] text-primary placeholder:text-placeholder focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => setFactCheck((on) => !on)}
-              className={cn(
-                "t-press grid size-7 shrink-0 place-items-center rounded-full transition-colors",
-                factCheck ? "bg-accent-subtle text-accent-primary" : "text-tertiary hover:bg-layer-2 hover:text-primary"
-              )}
-              aria-label="Toggle fact-check mode"
-              aria-pressed={factCheck}
-              title={
-                factCheck
-                  ? "Fact-check mode ON — claims get Wikipedia citations"
-                  : "Fact-check mode — cite every claim from Wikipedia"
-              }
-            >
-              <CheckCircle className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="t-press grid size-7 shrink-0 place-items-center rounded-full text-tertiary hover:bg-layer-2 hover:text-primary"
-              aria-label="Attach file"
-              title="Attach image, CSV, or PDF"
-            >
-              <Paperclip className="size-3.5" />
-            </button>
+          <div className="relative flex items-center gap-2">
+            {isDocMentionPickerOpen && (
+              <div className="absolute bottom-full left-0 z-30 mb-2 max-h-64 w-full overflow-y-auto rounded-xl border border-subtle bg-surface-1 p-1.5 shadow-raised-200">
+                {isSearchingDocs ? (
+                  <div className="px-2 py-2 text-12 text-tertiary">Searching…</div>
+                ) : docMentionResults.length > 0 ? (
+                  <div className="space-y-0.5">
+                    {docMentionResults.map((doc, index) => (
+                      <button
+                        key={referenceIdentity(doc)}
+                        type="button"
+                        onMouseEnter={() => setDocMentionIndex(index)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectDocMention(doc)}
+                        className={cn(
+                          "flex w-full flex-col rounded-lg px-2 py-1.5 text-left transition-colors",
+                          index === docMentionIndex
+                            ? "bg-layer-1 text-primary"
+                            : "text-secondary hover:bg-layer-1 hover:text-primary"
+                        )}
+                      >
+                        <span className="truncate text-12">{doc.title}</span>
+                        <span className="truncate text-[10px] text-tertiary">
+                          {getProjectById(doc.projectId)?.name ?? doc.subtitle ?? getAtlasReferenceTypeLabel(doc.type)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-2 py-2 text-12 text-tertiary">{docMentionError ?? "No results"}</div>
+                )}
+              </div>
+            )}
+            <div className="relative flex-1">
+              {/* Highlight overlay: renders the draft with @mentions in pink
+                  behind a transparent textarea (native textareas can't color a
+                  substring). Must mirror the textarea's font/wrap exactly. */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 max-h-40 overflow-hidden text-13 leading-snug break-words whitespace-pre-wrap"
+              >
+                {getAtlasPromptHighlightParts(draft).map((part) =>
+                  part.isMention ? (
+                    <span key={part.key} className="text-[#e548a5]">
+                      {part.text}
+                    </span>
+                  ) : (
+                    <span key={part.key} className="text-primary">
+                      {part.text}
+                    </span>
+                  )
+                )}
+              </div>
+              <textarea
+                ref={textareaRef}
+                value={draft}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDraft(value);
+                  setAiMode(inferAiMode(value));
+                  syncDocMentionMatch(value, e.target.selectionStart);
+                }}
+                onKeyDown={(e) => {
+                  if (!docMentionMatch) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setDocMentionIndex((i) => (docMentionResults.length ? (i + 1) % docMentionResults.length : 0));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setDocMentionIndex((i) =>
+                      docMentionResults.length ? (i - 1 + docMentionResults.length) % docMentionResults.length : 0
+                    );
+                  } else if ((e.key === "Enter" || e.key === "Tab") && selectedDocMention) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectDocMention(selectedDocMention);
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setDocMentionMatch(null);
+                  }
+                }}
+                onKeyUp={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
+                onClick={(e) => syncDocMentionMatch(e.currentTarget.value, e.currentTarget.selectionStart)}
+                rows={1}
+                placeholder="Message Atlas…  type @ to add a doc or task"
+                className={cn(
+                  "relative z-[1] block max-h-40 w-full resize-none bg-transparent p-0 text-13 leading-snug placeholder:text-placeholder focus:outline-none",
+                  draft ? "text-transparent caret-[#e548a5]" : "text-primary"
+                )}
+              />
+            </div>
             <button
               type="button"
               onClick={() => void handleSend()}
               disabled={sending || (draft.trim().length === 0 && pendingFiles.length === 0)}
-              className={cn(
-                "t-press grid size-7 shrink-0 place-items-center rounded-full",
-                (draft.trim().length === 0 && pendingFiles.length === 0) || sending
-                  ? "bg-layer-2 text-tertiary"
-                  : "bg-[#e548a5] text-white hover:bg-[#d93d9a]"
-              )}
+              className="t-press flex shrink-0 items-center text-secondary transition-colors hover:text-primary disabled:opacity-40"
               aria-label="Send message"
             >
               {sending ? (
-                <Spinner height="14px" width="14px" className="fill-white text-white/35" />
+                <Spinner height="14px" width="14px" className="fill-current text-current/30" />
               ) : (
-                <Send className="size-3.5" />
+                <UndoLeft className="size-4 rotate-180" />
               )}
             </button>
           </div>
         </div>
-        <div className="mt-1.5 px-1 text-11 text-tertiary">
-          <span className="font-medium">Enter</span> to send · <span className="font-medium">Shift+Enter</span> for
-          newline · attach images, CSV, PDF
+        <div className="mt-0.5 flex items-center gap-1 px-1">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="t-press grid size-6 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="Attach file"
+            title="Attach image, CSV, or PDF"
+          >
+            <Paperclip className="size-3.5" />
+          </button>
+          <IntegrationsMenu workspaceSlug={workspaceSlug} agent={agent} />
+          <CustomMenu
+            placement="top-start"
+            closeOnSelect
+            customButtonClassName="outline-none"
+            customButton={
+              <span className="flex h-6 items-center rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1">
+                {AI_MODES.find((m) => m.id === aiMode)?.label ?? "Ask"}
+              </span>
+            }
+          >
+            {AI_MODES.map((m) => (
+              <CustomMenu.MenuItem key={m.id} className="text-13" onClick={() => setAiMode(m.id)}>
+                {m.label}
+              </CustomMenu.MenuItem>
+            ))}
+          </CustomMenu>
+          <AgentChatScopeBar
+            projectId={projectId}
+            workspaceName={workspaceName}
+            joinedProjectIds={joinedProjectIds}
+            getProjectById={getProjectById}
+            onChange={onScopeChange}
+          />
         </div>
       </div>
     </>
@@ -1346,10 +1825,8 @@ function PendingAttachmentChip({ file, onRemove }: { file: File; onRemove: () =>
 
 const MessageRow = memo(function MessageRow({
   message,
-  agent,
 }: {
   message: TAgentChatMessage;
-  agent: TAgent | undefined;
 }) {
   const isUser = message.role === "user";
 
@@ -1373,7 +1850,7 @@ const MessageRow = memo(function MessageRow({
             </ul>
           )}
           {visibleContent && (
-            <div className="rounded-2xl rounded-br-md bg-layer-2 px-3.5 py-2 text-13 whitespace-pre-wrap text-primary">
+            <div className="rounded-2xl rounded-br-md bg-layer-1 px-3.5 py-2 text-13 whitespace-pre-wrap text-primary">
               {visibleContent}
             </div>
           )}
@@ -1383,8 +1860,7 @@ const MessageRow = memo(function MessageRow({
   }
 
   return (
-    <li className="flex gap-2">
-      <Avatar size="sm" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="mt-0.5 shrink-0" />
+    <li className="flex">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {message.error_message ? (
           <div className="text-error max-w-full text-13">{message.error_message}</div>
@@ -1397,9 +1873,6 @@ const MessageRow = memo(function MessageRow({
           <AssistantMarkdown source={message.content} />
         ) : (
           <div className="text-13 text-tertiary italic">(empty reply)</div>
-        )}
-        {message.total_tokens > 0 && (
-          <div className="text-11 text-tertiary">{message.total_tokens.toLocaleString()} tokens</div>
         )}
       </div>
     </li>

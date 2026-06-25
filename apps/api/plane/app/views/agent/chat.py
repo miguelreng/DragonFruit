@@ -89,6 +89,10 @@ _MAX_ATTACHMENTS = 6
 # `DATA_UPLOAD_MAX_MEMORY_SIZE` is 5MB (env: FILE_SIZE_LIMIT). A 2.5MB
 # raw image → ~3.4MB base64, leaving headroom for the rest of the body.
 _MAX_IMAGE_BYTES = 2_500_000
+# PDFs are forwarded to the model as a base64 document block (Claude/Gemini
+# read them natively). Same raw cap as images: 2.5MB → ~3.4MB base64, which
+# stays under Django's body limit alongside the rest of the payload.
+_MAX_PDF_BYTES = 2_500_000
 _MAX_TEXT_EXCERPT_CHARS = 50_000       # cap CSV / plaintext at ~50KB
 _IMAGE_MIME_PREFIXES = ("image/png", "image/jpeg", "image/gif", "image/webp")
 _TEXT_MIME_TYPES = {"text/csv", "text/plain", "application/csv"}
@@ -217,7 +221,8 @@ def _normalise_attachments(raw_attachments) -> list:
       - `data_url` for images (so the UI re-renders thumbnails without
         a separate fetch) — gated on the size cap
       - `text_excerpt` for CSV / plaintext, decoded + truncated
-      - PDFs land with just metadata (no extraction in v1)
+      - `data_url` for PDFs (forwarded to the model as a document block) —
+        gated on the size cap
     """
     if not isinstance(raw_attachments, list):
         return []
@@ -256,7 +261,15 @@ def _normalise_attachments(raw_attachments) -> list:
             record["text_excerpt"] = text[:_MAX_TEXT_EXCERPT_CHARS]
             if len(text) > _MAX_TEXT_EXCERPT_CHARS:
                 record["text_truncated"] = True
-        # PDFs and "other" land as metadata-only.
+        elif kind == "pdf":
+            if size > _MAX_PDF_BYTES:
+                # Too large to round-trip through the model; keep the
+                # metadata so the bubble renders, but drop the bytes.
+                record["data_url"] = ""
+                record["dropped"] = True
+            else:
+                record["data_url"] = f"data:application/pdf;base64,{b64}"
+        # "other" lands as metadata-only.
 
         out.append(record)
     return out
@@ -288,14 +301,23 @@ def _build_user_prompt(text: str, attachments: list):
                     "text": f"\n\n[Attached {att.get('mime_type', 'text/plain')}: {name}]\n{att['text_excerpt']}{note}",
                 }
             )
+        elif kind == "pdf" and att.get("data_url"):
+            # OpenAI-style `file` block; LiteLLM converts the base64 data URL
+            # into the provider's native document block (Anthropic/Gemini).
+            blocks.append({"type": "text", "text": f"\n\n[Attached PDF: {name}]"})
+            blocks.append(
+                {
+                    "type": "file",
+                    "file": {"file_data": att["data_url"], "filename": name},
+                }
+            )
         elif kind == "pdf":
             blocks.append(
                 {
                     "type": "text",
                     "text": (
                         f"\n\n[Attached PDF: {name}, {att.get('size', 0)} bytes — "
-                        "the server does not extract PDF text yet, ask the user "
-                        "to paste the relevant section]"
+                        "too large to read; ask the user to paste the relevant section]"
                     ),
                 }
             )

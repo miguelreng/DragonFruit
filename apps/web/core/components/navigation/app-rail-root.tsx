@@ -23,13 +23,11 @@ import {
   InfoCircle,
   Layers,
   LinkSquare,
-  MagicStick,
   MenuDots,
   Magnifier,
   Settings,
   Sidebar,
   Star,
-  Widget,
 } from "@solar-icons/react/ssr";
 import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@/components/icons/propel-shim";
 import { Logo } from "@plane/propel/emoji-icon-picker";
@@ -43,7 +41,6 @@ import { NotificationsBell } from "@/plane-web/components/navigations/notificati
 import { AppSidebarItem, AppSidebarTooltip } from "@/components/sidebar/sidebar-item";
 import { UserMenuRoot } from "@/components/workspace/sidebar/user-menu-root";
 import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";
-import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { usePowerK } from "@/hooks/store/use-power-k";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
@@ -963,7 +960,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const router = useRouter();
   // preferences
   const { preferences, updateDisplayMode } = useAppRailPreferences();
-  const { agentChatOpen, toggleAgentChat } = useAppTheme();
   const { togglePowerKModal } = usePowerK();
   const { toggleCreateIssueModal, toggleCreateProjectModal } = useCommandPalette();
   const { allowPermissions } = useUserPermissions();
@@ -1324,43 +1320,12 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               showLabel: showRailLabels,
             }}
           />
-          <AppSidebarItem
-            variant="button"
-            item={{
-              label: "Ask Atlas",
-              icon: <MagicStick weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
-              activeIcon: <MagicStick weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
-              isActive: agentChatOpen,
-              onClick: () => toggleAgentChat(),
-              isInline: isRailExpanded,
-              showLabel: showRailLabels,
-            }}
-          />
-          <AppSidebarItem
-            variant="button"
-            item={{
-              label: "Download Apps",
-              icon: <Download weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
-              activeIcon: <Download weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
-              onClick: () => setIsDownloadAppsModalOpen(true),
-              isInline: isRailExpanded,
-              showLabel: showRailLabels,
-            }}
-          />
-          <AppSidebarItem
-            variant="link"
-            item={{
-              label: "Integrations",
-              href: `/${slug}/settings/integrations`,
-              icon: <Widget weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
-              activeIcon: <Widget weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
-              isActive: pathname.startsWith(`/${slug}/settings/integrations`),
-              isInline: isRailExpanded,
-              showLabel: showRailLabels,
-            }}
-          />
           <NotificationsBell showLabel={showRailLabels} isInline={isRailExpanded} />
-          <UserMenuRoot showLabel={showRailLabels} isInline={isRailExpanded} />
+          <UserMenuRoot
+            showLabel={showRailLabels}
+            isInline={isRailExpanded}
+            onDownloadApps={() => setIsDownloadAppsModalOpen(true)}
+          />
         </div>
       </div>
       <DownloadAppsModal isOpen={isDownloadAppsModalOpen} onClose={() => setIsDownloadAppsModalOpen(false)} />

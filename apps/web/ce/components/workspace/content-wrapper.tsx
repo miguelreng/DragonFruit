@@ -4,10 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect } from "react";
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
-import { Sparkles } from "@/components/icons/lucide-shim";
 import {
   AgentChatDrawer,
   REPLY_TO_SELECTION_EVENT,
@@ -19,8 +18,6 @@ import { isTypingInInput } from "@/components/power-k/core/shortcut-handler";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useSize from "@/hooks/use-window-size";
 import { useAppRailVisibility } from "@/lib/app-rail";
-import { IconButton } from "@plane/propel/icon-button";
-import { Tooltip } from "@plane/propel/tooltip";
 
 // Matches Tailwind's `md` breakpoint — below this the rail becomes a drawer.
 const MOBILE_BREAKPOINT = 768;
@@ -42,16 +39,13 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   const pathname = usePathname();
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
 
-  const openAgentChat = useCallback(() => {
-    toggleAgentChat(true);
-  }, [toggleAgentChat]);
-
   // Close the drawer whenever the route changes so navigating away dismisses it.
   useEffect(() => {
     if (isMobileDrawerOpen) closeMobileDrawer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  // Cmd/Ctrl+Shift+A toggles the docked Atlas sidebar.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (typeof event.key !== "string" || isTypingInInput(event.target)) return;
@@ -60,7 +54,9 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
       if (!isAskAtlasShortcut) return;
 
       event.preventDefault();
-      openAgentChat();
+      // Open-only: Atlas is a permanent docked sidebar and is never closed via
+      // the shortcut (on mobile it opens the overlay).
+      toggleAgentChat(true);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -68,25 +64,26 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [openAgentChat]);
+  }, [toggleAgentChat]);
 
-  // "Reply to selection": the editor bubble menu dispatches a snippet. On doc
-  // pages the floating AI bar picks it up itself (it pins the passage as its
-  // context), so opening the Atlas drawer here is only the fallback for
-  // surfaces without an AI bar (e.g. task descriptions). Lives here (always
-  // mounted) because the drawer mounts only once open and would otherwise
-  // miss the event that opens it.
+  // Editor → Atlas bridges. The page editor lives in `packages/editor` and
+  // can't reach the host stores, so it dispatches window events: "reply to
+  // selection" (bubble menu) pins the highlighted passage as context, and the
+  // `/agent` slash command just opens Atlas. Both live here (always mounted)
+  // because the drawer mounts lazily and would miss the event that opens it.
   useEffect(() => {
     const onReplyToSelection = (event: Event) => {
       const detail = (event as CustomEvent<ReplyToSelectionDetail>).detail;
       if (!detail?.text) return;
-      if (document.querySelector("[data-atlas-ai-bar]")) return;
       setPendingReplyContext({ text: detail.text, from: detail.from, to: detail.to });
       toggleAgentChat(true);
     };
+    const onAgentInvoke = () => toggleAgentChat(true);
     window.addEventListener(REPLY_TO_SELECTION_EVENT, onReplyToSelection);
+    window.addEventListener("dragonfruit:agent-invoke", onAgentInvoke);
     return () => {
       window.removeEventListener(REPLY_TO_SELECTION_EVENT, onReplyToSelection);
+      window.removeEventListener("dragonfruit:agent-invoke", onAgentInvoke);
     };
   }, [toggleAgentChat]);
 
@@ -107,31 +104,14 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
           </div>
           {agentChatOpen && (
             <div
-              className="shadow-sm t-panel-slide is-open min-[1920px]:shadow-sm absolute top-0 right-0 z-30 h-full w-[min(560px,calc(100%-24px))] overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300 transition-all duration-300 ease-in-out min-[1920px]:relative min-[1920px]:z-auto min-[1920px]:w-[420px] min-[1920px]:flex-shrink-0"
+              className="shadow-sm t-panel-slide is-open absolute top-0 right-0 z-30 h-full w-[min(560px,calc(100%-24px))] overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300 transition-all duration-300 ease-in-out md:relative md:z-auto md:w-[350px] md:flex-shrink-0 md:shadow-sm"
               data-open="true"
               // Stable hook for focus (zen) mode: globals.css lifts the open
               // drawer above the zen canvas, and the editor's Esc handler
               // skips exiting while focus is inside it.
               data-atlas-drawer="true"
             >
-              <AgentChatDrawer />
-            </div>
-          )}
-          {!agentChatOpen && (
-            <div className="absolute right-4 bottom-4 z-20">
-              <Tooltip tooltipContent="Ask Atlas (Cmd+Shift+A)" position="left">
-                <IconButton
-                  type="button"
-                  variant="secondary"
-                  size="xl"
-                  icon={Sparkles}
-                  aria-label="Ask Atlas"
-                  aria-keyshortcuts="Meta+Shift+A Control+Shift+A"
-                  onClick={openAgentChat}
-                  className="size-10 rounded-lg border-strong bg-layer-2 text-accent-primary shadow-raised-300 hover:bg-layer-2-hover hover:text-accent-secondary"
-                  iconClassName="size-4"
-                />
-              </Tooltip>
+              <AgentChatDrawer dismissible={isMobile} />
             </div>
           )}
         </div>

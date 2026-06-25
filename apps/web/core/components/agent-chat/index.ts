@@ -4,5 +4,6 @@
  * See the LICENSE file for details.
  */
 
+export * from "./active-doc-page";
 export * from "./agent-chat-drawer";
 export * from "./reply-context";

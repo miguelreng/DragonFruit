@@ -249,8 +249,9 @@
   /* In light mode the tint background is light, so the pending text must be
      dark to stay readable (near-white only works on the dark-mode tint). */
   --atlas-review-pending-text: var(--atlas-review-text);
-  /* Pending proposal wash — barely-there so the words read like applied text. */
-  --atlas-review-pending-bg: color-mix(in oklch, var(--brand-300, #e548a5) 6%, transparent);
+  /* Pending proposal wash — a light tint so the proposed words read clearly as
+     "awaiting review" on a white page without overpowering the text. */
+  --atlas-review-pending-bg: color-mix(in oklch, var(--brand-400, #e548a5) 14%, transparent);
   --atlas-review-border: color-mix(in oklch, var(--border-accent-subtle, #e548a5) 52%, transparent);
   --atlas-review-button-bg: color-mix(in oklch, var(--bg-surface-1, #fff) 88%, transparent);
   --atlas-review-button-bg-hover: color-mix(in oklch, var(--bg-surface-1, #fff) 82%, var(--brand-200, #e548a5) 18%);
