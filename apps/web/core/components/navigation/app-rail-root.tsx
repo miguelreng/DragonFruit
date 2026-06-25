@@ -28,7 +28,6 @@ import {
   Settings,
   Sidebar,
   Star,
-  Widget,
 } from "@solar-icons/react/ssr";
 import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@/components/icons/propel-shim";
 import { Logo } from "@plane/propel/emoji-icon-picker";
@@ -1317,18 +1316,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               icon: <Magnifier weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
               activeIcon: <Magnifier weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
               onClick: () => togglePowerKModal(true),
-              isInline: isRailExpanded,
-              showLabel: showRailLabels,
-            }}
-          />
-          <AppSidebarItem
-            variant="link"
-            item={{
-              label: "Integrations",
-              href: `/${slug}/settings/integrations`,
-              icon: <Widget weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
-              activeIcon: <Widget weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />,
-              isActive: pathname.startsWith(`/${slug}/settings/integrations`),
               isInline: isRailExpanded,
               showLabel: showRailLabels,
             }}
