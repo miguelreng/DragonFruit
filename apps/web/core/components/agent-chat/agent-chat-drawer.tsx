@@ -479,7 +479,7 @@ function ChatView(props: {
         <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
         <span className="text-13 font-medium text-primary">Atlas</span>
         <span className="min-w-0 flex-1" />
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             type="button"
             onClick={() => void onStartSession()}
