@@ -9,7 +9,7 @@ import Link from "next/link";
 import { observer } from "mobx-react";
 import { useParams, useSearchParams } from "next/navigation";
 import { TOAST_TYPE, dismissToast, setToast } from "@plane/propel/toast";
-import { YourWorkIcon } from "@/components/icons/propel-shim";
+import { getSidebarNavigationItemIcon } from "@/plane-web/components/workspace/sidebar/helper";
 import type { TBaseIssue, TIssuePriorities, TIssuesResponse } from "@plane/types";
 import { cn, createIssuePayload, getDate, renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
 import { Check, Loader, Plus } from "@/components/icons/lucide-shim";
@@ -450,7 +450,7 @@ export const MyTasksSection = observer(function MyTasksSection({
       {!hideHeader && (
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
-            <YourWorkIcon className="size-4 text-tertiary" />
+            {getSidebarNavigationItemIcon("your_work", "text-tertiary")}
             <div className="flex items-center gap-1">
               <h3 className="text-14 font-semibold text-secondary">My tasks</h3>
               {tasks.length > 0 && (
@@ -497,7 +497,7 @@ export const MyTasksSection = observer(function MyTasksSection({
                     <li key={issue.id}>
                       <div
                         className={cn(
-                          "group flex items-start gap-3 px-3 py-2.5 transition-opacity hover:bg-layer-transparent-hover",
+                          "group flex items-start gap-2.5 px-3 py-1.5 transition-opacity hover:bg-layer-transparent-hover",
                           isChecked && "opacity-60"
                         )}
                       >
@@ -556,7 +556,7 @@ export const MyTasksSection = observer(function MyTasksSection({
               </ul>
             )}
             {canAdd && (
-              <div className={cn("px-3 py-2.5", tasks.length > 0 && "border-t border-subtle")}>
+              <div className={cn("px-3 py-2", tasks.length > 0 && "border-t border-subtle")}>
                 <div className="flex items-center gap-3">
                   <span className="flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-strong text-tertiary">
                     <Plus className="size-3" />

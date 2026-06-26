@@ -360,11 +360,10 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isFocusMode, handleExitFocusMode, editorRef, pageId]);
 
-  // Typewriter scrolling + block dimming. The caret is tracked from the web
-  // side (`selectionchange` + the rendered ProseMirror DOM) so the editor
-  // package stays untouched: top-level blocks the selection touches get
-  // `zen-active-block` (everything else dims via CSS) and the scroll
-  // container keeps the caret line pinned near the vertical center.
+  // Typewriter scrolling. The caret is tracked from the web side
+  // (`selectionchange` + the rendered ProseMirror DOM) so the editor package
+  // stays untouched: the scroll container keeps the caret line pinned near the
+  // vertical center. No block dimming — every block stays at full strength.
   useEffect(() => {
     if (!isFocusMode || !pageId) return;
     const scrollEl = zenScrollEl;
@@ -373,11 +372,6 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     // `editor-container-${pageId}-title` wrapper, so scope to the doc's.
     const getEditorRoot = () =>
       document.getElementById(`editor-container-${pageId}`)?.querySelector<HTMLElement>(".ProseMirror") ?? null;
-    const clearDimming = (root: HTMLElement | null) => {
-      if (!root) return;
-      root.classList.remove("zen-dimming");
-      root.querySelectorAll(".zen-active-block").forEach((el) => el.classList.remove("zen-active-block"));
-    };
     let rafId: number | null = null;
     const update = () => {
       rafId = null;
@@ -385,19 +379,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
       if (!root) return;
       const selection = document.getSelection();
       const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-      if (!selection || !range || !root.contains(range.startContainer)) {
-        // Caret left the doc body (title, exit button, …) — undim everything.
-        clearDimming(root);
-        return;
-      }
-      // Dim every top-level block the selection doesn't touch.
-      let hasActiveBlock = false;
-      for (const block of Array.from(root.children)) {
-        const isActive = range.intersectsNode(block);
-        block.classList.toggle("zen-active-block", isActive);
-        if (isActive) hasActiveBlock = true;
-      }
-      root.classList.toggle("zen-dimming", hasActiveBlock);
+      if (!selection || !range || !root.contains(range.startContainer)) return;
       // Typewriter: only recenter a collapsed caret — chasing the focus end
       // of a mouse drag would fight the selection.
       if (!selection.isCollapsed) return;
@@ -421,9 +403,9 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
       rafId = requestAnimationFrame(update);
     };
     document.addEventListener("selectionchange", requestUpdate);
-    // Re-apply on editor transactions too — a ProseMirror redraw can recreate
-    // the active block element (dropping `zen-active-block`) without any
-    // selectionchange firing until the caret next moves.
+    // Recenter on editor transactions too — typing pushes content down, so the
+    // caret line should track back toward center without waiting for the next
+    // selectionchange.
     const unsubscribeFromEditor = editorRef?.onStateChange(requestUpdate);
     // Center the caret once on entering focus mode.
     requestUpdate();
@@ -431,7 +413,6 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
       document.removeEventListener("selectionchange", requestUpdate);
       unsubscribeFromEditor?.();
       if (rafId !== null) cancelAnimationFrame(rafId);
-      clearDimming(getEditorRoot());
     };
   }, [isFocusMode, pageId, zenScrollEl, editorRef]);
 

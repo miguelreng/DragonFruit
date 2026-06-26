@@ -715,23 +715,9 @@ a.public-doc-mention:hover {
   }
 }
 
+
 .page-focus-mode .page-summary-container {
   display: none !important;
-}
-
-/* Typewriter dimming: only the block(s) under the caret render at full
-   strength. `zen-dimming` + `zen-active-block` are applied from the web
-   side (selectionchange handler in editor-body.tsx). */
-.page-focus-mode .ProseMirror > * {
-  transition: opacity 0.3s ease;
-}
-
-.page-focus-mode .ProseMirror.zen-dimming > * {
-  opacity: 0.3;
-}
-
-.page-focus-mode .ProseMirror.zen-dimming > .zen-active-block {
-  opacity: 1;
 }
 
 .page-drop-cap .ProseMirror > p:first-of-type::first-letter {

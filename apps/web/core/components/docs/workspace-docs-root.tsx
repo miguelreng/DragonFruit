@@ -35,6 +35,7 @@ import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { EUserPermissions } from "@plane/constants";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import useLocalStorage from "@/hooks/use-local-storage";
+import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { normalizeTags } from "@/helpers/tags";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
@@ -104,7 +105,6 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   pageType = "doc",
   pageTypes,
   headerLabel,
-  headerIcon,
   labels,
 }: Props) {
   const { getProjectById, joinedProjectIds } = useProject();
@@ -139,6 +139,10 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     "grid"
   );
   const viewMode: ViewMode = storedViewMode ?? "grid";
+  // The open rail eats horizontal space, so drop the gallery from 4 to 3
+  // columns at xl while it's expanded.
+  const { preferences: railPreferences } = useAppRailPreferences();
+  const isRailExpanded = railPreferences.displayMode === "icon_with_label";
 
   const {
     data: pages,
@@ -278,7 +282,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     <Header>
       <Header.LeftItem>
         <Breadcrumbs className="flex-grow-0">
-          <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} icon={headerIcon} />} />
+          <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} />} />
         </Breadcrumbs>
         <span className="text-13 text-tertiary">{visiblePages.length}</span>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -383,7 +387,12 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           />
         ) : viewMode === "grid" ? (
           <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div
+              className={cn(
+                "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3",
+                isRailExpanded ? "xl:grid-cols-3" : "xl:grid-cols-4"
+              )}
+            >
               {filteredPages.map((page) => (
                 <DocCard
                   key={page.id}
