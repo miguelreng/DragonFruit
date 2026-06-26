@@ -93,7 +93,7 @@ const RAIL_INLINE_ICON_CLASS = "size-4 flex-shrink-0 text-current";
 const COMPRESSED_ICON_CLASS =
   "relative grid size-8 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
 const EXPANDED_ICON_CLASS =
-  "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none t-press dark:text-white/70";
+  "group relative flex w-full max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none t-press dark:text-white/70";
 const EXPANDED_ICON_ACTIVE = "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]";
 const EXPANDED_ICON_INACTIVE =
   "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]";
@@ -1151,25 +1151,27 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               "flex flex-col items-center gap-0.5": !isRailExpanded,
             })}
           >
-            {!isMobile && (
-              <AppSidebarTooltip tooltipContent={isRailExpanded ? "Collapse rail" : "Expand rail"}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateDisplayMode(isRailExpanded ? "icon_only" : "icon_with_label");
-                  }}
-                  className="grid size-8 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-5 [&_svg]:text-current"
-                  aria-label={isRailExpanded ? "Collapse app rail" : "Expand app rail"}
-                >
-                  {isRailExpanded ? (
-                    <Sidebar className="size-5" weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
-                  ) : (
-                    <Sidebar className="size-5" weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
-                  )}
-                </button>
-              </AppSidebarTooltip>
-            )}
-            <WorkspaceMenuRoot variant="sidebar" showLabel={isRailExpanded} />
+            {/* Workspace switcher with the collapse toggle docked to its right.
+                When the rail is collapsed the toggle relocates to the page
+                header (see ExtendedAppHeader), so only render it here while
+                expanded. */}
+            <div
+              className={cn("flex w-full items-center gap-1", isRailExpanded ? "justify-between" : "justify-center")}
+            >
+              <WorkspaceMenuRoot variant="sidebar" showLabel={isRailExpanded} />
+              {!isMobile && isRailExpanded && (
+                <AppSidebarTooltip tooltipContent="Collapse rail">
+                  <button
+                    type="button"
+                    onClick={() => updateDisplayMode("icon_only")}
+                    className="grid size-8 shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-4 [&_svg]:text-current"
+                    aria-label="Collapse app rail"
+                  >
+                    <Sidebar className="size-4" weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
+                  </button>
+                </AppSidebarTooltip>
+              )}
+            </div>
             <AppSidebarItem
               variant="button"
               item={{

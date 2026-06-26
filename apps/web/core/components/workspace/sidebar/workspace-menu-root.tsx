@@ -80,10 +80,10 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
   return (
     <Menu
       as="div"
-      className={cn("relative flex w-fit max-w-48 truncate whitespace-nowrap", {
-        "justify-start text-left": variant === "sidebar" && showLabel,
+      className={cn("relative flex max-w-full truncate whitespace-nowrap", {
+        "w-full justify-start text-left": variant === "sidebar" && showLabel,
         "w-full justify-center text-center": variant === "sidebar" && !showLabel,
-        "justify-start truncate text-left": variant === "top-navigation",
+        "w-fit max-w-48 justify-start truncate text-left": variant === "top-navigation",
       })}
     >
       {({ open }: { open: boolean }) => {
@@ -103,7 +103,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                     {
                       "bg-layer-1": open,
                       "dark:bg-white/[0.12]": open,
-                      "w-fit justify-start gap-2 px-2": showLabel,
+                      "w-full justify-start gap-2 px-2": showLabel,
                       "w-8 justify-center": !showLabel,
                     }
                   )}
@@ -116,7 +116,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                   />
                   {showLabel && (
                     <>
-                      <span className="min-w-0 flex-1 truncate text-13 font-medium text-secondary dark:text-white/80">
+                      <span className="min-w-0 flex-1 truncate text-left text-13 font-medium text-secondary dark:text-white/80">
                         {activeWorkspace?.name ?? t("loading")}
                       </span>
                       <ChevronDownIcon
@@ -167,7 +167,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
               <Menu.Items as={Fragment}>
                 <div
                   className={cn(
-                    "fixed z-21 mt-1 flex w-64 origin-top-left flex-col divide-y divide-subtle overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1 p-1 shadow-raised-200 outline-none",
+                    "fixed z-21 mt-1 flex w-64 origin-top-left flex-col divide-y divide-subtle overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1 p-1 text-left shadow-raised-200 outline-none",
                     {
                       "top-11 left-14": variant === "sidebar",
                       "top-10 left-0": variant === "top-navigation",

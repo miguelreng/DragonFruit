@@ -6,7 +6,6 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { YourWorkIcon } from "@/components/icons/propel-shim";
 import type { TBaseIssue } from "@plane/types";
 import { Breadcrumbs, Header } from "@plane/ui";
 // components
@@ -39,11 +38,7 @@ export const MyTasksHeader = observer(function MyTasksHeader() {
           <Breadcrumbs>
             <Breadcrumbs.Item
               component={
-                <BreadcrumbLink
-                  label="My tasks"
-                  disableTooltip
-                  icon={<YourWorkIcon className="h-4 w-4 text-tertiary" />}
-                />
+                <BreadcrumbLink label="My tasks" disableTooltip />
               }
             />
           </Breadcrumbs>

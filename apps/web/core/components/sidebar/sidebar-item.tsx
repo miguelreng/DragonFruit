@@ -76,7 +76,7 @@ interface AppSidebarTooltipProps {
 const styles = {
   base: "group flex flex-col gap-0.5 items-center justify-center text-tertiary dark:text-white/65",
   baseInline:
-    "group relative flex w-fit max-w-full cursor-pointer items-center rounded-lg px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
+    "group relative flex w-full max-w-full cursor-pointer items-center rounded-lg px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
   icon: "flex items-center justify-center gap-2 size-8 rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:size-5 [&_svg]:text-current",
   iconActive: "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]",
   iconInactive:
@@ -159,7 +159,7 @@ const AppSidebarLinkItem = React.forwardRef<HTMLAnchorElement, AppSidebarLinkIte
     </Link>
   );
 
-  const tooltipTrigger = <span className={cn("inline-flex max-w-full", { "w-fit": isInline })}>{linkContent}</span>;
+  const tooltipTrigger = <span className={cn("inline-flex max-w-full", { "w-full": isInline })}>{linkContent}</span>;
 
   return (
     <AppSidebarTooltip tooltipContent={tooltipContent} disabled={tooltipDisabled}>
