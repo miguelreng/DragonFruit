@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { ClockLine, FolderStarLine, LayoutGridLine } from "@mingcute/react";
+import { ClockCircle, FolderFavouriteStar, Widget } from "@solar-icons/react/ssr";
 
-export const FolderClockIcon = ClockLine;
-export const FolderFavouriteIcon = FolderStarLine;
-export const FolderKanbanIcon = LayoutGridLine;
+export const FolderClockIcon = ClockCircle;
+export const FolderFavouriteIcon = FolderFavouriteStar;
+export const FolderKanbanIcon = Widget;

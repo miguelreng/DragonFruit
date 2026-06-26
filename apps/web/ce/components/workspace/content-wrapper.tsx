@@ -98,7 +98,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
           <AppRailRoot />
         ))}
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="relative flex size-full min-h-0 gap-2 overflow-hidden">
+        <div className="relative flex size-full min-h-0 gap-0.5 overflow-hidden">
           <div className="shadow-sm relative min-h-0 flex-grow overflow-hidden rounded-[18px] border border-subtle bg-surface-1 transition-all duration-300 ease-in-out">
             {children}
           </div>

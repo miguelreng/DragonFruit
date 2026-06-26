@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { FilterLine } from "@mingcute/react";
+import { Filter } from "@solar-icons/react/ssr";
 
-export const FilterAppliedIcon = FilterLine;
+export const FilterAppliedIcon = Filter;

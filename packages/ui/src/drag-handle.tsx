@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { MoreVertical } from "lucide-react";
+import { MenuDots as MoreVertical } from "@solar-icons/react/ssr";
 import React, { forwardRef } from "react";
 // helpers
 import { cn } from "./utils";

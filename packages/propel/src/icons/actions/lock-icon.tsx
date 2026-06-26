@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { LockLine } from "@mingcute/react";
+import { Lock } from "@solar-icons/react/ssr";
 
-export const LockIcon = LockLine;
+export const LockIcon = Lock;

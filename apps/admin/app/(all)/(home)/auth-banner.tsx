@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Info } from "lucide-react";
+import { InfoCircle as Info } from "@solar-icons/react/ssr";
 // plane constants
 import type { TAdminAuthErrorInfo } from "@plane/constants";
 // icons

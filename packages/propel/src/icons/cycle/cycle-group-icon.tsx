@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { CircleDotDashed, Circle } from "lucide-react";
+import { Forbidden as CircleDotDashed, RecordCircle as Circle } from "@solar-icons/react/ssr";
 
 import { CycleIcon } from "../project/cycle-icon";
 import { CircleDotFullIcon } from "./circle-dot-full-icon";

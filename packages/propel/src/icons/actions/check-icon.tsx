@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CheckLine } from "@mingcute/react";
+import { CheckCircle } from "@solar-icons/react/ssr";
 
-export const CheckIcon = CheckLine;
+export const CheckIcon = CheckCircle;

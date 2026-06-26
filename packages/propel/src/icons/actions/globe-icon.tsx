@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { GlobeLine } from "@mingcute/react";
+import { Global } from "@solar-icons/react/ssr";
 
-export const GlobeIcon = GlobeLine;
+export const GlobeIcon = Global;

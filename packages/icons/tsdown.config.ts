@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   platform: "neutral",
   exports: true,
-  external: ["react", "react-dom", "@mingcute/react"],
+  external: ["react", "react-dom", "@solar-icons/react"],
 });

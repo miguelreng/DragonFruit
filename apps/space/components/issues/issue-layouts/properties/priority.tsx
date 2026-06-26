@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { SignalHigh } from "lucide-react";
+import { GraphUp as SignalHigh } from "@solar-icons/react/ssr";
 import { useTranslation } from "@plane/i18n";
 // types
 import { PriorityIcon } from "@plane/propel/icons";

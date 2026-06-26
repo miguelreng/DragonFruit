@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { SmilePlus } from "lucide-react";
+import { SmileCircle as SmilePlus } from "@solar-icons/react/ssr";
 import { stringToEmoji } from "../emoji-icon-picker";
 import type { EmojiReactionType } from "./emoji-reaction";
 import { EmojiReactionGroup } from "./emoji-reaction";

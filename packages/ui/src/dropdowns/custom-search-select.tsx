@@ -5,7 +5,7 @@
  */
 
 import { Combobox } from "@headlessui/react";
-import { Info } from "lucide-react";
+import { InfoCircle as Info } from "@solar-icons/react/ssr";
 import React, { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePopper } from "react-popper";

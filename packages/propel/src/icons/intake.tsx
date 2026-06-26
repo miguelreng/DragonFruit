@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { InboxLine } from "@mingcute/react";
+import { Inbox } from "@solar-icons/react/ssr";
 
-export const Intake = InboxLine;
+export const Intake = Inbox;

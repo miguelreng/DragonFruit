@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 // icons
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeClosed as EyeOff } from "@solar-icons/react/ssr";
 // plane internal packages
 import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
 import { Button } from "@plane/propel/button";

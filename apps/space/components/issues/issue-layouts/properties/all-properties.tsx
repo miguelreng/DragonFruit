@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { Paperclip } from "lucide-react";
+import { Paperclip } from "@solar-icons/react/ssr";
 import { LinkIcon, ViewsIcon } from "@plane/propel/icons";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";

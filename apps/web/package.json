@@ -26,7 +26,6 @@
     "@fontsource/material-symbols-rounded": "5.2.30",
     "@headlessui/react": "^1.7.19",
     "@js-temporal/polyfill": "^0.5.1",
-    "@mingcute/react": "^1.4.1",
     "@plane/constants": "workspace:*",
     "@plane/editor": "workspace:*",
     "@plane/hooks": "workspace:*",

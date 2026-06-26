@@ -5,7 +5,7 @@
  */
 
 import { Tab } from "@headlessui/react";
-import type { LucideProps } from "lucide-react";
+import type { IconProps } from "@solar-icons/react";
 import type { FC } from "react";
 import React from "react";
 // helpers
@@ -13,7 +13,7 @@ import { cn } from "../utils";
 
 export type TabListItem = {
   key: string;
-  icon?: FC<LucideProps>;
+  icon?: FC<IconProps>;
   label?: React.ReactNode;
   disabled?: boolean;
   onClick?: () => void;

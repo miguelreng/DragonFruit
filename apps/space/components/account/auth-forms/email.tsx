@@ -8,7 +8,7 @@ import type { FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // icons
-import { CircleAlert, XCircle } from "lucide-react";
+import { DangerCircle as CircleAlert, CloseCircle as XCircle } from "@solar-icons/react/ssr";
 // types
 import { Button } from "@plane/propel/button";
 import type { IEmailCheckData } from "@plane/types";

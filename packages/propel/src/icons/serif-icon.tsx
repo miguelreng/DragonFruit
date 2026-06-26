@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { FontLine } from "@mingcute/react";
+import { TextItalic } from "@solar-icons/react/ssr";
 
-export const SerifIcon = FontLine;
+export const SerifIcon = TextItalic;

@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { AddLine } from "@mingcute/react";
+import { AddCircle } from "@solar-icons/react/ssr";
 
-export const AddIcon = AddLine;
+export const AddIcon = AddCircle;

@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { DangerCircle as AlertCircle, CheckCircle as CheckCircle2 } from "@solar-icons/react/ssr";
 
 type TBanner = {
   type: "success" | "error";

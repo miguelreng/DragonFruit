@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { InformationFill } from "@mingcute/react";
+import { InfoCircle } from "@solar-icons/react/ssr";
 
-export const InfoFillIcon = InformationFill;
+export const InfoFillIcon = InfoCircle;

@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { SearchLine } from "@mingcute/react";
+import { Magnifer } from "@solar-icons/react/ssr";
 
-export const SearchIcon = SearchLine;
+export const SearchIcon = Magnifer;

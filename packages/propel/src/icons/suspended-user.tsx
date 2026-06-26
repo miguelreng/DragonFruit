@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { UserRemoveLine } from "@mingcute/react";
+import { UserBlock } from "@solar-icons/react/ssr";
 
-export const SuspendedUserIcon = UserRemoveLine;
+export const SuspendedUserIcon = UserBlock;

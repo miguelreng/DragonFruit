@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowDownLine } from "@mingcute/react";
+import { AltArrowDown } from "@solar-icons/react/ssr";
 
-export const DropdownIcon = ArrowDownLine;
+export const DropdownIcon = AltArrowDown;

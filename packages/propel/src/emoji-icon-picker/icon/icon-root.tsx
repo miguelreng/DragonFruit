@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { InfoIcon } from "lucide-react";
+import { InfoCircle as InfoIcon } from "@solar-icons/react/ssr";
 import { SearchIcon } from "../../icons";
 import { cn } from "../../utils/classname";
 import { adjustColorForContrast, DEFAULT_COLORS } from "../helper";

@@ -5,7 +5,7 @@
  */
 
 import { Popover as HeadlessReactPopover, Transition } from "@headlessui/react";
-import { EllipsisVertical } from "lucide-react";
+import { MenuDots as EllipsisVertical } from "@solar-icons/react/ssr";
 import type { Ref } from "react";
 import React, { Fragment, useState } from "react";
 import { usePopper } from "react-popper";

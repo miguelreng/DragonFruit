@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { PencilLine } from "@mingcute/react";
+import { Pen } from "@solar-icons/react/ssr";
 
-export const DraftIcon = PencilLine;
+export const DraftIcon = Pen;

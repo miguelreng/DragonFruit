@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { HistoryLine } from "@mingcute/react";
+import { History } from "@solar-icons/react/ssr";
 
-export const ActivityIcon = HistoryLine;
+export const ActivityIcon = History;

@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CalendarLine } from "@mingcute/react";
+import { Calendar } from "@solar-icons/react/ssr";
 
-export const CalendarAfterIcon = CalendarLine;
+export const CalendarAfterIcon = Calendar;

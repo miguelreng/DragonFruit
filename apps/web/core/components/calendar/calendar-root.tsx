@@ -668,7 +668,7 @@ function CalendarPageHeader({
       <Header.LeftItem>
         <Breadcrumbs>
           <Breadcrumbs.Item
-            component={<BreadcrumbLink label="Calendar" icon={<CalendarIcon className="h-4 w-4 text-tertiary" />} />}
+            component={<BreadcrumbLink label="Calendar" />}
           />
         </Breadcrumbs>
         <div className="ml-2 flex items-center gap-3 text-12 text-tertiary">

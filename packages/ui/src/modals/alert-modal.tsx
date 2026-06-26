@@ -4,9 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, Info } from "lucide-react";
+import type { IconProps } from "@solar-icons/react";
+import { DangerTriangle as AlertTriangle, InfoCircle as Info } from "@solar-icons/react/ssr";
 import React from "react";
+import type { FC } from "react";
 // components
 import type { TButtonVariant } from "@plane/propel/button";
 import { Button } from "@plane/propel/button";
@@ -37,7 +38,7 @@ type Props = {
   customIcon?: React.ReactNode;
 };
 
-const VARIANT_ICONS: Record<TModalVariant, LucideIcon> = {
+const VARIANT_ICONS: Record<TModalVariant, FC<IconProps>> = {
   danger: AlertTriangle,
   primary: Info,
 };

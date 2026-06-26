@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { LinkIcon } from "lucide-react";
+import { Link as LinkIcon } from "@solar-icons/react/ssr";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import {

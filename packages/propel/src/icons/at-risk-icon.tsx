@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { AlertLine } from "@mingcute/react";
+import { DangerTriangle } from "@solar-icons/react/ssr";
 
-export const AtRiskIcon = AlertLine;
+export const AtRiskIcon = DangerTriangle;

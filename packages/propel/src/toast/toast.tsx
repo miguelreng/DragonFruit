@@ -6,7 +6,12 @@
 
 import * as React from "react";
 import { Toast as BaseToast } from "@base-ui-components/react/toast";
-import { AlertCircle, AlertTriangle, BadgeCheck, InfoIcon } from "lucide-react";
+import {
+  DangerCircle as AlertCircle,
+  DangerTriangle as AlertTriangle,
+  CheckCircle as BadgeCheck,
+  InfoCircle as InfoIcon,
+} from "@solar-icons/react/ssr";
 import { CloseIcon } from "../icons/actions/close-icon";
 // spinner
 import { CircularBarSpinner } from "../spinners/circular-bar-spinner";

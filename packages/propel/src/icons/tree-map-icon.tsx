@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { TreeLine } from "@mingcute/react";
+import { Structure } from "@solar-icons/react/ssr";
 
-export const TreeMapIcon = TreeLine;
+export const TreeMapIcon = Structure;

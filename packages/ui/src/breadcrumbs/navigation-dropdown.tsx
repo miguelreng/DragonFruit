@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CheckIcon } from "lucide-react";
+import { CheckCircle as CheckIcon } from "@solar-icons/react/ssr";
 import * as React from "react";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";

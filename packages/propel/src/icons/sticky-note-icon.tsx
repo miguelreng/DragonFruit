@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { NotebookLine } from "@mingcute/react";
+import { Notebook } from "@solar-icons/react/ssr";
 
-export const StickyNoteIcon = NotebookLine;
+export const StickyNoteIcon = Notebook;

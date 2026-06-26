@@ -36,6 +36,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd apps/api && python manage.py runserver 0.0.0.0:8000 --settings=plane.settings.local"],
       "port": 8000
+    },
+    {
+      "name": "newtab-art-preview (temp static harness)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /tmp/ntpreview && python3 -m http.server 8743"],
+      "port": 8743
     }
   ]
 }

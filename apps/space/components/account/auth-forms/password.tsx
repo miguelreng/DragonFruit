@@ -6,7 +6,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { Eye, EyeOff, XCircle } from "lucide-react";
+import { Eye, EyeClosed as EyeOff, CloseCircle as XCircle } from "@solar-icons/react/ssr";
 // plane imports
 import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
 import { Button } from "@plane/propel/button";

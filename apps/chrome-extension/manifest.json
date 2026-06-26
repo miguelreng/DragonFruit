@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "DragonFruit Bookmarks",
-  "description": "Save pages, images, and tweets to DragonFruit bookmarks.",
-  "version": "0.1.12",
+  "description": "Save pages, images, and tweets to DragonFruit bookmarks. Open a new tab for a Renaissance masterpiece.",
+  "version": "0.1.21",
   "icons": {
     "16": "src/icons/icon-16.png",
     "32": "src/icons/icon-32.png",
@@ -21,6 +21,9 @@
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
+  },
+  "chrome_url_overrides": {
+    "newtab": "src/newtab.html"
   },
   "content_scripts": [
     {

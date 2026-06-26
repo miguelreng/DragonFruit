@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { HelpCircle } from "lucide-react";
+import { QuestionCircle as HelpCircle } from "@solar-icons/react/ssr";
 import { Tooltip } from "./root";
 
 const meta = {

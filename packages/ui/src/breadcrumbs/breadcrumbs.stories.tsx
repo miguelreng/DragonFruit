@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Home, Settings, Briefcase, GridIcon, Layers2, FileIcon } from "lucide-react";
+import { Home, Settings, Case as Briefcase, Widget as GridIcon, Layers as Layers2, File as FileIcon } from "@solar-icons/react/ssr";
 import * as React from "react";
 import { ContrastIcon, EpicIcon, LayersIcon } from "@plane/propel/icons";
 import { Breadcrumbs } from "./breadcrumbs";

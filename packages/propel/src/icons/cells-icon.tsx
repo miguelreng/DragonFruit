@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { GridLine } from "@mingcute/react";
+import { Widget } from "@solar-icons/react/ssr";
 
-export const CellsIcon = GridLine;
+export const CellsIcon = Widget;

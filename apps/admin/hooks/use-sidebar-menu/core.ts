@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Image, BrainCog, Cog, Mail } from "lucide-react";
+import { Gallery as Image, Cpu as BrainCog, SettingsMinimalistic as Cog, Letter as Mail } from "@solar-icons/react/ssr";
 // plane imports
 import { LockIcon, WorkspaceIcon } from "@plane/propel/icons";
 // types

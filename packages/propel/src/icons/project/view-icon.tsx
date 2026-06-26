@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { EyeLine } from "@mingcute/react";
+import { Eye } from "@solar-icons/react/ssr";
 
-export const ViewsIcon = EyeLine;
+export const ViewsIcon = Eye;

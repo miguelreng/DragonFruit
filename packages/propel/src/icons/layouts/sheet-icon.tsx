@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { LayoutGridLine } from "@mingcute/react";
+import { DocumentText } from "@solar-icons/react/ssr";
 
-export const SheetLayoutIcon = LayoutGridLine;
+export const SheetLayoutIcon = DocumentText;

@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { LinkLine } from "@mingcute/react";
+import { Link } from "@solar-icons/react/ssr";
 
-export const RelatedIcon = LinkLine;
+export const RelatedIcon = Link;

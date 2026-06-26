@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { FolderStarLine } from "@mingcute/react";
+import { FolderFavouriteStar } from "@solar-icons/react/ssr";
 
-export const FavoriteFolderIcon = FolderStarLine;
+export const FavoriteFolderIcon = FolderFavouriteStar;

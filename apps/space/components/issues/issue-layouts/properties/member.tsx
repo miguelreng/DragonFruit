@@ -6,7 +6,10 @@
 
 import { observer } from "mobx-react";
 // icons
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+import type { IconProps } from "@solar-icons/react";
+
+type LucideIcon = ComponentType<IconProps>;
 import { MembersPropertyIcon } from "@plane/propel/icons";
 // plane ui
 import { Avatar, AvatarGroup } from "@plane/ui";

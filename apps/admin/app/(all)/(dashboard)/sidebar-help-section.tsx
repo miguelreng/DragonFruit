@@ -7,7 +7,7 @@
 import { useState, useRef } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { HelpCircle, MessageSquare, MoveLeft } from "lucide-react";
+import { QuestionCircle as HelpCircle, ChatSquare as MessageSquare, ArrowLeft as MoveLeft } from "@solar-icons/react/ssr";
 import { Transition } from "@headlessui/react";
 import { WEB_BASE_URL } from "@plane/constants";
 // plane internal packages

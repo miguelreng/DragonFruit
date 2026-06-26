@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { AlertLine, ArrowDownLine, ArrowRightLine, ArrowUpLine } from "@mingcute/react";
+import { ArrowDown, ArrowRight, ArrowUp, DangerTriangle } from "@solar-icons/react/ssr";
 import { Minus } from "@plane/icons";
 import { cn } from "../utils";
 
@@ -35,10 +35,10 @@ export function PriorityIcon(props: IPriorityIcon) {
 
   // get priority icon
   const icons: Record<TIssuePriorities, React.ElementType> = {
-    urgent: AlertLine,
-    high: ArrowUpLine,
-    medium: ArrowRightLine,
-    low: ArrowDownLine,
+    urgent: DangerTriangle,
+    high: ArrowUp,
+    medium: ArrowRight,
+    low: ArrowDown,
     none: Minus,
   };
   const Icon = icons[resolvedPriority];

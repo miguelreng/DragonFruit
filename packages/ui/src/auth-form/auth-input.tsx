@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeClosed as EyeOff } from "@solar-icons/react/ssr";
 import React, { useState } from "react";
 import { Input } from "../form-fields/input";
 import { cn } from "../utils";

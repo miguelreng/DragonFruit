@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ExternalLinkLine } from "@mingcute/react";
+import { SquareArrowRightUp } from "@solar-icons/react/ssr";
 
-export const NewTabIcon = ExternalLinkLine;
+export const NewTabIcon = SquareArrowRightUp;

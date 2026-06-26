@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { TaskLine } from "@mingcute/react";
+import { ClipboardCheck } from "@solar-icons/react/ssr";
 
-export const AddWorkItemIcon = TaskLine;
+export const AddWorkItemIcon = ClipboardCheck;

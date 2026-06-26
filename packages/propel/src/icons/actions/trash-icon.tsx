@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { DeleteLine } from "@mingcute/react";
+import { TrashBinMinimalistic } from "@solar-icons/react/ssr";
 
-export const TrashIcon = DeleteLine;
+export const TrashIcon = TrashBinMinimalistic;

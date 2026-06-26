@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { GithubLine } from "@mingcute/react";
+import { CodeSquare } from "@solar-icons/react/ssr";
 
-export const GithubIcon = GithubLine;
+export const GithubIcon = CodeSquare;

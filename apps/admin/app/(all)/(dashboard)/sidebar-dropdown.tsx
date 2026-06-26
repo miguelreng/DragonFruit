@@ -7,7 +7,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useTheme as useNextTheme } from "next-themes";
-import { LogOut, UserCog2, Palette } from "lucide-react";
+import { Logout as LogOut, UserId as UserCog2, Palette } from "@solar-icons/react/ssr";
 import { Menu, Transition } from "@headlessui/react";
 // plane internal packages
 import { API_BASE_URL } from "@plane/constants";

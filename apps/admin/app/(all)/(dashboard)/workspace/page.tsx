@@ -8,7 +8,7 @@ import { useState } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Loader as LoaderIcon } from "lucide-react";
+import { Refresh as LoaderIcon } from "@solar-icons/react/ssr";
 // types
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { setPromiseToast } from "@plane/propel/toast";

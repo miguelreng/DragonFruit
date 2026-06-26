@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { File, Folder, Settings, User } from "lucide-react";
+import { File, Folder, Settings, User } from "@solar-icons/react/ssr";
 import { Command } from "./command";
 
 const meta = {

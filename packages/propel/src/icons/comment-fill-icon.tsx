@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CommentFill } from "@mingcute/react";
+import { ChatRound } from "@solar-icons/react/ssr";
 
-export const CommentFillIcon = CommentFill;
+export const CommentFillIcon = ChatRound;

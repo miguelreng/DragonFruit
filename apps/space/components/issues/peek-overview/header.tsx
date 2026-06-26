@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { MoveRight } from "lucide-react";
+import { ArrowRight as MoveRight } from "@solar-icons/react/ssr";
 import { Listbox, Transition } from "@headlessui/react";
 // ui
 import { LinkIcon, CenterPanelIcon, FullScreenPanelIcon, SidePanelIcon } from "@plane/propel/icons";

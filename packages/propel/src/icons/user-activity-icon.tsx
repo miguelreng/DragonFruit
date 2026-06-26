@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { User3Line } from "@mingcute/react";
+import { User } from "@solar-icons/react/ssr";
 
-export const UserActivityIcon = User3Line;
+export const UserActivityIcon = User;

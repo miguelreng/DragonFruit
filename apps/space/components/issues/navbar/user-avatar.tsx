@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { Link } from "react-router";
 import { usePathname, useSearchParams } from "next/navigation";
 import { usePopper } from "react-popper";
-import { LogOut } from "lucide-react";
+import { Logout as LogOut } from "@solar-icons/react/ssr";
 import { Popover, Transition } from "@headlessui/react";
 // plane imports
 import { API_BASE_URL } from "@plane/constants";

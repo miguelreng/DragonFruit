@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
-import { Menu, Settings } from "lucide-react";
+import { HamburgerMenu as Menu, Settings } from "@solar-icons/react/ssr";
 // icons
 import { Breadcrumbs } from "@plane/ui";
 // components

@@ -1059,6 +1059,60 @@ function ChatThread(props: {
     [handleAttach]
   );
 
+  // Atlas doc-write review. We snapshot the document HTML before the first
+  // proposal is written (see handleSend) so "Discard Atlas changes" can revert
+  // the doc in place. The live proposal count is mirrored from the editor —
+  // per-proposal Accept/Reject happen in the document margin, so the bar must
+  // react to the editor's state, not just the drawer's. When the review
+  // resolves (count returns to 0 via the margin controls), the snapshot is
+  // dropped so the Discard affordance disappears.
+  const [atlasReviewSnapshot, setAtlasReviewSnapshot] = useState<string | null>(null);
+  const [activeProposalCount, setActiveProposalCount] = useState(0);
+  const prevProposalCountRef = useRef(0);
+
+  useEffect(() => {
+    if (!activePageEditorRef) {
+      setActiveProposalCount(0);
+      return;
+    }
+    const sync = () => {
+      const count = activePageEditorRef.getActiveAtlasProposalCount();
+      setActiveProposalCount(count);
+      if (prevProposalCountRef.current > 0 && count === 0) {
+        // Review was resolved through the in-margin controls — drop the
+        // pre-session snapshot so the Discard bar hides itself.
+        setAtlasReviewSnapshot(null);
+      }
+      prevProposalCountRef.current = count;
+    };
+    sync();
+    return activePageEditorRef.onStateChange(sync);
+  }, [activePageEditorRef]);
+
+  const handleAcceptAllProposals = useCallback(() => {
+    setAtlasReviewSnapshot(null);
+    activePageEditorRef?.acceptAllAtlasProposals();
+  }, [activePageEditorRef]);
+
+  const handleRejectAllProposals = useCallback(() => {
+    setAtlasReviewSnapshot(null);
+    activePageEditorRef?.rejectAllAtlasProposals();
+  }, [activePageEditorRef]);
+
+  const handleDiscardAtlasChanges = useCallback(() => {
+    if (!activePageEditorRef || atlasReviewSnapshot === null) return;
+    if (
+      !window.confirm(
+        "Discard Atlas’s changes and revert the document to before this session? This also discards any manual edits you made since."
+      )
+    )
+      return;
+    const snapshot = atlasReviewSnapshot;
+    setAtlasReviewSnapshot(null);
+    activePageEditorRef.rejectAllAtlasProposals();
+    activePageEditorRef.replaceProviderDocumentFromHTML(snapshot);
+  }, [activePageEditorRef, atlasReviewSnapshot]);
+
   const searchMentionReferences = useCallback(
     async (query: string): Promise<TAtlasMentionedReference[]> => {
       if (!workspaceSlug) return [];
@@ -1236,6 +1290,9 @@ function ChatThread(props: {
 
     if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
       const document = activePageEditorRef.getDocument();
+      // Snapshot the doc BEFORE any proposal is written so "Discard Atlas
+      // changes" can revert in place.
+      setAtlasReviewSnapshot(document.html);
       const documentMarkdown = activePageEditorRef.getMarkDown();
       const liveCursorPosition = activePageEditorRef.getCurrentCursorPosition();
       // A pinned passage anchors the edit to where it was picked — the live
@@ -1311,6 +1368,9 @@ function ChatThread(props: {
               });
             } else if (event.event === "session_completed") {
               activePageEditorRef.setAtlasReviewLoading(false);
+              // No proposals landed (empty/no-op result) — drop the snapshot so
+              // the review bar doesn't linger over an unchanged document.
+              if (activePageEditorRef.getActiveAtlasProposalCount() === 0) setAtlasReviewSnapshot(null);
               void mutate(
                 (current) =>
                   current
@@ -1334,6 +1394,7 @@ function ChatThread(props: {
         onSentRefreshSessions();
       } catch (err) {
         activePageEditorRef.setAtlasReviewLoading(false);
+        if (activePageEditorRef.getActiveAtlasProposalCount() === 0) setAtlasReviewSnapshot(null);
         const msg = err instanceof Error ? err.message : "Couldn't draft document edits.";
         setToast({ type: TOAST_TYPE.ERROR, title: "Doc write failed", message: msg });
         await mutate();
@@ -1503,6 +1564,42 @@ function ChatThread(props: {
           <div className="pointer-events-none absolute inset-1 z-20 flex items-center justify-center gap-2 rounded-xl border border-dashed border-accent-primary bg-surface-1/90 text-13 font-medium text-accent-primary backdrop-blur-sm">
             <Paperclip className="size-4" />
             Drop files to attach
+          </div>
+        )}
+        {(activeProposalCount > 0 || atlasReviewSnapshot !== null) && (
+          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5">
+            <span className="mr-auto text-[11px] font-medium text-secondary">
+              {activeProposalCount > 0
+                ? `${activeProposalCount} Atlas ${activeProposalCount === 1 ? "edit" : "edits"} to review`
+                : "Atlas edits applied"}
+            </span>
+            {activeProposalCount > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleAcceptAllProposals}
+                  className="t-press inline-flex h-6 shrink-0 items-center rounded-full bg-accent-primary px-2.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90"
+                >
+                  Accept all
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectAllProposals}
+                  className="t-press inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
+                >
+                  Reject all
+                </button>
+              </>
+            )}
+            {atlasReviewSnapshot !== null && (
+              <button
+                type="button"
+                onClick={handleDiscardAtlasChanges}
+                className="t-press inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
+              >
+                Discard Atlas changes
+              </button>
+            )}
           </div>
         )}
         <input

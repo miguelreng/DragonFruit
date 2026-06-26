@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Settings3Line } from "@mingcute/react";
+import { Tuning } from "@solar-icons/react/ssr";
 
-export const DisplayPropertiesIcon = Settings3Line;
+export const DisplayPropertiesIcon = Tuning;

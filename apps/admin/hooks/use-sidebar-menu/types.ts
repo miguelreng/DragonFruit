@@ -4,7 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+import type { IconProps } from "@solar-icons/react";
+
+type LucideIcon = ComponentType<IconProps>;
 
 export type TSidebarMenuItem = {
   Icon: LucideIcon | React.ComponentType<{ className?: string }>;

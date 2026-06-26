@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { RepeatLine } from "@mingcute/react";
+import { Refresh } from "@solar-icons/react/ssr";
 
-export const CycleIcon = RepeatLine;
+export const CycleIcon = Refresh;

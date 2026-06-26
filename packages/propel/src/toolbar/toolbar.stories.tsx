@@ -6,19 +6,19 @@
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
+  TextBold as Bold,
+  TextItalic as Italic,
+  TextUnderline as Underline,
+  TextCross as Strikethrough,
   Code,
-  ListOrdered,
-  Quote,
+  List as ListOrdered,
+  ChatRoundLine as Quote,
   AlignLeft,
-  AlignCenter,
+  AlignHorizontalCenter as AlignCenter,
   AlignRight,
-  Undo,
-  Redo,
-} from "lucide-react";
+  UndoLeft as Undo,
+  UndoRight as Redo,
+} from "@solar-icons/react/ssr";
 import { LinkIcon, GlobeIcon, LockIcon } from "../icons";
 import { ListLayoutIcon } from "../icons/layouts/list-icon";
 import { Toolbar } from "./toolbar";

@@ -5,25 +5,25 @@
  */
 
 import {
-  Github,
-  Linkedin,
-  Twitter,
-  Facebook,
-  Instagram,
-  Youtube,
-  Dribbble,
+  Hashtag as Github,
+  UsersGroupRounded as Linkedin,
+  ChatRoundLine as Twitter,
+  UserCircle as Facebook,
+  Camera as Instagram,
+  VideoFramePlayHorizontal as Youtube,
+  Basketball as Dribbble,
   Figma,
-  FileText,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  FileArchive,
-  FileSpreadsheet,
-  FileCode,
-  Mail,
-  Chrome,
-  Link2,
-} from "lucide-react";
+  DocumentText as FileText,
+  Gallery as FileImage,
+  Clapperboard as FileVideo,
+  MusicNote as FileAudio,
+  Archive as FileArchive,
+  Chart as FileSpreadsheet,
+  CodeFile as FileCode,
+  Letter as Mail,
+  Global as Chrome,
+  LinkMinimalistic as Link2,
+} from "@solar-icons/react/ssr";
 
 type IconMatcher = {
   pattern: RegExp;

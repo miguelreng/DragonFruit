@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CodeLine } from "@mingcute/react";
+import { Code } from "@solar-icons/react/ssr";
 
-export const MonospaceIcon = CodeLine;
+export const MonospaceIcon = Code;

@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ChevronsUpDown } from "lucide-react";
+import { SortVertical as ChevronsUpDown } from "@solar-icons/react/ssr";
 import { useArgs } from "storybook/preview-api";
 import { CheckIcon } from "../icons";
 import { Combobox } from "./combobox";

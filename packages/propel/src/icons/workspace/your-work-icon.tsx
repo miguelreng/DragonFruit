@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Task2Line } from "@mingcute/react";
+import { Checklist } from "@solar-icons/react/ssr";
 
-export const YourWorkIcon = Task2Line;
+export const YourWorkIcon = Checklist;

@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CopyLine } from "@mingcute/react";
+import { Copy } from "@solar-icons/react/ssr";
 
-export const CopyIcon = CopyLine;
+export const CopyIcon = Copy;

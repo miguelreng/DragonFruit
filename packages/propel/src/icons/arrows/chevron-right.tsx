@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowRightLine } from "@mingcute/react";
+import { AltArrowRight } from "@solar-icons/react/ssr";
 
-export const ChevronRightIcon = ArrowRightLine;
+export const ChevronRightIcon = AltArrowRight;

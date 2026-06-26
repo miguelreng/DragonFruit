@@ -24,7 +24,7 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
-    "@mingcute/react": "^1.4.1",
+    "@solar-icons/react": "^1.1.1",
     "react": "catalog:"
   },
   "devDependencies": {

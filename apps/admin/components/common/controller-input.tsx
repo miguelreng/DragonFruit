@@ -8,7 +8,7 @@ import React, { useState } from "react";
 import type { Control } from "react-hook-form";
 import { Controller } from "react-hook-form";
 // icons
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeClosed as EyeOff } from "@solar-icons/react/ssr";
 // plane internal packages
 import { Input } from "@plane/ui";
 import { cn } from "@plane/utils";

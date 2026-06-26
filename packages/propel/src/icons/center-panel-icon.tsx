@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { SquareLine } from "@mingcute/react";
+import { Sidebar } from "@solar-icons/react/ssr";
 
-export const CenterPanelIcon = SquareLine;
+export const CenterPanelIcon = Sidebar;

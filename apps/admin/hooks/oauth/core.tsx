@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { KeyRound, Mails } from "lucide-react";
+import { Key as KeyRound, Mailbox as Mails } from "@solar-icons/react/ssr";
 // types
 import type {
   TCoreInstanceAuthenticationModeKeys,

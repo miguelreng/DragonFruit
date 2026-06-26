@@ -7,7 +7,7 @@
 import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
-import { MessageSquare, MoreVertical } from "lucide-react";
+import { ChatSquare as MessageSquare, MenuDots as MoreVertical } from "@solar-icons/react/ssr";
 import { Menu, Transition } from "@headlessui/react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";

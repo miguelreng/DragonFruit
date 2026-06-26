@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { EditLine } from "@mingcute/react";
+import { Pen } from "@solar-icons/react/ssr";
 
-export const EditIcon = EditLine;
+export const EditIcon = Pen;

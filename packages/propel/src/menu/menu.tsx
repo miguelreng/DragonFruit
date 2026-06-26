@@ -6,7 +6,7 @@
 
 import * as React from "react";
 import { Menu as BaseMenu } from "@base-ui-components/react/menu";
-import { MoreHorizontal } from "lucide-react";
+import { MenuDots as MoreHorizontal } from "@solar-icons/react/ssr";
 import { ChevronDownIcon, ChevronRightIcon } from "../icons";
 import { cn } from "../utils/classname";
 import type { TMenuProps, TSubMenuProps, TMenuItemProps } from "./types";

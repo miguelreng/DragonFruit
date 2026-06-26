@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { Home7Line } from "@mingcute/react";
+import { Home } from "@solar-icons/react/ssr";
 
-export const HomeIcon = Home7Line;
+export const HomeIcon = Home;

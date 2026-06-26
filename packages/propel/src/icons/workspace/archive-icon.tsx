@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ArchiveLine } from "@mingcute/react";
+import { Archive } from "@solar-icons/react/ssr";
 
-export const ArchiveIcon = ArchiveLine;
+export const ArchiveIcon = Archive;

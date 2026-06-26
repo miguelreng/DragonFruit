@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { PinLine } from "@mingcute/react";
+import { Pin } from "@solar-icons/react/ssr";
 
-export const SetAsDefaultIcon = PinLine;
+export const SetAsDefaultIcon = Pin;

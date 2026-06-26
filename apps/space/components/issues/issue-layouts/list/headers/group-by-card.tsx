@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { CircleDashed } from "lucide-react";
+import { Record as CircleDashed } from "@solar-icons/react/ssr";
 
 interface IHeaderGroupByCard {
   groupID: string;

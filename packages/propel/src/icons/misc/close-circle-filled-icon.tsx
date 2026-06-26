@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CloseCircleFill } from "@mingcute/react";
+import { CloseCircle } from "@solar-icons/react/ssr";
 
-export const CloseCircleFilledIcon = CloseCircleFill;
+export const CloseCircleFilledIcon = CloseCircle;

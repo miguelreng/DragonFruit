@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { FullscreenLine } from "@mingcute/react";
+import { FullScreen } from "@solar-icons/react/ssr";
 
-export const FullScreenPanelIcon = FullscreenLine;
+export const FullScreenPanelIcon = FullScreen;

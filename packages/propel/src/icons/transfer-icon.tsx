@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { RefreshAnticlockwise1Line } from "@mingcute/react";
+import { Refresh } from "@solar-icons/react/ssr";
 
-export const TransferIcon = RefreshAnticlockwise1Line;
+export const TransferIcon = Refresh;

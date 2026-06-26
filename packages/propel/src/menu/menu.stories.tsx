@@ -5,7 +5,14 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Settings, User, LogOut, Mail, Bell, HelpCircle } from "lucide-react";
+import {
+  Settings,
+  User,
+  Logout as LogOut,
+  Letter as Mail,
+  Bell,
+  QuestionCircle as HelpCircle,
+} from "@solar-icons/react/ssr";
 import { Menu } from "./menu";
 
 const meta = {

@@ -5,7 +5,7 @@
  */
 
 import { useForm } from "react-hook-form";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb } from "@solar-icons/react/ssr";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IFormattedInstanceConfiguration, TInstanceAIConfigurationKeys } from "@plane/types";

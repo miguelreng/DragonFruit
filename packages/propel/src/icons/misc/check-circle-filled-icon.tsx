@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { CheckCircleFill } from "@mingcute/react";
+import { CheckCircle } from "@solar-icons/react/ssr";
 
-export const CheckCircleFilledIcon = CheckCircleFill;
+export const CheckCircleFilledIcon = CheckCircle;

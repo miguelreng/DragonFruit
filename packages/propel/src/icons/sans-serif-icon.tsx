@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { FontLine } from "@mingcute/react";
+import { Text } from "@solar-icons/react/ssr";
 
-export const SansSerifIcon = FontLine;
+export const SansSerifIcon = Text;

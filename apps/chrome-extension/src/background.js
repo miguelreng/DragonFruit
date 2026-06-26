@@ -2,7 +2,7 @@
 
 // Logged on service-worker startup so you can confirm the running build in the
 // extension's DevTools console. Keep in sync with manifest.json "version".
-const EXTENSION_VERSION = "0.1.12";
+const EXTENSION_VERSION = "0.1.21";
 console.log(`DragonFruit Bookmarks extension v${EXTENSION_VERSION}`);
 
 const DEFAULT_API_URL = "https://api.dragonfruit.sh";

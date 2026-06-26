@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { Link } from "react-router";
 import { usePathname } from "next/navigation";
-import { Lock } from "lucide-react";
+import { Lock } from "@solar-icons/react/ssr";
 // plane imports
 import { Button } from "@plane/propel/button";
 // components

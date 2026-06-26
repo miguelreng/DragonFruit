@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { LayersLine } from "@mingcute/react";
+import { Layers } from "@solar-icons/react/ssr";
 
-export const LayerStackIcon = LayersLine;
+export const LayerStackIcon = Layers;

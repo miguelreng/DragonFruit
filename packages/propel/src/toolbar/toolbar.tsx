@@ -5,7 +5,9 @@
  */
 
 import * as React from "react";
-import type { LucideIcon } from "lucide-react";
+import type { IconProps } from "@solar-icons/react";
+
+type LucideIcon = React.ComponentType<IconProps>;
 import type { ISvgIcons } from "../icons";
 import { Tooltip } from "../tooltip";
 import { cn } from "../utils";

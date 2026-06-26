@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "@solar-icons/react/ssr";
 
 export const NavbarTheme = observer(function NavbarTheme() {
   // states

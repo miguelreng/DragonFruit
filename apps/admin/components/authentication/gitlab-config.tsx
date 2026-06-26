@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
-import { Settings2 } from "lucide-react";
+import { SettingsMinimalistic as Settings2 } from "@solar-icons/react/ssr";
 // plane internal packages
 import { getButtonStyling } from "@plane/propel/button";
 import type { TInstanceAuthenticationMethodKeys } from "@plane/types";

@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { BriefcaseLine } from "@mingcute/react";
+import { FolderWithFiles } from "@solar-icons/react/ssr";
 
-export const ProjectIcon = BriefcaseLine;
+export const ProjectIcon = FolderWithFiles;

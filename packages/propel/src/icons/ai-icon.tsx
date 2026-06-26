@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { SparklesLine } from "@mingcute/react";
+import { MagicStick } from "@solar-icons/react/ssr";
 
-export const AiIcon = SparklesLine;
+export const AiIcon = MagicStick;

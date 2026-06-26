@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ChartBarLine } from "@mingcute/react";
+import { Chart2 } from "@solar-icons/react/ssr";
 
-export const BarIcon = ChartBarLine;
+export const BarIcon = Chart2;

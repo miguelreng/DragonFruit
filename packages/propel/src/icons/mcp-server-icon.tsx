@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { McpLine } from "@mingcute/react";
+import { ServerSquare } from "@solar-icons/react/ssr";
 
-export const McpServerIcon = McpLine;
+export const McpServerIcon = ServerSquare;

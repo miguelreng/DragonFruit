@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ArrowUpLine } from "@mingcute/react";
+import { AltArrowUp } from "@solar-icons/react/ssr";
 
-export const ChevronUpIcon = ArrowUpLine;
+export const ChevronUpIcon = AltArrowUp;

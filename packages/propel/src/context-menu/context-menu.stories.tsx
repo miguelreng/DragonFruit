@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Download, Edit, Share, Star, Archive } from "lucide-react";
+import { Download, Pen as Edit, Share, Star, Archive } from "@solar-icons/react/ssr";
 import { CopyIcon, TrashIcon } from "../icons";
 import { ChevronRightIcon } from "../icons/arrows/chevron-right";
 import { ContextMenu } from "./context-menu";

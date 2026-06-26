@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { DocumentLine } from "@mingcute/react";
+import { Document } from "@solar-icons/react/ssr";
 
-export const PageIcon = DocumentLine;
+export const PageIcon = Document;

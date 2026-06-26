@@ -4,6 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import { ScrollableListLine } from "@mingcute/react";
+import { List } from "@solar-icons/react/ssr";
 
-export const ListLayoutIcon = ScrollableListLine;
+export const ListLayoutIcon = List;

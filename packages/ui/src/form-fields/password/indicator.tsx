@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { CircleCheck } from "lucide-react";
+import { CheckCircle as CircleCheck } from "@solar-icons/react/ssr";
 import React from "react";
 import { E_PASSWORD_STRENGTH } from "@plane/constants";
 import { cn, getPasswordStrength, getPasswordCriteria } from "@plane/utils";
