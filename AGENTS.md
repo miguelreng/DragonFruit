@@ -2,12 +2,11 @@
 
 ## Git Workflow
 
-- Start each new chat/task on its own branch before making edits.
-- If the current branch is `main`, create a branch named `codex/<short-task-name>` from the current `main`.
-- If the current branch is already a task branch, continue on it only when the new request clearly belongs to the same task; otherwise switch back to `main` and create a new task branch.
-- Before committing or merging, run `git status --short --branch` and make sure the branch and staged files match the current task.
-- Merge task branches back into `main` only after the user asks to commit/merge or confirms the work is complete.
-- When finishing a completed task, commit the task branch, merge it into `main`, delete the merged local task branch, and leave the worktree clean.
+- **Work directly on `main`. This is a single-branch repo.**
+- Do NOT create task branches (`codex/*`, `feat/*`, etc.) and do NOT create git worktrees. Make all edits on `main` in the one working tree.
+- Before committing, run `git status --short --branch` to confirm you're on `main` and the staged files match the request.
+- Commit (and push to `origin/main`) only after the user asks to commit/merge or confirms the work is complete — pushing `main` deploys (web → Vercel, API → Coolify).
+- Never spin up parallel worktrees or duplicate branches for tasks; one working tree on `main` is the only workflow.
 
 ## Commands
 
@@ -23,7 +22,7 @@
 ## Code Style
 
 - **Imports**: Use `workspace:*` for internal packages, `catalog:` for external deps
-- **Icons**: Prefer the Hugeicons-backed set exposed through `@plane/icons`; avoid introducing mixed icon styles in new UI work
+- **Icons**: Use the Solar icon set — web via the `lucide-shim`/`propel-shim` re-exports or `@solar-icons/react`, mobile via `@solar-icons/react-native`. HugeIcons/Phosphor have been removed; don't reintroduce mixed icon styles
 - **TypeScript**: Strict mode enabled, all files must be typed
 - **Formatting**: oxfmt, run `pnpm fix:format`
 - **Linting**: OxLint with shared `.oxlintrc.json` config
