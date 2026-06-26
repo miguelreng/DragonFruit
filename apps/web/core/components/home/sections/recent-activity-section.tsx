@@ -40,15 +40,15 @@ export const RecentActivitySection = observer(function RecentActivitySection() {
           <h3 className="text-14 font-semibold text-secondary">Recent activity</h3>
         </div>
       </div>
-      <div className="rounded-[18px] border border-subtle bg-surface-1">
+      <div>
         {data === undefined ? (
-          <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
+          <div className="px-2 py-6 text-center text-12 text-placeholder">Loading…</div>
         ) : activities.length === 0 ? (
-          <div className="px-3 py-6 text-center text-12 text-placeholder">No recent activity.</div>
+          <div className="px-2 py-6 text-center text-12 text-placeholder">No recent activity.</div>
         ) : (
-          <ul className="divide-y divide-subtle">
+          <ul className="flex flex-col">
             {activities.map((activity) => (
-              <li key={activity.id} className="flex items-start gap-3 px-3 py-2.5">
+              <li key={activity.id} className="flex items-start gap-3 rounded-lg px-2 py-2.5">
                 <Avatar
                   name={activity.actor_detail?.display_name}
                   src={getFileURL(activity.actor_detail?.avatar_url)}

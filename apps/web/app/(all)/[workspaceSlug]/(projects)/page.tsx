@@ -13,7 +13,7 @@ import { WorkspaceHomeView } from "@/components/home";
 import { useUser } from "@/hooks/store/user";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // local components
-import { HomeHeroHeader } from "./home-hero-header";
+import { HomeGreeting } from "./home-greeting";
 
 function WorkspaceDashboardPage() {
   const { currentWorkspace } = useWorkspace();
@@ -25,7 +25,7 @@ function WorkspaceDashboardPage() {
   return (
     <>
       <PageHead title={pageTitle} />
-      <WorkspaceHomeView header={currentUser ? <HomeHeroHeader user={currentUser} /> : null} />
+      <WorkspaceHomeView header={currentUser ? <HomeGreeting user={currentUser} /> : null} />
     </>
   );
 }

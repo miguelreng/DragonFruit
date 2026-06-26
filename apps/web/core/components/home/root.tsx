@@ -9,34 +9,19 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
 import { ContentWrapper } from "@plane/ui";
-import { cn } from "@plane/utils";
 // hooks
 import { useHomePreferences } from "@/hooks/use-home-preferences";
 import { useUserProfile } from "@/hooks/store/user";
+// components
+import { AppHeader } from "@/components/core/app-header";
 // plane web imports
 import { HomePeekOverviewsRoot } from "@/plane-web/components/home";
 import { TourRoot } from "@/plane-web/components/onboarding/tour/root";
 // local imports
-import {
-  ActivityHeatmapSection,
-  AgentCostSection,
-  FavoritesSection,
-  InboxSection,
-  MyTasksSection,
-  RecentActivitySection,
-} from "./sections";
-
-const SECTION_RENDERERS: Record<string, () => ReactNode> = {
-  inbox: () => <InboxSection />,
-  my_tasks: () => <MyTasksSection />,
-  favorites: () => <FavoritesSection />,
-  recent_activity: () => <RecentActivitySection />,
-  activity: () => <ActivityHeatmapSection />,
-  agent_cost: () => <AgentCostSection />,
-};
+import { FavoritesSection, MyTasksSection, RecentActivitySection, RecentDocsSection } from "./sections";
 
 type WorkspaceHomeViewProps = {
-  /** Optional hero/header that scrolls with the rest of the home content. */
+  /** Optional greeting that scrolls with the rest of the home content. */
   header?: ReactNode;
 };
 
@@ -53,8 +38,8 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
     }
   };
 
-  // Per-section enabled state. Layout is now a fixed grid, so we don't
-  // honor `sort_order` — only is_enabled controls whether a cell renders.
+  // Per-section enabled state. The home is a single flat column now; only
+  // `is_enabled` controls whether a section renders (sort_order is ignored).
   const enabledKeys = useMemo(() => {
     const map = new Map<string, boolean>();
     for (const row of preferences ?? []) map.set(row.key, row.is_enabled !== false);
@@ -69,16 +54,17 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
         </div>
       )}
       <HomePeekOverviewsRoot />
-      <ContentWrapper className={cn("scrollbar-hide bg-surface-1", header ? "gap-0 !px-0 !py-0" : "gap-6 px-page-x")}>
-        {header}
-        <div className={cn("home-dashboard-container", header && "px-page-x")}>
-          <div className={cn("home-dashboard-grid", header ? "pt-6" : "pt-2")}>
-            {enabledKeys("activity") && SECTION_RENDERERS.activity()}
-            {enabledKeys("my_tasks") && SECTION_RENDERERS.my_tasks()}
-            {enabledKeys("agent_cost") && SECTION_RENDERERS.agent_cost()}
-            {enabledKeys("inbox") && SECTION_RENDERERS.inbox()}
-            {enabledKeys("favorites") && SECTION_RENDERERS.favorites()}
-            {enabledKeys("recent_activity") && SECTION_RENDERERS.recent_activity()}
+      {/* Standard top chrome — keeps the sidebar/app-rail toggle at the page top.
+          Empty header content reads as plain top spacing when nothing is collapsed. */}
+      <AppHeader header={null} />
+      <ContentWrapper className="scrollbar-hide gap-0 bg-surface-1 !px-0 !py-0">
+        <div className="mx-auto flex w-full max-w-[820px] flex-col gap-10 px-page-x pt-4 pb-16">
+          {header}
+          <div className="flex flex-col gap-8">
+            {enabledKeys("recent_docs") && <RecentDocsSection />}
+            {enabledKeys("my_tasks") && <MyTasksSection flat />}
+            {enabledKeys("favorites") && <FavoritesSection />}
+            {enabledKeys("recent_activity") && <RecentActivitySection />}
           </div>
         </div>
       </ContentWrapper>

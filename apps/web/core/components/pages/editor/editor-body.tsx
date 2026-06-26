@@ -270,9 +270,9 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     setFloatingBlockId(null);
   }, []);
 
-  // Focus (zen) mode — the scroll container becomes a fixed, full-viewport
-  // canvas (see `.page-focus-mode` in globals.css) so the app rail, header
-  // and toolbar disappear behind it. The same element keeps scrolling, so we
+  // Focus (zen) mode — stays in the normal layout (the app rail, header and the
+  // side-by-side editor + Atlas drawer keep their unfocused positions; see
+  // `.page-focus-mode` in globals.css). It's the same scroll container, so we
   // also drive typewriter centering against it. Held in state (callback ref)
   // because the container mounts after the loading early-return — the
   // typewriter effect below must re-run once it exists.
@@ -284,11 +284,10 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     void page.updateViewProps({ focus_mode: false });
   }, [page]);
 
-  // `position` can't transition, so leaving focus mode plays a short settle
-  // animation (`.page-focus-mode-exit`) once the canvas snaps back into the
-  // layout flow. Layout effect so the class is committed before the first
-  // post-exit paint — a passive effect runs after paint, flashing one fully
-  // opaque frame before the animation dips to 0.4 and fades back in.
+  // Leaving focus mode plays a short settle animation (`.page-focus-mode-exit`).
+  // Layout effect so the class is committed before the first post-exit paint —
+  // a passive effect runs after paint, flashing one fully opaque frame before
+  // the animation dips to 0.4 and fades back in.
   useLayoutEffect(() => {
     const wasFocusMode = wasFocusModeRef.current;
     wasFocusModeRef.current = isFocusMode;

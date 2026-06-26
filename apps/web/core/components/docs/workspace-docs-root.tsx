@@ -17,6 +17,7 @@ import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@/components/icons/propel-shim";
 import { ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
+import { DocumentText } from "@solar-icons/react/ssr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, Header } from "@plane/ui";
 import { cn, convertBytesToSize, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
@@ -617,8 +618,11 @@ function DocCard({
     primaryProjectId && page.id
       ? `/${workspaceSlug}/projects/${primaryProjectId}/${isProjectBrief ? "brief" : `pages/${page.id}/`}`
       : null;
-  const FallbackIcon = page.page_type === "pdf" ? FileText : page.page_type === "whiteboard" ? Whiteboard : PageIcon;
-  const pdfMeta = page.page_type === "pdf" ? page.view_props?.pdf : undefined;
+  // PDFs and whiteboards keep a distinct large glyph; docs/briefs use the same
+  // duotone document glyph as the home tiles (handled in the fallback below).
+  const BigTypeIcon = page.page_type === "pdf" ? FileIcon : page.page_type === "whiteboard" ? Whiteboard : null;
+  // word_count is supplied by the workspace pages list endpoint; absent until the API ships it.
+  const wordCount = (page as TPage & { word_count?: number }).word_count;
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -734,71 +738,44 @@ function DocCard({
   const card = (
     <div
       className={cn(
-        "group t-press relative flex h-[240px] flex-col gap-3 rounded-2xl border border-subtle bg-surface-1 p-4",
+        "group t-press relative flex h-[156px] flex-col items-center justify-center gap-3 rounded-2xl px-4 text-center transition-colors",
         {
-          "hover:border-strong": itemLink && !isProjectBrief,
-          "shadow-sm bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief,
-          "border-strong bg-layer-1": isSelected,
+          "bg-layer-1 hover:bg-layer-3": !isProjectBrief && !isSelected,
+          "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief && !isSelected,
+          "bg-layer-1 ring-1 ring-strong": isSelected,
           "opacity-60": !itemLink,
         }
       )}
     >
-      <div className="flex items-start gap-2.5">
-        <span
-          className={cn("relative grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary", {
-            "bg-accent-primary/10 text-accent-primary": isProjectBrief,
-          })}
-        >
-          {/* Format-type icon — fades out on hover to reveal the selection checkbox in its place */}
-          <span
-            className={cn("flex transition-opacity", {
-              "opacity-0": isSelected || isSelectionActive,
-              "group-focus-within:opacity-0 group-hover:opacity-0": !isSelected && !isSelectionActive,
-            })}
-          >
-            {page.logo_props?.in_use ? (
-              <Logo logo={page.logo_props} size={16} type="lucide" />
-            ) : (
-              <FallbackIcon className={cn("size-4 text-tertiary", { "text-accent-primary": isProjectBrief })} />
-            )}
-          </span>
-          {/* Selection toggle — fills the icon's box so the whole tile is the hit target on hover */}
-          {page.id && (
-            <button
-              type="button"
-              aria-label={isSelected ? "Deselect doc" : "Select doc"}
-              onClick={(e) => {
-                if (!page.id) return;
-                e.preventDefault();
-                e.stopPropagation();
-                onSelect(page.id, e.shiftKey);
-              }}
-              className={cn("absolute inset-0 grid place-items-center rounded-lg transition-opacity", {
-                "opacity-100": isSelected || isSelectionActive,
-                "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100":
-                  !isSelected && !isSelectionActive,
-              })}
-            >
-              <Checkbox
-                checked={isSelected}
-                readOnly
-                tabIndex={-1}
-                className="pointer-events-none size-3.5 !outline-none"
-                iconClassName="size-3"
-              />
-            </button>
+      {/* Selection checkbox — top-left, shown on hover or while a selection is active */}
+      {page.id && (
+        <button
+          type="button"
+          aria-label={isSelected ? "Deselect doc" : "Select doc"}
+          onClick={(e) => {
+            if (!page.id) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect(page.id, e.shiftKey);
+          }}
+          className={cn(
+            "absolute top-2 left-2 z-10 grid size-6 place-items-center rounded-lg bg-layer-2 transition-opacity hover:bg-layer-3",
+            {
+              "opacity-100": isSelected || isSelectionActive,
+              "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100": !isSelected && !isSelectionActive,
+            }
           )}
-        </span>
-        <div className="min-w-0 flex-1 pr-8">
-          <h3
-            className={cn("line-clamp-2 text-14 leading-snug font-medium text-primary", {
-              "text-accent-primary": isProjectBrief,
-            })}
-          >
-            {displayName}
-          </h3>
-        </div>
-      </div>
+        >
+          <Checkbox
+            checked={isSelected}
+            readOnly
+            tabIndex={-1}
+            className="pointer-events-none size-3.5 !outline-none"
+            iconClassName="size-3"
+          />
+        </button>
+      )}
+      {/* Actions menu — top-right, on hover */}
       {primaryProjectId && page.id && (
         <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
           <CustomMenu
@@ -807,8 +784,8 @@ function DocCard({
             closeOnSelect
             useCaptureForOutsideClick
             customButton={
-              <span className="shadow-sm grid size-6 place-items-center rounded-lg bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
-                <DetailIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
+              <span className="shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary">
+                <MoreHorizontal weight="Bold" className="size-4" />
               </span>
             }
           >
@@ -850,31 +827,31 @@ function DocCard({
           </CustomMenu>
         </div>
       )}
-      <div className="flex flex-1 flex-col">
-        {pdfMeta ? (
-          <div className="mt-1 flex flex-1 flex-col items-center justify-center gap-2 rounded-xl bg-layer-1/60 px-4 text-center">
-            <FileText className="size-7 text-tertiary" />
-            <div className="min-w-0">
-              <p className="line-clamp-2 text-12 font-medium text-secondary">{pdfMeta.name}</p>
-              <p className="mt-0.5 text-11 text-tertiary">{convertBytesToSize(pdfMeta.size)}</p>
-            </div>
-          </div>
-        ) : page.description_snippet ? (
-          <p className="line-clamp-4 text-12 leading-relaxed text-secondary">{page.description_snippet}</p>
+      {/* Big glyph — the doc's own logo, a type glyph for PDF/whiteboard, or the
+          duotone document glyph shared with the home tiles */}
+      <span className={cn("text-tertiary", { "text-accent-primary/70": isProjectBrief })}>
+        {page.logo_props?.in_use ? (
+          <Logo logo={page.logo_props} size={44} type="lucide" />
+        ) : BigTypeIcon ? (
+          <BigTypeIcon weight="BoldDuotone" className="size-14" />
         ) : (
-          <div className="mt-1 flex flex-1 items-center justify-center rounded-xl bg-layer-1/60 text-12 text-placeholder">
-            No content
-          </div>
+          <DocumentText weight="BoldDuotone" className="size-14" />
         )}
-      </div>
-      <div className="flex items-center gap-1.5 text-11 text-tertiary">
-        {primaryProject ? (
-          <span className="truncate rounded-lg bg-layer-1 px-1.5 py-0.5 text-secondary">{primaryProject.name}</span>
-        ) : (
-          <span className="text-placeholder">No project</span>
+      </span>
+      <div className="flex flex-col items-center gap-0.5 px-1">
+        <h3
+          className={cn(
+            "line-clamp-2 text-13 leading-snug font-medium text-secondary transition-colors group-hover:text-primary",
+            { "text-accent-primary": isProjectBrief }
+          )}
+        >
+          {displayName}
+        </h3>
+        {typeof wordCount === "number" && wordCount > 0 && (
+          <p className="text-11 text-placeholder">
+            {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
+          </p>
         )}
-        {projectIds.length > 1 && <span>+{projectIds.length - 1}</span>}
-        {page.updated_at && <span className="ml-auto shrink-0">{renderFormattedDate(page.updated_at)}</span>}
       </div>
     </div>
   );

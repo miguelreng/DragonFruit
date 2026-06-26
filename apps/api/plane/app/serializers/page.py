@@ -151,9 +151,10 @@ class WorkspacePageListSerializer(PageSerializer):
 
     SNIPPET_MAX_CHARS = 280
     description_snippet = serializers.SerializerMethodField()
+    word_count = serializers.SerializerMethodField()
 
     class Meta(PageSerializer.Meta):
-        fields = PageSerializer.Meta.fields + ["description_snippet"]
+        fields = PageSerializer.Meta.fields + ["description_snippet", "word_count"]
 
     def get_description_snippet(self, obj):
         text = obj.description_stripped or ""
@@ -163,6 +164,11 @@ class WorkspacePageListSerializer(PageSerializer):
         if len(text) <= self.SNIPPET_MAX_CHARS:
             return text
         return text[: self.SNIPPET_MAX_CHARS].rstrip() + "…"
+
+    def get_word_count(self, obj):
+        # Counts the full stripped body (not the truncated snippet) so the
+        # gallery can show an accurate length without a per-page fetch.
+        return len((obj.description_stripped or "").split())
 
 
 class PageVersionSerializer(BaseSerializer):

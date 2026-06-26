@@ -74,13 +74,13 @@ export const FavoritesSection = observer(function FavoritesSection() {
           <h3 className="text-14 font-semibold text-secondary">Favorites</h3>
         </div>
       </div>
-      <div className="rounded-[18px] border border-subtle bg-surface-1">
+      <div>
         {items.length === 0 ? (
-          <div className="px-3 py-6 text-center text-12 text-placeholder">
+          <div className="px-2 py-6 text-center text-12 text-placeholder">
             No favorites yet. Star a doc, project, list, cycle or module to pin it here.
           </div>
         ) : (
-          <ul className="divide-y divide-subtle">
+          <ul className="flex flex-col">
             {slug &&
               items.map((favorite) => <FavoriteRow key={favorite.id} workspaceSlug={slug} favorite={favorite} />)}
           </ul>

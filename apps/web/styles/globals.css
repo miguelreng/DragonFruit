@@ -684,30 +684,13 @@ a.public-doc-mention:hover {
   border-bottom-width: 1px !important;
 }
 
-/* Focus (zen) mode — the doc's scroll container takes over the viewport so
-   the app rail, header and toolbar disappear behind it. `position` can't
-   transition, so entering plays a fade/scale-in and leaving plays a short
-   settle fade (`.page-focus-mode-exit`, applied from editor-body.tsx). */
+/* Focus (zen) mode — stays IN the normal layout. The app rail, header and the
+   side-by-side editor + Atlas drawer keep the exact positions they have when
+   unfocused; focus mode no longer takes over the viewport. All it does now is
+   play a gentle settle-in and let the content-level styling (hidden TOC,
+   narrower measure, typewriter scroll) carry the distraction-free feel. */
 .page-focus-mode {
-  position: fixed;
-  inset: 0;
-  /* Strictly above the in-layout chrome — app rail (z-[26]), app header
-     (z-[18]), floating Ask Atlas button (z-20) and AI bar — instead of tying
-     the rail's 26 and winning only by DOM order. Stays below the editor's
-     bubble-menu tippy (z 90), floating-ui portals (z 99/100) and dialogs
-     (overlay z-90, panel z-100) so popovers and modals still paint on top. */
-  z-index: 40;
-  background-color: var(--bg-surface-1);
   animation: page-zen-enter 0.3s ease-out;
-}
-
-/* The Atlas chat drawer must stay usable over the zen canvas: below 1920px
-   it's an absolute z-30 overlay, and at >=1920px it drops into the layout
-   flow as `relative z-auto` (content-wrapper.tsx) — both would now sit under
-   the z-40 canvas. While focus mode is on, lift the open drawer just above
-   the canvas; editor popovers and dialogs (z-90+) still win. */
-body:has(.page-focus-mode) [data-atlas-drawer] {
-  z-index: 41;
 }
 
 .page-focus-mode-exit {
@@ -716,12 +699,10 @@ body:has(.page-focus-mode) [data-atlas-drawer] {
 
 @keyframes page-zen-enter {
   from {
-    opacity: 0;
-    transform: scale(0.99);
+    opacity: 0.4;
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -732,10 +713,6 @@ body:has(.page-focus-mode) [data-atlas-drawer] {
   to {
     opacity: 1;
   }
-}
-
-.page-focus-mode .page-header-container {
-  padding-top: 48px;
 }
 
 .page-focus-mode .page-summary-container {

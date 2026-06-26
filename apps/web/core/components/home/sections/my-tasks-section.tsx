@@ -169,11 +169,14 @@ type MyTasksSectionProps = {
   userId?: string;
   /** Hide the widget's "My tasks" title + icon + count (profile page uses the page title instead). */
   hideHeader?: boolean;
+  /** Drop the card chrome (border/bg) so the list sits flat on the page — used by the home. */
+  flat?: boolean;
 };
 
 export const MyTasksSection = observer(function MyTasksSection({
   userId: userIdProp,
   hideHeader = false,
+  flat = false,
 }: MyTasksSectionProps = {}) {
   const { workspaceSlug } = useParams();
   const searchParams = useSearchParams();
@@ -459,7 +462,7 @@ export const MyTasksSection = observer(function MyTasksSection({
           </div>
         </div>
       )}
-      <div className="rounded-[18px] border border-subtle bg-surface-1">
+      <div className={cn(!flat && "rounded-[18px] border border-subtle bg-surface-1")}>
         {isLoading ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
         ) : (

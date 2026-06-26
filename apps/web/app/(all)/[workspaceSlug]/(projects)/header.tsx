@@ -8,10 +8,10 @@ import { observer } from "mobx-react";
 // hooks
 import { useUser } from "@/hooks/store/user";
 // local imports
-import { HomeHeroHeader } from "./home-hero-header";
+import { HomeGreeting } from "./home-greeting";
 
 export const WorkspaceDashboardHeader = observer(function WorkspaceDashboardHeader() {
   const { data: currentUser } = useUser();
   if (!currentUser) return null;
-  return <HomeHeroHeader user={currentUser} />;
+  return <HomeGreeting user={currentUser} />;
 });

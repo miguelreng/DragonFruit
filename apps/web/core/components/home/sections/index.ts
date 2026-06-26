@@ -9,4 +9,5 @@ export * from "./agent-cost-section";
 export * from "./inbox-section";
 export * from "./my-tasks-section";
 export * from "./recent-activity-section";
+export * from "./recent-docs-section";
 export * from "./favorites-section";
