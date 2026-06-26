@@ -1,0 +1,421 @@
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@font-face {
+  font-family: Figtree;
+  src: url("./fonts/Figtree-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+:root {
+  /* A deep, neutral gallery wall so any aspect ratio reads as "framed". */
+  --wall: #0e0d0c;
+  --text-primary: rgba(255, 255, 255, 0.96);
+  --text-secondary: rgba(255, 255, 255, 0.72);
+  --text-tertiary: rgba(255, 255, 255, 0.46);
+  --accent: #ed5eb3;
+  --control-bg: rgba(255, 255, 255, 0.08);
+  --control-bg-hover: rgba(255, 255, 255, 0.16);
+  --control-border: rgba(255, 255, 255, 0.14);
+  --motion-fast: 200ms;
+  --motion-fade: 900ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Serif title gives the museum-plaque feel without shipping a font file. */
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: Figtree, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: var(--wall);
+  font: 14px/1.4 var(--sans);
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Blurred, dimmed copy of the artwork fills the frame edge-to-edge. */
+.backdrop {
+  position: absolute;
+  inset: -8%;
+  background-position: center;
+  background-size: cover;
+  filter: blur(48px) saturate(1.1) brightness(0.5);
+  opacity: 0;
+  transform: scale(1.06);
+  transition: opacity var(--motion-fade) var(--ease-standard);
+  will-change: opacity;
+}
+
+.backdrop.is-active {
+  opacity: 1;
+}
+
+/* The sharp piece, fully visible and centered over its own blur. */
+.artwork {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-width: 88vw;
+  max-height: 86vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 2px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 28px 70px -18px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  transform: scale(0.985);
+  transition:
+    opacity var(--motion-fade) var(--ease-standard),
+    transform var(--motion-fade) var(--ease-standard);
+  will-change: opacity, transform;
+}
+
+.artwork.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Keeps the bottom caption legible over light paintings. */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 32%),
+    radial-gradient(120% 120% at 50% 40%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.brand-link {
+  position: fixed;
+  top: 26px;
+  left: 30px;
+  display: block;
+  opacity: 0.42;
+  cursor: pointer;
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.brand-link:hover {
+  opacity: 0.7;
+}
+
+.brand-mark {
+  display: block;
+  width: 104px;
+  height: auto;
+  filter: brightness(0) invert(1);
+}
+
+.caption {
+  position: fixed;
+  bottom: 30px;
+  left: 30px;
+  margin: 0;
+  max-width: min(620px, 70vw);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--motion-fade) var(--ease-standard),
+    transform var(--motion-fade) var(--ease-standard);
+}
+
+.caption[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.caption figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.caption-title {
+  /* Cap the width so long titles wrap, and clamp to at most two lines. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  max-width: min(440px, 70vw);
+  color: var(--text-primary);
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.1px;
+  text-decoration: none;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.55);
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.caption-title:hover {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.caption-artist {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+}
+
+.caption-meta {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Hovering the title reveals a black glass panel with the painting's story. */
+.about {
+  position: relative;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.about-panel {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  width: min(420px, 76vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(9, 9, 11, 0.62);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+  box-shadow: 0 18px 50px -16px rgba(0, 0, 0, 0.85);
+  color: #fff;
+  opacity: 0;
+  transform: translateY(6px) scale(0.99);
+  transform-origin: bottom left;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+/* Invisible bridge so the cursor can cross the gap from title to panel. */
+.about-panel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -12px;
+  height: 12px;
+}
+
+.about:hover .about-panel,
+.about:focus-within .about-panel {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.about-story {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-shadow: none;
+}
+
+.about-source {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.about-facts-wrap {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.about-facts-label {
+  display: block;
+  margin-bottom: 9px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.about-facts {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-facts li {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.86);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.about-facts li b {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.shuffle {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
+  background: var(--control-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  opacity: 0.55;
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+.shuffle:hover {
+  opacity: 1;
+  background: var(--control-bg-hover);
+  color: var(--text-primary);
+}
+
+.shuffle:active {
+  transform: scale(0.92);
+}
+
+.shuffle:disabled {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.shuffle svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* The shuffle icon spins once while the next piece loads. */
+.shuffle[data-loading="true"] svg {
+  animation: spin 0.8s var(--ease-standard);
+}
+
+.spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.spinner[data-visible="true"] {
+  opacity: 1;
+  animation: spin 1s linear infinite;
+}
+
+.error {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  cursor: pointer;
+}
+
+.error-title {
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.error-hint {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .artwork,
+  .caption,
+  .about-panel {
+    transition-duration: 1ms;
+  }
+
+  .artwork {
+    transform: none;
+  }
+
+  .about:hover .about-panel,
+  .about:focus-within .about-panel {
+    transform: none;
+  }
+
+  .shuffle[data-loading="true"] svg,
+  .spinner[data-visible="true"] {
+    animation: none;
+  }
+}
