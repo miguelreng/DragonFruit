@@ -1415,6 +1415,9 @@ importers:
       '@plane/hooks':
         specifier: workspace:*
         version: link:../hooks
+      '@plane/icons':
+        specifier: workspace:*
+        version: link:../icons
       '@plane/types':
         specifier: workspace:*
         version: link:../types
