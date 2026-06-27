@@ -106,6 +106,9 @@ _TRIGGER_FRAMING = {
 
 _MAX_ITERATIONS_PER_RUN = 6
 _DEFAULT_TOOL_POLICY = "auto"
+_BRIEF_PAGE_NAME = "Project Brief"
+_BRIEF_CONTEXT_MAX_CHARS = 3000
+_DOC_READ_MAX_CHARS = 12000
 
 
 @shared_task(name="plane.bgtasks.agent_dispatch_task.dispatch_agent_event")
@@ -213,6 +216,8 @@ def _run_agent_loop(
         _make_change_state_tool(agent=agent, issue=issue, run=run),
         _make_add_label_tool(agent=agent, issue=issue, run=run),
         _make_search_issues_tool(agent=agent, issue=issue, run=run),
+        _make_search_docs_tool(agent=agent, run=run, workspace=issue.workspace, project=issue.project),
+        _make_read_doc_tool(agent=agent, run=run, workspace=issue.workspace, project=issue.project),
         _make_list_attachments_tool(agent=agent, issue=issue, run=run),
         _make_plan_next_steps_tool(agent=agent, issue=issue, run=run),
         _make_record_step_tool(run=run),
@@ -306,6 +311,8 @@ def _build_user_prompt(
         .order_by("-created_at")[:5]
         .values("actor__display_name", "actor__email", "comment_stripped")
     )
+    workspace_brief_context = _build_workspace_brief_context(workspace=issue.workspace)
+    project_brief_context = _build_project_brief_context(issue=issue)
 
     framing = _TRIGGER_FRAMING.get(trigger_event, _TRIGGER_FRAMING["assigned"])
 
@@ -315,10 +322,29 @@ def _build_user_prompt(
         f"Task: {issue.name}",
         f"State: {state_name}",
         f"Project: {issue.project.name}",
-        "",
-        "Description:",
-        desc if desc else "(no description)",
     ]
+    if workspace_brief_context or project_brief_context:
+        parts.append("")
+        parts.append(
+            "Brief guidance: treat these sections as standing context. Workspace Brief is the "
+            "baseline; Project Brief may add or override guidance for this project. When your "
+            "reply relies on a Brief, mention it naturally."
+        )
+    if workspace_brief_context:
+        parts.append("")
+        parts.append("Workspace Brief (workspace-wide context):")
+        parts.append(workspace_brief_context)
+    if project_brief_context:
+        parts.append("")
+        parts.append("Project Brief (standing instructions for this project):")
+        parts.append(project_brief_context)
+    parts.extend(
+        [
+            "",
+            "Description:",
+            desc if desc else "(no description)",
+        ]
+    )
     if available_states:
         parts.append("")
         parts.append(
@@ -547,6 +573,93 @@ def _build_memory_context_for_workspace(*, agent: Agent, workspace, limit: int =
         row.last_accessed_at = now
         row.save(update_fields=["use_count", "last_accessed_at", "updated_at"])
     return "\n".join(lines)
+
+
+def _clean_doc_text(value: Optional[str]) -> str:
+    text = (value or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not text:
+        return ""
+    return "\n".join(line.rstrip() for line in text.splitlines()).strip()
+
+
+def _truncate_doc_text(text: str, *, limit: int, marker: str) -> str:
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit].rstrip()}\n\n[{marker}]"
+
+
+def _doc_scope_queryset(*, workspace, project=None):
+    qs = Page.objects.filter(
+        workspace=workspace,
+        page_type=Page.PAGE_TYPE_DOC,
+        deleted_at__isnull=True,
+        archived_at__isnull=True,
+    )
+    if project is None:
+        return qs
+    return qs.filter(
+        Q(projects=project, project_pages__deleted_at__isnull=True)
+        | Q(project_pages__isnull=True)
+    ).distinct()
+
+
+def _get_workspace_brief_page(*, workspace) -> Optional[Page]:
+    return (
+        Page.objects.filter(
+            workspace=workspace,
+            page_type=Page.PAGE_TYPE_DOC,
+            is_brief=True,
+            deleted_at__isnull=True,
+            archived_at__isnull=True,
+            project_pages__isnull=True,
+        )
+        .order_by("-updated_at")
+        .first()
+    )
+
+
+def _get_project_brief_page(*, workspace, project) -> Optional[Page]:
+    return (
+        Page.objects.filter(
+            workspace=workspace,
+            page_type=Page.PAGE_TYPE_DOC,
+            deleted_at__isnull=True,
+            archived_at__isnull=True,
+            projects=project,
+            project_pages__deleted_at__isnull=True,
+        )
+        .filter(Q(is_brief=True) | Q(name=_BRIEF_PAGE_NAME))
+        .order_by("-is_brief", "-updated_at")
+        .first()
+    )
+
+
+def _get_page_project(page: Page):
+    link = (
+        page.project_pages.select_related("project")
+        .filter(deleted_at__isnull=True, project__archived_at__isnull=True)
+        .order_by("project__name")
+        .first()
+    )
+    return link.project if link else None
+
+
+def _format_brief_context(page: Optional[Page], *, max_chars: int = _BRIEF_CONTEXT_MAX_CHARS) -> str:
+    if page is None:
+        return ""
+    text = _clean_doc_text(page.description_stripped)
+    if not text:
+        return ""
+    marker = f"truncated from {page.name or 'Brief'}; use read_doc(page_id='{page.id}') for the full text"
+    return _truncate_doc_text(text, limit=max_chars, marker=marker)
+
+
+def _build_workspace_brief_context(*, workspace) -> str:
+    return _format_brief_context(_get_workspace_brief_page(workspace=workspace))
+
+
+def _build_project_brief_context(*, issue: Issue) -> str:
+    return _format_brief_context(_get_project_brief_page(workspace=issue.workspace, project=issue.project))
 
 
 def _make_post_comment_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LLMTool:
@@ -867,6 +980,111 @@ def _make_search_issues_tool(*, agent: Agent, issue: Issue, run: AgentRun) -> LL
                 "limit": {"type": "integer", "minimum": 1, "maximum": 20},
             },
             "required": ["query"],
+        },
+        handler=handler,
+    )
+
+
+def _make_search_docs_tool(*, agent: Agent, run: AgentRun, workspace, project=None) -> LLMTool:
+    """Search docs scoped to the current workspace and, when available, project."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        query = (args.get("query") or "").strip()
+        limit_raw = args.get("limit", 5)
+        try:
+            limit = max(1, min(int(limit_raw), 20))
+        except Exception:  # noqa: BLE001
+            limit = 5
+
+        if not query:
+            return "tool_error: pass a non-empty `query`"
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        rows = (
+            _doc_scope_queryset(workspace=workspace, project=project)
+            .filter(Q(name__icontains=query) | Q(description_stripped__icontains=query))
+            .order_by("-updated_at")[:limit]
+        )
+        payload = []
+        for row in rows:
+            snippet = _clean_doc_text(row.description_stripped)
+            if len(snippet) > 240:
+                snippet = snippet[:240].rstrip() + "..."
+            payload.append(
+                {
+                    "id": str(row.id),
+                    "title": row.name,
+                    "is_brief": row.is_brief or row.name == _BRIEF_PAGE_NAME,
+                    "snippet": snippet,
+                }
+            )
+        return json.dumps(payload, cls=DjangoJSONEncoder)
+
+    return LLMTool(
+        name="search_docs",
+        description=(
+            "Search project/workspace docs by free text query. Returns doc titles, ids, and short "
+            "snippets. Use read_doc with an id when you need the full plain-text content."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+            },
+            "required": ["query"],
+        },
+        handler=handler,
+    )
+
+
+def _make_read_doc_tool(*, agent: Agent, run: AgentRun, workspace, project=None) -> LLMTool:
+    """Read full plain-text content for a scoped doc page."""
+
+    def handler(args: Dict[str, Any]) -> str:
+        page_id = (args.get("page_id") or args.get("id") or "").strip()
+        if not page_id:
+            return "tool_error: pass `page_id`"
+        if _is_cancelled(run.id):
+            return "tool_error: this run was cancelled by an admin; do not retry"
+
+        page = _doc_scope_queryset(workspace=workspace, project=project).filter(pk=page_id).first()
+        if page is None:
+            return "tool_error: doc not found in this run's workspace/project scope"
+
+        text = _clean_doc_text(page.description_stripped) or "(empty)"
+        truncated = len(text) > _DOC_READ_MAX_CHARS
+        if truncated:
+            text = _truncate_doc_text(
+                text,
+                limit=_DOC_READ_MAX_CHARS,
+                marker="truncated for tool response budget",
+            )
+        return json.dumps(
+            {
+                "id": str(page.id),
+                "title": page.name,
+                "is_brief": page.is_brief or page.name == _BRIEF_PAGE_NAME,
+                "content": text,
+                "truncated": truncated,
+            },
+            cls=DjangoJSONEncoder,
+        )
+
+    return LLMTool(
+        name="read_doc",
+        description=(
+            "Read the plain-text body of a doc by id, scoped to this run's workspace/project. "
+            "Use this when the prompt says Brief content was truncated or when search_docs finds "
+            "a relevant spec."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "page_id": {"type": "string"},
+            },
+            "required": ["page_id"],
         },
         handler=handler,
     )
@@ -1311,6 +1529,10 @@ def _execute_approved_tool(
         "add_label": lambda: _make_add_label_tool(agent=agent, issue=issue, run=run),
         "post_comment": lambda: _make_post_comment_tool(agent=agent, issue=issue, run=run),
         "search_issues": lambda: _make_search_issues_tool(agent=agent, issue=issue, run=run),
+        "search_docs": lambda: _make_search_docs_tool(
+            agent=agent, run=run, workspace=issue.workspace, project=issue.project
+        ),
+        "read_doc": lambda: _make_read_doc_tool(agent=agent, run=run, workspace=issue.workspace, project=issue.project),
         "list_attachments": lambda: _make_list_attachments_tool(agent=agent, issue=issue, run=run),
         "plan_next_steps": lambda: _make_plan_next_steps_tool(agent=agent, issue=issue, run=run),
         "record_step": lambda: _make_record_step_tool(run=run),
@@ -1607,11 +1829,13 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
         return
 
     page = page_comment.page
+    page_project = _get_page_project(page)
     memory_context = _build_memory_context_for_workspace(agent=agent, workspace=page.workspace)
     user_prompt = _build_page_comment_user_prompt(
         page_comment=page_comment,
         trigger_event=trigger_event,
         memory_context=memory_context,
+        project=page_project,
     )
     # Fixed personality (see _DEFAULT_SYSTEM_PROMPT) — ignore per-workspace override.
     system_prompt = _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT
@@ -1620,6 +1844,8 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
         _make_record_step_tool(run=run),
         _make_remember_memory_tool(agent=agent, run=run),
         _make_search_memory_tool(agent=agent, run=run),
+        _make_search_docs_tool(agent=agent, run=run, workspace=page.workspace, project=page_project),
+        _make_read_doc_tool(agent=agent, run=run, workspace=page.workspace, project=page_project),
     ]
     tools = _apply_tool_policies(agent=agent, tools=base_tools)
 
@@ -1663,7 +1889,7 @@ _DEFAULT_PAGE_COMMENT_SYSTEM_PROMPT = (
 
 
 def _build_page_comment_user_prompt(
-    *, page_comment: PageBlockComment, trigger_event: str, memory_context: str = ""
+    *, page_comment: PageBlockComment, trigger_event: str, memory_context: str = "", project=None
 ) -> str:
     page = page_comment.page
     framing = (
@@ -1680,18 +1906,44 @@ def _build_page_comment_user_prompt(
         .order_by("created_at")
         .select_related("created_by")[:10]
     )
+    workspace_brief_context = _build_workspace_brief_context(workspace=page.workspace)
+    project_brief_context = (
+        _format_brief_context(_get_project_brief_page(workspace=page.workspace, project=project))
+        if project is not None
+        else ""
+    )
 
     parts = [
         framing,
         "",
         f"Page: {page.name}",
+        f"Project: {project.name if project else '(no project)'}",
         f"Workspace: {page.workspace.name if page.workspace else '(no workspace)'}",
-        "",
-        "Page excerpt (first 800 chars):",
-        (page.description_stripped or "(empty)")[:800],
-        "",
-        f"Thread ({len(thread)} comment{'s' if len(thread) != 1 else ''}, newest last):",
     ]
+    if workspace_brief_context or project_brief_context:
+        parts.append("")
+        parts.append(
+            "Brief guidance: treat these sections as standing context. Workspace Brief is the "
+            "baseline; Project Brief may add or override guidance for this project. When your "
+            "reply relies on a Brief, mention it naturally."
+        )
+    if workspace_brief_context:
+        parts.append("")
+        parts.append("Workspace Brief (workspace-wide context):")
+        parts.append(workspace_brief_context)
+    if project_brief_context:
+        parts.append("")
+        parts.append("Project Brief (standing instructions for this project):")
+        parts.append(project_brief_context)
+    parts.extend(
+        [
+            "",
+            "Page excerpt (first 800 chars):",
+            (page.description_stripped or "(empty)")[:800],
+            "",
+            f"Thread ({len(thread)} comment{'s' if len(thread) != 1 else ''}, newest last):",
+        ]
+    )
     for c in thread:
         who = (
             (c.created_by.display_name or c.created_by.email)

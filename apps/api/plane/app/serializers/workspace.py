@@ -252,6 +252,7 @@ class PageRecentVisitSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "logo_props",
+            "is_brief",
             "project_id",
             "owned_by",
             "project_identifier",

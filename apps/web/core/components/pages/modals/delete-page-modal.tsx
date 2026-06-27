@@ -35,7 +35,7 @@ export const DeletePageModal = observer(function DeletePageModal(props: TConfirm
   const { removePage } = usePageStore(storeType);
 
   // derived values
-  const { id: pageId } = page;
+  const { id: pageId, name } = page;
   const isProjectBrief = isBriefPage(page);
 
   const handleClose = () => {

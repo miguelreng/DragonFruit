@@ -3,6 +3,18 @@
 from django.db import migrations, models
 
 
+BRIEF_PAGE_NAME = "Project Brief"
+
+
+def backfill_brief_pages(apps, schema_editor):
+    Page = apps.get_model("db", "Page")
+    Page.objects.filter(page_type="doc", name=BRIEF_PAGE_NAME, deleted_at__isnull=True).update(is_brief=True)
+
+
+def noop(apps, schema_editor):
+    return None
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("db", "0156_sticky_project"),
@@ -14,4 +26,5 @@ class Migration(migrations.Migration):
             name="is_brief",
             field=models.BooleanField(db_index=True, default=False),
         ),
+        migrations.RunPython(backfill_brief_pages, noop),
     ]

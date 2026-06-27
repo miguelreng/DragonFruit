@@ -480,6 +480,99 @@ def _make_agent_and_issue(workspace, bot_user):
 
 
 @pytest.mark.contract
+class TestAgentBriefContext:
+    @pytest.mark.django_db
+    def test_build_user_prompt_injects_workspace_and_project_briefs(self, workspace, create_bot_user, create_user):
+        from plane.bgtasks.agent_dispatch_task import _build_user_prompt
+
+        _agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        workspace_brief = Page.objects.create(
+            name="Workspace Brief",
+            workspace=workspace,
+            owned_by=create_user,
+            page_type=Page.PAGE_TYPE_DOC,
+            is_brief=True,
+            description_html="<p>Workspace convention: ship changes on Fridays.</p>",
+        )
+        project_brief = Page.objects.create(
+            name="Renamed Team Context",
+            workspace=workspace,
+            owned_by=create_user,
+            page_type=Page.PAGE_TYPE_DOC,
+            is_brief=True,
+            description_html="<p>Project rule: add the triage label to new bugs.</p>",
+        )
+        ProjectPage.objects.create(project=issue.project, page=project_brief, workspace=workspace)
+
+        prompt = _build_user_prompt(issue)
+
+        assert "Workspace Brief (workspace-wide context):" in prompt
+        assert "Workspace convention: ship changes on Fridays." in prompt
+        assert "Project Brief (standing instructions for this project):" in prompt
+        assert "Project rule: add the triage label to new bugs." in prompt
+        assert str(workspace_brief.id) not in prompt
+
+    @pytest.mark.django_db
+    def test_build_user_prompt_truncates_project_brief_with_read_doc_marker(
+        self, workspace, create_bot_user, create_user
+    ):
+        from plane.bgtasks.agent_dispatch_task import _build_user_prompt
+
+        _agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        project_brief = Page.objects.create(
+            name="Project Brief",
+            workspace=workspace,
+            owned_by=create_user,
+            page_type=Page.PAGE_TYPE_DOC,
+            description_html=f"<p>{'A' * 3600}</p>",
+        )
+        ProjectPage.objects.create(project=issue.project, page=project_brief, workspace=workspace)
+
+        prompt = _build_user_prompt(issue)
+
+        assert "Project Brief (standing instructions for this project):" in prompt
+        assert "truncated from Project Brief" in prompt
+        assert f"read_doc(page_id='{project_brief.id}')" in prompt
+
+    @pytest.mark.django_db
+    def test_doc_tools_are_scoped_to_current_project(self, workspace, create_bot_user, create_user):
+        from plane.bgtasks.agent_dispatch_task import _make_read_doc_tool, _make_search_docs_tool
+        from plane.db.models import AgentRun, Project
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        in_scope = Page.objects.create(
+            name="Launch Spec",
+            workspace=workspace,
+            owned_by=create_user,
+            page_type=Page.PAGE_TYPE_DOC,
+            description_html="<p>Launch checklist lives here.</p>",
+        )
+        ProjectPage.objects.create(project=issue.project, page=in_scope, workspace=workspace)
+        other_project = Project.objects.create(name="Other", identifier="OT", workspace=workspace, network=0)
+        out_of_scope = Page.objects.create(
+            name="Launch Secret",
+            workspace=workspace,
+            owned_by=create_user,
+            page_type=Page.PAGE_TYPE_DOC,
+            description_html="<p>Out of scope.</p>",
+        )
+        ProjectPage.objects.create(project=other_project, page=out_of_scope, workspace=workspace)
+        run = AgentRun.objects.create(agent=agent, issue=issue, trigger_event="assigned", status="running")
+
+        search_tool = _make_search_docs_tool(agent=agent, run=run, workspace=workspace, project=issue.project)
+        read_tool = _make_read_doc_tool(agent=agent, run=run, workspace=workspace, project=issue.project)
+
+        search_payload = search_tool.handler({"query": "Launch"})
+        read_payload = read_tool.handler({"page_id": str(in_scope.id)})
+        out_of_scope_payload = read_tool.handler({"page_id": str(out_of_scope.id)})
+
+        assert "Launch Spec" in search_payload
+        assert "Launch Secret" not in search_payload
+        assert "Launch checklist lives here." in read_payload
+        assert "doc not found" in out_of_scope_payload
+
+
+@pytest.mark.contract
 class TestAgentResumeAPI:
     """Tests for the pausable/resumable agent run flow (plan 017)."""
 
