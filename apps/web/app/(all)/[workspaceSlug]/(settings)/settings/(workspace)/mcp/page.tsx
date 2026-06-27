@@ -17,7 +17,6 @@ import { CreateApiTokenModal } from "@/components/api-token/modal/create-token-m
 import { ApiTokenListItem } from "@/components/api-token/token-list-item";
 import { Copy, ExternalLink } from "@/components/icons/lucide-shim";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-import { SettingsHeading } from "@/components/settings/heading";
 // constants
 import { API_TOKENS_LIST } from "@/constants/fetch-keys";
 // local
@@ -91,7 +90,7 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
 // Compact create/list panel for personal API tokens, reusing the same
 // service + modal as Settings → API Tokens so tokens minted here show
 // up there (and vice versa) without any extra state.
-function ApiTokensPanel() {
+function ApiTokensPanel({ tokensHref }: { tokensHref: string }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { data: tokens, error } = useSWR(API_TOKENS_LIST, () => apiTokenService.list());
 
@@ -107,7 +106,7 @@ function ApiTokensPanel() {
       {error ? (
         <p className="text-caption-sm mt-2 text-tertiary">
           Couldn't load your tokens. Try again, or manage them on{" "}
-          <Link href="/settings/profile/api-tokens/" className="underline underline-offset-2 hover:text-primary">
+          <Link href={tokensHref} className="underline underline-offset-2 hover:text-primary">
             Settings → API Tokens
           </Link>
           .
@@ -143,9 +142,9 @@ function MCPSettingsPage({ params }: Route.ComponentProps) {
   });
   const mcpUrl = useMemo(() => `${origin}/api/workspaces/${slug}/mcp/`, [origin, slug]);
   const readOnlyMcpUrl = useMemo(() => `${origin}/api/workspaces/${slug}/mcp/read-only/`, [origin, slug]);
-  // Personal API tokens live under profile settings (the old
+  // Personal API tokens live under account settings (the old
   // /:workspaceSlug/settings/api-tokens URL redirects here too).
-  const tokensHref = "/settings/profile/api-tokens/";
+  const tokensHref = `/${slug}/settings/account/api-tokens/`;
 
   const claudeCodeSnippet = `claude mcp add dragon-fruit \\
   --transport http \\
@@ -188,18 +187,8 @@ DRAGONFRUIT_AUTHORIZATION="Bearer HERMES_READ_ONLY_API_TOKEN"`;
 
   return (
     <SettingsContentWrapper header={<MCPWorkspaceSettingsHeader />}>
-      <div className="w-full max-w-3xl">
-        <SettingsHeading
-          title="MCP — Model Context Protocol"
-          description={
-            <span>
-              MCP is the standard protocol AI tools use to talk to each other. DragonFruit speaks it in both directions
-              — and each direction has its own home in Settings.
-            </span>
-          }
-        />
-
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="w-full">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-subtle bg-layer-1 p-3">
             <h4 className="text-caption-md-medium text-primary">Give Atlas tools from external services</h4>
             <p className="text-caption-sm mt-0.5 text-tertiary">
@@ -248,7 +237,7 @@ DRAGONFRUIT_AUTHORIZATION="Bearer HERMES_READ_ONLY_API_TOKEN"`;
               bot user if you want agent-style attribution.
             </p>
             <div className="mt-2">
-              <ApiTokensPanel />
+              <ApiTokensPanel tokensHref={tokensHref} />
             </div>
           </Step>
 

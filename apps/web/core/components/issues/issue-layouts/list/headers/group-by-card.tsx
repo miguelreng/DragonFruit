@@ -112,7 +112,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
             />
           </div>
         )}
-        <div className="grid flex-shrink-0 place-items-center text-secondary">
+        <div className="absolute left-1 grid w-3.5 flex-shrink-0 place-items-center text-secondary">
           {icon ?? <CircleDashed className="size-3.5" strokeWidth={2} />}
         </div>
 

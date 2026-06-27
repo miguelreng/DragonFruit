@@ -3,16 +3,23 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+import { Collapse } from "@/components/common/collapse";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { Link } from "react-router";
 import useSWR, { useSWRConfig } from "swr";
-import { Archive as Archive02Icon, Copy as Copy01Icon, ExternalLink as LinkSquare01Icon, MoreHorizontal, Trash as Delete02Icon } from "@/components/icons/lucide-shim";
+import {
+  Archive as Archive02Icon,
+  Copy as Copy01Icon,
+  ExternalLink as LinkSquare01Icon,
+  MoreHorizontal,
+  Trash as Delete02Icon,
+} from "@/components/icons/lucide-shim";
 import { List as ListBullets, LayoutGrid as SquaresFour } from "@/components/icons/lucide-shim";
 import { ChevronDown, File as FileIcon, FileText, Folder, Search, Whiteboard, X } from "@/components/icons/lucide-shim";
-import { Button } from "@plane/propel/button";
+import { Button, getButtonStyling } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@/components/icons/propel-shim";
@@ -24,6 +31,7 @@ import { cn, convertBytesToSize, copyUrlToClipboard, getPageName, renderFormatte
 import { EPageAccess } from "@plane/types";
 import type { TPage, TPageType } from "@plane/types";
 import { AppHeader } from "@/components/core/app-header";
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ListLayout, ListItem } from "@/components/core/list";
 import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
@@ -131,6 +139,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   // The last single-toggled doc; shift-click selects the range from here to the target.
   const [anchorDocId, setAnchorDocId] = useState<string | null>(null);
   const activePageTypes = useMemo(() => (pageTypes?.length ? pageTypes : [pageType]), [pageType, pageTypes]);
+  const isWhiteboardSurface = activePageTypes.every((type) => type === "whiteboard");
   const pageTypesKey = activePageTypes.join("_");
   const requestPageType = activePageTypes.length === 1 ? activePageTypes[0] : undefined;
   const pagesKey = `WORKSPACE_PAGES_${workspaceSlug}_${pageTypesKey}`;
@@ -159,6 +168,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         (p) =>
           (showArchived ? Boolean(p.archived_at) : !p.archived_at) &&
           activePageTypes.includes(p.page_type ?? "doc") &&
+          !isBriefPageName(p.name) &&
           (!scopeProjectId || (p.project_ids ?? []).includes(scopeProjectId))
       ),
     [activePageTypes, pages, scopeProjectId, showArchived]
@@ -253,9 +263,10 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     showArchived;
   const isSelectionActive = selectedDocIds.length > 0;
 
-  const pillBase = "rounded-full px-2.5 py-0.5 text-12 font-medium transition-colors";
-  const pillActive = "bg-accent-subtle text-accent-primary";
-  const pillInactive = "bg-layer-1 text-tertiary hover:text-secondary";
+  // Filter triggers use the same secondary button as the rest of the bar.
+  const pillBase = getButtonStyling("secondary", "lg");
+  const pillActive = "text-accent-primary";
+  const pillInactive = "";
   const projectFilterPillLabel = useMemo(() => {
     if (selectedProjectIds.length === 0) return "Project";
     if (selectedProjectIds.length > 1) return `${selectedProjectIds.length} projects`;
@@ -281,10 +292,14 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const headerNode = (
     <Header>
       <Header.LeftItem>
-        <Breadcrumbs className="flex-grow-0">
-          <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} />} />
-        </Breadcrumbs>
-        <span className="text-13 text-tertiary">{visiblePages.length}</span>
+        <div className="flex items-center gap-1.5">
+          <Breadcrumbs className="flex-grow-0">
+            <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} />} />
+          </Breadcrumbs>
+          <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
+            {visiblePages.length}
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {!scopeProjectId && (
             <FiltersDropdown
@@ -361,19 +376,25 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
 
   if (isLoading)
     return (
-      <>
-        <AppHeader header={headerNode} showContentEdgeFade />
-        <PageLoader />
-      </>
+      <div className="flex h-full w-full flex-col overflow-hidden">
+        <AppHeader header={headerNode} />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <PageLoader />
+        </div>
+      </div>
     );
 
+  // Column shell: the AppHeader is pinned (shrink-0) and the content fills the
+  // rest as the single scroller. Filling the parent exactly means the wrapping
+  // ContentWrapper never overflows, so the header can't drift on over-scroll.
   return (
-    <>
-      <AppHeader header={headerNode} showContentEdgeFade />
-      <div className="relative flex h-full w-full flex-col overflow-hidden">
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      <AppHeader header={headerNode} />
+      <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
         {filteredPages.length === 0 ? (
           <EmptyStateDetailed
-            assetKey={hasFilters ? "search" : "page"}
+            assetKey={hasFilters ? "search" : undefined}
+            asset={hasFilters ? undefined : <EmptyStateIcon name={isWhiteboardSurface ? "whiteboards" : "docs"} />}
             title={
               hasFilters
                 ? (labels?.filteredEmptyTitle ?? "No docs match your filters")
@@ -386,7 +407,10 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
             }
           />
         ) : viewMode === "grid" ? (
-          <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
+          /* Reserve the scrollbar gutter on BOTH edges so the 16px scrollbar
+             doesn't make the right margin wider than the left — content stays
+             centered (net ~20px each side, aligned with the header). */
+          <div className="scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
             <div
               className={cn(
                 "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3",
@@ -435,7 +459,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           />
         )}
       </div>
-    </>
+    </div>
   );
 });
 
@@ -1255,7 +1279,7 @@ function TypeFilterSection({ availableTypes, appliedFilters, onToggle, onClear }
   const [previewEnabled, setPreviewEnabled] = useState(true);
 
   return (
-    <div className="flex flex-col px-2 pt-2">
+    <div className="flex flex-col px-2 py-2">
       <FilterHeader
         title={`Type${appliedFilters.length > 0 ? ` (${appliedFilters.length})` : ""}`}
         isPreviewEnabled={previewEnabled}
@@ -1312,13 +1336,13 @@ function AccessFilterSection({
   const appliedCount = appliedFilters.length + (showArchived ? 1 : 0);
 
   return (
-    <div className="flex flex-col px-2 pt-2">
+    <div className="flex flex-col px-2 py-2">
       <FilterHeader
         title={`Access${appliedCount > 0 ? ` (${appliedCount})` : ""}`}
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />
-      {previewEnabled && (
+      <Collapse open={previewEnabled}>
         <>
           {ACCESS_FILTER_OPTIONS.map((option) => (
             <FilterOption
@@ -1344,7 +1368,7 @@ function AccessFilterSection({
             </button>
           )}
         </>
-      )}
+      </Collapse>
     </div>
   );
 }

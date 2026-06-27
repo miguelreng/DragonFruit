@@ -105,8 +105,8 @@ export const ProjectHeader = observer(function ProjectHeader(props: TProjectHead
       value={currentProjectDetails.id}
       onChange={handleProjectChange}
       customButton={currentProjectDetails ? <ProjectHeaderButton project={currentProjectDetails} /> : null}
-      className="h-full rounded"
-      customButtonClassName="group flex items-center gap-0.5 rounded-lg hover:bg-surface-2 outline-none cursor-pointer h-full"
+      className="rounded"
+      customButtonClassName="group flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-layer-transparent-hover outline-none cursor-pointer"
     />
   );
 });

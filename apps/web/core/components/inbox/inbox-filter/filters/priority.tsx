@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+import { Collapse } from "@/components/common/collapse";
 
 import { useState } from "react";
 import { observer } from "mobx-react";
@@ -42,7 +43,7 @@ export const FilterPriority = observer(function FilterPriority(props: Props) {
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />
-      {previewEnabled && (
+      <Collapse open={previewEnabled}>
         <div>
           {filteredOptions.length > 0 ? (
             filteredOptions.map((priority) => (
@@ -58,7 +59,7 @@ export const FilterPriority = observer(function FilterPriority(props: Props) {
             <p className="text-11 text-placeholder italic">{t("common.search.no_matches_found")}</p>
           )}
         </div>
-      )}
+      </Collapse>
     </>
   );
 });

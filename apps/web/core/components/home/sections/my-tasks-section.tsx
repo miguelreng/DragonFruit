@@ -7,10 +7,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, useSearchParams } from "next/navigation";
+import { useSearchParams as useRouterSearchParams } from "react-router";
 import { TOAST_TYPE, dismissToast, setToast } from "@plane/propel/toast";
 import type { TBaseIssue, TIssuesResponse } from "@plane/types";
 import { cn, createIssuePayload, getDate, renderFormattedPayloadDate } from "@plane/utils";
-import { ChevronRight } from "@/components/icons/lucide-shim";
+import { Collapse } from "@/components/common/collapse";
+import { ChevronDown, ChevronUp } from "@/components/icons/lucide-shim";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { useUser } from "@/hooks/store/user";
 import { useLabel } from "@/hooks/store/use-label";
@@ -93,7 +95,11 @@ function buildForest(issues: TBaseIssue[], openIds: Set<string>): Forest {
     else entriesByProject.set(key, [entry]);
   };
 
-  const visit = (issue: TBaseIssue, depth: number, ancestorIds: string[]): { height: number; descendants: Set<string> } => {
+  const visit = (
+    issue: TBaseIssue,
+    depth: number,
+    ancestorIds: string[]
+  ): { height: number; descendants: Set<string> } => {
     depthById.set(issue.id, depth);
     const entry: ForestEntry = { issue, depth, height: 0, ancestorIds };
     pushEntry(entry);
@@ -137,6 +143,7 @@ export const MyTasksSection = observer(function MyTasksSection({
 }: MyTasksSectionProps = {}) {
   const { workspaceSlug } = useParams();
   const searchParams = useSearchParams();
+  const [, setRouterSearchParams] = useRouterSearchParams();
   const { data: currentUser } = useUser();
   const { getStateById, getProjectStates, fetchWorkspaceStates, fetchProjectStates } = useProjectState();
   const { getProjectById, joinedProjectIds } = useProject();
@@ -233,7 +240,11 @@ export const MyTasksSection = observer(function MyTasksSection({
         });
         mutate();
       } catch {
-        setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't undo", message: "Something went wrong. Please try again." });
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Couldn't undo",
+          message: "Something went wrong. Please try again.",
+        });
       }
     },
     [slug, mutate]
@@ -344,9 +355,9 @@ export const MyTasksSection = observer(function MyTasksSection({
       // typed `/project` token wins, then the composer's project, then the add-row default.
       const targetProjectId = opts?.parentId
         ? opts.projectId
-        : (parsed.projectName ? resolveProjectId(parsed.projectName) : undefined) ??
+        : ((parsed.projectName ? resolveProjectId(parsed.projectName) : undefined) ??
           opts?.projectId ??
-          resolvedAddProjectId;
+          resolvedAddProjectId);
       if (!targetProjectId) {
         setToast({
           type: TOAST_TYPE.ERROR,
@@ -494,22 +505,27 @@ export const MyTasksSection = observer(function MyTasksSection({
   }, []);
 
   // Indent a task under its preceding sibling at the same level (Tab). Capped at MAX_TASK_DEPTH.
-  const indentTask = useCallback((issue: TBaseIssue) => {
-    const f = forestRef.current;
-    if (!f) return;
-    const depth = f.depthById.get(issue.id) ?? 0;
-    const height = f.heightById.get(issue.id) ?? 0;
-    if (depth + 1 + height > MAX_TASK_DEPTH) return;
-    const effParent = issue.parent_id && f.byId.has(issue.parent_id) ? issue.parent_id : null;
-    const siblingsRaw = effParent
-      ? (f.childrenByParent.get(effParent) ?? [])
-      : f.allEntries.filter((e) => e.depth === 0 && (e.issue.project_id ?? null) === (issue.project_id ?? null)).map((e) => e.issue);
-    const siblings = sortIssues(siblingsRaw);
-    const idx = siblings.findIndex((i) => i.id === issue.id);
-    const prev = idx > 0 ? siblings[idx - 1] : undefined;
-    if (!prev) return;
-    nestTask(issue.id, prev.id);
-  }, [nestTask]);
+  const indentTask = useCallback(
+    (issue: TBaseIssue) => {
+      const f = forestRef.current;
+      if (!f) return;
+      const depth = f.depthById.get(issue.id) ?? 0;
+      const height = f.heightById.get(issue.id) ?? 0;
+      if (depth + 1 + height > MAX_TASK_DEPTH) return;
+      const effParent = issue.parent_id && f.byId.has(issue.parent_id) ? issue.parent_id : null;
+      const siblingsRaw = effParent
+        ? (f.childrenByParent.get(effParent) ?? [])
+        : f.allEntries
+            .filter((e) => e.depth === 0 && (e.issue.project_id ?? null) === (issue.project_id ?? null))
+            .map((e) => e.issue);
+      const siblings = sortIssues(siblingsRaw);
+      const idx = siblings.findIndex((i) => i.id === issue.id);
+      const prev = idx > 0 ? siblings[idx - 1] : undefined;
+      if (!prev) return;
+      nestTask(issue.id, prev.id);
+    },
+    [nestTask]
+  );
 
   const handleTaskEnter = useCallback(
     (issue: TBaseIssue) => {
@@ -526,10 +542,27 @@ export const MyTasksSection = observer(function MyTasksSection({
     [isOwnList, collapsedProjectIds, setCollapsedProjectIds, openIds]
   );
 
+  // Toggle the list's label filter (same `?label=<id>` the header pills drive).
+  const onFilterLabel = useCallback(
+    (labelId: string) => {
+      setRouterSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (next.get("label") === labelId) next.delete("label");
+          else next.set("label", labelId);
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setRouterSearchParams]
+  );
+
   const rowOps: TaskRowOps = useMemo(
     () => ({
       isOwnList,
       todayStart,
+      activeLabelId: activeLabel,
       getLabelById: (id) => labelById.get(id),
       onComplete: handleComplete,
       onSave: updateTask,
@@ -537,8 +570,21 @@ export const MyTasksSection = observer(function MyTasksSection({
       onIndent: indentTask,
       onOutdent: outdentTask,
       onNest: nestTask,
+      onFilterLabel,
     }),
-    [isOwnList, todayStart, labelById, handleComplete, updateTask, handleTaskEnter, indentTask, outdentTask, nestTask]
+    [
+      isOwnList,
+      todayStart,
+      activeLabel,
+      labelById,
+      handleComplete,
+      updateTask,
+      handleTaskEnter,
+      indentTask,
+      outdentTask,
+      nestTask,
+      onFilterLabel,
+    ]
   );
 
   const renderRow = (entry: ForestEntry, showProject: boolean) => (
@@ -568,15 +614,17 @@ export const MyTasksSection = observer(function MyTasksSection({
           if (bucket) bucket.push(issue);
           else byProject.set(key, [issue]);
         }
-        return [...byProject.entries()]
-          .map(([projectId, issues]) => ({
-            projectId,
-            name: getProjectById(projectId)?.name ?? "Other",
-            issues,
-          }))
-          // Sorting a freshly mapped array — no external mutation.
-          // oxlint-disable-next-line unicorn/no-array-sort
-          .sort((a, b) => a.name.localeCompare(b.name));
+        return (
+          [...byProject.entries()]
+            .map(([projectId, issues]) => ({
+              projectId,
+              name: getProjectById(projectId)?.name ?? "Other",
+              issues,
+            }))
+            // Sorting a freshly mapped array — no external mutation.
+            // oxlint-disable-next-line unicorn/no-array-sort
+            .sort((a, b) => a.name.localeCompare(b.name))
+        );
       })()
     : [];
 
@@ -621,18 +669,17 @@ export const MyTasksSection = observer(function MyTasksSection({
                           aria-expanded={!isCollapsed}
                           className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1.5 text-left transition hover:bg-layer-transparent-hover"
                         >
-                          <ChevronRight
-                            className={cn(
-                              "size-3 flex-shrink-0 text-tertiary transition-transform",
-                              !isCollapsed && "rotate-90"
-                            )}
-                          />
+                          {isCollapsed ? (
+                            <ChevronUp className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
+                          ) : (
+                            <ChevronDown className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
+                          )}
                           <span className="truncate text-14 font-semibold text-secondary">{group.name}</span>
                           <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
                             {group.issues.length}
                           </span>
                         </button>
-                        {!isCollapsed && (
+                        <Collapse open={!isCollapsed}>
                           <ul className="pb-1">
                             {(forest.entriesByProject.get(group.projectId) ?? []).map((entry) =>
                               renderRow(entry, false)
@@ -649,7 +696,7 @@ export const MyTasksSection = observer(function MyTasksSection({
                               />
                             )}
                           </ul>
-                        )}
+                        </Collapse>
                       </div>
                     );
                   })}

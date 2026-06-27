@@ -15,15 +15,16 @@ type Props = {
   dockItems: (AppSidebarItemData & { shouldRender: boolean })[];
   showLabel?: boolean;
   isInline?: boolean;
+  activeFill?: boolean;
 };
 
-function Component({ dockItems, showLabel = true, isInline = false }: Props) {
+function Component({ dockItems, showLabel = true, isInline = false, activeFill = true }: Props) {
   return (
     <>
       {dockItems
         .filter((item) => item.shouldRender)
         .map((item) => (
-          <AppSidebarItem key={item.label} item={{ ...item, showLabel, isInline }} variant="link" />
+          <AppSidebarItem key={item.label} item={{ ...item, showLabel, isInline, activeFill }} variant="link" />
         ))}
     </>
   );

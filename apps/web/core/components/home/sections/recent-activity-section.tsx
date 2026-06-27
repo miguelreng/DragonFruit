@@ -10,7 +10,6 @@ import useSWR from "swr";
 import { Avatar } from "@plane/propel/avatar";
 import { calculateTimeAgo, getFileURL } from "@plane/utils";
 import { ActivityMessage, IssueLink } from "@/components/core/activity";
-import { Activity } from "@/components/icons/lucide-shim";
 import { useUser } from "@/hooks/store/user";
 import { UserService } from "@/services/user.service";
 
@@ -36,7 +35,6 @@ export const RecentActivitySection = observer(function RecentActivitySection() {
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
-          <Activity className="size-4 text-tertiary" />
           <h3 className="text-14 font-semibold text-secondary">Recent activity</h3>
         </div>
       </div>

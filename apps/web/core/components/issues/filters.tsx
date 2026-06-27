@@ -22,7 +22,6 @@ import {
   DisplayFiltersSelection,
   FiltersDropdown,
   LayoutSelection,
-  MobileLayoutSelection,
 } from "./issue-layouts/filters";
 
 type Props = {
@@ -77,18 +76,11 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
 
   return (
     <>
-      <div className="hidden @4xl:flex">
+      <div className="flex">
         <LayoutSelection
           layouts={LAYOUTS}
           onChange={(layout) => handleLayoutChange(layout)}
           selectedLayout={activeLayout}
-        />
-      </div>
-      <div className="flex @4xl:hidden">
-        <MobileLayoutSelection
-          layouts={LAYOUTS}
-          onChange={(layout) => handleLayoutChange(layout)}
-          activeLayout={activeLayout}
         />
       </div>
       <WorkItemFiltersToggle entityType={storeType} entityId={projectId} />

@@ -5,7 +5,7 @@
  */
 
 "use client";
-import { type FormEvent, type MutableRefObject, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -14,7 +14,6 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
   Calendar,
-  AddSquare,
   Checklist,
   Document,
   Download,
@@ -39,7 +38,7 @@ import { orderBy } from "lodash-es";
 import { NotificationsBell } from "@/plane-web/components/navigations/notifications-bell";
 // components
 import { AppSidebarItem, AppSidebarTooltip } from "@/components/sidebar/sidebar-item";
-import { UserMenuRoot } from "@/components/workspace/sidebar/user-menu-root";
+import { ShortcutBadge } from "@/components/power-k/ui/modal/command-item-shortcut-badge";
 import { IssueLayoutIcon } from "@/components/issues/issue-layouts/layout-icon";
 import { usePowerK } from "@/hooks/store/use-power-k";
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
@@ -47,12 +46,13 @@ import { useProject } from "@/hooks/store/use-project";
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { useUserPermissions } from "@/hooks/store/user";
 // hooks
-import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
+import { useAppRailCategories, useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
 // local imports
 import { AppSidebarItemsRoot } from "./items-root";
+import { AppRailActiveIndicator } from "./app-rail-active-indicator";
 import { generateFavoriteItemLink } from "@/components/workspace/sidebar/favorites/favorite-items/common";
 import { getBriefPageDisplayName, isBriefPageName } from "@/components/project/brief/constants";
 import { WORKSPACE_FAVORITE, WORKSPACE_RECENT_ACTIVITY } from "@/constants/fetch-keys";
@@ -82,8 +82,6 @@ type TCompactRailItem = {
 
 type TProjectRailItem = TCompactRailItem & {
   briefHref: string;
-  pagesHref: string;
-  tasksHref: string;
   project: TPartialProject;
 };
 
@@ -97,11 +95,10 @@ const EXPANDED_ICON_CLASS =
 const EXPANDED_ICON_ACTIVE = "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]";
 const EXPANDED_ICON_INACTIVE =
   "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]";
-const COMPACT_RAIL_ICON_CLASS = "grid size-5 place-items-center [&_svg]:size-5 [&_svg]:text-current";
+const COMPACT_RAIL_ICON_CLASS = "grid size-5 place-items-center [&_svg]:size-4 [&_svg]:text-current";
 const EXPANDED_RAIL_ICON_CLASS = "grid size-4 flex-shrink-0 place-items-center [&_svg]:size-4 [&_svg]:text-current";
 const RAIL_ICON_ACTIVE = "text-current";
 const RAIL_ICON_INACTIVE = "text-icon-tertiary dark:text-white/60";
-const RAIL_TREE_LINE_CLASS = "absolute top-0 bottom-1 left-1 w-px bg-[var(--border-color-strong)] dark:bg-white/[0.28]";
 const RAIL_LOGO_ICON_SIZE = 14;
 const RAIL_SOLAR_ICON_WEIGHT_INACTIVE = "Outline" as const;
 const RAIL_SOLAR_ICON_WEIGHT_ACTIVE = "Bold" as const;
@@ -112,9 +109,8 @@ const renderRailSolarIcon = (Icon: RailSolarIconComponent, isActive = false, cla
   <Icon className={className} weight={isActive ? RAIL_SOLAR_ICON_WEIGHT_ACTIVE : RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
 );
 
-const railSolarIconSet = (
-  Icon: RailSolarIconComponent
-) => railIconSet(renderRailSolarIcon(Icon, false), renderRailSolarIcon(Icon, true));
+const railSolarIconSet = (Icon: RailSolarIconComponent) =>
+  railIconSet(renderRailSolarIcon(Icon, false), renderRailSolarIcon(Icon, true));
 
 const isRouteMatch = (targetPath: string, pathname: string) => {
   const normalizedTargetPath = targetPath.split("?")[0];
@@ -142,9 +138,7 @@ const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps |
   if (favorite.entity_type === "view") {
     const layout = favorite.entity_data?.view_layout as EIssueLayoutTypes | undefined;
     const layoutIcon = getFavoriteLayoutRailIcon(layout);
-    return layoutIcon
-      ? railIconSet(layoutIcon, layoutIcon)
-      : railSolarIconSet(Checklist);
+    return layoutIcon ? railIconSet(layoutIcon, layoutIcon) : railSolarIconSet(Checklist);
   }
 
   switch (favorite.entity_type) {
@@ -154,9 +148,7 @@ const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps |
 
       if (layout) {
         const layoutIcon = getFavoriteLayoutRailIcon(layout);
-        return layoutIcon
-          ? railIconSet(layoutIcon, layoutIcon)
-          : railSolarIconSet(Checklist);
+        return layoutIcon ? railIconSet(layoutIcon, layoutIcon) : railSolarIconSet(Checklist);
       }
       if (iconProps?.in_use) {
         const logo = <Logo logo={iconProps} size={RAIL_LOGO_ICON_SIZE} type="material" />;
@@ -429,7 +421,10 @@ const RailCategory = (props: {
 }) => {
   const { title, isExpanded, isOpen, onToggle, action, children, className = "" } = props;
 
-  if (!isExpanded) return <>{children}</>;
+  // Icon-only rail: there's no category header to toggle here, but a closed
+  // category must still hide its items rather than spill them out as loose icons
+  // — respect the open/closed state just like the expanded rail does below.
+  if (!isExpanded) return isOpen ? <>{children}</> : null;
 
   return (
     // An open category adds breathing room *below* itself to set its child list
@@ -449,7 +444,7 @@ const RailCategory = (props: {
             <span className="min-w-0 truncate">{title}</span>
             <ChevronRightIcon
               className={cn(
-                "size-3.5 flex-shrink-0 text-current opacity-0 transition group-hover/category:opacity-100 group-focus-within/category:opacity-100",
+                "size-3.5 flex-shrink-0 text-current opacity-0 transition group-focus-within/category:opacity-100 group-hover/category:opacity-100",
                 {
                   "rotate-90": isOpen,
                 }
@@ -519,14 +514,8 @@ const RenameProjectModal = (props: {
   );
 };
 
-const ProjectRailTreeItem = (props: {
-  item: TProjectRailItem;
-  pathname: string;
-  workspaceSlug: string;
-  suppressAutoOpenRef: MutableRefObject<boolean>;
-}) => {
-  const { item, pathname, workspaceSlug, suppressAutoOpenRef } = props;
-  const [isOpen, setIsOpen] = useState(item.isActive);
+const ProjectRailItem = (props: { item: TProjectRailItem; workspaceSlug: string }) => {
+  const { item, workspaceSlug } = props;
   const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
   const [isRenameProjectModalOpen, setIsRenameProjectModalOpen] = useState(false);
   const [isRenameSubmitting, setIsRenameSubmitting] = useState(false);
@@ -534,10 +523,6 @@ const ProjectRailTreeItem = (props: {
   const router = useRouter();
   const { t } = useTranslation();
   const { allowPermissions } = useUserPermissions();
-  const isBriefActive = isRouteMatch(item.briefHref, pathname);
-  const isTasksActive = isRouteMatch(item.tasksHref, pathname);
-  const isPagesActive = isRouteMatch(item.pagesHref, pathname);
-  const shouldHighlightProject = item.isActive && !isBriefActive && !isTasksActive && !isPagesActive;
   const isProjectAdmin = allowPermissions(
     [EUserPermissions.ADMIN],
     EUserPermissionsLevel.PROJECT,
@@ -585,13 +570,6 @@ const ProjectRailTreeItem = (props: {
     }
   };
 
-  useEffect(() => {
-    // When the user navigates by clicking a favorite, don't auto-expand the
-    // project tree that contains the target — they asked to jump straight to
-    // the item without revealing where it lives.
-    if (item.isActive && !suppressAutoOpenRef.current) setIsOpen(true);
-  }, [item.isActive, suppressAutoOpenRef]);
-
   return (
     <>
       <DeleteProjectModal
@@ -606,185 +584,87 @@ const ProjectRailTreeItem = (props: {
         onClose={() => setIsRenameProjectModalOpen(false)}
         onSubmit={handleRenameProject}
       />
-      <div className="flex w-full flex-col">
-        <div
-          className={cn(
-            "group/project flex w-full items-center gap-1 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
-            {
-              [EXPANDED_ICON_ACTIVE]: shouldHighlightProject,
-            }
-          )}
-        >
-          <AppSidebarTooltip tooltipContent={item.label}>
-            <button
-              type="button"
-              onClick={() => setIsOpen((open) => !open)}
-              aria-label={item.label}
-              aria-expanded={isOpen}
-              className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-            >
-              <span
-                className={cn(EXPANDED_RAIL_ICON_CLASS, {
-                  [RAIL_ICON_ACTIVE]: shouldHighlightProject,
-                  [RAIL_ICON_INACTIVE]: !shouldHighlightProject,
-                })}
-              >
-                {item.icon}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-13 font-medium">{item.label}</span>
-            </button>
-          </AppSidebarTooltip>
-          <CustomMenu
-            customButton={
-              <span className="grid place-items-center">
-                <MenuDots className="size-4 text-current" weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
-              </span>
-            }
-            className="pointer-events-none flex-shrink-0 opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
-            customButtonClassName="grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90"
-            placement="bottom-start"
-            ariaLabel="Project actions"
-            closeOnSelect
-          >
-            <CustomMenu.MenuItem onClick={() => void handleCopyProjectId()}>
-              <span className="flex items-center justify-start gap-2">
-                <CopyIcon className="h-3.5 w-3.5 stroke-[1.5]" />
-                <span>Copy project ID</span>
-              </span>
-            </CustomMenu.MenuItem>
-            <CustomMenu.MenuItem
-              onClick={() => {
-                router.push(`/${workspaceSlug}/settings/projects/${item.id}`);
-              }}
-            >
-              <span className="flex items-center justify-start gap-2">
-                <Settings className="h-3.5 w-3.5" weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
-                <span>{t("settings")}</span>
-              </span>
-            </CustomMenu.MenuItem>
-            {isProjectAdmin && (
-              <CustomMenu.MenuItem onClick={() => setIsRenameProjectModalOpen(true)}>
-                <span className="flex items-center justify-start gap-2">
-                  <EditIcon className="h-3.5 w-3.5 stroke-[1.5]" />
-                  <span>Rename</span>
-                </span>
-              </CustomMenu.MenuItem>
-            )}
-            {isProjectAdmin && (
-              <CustomMenu.MenuItem onClick={() => setIsDeleteProjectModalOpen(true)}>
-                <span className="flex items-center justify-start gap-2 text-danger-primary">
-                  <TrashIcon className="h-3.5 w-3.5 stroke-[1.5]" />
-                  <span>Delete</span>
-                </span>
-              </CustomMenu.MenuItem>
-            )}
-          </CustomMenu>
-          <AppSidebarTooltip tooltipContent={isOpen ? "Collapse project" : "Expand project"}>
-            <button
-              type="button"
-              onClick={() => setIsOpen((open) => !open)}
-              className={cn(
-                "grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary opacity-0 group-hover/project:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
-                {
-                  "opacity-100": isOpen,
-                }
-              )}
-              aria-label={isOpen ? "Collapse project" : "Expand project"}
-              aria-expanded={isOpen}
-            >
-              <ChevronRightIcon
-                className={cn("size-4 text-current transition-transform", {
-                  "rotate-90": isOpen,
-                })}
-              />
-            </button>
-          </AppSidebarTooltip>
-        </div>
-        {isOpen && (
-          <div className="relative mt-0.5 mb-1 ml-4 flex flex-col gap-0.5 pl-3">
-            <div className={RAIL_TREE_LINE_CLASS} />
-            <AppSidebarTooltip tooltipContent={`${item.label} Brief`}>
-              <Link
-                href={item.briefHref}
-                aria-label={`${item.label} Brief`}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
-                  {
-                    "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]": isBriefActive,
-                  }
-                )}
-              >
-                {isBriefActive ? (
-                  <FileText className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
-                ) : (
-                  <FileText className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
-                )}
-                <span className="truncate">Brief</span>
-              </Link>
-            </AppSidebarTooltip>
-            <AppSidebarTooltip tooltipContent={`${item.label} Tasks`}>
-              <Link
-                href={item.tasksHref}
-                aria-label={`${item.label} Tasks`}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
-                  {
-                    "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]": isTasksActive,
-                  }
-                )}
-              >
-                {isTasksActive ? (
-                  <Checklist className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
-                ) : (
-                  <Checklist className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
-                )}
-                <span className="truncate">Tasks</span>
-              </Link>
-            </AppSidebarTooltip>
-            <AppSidebarTooltip tooltipContent={`${item.label} Pages`}>
-              <Link
-                href={item.pagesHref}
-                aria-label={`${item.label} Pages`}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-2 py-1 text-12 text-tertiary hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90",
-                  {
-                    "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]": isPagesActive,
-                  }
-                )}
-              >
-                {isPagesActive ? (
-                  <Document className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
-                ) : (
-                  <Document className={RAIL_INLINE_ICON_CLASS} weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
-                )}
-                <span className="truncate">Docs</span>
-              </Link>
-            </AppSidebarTooltip>
-          </div>
+      {/* A project row links straight to its Brief — no expandable tree. */}
+      <div
+        className={cn(
+          "group/project flex w-full items-center gap-1 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
+          {
+            [EXPANDED_ICON_ACTIVE]: item.isActive,
+          }
         )}
+      >
+        <AppSidebarTooltip tooltipContent={item.label}>
+          <Link href={item.briefHref} aria-label={item.label} className="flex min-w-0 flex-1 items-center gap-1.5">
+            <span
+              className={cn(EXPANDED_RAIL_ICON_CLASS, {
+                [RAIL_ICON_ACTIVE]: item.isActive,
+                [RAIL_ICON_INACTIVE]: !item.isActive,
+              })}
+            >
+              {item.icon}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-13 font-medium">{item.label}</span>
+          </Link>
+        </AppSidebarTooltip>
+        <CustomMenu
+          customButton={
+            <span className="grid place-items-center">
+              <MenuDots className="size-4 text-current" weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
+            </span>
+          }
+          className="pointer-events-none flex-shrink-0 opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+          customButtonClassName="grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/45 dark:hover:bg-white/[0.08] dark:hover:text-white/90"
+          placement="bottom-start"
+          optionsClassName="rounded-lg"
+          ariaLabel="Project actions"
+          closeOnSelect
+        >
+          <CustomMenu.MenuItem className="rounded-xs" onClick={() => void handleCopyProjectId()}>
+            <span className="flex items-center justify-start gap-2">
+              <CopyIcon className="h-3.5 w-3.5 stroke-[1.5]" />
+              <span>Copy project ID</span>
+            </span>
+          </CustomMenu.MenuItem>
+          <CustomMenu.MenuItem
+            className="rounded-xs"
+            onClick={() => {
+              router.push(`/${workspaceSlug}/settings/projects/${item.id}`);
+            }}
+          >
+            <span className="flex items-center justify-start gap-2">
+              <Settings className="h-3.5 w-3.5" weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />
+              <span>{t("settings")}</span>
+            </span>
+          </CustomMenu.MenuItem>
+          {isProjectAdmin && (
+            <CustomMenu.MenuItem className="rounded-xs" onClick={() => setIsRenameProjectModalOpen(true)}>
+              <span className="flex items-center justify-start gap-2">
+                <EditIcon className="h-3.5 w-3.5 stroke-[1.5]" />
+                <span>Rename</span>
+              </span>
+            </CustomMenu.MenuItem>
+          )}
+          {isProjectAdmin && (
+            <CustomMenu.MenuItem className="rounded-xs" onClick={() => setIsDeleteProjectModalOpen(true)}>
+              <span className="flex items-center justify-start gap-2 text-danger-primary">
+                <TrashIcon className="h-3.5 w-3.5 stroke-[1.5]" />
+                <span>Delete</span>
+              </span>
+            </CustomMenu.MenuItem>
+          )}
+        </CustomMenu>
       </div>
     </>
   );
 };
 
-const ProjectRailTree = (props: {
-  projects: TProjectRailItem[];
-  pathname: string;
-  workspaceSlug: string;
-  suppressAutoOpenRef: MutableRefObject<boolean>;
-}) => {
-  const { projects, pathname, workspaceSlug, suppressAutoOpenRef } = props;
+const ProjectRailList = (props: { projects: TProjectRailItem[]; workspaceSlug: string }) => {
+  const { projects, workspaceSlug } = props;
 
   return (
     <div className="flex w-full flex-col gap-0.5">
       {projects.map((project) => (
-        <ProjectRailTreeItem
-          key={project.id}
-          item={project}
-          pathname={pathname}
-          workspaceSlug={workspaceSlug}
-          suppressAutoOpenRef={suppressAutoOpenRef}
-        />
+        <ProjectRailItem key={project.id} item={project} workspaceSlug={workspaceSlug} />
       ))}
     </div>
   );
@@ -958,6 +838,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
   const router = useRouter();
+  // Positioned container for the sliding active-highlight pill (expanded rail).
+  const mainNavRef = useRef<HTMLDivElement>(null);
   // preferences
   const { preferences, updateDisplayMode } = useAppRailPreferences();
   const { togglePowerKModal } = usePowerK();
@@ -967,9 +849,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const { groupedFavorites } = useFavorite();
   const { t } = useTranslation();
   const surfaceTheme = useTopBarTheme();
-  const [isFavoritesCategoryOpen, setIsFavoritesCategoryOpen] = useState(true);
-  const [isRecentsCategoryOpen, setIsRecentsCategoryOpen] = useState(true);
-  const [isProjectsCategoryOpen, setIsProjectsCategoryOpen] = useState(true);
+  const { openCategories, toggleCategory } = useAppRailCategories();
   const [isDownloadAppsModalOpen, setIsDownloadAppsModalOpen] = useState(false);
   // derived values
   // In the mobile drawer the rail always shows labels and fills the panel.
@@ -1007,16 +887,12 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
     .map((id) => getPartialProjectById(id))
     .filter((project): project is NonNullable<ReturnType<typeof getPartialProjectById>> => !!project)
     .map((project) => {
-      const tasksHref = `/${slug}/projects/${project.id}/issues/?layout=list`;
-      const pagesHref = `/${slug}/projects/${project.id}/pages`;
       const briefHref = `/${slug}/projects/${project.id}/brief`;
       const icon = <Logo logo={project.logo_props} size={RAIL_LOGO_ICON_SIZE} type="material" />;
       return {
         id: project.id,
-        href: tasksHref,
+        href: briefHref,
         briefHref,
-        tasksHref,
-        pagesHref,
         project,
         label: project.name,
         icon,
@@ -1098,13 +974,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
       toggleCreateIssueModal(true);
     }
   };
-  // Set when navigation is triggered by clicking a favorite so the project tree
-  // doesn't auto-expand to reveal where the target lives. Children read it in
-  // their auto-open effect; we clear it after each navigation settles.
-  const suppressAutoOpenRef = useRef(false);
-  useEffect(() => {
-    suppressAutoOpenRef.current = false;
-  }, [pathname]);
   // Refresh recents after in-app navigation to a route that can record a visit
   // (project sub-routes and /browse) so the section tracks the latest visits.
   // The backend records the visit asynchronously when the entity is fetched, so
@@ -1121,14 +990,16 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
     return () => clearTimeout(timeout);
   }, [pathname, slug, mutateRecents]);
   const handleFavoriteNavigation = (href: string) => {
-    suppressAutoOpenRef.current = true;
     router.push(href);
   };
   return (
     <div
       data-theme={surfaceTheme}
       className={cn(
-        "z-[26] h-full flex-shrink-0 overflow-hidden rounded-[18px] transition-[width] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+        // Transparent 1px border keeps the rail's content box in lockstep with the
+        // content + Atlas cards (which carry `border border-subtle`) so the three
+        // header strips share an exact centerline.
+        "z-[26] h-full flex-shrink-0 overflow-hidden rounded-[18px] border border-transparent transition-[width] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
         "bg-gray-200 shadow-sm text-secondary dark:bg-[oklch(0.17_0.01_0)] dark:text-white/75",
         // Drawer mode: flush left edge, fill the panel, no width animation.
         isMobile && "rounded-l-none transition-none"
@@ -1158,7 +1029,11 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             <div
               className={cn("flex w-full items-center gap-1", isRailExpanded ? "justify-between" : "justify-center")}
             >
-              <WorkspaceMenuRoot variant="sidebar" showLabel={isRailExpanded} />
+              <WorkspaceMenuRoot
+                variant="sidebar"
+                showLabel={isRailExpanded}
+                onDownloadApps={() => setIsDownloadAppsModalOpen(true)}
+              />
               {!isMobile && isRailExpanded && (
                 <AppSidebarTooltip tooltipContent="Collapse rail">
                   <button
@@ -1172,21 +1047,10 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 </AppSidebarTooltip>
               )}
             </div>
-            <AppSidebarItem
-              variant="button"
-              item={{
-                label: t("sidebar.new_work_item"),
-                icon: <AddSquare weight={RAIL_SOLAR_ICON_WEIGHT_INACTIVE} />,
-                onClick: handleCreateTask,
-                disabled: isCreateTaskDisabled,
-                isInline: isRailExpanded,
-                showLabel: showRailLabels,
-              }}
-            />
           </div>
         </div>
         <div
-          className={cn("min-h-0 flex-1 overflow-x-hidden overflow-y-auto pt-3 pb-[22px]", {
+          className={cn("min-h-0 flex-1 overflow-x-hidden overflow-y-auto pt-[22px] pb-[22px]", {
             "flex flex-col items-start gap-1": isRailExpanded,
             "flex flex-col items-center gap-1": !isRailExpanded,
           })}
@@ -1203,15 +1067,37 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               "flex flex-col items-center gap-1": !isRailExpanded,
             })}
           >
-            <div
-              className={cn({
-                "flex w-full flex-col items-start gap-1": isRailExpanded,
-                "flex flex-col items-center gap-1": !isRailExpanded,
-              })}
-            >
-              <AppSidebarItemsRoot showLabel={showRailLabels} isInline={isRailExpanded} />
+            <div ref={mainNavRef} className={cn("relative", { "w-full": isRailExpanded })}>
+              {/* Sliding highlight (expanded rail). Items render their active
+                  fill suppressed (activeFill=false) so this single pill provides
+                  it and slides between items on navigation. */}
+              {isRailExpanded && (
+                <AppRailActiveIndicator
+                  containerRef={mainNavRef}
+                  activeKey={pathname ?? ""}
+                  isExpanded={isRailExpanded}
+                />
+              )}
+              <div
+                className={cn("relative z-10", {
+                  "flex w-full flex-col items-start gap-0.5": isRailExpanded,
+                  "flex flex-col items-center gap-0.5": !isRailExpanded,
+                })}
+              >
+                <AppSidebarItemsRoot
+                  showLabel={showRailLabels}
+                  isInline={isRailExpanded}
+                  activeFill={!isRailExpanded}
+                />
+              </div>
             </div>
-            <RailSectionSeparator isExpanded={isRailExpanded} />
+            {/* In icon-only mode this separator divides the main nav from the
+                category icons — drop it when every category is collapsed, since
+                nothing renders below it then. Expanded mode always keeps it: the
+                category headers themselves render there. */}
+            {(isRailExpanded || openCategories.recents || openCategories.favorites || openCategories.projects) && (
+              <RailSectionSeparator isExpanded={isRailExpanded} />
+            )}
             <div
               className={cn({
                 "flex w-full flex-col items-start gap-1": isRailExpanded,
@@ -1222,8 +1108,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 <RailCategory
                   title="Recents"
                   isExpanded={isRailExpanded}
-                  isOpen={isRecentsCategoryOpen}
-                  onToggle={() => setIsRecentsCategoryOpen((isOpen) => !isOpen)}
+                  isOpen={openCategories.recents}
+                  onToggle={() => toggleCategory("recents")}
                 >
                   {isRecentsLoading && recentItems.length === 0 ? (
                     <RailItemsSkeleton isCompact={!isRailExpanded} />
@@ -1233,9 +1119,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                       overflowItems={recentItems.slice(MAX_COMPACT_RAIL_ITEMS)}
                       isCompact={!isRailExpanded}
                       onNavigate={handleFavoriteNavigation}
-                      onItemActivate={() => {
-                        suppressAutoOpenRef.current = true;
-                      }}
                       panelDataTheme={surfaceTheme}
                     />
                   )}
@@ -1244,8 +1127,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               <RailCategory
                 title="Favs"
                 isExpanded={isRailExpanded}
-                isOpen={isFavoritesCategoryOpen}
-                onToggle={() => setIsFavoritesCategoryOpen((isOpen) => !isOpen)}
+                isOpen={openCategories.favorites}
+                onToggle={() => toggleCategory("favorites")}
               >
                 {isFavoritesLoading && favorites.length === 0 ? (
                   <RailItemsSkeleton isCompact={!isRailExpanded} />
@@ -1255,9 +1138,6 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                     overflowItems={favoriteItemsForRail.slice(MAX_COMPACT_RAIL_ITEMS)}
                     isCompact={!isRailExpanded}
                     onNavigate={handleFavoriteNavigation}
-                    onItemActivate={() => {
-                      suppressAutoOpenRef.current = true;
-                    }}
                     panelDataTheme={surfaceTheme}
                   />
                 )}
@@ -1265,8 +1145,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               <RailCategory
                 title="Projects"
                 isExpanded={isRailExpanded}
-                isOpen={isProjectsCategoryOpen}
-                onToggle={() => setIsProjectsCategoryOpen((isOpen) => !isOpen)}
+                isOpen={openCategories.projects}
+                onToggle={() => toggleCategory("projects")}
                 action={
                   canCreateProject ? (
                     <AppSidebarTooltip tooltipContent={t("create_project")}>
@@ -1286,12 +1166,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 }
               >
                 {isRailExpanded ? (
-                  <ProjectRailTree
-                    projects={projects}
-                    pathname={pathname}
-                    workspaceSlug={slug}
-                    suppressAutoOpenRef={suppressAutoOpenRef}
-                  />
+                  <ProjectRailList projects={projects} workspaceSlug={slug} />
                 ) : (
                   <CompactRailItemGroup
                     primaryItems={projects.slice(0, MAX_COMPACT_RAIL_ITEMS)}
@@ -1307,8 +1182,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
         </div>
         <div
           className={cn("relative z-10 flex-shrink-0", {
-            "flex flex-col items-center gap-1 pt-2": !isRailExpanded,
-            "flex w-full flex-col items-start gap-1 pt-3": isRailExpanded,
+            "flex flex-col items-center gap-0.5 pt-2": !isRailExpanded,
+            "flex w-full flex-col items-start gap-0.5 pt-3": isRailExpanded,
           })}
         >
           <AppSidebarItem
@@ -1323,11 +1198,32 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             }}
           />
           <NotificationsBell showLabel={showRailLabels} isInline={isRailExpanded} />
-          <UserMenuRoot
-            showLabel={showRailLabels}
-            isInline={isRailExpanded}
-            onDownloadApps={() => setIsDownloadAppsModalOpen(true)}
-          />
+          {/* New work item — relocated here (where the profile menu used to live)
+              and promoted to a CTA styled with the rail's own neutral tokens. */}
+          {isRailExpanded ? (
+            <button
+              type="button"
+              onClick={handleCreateTask}
+              disabled={isCreateTaskDisabled}
+              className="t-press flex w-full items-center gap-2 rounded-lg border border-subtle bg-layer-1 px-2 py-1.5 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary disabled:pointer-events-none disabled:opacity-50"
+            >
+              <PlusIcon className="size-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate text-left">{t("sidebar.new_work_item")}</span>
+              <ShortcutBadge shortcut="cmd+o" mono={false} />
+            </button>
+          ) : (
+            <AppSidebarTooltip tooltipContent={t("sidebar.new_work_item")}>
+              <button
+                type="button"
+                onClick={handleCreateTask}
+                disabled={isCreateTaskDisabled}
+                aria-label={t("sidebar.new_work_item")}
+                className="t-press grid size-8 place-items-center rounded-lg border border-subtle bg-layer-1 text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:text-current"
+              >
+                <PlusIcon />
+              </button>
+            </AppSidebarTooltip>
+          )}
         </div>
       </div>
       <DownloadAppsModal isOpen={isDownloadAppsModalOpen} onClose={() => setIsDownloadAppsModalOpen(false)} />

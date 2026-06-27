@@ -71,13 +71,32 @@ export const CalendarDays = shim(Solar.Calendar);
 export const CancelCircle = shim(Solar.CloseCircle);
 export const CaseSensitive = shim(Solar.Text);
 export const ChartNoAxesColumn = shim(Solar.Chart);
-export const Check = shim(Solar.CheckCircle);
+// Bare checkmark glyph (no enclosing circle). Solar only ships CheckCircle/
+// CheckSquare, so this is a hand-rolled stroke icon matching the original
+// lucide `Check` — the generic tick used inside dropdowns, toggles, and the
+// todo-complete button (which supplies its own background color).
+export const Check = ({ strokeWidth = 2, ...props }: SVGProps<SVGSVGElement> & { strokeWidth?: number }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    width="1em"
+    height="1em"
+    {...props}
+  >
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
 export const CheckCheck = shim(Solar.CheckRead);
 export const CheckCircle = shim(Solar.CheckCircle);
 export const CheckCircle2 = shim(Solar.CheckCircle);
 export const CheckSquare = shim(Solar.CheckSquare);
 export const ChevronDown = shim(Solar.AltArrowDown);
 export const ChevronRight = shim(Solar.AltArrowRight);
+export const ChevronUp = shim(Solar.AltArrowUp);
 export const Circle = shim(Solar.RecordCircle);
 export const CircleAlert = shim(Solar.DangerCircle);
 export const CircleArrowUp = shim(Solar.RoundAltArrowUp);
@@ -143,6 +162,7 @@ export const Loader2 = shim(Solar.Refresh);
 export const LockKeyhole = shim(Solar.LockKeyhole);
 export const LockKeyholeOpen = shim(Solar.LockKeyholeUnlocked);
 export const LogOut = shim(Solar.Logout);
+export const LogOut2 = shim(Solar.Logout2);
 export const Mail = shim(Solar.Letter);
 export const Mails = shim(Solar.Letter);
 export const Maximize2 = shim(Solar.Maximize);
@@ -170,7 +190,23 @@ export const Pencil = shim(Solar.Pen);
 export const PenTool = shim(Solar.Pen2);
 export const Pin = shim(Solar.Pin);
 export const PinOff = shim(Solar.Pin);
-export const Plus = shim(Solar.AddCircle);
+// Bare plus glyph (no enclosing circle). Solar only ships AddCircle/AddSquare,
+// so this is a hand-rolled stroke icon matching the original lucide `Plus`.
+export const Plus = ({ strokeWidth = 2, ...props }: SVGProps<SVGSVGElement> & { strokeWidth?: number }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    width="1em"
+    height="1em"
+    {...props}
+  >
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
 export const RefreshCcw = shim(Solar.Refresh);
 export const RefreshCw = shim(Solar.Refresh);
 export const Rocket = shim(Solar.Rocket);

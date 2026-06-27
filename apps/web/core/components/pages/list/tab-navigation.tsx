@@ -44,28 +44,23 @@ export function PageTabNavigation(props: TPageTabNavigation) {
   };
 
   return (
-    <div className="relative flex h-full items-center">
-      {pageTabs.map((tab) => (
-        <Link
-          key={tab.key}
-          href={`/${workspaceSlug}/projects/${projectId}/${basePath}?type=${tab.key}`}
-          onClick={(e) => handleTabClick(e, tab.key)}
-          className="flex h-full flex-col"
-        >
-          <div
-            className={cn(`flex flex-1 items-center justify-center px-4 text-13 font-medium transition-all`, {
-              "text-accent-primary": tab.key === pageType,
+    <div className="flex h-full items-center gap-1.5">
+      {pageTabs.map((tab) => {
+        const isActive = tab.key === pageType;
+        return (
+          <Link
+            key={tab.key}
+            href={`/${workspaceSlug}/projects/${projectId}/${basePath}?type=${tab.key}`}
+            onClick={(e) => handleTabClick(e, tab.key)}
+            className={cn("rounded-full px-2.5 py-0.5 text-12 font-medium transition-colors", {
+              "bg-accent-subtle text-accent-primary": isActive,
+              "bg-layer-1 text-tertiary hover:text-secondary": !isActive,
             })}
           >
             {tab.label}
-          </div>
-          <div
-            className={cn(`w-full rounded-t border-t-2 border-transparent transition-all`, {
-              "border-accent-strong": tab.key === pageType,
-            })}
-          />
-        </Link>
-      ))}
+          </Link>
+        );
+      })}
     </div>
   );
 }

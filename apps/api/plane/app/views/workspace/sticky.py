@@ -9,7 +9,7 @@ from rest_framework import status
 # Module imports
 from plane.app.views.base import BaseViewSet
 from plane.app.permissions import ROLE, allow_permission
-from plane.db.models import Sticky, Workspace
+from plane.db.models import Sticky, Workspace, Project
 from plane.app.serializers import StickySerializer
 from plane.app.buddy_notification import create_cursor_buddy_notification, is_cursor_buddy_request
 
@@ -32,9 +32,13 @@ class WorkspaceStickyViewSet(BaseViewSet):
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def create(self, request, slug):
         workspace = Workspace.objects.get(slug=slug)
+        # Optionally scope the sticky to a project in this workspace.
+        project_id = request.data.get("project_id") or None
+        if project_id and not Project.objects.filter(id=project_id, workspace=workspace).exists():
+            project_id = None
         serializer = StickySerializer(data=request.data)
         if serializer.is_valid():
-            sticky = serializer.save(workspace_id=workspace.id, owner_id=request.user.id)
+            sticky = serializer.save(workspace_id=workspace.id, owner_id=request.user.id, project_id=project_id)
             if is_cursor_buddy_request(request):
                 create_cursor_buddy_notification(
                     request=request,
@@ -50,7 +54,14 @@ class WorkspaceStickyViewSet(BaseViewSet):
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def list(self, request, slug):
         query = request.query_params.get("query", False)
+        project_id = request.query_params.get("project_id", None)
         stickies = self.get_queryset().order_by("-sort_order")
+        # A project's Stickies tab shows that project's stickies; the workspace
+        # board shows only workspace-level (unscoped) stickies.
+        if project_id:
+            stickies = stickies.filter(project_id=project_id)
+        else:
+            stickies = stickies.filter(project__isnull=True)
         if query:
             stickies = stickies.filter(description_stripped__icontains=query)
 

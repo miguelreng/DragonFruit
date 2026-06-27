@@ -544,7 +544,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     <Row
       ref={setZenScrollEl}
       className={cn(
-        "vertical-scrollbar relative flex scrollbar-md size-full flex-col overflow-x-hidden overflow-y-auto duration-200",
+        "scroll-shadow vertical-scrollbar relative flex scrollbar-md size-full flex-col overflow-x-hidden overflow-y-auto duration-200",
         {
           "page-focus-mode": isFocusMode,
           "page-focus-mode-exit": isZenExiting,
@@ -595,7 +595,9 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
           <div className="page-header-container group/page-header">
             <div className={blockWidthClassName}>
               {chromeless ? (
-                <h1 className="text-26 pt-10 pb-2 font-semibold break-words text-primary">{headerLabel}</h1>
+                headerLabel ? (
+                  <h1 className="text-13 pt-4 pb-3 font-medium break-words text-primary">{headerLabel}</h1>
+                ) : null
               ) : (
                 <PageEditorHeaderRoot page={page} projectId={projectId} />
               )}

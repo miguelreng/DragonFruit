@@ -77,7 +77,7 @@ export const ViewFiltersSelection = observer(function ViewFiltersSelection(props
           )}
         </div>
       </div>
-      <div className="vertical-scrollbar scrollbar-sm h-full w-full divide-y divide-subtle-1 overflow-y-auto px-2.5">
+      <div className="vertical-scrollbar scrollbar-sm h-full w-full divide-y divide-subtle-1 overflow-y-auto px-2.5 pb-2.5">
         <div className="py-2">
           <FilterOption
             isChecked={!!filters.filters?.favorites}

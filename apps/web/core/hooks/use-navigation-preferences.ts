@@ -4,14 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   TAppRailDisplayMode,
   TAppRailPreferences,
   TProjectNavigationPreferences,
 } from "@/types/navigation-preferences";
 import { DEFAULT_APP_RAIL_PREFERENCES, DEFAULT_PROJECT_PREFERENCES } from "@/types/navigation-preferences";
-import useLocalStorage from "./use-local-storage";
+import { getValueFromLocalStorage, setValueIntoLocalStorage } from "./use-local-storage";
 
 /**
  * Project navigation preferences (accordion vs tabbed, limited projects on
@@ -28,32 +28,84 @@ export const useProjectNavigationPreferences = (): {
   preferences: TProjectNavigationPreferences;
 } => ({ preferences: DEFAULT_PROJECT_PREFERENCES });
 
+/**
+ * Persist a small JSON-serializable record to localStorage. The legacy
+ * useLocalStorage seeds from the default and never re-reads storage on mount,
+ * so any preference saved through it silently resets on a full page reload.
+ * The web app is a client-only SPA (no SSR — see react-router.config.ts), so we
+ * read the persisted value synchronously on first render (no default→stored
+ * flash) and keep every hook instance in sync via a window event.
+ */
+const usePersistedValue = <T extends object>(key: string, defaultValue: T) => {
+  const read = useCallback(
+    (): T => ({ ...defaultValue, ...getValueFromLocalStorage(key, defaultValue) }),
+    [key, defaultValue]
+  );
+  const [value, setValue] = useState<T>(read);
+  useEffect(() => {
+    const sync = () => setValue(read());
+    window.addEventListener(`local-storage:${key}`, sync);
+    return () => window.removeEventListener(`local-storage:${key}`, sync);
+  }, [key, read]);
+
+  const persist = useCallback(
+    (next: T) => {
+      setValueIntoLocalStorage(key, next);
+      // Fires synchronously, so this instance (and any other) re-reads at once.
+      window.dispatchEvent(new Event(`local-storage:${key}`));
+    },
+    [key]
+  );
+
+  return [value, persist] as const;
+};
+
 const APP_RAIL_PREFERENCES_KEY = "app_rail_preferences";
 
 export const useAppRailPreferences = () => {
-  const { storedValue, setValue } = useLocalStorage<TAppRailPreferences>(
+  const [preferences, persist] = usePersistedValue<TAppRailPreferences>(
     APP_RAIL_PREFERENCES_KEY,
     DEFAULT_APP_RAIL_PREFERENCES
   );
 
-  const updateDisplayMode = useCallback(
-    (mode: TAppRailDisplayMode) => {
-      setValue({
-        displayMode: mode,
-      });
-    },
-    [setValue]
+  const updateDisplayMode = useCallback((mode: TAppRailDisplayMode) => persist({ displayMode: mode }), [persist]);
+
+  const toggleDisplayMode = useCallback(
+    () => updateDisplayMode(preferences.displayMode === "icon_only" ? "icon_with_label" : "icon_only"),
+    [preferences.displayMode, updateDisplayMode]
   );
 
-  const toggleDisplayMode = useCallback(() => {
-    const currentPreferences = storedValue || DEFAULT_APP_RAIL_PREFERENCES;
-    const newMode = currentPreferences.displayMode === "icon_only" ? "icon_with_label" : "icon_only";
-    updateDisplayMode(newMode);
-  }, [storedValue, updateDisplayMode]);
-
   return {
-    preferences: storedValue || DEFAULT_APP_RAIL_PREFERENCES,
+    preferences,
     updateDisplayMode,
     toggleDisplayMode,
   };
+};
+
+const APP_RAIL_CATEGORIES_KEY = "app_rail_categories";
+
+export type TAppRailCategory = "favorites" | "recents" | "projects";
+type TAppRailCategoryState = Record<TAppRailCategory, boolean>;
+const DEFAULT_APP_RAIL_CATEGORY_STATE: TAppRailCategoryState = {
+  favorites: true,
+  recents: true,
+  projects: true,
+};
+
+/**
+ * Open/closed state of the rail's collapsible category groups (Favs, Recents,
+ * Projects), persisted so a reload keeps whatever the user collapsed.
+ */
+export const useAppRailCategories = () => {
+  const [openCategories, persist] = usePersistedValue<TAppRailCategoryState>(
+    APP_RAIL_CATEGORIES_KEY,
+    DEFAULT_APP_RAIL_CATEGORY_STATE
+  );
+
+  const toggleCategory = useCallback(
+    (category: TAppRailCategory) => persist({ ...openCategories, [category]: !openCategories[category] }),
+    [openCategories, persist]
+  );
+
+  return { openCategories, toggleCategory };
 };

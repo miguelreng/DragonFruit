@@ -23,6 +23,9 @@ interface AppSidebarItemData {
   disabled?: boolean;
   showLabel?: boolean;
   isInline?: boolean;
+  // When false, the active item paints text color only (no fill) — used when a
+  // separate sliding indicator provides the highlight. Defaults to true.
+  activeFill?: boolean;
 }
 
 interface AppSidebarItemProps {
@@ -48,6 +51,7 @@ interface AppSidebarLinkItemProps extends React.AnchorHTMLAttributes<HTMLAnchorE
   className?: string;
   isInline?: boolean;
   isActive?: boolean;
+  activeFill?: boolean;
   tooltipContent?: string;
   tooltipDisabled?: boolean;
 }
@@ -74,10 +78,10 @@ interface AppSidebarTooltipProps {
 // ============================================================================
 
 const styles = {
-  base: "group flex flex-col gap-0.5 items-center justify-center text-tertiary dark:text-white/65",
+  base: "transition-colors group flex flex-col gap-0.5 items-center justify-center text-tertiary dark:text-white/65",
   baseInline:
-    "group relative flex w-full max-w-full cursor-pointer items-center rounded-lg px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
-  icon: "flex items-center justify-center gap-2 size-8 rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:size-5 [&_svg]:text-current",
+    "transition-colors group relative flex w-full max-w-full cursor-pointer items-center rounded-lg px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
+  icon: "transition-colors flex items-center justify-center gap-2 size-8 rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current",
   iconActive: "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]",
   iconInactive:
     "group-hover:text-icon-secondary group-hover:bg-layer-transparent-hover !text-icon-tertiary dark:!text-white/55 dark:group-hover:!text-white/85 dark:group-hover:bg-white/[0.08]",
@@ -89,6 +93,8 @@ const styles = {
   labelActive: "!text-[oklch(0.43_0_0)]",
   labelInactive: "group-hover:text-secondary text-tertiary dark:text-white/65 dark:group-hover:text-white/90",
   inlineActive: "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]",
+  // Active text only — no fill — for when a sliding indicator paints the fill.
+  inlineActiveText: "!text-[oklch(0.43_0_0)]",
   inlineInactive:
     "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]",
 } as const;
@@ -140,7 +146,7 @@ function AppSidebarItemIcon({ icon, highlight, isInline }: AppSidebarItemIconPro
 }
 
 const AppSidebarLinkItem = React.forwardRef<HTMLAnchorElement, AppSidebarLinkItemProps>(function AppSidebarLinkItem(
-  { href, children, className, isInline, isActive, tooltipContent, tooltipDisabled, ...linkProps },
+  { href, children, className, isInline, isActive, activeFill = true, tooltipContent, tooltipDisabled, ...linkProps },
   ref
 ) {
   if (!href) return null;
@@ -149,8 +155,10 @@ const AppSidebarLinkItem = React.forwardRef<HTMLAnchorElement, AppSidebarLinkIte
     <Link
       ref={ref}
       href={href}
+      aria-current={isActive ? "page" : undefined}
       className={cn(isInline ? styles.baseInline : styles.base, className, {
-        [styles.inlineActive]: isInline && isActive,
+        [styles.inlineActive]: isInline && isActive && activeFill,
+        [styles.inlineActiveText]: isInline && isActive && !activeFill,
         [styles.inlineInactive]: isInline && !isActive,
       })}
       {...linkProps}
@@ -223,7 +231,7 @@ export type AppSidebarItemComponent = React.FC<AppSidebarItemProps> & {
 function AppSidebarItem({ variant = "link", item }: AppSidebarItemProps) {
   if (!item) return null;
 
-  const { icon, activeIcon, isActive, isInline, label, href, onClick, disabled, showLabel = true } = item;
+  const { icon, activeIcon, isActive, isInline, label, href, onClick, disabled, showLabel = true, activeFill = true } = item;
   const tooltipContent = label || undefined;
   const resolvedIcon = isActive && activeIcon ? activeIcon : icon;
 
@@ -259,6 +267,7 @@ function AppSidebarItem({ variant = "link", item }: AppSidebarItemProps) {
         href={href}
         isInline={isInline}
         isActive={isActive}
+        activeFill={activeFill}
         aria-label={label}
         tooltipContent={tooltipContent}
       >

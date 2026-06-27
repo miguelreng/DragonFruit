@@ -7,13 +7,18 @@
 // plane imports
 import { ScrollArea } from "@plane/propel/scrollarea";
 import { cn } from "@plane/utils";
-import { WorkspaceSettingsSidebarItemCategories } from "./item-categories";
+// local imports
+import { SettingsSidebarItemCategories } from "./item-categories";
 
 type Props = {
   className?: string;
 };
 
-export function WorkspaceSettingsSidebarRoot(props: Props) {
+/**
+ * Unified settings sidebar shared by the Account and Workspace settings layouts.
+ * Renders a personal "Account" group followed by the role-gated workspace groups.
+ */
+export function SettingsSidebarRoot(props: Props) {
   const { className } = props;
 
   return (
@@ -26,7 +31,7 @@ export function WorkspaceSettingsSidebarRoot(props: Props) {
         className
       )}
     >
-      <WorkspaceSettingsSidebarItemCategories />
+      <SettingsSidebarItemCategories />
     </ScrollArea>
   );
 }

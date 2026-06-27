@@ -4,58 +4,51 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect } from "react";
 import { observer } from "mobx-react";
-// plane imports
-import { PROFILE_SETTINGS_TABS } from "@plane/constants";
-import { useTranslation } from "@plane/i18n";
-import type { TProfileSettingsTabs } from "@plane/types";
+import { useParams } from "react-router";
 // components
 import { LogoSpinner } from "@/components/common/logo-spinner";
-import { PageHead } from "@/components/core/page-title";
-import { ProfileSettingsContent } from "@/components/settings/profile/content";
-import { ProfileSettingsSidebarRoot } from "@/components/settings/profile/sidebar";
 // hooks
-import { useUser } from "@/hooks/store/user";
+import { useWorkspace } from "@/hooks/store/use-workspace";
+import { useUserProfile } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
-// local imports
-import type { Route } from "../+types/layout";
 
-function ProfileSettingsPage(props: Route.ComponentProps) {
-  const { profileTabId } = props.params;
+// Legacy redirect: profile settings used to live at the global /settings/profile/:tab.
+// They are now a section of the unified workspace settings at
+// /:workspaceSlug/settings/account/:tab, so bounce the user there using their
+// current / last-used / first-available workspace.
+function ProfileSettingsRedirect() {
   // router
   const router = useAppRouter();
+  // params
+  const { profileTabId } = useParams();
   // store hooks
-  const { data: currentUser } = useUser();
-  // translation
-  const { t } = useTranslation();
-  // derived values
-  const isAValidTab = PROFILE_SETTINGS_TABS.includes(profileTabId as TProfileSettingsTabs);
+  const { currentWorkspace, workspaces } = useWorkspace();
+  const { data: userProfile } = useUserProfile();
 
-  if (!currentUser || !isAValidTab)
-    return (
-      <div className="grid size-full place-items-center px-4">
-        <LogoSpinner />
-      </div>
-    );
+  const tab = profileTabId || "general";
+
+  useEffect(() => {
+    const workspacesList = Object.values(workspaces ?? {});
+    const slug =
+      currentWorkspace?.slug ??
+      workspacesList.find((workspace) => workspace.id === userProfile?.last_workspace_id)?.slug ??
+      workspacesList[0]?.slug;
+
+    if (slug) {
+      router.replace(`/${slug}/settings/account/${tab}`);
+    } else if (workspaces) {
+      // Authenticated but no workspace yet — send them to onboarding/home.
+      router.replace("/");
+    }
+  }, [currentWorkspace, workspaces, userProfile, tab, router]);
 
   return (
-    <>
-      <PageHead title={`${t("profile.label")} - ${t("general_settings")}`} />
-      <div className="relative size-full">
-        <div className="flex size-full">
-          <ProfileSettingsSidebarRoot
-            activeTab={profileTabId as TProfileSettingsTabs}
-            className="w-[250px]"
-            updateActiveTab={(tab) => router.push(`/settings/profile/${tab}`)}
-          />
-          <ProfileSettingsContent
-            activeTab={profileTabId as TProfileSettingsTabs}
-            className="mx-auto w-fit max-w-225 grow px-page-x py-20"
-          />
-        </div>
-      </div>
-    </>
+    <div className="grid size-full place-items-center px-4">
+      <LogoSpinner />
+    </div>
   );
 }
 
-export default observer(ProfileSettingsPage);
+export default observer(ProfileSettingsRedirect);

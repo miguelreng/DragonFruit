@@ -67,7 +67,7 @@ export const formatShortcutForDisplay = (shortcut: string | undefined): string |
   return parts.join("");
 };
 
-export function ShortcutBadge({ shortcut }: { shortcut: string | undefined }) {
+export function ShortcutBadge({ shortcut, mono = true }: { shortcut: string | undefined; mono?: boolean }) {
   if (!shortcut) return null;
 
   const formatted = formatShortcutForDisplay(shortcut);
@@ -76,7 +76,11 @@ export function ShortcutBadge({ shortcut }: { shortcut: string | undefined }) {
     <div className="pointer-events-none inline-flex shrink-0 items-center gap-1 font-medium select-none">
       {formatted?.split("").map((char, index) => (
         <React.Fragment key={index}>
-          <kbd className="inline-flex h-5 items-center justify-center rounded-lg border border-strong bg-surface-1 px-1.5 font-code text-10 font-medium text-tertiary">
+          {/* Monospace by default; pass mono={false} where a glyph is ambiguous
+              in the code font (e.g. "O" vs "0") and the UI sans reads clearer. */}
+          <kbd
+            className={`inline-flex h-5 items-center justify-center rounded-lg border border-strong bg-surface-1 px-1.5 text-10 font-medium text-tertiary ${mono ? "font-code" : "[font-family:inherit]"}`}
+          >
             {char.toUpperCase()}
           </kbd>
         </React.Fragment>

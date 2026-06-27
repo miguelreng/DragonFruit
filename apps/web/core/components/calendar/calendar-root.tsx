@@ -53,6 +53,11 @@ import {
 
 const calendarService = new CalendarService();
 const TASKS_CALENDAR_ID = "tasks";
+// Calendar-only accent: a brighter pink than the deep brand magenta (by request),
+// scoped to the calendar. Header chrome (New button, legend dot) renders OUTSIDE the
+// `.dragonfruit-calendar` wrapper, so it can't read the CSS var and uses this hex
+// directly — keep it in sync with `--dragonfruit-calendar-accent` in globals.css.
+const CALENDAR_ACCENT = "#ec4899";
 const CreateUpdateIssueModal = lazy(() =>
   import("@/components/issues/issue-modal/modal").then((module) => ({ default: module.CreateUpdateIssueModal }))
 );
@@ -118,7 +123,7 @@ function taskToScheduleXEvent(t: TCalendarTask, workspaceSlug: string) {
   if (!start || !end) return null;
   return {
     id: `task-${t.id}`,
-    title: t.project_identifier && t.sequence_id ? `${t.project_identifier}-${t.sequence_id}  ${t.title}` : t.title,
+    title: t.title,
     start,
     end,
     calendarId: TASKS_CALENDAR_ID,
@@ -211,11 +216,27 @@ function googleEventToScheduleXEvent(e: TCalendarEventWithSource) {
   };
 }
 
+// `onContainer` is intentionally set to the calendar's `main` color (not a
+// readable text color): the event's text color drives the leading color dot
+// (`.sx__month-grid-event::before { background: currentColor }` in globals.css),
+// while the label itself is forced to a neutral color via CSS.
+//
+// Color values here are a fallback — the authoritative ones live in globals.css
+// (`--dragonfruit-calendar-accent`), which overrides what Schedule-X writes to
+// :root and applies without recreating the calendar. Kept in sync via CALENDAR_ACCENT.
 const BASE_CALENDARS_CONFIG = {
   [TASKS_CALENDAR_ID]: {
     colorName: "tasks",
-    lightColors: { main: "#ec4899", container: "#fce7f3", onContainer: "#831843" },
-    darkColors: { main: "#f9a8d4", container: "#831843", onContainer: "#fce7f3" },
+    lightColors: {
+      main: CALENDAR_ACCENT,
+      container: `color-mix(in srgb, ${CALENDAR_ACCENT} 14%, transparent)`,
+      onContainer: CALENDAR_ACCENT,
+    },
+    darkColors: {
+      main: CALENDAR_ACCENT,
+      container: `color-mix(in srgb, ${CALENDAR_ACCENT} 24%, transparent)`,
+      onContainer: CALENDAR_ACCENT,
+    },
   },
 };
 
@@ -323,7 +344,7 @@ export function CalendarRoot() {
           {
             colorName: source.id,
             lightColors: { main: color, container: `${color}1f`, onContainer: color },
-            darkColors: { main: color, container: `${color}33`, onContainer: "#ffffff" },
+            darkColors: { main: color, container: `${color}33`, onContainer: color },
           },
         ];
       })
@@ -673,7 +694,7 @@ function CalendarPageHeader({
         </Breadcrumbs>
         <div className="ml-2 flex items-center gap-3 text-12 text-tertiary">
           <span className="flex items-center gap-1.5">
-            <LegendDot color="#ec4899" />
+            <LegendDot color={CALENDAR_ACCENT} />
             {taskCount} tasks
           </span>
           {hasGoogleAccounts && (
@@ -743,13 +764,19 @@ function CalendarPageHeader({
             {isConnecting ? "Redirecting…" : "Connect calendar"}
           </Button>
         )}
-        {canCreateEvent ? (
-          <Menu as="div" className="relative">
-            <Menu.Button className="t-press inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-accent-primary px-3 text-body-xs-medium whitespace-nowrap text-on-color hover:opacity-90">
-              New
-              <ChevronDown className="size-3.5" />
-            </Menu.Button>
-            <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-44 rounded-lg border border-strong bg-layer-2 py-1 outline-none">
+        {/* Always render the dropdown so the trigger doesn't morph from "New task"
+            to "New ▾" once the writable-calendar state resolves after load. The
+            "New event" item only appears when a writable Google calendar exists. */}
+        <Menu as="div" className="relative">
+          <Menu.Button
+            className="t-press inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-3 text-body-xs-medium whitespace-nowrap text-on-color hover:opacity-90"
+            style={{ backgroundColor: CALENDAR_ACCENT }}
+          >
+            New
+            <ChevronDown className="size-3.5" />
+          </Menu.Button>
+          <Menu.Items className="shadow-lg absolute right-0 z-30 mt-1 w-44 rounded-lg border border-strong bg-layer-2 py-1 outline-none">
+            {canCreateEvent && (
               <Menu.Item>
                 <button
                   type="button"
@@ -760,23 +787,19 @@ function CalendarPageHeader({
                   New event
                 </button>
               </Menu.Item>
-              <Menu.Item>
-                <button
-                  type="button"
-                  onClick={onQuickAdd}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-13 text-primary hover:bg-layer-2-hover"
-                >
-                  <CheckSquare className="size-3.5 text-tertiary" />
-                  New task
-                </button>
-              </Menu.Item>
-            </Menu.Items>
-          </Menu>
-        ) : (
-          <Button variant="primary" size="lg" onClick={onQuickAdd}>
-            New task
-          </Button>
-        )}
+            )}
+            <Menu.Item>
+              <button
+                type="button"
+                onClick={onQuickAdd}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-13 text-primary hover:bg-layer-2-hover"
+              >
+                <CheckSquare className="size-3.5 text-tertiary" />
+                New task
+              </button>
+            </Menu.Item>
+          </Menu.Items>
+        </Menu>
       </Header.RightItem>
     </Header>
   );

@@ -54,11 +54,12 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
         </div>
       )}
       <HomePeekOverviewsRoot />
-      {/* Standard top chrome — keeps the sidebar/app-rail toggle at the page top.
-          Empty header content reads as plain top spacing when nothing is collapsed. */}
-      <AppHeader header={null} />
+      {/* Top chrome only carries the sidebar/app-rail toggles, and only while
+          they're collapsed. Shrink the row to its content so an empty header
+          adds no spacing (no ghost bar) yet the toggles still surface when shown. */}
+      <AppHeader header={null} rowClassName="min-h-0 pt-0 pb-0" />
       <ContentWrapper className="scrollbar-hide gap-0 bg-surface-1 !px-0 !py-0">
-        <div className="mx-auto flex w-full max-w-[820px] flex-col gap-10 px-page-x pt-4 pb-16">
+        <div className="mx-auto flex w-full max-w-[820px] flex-col gap-10 px-page-x pt-10 pb-16">
           {header}
           <div className="flex flex-col gap-8">
             {enabledKeys("recent_docs") && <RecentDocsSection />}

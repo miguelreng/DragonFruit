@@ -8,7 +8,7 @@ import { useMemo, useCallback } from "react";
 import { FileText, Whiteboard, Star } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, ViewsIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
+import { CycleIcon, IntakeIcon, ModuleIcon, PageIcon, StickyNoteIcon, ViewsIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
 import type { EUserProjectRoles, IPartialProject } from "@plane/types";
 import type { TNavigationItem } from "@/components/navigation/tab-navigation-root";
 
@@ -122,6 +122,16 @@ export const useNavigationItems = ({
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: !!project?.inbox_view,
         sortOrder: 8,
+      },
+      {
+        i18n_key: "sidebar.stickies",
+        key: "stickies",
+        name: "Stickies",
+        href: `/${workspaceSlug}/projects/${projectId}/stickies`,
+        icon: StickyNoteIcon,
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: true,
+        sortOrder: 9,
       },
     ],
     [project, projectId, workspaceSlug]

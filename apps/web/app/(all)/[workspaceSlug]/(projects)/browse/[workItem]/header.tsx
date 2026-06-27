@@ -5,61 +5,18 @@
  */
 
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-// plane imports
-import { Header, Row } from "@plane/ui";
-import { cn } from "@plane/utils";
 // components
 import { AppHeader } from "@/components/core/app-header";
-import { TabNavigationRoot } from "@/components/navigation";
-import { AppSidebarToggleButton } from "@/components/sidebar/sidebar-toggle-button";
-// hooks
-import { useAppTheme } from "@/hooks/store/use-app-theme";
-import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { useProjectNavigationPreferences } from "@/hooks/use-navigation-preferences";
 // local components
 import { WorkItemDetailsHeader } from "./work-item-header";
 
+/**
+ * A work item is a single-item detail view, so it runs in "focus mode": the
+ * project tab band is dropped and the work item's own header (breadcrumb back to
+ * Tasks + actions) is the only top strip. Section navigation stays available via
+ * that breadcrumb and the left app rail; when the rail is collapsed its expand
+ * toggle relocates into this header (see ExtendedAppHeader).
+ */
 export const ProjectWorkItemDetailsHeader = observer(function ProjectWorkItemDetailsHeader() {
-  // router
-  const { workspaceSlug, workItem } = useParams();
-  // store hooks
-  const { sidebarCollapsed } = useAppTheme();
-  const {
-    issue: { getIssueById, getIssueIdByIdentifier },
-  } = useIssueDetail();
-  // derived values
-  const issueId = getIssueIdByIdentifier(workItem?.toString());
-  const issueDetails = issueId ? getIssueById(issueId?.toString()) : undefined;
-  // preferences
-  const { preferences: projectPreferences } = useProjectNavigationPreferences();
-
-  return (
-    <>
-      {projectPreferences.navigationMode === "TABBED" && (
-        <div className="z-20">
-          <Row className="flex min-h-14 w-full items-center gap-2 bg-surface-1 pt-3 pb-2">
-            <div className="flex h-full w-full items-center gap-2 divide-x divide-subtle">
-              <div className="flex size-full flex-1 items-center gap-2">
-                {sidebarCollapsed && (
-                  <div className="shrink-0">
-                    <AppSidebarToggleButton />
-                  </div>
-                )}
-                <Header className={cn("h-full", { "pl-1.5": !sidebarCollapsed })}>
-                  <Header.LeftItem className="h-full max-w-full">
-                    <TabNavigationRoot
-                      workspaceSlug={workspaceSlug}
-                      projectId={issueDetails?.project_id?.toString() ?? ""}
-                    />
-                  </Header.LeftItem>
-                </Header>
-              </div>
-            </div>
-          </Row>
-        </div>
-      )}
-      <AppHeader header={<WorkItemDetailsHeader />} />
-    </>
-  );
+  return <AppHeader header={<WorkItemDetailsHeader />} />;
 });

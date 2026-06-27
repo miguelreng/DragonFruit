@@ -313,7 +313,7 @@ class StickySerializer(BaseSerializer):
     class Meta:
         model = Sticky
         fields = "__all__"
-        read_only_fields = ["workspace", "owner"]
+        read_only_fields = ["workspace", "owner", "project"]
         extra_kwargs = {"name": {"required": False}}
 
     def validate(self, data):

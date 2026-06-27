@@ -11,27 +11,22 @@ import type {
 } from "@atlaskit/pragmatic-drag-and-drop/dist/types/internal-types";
 import type { ElementDragPayload } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { observer } from "mobx-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { useTheme } from "next-themes";
 
 // plane imports
-import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { PlusIcon } from "@/components/icons/propel-shim";
-import { EUserWorkspaceRoles } from "@plane/types";
+import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { cn } from "@plane/utils";
 // assets
-import darkStickiesAsset from "@/app/assets/empty-state/stickies/stickies-dark.webp?url";
-import lightStickiesAsset from "@/app/assets/empty-state/stickies/stickies-light.webp?url";
 import darkStickiesSearchAsset from "@/app/assets/empty-state/stickies/stickies-search-dark.webp?url";
 import lightStickiesSearchAsset from "@/app/assets/empty-state/stickies/stickies-search-light.webp?url";
 // components
 import type { ViewMode } from "@/components/core/view-mode-toggle";
-import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 import { StickiesEmptyState } from "@/components/home/widgets/empty-states/stickies";
 // hooks
-import { useUserPermissions } from "@/hooks/store/user";
 import { useSticky } from "@/hooks/use-stickies";
 // local imports
 import { useStickyOperations } from "../sticky/use-operations";
@@ -63,24 +58,20 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   const { workspaceSlug, intersectionElement, columnCount, viewMode = "grid" } = props;
   // navigation
   const pathname = usePathname();
+  const { projectId } = useParams();
+  const scopeKey = projectId ? projectId.toString() : (workspaceSlug?.toString() ?? "");
   // theme hook
   const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // store hooks
-  const { getWorkspaceStickyIds, toggleShowNewSticky, searchQuery, loader } = useSticky();
-  const { allowPermissions } = useUserPermissions();
+  const { getWorkspaceStickyIds, searchQuery, loader } = useSticky();
   // sticky operations
   const { stickyOperations } = useStickyOperations({ workspaceSlug: workspaceSlug?.toString() });
   // derived values
-  const workspaceStickyIds = getWorkspaceStickyIds(workspaceSlug?.toString());
+  const workspaceStickyIds = getWorkspaceStickyIds(scopeKey);
   const itemWidth = "100%";
   const isStickiesPage = pathname?.includes("stickies");
-  const hasGuestLevelPermissions = allowPermissions(
-    [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
-    EUserPermissionsLevel.WORKSPACE
-  );
-  const stickiesResolvedPath = resolvedTheme === "light" ? lightStickiesAsset : darkStickiesAsset;
   const stickiesSearchResolvedPath = resolvedTheme === "light" ? lightStickiesSearchAsset : darkStickiesSearchAsset;
 
   const handleDrop = (self: DropTargetRecord, source: ElementDragPayload, location: DragLocationHistory) => {
@@ -118,19 +109,10 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
                 assetPath={stickiesSearchResolvedPath}
               />
             ) : (
-              <DetailedEmptyState
+              <EmptyStateDetailed
+                asset={<EmptyStateIcon name="stickies" />}
                 title={t("stickies.empty_state.general.title")}
                 description={t("stickies.empty_state.general.description")}
-                assetPath={stickiesResolvedPath}
-                primaryButton={{
-                  prependIcon: <PlusIcon className="size-4" />,
-                  text: t("stickies.empty_state.general.primary_button.text"),
-                  onClick: () => {
-                    toggleShowNewSticky(true);
-                    stickyOperations.create();
-                  },
-                  disabled: !hasGuestLevelPermissions,
-                }}
               />
             )}
           </>

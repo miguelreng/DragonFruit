@@ -227,7 +227,7 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   }
                   disabled={issue.project_id === projectId}
                 >
-                  <div className="absolute left-[var(--padding-page-x)] grid w-3.5 flex-shrink-0 place-items-center">
+                  <div className="absolute left-1 grid w-3.5 flex-shrink-0 place-items-center">
                     {/* ClickUp-style: checkbox is always visible at half
                         opacity so a column of empty boxes anchors the row;
                         hover and selected states pop it to full opacity. */}
@@ -260,24 +260,22 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
               {/* sub-issues chevron. Bumped color from `text-placeholder`
                   (very faded) to `text-secondary` with a subtle hover bg so
                   it reads as a real disclosure control, not decoration. */}
-              <div className="grid size-5 flex-shrink-0 place-items-center">
-                {subIssuesCount > 0 && !isEpic && (
-                  <button
-                    type="button"
-                    className="grid size-5 place-items-center rounded-xs text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
-                    onClick={handleToggleExpand}
-                    aria-expanded={isExpanded}
-                    aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
-                  >
-                    <ChevronRightIcon
-                      className={cn("size-4 transition-transform", {
-                        "rotate-90": isExpanded,
-                      })}
-                      strokeWidth={2.5}
-                    />
-                  </button>
-                )}
-              </div>
+              {subIssuesCount > 0 && !isEpic && (
+                <button
+                  type="button"
+                  className="grid size-5 flex-shrink-0 place-items-center rounded-xs text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                  onClick={handleToggleExpand}
+                  aria-expanded={isExpanded}
+                  aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
+                >
+                  <ChevronRightIcon
+                    className={cn("size-4 transition-transform", {
+                      "rotate-90": isExpanded,
+                    })}
+                    strokeWidth={2.5}
+                  />
+                </button>
+              )}
 
               {issue?.tempId !== undefined && (
                 <div className="absolute top-0 left-0 z-[99999] h-full w-full animate-pulse bg-surface-1/20" />

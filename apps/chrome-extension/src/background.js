@@ -99,6 +99,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     void respond(loadProjects(message.appUrl, message.workspaceSlug), sendResponse);
     return true;
   }
+  if (message?.type === "MOVE_BOOKMARK") {
+    void respond(moveBookmark(message.bookmark, message.toProjectId), sendResponse);
+    return true;
+  }
   return false;
 });
 
@@ -323,7 +327,7 @@ async function handleContextMenu(info, tab) {
 // toast, then a success toast or a routed recovery (login / settings / error
 // toast). `run` resolves with the action result; `successActionUrl(result)` may
 // return a URL to attach to the success toast's "View" pill.
-async function runWithFeedback(tab, { loadingText, successText, run, successActionUrl }) {
+async function runWithFeedback(tab, { loadingText, successText, run, successActionUrl, enableProjectPicker = false }) {
   const tabId = tab?.id;
   if (!tabId) return;
   try {
@@ -335,9 +339,12 @@ async function runWithFeedback(tab, { loadingText, successText, run, successActi
     }
     await showTabToast(tabId, loadingText, { state: "loading" });
     const result = await run();
+    const picker = enableProjectPicker && result?.id ? await buildProjectPicker(result) : null;
     await showTabToast(tabId, successText, {
       state: "success",
       actionUrl: typeof successActionUrl === "function" ? successActionUrl(result) : "",
+      projects: picker?.projects ?? [],
+      bookmark: picker?.bookmark ?? null,
     });
   } catch (error) {
     const message = String(error?.message || "Something went wrong. Please try again.");
@@ -364,6 +371,7 @@ async function saveWithFeedback(tab, { savingText, savedText, save }) {
     successText: savedText,
     run: save,
     successActionUrl: bookmarkActionUrl,
+    enableProjectPicker: true,
   });
 }
 
@@ -657,6 +665,53 @@ async function recoverWritableProject(settings) {
   };
 }
 
+// For the save toast's project dropdown: the writable projects already cached in
+// settings (the popup loads them). Only worth showing when there's a choice.
+async function buildProjectPicker(bookmark) {
+  const { projects } = await chrome.storage.sync.get(["projects"]);
+  const list = Array.isArray(projects) ? projects : [];
+  if (list.length < 2) return null;
+  return { projects: list, bookmark };
+}
+
+// Re-target a just-saved bookmark to another project: recreate it there, delete
+// the original, and remember the new project as the default for next time.
+async function moveBookmark(bookmark, toProjectIdValue) {
+  const settings = await getSettings();
+  if (!settings.apiToken) throw new Error("Connect your DragonFruit account first.");
+  const workspaceSlug = stringValue(bookmark?.workspace_slug) || settings.workspaceSlug;
+  const fromProjectId = stringValue(bookmark?.project_id);
+  const bookmarkId = stringValue(bookmark?.id);
+  const toProjectId = stringValue(toProjectIdValue);
+  if (!workspaceSlug || !toProjectId || !bookmarkId) throw new Error("Could not move the bookmark.");
+  if (toProjectId === fromProjectId) return { ok: true, bookmark };
+
+  const payload = {
+    title: clampTitle(bookmark.title),
+    url: stringValue(bookmark.url),
+    description: stringValue(bookmark.description),
+    tags: Array.isArray(bookmark.tags) ? bookmark.tags : [],
+    metadata: bookmark.metadata && typeof bookmark.metadata === "object" ? bookmark.metadata : {},
+  };
+  const response = await fetch(`${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${toProjectId}/bookmarks/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authorizedHeaders(settings.apiToken),
+      "X-DragonFruit-Source": "chrome-extension",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(await bookmarkErrorMessage(response));
+  const moved = await response.json();
+
+  if (fromProjectId) {
+    await deleteBookmark({ id: bookmarkId, project_id: fromProjectId, workspace_slug: workspaceSlug }).catch(() => {});
+  }
+  await chrome.storage.sync.set({ projectId: toProjectId });
+  return { ok: true, bookmark: moved };
+}
+
 async function bookmarkErrorMessage(response) {
   const fallback = `Bookmark failed: ${response.status}`;
   const contentType = response.headers.get("content-type") || "";
@@ -733,7 +788,7 @@ function isConfigurationError(message) {
   return normalized.includes("choose a workspace") || normalized.includes("select workspace");
 }
 
-async function showTabToast(tabId, title, { message = "", state = "success", actionUrl = "" } = {}) {
+async function showTabToast(tabId, title, { message = "", state = "success", actionUrl = "", projects = [], bookmark = null } = {}) {
   if (!tabId) return;
   try {
     const fontUrl = chrome.runtime.getURL("src/fonts/Figtree-Variable.ttf");
@@ -750,12 +805,24 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
       .catch(() => {});
     await chrome.scripting.executeScript({
       target: { tabId },
-      args: [String(title || ""), String(message || ""), state, String(actionUrl || "")],
-      func: (toastTitle, toastMessage, toastState, toastActionUrl) => {
+      args: [
+        String(title || ""),
+        String(message || ""),
+        state,
+        String(actionUrl || ""),
+        Array.isArray(projects) ? projects : [],
+        bookmark || null,
+      ],
+      func: (toastTitle, toastMessage, toastState, toastActionUrl, toastProjects, toastBookmark) => {
         const TOAST_ID = "dragonfruit-extension-toast";
         if (!toastTitle) return;
         const normalizedState = toastState === "error" || toastState === "loading" ? toastState : "success";
         const hasAction = normalizedState === "success" && Boolean(toastActionUrl);
+        const hasPicker =
+          normalizedState === "success" &&
+          Array.isArray(toastProjects) &&
+          toastProjects.length > 1 &&
+          Boolean(toastBookmark && toastBookmark.id);
         const toastToken = String(Date.now());
         // Filled, type-colored "badge" glyphs that knock out white — matching the
         // shared action toast (packages/propel/src/toast/toast.tsx): BadgeCheck for
@@ -963,6 +1030,23 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               border-color: var(--border-subtle-1);
               color: var(--text-primary);
             }
+            .project-picker {
+              flex: 0 0 auto;
+              max-width: 150px;
+              margin: 0;
+              padding: 4px 8px;
+              border: 1px solid var(--border-subtle);
+              border-radius: 999px;
+              background: var(--surface-2);
+              color: var(--text-secondary);
+              cursor: pointer;
+              font: 500 13px/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
+              letter-spacing: 0.13px;
+            }
+            .project-picker:hover {
+              border-color: var(--border-subtle-1);
+              color: var(--text-primary);
+            }
             @media (prefers-reduced-motion: reduce) {
               .toast { transition: opacity var(--motion-control-dur) var(--motion-control-ease); transform: none; }
               .toast[data-visible="true"] { transform: none; }
@@ -974,6 +1058,7 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
               <p class="title"></p>
               ${toastMessage ? `<p class="message"></p>` : ""}
             </div>
+            ${hasPicker ? `<select class="project-picker" aria-label="Move to project"></select>` : ""}
             ${hasAction ? `<button class="action" type="button">View</button>` : ""}
             <button class="close" type="button" aria-label="Dismiss">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1000,6 +1085,30 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
         closeButton?.addEventListener("click", () => {
           toast.dataset.visible = "false";
         });
+
+        const projectPicker = root.querySelector(".project-picker");
+        if (projectPicker && Array.isArray(toastProjects)) {
+          for (const project of toastProjects) {
+            const option = document.createElement("option");
+            option.value = project.id;
+            option.textContent = project.name || project.id;
+            projectPicker.append(option);
+          }
+          projectPicker.value = (toastBookmark && toastBookmark.project_id) || "";
+          let activeBookmark = toastBookmark;
+          projectPicker.addEventListener("change", () => {
+            const toProjectId = projectPicker.value;
+            const projectName = toastProjects.find((entry) => entry.id === toProjectId)?.name || "project";
+            projectPicker.disabled = true;
+            chrome.runtime.sendMessage({ type: "MOVE_BOOKMARK", bookmark: activeBookmark, toProjectId }, (response) => {
+              projectPicker.disabled = false;
+              if (response?.ok) {
+                titleElement.textContent = `Saved to ${projectName}`;
+                if (response.bookmark) activeBookmark = response.bookmark;
+              }
+            });
+          });
+        }
 
         requestAnimationFrame(() => {
           toast.dataset.visible = "true";

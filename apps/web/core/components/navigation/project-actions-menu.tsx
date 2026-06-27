@@ -51,7 +51,7 @@ export function ProjectActionsMenu({
           className="grid place-items-center rounded-lg p-0.5 text-placeholder hover:bg-layer-1"
           onClick={() => setIsMenuActive(!isMenuActive)}
         >
-          <MoreHorizontal className="size-4" />
+          <MoreHorizontal weight="Bold" className="size-4" />
         </span>
       }
       className="flex-shrink-0"

@@ -15,7 +15,10 @@ function MyTasksPage() {
     <>
       <PageHead title="My tasks" />
       <ContentWrapper className="space-y-8">
-        <MyTasksSection hideHeader groupByProject flat />
+        {/* Cap the reading width so each task's title + inline metadata stay close together. */}
+        <div className="w-full max-w-xl">
+          <MyTasksSection hideHeader groupByProject flat />
+        </div>
       </ContentWrapper>
     </>
   );

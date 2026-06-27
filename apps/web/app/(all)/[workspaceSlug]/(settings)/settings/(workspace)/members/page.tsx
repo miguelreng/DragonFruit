@@ -16,7 +16,6 @@ import type { IWorkspaceBulkInviteFormData } from "@plane/types";
 import { cn } from "@plane/utils";
 // components
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
-import { CountChip } from "@/components/common/count-chip";
 import { PageHead } from "@/components/core/page-title";
 import { MemberListFiltersDropdown } from "@/components/project/dropdowns/filters/member-list";
 import { WorkspaceMembersList } from "@/components/workspace/settings/members-list";
@@ -40,7 +39,7 @@ const WorkspaceMembersSettingsPage = observer(function WorkspaceMembersSettingsP
   // store hooks
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
   const {
-    workspace: { workspaceMemberIds, inviteMembersToWorkspace, filtersStore },
+    workspace: { inviteMembersToWorkspace, filtersStore },
   } = useMember();
   const { currentWorkspace } = useWorkspace();
   const { t } = useTranslation();
@@ -100,7 +99,7 @@ const WorkspaceMembersSettingsPage = observer(function WorkspaceMembersSettingsP
   }
 
   return (
-    <SettingsContentWrapper header={<MembersWorkspaceSettingsHeader />} hugging>
+    <SettingsContentWrapper header={<MembersWorkspaceSettingsHeader />}>
       <PageHead title={pageTitle} />
       <SendWorkspaceInvitationModal
         isOpen={inviteModal}
@@ -112,13 +111,7 @@ const WorkspaceMembersSettingsPage = observer(function WorkspaceMembersSettingsP
           "opacity-60": !canPerformWorkspaceMemberActions,
         })}
       >
-        <div className="flex items-center justify-between gap-4 pb-3.5">
-          <h4 className="flex items-center gap-2.5 text-h5-medium">
-            {t("workspace_settings.settings.members.title")}
-            {workspaceMemberIds && workspaceMemberIds.length > 0 && (
-              <CountChip count={workspaceMemberIds.length} className="m-auto h-5" />
-            )}
-          </h4>
+        <div className="flex items-center justify-end gap-4 pb-3.5">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-lg border border-subtle bg-surface-1 px-2.5 py-1.5">
               <SearchIcon className="h-3.5 w-3.5 text-placeholder" />

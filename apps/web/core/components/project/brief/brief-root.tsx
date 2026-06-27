@@ -105,6 +105,14 @@ export const ProjectBriefRoot = observer(function ProjectBriefRoot(props: TBrief
     { revalidateOnFocus: false, revalidateIfStale: false, revalidateOnReconnect: false }
   );
 
+  // Switching projects keeps this component mounted, so drop the previous
+  // project's brief immediately — otherwise the editor keeps showing the old
+  // brief until (and unless) the new one re-resolves. Pairs with the key below
+  // so the editor fully remounts for the new project's brief.
+  useEffect(() => {
+    setBriefPageId(undefined);
+  }, [projectId]);
+
   if (resolveError)
     return (
       <div className="flex h-full w-full flex-col items-center justify-center">
@@ -120,14 +128,14 @@ export const ProjectBriefRoot = observer(function ProjectBriefRoot(props: TBrief
       </div>
     );
 
-  return <BriefPageEditor workspaceSlug={workspaceSlug} projectId={projectId} pageId={briefPageId} />;
+  return <BriefPageEditor key={briefPageId} workspaceSlug={workspaceSlug} projectId={projectId} pageId={briefPageId} />;
 });
 
 // Brief header actions: a Publish control (reusing the Docs PageShareControl —
 // the popover with the public URL, copy, and an editable slug) plus a three-dots
 // menu holding Lock. Icons are from the Heroicons set.
-const BriefPageActions = observer(function BriefPageActions(props: { page: TPageInstance }) {
-  const { page } = props;
+const BriefPageActions = observer(function BriefPageActions(props: { page: TPageInstance; title: string }) {
+  const { page, title } = props;
   const { pageOperations } = usePageOperations({ page });
   const isLocked = page.is_locked;
   const itemClass = "flex w-full items-center gap-2 text-13";
@@ -135,31 +143,34 @@ const BriefPageActions = observer(function BriefPageActions(props: { page: TPage
   const canLock = page.canCurrentUserLockPage;
 
   return (
-    <div className="absolute top-3 right-4 z-20 flex items-center gap-1.5">
-      {/* The Brief renders PageRoot chromeless (no PageHeaderActions), so mount
-          the editor guide here — styled like the other floating controls. */}
-      <EditorCapabilitiesGuide buttonClassName="size-7 border border-subtle bg-surface-1" />
-      {canPublish && <PageShareControl page={page} storeType={storeType} />}
-      {canLock && (
-        <CustomMenu
-          placement="bottom-end"
-          ariaLabel="Brief options"
-          optionsClassName="min-w-44 p-1"
-          customButtonClassName="grid size-7 place-items-center rounded-lg border border-subtle bg-surface-1 text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
-          customButton={<EllipsisHorizontalIcon className="size-4" />}
-        >
-          <CustomMenu.MenuItem onClick={() => pageOperations.toggleLock()} className="rounded-md">
-            <span className={itemClass}>
-              {isLocked ? (
-                <LockOpenIcon className="size-4 flex-shrink-0" />
-              ) : (
-                <LockClosedIcon className="size-4 flex-shrink-0" />
-              )}
-              {isLocked ? "Unlock" : "Lock"}
-            </span>
-          </CustomMenu.MenuItem>
-        </CustomMenu>
-      )}
+    <div className="z-20 flex flex-shrink-0 items-center justify-between gap-2 px-page-x pt-3 pb-2">
+      <span className="truncate text-13 font-medium text-primary">{title}</span>
+      <div className="flex items-center gap-1.5">
+        {/* The Brief renders PageRoot chromeless (no PageHeaderActions), so mount
+            the editor guide here — styled like the other floating controls. */}
+        <EditorCapabilitiesGuide buttonClassName="size-7 border border-subtle bg-surface-1" />
+        {canPublish && <PageShareControl page={page} storeType={storeType} />}
+        {canLock && (
+          <CustomMenu
+            placement="bottom-end"
+            ariaLabel="Brief options"
+            optionsClassName="min-w-44 p-1"
+            customButtonClassName="grid size-7 place-items-center rounded-lg border border-subtle bg-surface-1 text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            customButton={<EllipsisHorizontalIcon className="size-4" />}
+          >
+            <CustomMenu.MenuItem onClick={() => pageOperations.toggleLock()} className="rounded-md">
+              <span className={itemClass}>
+                {isLocked ? (
+                  <LockOpenIcon className="size-4 flex-shrink-0" />
+                ) : (
+                  <LockClosedIcon className="size-4 flex-shrink-0" />
+                )}
+                {isLocked ? "Unlock" : "Lock"}
+              </span>
+            </CustomMenu.MenuItem>
+          </CustomMenu>
+        )}
+      </div>
     </div>
   );
 });
@@ -283,19 +294,20 @@ const BriefPageEditor = observer(function BriefPageEditor(props: TBriefPageEdito
           name, "Project Brief"). In the Brief we show a fixed project-brief label
           instead, so hide the editor's built-in title block. */}
       <style>{`.df-brief-chromeless div:has(> .page-title-editor){display:none !important;}`}</style>
-      <BriefPageActions page={page} />
-      <PageRoot
-        config={config}
-        handlers={handlers}
-        storeType={storeType}
-        page={page}
-        webhookConnectionParams={webhookConnectionParams}
-        workspaceSlug={workspaceSlug}
-        projectId={projectId}
-        chromeless
-        headerLabel={briefDisplayName}
-        editorPlaceholder="Write an overview of this project…"
-      />
+      <BriefPageActions page={page} title={briefDisplayName} />
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <PageRoot
+          config={config}
+          handlers={handlers}
+          storeType={storeType}
+          page={page}
+          webhookConnectionParams={webhookConnectionParams}
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          chromeless
+          editorPlaceholder="Write an overview of this project…"
+        />
+      </div>
     </div>
   );
 });

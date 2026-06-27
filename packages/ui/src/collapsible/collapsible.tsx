@@ -45,10 +45,10 @@ export function Collapsible(props: TCollapsibleProps) {
       </Disclosure.Button>
       <Transition
         show={localIsOpen}
-        enter="transition-all duration-300 ease-in-out"
+        enter="transition-all duration-[220ms] ease-in-out"
         enterFrom="grid-rows-[0fr] opacity-0"
         enterTo="grid-rows-[1fr] opacity-100"
-        leave="transition-all duration-300 ease-in-out"
+        leave="transition-all duration-[220ms] ease-in-out"
         leaveFrom="grid-rows-[1fr] opacity-100"
         leaveTo="grid-rows-[0fr] opacity-0"
         className="grid overflow-hidden"

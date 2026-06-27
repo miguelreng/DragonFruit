@@ -121,7 +121,7 @@ export function PowerKAskAISection(props: Props) {
         forceMount
         onSelect={ask}
         disabled={pending}
-        className="flex items-start justify-between gap-2 rounded-lg border border-[color:var(--power-k-ai-bar-border)] bg-[image:var(--power-k-ai-bar-bg)] shadow-[var(--power-k-ai-bar-shadow)] focus:outline-none"
+        className="items-start focus:outline-none"
       >
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex min-w-0 items-center gap-2 text-secondary">

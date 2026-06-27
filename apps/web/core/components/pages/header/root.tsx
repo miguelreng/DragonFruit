@@ -23,8 +23,8 @@ import { usePageStore } from "@/plane-web/hooks/store";
 import { PageAppliedFiltersList } from "../list/applied-filters";
 import { PageFiltersSelection } from "../list/filters";
 import { PageOrderByDropdown } from "../list/order-by";
+import { PageScopeDropdown } from "../list/scope-dropdown";
 import { PageSearchInput } from "../list/search-input";
-import { PageTabNavigation } from "../list/tab-navigation";
 
 type Props = {
   contentType?: TPageType;
@@ -64,7 +64,7 @@ export const PagesListHeaderRoot = observer(function PagesListHeaderRoot(props: 
     <>
       <Header variant={EHeaderVariant.SECONDARY}>
         <Header.LeftItem>
-          <PageTabNavigation
+          <PageScopeDropdown
             workspaceSlug={workspaceSlug}
             projectId={projectId}
             pageType={pageType}

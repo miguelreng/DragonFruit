@@ -20,13 +20,12 @@ import {
 import { useLocalStorage } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { NewTabIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
+import { NewTabIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { EIssuesStoreType } from "@plane/types";
 import { Breadcrumbs, FavoriteStar, Header } from "@plane/ui";
 // components
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
-import { CountChip } from "@/components/common/count-chip";
 // constants
 import { HeaderFilters } from "@/components/issues/filters";
 // helpers
@@ -99,7 +98,6 @@ export const IssuesHeader = observer(function IssuesHeader() {
                 <BreadcrumbLink
                   label="Tasks"
                   href={`/${workspaceSlug}/projects/${projectId}/issues/`}
-                  icon={<WorkItemsIcon className="h-4 w-4 text-tertiary" />}
                   isLast
                 />
               }
@@ -112,7 +110,9 @@ export const IssuesHeader = observer(function IssuesHeader() {
               tooltipContent={`There are ${issuesCount} ${issuesCount > 1 ? "tasks" : "task"} in this project`}
               position="bottom"
             >
-              <CountChip count={issuesCount} />
+              <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
+                {issuesCount}
+              </span>
             </Tooltip>
           ) : null}
           {currentProjectDetails && (

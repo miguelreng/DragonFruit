@@ -32,7 +32,12 @@ export const AppHeader = observer(function AppHeader(props: AppHeaderProps) {
         className
       )}
     >
-      <Row className={cn("flex min-h-14 w-full items-center gap-2 bg-surface-1 pt-3 pb-2", rowClassName)}>
+      {/* Shared page-header baseline: a 56px (min-h-14) row, content vertically
+          centered → centerline 28px, matching the project tab band, the Atlas
+          header, and the sidebar switcher. Symmetric centering (no asymmetric
+          padding) lets the folder-tab band match while its tabs stay fused to
+          the body below. */}
+      <Row className={cn("flex min-h-14 w-full items-center gap-2 bg-surface-1", rowClassName)}>
         <ExtendedAppHeader header={header} />
       </Row>
       {mobileHeader}

@@ -16,7 +16,6 @@ import darkActivityAsset from "@/app/assets/empty-state/profile/activity-dark.we
 import lightActivityAsset from "@/app/assets/empty-state/profile/activity-light.webp?url";
 // components
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
-import { ProfileSettingsHeading } from "@/components/settings/profile/heading";
 // local imports
 import { ActivityProfileSettingsList } from "./activity-list";
 
@@ -61,10 +60,6 @@ export const ActivityProfileSettings = observer(function ActivityProfileSettings
   if (isEmpty) {
     return (
       <div className="flex size-full flex-col gap-y-7">
-        <ProfileSettingsHeading
-          title={t("account_settings.activity.heading")}
-          description={t("account_settings.activity.description")}
-        />
         <DetailedEmptyState
           title={""}
           description={""}
@@ -77,12 +72,8 @@ export const ActivityProfileSettings = observer(function ActivityProfileSettings
   }
 
   return (
-    <div className="size-full">
-      <ProfileSettingsHeading
-        title={t("account_settings.activity.heading")}
-        description={t("account_settings.activity.description")}
-      />
-      <div className="mt-7 w-full">{activityPages}</div>
+    <div className="flex size-full flex-col gap-y-7">
+      <div className="w-full">{activityPages}</div>
       {isLoadMoreVisible && (
         <div className="mt-4 flex w-full items-center justify-center">
           <Button variant="ghost" onClick={handleLoadMore} appendIcon={<ChevronDown />}>

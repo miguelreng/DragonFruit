@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useMemo } from "react";
+import { useParams } from "next/navigation";
 // plane types
 import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -39,6 +40,10 @@ export const getRandomStickyColor = (): string => {
 
 export const useStickyOperations = (props: TProps) => {
   const { workspaceSlug } = props;
+  // Auto-scope to the current project (when the route has one) so the same hook
+  // powers both the workspace board and a project's Stickies tab.
+  const { projectId } = useParams();
+  const projectIdStr = projectId ? projectId.toString() : undefined;
   // store hooks
   const { stickies, getWorkspaceStickyIds, createSticky, updateSticky, deleteSticky, updateStickyPosition } =
     useSticky();
@@ -67,7 +72,7 @@ export const useStickyOperations = (props: TProps) => {
             background_color: getRandomStickyColor(),
             ...data,
           };
-          const workspaceStickIds = getWorkspaceStickyIds(workspaceSlug);
+          const workspaceStickIds = getWorkspaceStickyIds(projectIdStr ?? workspaceSlug);
           // check if latest sticky is empty
           if (workspaceStickIds && workspaceStickIds.length >= 0) {
             const latestSticky = stickies[workspaceStickIds[0]];
@@ -86,7 +91,7 @@ export const useStickyOperations = (props: TProps) => {
           }
           if (!workspaceSlug) throw new Error("Missing required fields");
           if (!isValid(payload)) return;
-          await createSticky(workspaceSlug, payload);
+          await createSticky(workspaceSlug, payload, projectIdStr);
           setToast({
             type: TOAST_TYPE.SUCCESS,
             title: t("stickies.toasts.created.title"),
@@ -118,7 +123,7 @@ export const useStickyOperations = (props: TProps) => {
       remove: async (stickyId: string) => {
         try {
           if (!workspaceSlug) throw new Error("Missing required fields");
-          await deleteSticky(workspaceSlug, stickyId);
+          await deleteSticky(workspaceSlug, stickyId, projectIdStr);
           setToast({
             type: TOAST_TYPE.SUCCESS,
             title: t("stickies.toasts.removed.title"),
@@ -141,7 +146,7 @@ export const useStickyOperations = (props: TProps) => {
       ) => {
         try {
           if (!targetWorkspaceSlug) throw new Error("Missing required fields");
-          await updateStickyPosition(targetWorkspaceSlug, sourceId, droppedId, instruction);
+          await updateStickyPosition(targetWorkspaceSlug, sourceId, droppedId, instruction, projectIdStr);
         } catch (error) {
           console.error("Error in updating sticky position:", error);
           setToast({
@@ -157,6 +162,7 @@ export const useStickyOperations = (props: TProps) => {
       deleteSticky,
       getWorkspaceStickyIds,
       isValid,
+      projectIdStr,
       stickies,
       t,
       updateSticky,

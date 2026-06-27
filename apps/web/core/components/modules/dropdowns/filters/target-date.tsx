@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+import { Collapse } from "@/components/common/collapse";
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
@@ -58,7 +59,7 @@ export const FilterTargetDate = observer(function FilterTargetDate(props: Props)
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />
-      {previewEnabled && (
+      <Collapse open={previewEnabled}>
         <div>
           {filteredOptions.length > 0 ? (
             <>
@@ -77,7 +78,7 @@ export const FilterTargetDate = observer(function FilterTargetDate(props: Props)
             <p className="text-11 text-placeholder italic">No matches found</p>
           )}
         </div>
-      )}
+      </Collapse>
     </>
   );
 });

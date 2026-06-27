@@ -74,10 +74,11 @@ export const SpreadsheetHeader = observer(function SpreadsheetHeader(props: Prop
                 />
               </div>
             )}
-            {/* Spacer mirrors the row's sub-issue chevron slot (size-5) + gap so
-                the "Tasks" label lines up with the row titles below. */}
+            {/* "Tasks" label sits right after the select column so it lines up
+                with the row titles below. The disclosure chevron only renders on
+                rows that actually have subtasks, so there's no permanent spacer
+                to mirror here. */}
             <div className="flex flex-grow items-center gap-0.5">
-              <div className="grid size-5 flex-shrink-0 place-items-center" />
               <span className="text-13 font-medium">{`${isEpic ? "Epics" : "Tasks"}`}</span>
             </div>
           </div>

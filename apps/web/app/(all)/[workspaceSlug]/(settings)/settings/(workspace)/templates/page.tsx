@@ -17,7 +17,6 @@ import { cn } from "@plane/utils";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-import { SettingsHeading } from "@/components/settings/heading";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -50,14 +49,9 @@ function TemplatesSettingsPage() {
   }
 
   return (
-    <SettingsContentWrapper header={<TemplatesWorkspaceSettingsHeader />} hugging>
+    <SettingsContentWrapper header={<TemplatesWorkspaceSettingsHeader />}>
       <PageHead title={pageTitle} />
-      <div className={cn("flex w-full flex-col gap-y-8", { "opacity-60": !canEdit })}>
-        <SettingsHeading
-          title={t("workspace_settings.settings.templates.heading")}
-          description={t("workspace_settings.settings.templates.description")}
-        />
-
+      <div className={cn("flex w-full flex-col gap-y-7", { "opacity-60": !canEdit })}>
         <PageTemplatesSection workspaceSlug={workspaceSlug} canEdit={canEdit} />
 
         {/* ── Task templates ── */}

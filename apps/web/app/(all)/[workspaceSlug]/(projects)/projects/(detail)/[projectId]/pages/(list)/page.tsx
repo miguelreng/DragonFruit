@@ -68,7 +68,7 @@ function ProjectPagesPage({ params }: Route.ComponentProps) {
       <WorkspaceDocsRoot
         workspaceSlug={workspaceSlug}
         projectId={projectId}
-        pageTypes={["doc", "whiteboard", "pdf"]}
+        pageTypes={["doc"]}
         headerLabel="Docs"
         headerIcon={<FileText className="h-4 w-4 text-tertiary" />}
       />

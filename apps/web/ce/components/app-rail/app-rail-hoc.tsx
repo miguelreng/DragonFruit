@@ -49,7 +49,7 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
           item.key === "your_work"
             ? "My tasks"
             : item.key === "whiteboards"
-              ? "Whiteboard"
+              ? "Whiteboards"
               : t(item.labelTranslationKey),
         icon: getSidebarNavigationItemIcon(item.key),
         activeIcon: getSidebarNavigationItemIcon(item.key, "", true),

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+import { Collapse } from "@/components/common/collapse";
 
 import React, { useMemo, useState } from "react";
 import { sortBy } from "lodash-es";
@@ -60,7 +61,7 @@ export const FilterLabels = observer(function FilterLabels(props: Props) {
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />
-      {previewEnabled && (
+      <Collapse open={previewEnabled}>
         <div>
           {sortedOptions ? (
             sortedOptions.length > 0 ? (
@@ -95,7 +96,7 @@ export const FilterLabels = observer(function FilterLabels(props: Props) {
             </Loader>
           )}
         </div>
-      )}
+      </Collapse>
     </>
   );
 });

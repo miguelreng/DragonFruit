@@ -11,7 +11,6 @@ import type { TPageNavigationTabs, TPageType } from "@plane/types";
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 import { usePageStore } from "@/plane-web/hooks/store";
 // local imports
-import { PagesListHeaderRoot } from "./header";
 import { PagesListMainContent } from "./pages-list-main-content";
 
 type TPageView = {
@@ -27,7 +26,7 @@ type TPageView = {
 export const PagesListView = observer(function PagesListView(props: TPageView) {
   const { children, contentType, contentTypes, pageType, projectId, storeType, workspaceSlug } = props;
   // store hooks
-  const { isAnyPageAvailable, fetchPagesList } = usePageStore(storeType);
+  const { fetchPagesList } = usePageStore(storeType);
   const contentTypeKey = contentTypes?.join("_") ?? contentType ?? "all";
   // fetching pages list
   useSWR(
@@ -40,16 +39,6 @@ export const PagesListView = observer(function PagesListView(props: TPageView) {
   // pages loader
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden">
-      {/* tab header */}
-      {isAnyPageAvailable && (
-        <PagesListHeaderRoot
-          pageType={pageType}
-          contentType={contentType}
-          projectId={projectId}
-          storeType={storeType}
-          workspaceSlug={workspaceSlug}
-        />
-      )}
       <PagesListMainContent
         contentType={contentType}
         contentTypes={contentTypes}

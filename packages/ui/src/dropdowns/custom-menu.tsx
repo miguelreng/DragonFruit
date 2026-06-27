@@ -211,7 +211,7 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
       <div
         data-theme={panelDataTheme}
         className={cn(
-          "t-dropdown my-1 min-w-[12rem] overflow-y-scroll rounded-[18px] border border-subtle bg-surface-1 p-1.5 text-11 whitespace-nowrap shadow-raised-200 focus:outline-none",
+          "t-dropdown my-1 min-w-[12rem] overflow-y-scroll rounded-lg border border-subtle bg-surface-1 p-1 text-13 whitespace-nowrap shadow-raised-200 focus:outline-none",
           isOpen && "is-open",
           isClosing && "is-closing",
           {
@@ -442,7 +442,7 @@ function SubMenu(props: ICustomSubMenuProps) {
             style={styles.popper}
             {...attributes.popper}
             className={cn(
-              "t-dropdown is-open fixed z-30 min-w-[12rem] overflow-hidden rounded-[18px] border border-subtle bg-surface-1 p-1 text-11 shadow-raised-200",
+              "t-dropdown is-open fixed z-30 min-w-[12rem] overflow-hidden rounded-lg border border-subtle bg-surface-1 p-1 text-13 shadow-raised-200",
               contentClassName
             )}
             data-origin="top-left"
@@ -482,7 +482,7 @@ function MenuItem(props: ICustomMenuItemProps) {
         <button
           type="button"
           className={cn(
-            "w-full truncate rounded-lg px-2 py-1.5 text-left text-secondary select-none",
+            "w-full truncate rounded-sm px-2 py-1.5 text-left text-secondary select-none",
             {
               "bg-layer-transparent-hover": active && !disabled,
               "text-placeholder": disabled,
@@ -536,7 +536,7 @@ function SubMenuContent(props: ICustomSubMenuContentProps) {
   return (
     <div
       className={cn(
-        "z-[15] min-w-[12rem] overflow-hidden rounded-[18px] border border-subtle-1 bg-surface-1 p-1 text-11",
+        "z-[15] min-w-[12rem] overflow-hidden rounded-lg border border-subtle-1 bg-surface-1 p-1 text-13",
         className
       )}
     >

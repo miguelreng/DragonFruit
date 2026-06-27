@@ -76,7 +76,7 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
             <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
             <Breadcrumbs.Item
               component={
-                <BreadcrumbLink label="Pages" href={`/${workspaceSlug}/projects/${projectId}/pages/`} />
+                <BreadcrumbLink label="Docs" href={`/${workspaceSlug}/projects/${projectId}/pages/`} />
               }
             />
 

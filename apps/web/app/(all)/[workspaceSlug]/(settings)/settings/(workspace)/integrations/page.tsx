@@ -18,7 +18,6 @@ import { Input } from "@plane/ui";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-import { SettingsHeading } from "@/components/settings/heading";
 // constants
 import { INTEGRATIONS, type TIntegration } from "@/constants/integrations";
 // hooks
@@ -267,14 +266,9 @@ function WorkspaceIntegrationsPage() {
   }
 
   return (
-    <SettingsContentWrapper header={<IntegrationsWorkspaceSettingsHeader />} hugging>
+    <SettingsContentWrapper header={<IntegrationsWorkspaceSettingsHeader />}>
       <PageHead title={pageTitle} />
-      <div className="flex w-full flex-col gap-y-6">
-        <SettingsHeading
-          title={t("workspace_settings.settings.integrations.heading")}
-          description={t("workspace_settings.settings.integrations.description")}
-        />
-
+      <div className="flex w-full flex-col gap-y-7">
         {agents && !atlas && (
           <div className="rounded-lg border border-subtle bg-layer-2 px-4 py-4 text-13 text-tertiary">
             Atlas isn’t set up in this workspace yet. Initialize it on{" "}

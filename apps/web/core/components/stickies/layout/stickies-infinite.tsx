@@ -18,7 +18,10 @@ import { useSticky } from "@/hooks/use-stickies";
 import { StickiesLayout } from "./stickies-list";
 
 export const StickiesInfinite = observer(function StickiesInfinite() {
-  const { workspaceSlug } = useParams();
+  const { workspaceSlug, projectId } = useParams();
+  const projectIdStr = projectId ? projectId.toString() : undefined;
+  // Project route → scope to the project; workspace route → scope to the workspace.
+  const scopeKey = projectIdStr ?? workspaceSlug?.toString() ?? "";
   // hooks
   const { fetchWorkspaceStickies, fetchNextWorkspaceStickies, getWorkspaceStickyIds, loader, paginationInfo } =
     useSticky();
@@ -32,23 +35,29 @@ export const StickiesInfinite = observer(function StickiesInfinite() {
   const viewMode: ViewMode = storedViewMode ?? "grid";
 
   useSWR(
-    workspaceSlug ? `WORKSPACE_STICKIES_${workspaceSlug}` : null,
-    workspaceSlug ? () => fetchWorkspaceStickies(workspaceSlug.toString()) : null,
+    workspaceSlug ? `WORKSPACE_STICKIES_${scopeKey}` : null,
+    workspaceSlug ? () => fetchWorkspaceStickies(workspaceSlug.toString(), projectIdStr) : null,
     { revalidateIfStale: false, revalidateOnFocus: false }
   );
 
   const handleLoadMore = () => {
     if (loader === "pagination") return;
-    fetchNextWorkspaceStickies(workspaceSlug?.toString());
+    fetchNextWorkspaceStickies(workspaceSlug?.toString(), projectIdStr);
   };
 
   const hasNextPage = paginationInfo?.next_page_results && paginationInfo?.next_cursor !== undefined;
   const shouldObserve = hasNextPage && loader !== "pagination";
-  const workspaceStickies = getWorkspaceStickyIds(workspaceSlug?.toString());
+  const workspaceStickies = getWorkspaceStickyIds(scopeKey);
   useIntersectionObserver(containerRef, shouldObserve ? elementRef : null, handleLoadMore);
 
   return (
-    <ContentWrapper ref={containerRef} className="space-y-4">
+    <ContentWrapper
+      ref={containerRef}
+      // Reserve the scrollbar gutter on both edges (and trim the default
+      // page padding to compensate) so the 16px scrollbar doesn't push the
+      // right margin wider than the left — stickies stay centered.
+      className="space-y-4 !px-1 [scrollbar-gutter:stable_both-edges]"
+    >
       <StickiesLayout
         workspaceSlug={workspaceSlug.toString()}
         viewMode={viewMode}

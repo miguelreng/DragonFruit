@@ -15,7 +15,6 @@ import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
-import { SettingsHeading } from "@/components/settings/heading";
 import { WebhookSettingsLoader } from "@/components/ui/loader/settings/web-hook";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { WebhooksList, CreateWebhookModal } from "@/components/web-hooks";
@@ -62,7 +61,17 @@ function WebhooksListPage({ params }: Route.ComponentProps) {
   if (!webhooks) return <WebhookSettingsLoader />;
 
   return (
-    <SettingsContentWrapper header={<WebhooksWorkspaceSettingsHeader />}>
+    <SettingsContentWrapper
+      header={
+        <WebhooksWorkspaceSettingsHeader
+          rightItem={
+            <Button variant="primary" size="lg" onClick={() => setShowCreateWebhookModal(true)}>
+              {t("workspace_settings.settings.webhooks.add_webhook")}
+            </Button>
+          }
+        />
+      }
+    >
       <PageHead title={pageTitle} />
       <div className="w-full">
         <CreateWebhookModal
@@ -74,19 +83,8 @@ function WebhooksListPage({ params }: Route.ComponentProps) {
             setShowCreateWebhookModal(false);
           }}
         />
-        <SettingsHeading
-          title={t("workspace_settings.settings.webhooks.title")}
-          description={t("workspace_settings.settings.webhooks.description")}
-          control={
-            <Button variant="primary" size="lg" onClick={() => setShowCreateWebhookModal(true)}>
-              {t("workspace_settings.settings.webhooks.add_webhook")}
-            </Button>
-          }
-        />
         {Object.keys(webhooks).length > 0 ? (
-          <div className="mt-4">
-            <WebhooksList />
-          </div>
+          <WebhooksList />
         ) : (
           <div className="flex h-full w-full flex-col">
             <div className="flex h-full w-full items-center justify-center">

@@ -357,6 +357,18 @@ export const coreRoutes: RouteConfigEntry[] = [
         ]),
 
         // --------------------------------------------------------------------
+        // ACCOUNT (PROFILE) SETTINGS — personal, lives alongside workspace
+        // settings in one unified settings area. Not role-gated.
+        // --------------------------------------------------------------------
+
+        layout("./(all)/[workspaceSlug]/(settings)/settings/(account)/layout.tsx", [
+          route(
+            ":workspaceSlug/settings/account/:profileTabId",
+            "./(all)/[workspaceSlug]/(settings)/settings/(account)/account/[profileTabId]/page.tsx"
+          ),
+        ]),
+
+        // --------------------------------------------------------------------
         // PROJECT SETTINGS
         // --------------------------------------------------------------------
 
@@ -451,8 +463,12 @@ export const coreRoutes: RouteConfigEntry[] = [
   route(":workspaceSlug/analytics", "routes/redirects/core/analytics.tsx"),
 
   // API tokens redirect: /:workspaceSlug/settings/api-tokens
-  // → /settings/profile/api-tokens
+  // → /:workspaceSlug/settings/account/api-tokens
   route(":workspaceSlug/settings/api-tokens", "routes/redirects/core/api-tokens.tsx"),
+
+  // Bare account settings redirect: /:workspaceSlug/settings/account
+  // → /:workspaceSlug/settings/account/general
+  route(":workspaceSlug/settings/account", "routes/redirects/core/account-settings.tsx"),
 
   // Inbox redirect: /:workspaceSlug/projects/:projectId/inbox
   // → /:workspaceSlug/projects/:projectId/intake
@@ -471,7 +487,4 @@ export const coreRoutes: RouteConfigEntry[] = [
 
   // Profile settings redirects
   route("profile/*", "routes/redirects/core/profile-settings.tsx"),
-
-  // Account settings redirects
-  route(":workspaceSlug/settings/account/*", "routes/redirects/core/workspace-account-settings.tsx"),
 ] satisfies RouteConfig;

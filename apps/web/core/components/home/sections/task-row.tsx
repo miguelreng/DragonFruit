@@ -33,6 +33,8 @@ type RowData = {
 export type TaskRowOps = {
   isOwnList: boolean;
   todayStart: Date;
+  /** Currently active label filter (for highlighting the matching chip). */
+  activeLabelId?: string | null;
   getLabelById: (id: string) => IIssueLabel | undefined;
   onComplete: (issue: TBaseIssue) => void;
   onSave: (issue: TBaseIssue, rawText: string) => Promise<void>;
@@ -40,6 +42,8 @@ export type TaskRowOps = {
   onIndent: (issue: TBaseIssue) => void;
   onOutdent: (issue: TBaseIssue) => void;
   onNest: (sourceId: string, targetId: string) => void;
+  /** Toggle the current view's filter to this label. */
+  onFilterLabel: (labelId: string) => void;
 };
 
 /**
@@ -270,7 +274,7 @@ export const TaskRow = observer(function TaskRow({
       <div
         ref={rowRef}
         className={cn(
-          "group flex items-start gap-2.5 rounded-lg px-3 py-1 transition hover:bg-layer-transparent-hover",
+          "group flex items-center gap-2.5 rounded-lg px-3 py-1 transition hover:bg-layer-transparent-hover",
           isChecked && "opacity-60",
           isDragging && "opacity-50",
           isMakeChild && "bg-layer-transparent-hover ring-accent-primary/40 ring-1"
@@ -285,7 +289,7 @@ export const TaskRow = observer(function TaskRow({
             ops.onComplete(issue);
           }}
           className={cn(
-            "mt-0.5 flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
+            "flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
             isChecked
               ? "border-accent-primary bg-accent-primary text-white"
               : "hover:border-accent-primary border-strong text-transparent"
@@ -293,7 +297,7 @@ export const TaskRow = observer(function TaskRow({
         >
           <Check className="size-3" strokeWidth={3} />
         </button>
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="min-w-0 flex-1">
           <EditableTaskTitle
             issue={issue}
             isChecked={isChecked}
@@ -305,30 +309,38 @@ export const TaskRow = observer(function TaskRow({
             onIndent={() => ops.onIndent(issue)}
             onOutdent={() => ops.onOutdent(issue)}
           />
-          {hasSubtitle && (
-            <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-11 text-placeholder">
-              {subtitleProject && <span className="truncate font-medium text-tertiary">{subtitleProject}</span>}
-              {subtitleProject && hasAttributes && <span aria-hidden>·</span>}
-              {hasAttributes && (
-                <span className="font-newsreader flex flex-wrap items-center gap-1.5 text-12 text-primary">
-                  {dueLabel && (
-                    <span className={cn("flex-shrink-0", isOverdue && "text-danger-primary")}>{dueLabel}</span>
-                  )}
-                  {hasPriority && (
-                    <span className={cn("flex-shrink-0 font-medium capitalize", PRIORITY_TEXT_CLASS[priority])}>
-                      {priority}
-                    </span>
-                  )}
-                  {labels.map((label) => (
-                    <span key={label.id} className="flex-shrink-0" style={{ color: label.color || undefined }}>
-                      #{label.name}
-                    </span>
-                  ))}
-                </span>
-              )}
-            </span>
-          )}
         </div>
+        {hasSubtitle && (
+          <span className="flex flex-shrink-0 items-center gap-1.5 text-11 text-placeholder">
+            {subtitleProject && <span className="max-w-[140px] truncate font-medium text-tertiary">{subtitleProject}</span>}
+            {subtitleProject && hasAttributes && <span aria-hidden>·</span>}
+            {hasAttributes && (
+              <span className="font-newsreader flex items-center gap-1.5 text-12 text-primary">
+                {dueLabel && <span className={cn(isOverdue && "text-danger-primary")}>{dueLabel}</span>}
+                {hasPriority && (
+                  <span className={cn("font-medium capitalize", PRIORITY_TEXT_CLASS[priority])}>{priority}</span>
+                )}
+                {labels.map((label) => (
+                  <button
+                    key={label.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      ops.onFilterLabel(label.id);
+                    }}
+                    className={cn(
+                      "flex-shrink-0 font-body text-13 text-[#e548a5] transition hover:underline",
+                      ops.activeLabelId === label.id && "font-semibold underline"
+                    )}
+                  >
+                    #{label.name}
+                  </button>
+                ))}
+              </span>
+            )}
+          </span>
+        )}
       </div>
     </li>
   );

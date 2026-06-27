@@ -10,7 +10,7 @@ import {
   Calendar,
   Chart,
   Checklist,
-  DocumentsMinimalistic,
+  DocumentText,
   Home,
   Inbox,
   MagicStick,
@@ -45,7 +45,7 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
     case "stickies":
       return renderSolarSidebarIcon(StickerSquare, isActive, cls);
     case "docs":
-      return renderSolarSidebarIcon(DocumentsMinimalistic, isActive, cls);
+      return renderSolarSidebarIcon(DocumentText, isActive, cls);
     case "bookmarks":
       return renderSolarSidebarIcon(Bookmark, isActive, cls);
     case "whiteboards":

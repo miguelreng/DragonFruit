@@ -15,8 +15,6 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Input, PasswordStrengthIndicator } from "@plane/ui";
 import { getPasswordStrength } from "@plane/utils";
-// components
-import { ProfileSettingsHeading } from "@/components/settings/profile/heading";
 // helpers
 import { authErrorHandler, EAuthenticationErrorCodes, passwordErrors } from "@/helpers/authentication.helper";
 // hooks
@@ -131,9 +129,8 @@ export const SecurityProfileSettings = observer(function SecurityProfileSettings
   const renderPasswordMatchError = !isRetryPasswordInputFocused || confirmPassword.length >= password.length;
 
   return (
-    <div className="size-full">
-      <ProfileSettingsHeading title={t("auth.common.password.change_password.label.default")} />
-      <form onSubmit={handleSubmit(handleChangePassword)} className="mt-7 flex flex-col gap-8">
+    <div className="flex w-full flex-col gap-y-7">
+      <form onSubmit={handleSubmit(handleChangePassword)} className="flex flex-col gap-8">
         <div className="flex flex-col gap-y-7">
           {oldPasswordRequired && (
             <div className="flex flex-col gap-y-2">

@@ -349,24 +349,22 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               {/* sub-issues chevron. Bumped color from `text-placeholder`
                   (very faded) to `text-secondary` with a subtle hover bg so
                   it reads as a real disclosure control, not decoration. */}
-              <div className="grid size-5 place-items-center">
-                {subIssuesCount > 0 && !isEpic && (
-                  <button
-                    type="button"
-                    className="grid size-5 place-items-center rounded-xs text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
-                    onClick={handleToggleExpand}
-                    aria-expanded={isExpanded}
-                    aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
-                  >
-                    <ChevronRightIcon
-                      className={cn("size-4 transition-transform", {
-                        "rotate-90": isExpanded,
-                      })}
-                      strokeWidth={2.5}
-                    />
-                  </button>
-                )}
-              </div>
+              {subIssuesCount > 0 && !isEpic && (
+                <button
+                  type="button"
+                  className="grid size-5 flex-shrink-0 place-items-center rounded-xs text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                  onClick={handleToggleExpand}
+                  aria-expanded={isExpanded}
+                  aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
+                >
+                  <ChevronRightIcon
+                    className={cn("size-4 transition-transform", {
+                      "rotate-90": isExpanded,
+                    })}
+                    strokeWidth={2.5}
+                  />
+                </button>
+              )}
 
               <div className="my-auto flex h-full w-full items-center justify-between gap-2 truncate">
                 <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">

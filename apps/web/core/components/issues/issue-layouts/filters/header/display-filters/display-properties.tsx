@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+import { Collapse } from "@/components/common/collapse";
 
 import React from "react";
 import { observer } from "mobx-react";
@@ -64,7 +65,7 @@ export const FilterDisplayProperties = observer(function FilterDisplayProperties
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />
-      {previewEnabled && (
+      <Collapse open={previewEnabled}>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           {filteredDisplayProperties.map((displayProperty) => (
             <>
@@ -87,7 +88,7 @@ export const FilterDisplayProperties = observer(function FilterDisplayProperties
             </>
           ))}
         </div>
-      )}
+      </Collapse>
     </>
   );
 });

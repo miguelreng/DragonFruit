@@ -13,7 +13,10 @@ import {
   setPendingReplyContext,
   type ReplyToSelectionDetail,
 } from "@/components/agent-chat";
+import { cn } from "@plane/utils";
 import { AppRailRoot, MobileRailDrawer } from "@/components/navigation";
+import { ScrollShadowController } from "@/components/core/scroll-shadow-controller";
+import { PanelRight } from "@/components/icons/lucide-shim";
 import { isTypingInInput } from "@/components/power-k/core/shortcut-handler";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import useSize from "@/hooks/use-window-size";
@@ -34,7 +37,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     openMobileDrawer,
     closeMobileDrawer,
   } = useAppRailVisibility();
-  const { agentChatOpen, toggleAgentChat } = useAppTheme();
+  const { agentChatOpen, toggleAgentChat, atlasSidebarCollapsed, toggleAtlasSidebar } = useAppTheme();
   const [windowWidth] = useSize();
   const pathname = usePathname();
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
@@ -54,9 +57,13 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
       if (!isAskAtlasShortcut) return;
 
       event.preventDefault();
-      // Open-only: Atlas is a permanent docked sidebar and is never closed via
-      // the shortcut (on mobile it opens the overlay).
-      toggleAgentChat(true);
+      // Desktop: Atlas is permanently docked, so the shortcut collapses it to a
+      // rail / expands it back. Mobile: it opens the dismissible overlay.
+      if (window.innerWidth >= MOBILE_BREAKPOINT) {
+        toggleAtlasSidebar();
+      } else {
+        toggleAgentChat(true);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -64,7 +71,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [toggleAgentChat]);
+  }, [toggleAgentChat, toggleAtlasSidebar]);
 
   // Editor → Atlas bridges. The page editor lives in `packages/editor` and
   // can't reach the host stores, so it dispatches window events: "reply to
@@ -89,6 +96,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
 
   return (
     <div className="bg-gray-200 relative flex size-full gap-2 overflow-hidden p-2 transition-all duration-300 ease-in-out">
+      <ScrollShadowController />
       {isAppRailEnabled &&
         (isMobile ? (
           <MobileRailDrawer open={isMobileDrawerOpen} onOpen={openMobileDrawer} onClose={closeMobileDrawer}>
@@ -104,14 +112,43 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
           </div>
           {agentChatOpen && (
             <div
-              className="shadow-sm t-panel-slide is-open absolute top-0 right-0 z-30 h-full w-[min(560px,calc(100%-24px))] overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300 transition-all duration-300 ease-in-out md:relative md:z-auto md:w-[350px] md:flex-shrink-0 md:shadow-sm"
+              className={cn(
+                "shadow-sm absolute top-0 right-0 z-30 h-full overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300",
+                "w-[min(560px,calc(100%-24px))]",
+                // Desktop: docked sibling of the content. Collapses to a slim
+                // rail with the same width curve as the left app rail (250ms,
+                // standard ease) — the panel reveals/hides as the width animates.
+                "md:relative md:z-auto md:flex-shrink-0 md:shadow-sm md:transition-[width] md:duration-[250ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]",
+                atlasSidebarCollapsed ? "md:w-[3.25rem]" : "md:w-[350px]"
+              )}
               data-open="true"
               // Stable hook for focus (zen) mode: globals.css lifts the open
               // drawer above the zen canvas, and the editor's Esc handler
               // skips exiting while focus is inside it.
               data-atlas-drawer="true"
             >
-              <AgentChatDrawer dismissible={isMobile} />
+              {/* The drawer stays mounted across collapse, so expanding is a
+                  pure width reveal (matching the left rail) with no entrance
+                  replay and the chat state preserved. It keeps its full width
+                  so it doesn't reflow while the container animates; the rail
+                  overlay covers the clipped panel while collapsed. */}
+              <div
+                className={cn(
+                  "h-full w-full md:w-[350px]",
+                  // Covered by the rail while collapsed — `invisible` also pulls
+                  // the chat controls out of the tab order / a11y tree.
+                  atlasSidebarCollapsed && !isMobile && "pointer-events-none invisible"
+                )}
+                aria-hidden={atlasSidebarCollapsed && !isMobile ? true : undefined}
+              >
+                <AgentChatDrawer
+                  dismissible={isMobile}
+                  onCollapse={isMobile ? undefined : () => toggleAtlasSidebar(true)}
+                />
+              </div>
+              {atlasSidebarCollapsed && !isMobile && (
+                <AtlasSidebarRail onExpand={() => toggleAtlasSidebar(false)} />
+              )}
             </div>
           )}
         </div>
@@ -119,3 +156,32 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     </div>
   );
 });
+
+/**
+ * Collapsed Atlas sidebar — a slim, full-height rail that expands the panel
+ * back on click (accordion-style). The same sidebar-toggle icon used to
+ * collapse sits up top; the brand mark anchors the bottom. The whole rail is
+ * one large click target.
+ */
+function AtlasSidebarRail({ onExpand }: { onExpand: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onExpand}
+      aria-label="Expand Atlas"
+      title="Expand Atlas"
+      className="t-press group absolute inset-0 z-10 flex flex-col items-center bg-surface-1 pb-3 text-tertiary"
+    >
+      {/* Toggle sits in a 56px zone so its centerline (28px) matches the
+          expanded Atlas header baseline — no vertical jump on expand. */}
+      <span className="flex h-14 items-center">
+        <span className="grid size-7 place-items-center rounded-md transition-colors group-hover:bg-layer-1 group-hover:text-secondary">
+          <PanelRight className="size-4" />
+        </span>
+      </span>
+      <span className="mt-auto grid size-9 place-items-center">
+        <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 dark:invert" />
+      </span>
+    </button>
+  );
+}

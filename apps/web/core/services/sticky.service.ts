@@ -15,8 +15,11 @@ export class StickyService extends APIService {
     super(API_BASE_URL);
   }
 
-  async createSticky(workspaceSlug: string, payload: Partial<TSticky>) {
-    return this.post(`/api/workspaces/${workspaceSlug}/stickies/`, payload)
+  async createSticky(workspaceSlug: string, payload: Partial<TSticky>, projectId?: string) {
+    return this.post(
+      `/api/workspaces/${workspaceSlug}/stickies/`,
+      projectId ? { ...payload, project_id: projectId } : payload
+    )
       .then((res) => res?.data)
       .catch((err) => {
         throw err?.response?.data;
@@ -27,13 +30,15 @@ export class StickyService extends APIService {
     workspaceSlug: string,
     cursor: string,
     query?: string,
-    per_page?: number
+    per_page?: number,
+    projectId?: string
   ): Promise<{ results: TSticky[]; total_pages: number }> {
     return this.get(`/api/workspaces/${workspaceSlug}/stickies/`, {
       params: {
         cursor,
         per_page: per_page || STICKIES_PER_PAGE,
         query,
+        ...(projectId ? { project_id: projectId } : {}),
       },
     })
       .then((res) => res?.data)

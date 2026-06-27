@@ -81,20 +81,20 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
         <Popover.Button
           aria-label="Notifications"
           className={cn(
-            "text-tertiary outline-none dark:text-white/65",
+            "text-tertiary outline-none transition-colors dark:text-white/65",
             isInline
-              ? "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]"
+              ? "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover hover:text-primary dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white"
               : "group flex flex-col items-center justify-center gap-0.5",
-            isOpen && "!bg-layer-1-active !text-primary"
+            isInline && isOpen && "bg-layer-transparent-active text-primary"
           )}
         >
           <div
             className={cn(
-              "rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:text-current",
+              "rounded-lg text-icon-tertiary transition-colors dark:text-white/55 [&_svg]:text-current",
               isInline
                 ? "flex size-5 flex-shrink-0 items-center justify-center [&_svg]:size-4"
-                : "flex size-8 items-center justify-center gap-2 [&_svg]:size-5",
-              isOpen && "!bg-layer-1-active !text-primary"
+                : "flex size-8 items-center justify-center gap-2 group-hover:bg-layer-transparent-hover [&_svg]:size-5",
+              !isInline && isOpen && "!bg-layer-transparent-active !text-primary"
             )}
           >
             <div className="relative">

@@ -222,7 +222,10 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
                 </Link>
               )}
               {allWorkspaces?.length > 0 && (
-                <Link href="/settings/profile/general/" className={cn(getButtonStyling("secondary", "base"))}>
+                <Link
+                  href={`/${allWorkspaces[0]?.slug}/settings/account/general/`}
+                  className={cn(getButtonStyling("secondary", "base"))}
+                >
                   Visit Profile
                 </Link>
               )}

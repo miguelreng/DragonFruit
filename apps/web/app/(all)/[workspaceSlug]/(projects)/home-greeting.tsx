@@ -4,20 +4,17 @@
  * See the LICENSE file for details.
  */
 
-import { useParams } from "next/navigation";
 import type { IUser } from "@plane/types";
-// components
-import { WorkspaceCreateDocButton } from "@/components/docs/workspace-create-doc-button";
 // hooks
 import { useCurrentTime } from "@/hooks/use-current-time";
+// assets
+import dragonMark from "@/app/assets/branding/dragon.svg?url";
 
 interface Props {
   user: IUser;
 }
 
 export function HomeGreeting({ user }: Props) {
-  const { workspaceSlug } = useParams();
-  const slug = workspaceSlug?.toString();
   const { currentTime } = useCurrentTime();
 
   const date = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(currentTime);
@@ -25,18 +22,14 @@ export function HomeGreeting({ user }: Props) {
   const name = user.first_name?.trim() || user.display_name?.trim() || "there";
 
   return (
-    <header className="flex items-start justify-between gap-4">
+    <header className="flex flex-col items-start gap-3">
+      <img src={dragonMark} alt="" aria-hidden className="h-12 w-auto" />
       <div className="min-w-0">
         <h1 className="text-22 font-semibold text-primary">Welcome back, {name}</h1>
         <p className="mt-1 text-13 text-tertiary">
           {weekDay}, {date}
         </p>
       </div>
-      {slug && (
-        <div className="flex-shrink-0">
-          <WorkspaceCreateDocButton workspaceSlug={slug} defaultType="doc" />
-        </div>
-      )}
     </header>
   );
 }

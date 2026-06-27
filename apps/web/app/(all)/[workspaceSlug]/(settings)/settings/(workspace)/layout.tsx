@@ -15,7 +15,7 @@ import { SettingsMobileNav } from "@/components/settings/mobile/nav";
 import { WORKSPACE_SETTINGS_ACCESS } from "@plane/constants";
 import type { EUserWorkspaceRoles } from "@plane/types";
 // components
-import { WorkspaceSettingsSidebarRoot } from "@/components/settings/workspace/sidebar";
+import { SettingsSidebarRoot } from "@/components/settings/sidebar/root";
 // hooks
 import { useUserPermissions } from "@/hooks/store/user";
 
@@ -40,7 +40,7 @@ const WorkspaceSettingLayout = observer(function WorkspaceSettingLayout({ params
   return (
     <>
       <SettingsMobileNav
-        hamburgerContent={WorkspaceSettingsSidebarRoot}
+        hamburgerContent={SettingsSidebarRoot}
         activePath={getWorkspaceActivePath(pathname) || ""}
       />
       <div className="inset-y-0 flex h-full w-full flex-row">
@@ -49,7 +49,7 @@ const WorkspaceSettingLayout = observer(function WorkspaceSettingLayout({ params
         ) : (
           <div className="relative flex size-full">
             <div className="hidden h-full md:block">
-              <WorkspaceSettingsSidebarRoot />
+              <SettingsSidebarRoot />
             </div>
             <Outlet />
           </div>

@@ -28,6 +28,11 @@ class Sticky(BaseModel):
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="stickies")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="stickies")
+    # Optional project scope. Null = a workspace-level sticky (the original
+    # behaviour); set = the sticky belongs to a project's Stickies tab.
+    project = models.ForeignKey(
+        "db.Project", on_delete=models.CASCADE, related_name="stickies", null=True, blank=True
+    )
     sort_order = models.FloatField(default=65535)
 
     class Meta:

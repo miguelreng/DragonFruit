@@ -264,9 +264,9 @@ function AISettingsPage() {
   }
 
   return (
-    <SettingsContentWrapper header={<AIWorkspaceSettingsHeader />} hugging>
+    <SettingsContentWrapper header={<AIWorkspaceSettingsHeader />}>
       <PageHead title={pageTitle} />
-      <div className={cn("flex w-full flex-col gap-y-6", { "opacity-60": !canEdit })}>
+      <div className={cn("flex w-full flex-col gap-y-7", { "opacity-60": !canEdit })}>
         {/* Atlas — the one workspace companion. Identity & personality are
             fixed in code; only on/off, triggers, and automations are tunable
             here. The model + BYOK key it runs on are configured below. */}

@@ -15,7 +15,6 @@ import { APITokenService } from "@plane/services";
 // components
 import { CreateApiTokenModal } from "@/components/api-token/modal/create-token-modal";
 import { ApiTokenListItem } from "@/components/api-token/token-list-item";
-import { ProfileSettingsHeading } from "@/components/settings/profile/heading";
 import { APITokenSettingsLoader } from "@/components/ui/loader/settings/api-token";
 // constants
 import { API_TOKENS_LIST } from "@/constants/fetch-keys";
@@ -35,18 +34,14 @@ export const APITokensProfileSettings = observer(function APITokensProfileSettin
   }
 
   return (
-    <div className="size-full">
+    <div className="flex w-full flex-col gap-y-7">
       <CreateApiTokenModal isOpen={isCreateTokenModalOpen} onClose={() => setIsCreateTokenModalOpen(false)} />
-      <ProfileSettingsHeading
-        title={t("account_settings.api_tokens.title")}
-        description={t("account_settings.api_tokens.description")}
-        control={
-          <Button variant="primary" size="lg" onClick={() => setIsCreateTokenModalOpen(true)}>
-            {t("workspace_settings.settings.api_tokens.add_token")}
-          </Button>
-        }
-      />
-      <div className="mt-7">
+      <div className="flex items-center justify-end">
+        <Button variant="primary" size="lg" onClick={() => setIsCreateTokenModalOpen(true)}>
+          {t("workspace_settings.settings.api_tokens.add_token")}
+        </Button>
+      </div>
+      <div>
         {tokens.length > 0 ? (
           <>
             <div>

@@ -43,7 +43,7 @@ export const MyTasksHeader = observer(function MyTasksHeader() {
             />
           </Breadcrumbs>
           {openTaskCount > 0 && (
-            <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
+            <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
               {openTaskCount}
             </span>
           )}

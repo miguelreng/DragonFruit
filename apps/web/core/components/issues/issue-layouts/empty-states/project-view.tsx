@@ -6,40 +6,16 @@
 
 import { observer } from "mobx-react";
 // components
-import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { EIssuesStoreType } from "@plane/types";
-// hooks
-import { useCommandPalette } from "@/hooks/store/use-command-palette";
-import { useUserPermissions } from "@/hooks/store/user";
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 
 export const ProjectViewEmptyState = observer(function ProjectViewEmptyState() {
-  // store hooks
-  const { toggleCreateIssueModal } = useCommandPalette();
-  const { allowPermissions } = useUserPermissions();
-
-  // auth
-  const isCreatingIssueAllowed = allowPermissions(
-    [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-    EUserPermissionsLevel.PROJECT
-  );
-
   return (
     // TODO: Add translation
     <EmptyStateDetailed
-      assetKey="work-item"
+      asset={<EmptyStateIcon name="tasks" />}
       title="View tasks will appear here"
       description="Tasks help you track individual pieces of work. With tasks, keep track of what's going on, who is working on it, and what's done."
-      actions={[
-        {
-          label: "New task",
-          onClick: () => {
-            toggleCreateIssueModal(true, EIssuesStoreType.PROJECT_VIEW);
-          },
-          disabled: !isCreatingIssueAllowed,
-          variant: "primary",
-        },
-      ]}
     />
   );
 });

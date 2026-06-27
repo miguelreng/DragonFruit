@@ -7,8 +7,6 @@
 import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-// components
-import { ProfileSettingsHeading } from "@/components/settings/profile/heading";
 // hooks
 import { useUserProfile } from "@/hooks/store/user";
 // local imports
@@ -23,20 +21,14 @@ export const PreferencesProfileSettings = observer(function PreferencesProfileSe
   if (!userProfile) return null;
 
   return (
-    <div className="size-full">
-      <ProfileSettingsHeading
-        title={t("account_settings.preferences.heading")}
-        description={t("account_settings.preferences.description")}
-      />
-      <div className="mt-7 flex w-full flex-col gap-6">
-        <section>
-          <ProfileSettingsDefaultPreferencesList />
-        </section>
-        <section className="flex flex-col gap-y-3">
-          <div className="text-h6-medium text-primary">{t("language_and_time")}</div>
-          <ProfileSettingsLanguageAndTimezonePreferencesList />
-        </section>
-      </div>
+    <div className="flex w-full flex-col gap-y-7">
+      <section>
+        <ProfileSettingsDefaultPreferencesList />
+      </section>
+      <section className="flex flex-col gap-y-3">
+        <div className="text-h6-medium text-primary">{t("language_and_time")}</div>
+        <ProfileSettingsLanguageAndTimezonePreferencesList />
+      </section>
     </div>
   );
 });

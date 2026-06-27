@@ -14,7 +14,11 @@ import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { SettingsPageHeader } from "@/components/settings/page-header";
 import { WORKSPACE_SETTINGS_ICONS } from "@/components/settings/workspace/sidebar/item-icon";
 
-export const WebhooksWorkspaceSettingsHeader = observer(function WebhooksWorkspaceSettingsHeader() {
+type Props = {
+  rightItem?: React.ReactNode;
+};
+
+export const WebhooksWorkspaceSettingsHeader = observer(function WebhooksWorkspaceSettingsHeader({ rightItem }: Props) {
   // translation
   const { t } = useTranslation();
   // derived values
@@ -37,6 +41,7 @@ export const WebhooksWorkspaceSettingsHeader = observer(function WebhooksWorkspa
           </Breadcrumbs>
         </div>
       }
+      rightItem={rightItem}
     />
   );
 });

@@ -30,7 +30,9 @@ const ContentWrapper = React.forwardRef(function ContentWrapper(
       className={cn(
         DEFAULT_STYLE,
         {
-          "py-page-y": variant === ERowVariant.REGULAR,
+          // Bottom-only page padding (content flush under the header) plus a
+          // scroll-driven top shadow that fades in once the page is scrolled.
+          "scroll-shadow pb-page-y": variant === ERowVariant.REGULAR,
         },
         className
       )}

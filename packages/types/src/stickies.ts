@@ -20,4 +20,5 @@ export type TSticky = {
   updated_at?: string | undefined;
   updated_by?: string | undefined;
   workspace: string | undefined;
+  project?: string | null | undefined;
 };

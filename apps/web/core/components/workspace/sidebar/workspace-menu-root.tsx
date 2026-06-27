@@ -8,7 +8,7 @@ import { Fragment, useState, useEffect } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 // icons
-import { CirclePlus, LogOut, Mails, Settings, UserPlus } from "@/components/icons/lucide-shim";
+import { CirclePlus, Download, LogOut2, Mails, Settings, Settings2, UserPlus } from "@/components/icons/lucide-shim";
 // ui
 import { Menu, Transition } from "@headlessui/react";
 // plane imports
@@ -17,7 +17,6 @@ import { useTranslation } from "@plane/i18n";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspace } from "@plane/types";
-import { Loader } from "@plane/ui";
 import { orderWorkspacesList, cn } from "@plane/utils";
 import { AppSidebarTooltip } from "@/components/sidebar/sidebar-item";
 // hooks
@@ -32,10 +31,16 @@ import SidebarDropdownItem from "./dropdown-item";
 type WorkspaceMenuRootProps = {
   variant: "sidebar" | "top-navigation";
   showLabel?: boolean;
+  onDownloadApps?: () => void;
 };
 
+// A clearly visible hairline used to group the menu into sections.
+const MenuSeparator = () => (
+  <div aria-hidden className="my-1 h-px w-full bg-[var(--border-subtle-1)] dark:bg-white/[0.12]" />
+);
+
 export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: WorkspaceMenuRootProps) {
-  const { variant, showLabel = false } = props;
+  const { variant, showLabel = false, onDownloadApps } = props;
   // store hooks
   const { toggleSidebar, toggleAnySidebarDropdown } = useAppTheme();
   const { config } = useInstance();
@@ -67,6 +72,9 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
     }
   };
   const workspacesList = orderWorkspacesList(Object.values(workspaces ?? {}));
+  // The active workspace already lives in the header, so the switcher only needs
+  // the *other* workspaces you can jump to.
+  const otherWorkspaces = workspacesList.filter((workspace) => workspace.id !== activeWorkspace?.id);
   const canManageActiveWorkspace =
     !!activeWorkspace && [EUserPermissions.ADMIN, EUserPermissions.MEMBER].includes(activeWorkspace.role);
   const canInviteToActiveWorkspace = !!activeWorkspace && activeWorkspace.role === EUserPermissions.ADMIN;
@@ -167,42 +175,58 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
               <Menu.Items as={Fragment}>
                 <div
                   className={cn(
-                    "fixed z-21 mt-1 flex w-64 origin-top-left flex-col divide-y divide-subtle overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1 p-1 text-left shadow-raised-200 outline-none",
+                    "fixed z-21 mt-1 flex w-72 origin-top-left flex-col overflow-hidden rounded-xl border-[0.5px] border-strong bg-surface-1 p-1.5 text-left shadow-raised-200 outline-none",
                     {
                       "top-11 left-14": variant === "sidebar",
                       "top-10 left-0": variant === "top-navigation",
                     }
                   )}
                 >
-                  <div className="vertical-scrollbar flex scrollbar-sm max-h-56 flex-col items-start justify-start overflow-x-hidden overflow-y-auto">
-                    {workspacesList ? (
-                      <div className="flex size-full flex-col items-start justify-start">
-                        {(activeWorkspace
-                          ? [
-                              activeWorkspace,
-                              ...workspacesList.filter((workspace) => workspace.id !== activeWorkspace?.id),
-                            ]
-                          : workspacesList
-                        ).map((workspace) => (
-                          <SidebarDropdownItem
-                            key={workspace.id}
-                            workspace={workspace}
-                            activeWorkspace={activeWorkspace}
-                            handleItemClick={handleItemClick}
-                            handleWorkspaceNavigation={handleWorkspaceNavigation}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="w-full">
-                        <Loader className="space-y-2">
-                          <Loader.Item height="30px" />
-                          <Loader.Item height="30px" />
-                        </Loader>
-                      </div>
-                    )}
+                  {/* Workspace header — logo, name, and member count mirroring
+                      the profile-menu style. */}
+                  <div className="flex items-center gap-3 px-2 pb-1 pt-1.5">
+                    <WorkspaceLogo
+                      logo={activeWorkspace?.logo_url}
+                      name={activeWorkspace?.name}
+                      workspaceId={activeWorkspace?.id}
+                      classNames="size-10 flex-shrink-0 rounded-xl border border-subtle"
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-14 font-semibold text-primary">
+                        {activeWorkspace?.name ?? t("loading")}
+                      </span>
+                      {activeWorkspace && (
+                        <span className="truncate text-13 text-tertiary">
+                          {t("member", { count: activeWorkspace.total_members })}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex w-full flex-col items-start justify-start gap-0.5 pt-1 text-13">
+
+                  {/* Other workspaces you can switch to (active one lives in the
+                      header above). Hidden entirely when there's nowhere to jump. */}
+                  {otherWorkspaces.length > 0 && (
+                    <>
+                      <MenuSeparator />
+                      <div className="vertical-scrollbar flex scrollbar-sm max-h-56 flex-col items-start justify-start overflow-x-hidden overflow-y-auto">
+                        <div className="flex size-full flex-col items-start justify-start">
+                          {otherWorkspaces.map((workspace) => (
+                            <SidebarDropdownItem
+                              key={workspace.id}
+                              workspace={workspace}
+                              activeWorkspace={activeWorkspace}
+                              handleItemClick={handleItemClick}
+                              handleWorkspaceNavigation={handleWorkspaceNavigation}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <MenuSeparator />
+
+                  <div className="flex w-full flex-col items-start justify-start gap-0.5 text-13">
                     {canManageActiveWorkspace && (
                       <Link href={`/${activeWorkspace.slug}/settings`} className="w-full" onClick={handleItemClick}>
                         <Menu.Item
@@ -231,9 +255,35 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       </Link>
                     )}
 
-                    {(canManageActiveWorkspace || canInviteToActiveWorkspace) && (
-                      <div className="bg-border-200 my-0 h-px w-full" />
+                    {activeWorkspace && (
+                      <Link
+                        href={`/${activeWorkspace.slug}/settings/account/preferences`}
+                        className="w-full"
+                        onClick={handleItemClick}
+                      >
+                        <Menu.Item
+                          as="div"
+                          className="flex h-8 items-center gap-2 rounded-lg px-2 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                        >
+                          <Settings2 className="size-4 flex-shrink-0" />
+                          <span>{t("preferences")}</span>
+                        </Menu.Item>
+                      </Link>
                     )}
+
+                    {onDownloadApps && (
+                      <Menu.Item
+                        as="button"
+                        type="button"
+                        className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                        onClick={onDownloadApps}
+                      >
+                        <Download className="size-4 flex-shrink-0" />
+                        Download apps
+                      </Menu.Item>
+                    )}
+
+                    <MenuSeparator />
 
                     {!isWorkspaceCreationDisabled && (
                       <Link href="/create-workspace" className="w-full">
@@ -257,14 +307,16 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                       </Menu.Item>
                     </Link>
 
+                    <MenuSeparator />
+
                     <div className="w-full">
                       <Menu.Item
                         as="button"
                         type="button"
-                        className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-13 font-medium text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+                        className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-13 font-medium text-danger-primary hover:bg-danger-subtle-hover"
                         onClick={handleSignOut}
                       >
-                        <LogOut className="size-4 flex-shrink-0" />
+                        <LogOut2 className="size-4 flex-shrink-0" />
                         {t("sign_out")}
                       </Menu.Item>
                     </div>

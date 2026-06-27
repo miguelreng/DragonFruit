@@ -827,6 +827,56 @@ body {
   width: 0 !important;
 }
 
+/* Top content-fade shown ONLY while the area is scrolled: the scroller's top
+   edge dissolves into the surface so content emerges from under the header —
+   the same look as the old `showContentEdgeFade` gradient, but scroll-
+   conditional. `data-scrolled` is toggled off the element's scrollTop by a
+   single global listener (ScrollShadowController), so a container that fits its
+   content (e.g. the calendar's month grid) never fades at rest. The mask lives
+   on the scroller itself — no overlay/pseudo, no layout impact, works on flex
+   and block scrollers alike. */
+.scroll-shadow[data-scrolled="true"] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 24px);
+  mask-image: linear-gradient(to bottom, transparent 0, black 24px);
+}
+
+/* Auto-hide scrollbars on content scrollers: the thumb stays transparent at rest
+   and only surfaces while the area is actively scrolling (`data-scrolling`, set by
+   ScrollShadowController with an idle timeout) — NOT on hover, so moving the mouse
+   over the content doesn't reveal it. The track gutter is still reserved, so
+   revealing the thumb never shifts layout. Scoped to `.scroll-shadow` so it lands
+   on exactly the pages/tabs/settings scrollers. */
+.scroll-shadow.vertical-scrollbar,
+.scroll-shadow.horizontal-scrollbar {
+  &::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    transition: background-color 0.25s ease;
+  }
+
+  &[data-scrolling="true"]::-webkit-scrollbar-thumb {
+    @apply bg-scrollbar-thumb;
+
+    &:hover {
+      @apply bg-scrollbar-thumb-hover;
+    }
+
+    &:active {
+      @apply bg-scrollbar-thumb-active;
+    }
+  }
+}
+
+@-moz-document url-prefix() {
+  .scroll-shadow.vertical-scrollbar,
+  .scroll-shadow.horizontal-scrollbar {
+    scrollbar-color: transparent transparent;
+
+    &[data-scrolling="true"] {
+      scrollbar-color: rgba(96, 100, 108, 0.25) transparent;
+    }
+  }
+}
+
 /* highlight class */
 @utility highlight {
   border: 1px solid var(--border-color-accent-strong) !important;

@@ -36,15 +36,15 @@ export const WORKSPACE_SETTINGS_ICONS: Record<TWorkspaceSettingsTabs, SettingsSi
 };
 
 export const ACTIVE_WORKSPACE_SETTINGS_ICONS: Record<TWorkspaceSettingsTabs, SettingsSidebarIcon> = {
-  general: createSolarSidebarIcon(Settings, "BoldDuotone"),
-  members: createSolarSidebarIcon(UserRounded, "BoldDuotone"),
-  export: createSolarSidebarIcon(Upload, "BoldDuotone"),
-  imports: createSolarSidebarIcon(Download, "BoldDuotone"),
-  webhooks: createSolarSidebarIcon(Link, "BoldDuotone"),
-  ai: createSolarSidebarIcon(MagicStick, "BoldDuotone"),
-  agents: createSolarSidebarIcon(Rocket, "BoldDuotone"),
-  integrations: createSolarSidebarIcon(Widget, "BoldDuotone"),
-  about: createSolarSidebarIcon(InfoCircle, "BoldDuotone"),
-  mcp: createSolarSidebarIcon(Server, "BoldDuotone"),
-  templates: createSolarSidebarIcon(FileText, "BoldDuotone"),
+  general: createSolarSidebarIcon(Settings, "Bold"),
+  members: createSolarSidebarIcon(UserRounded, "Bold"),
+  export: createSolarSidebarIcon(Upload, "Bold"),
+  imports: createSolarSidebarIcon(Download, "Bold"),
+  webhooks: createSolarSidebarIcon(Link, "Bold"),
+  ai: createSolarSidebarIcon(MagicStick, "Bold"),
+  agents: createSolarSidebarIcon(Rocket, "Bold"),
+  integrations: createSolarSidebarIcon(Widget, "Bold"),
+  about: createSolarSidebarIcon(InfoCircle, "Bold"),
+  mcp: createSolarSidebarIcon(Server, "Bold"),
+  templates: createSolarSidebarIcon(FileText, "Bold"),
 };

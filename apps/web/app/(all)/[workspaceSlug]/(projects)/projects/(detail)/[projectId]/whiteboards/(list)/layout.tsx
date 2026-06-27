@@ -6,18 +6,13 @@
 
 // components
 import { Outlet } from "react-router";
-import { AppHeader } from "@/components/core/app-header";
 import { ContentWrapper } from "@/components/core/content-wrapper";
-// local components
-import { PagesListHeader } from "../../pages/(list)/header";
 
 export default function ProjectWhiteboardsListLayout() {
+  // Header is rendered inside WorkspaceDocsRoot (same as the Docs tab).
   return (
-    <>
-      <AppHeader header={<PagesListHeader contentType="whiteboard" />} />
-      <ContentWrapper>
-        <Outlet />
-      </ContentWrapper>
-    </>
+    <ContentWrapper>
+      <Outlet />
+    </ContentWrapper>
   );
 }

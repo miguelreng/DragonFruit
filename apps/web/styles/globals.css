@@ -330,10 +330,22 @@ body {
  * that might use Schedule-X. Swap Schedule-X's built-in tokens for our own
  * and replace its default toolbar with our pill / border style. */
 .dragonfruit-calendar {
-  --sx-color-primary: var(--background-color-accent-primary);
+  /* Calendar-only accent: a brighter pink than the deep brand magenta (by
+   * request), scoped to the calendar — the rest of the app keeps the brand
+   * accent. Tweak this single value to restyle every pink accent in the grid;
+   * keep CALENDAR_ACCENT in calendar-root.tsx in sync for the header chrome. */
+  --dragonfruit-calendar-accent: #ec4899;
+  --sx-color-primary: var(--dragonfruit-calendar-accent);
   --sx-color-on-primary: #ffffff;
-  --sx-color-primary-container: color-mix(in srgb, var(--background-color-accent-primary) 14%, transparent);
+  --sx-color-primary-container: color-mix(in srgb, var(--dragonfruit-calendar-accent) 14%, transparent);
   --sx-color-on-primary-container: var(--text-color-primary);
+  /* Tasks calendar uses the same calendar accent. Set here (not only in the
+   * calendar-root config) so it overrides the value Schedule-X writes to :root
+   * and updates live without recreating the calendar. on-tasks-container drives
+   * the leading event dot. */
+  --sx-color-tasks: var(--dragonfruit-calendar-accent);
+  --sx-color-tasks-container: color-mix(in srgb, var(--dragonfruit-calendar-accent) 14%, transparent);
+  --sx-color-on-tasks-container: var(--dragonfruit-calendar-accent);
   /* Day cells should sit on the main panel surface, not the app frame. */
   --dragonfruit-calendar-surface: var(--background-color-surface-1, var(--background-color-canvas));
   --sx-color-surface: var(--dragonfruit-calendar-surface);
@@ -452,19 +464,23 @@ body {
   background-color: var(--background-color-layer-1) !important;
 }
 
-/* Header row (Mon, Tue, …) — quieter, matches our caption type. */
+/* Header row (Mon, Tue, …) — quiet, title-case, roomy. */
 .dragonfruit-calendar .sx__week-grid__day-name,
 .dragonfruit-calendar .sx__month-grid-day__header {
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 500 !important;
-  text-transform: uppercase !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
   color: var(--text-color-tertiary) !important;
 }
 
-/* Today highlight: pill with our accent. */
-.dragonfruit-calendar .sx__month-grid-day__header-day-name--today,
-.dragonfruit-calendar .sx__week-grid__day-name-and-date--today .sx__week-grid__date-number {
-  background-color: var(--background-color-accent-primary) !important;
+/* Today's date sits in a rounded pill. The global `border-radius: 0` reset
+ * (below) would otherwise square it, so re-round the date container here. */
+.dragonfruit-calendar .sx__month-grid-day__header-date {
+  border-radius: 9999px !important;
+}
+.dragonfruit-calendar .sx__month-grid-day__header-date.sx__is-today {
+  background-color: var(--dragonfruit-calendar-accent) !important;
   color: #ffffff !important;
 }
 
@@ -475,11 +491,69 @@ body {
   background-color: transparent !important;
 }
 
-/* Event chips: tighter, rounder. */
+/* Event chips: tighter, rounder, and without the strong colored left bar.
+ * Schedule-X applies an inline `border-inline-start: 4px solid <calendar color>`
+ * to every event (month-grid, time-grid, all-day, agenda). Override it away so
+ * the chip reads as a clean tinted block. Inline style has no !important, so this wins. */
 .dragonfruit-calendar .sx__event {
   border-radius: 4px !important;
+  border-inline-start: 0 !important;
   font-weight: 500 !important;
   padding: 2px 6px !important;
+}
+
+/* Month event = soft tinted pill, a small leading color dot, neutral label.
+ * The dot is `currentColor`, and the event element's text color is the calendar's
+ * main color (onContainer is set to main in calendar-root.tsx) — so each dot
+ * picks up its own calendar's color. The label is then forced to a neutral tone. */
+.dragonfruit-calendar .sx__month-grid-event {
+  gap: 6px !important;
+  padding: 3px 8px !important;
+  min-height: 22px !important;
+  border-radius: 6px !important;
+  /* Schedule-X sets the bar width to `100% - 10px` and left-aligns it, so all
+   * the slack lands on the right edge (flush left, gap right). Shift right by
+   * half of that to balance the inset left vs right. Width is untouched, so
+   * multi-day spans stay aligned. */
+  margin-inline-start: 5px !important;
+}
+.dragonfruit-calendar .sx__month-grid-event::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  /* `.dragonfruit-calendar *` forces border-radius:0 !important, so the dot
+   * needs its own !important to stay a circle. */
+  border-radius: 9999px !important;
+  background-color: currentColor;
+}
+/* A bar continued from the previous week shouldn't restart with a dot. */
+.dragonfruit-calendar .sx__month-grid-event--overflow-left::before {
+  display: none;
+}
+.dragonfruit-calendar .sx__month-grid-event-title {
+  color: var(--text-color-primary) !important;
+  font-weight: 500 !important;
+}
+.dragonfruit-calendar .sx__month-grid-event-time {
+  color: var(--text-color-tertiary) !important;
+  font-weight: 500 !important;
+}
+/* Roomier vertical gap between stacked event bars (matches the reference
+ * spacing). Horizontal insets are intentionally left alone: multi-day bars
+ * span by width overflow relative to the day cell, so padding here would
+ * misalign the spans. */
+.dragonfruit-calendar .sx__month-grid-day__events {
+  gap: 6px !important;
+}
+/* No grow/fade-in animation on events. Tasks load first, then Google events
+ * arrive via a separate request, so Schedule-X replays its entry animation on
+ * each batch — which reads as the events "changing" (fading/scaling) in after
+ * the page has loaded. Render them instantly and stably instead. */
+.dragonfruit-calendar .sx__event,
+.dragonfruit-calendar .sx__month-grid-event,
+.dragonfruit-calendar .sx__month-grid-event.is-event-new {
+  animation: none !important;
 }
 
 /* Page-level reading modes */

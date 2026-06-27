@@ -162,7 +162,26 @@ export const ArchiveIcon = shim(Solar.Archive);
 export const CalendarAfterIcon = shim(Solar.Calendar);
 export const CalendarBeforeIcon = shim(Solar.Calendar);
 export const CheckCircleFilledIcon = shim(Solar.CheckCircle);
-export const CheckIcon = shim(Solar.CheckCircle);
+// Bare checkmark glyph (no enclosing circle/square). Solar only ships
+// CheckCircle/CheckSquare, so this is a hand-rolled stroke icon. Used as the
+// generic tick inside checkboxes/filter options that supply their own
+// background color, so the check shouldn't carry its own circle.
+export const CheckSignIcon = ({ strokeWidth = 2, ...props }: SVGProps<SVGSVGElement> & { strokeWidth?: number }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    width="1em"
+    height="1em"
+    {...props}
+  >
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+export const CheckIcon = CheckSignIcon;
 export const ChevronDownIcon = shim(Solar.AltArrowDown);
 export const ChevronLeftIcon = shim(Solar.AltArrowLeft);
 export const ChevronRightIcon = shim(Solar.AltArrowRight);
@@ -185,7 +204,25 @@ export const LinkIcon = shim(Solar.Link);
 export const LockIcon = shim(Solar.LockKeyhole);
 export const NewTabIcon = shim(Solar.ArrowRightUp);
 export const PageIcon = shim(Solar.Document);
-export const PlusIcon = shim(Solar.AddCircle);
+// Bare plus glyph (no enclosing circle/square). Solar only ships AddCircle/AddSquare,
+// so this is a hand-rolled stroke icon matching the lucide `Plus` look.
+export const PlusSignIcon = ({ strokeWidth = 2, ...props }: SVGProps<SVGSVGElement> & { strokeWidth?: number }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    width="1em"
+    height="1em"
+    {...props}
+  >
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+// The app standardizes on the bare plus for generic "add" affordances.
+export const PlusIcon = PlusSignIcon;
 export const RecentStickyIcon = shim(Solar.Notes);
 export const SearchIcon = shim(Solar.Magnifer);
 export const StickyNoteIcon = shim(Solar.Notes);

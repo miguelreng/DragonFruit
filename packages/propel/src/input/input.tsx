@@ -42,9 +42,9 @@ const Input = React.forwardRef(function Input(props: InputProps, ref: React.Forw
             mode === "transparent",
           "rounded-lg border-none bg-transparent ring-0": mode === "true-transparent",
           "border-danger-strong": hasError,
-          "px-1.5 py-1": inputSize === "xs",
-          "px-3 py-2": inputSize === "sm",
-          "p-3": inputSize === "md",
+          "px-1 py-0.5": inputSize === "xs",
+          "px-2.5 py-1.5": inputSize === "sm",
+          "p-2.5": inputSize === "md",
         },
         className
       )}

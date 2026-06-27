@@ -4,7 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import { GROUPED_WORKSPACE_SETTINGS, PROJECT_SETTINGS_FLAT_MAP } from "@plane/constants";
+import { GROUPED_WORKSPACE_SETTINGS, PROFILE_SETTINGS, PROJECT_SETTINGS_FLAT_MAP } from "@plane/constants";
+import type { TProfileSettingsTabs } from "@plane/types";
 
 const hrefToLabelMap = (options: Record<string, Array<{ href: string; i18n_label: string; [key: string]: any }>>) =>
   Object.values(options)
@@ -40,6 +41,14 @@ export const getWorkspaceActivePath = (pathname: string) => {
   if (settingsIndex === -1) return null;
   const subPath = "/" + parts.slice(settingsIndex, settingsIndex + 2).join("/");
   return workspaceHrefToLabelMap[subPath];
+};
+
+export const getAccountActivePath = (pathname: string) => {
+  const parts = pathname.split("/").filter(Boolean);
+  const accountIndex = parts.indexOf("account");
+  if (accountIndex === -1) return null;
+  const tab = parts[accountIndex + 1] as TProfileSettingsTabs | undefined;
+  return tab ? (PROFILE_SETTINGS[tab]?.i18n_label ?? null) : null;
 };
 
 export const getProjectActivePath = (pathname: string) => {

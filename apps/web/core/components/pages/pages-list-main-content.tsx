@@ -15,6 +15,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TPage, TPageNavigationTabs, TPageType } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 // components
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
@@ -102,7 +103,7 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
     if (!isAnyPageAvailable) {
       return (
         <EmptyStateDetailed
-          assetKey={isWhiteboard ? "whiteboard" : "page"}
+          asset={<EmptyStateIcon name={isWhiteboard ? "whiteboards" : "docs"} />}
           title={emptyStateTitle}
           description={emptyStateDescription}
           actions={[
@@ -121,7 +122,7 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
     if (pageType !== "archived")
       return (
         <EmptyStateDetailed
-          assetKey={isWhiteboard ? "whiteboard" : "page"}
+          asset={<EmptyStateIcon name={isWhiteboard ? "whiteboards" : "docs"} />}
           title={emptyStateTitle}
           description={emptyStateDescription}
           actions={[
@@ -139,7 +140,7 @@ export const PagesListMainContent = observer(function PagesListMainContent(props
     if (pageType === "archived")
       return (
         <EmptyStateDetailed
-          assetKey={isWhiteboard ? "whiteboard" : "page"}
+          asset={<EmptyStateIcon name={isWhiteboard ? "whiteboards" : "docs"} />}
           title={t("project_empty_state.archive_pages.title")}
           description={t("project_empty_state.archive_pages.description")}
         />

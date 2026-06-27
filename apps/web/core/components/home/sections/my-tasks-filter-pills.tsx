@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { observer } from "mobx-react";
 import { useSearchParams } from "react-router";
 import type { TBaseIssue } from "@plane/types";
+import { getButtonStyling } from "@plane/propel/button";
 import { cn } from "@plane/utils";
 import { useLabel } from "@/hooks/store/use-label";
 import { useProjectState } from "@/hooks/store/use-project-state";
@@ -67,9 +68,10 @@ export const MyTasksFilterPills = observer(function MyTasksFilterPills({ slug, u
 
   if (usedLabels.length === 0) return null;
 
-  const pillBase = "rounded-full px-2.5 py-0.5 text-12 font-medium transition-colors";
-  const pillActive = "bg-accent-subtle text-accent-primary";
-  const pillInactive = "bg-layer-1 text-tertiary hover:text-secondary";
+  // Match the Docs topbar filter pills: secondary/lg buttons, accent text when active.
+  const pillBase = getButtonStyling("secondary", "lg");
+  const pillActive = "text-accent-primary";
+  const pillInactive = "";
 
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)}>

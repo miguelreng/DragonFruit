@@ -58,7 +58,7 @@ import type { EditorRefApi } from "@plane/editor";
 import type { TProject } from "@plane/types";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore, Avatar, CustomMenu, Spinner, ToggleSwitch } from "@plane/ui";
+import { AlertModalCore, CustomMenu, Spinner, ToggleSwitch } from "@plane/ui";
 import { calculateTimeAgo, cn } from "@plane/utils";
 // components
 import {
@@ -68,6 +68,7 @@ import {
   Eraser,
   FileText,
   Image as ImageIconBase,
+  PanelRight,
   Paperclip,
   Plus,
   Sparkles,
@@ -77,7 +78,6 @@ import {
   X,
 } from "@/components/icons/lucide-shim";
 // constants
-import { ATLAS_IDENTITY } from "@/constants/atlas";
 import {
   AGENT_CHAT_ACCEPTED_FILE_TYPES,
   AGENT_CHAT_MAX_FILE_BYTES,
@@ -149,10 +149,14 @@ type View = "chat" | "history";
  */
 export const AgentChatDrawer = observer(function AgentChatDrawer({
   dismissible = true,
+  onCollapse,
 }: {
   // Whether the user can close the sidebar. Desktop docks it permanently
   // (false); mobile renders a dismissible overlay (true).
   dismissible?: boolean;
+  // Desktop only: collapse the docked sidebar to a slim rail. Absent on mobile
+  // (which uses `dismissible` to close the overlay instead).
+  onCollapse?: () => void;
 }) {
   const { workspaceSlug: rawSlug, projectId: rawProjectId, pageId: rawPageId } = useParams();
   const workspaceSlug = rawSlug?.toString();
@@ -296,6 +300,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer({
           pageId={pageId}
           activePageEditorRef={activePageEditorRef}
           onClose={onClose}
+          onCollapse={onCollapse}
           dismissible={dismissible}
           onOpenHistory={() => setView("history")}
           onStartSession={handleStartSession}
@@ -314,6 +319,7 @@ export const AgentChatDrawer = observer(function AgentChatDrawer({
           onStartSession={handleStartSession}
           onDeleteSession={handleDeleteSession}
           onClose={onClose}
+          onCollapse={onCollapse}
           dismissible={dismissible}
           onBack={activeId ? () => setView("chat") : undefined}
         />
@@ -380,6 +386,7 @@ function ChatView(props: {
   sessions: TAgentChatSession[];
   activePageEditorRef: EditorRefApi | null;
   onClose: () => void;
+  onCollapse?: () => void;
   dismissible: boolean;
   onOpenHistory: () => void;
   onStartSession: () => Promise<void>;
@@ -397,6 +404,7 @@ function ChatView(props: {
     agent,
     activePageEditorRef,
     onClose,
+    onCollapse,
     dismissible,
     onOpenHistory,
     onStartSession,
@@ -474,13 +482,13 @@ function ChatView(props: {
   return (
     <>
       {/* Header — agent identity on the left, clear + history + close on
-          the right. Sits at h-11 to match the page-level header strip. */}
-      <header className="relative flex h-11 flex-shrink-0 items-center gap-2 px-3">
+          the right. Sits at min-h-14 to share the page-header baseline (tab
+          band, pages topbar, sidebar switcher all center on the same line). */}
+      <header className="relative flex min-h-14 flex-shrink-0 items-center gap-2 px-page-x">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-full z-10 h-6 bg-gradient-to-b from-surface-1 to-transparent"
         />
-        <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
         <span className="text-13 font-medium text-primary">Atlas</span>
         <span className="min-w-0 flex-1" />
         <div className="flex items-center gap-0.5">
@@ -515,6 +523,17 @@ function ChatView(props: {
                 <Eraser className="size-4" />
               </button>
             </>
+          )}
+          {onCollapse && (
+            <button
+              type="button"
+              onClick={onCollapse}
+              className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+              aria-label="Collapse Atlas"
+              title="Collapse Atlas"
+            >
+              <PanelRight className="size-4" />
+            </button>
           )}
           {dismissible && (
             <button
@@ -735,10 +754,12 @@ function HistoryView(props: {
   onStartSession: () => Promise<void>;
   onDeleteSession: (id: string) => Promise<void>;
   onClose: () => void;
+  onCollapse?: () => void;
   dismissible: boolean;
   onBack: (() => void) | undefined;
 }) {
-  const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onBack, dismissible } = props;
+  const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onCollapse, onBack, dismissible } =
+    props;
   // Most recent first.
   const sortedSessions = [...sessions].sort(
     (a, b) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime()
@@ -746,9 +767,8 @@ function HistoryView(props: {
 
   return (
     <>
-      <header className="flex h-11 flex-shrink-0 items-center gap-2 border-b border-subtle px-3">
+      <header className="flex min-h-14 flex-shrink-0 items-center gap-2 px-page-x">
         <div className="flex flex-1 items-center gap-2">
-          <img src="/atlas-dragon.svg" alt="Atlas" className="size-5 shrink-0" />
           <div className="text-13 font-medium text-primary">Chats</div>
         </div>
         {onBack && (
@@ -759,6 +779,15 @@ function HistoryView(props: {
           >
             Back
           </button>
+        )}
+        {onCollapse && (
+          <IconButton
+            variant="tertiary"
+            size="sm"
+            icon={PanelRight}
+            onClick={onCollapse}
+            aria-label="Collapse Atlas"
+          />
         )}
         {dismissible && (
           <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
@@ -1502,7 +1531,7 @@ function ChatThread(props: {
       <div ref={scrollRef} className="vertical-scrollbar scrollbar-sm flex-1 overflow-y-auto px-4 py-5">
         {isEmpty && (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <Avatar size="lg" name={agent?.name ?? "Atlas"} src={ATLAS_IDENTITY.avatarSrc} className="shrink-0" />
+            <img src="/atlas-dragon.svg" alt="Atlas" className="h-12 w-auto shrink-0 dark:invert" />
             <div className="space-y-1">
               <div className="text-14 font-medium text-primary">How can Atlas help?</div>
               <div className="max-w-xs text-12 text-tertiary">
@@ -1947,7 +1976,7 @@ const MessageRow = memo(function MessageRow({
             </ul>
           )}
           {visibleContent && (
-            <div className="rounded-2xl rounded-br-md bg-layer-1 px-3.5 py-2 text-13 whitespace-pre-wrap text-primary">
+            <div className="rounded-2xl rounded-br-md bg-layer-1 px-3.5 py-2 text-13 whitespace-pre-wrap break-words text-primary">
               {visibleContent}
             </div>
           )}
@@ -1960,7 +1989,16 @@ const MessageRow = memo(function MessageRow({
     <li className="flex">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {message.error_message ? (
-          <div className="text-error max-w-full text-13">{message.error_message}</div>
+          // Provider errors arrive as a raw JSON blob (litellm wrapping a
+          // Gemini/OpenAI error). Render it as an error-tinted code snippet —
+          // monospace on a soft danger surface — so it reads as machine output
+          // and clearly as a failure. Lines wrap (whitespace-pre-wrap +
+          // break-words) rather than scroll, so a long URL or quota id can't
+          // push the drawer sideways. bg-danger-subtle + text-danger-primary
+          // is the codebase's standard soft-error pairing.
+          <pre className="my-0.5 max-w-full whitespace-pre-wrap break-words rounded bg-danger-subtle p-2 font-mono text-12 text-danger-primary">
+            {message.error_message}
+          </pre>
         ) : message.content ? (
           // LLM replies are markdown by convention — bullet lists,
           // bold, code fences, headings. Without rendering, the user

@@ -158,7 +158,7 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
         ref={setReferenceElement}
         type="button"
         className={cn(
-          "flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-11 text-secondary select-none",
+          "flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-13 text-secondary select-none",
           {
             "bg-layer-transparent-hover": isActive,
             "text-placeholder": item.disabled,
@@ -196,7 +196,7 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
             ref={setPopperElement}
             style={styles.popper}
             {...attributes.popper}
-            className="fixed z-[35] min-w-[12rem] overflow-hidden rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-2.5 text-11"
+            className="fixed z-[35] min-w-[12rem] overflow-hidden rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-2.5 text-13"
             data-context-submenu="true"
           >
             <div ref={nestedMenuRef} className="vertical-scrollbar scrollbar-sm max-h-72 overflow-y-scroll">
@@ -205,7 +205,7 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
                   key={nestedItem.key}
                   type="button"
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-11 text-secondary select-none",
+                    "flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-13 text-secondary select-none",
                     {
                       "bg-layer-transparent-hover": index === activeNestedIndex,
                       "text-placeholder": nestedItem.disabled,

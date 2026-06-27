@@ -9,6 +9,7 @@ import { useParams } from "next/navigation";
 // components
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 
 // TODO: If projectViewId changes, everything breaks. Figure out a better way to handle this.
 export const ProfileViewEmptyState = observer(function ProfileViewEmptyState() {
@@ -21,7 +22,7 @@ export const ProfileViewEmptyState = observer(function ProfileViewEmptyState() {
 
   return (
     <EmptyStateDetailed
-      assetKey="work-item"
+      asset={<EmptyStateIcon name="tasks" />}
       title={t(`profile.empty_state.${profileViewId.toString()}.title`)}
       description={t(`profile.empty_state.${profileViewId.toString()}.description`)}
     />

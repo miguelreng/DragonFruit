@@ -9,17 +9,25 @@ import { observer } from "mobx-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 // constants
 import { EPageAccess } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 // plane types
 import { Button } from "@plane/propel/button";
-import { PageIcon } from "@/components/icons/propel-shim";
+import { ListFilter } from "@/components/icons/lucide-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage, TPageType } from "@plane/types";
+import type { TPage, TPageType, TPageNavigationTabs } from "@plane/types";
 // plane ui
 import { Breadcrumbs, Header } from "@plane/ui";
-import { Whiteboard } from "@/components/icons/lucide-shim";
+import { calculateTotalFilters } from "@plane/utils";
 // helpers
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
+// components
+import { FiltersDropdown } from "@/components/issues/issue-layouts/filters";
+import { PageFiltersSelection } from "@/components/pages/list/filters";
+import { PageOrderByDropdown } from "@/components/pages/list/order-by";
+import { PageScopeDropdown } from "@/components/pages/list/scope-dropdown";
+import { PageSearchInput } from "@/components/pages/list/search-input";
 // hooks
+import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 // plane web imports
 import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
@@ -34,13 +42,15 @@ type TCreatableHeaderPageType = Exclude<TPageType, "pdf">;
 const PAGE_CONTENT_META: Record<TCreatableHeaderPageType, { addLabel: string; breadcrumbLabel: string }> = {
   doc: {
     addLabel: "Create doc",
-    breadcrumbLabel: "Pages",
+    breadcrumbLabel: "Docs",
   },
   whiteboard: {
     addLabel: "Create whiteboard",
     breadcrumbLabel: "Whiteboards",
   },
 };
+
+const NAV_TABS: TPageNavigationTabs[] = ["all", "public", "private", "archived"];
 
 export const PagesListHeader = observer(function PagesListHeader(props: Props) {
   const { contentType = "doc" } = props;
@@ -51,12 +61,21 @@ export const PagesListHeader = observer(function PagesListHeader(props: Props) {
   const router = useRouter();
   const { workspaceSlug, projectId } = useParams();
   const searchParams = useSearchParams();
-  const pageType = searchParams.get("type");
+  const { t } = useTranslation();
+  const rawType = searchParams.get("type");
+  const pageType: TPageNavigationTabs = NAV_TABS.includes(rawType as TPageNavigationTabs)
+    ? (rawType as TPageNavigationTabs)
+    : "all";
   const contentMeta = PAGE_CONTENT_META[headerContentType];
-  const HeaderIcon = headerContentType === "whiteboard" ? Whiteboard : PageIcon;
+  const basePath = headerContentType === "whiteboard" ? "whiteboards" : "pages";
   // store hooks
   const { currentProjectDetails, loader } = useProject();
-  const { canCurrentUserCreatePage, createPage } = usePageStore(EPageStoreType.PROJECT);
+  const { canCurrentUserCreatePage, createPage, filters, updateFilters } = usePageStore(EPageStoreType.PROJECT);
+  const {
+    workspace: { workspaceMemberIds },
+  } = useMember();
+  // derived values
+  const isFiltersApplied = calculateTotalFilters(filters?.filters ?? {}) !== 0;
   // handle page create
   const handleCreatePage = async (kind: TCreatableHeaderPageType = headerContentType) => {
     setIsCreatingPage(true);
@@ -98,19 +117,46 @@ export const PagesListHeader = observer(function PagesListHeader(props: Props) {
             component={
               <BreadcrumbLink
                 label={contentMeta.breadcrumbLabel}
-                href={`/${workspaceSlug}/projects/${currentProjectDetails?.id}/${
-                  headerContentType === "whiteboard" ? "whiteboards" : "pages"
-                }/`}
-                icon={<HeaderIcon className="h-4 w-4 text-tertiary" />}
+                href={`/${workspaceSlug}/projects/${currentProjectDetails?.id}/${basePath}/`}
                 isLast
               />
             }
             isLast
           />
         </Breadcrumbs>
+        <PageScopeDropdown
+          workspaceSlug={workspaceSlug?.toString() ?? ""}
+          projectId={projectId?.toString() ?? ""}
+          pageType={pageType}
+          basePath={basePath}
+        />
       </Header.LeftItem>
-      {canCurrentUserCreatePage && (
-        <Header.RightItem>
+      <Header.RightItem className="items-center">
+        <PageSearchInput
+          searchQuery={filters.searchQuery}
+          updateSearchQuery={(val) => updateFilters("searchQuery", val)}
+        />
+        <PageOrderByDropdown
+          sortBy={filters.sortBy}
+          sortKey={filters.sortKey}
+          onChange={(val) => {
+            if (val.key) updateFilters("sortKey", val.key);
+            if (val.order) updateFilters("sortBy", val.order);
+          }}
+        />
+        <FiltersDropdown
+          icon={<ListFilter className="h-3 w-3" />}
+          title={t("common.filters")}
+          placement="bottom-end"
+          isFiltersApplied={isFiltersApplied}
+        >
+          <PageFiltersSelection
+            filters={filters}
+            handleFiltersUpdate={updateFilters}
+            memberIds={workspaceMemberIds ?? undefined}
+          />
+        </FiltersDropdown>
+        {canCurrentUserCreatePage && (
           <Button
             variant="primary"
             size="lg"
@@ -120,8 +166,8 @@ export const PagesListHeader = observer(function PagesListHeader(props: Props) {
           >
             {isCreatingPage ? "Creating" : contentMeta.addLabel}
           </Button>
-        </Header.RightItem>
-      )}
+        )}
+      </Header.RightItem>
     </Header>
   );
 });

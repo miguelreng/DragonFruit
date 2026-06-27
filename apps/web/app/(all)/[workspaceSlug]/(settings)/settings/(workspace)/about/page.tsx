@@ -7,7 +7,6 @@
 import { useTranslation } from "@plane/i18n";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-import { SettingsHeading } from "@/components/settings/heading";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { AboutWorkspaceSettingsHeader } from "./header";
 
@@ -22,12 +21,8 @@ function AboutSettingsPage() {
   return (
     <SettingsContentWrapper header={<AboutWorkspaceSettingsHeader />}>
       <PageHead title={pageTitle} />
-      <div className="w-full">
-        <SettingsHeading
-          title={t("workspace_settings.settings.about.heading")}
-          description={t("workspace_settings.settings.about.description")}
-        />
-        <article className="font-newsreader mt-8 flex max-w-[560px] flex-col gap-5 text-[17px] leading-[1.65] text-secondary">
+      <div className="flex w-full flex-col gap-y-7">
+        <article className="font-newsreader flex max-w-[560px] flex-col gap-5 text-[17px] leading-[1.65] text-secondary">
           <p>Hi —</p>
           <p>
             DragonFruit started as a small frustration. I love how Linear feels, I love how Notion docs read, and I love

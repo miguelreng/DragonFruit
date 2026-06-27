@@ -26,18 +26,19 @@ export interface IStickyStore {
   // actions
   toggleShowNewSticky: (value: boolean) => void;
   updateSearchQuery: (query: string) => void;
-  fetchWorkspaceStickies: (workspaceSlug: string) => void;
-  createSticky: (workspaceSlug: string, sticky: Partial<TSticky>) => Promise<void>;
+  fetchWorkspaceStickies: (workspaceSlug: string, projectId?: string) => void;
+  createSticky: (workspaceSlug: string, sticky: Partial<TSticky>, projectId?: string) => Promise<void>;
   updateSticky: (workspaceSlug: string, id: string, updates: Partial<TSticky>) => Promise<void>;
-  deleteSticky: (workspaceSlug: string, id: string) => Promise<void>;
+  deleteSticky: (workspaceSlug: string, id: string, projectId?: string) => Promise<void>;
   updateActiveStickyId: (id: string | undefined) => void;
   fetchRecentSticky: (workspaceSlug: string) => Promise<void>;
-  fetchNextWorkspaceStickies: (workspaceSlug: string) => Promise<void>;
+  fetchNextWorkspaceStickies: (workspaceSlug: string, projectId?: string) => Promise<void>;
   updateStickyPosition: (
     workspaceSlug: string,
     stickyId: string,
     destinationId: string,
-    edge: InstructionType
+    edge: InstructionType,
+    projectId?: string
   ) => Promise<void>;
 }
 
@@ -108,7 +109,8 @@ export class StickyStore implements IStickyStore {
       this.stickies[response.results[0]?.id] = response.results[0];
     });
   };
-  fetchNextWorkspaceStickies = async (workspaceSlug: string) => {
+  fetchNextWorkspaceStickies = async (workspaceSlug: string, projectId?: string) => {
+    const scope = projectId || workspaceSlug;
     try {
       if (!this.paginationInfo?.next_cursor || !this.paginationInfo.next_page_results || this.loader === "pagination") {
         return;
@@ -117,7 +119,9 @@ export class StickyStore implements IStickyStore {
       const response = await this.stickyService.getStickies(
         workspaceSlug,
         this.paginationInfo.next_cursor,
-        this.searchQuery
+        this.searchQuery,
+        undefined,
+        projectId
       );
 
       runInAction(() => {
@@ -125,8 +129,8 @@ export class StickyStore implements IStickyStore {
 
         // Add new stickies to store
         results.forEach((sticky) => {
-          if (!this.workspaceStickies[workspaceSlug]?.includes(sticky.id)) {
-            this.workspaceStickies[workspaceSlug] = [...(this.workspaceStickies[workspaceSlug] || []), sticky.id];
+          if (!this.workspaceStickies[scope]?.includes(sticky.id)) {
+            this.workspaceStickies[scope] = [...(this.workspaceStickies[scope] || []), sticky.id];
           }
           this.stickies[sticky.id] = sticky;
         });
@@ -143,9 +147,10 @@ export class StickyStore implements IStickyStore {
     }
   };
 
-  fetchWorkspaceStickies = async (workspaceSlug: string) => {
+  fetchWorkspaceStickies = async (workspaceSlug: string, projectId?: string) => {
+    const scope = projectId || workspaceSlug;
     try {
-      if (this.workspaceStickies[workspaceSlug]) {
+      if (this.workspaceStickies[scope]) {
         this.loader = "mutation";
       } else {
         this.loader = "init-loader";
@@ -154,7 +159,9 @@ export class StickyStore implements IStickyStore {
       const response = await this.stickyService.getStickies(
         workspaceSlug,
         `${STICKIES_PER_PAGE}:0:0`,
-        this.searchQuery
+        this.searchQuery,
+        undefined,
+        projectId
       );
 
       runInAction(() => {
@@ -163,7 +170,7 @@ export class StickyStore implements IStickyStore {
         results.forEach((sticky) => {
           this.stickies[sticky.id] = sticky;
         });
-        this.workspaceStickies[workspaceSlug] = results.map((sticky) => sticky.id);
+        this.workspaceStickies[scope] = results.map((sticky) => sticky.id);
         set(this, "paginationInfo", paginationInfo);
         this.loader = "loaded";
       });
@@ -175,15 +182,16 @@ export class StickyStore implements IStickyStore {
     }
   };
 
-  createSticky = async (workspaceSlug: string, sticky: Partial<TSticky>) => {
+  createSticky = async (workspaceSlug: string, sticky: Partial<TSticky>, projectId?: string) => {
     if (!this.showAddNewSticky) return;
     this.showAddNewSticky = false;
     this.creatingSticky = true;
-    const workspaceStickies = this.workspaceStickies[workspaceSlug] || [];
-    const response = await this.stickyService.createSticky(workspaceSlug, sticky);
+    const scope = projectId || workspaceSlug;
+    const scopeStickies = this.workspaceStickies[scope] || [];
+    const response = await this.stickyService.createSticky(workspaceSlug, sticky, projectId);
     runInAction(() => {
       this.stickies[response.id] = response;
-      this.workspaceStickies[workspaceSlug] = [response.id, ...workspaceStickies];
+      this.workspaceStickies[scope] = [response.id, ...scopeStickies];
       this.activeStickyId = response.id;
       this.recentStickyId = response.id;
       this.creatingSticky = false;
@@ -210,16 +218,15 @@ export class StickyStore implements IStickyStore {
     }
   };
 
-  deleteSticky = async (workspaceSlug: string, id: string) => {
+  deleteSticky = async (workspaceSlug: string, id: string, projectId?: string) => {
+    const scope = projectId || workspaceSlug;
     const sticky = this.stickies[id];
     if (!sticky) return;
     try {
-      this.workspaceStickies[workspaceSlug] = this.workspaceStickies[workspaceSlug].filter(
-        (stickyId) => stickyId !== id
-      );
+      this.workspaceStickies[scope] = this.workspaceStickies[scope].filter((stickyId) => stickyId !== id);
       if (this.activeStickyId === id) this.activeStickyId = undefined;
       delete this.stickies[id];
-      this.recentStickyId = this.workspaceStickies[workspaceSlug][0];
+      this.recentStickyId = this.workspaceStickies[scope][0];
       await this.stickyService.deleteSticky(workspaceSlug, id);
     } catch (e) {
       console.log(e);
@@ -231,12 +238,14 @@ export class StickyStore implements IStickyStore {
     workspaceSlug: string,
     stickyId: string,
     destinationId: string,
-    edge: InstructionType
+    edge: InstructionType,
+    projectId?: string
   ) => {
+    const scope = projectId || workspaceSlug;
     const previousSortOrder = this.stickies[stickyId].sort_order;
     try {
       let resultSequence = 10000;
-      const workspaceStickies = this.workspaceStickies[workspaceSlug] || [];
+      const workspaceStickies = this.workspaceStickies[scope] || [];
       const stickies = workspaceStickies.map((id) => this.stickies[id]);
       const sortedStickies = orderBy(stickies, "sort_order", "desc").map((sticky) => sticky.id);
       const destinationSequence = this.stickies[destinationId]?.sort_order || undefined;

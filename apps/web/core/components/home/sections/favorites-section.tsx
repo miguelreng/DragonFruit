@@ -10,7 +10,7 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import type { IFavorite } from "@plane/types";
-import { ChevronRight, Star } from "@/components/icons/lucide-shim";
+import { ChevronRight } from "@/components/icons/lucide-shim";
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { useFavoriteItemDetails } from "@/hooks/use-favorite-item-details";
 
@@ -70,7 +70,6 @@ export const FavoritesSection = observer(function FavoritesSection() {
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
-          <Star className="size-4 text-tertiary" />
           <h3 className="text-14 font-semibold text-secondary">Favorites</h3>
         </div>
       </div>

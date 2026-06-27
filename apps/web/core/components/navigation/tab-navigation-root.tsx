@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, useLocation, Link, useNavigate } from "react-router";
 import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
@@ -23,6 +23,7 @@ import { PublishProjectModal } from "../project/publish-project/modal";
 import { ProjectActionsMenu } from "./project-actions-menu";
 import { ProjectHeader } from "./project-header";
 import { TabNavigationOverflowMenu } from "./tab-navigation-overflow-menu";
+import { FolderTabIndicator } from "./folder-tab-indicator";
 import { DEFAULT_TAB_KEY } from "./tab-navigation-utils";
 import { TabNavigationVisibleItem } from "./tab-navigation-visible-item";
 import { useActiveTab } from "./use-active-tab";
@@ -142,6 +143,42 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
     }
   }, [pathname, workspaceSlug, projectId, tabPreferences.defaultTab, allNavigationItems, navigate]);
 
+  // Folder-tab indicator: measure the active tab so the fused "folder" shape can
+  // slide to it. Geometry is taken relative to the (un-clipped) outer container.
+  const outerRef = useRef<HTMLDivElement>(null);
+  const [indicator, setIndicator] = useState<{ left: number; width: number; height: number } | null>(null);
+
+  const measureIndicator = useCallback(() => {
+    const outer = outerRef.current;
+    const node = activeItem ? itemRefs.current[allNavigationItems.indexOf(activeItem)] : null;
+    if (!outer || !activeItem || !node) {
+      setIndicator((prev) => (prev === null ? prev : null));
+      return;
+    }
+    const outerRect = outer.getBoundingClientRect();
+    const nodeRect = node.getBoundingClientRect();
+    const next = {
+      left: nodeRect.left - outerRect.left,
+      width: nodeRect.width,
+      height: outerRect.height,
+    };
+    setIndicator((prev) =>
+      prev && prev.left === next.left && prev.width === next.width && prev.height === next.height ? prev : next
+    );
+  }, [activeItem, allNavigationItems, itemRefs]);
+
+  useLayoutEffect(() => {
+    measureIndicator();
+  }, [measureIndicator, visibleItems, hasOverflow]);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    if (!outer) return;
+    const resizeObserver = new ResizeObserver(() => measureIndicator());
+    resizeObserver.observe(outer);
+    return () => resizeObserver.disconnect();
+  }, [measureIndicator]);
+
   if (allNavigationItems.length === 0) return null;
   if (!project) return null;
 
@@ -170,7 +207,15 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
       />
 
       {/* container for the tab navigation */}
-      <div className="flex size-full items-center gap-3 overflow-hidden">
+      <div ref={outerRef} className="relative flex size-full items-center gap-3">
+        {indicator && (
+          <FolderTabIndicator
+            left={indicator.left}
+            width={indicator.width}
+            height={indicator.height}
+            activeKey={activeItem?.key ?? ""}
+          />
+        )}
         <div className="flex shrink-0 items-center gap-2">
           <ProjectHeader workspaceSlug={workspaceSlug} projectId={projectId} />
           <div className="shrink-0">
@@ -185,8 +230,6 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
             />
           </div>
         </div>
-
-        <div className="h-5 w-1 shrink-0 border-l border-subtle" />
 
         <div ref={containerRef} className="flex h-full min-w-0 flex-1 items-center overflow-hidden">
           <TabNavigationList className="h-full">

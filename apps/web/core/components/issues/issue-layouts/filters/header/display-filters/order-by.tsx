@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  * See the LICENSE file for details.
  */
+import { Collapse } from "@/components/common/collapse";
 
 import React, { useState } from "react";
 import { observer } from "mobx-react";
@@ -35,7 +36,7 @@ export const FilterOrderBy = observer(function FilterOrderBy(props: Props) {
         isPreviewEnabled={previewEnabled}
         handleIsPreviewEnabled={() => setPreviewEnabled(!previewEnabled)}
       />
-      {previewEnabled && (
+      <Collapse open={previewEnabled}>
         <div>
           {ISSUE_ORDER_BY_OPTIONS.filter((option) => orderByOptions.includes(option.key)).map((orderBy) => (
             <FilterOption
@@ -47,7 +48,7 @@ export const FilterOrderBy = observer(function FilterOrderBy(props: Props) {
             />
           ))}
         </div>
-      )}
+      </Collapse>
     </>
   );
 });

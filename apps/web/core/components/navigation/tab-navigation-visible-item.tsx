@@ -8,6 +8,7 @@ import { Link } from "react-router";
 import { PinOff } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
+import { cn } from "@plane/utils";
 import { ContextMenu } from "@plane/propel/context-menu";
 import { SetAsDefaultIcon } from "@/components/icons/propel-shim";
 import { TabNavigationItem } from "@plane/propel/tab-navigation";
@@ -38,18 +39,17 @@ export function TabNavigationVisibleItem({
 }: TTabNavigationVisibleItemProps) {
   const { t } = useTranslation();
   const isDefault = item.key === tabPreferences.defaultTab;
+  // The "pages" feature is branded "Docs" in this product.
+  const label = item.key === "pages" ? "Docs" : item.key === "stickies" ? "Stickies" : t(item.i18n_key);
 
   return (
-    <div className="relative flex h-full items-center transition-all duration-300">
-      {isActive && (
-        <span className="absolute bottom-0 left-1/2 h-0.5 w-[80%] -translate-x-1/2 rounded-t-md bg-(--text-color-icon-primary) transition-all duration-300" />
-      )}
+    <div className="relative flex h-full items-center">
       <div key={`${item.key}-measure`} ref={itemRef}>
         <ContextMenu>
           <ContextMenu.Trigger>
             <Link key={`${item.key}-${isActive ? "active" : "inactive"}`} to={item.href}>
-              <TabNavigationItem isActive={isActive}>
-                <span>{t(item.i18n_key)}</span>
+              <TabNavigationItem isActive={false} className={cn(isActive && "hover:bg-transparent")}>
+                <span className={cn(isActive && "text-primary")}>{label}</span>
               </TabNavigationItem>
             </Link>
           </ContextMenu.Trigger>

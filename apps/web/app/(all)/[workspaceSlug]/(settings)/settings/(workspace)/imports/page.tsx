@@ -13,7 +13,6 @@ import { PageHead } from "@/components/core/page-title";
 import { CsvImportModal } from "@/components/imports";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
-import { SettingsHeading } from "@/components/settings/heading";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import type { Route } from "./+types/page";
 import { ImportsWorkspaceSettingsHeader } from "./header";
@@ -47,13 +46,9 @@ const ImportsSettingsPage = observer(function ImportsSettingsPage({ params }: Ro
   ];
 
   return (
-    <SettingsContentWrapper header={<ImportsWorkspaceSettingsHeader />} hugging>
+    <SettingsContentWrapper header={<ImportsWorkspaceSettingsHeader />}>
       <PageHead title={pageTitle} />
-      <div className="flex w-full flex-col gap-y-6">
-        <SettingsHeading
-          title={t("workspace_settings.settings.imports.heading")}
-          description="Import work from a CSV file. Each row becomes a task."
-        />
+      <div className="flex w-full flex-col gap-y-7">
         {/* Boxed group of source rows — mirrors the export form's pattern
             (rounded outer border, rows stacked with internal dividers, primary
             CTA on the right). Keeps imports visually consistent with exports. */}

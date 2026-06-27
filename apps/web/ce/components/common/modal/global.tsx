@@ -4,29 +4,17 @@
  * See the LICENSE file for details.
  */
 
-import { lazy, Suspense } from "react";
 import { observer } from "mobx-react";
-
-const ProfileSettingsModal = lazy(() =>
-  import("@/components/settings/profile/modal").then((module) => ({
-    default: module.ProfileSettingsModal,
-  }))
-);
 
 type TGlobalModalsProps = {
   workspaceSlug: string;
 };
 
 /**
- * GlobalModals component manages all workspace-level modals across DragonFruit applications.
- *
- * This includes:
- * - Profile settings modal
+ * GlobalModals component manages workspace-level modals across DragonFruit
+ * applications. Profile/account settings are now a section of the unified
+ * settings page (no longer a modal), so there are currently no global modals.
  */
 export const GlobalModals = observer(function GlobalModals(_props: TGlobalModalsProps) {
-  return (
-    <Suspense fallback={null}>
-      <ProfileSettingsModal />
-    </Suspense>
-  );
+  return null;
 });

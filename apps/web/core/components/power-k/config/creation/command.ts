@@ -71,6 +71,7 @@ export const usePowerKCreationCommandsRecord = (): Record<TPowerKCreationCommand
       i18n_title: "power_k.creation_actions.create_work_item",
       icon: LayersIcon,
       keySequence: "ni",
+      modifierShortcut: "cmd+o",
       action: () => toggleCreateIssueModal(true),
       isEnabled: () => Boolean(canCreateWorkItem),
       isVisible: () => Boolean(canCreateWorkItem),

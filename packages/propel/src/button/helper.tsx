@@ -29,10 +29,10 @@ export const buttonVariants = cva(
           "px-0 text-accent-primary hover:text-accent-secondary focus:text-accent-secondary active:text-accent-secondary disabled:text-disabled",
       },
       size: {
-        sm: "h-5 rounded-lg px-1.5 text-caption-md-medium",
-        base: "h-6 rounded-lg px-2 text-body-xs-medium",
-        lg: "h-7 rounded-lg px-2 text-body-xs-medium",
-        xl: "h-8 rounded-lg px-2 text-body-sm-medium",
+        sm: "h-5 rounded-lg px-1 text-caption-md-medium",
+        base: "h-6 rounded-lg px-1.5 text-body-xs-medium",
+        lg: "h-7 rounded-lg px-1.5 text-body-xs-medium",
+        xl: "h-8 rounded-lg px-1.5 text-body-sm-medium",
       },
     },
     defaultVariants: {

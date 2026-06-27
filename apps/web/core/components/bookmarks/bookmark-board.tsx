@@ -22,7 +22,7 @@ import Link from "next/link";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { fetchWikipediaSummary } from "@plane/editor";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { Button } from "@plane/propel/button";
+import { Button, getButtonStyling } from "@plane/propel/button";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TProjectBookmark, TProjectBookmarkCreatePayload } from "@plane/types";
@@ -30,6 +30,7 @@ import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, EModalWidth, Header,
 import { cn, renderFormattedDate } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { AppHeader } from "@/components/core/app-header";
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { ListItem } from "@/components/core/list";
 import { ViewModeToggle, type ViewMode } from "@/components/core/view-mode-toggle";
 import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
@@ -910,9 +911,10 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
       ? bookmarkStore.projectBookmarks(projectId)
       : bookmarkStore.workspaceBookmarks(workspaceSlug);
   const tags = useMemo(() => sortBy([...new Set(bookmarks.flatMap((bookmark) => bookmark.tags))]), [bookmarks]);
-  const pillBase = "rounded-full px-2.5 py-0.5 text-12 font-medium transition-colors";
-  const pillActive = "bg-accent-subtle text-accent-primary";
-  const pillInactive = "bg-layer-1 text-tertiary hover:text-secondary";
+  // Match the Docs topbar filter pills: secondary/lg buttons, accent text when active.
+  const pillBase = getButtonStyling("secondary", "lg");
+  const pillActive = "text-accent-primary";
+  const pillInactive = "";
   const projectFilterPillLabel = useMemo(() => {
     if (selectedProjectIds.length === 0) return "Project";
     if (selectedProjectIds.length > 1) return `${selectedProjectIds.length} projects`;
@@ -1234,7 +1236,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
   const header = (
     <Header>
       <Header.LeftItem>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1.5">
           <Breadcrumbs>
             {mode === "project" && projectId && (
               <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug} projectId={projectId} />
@@ -1254,7 +1256,9 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
               isLast
             />
           </Breadcrumbs>
-          <span className="text-13 text-tertiary">{bookmarks.length}</span>
+          <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
+            {bookmarks.length}
+          </span>
           <div className="flex flex-wrap items-center gap-1.5">
             {mode === "workspace" && (
               <FiltersDropdown
@@ -1322,7 +1326,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
 
   return (
     <>
-      <AppHeader header={header} showContentEdgeFade />
+      <AppHeader header={header} />
       {canCreateBookmark && (
         <BookmarkFormModal
           isOpen={isFormModalOpen}
@@ -1372,7 +1376,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
         {filteredBookmarks.length === 0 ? (
           isLoading ? (
             viewMode === "grid" ? (
-              <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
+              <div className="scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
                 <div className={bookmarkColumnsClass}>
                   {["180", "260", "320", "210", "290", "240", "181", "261", "321", "211", "291", "241"].map(
                     (height) => (
@@ -1401,33 +1405,18 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
             )
           ) : (
             <EmptyStateDetailed
-              assetKey={hasFilters ? "search" : "page"}
+              assetKey={hasFilters ? "search" : undefined}
+              asset={hasFilters ? undefined : <EmptyStateIcon name="bookmarks" />}
               title={hasFilters ? "No bookmarks match your filters" : "No bookmarks yet"}
               description={
                 hasFilters
                   ? "Try clearing the search, project, or tag filters."
                   : "Save useful links, docs, pages, and references so they are easy to find later."
               }
-              actions={
-                !hasFilters && canCreateBookmark
-                  ? [
-                      {
-                        label: "New bookmark",
-                        variant: "primary",
-                        onClick: openCreateModal,
-                      },
-                      {
-                        label: "Import CSV",
-                        variant: "secondary",
-                        onClick: () => setIsImportModalOpen(true),
-                      },
-                    ]
-                  : undefined
-              }
             />
           )
         ) : viewMode === "grid" ? (
-          <div className="vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto p-5">
+          <div className="scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
             <div className={bookmarkColumnsClass}>
               {filteredBookmarks.map((bookmark) => (
                 <div key={bookmark.id} className="mb-4 break-inside-avoid">
