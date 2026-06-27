@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=admin",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "installCommand": "cd ../.. && npm_config_node_linker=isolated pnpm install --frozen-lockfile",
   "outputDirectory": "build/client",
   "framework": null,
   "rewrites": [{ "source": "/((?!.*\\.).*)", "destination": "/index.html" }]
