@@ -48,6 +48,7 @@ class PageSerializer(BaseSerializer):
             "parent",
             "is_favorite",
             "is_locked",
+            "is_brief",
             "archived_at",
             "workspace",
             "created_at",

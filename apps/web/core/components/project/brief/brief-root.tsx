@@ -35,7 +35,7 @@ import { WorkspaceService } from "@/services/workspace.service";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
-import { BRIEF_PAGE_NAME, briefCacheKey, getBriefPageDisplayName, isBriefPageName } from "./constants";
+import { BRIEF_PAGE_NAME, briefCacheKey, getBriefPageDisplayName, isBriefPage } from "./constants";
 import { EllipsisHorizontalIcon, LockClosedIcon, LockOpenIcon } from "./icons";
 
 const workspaceService = new WorkspaceService();
@@ -74,7 +74,7 @@ export const ProjectBriefRoot = observer(function ProjectBriefRoot(props: TBrief
     // 2. discover an existing brief page by its reserved name
     const existing = getCurrentProjectPageIds(projectId)
       .map((id) => getPageById(id))
-      .find((page) => page?.page_type === "doc" && isBriefPageName(page?.name));
+      .find((page) => isBriefPage(page));
     if (existing?.id) {
       if (typeof window !== "undefined") window.localStorage.setItem(briefCacheKey(projectId), existing.id);
       setBriefPageId(existing.id);
@@ -87,6 +87,7 @@ export const ProjectBriefRoot = observer(function ProjectBriefRoot(props: TBrief
     const created = await createPage({
       name: BRIEF_PAGE_NAME,
       page_type: "doc",
+      is_brief: true,
       description_html: project?.description_html || "<p></p>",
     });
     if (created?.id) {

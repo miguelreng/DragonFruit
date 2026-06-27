@@ -88,6 +88,7 @@ class Page(BaseModel):
     view_props = models.JSONField(default=get_view_props)
     logo_props = models.JSONField(default=dict)
     is_global = models.BooleanField(default=False)
+    is_brief = models.BooleanField(default=False, db_index=True)
     projects = models.ManyToManyField("db.Project", related_name="pages", through="db.ProjectPage")
     moved_to_page = models.UUIDField(null=True, blank=True)
     moved_to_project = models.UUIDField(null=True, blank=True)

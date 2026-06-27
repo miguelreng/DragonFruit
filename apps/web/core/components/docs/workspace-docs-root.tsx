@@ -37,7 +37,7 @@ import { ListLayout, ListItem } from "@/components/core/list";
 import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { PageSearchInput } from "@/components/pages/list/search-input";
-import { getBriefPageDisplayName, isBriefPageName } from "@/components/project/brief/constants";
+import { getBriefPageDisplayName, isBriefPage } from "@/components/project/brief/constants";
 import { useProject } from "@/hooks/store/use-project";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { EUserPermissions } from "@plane/constants";
@@ -168,7 +168,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         (p) =>
           (showArchived ? Boolean(p.archived_at) : !p.archived_at) &&
           activePageTypes.includes(p.page_type ?? "doc") &&
-          !isBriefPageName(p.name) &&
+          !isBriefPage(p) &&
           (!scopeProjectId || (p.project_ids ?? []).includes(scopeProjectId))
       ),
     [activePageTypes, pages, scopeProjectId, showArchived]
@@ -511,7 +511,7 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
   );
 }
 
-const isProjectBriefPage = (page: TPage) => page.page_type === "doc" && isBriefPageName(page.name);
+const isProjectBriefPage = (page: TPage) => isBriefPage(page);
 
 const getWorkspaceDocDisplayName = (page: TPage, projectName: string | undefined) =>
   isProjectBriefPage(page) ? getBriefPageDisplayName(projectName) : getPageName(page.name);

@@ -42,6 +42,7 @@ export type TPage = {
   description_snippet?: string | undefined;
   id: string | undefined;
   is_favorite: boolean;
+  is_brief?: boolean;
   is_locked: boolean;
   label_ids: string[] | undefined;
   name: string | undefined;

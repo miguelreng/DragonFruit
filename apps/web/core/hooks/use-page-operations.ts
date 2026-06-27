@@ -12,7 +12,7 @@ import { EPageAccess } from "@plane/types";
 import { copyUrlToClipboard } from "@plane/utils";
 // hooks
 import { useCollaborativePageActions } from "@/hooks/use-collaborative-page-actions";
-import { isBriefPageName } from "@/components/project/brief/constants";
+import { isBriefPage } from "@/components/project/brief/constants";
 // store types
 import type { TPageInstance } from "@/store/pages/base-page";
 // local storage
@@ -46,12 +46,10 @@ export const usePageOperations = (
     duplicate,
     is_favorite,
     is_locked,
-    name,
-    page_type,
     getRedirectionLink,
     removePageFromFavorites,
   } = page;
-  const isProjectBrief = page_type === "doc" && isBriefPageName(name);
+  const isProjectBrief = isBriefPage(page);
   // collaborative actions
   const { executeCollaborativeAction } = useCollaborativePageActions(props);
   // local storage

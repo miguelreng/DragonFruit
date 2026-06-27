@@ -96,6 +96,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
   owned_by: string | undefined;
   access: EPageAccess | undefined;
   is_favorite: boolean;
+  is_brief?: boolean;
   is_locked: boolean;
   archived_at: string | null | undefined;
   workspace: string | undefined;
@@ -138,6 +139,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     this.owned_by = page?.owned_by || undefined;
     this.access = page?.access || EPageAccess.PRIVATE;
     this.is_favorite = page?.is_favorite || false;
+    this.is_brief = page?.is_brief || false;
     this.is_locked = page?.is_locked || false;
     this.archived_at = page?.archived_at || undefined;
     this.workspace = page?.workspace || undefined;
@@ -165,6 +167,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       owned_by: observable.ref,
       access: observable.ref,
       is_favorite: observable.ref,
+      is_brief: observable.ref,
       is_locked: observable.ref,
       archived_at: observable.ref,
       workspace: observable.ref,
@@ -246,6 +249,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       access: this.access,
       logo_props: this.logo_props,
       is_favorite: this.is_favorite,
+      is_brief: this.is_brief,
       is_locked: this.is_locked,
       archived_at: this.archived_at,
       workspace: this.workspace,

@@ -19,7 +19,7 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 // components
 import { cn, copyUrlToClipboard } from "@plane/utils";
 import { DeletePageModal } from "@/components/pages/modals/delete-page-modal";
-import { isBriefPageName } from "@/components/project/brief/constants";
+import { isBriefPage } from "@/components/project/brief/constants";
 import {
   buildPublicPagePath,
   buildPublicPageUrl,
@@ -130,7 +130,7 @@ export const PageActions = observer(function PageActions(props: Props) {
   const currentFontStyle = normalizeDocFontStyle(view_props?.font_style);
   const currentFontStyleLabel =
     DOC_FONT_STYLE_OPTIONS.find((option) => option.value === currentFontStyle)?.label ?? "Default";
-  const isProjectBrief = page.page_type === "doc" && isBriefPageName(page.name);
+  const isProjectBrief = isBriefPage(page);
   // menu items
   const MENU_ITEMS = useMemo(
     function MENU_ITEMS() {

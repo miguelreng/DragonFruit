@@ -14,7 +14,7 @@ import { EUserProjectRoles } from "@plane/types";
 // helpers
 import { filterPagesByPageType, getPageName, orderPages, shouldFilterPage } from "@plane/utils";
 // plane web constants
-import { isBriefPageName } from "@/components/project/brief/constants";
+import { isBriefPage } from "@/components/project/brief/constants";
 // plane web store
 import type { RootStore } from "@/plane-web/store/root.store";
 // services
@@ -368,7 +368,7 @@ export class ProjectPageStore implements IProjectPageStore {
       if (!workspaceSlug || !projectId || !pageId) return undefined;
 
       const page = this.data[pageId];
-      if (shouldSync && page?.page_type === "doc" && isBriefPageName(page.name)) {
+      if (shouldSync && isBriefPage(page)) {
         throw new Error("Project briefs can't be deleted.");
       }
 

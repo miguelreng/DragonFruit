@@ -17,6 +17,7 @@ export type THomeWidgetProps = {
 export type TPageEntityData = {
   id: string;
   name: string;
+  is_brief?: boolean;
   logo_props: TLogoProps;
   project_id?: string;
   owned_by: string;

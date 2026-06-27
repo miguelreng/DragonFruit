@@ -11,7 +11,7 @@ import { EPageAccess, EUserPermissions } from "@plane/constants";
 import type { TPage } from "@plane/types";
 // plane web store
 import type { RootStore } from "@/plane-web/store/root.store";
-import { isBriefPageName } from "@/components/project/brief/constants";
+import { isBriefPage } from "@/components/project/brief/constants";
 // services
 import { ProjectPageService } from "@/services/page";
 const projectPageService = new ProjectPageService();
@@ -94,7 +94,7 @@ export class ProjectPage extends BasePage implements TProjectPage {
   });
 
   private get isProjectBrief() {
-    return this.page_type === "doc" && isBriefPageName(this.name);
+    return isBriefPage(this);
   }
 
   /**

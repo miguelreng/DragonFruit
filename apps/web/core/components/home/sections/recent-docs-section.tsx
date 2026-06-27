@@ -12,7 +12,7 @@ import useSWR from "swr";
 import { DocumentText } from "@solar-icons/react/ssr";
 import type { TPage } from "@plane/types";
 import { calculateTimeAgo, getPageName } from "@plane/utils";
-import { isBriefPageName } from "@/components/project/brief/constants";
+import { isBriefPage } from "@/components/project/brief/constants";
 import { ProjectPageService } from "@/services/page/project-page.service";
 
 // Matches the inspo's four-up "study plan" row.
@@ -56,7 +56,7 @@ export const RecentDocsSection = observer(function RecentDocsSection() {
   );
 
   const docs = orderBy(
-    (pages ?? []).filter((p) => !p.archived_at && (p.page_type ?? "doc") === "doc" && !isBriefPageName(p.name)),
+    (pages ?? []).filter((p) => !p.archived_at && (p.page_type ?? "doc") === "doc" && !isBriefPage(p)),
     [(p) => p.updated_at],
     ["desc"]
   ).slice(0, PREVIEW_COUNT);

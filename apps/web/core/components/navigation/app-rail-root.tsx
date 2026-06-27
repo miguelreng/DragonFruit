@@ -54,7 +54,7 @@ import { WorkspaceService } from "@/services/workspace.service";
 import { AppSidebarItemsRoot } from "./items-root";
 import { AppRailActiveIndicator } from "./app-rail-active-indicator";
 import { generateFavoriteItemLink } from "@/components/workspace/sidebar/favorites/favorite-items/common";
-import { getBriefPageDisplayName, isBriefPageName } from "@/components/project/brief/constants";
+import { getBriefPageDisplayName, isBriefPage } from "@/components/project/brief/constants";
 import { WORKSPACE_FAVORITE, WORKSPACE_RECENT_ACTIVITY } from "@/constants/fetch-keys";
 import { WorkspaceMenuRoot } from "@/components/workspace/sidebar/workspace-menu-root";
 import type {
@@ -942,7 +942,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
       // records a "page" visit. Route those rows to the Brief surface (and
       // label them like the Brief UI) instead of exposing the raw doc.
       const page = visit.entity_name === "page" ? (visit.entity_data as TPageEntityData | undefined) : undefined;
-      if (page && isBriefPageName(page.name)) {
+      if (page && isBriefPage({ is_brief: page.is_brief, name: page.name, page_type: "doc" })) {
         if (!page.project_id) return null;
         const briefHref = `/${slug}/projects/${page.project_id}/brief`;
         return {
