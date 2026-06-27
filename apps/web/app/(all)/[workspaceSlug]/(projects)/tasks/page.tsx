@@ -15,7 +15,7 @@ function MyTasksPage() {
     <>
       <PageHead title="My tasks" />
       <ContentWrapper className="space-y-8">
-        <MyTasksSection hideHeader />
+        <MyTasksSection hideHeader groupByProject flat />
       </ContentWrapper>
     </>
   );

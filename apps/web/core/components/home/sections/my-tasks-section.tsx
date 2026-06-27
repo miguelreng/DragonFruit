@@ -4,21 +4,22 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, useSearchParams } from "next/navigation";
 import { TOAST_TYPE, dismissToast, setToast } from "@plane/propel/toast";
-import { getSidebarNavigationItemIcon } from "@/plane-web/components/workspace/sidebar/helper";
-import type { TBaseIssue, TIssuePriorities, TIssuesResponse } from "@plane/types";
-import { cn, createIssuePayload, getDate, renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
-import { Check, Loader, Plus } from "@/components/icons/lucide-shim";
-import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
+import type { TBaseIssue, TIssuesResponse } from "@plane/types";
+import { cn, createIssuePayload, getDate, renderFormattedPayloadDate } from "@plane/utils";
+import { ChevronRight } from "@/components/icons/lucide-shim";
+import useLocalStorage from "@/hooks/use-local-storage";
 import { useUser } from "@/hooks/store/user";
 import { useLabel } from "@/hooks/store/use-label";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { IssueService } from "@/services/issue";
+import { normalizeProjectToken, parseQuickInput, randomLabelColor } from "./task-parse";
+import { TaskQuickAdd } from "./task-quick-add";
+import { MAX_TASK_DEPTH, TaskRow, type TaskRowOps } from "./task-row";
 import { isOpenIssue, useMyTasksData } from "./use-my-tasks";
 
 // How long the row stays visibly "checked" before it animates out of the list.
@@ -26,143 +27,96 @@ const COMPLETE_ANIMATION_MS = 320;
 
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
 
-// --- Inline natural-language parsing (Todoist/Things-style) -----------------
-// `#label` → labels, `@date` → due date, `*priority` → priority, `/project` → project.
-const LABEL_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6"];
-const randomLabelColor = () => LABEL_COLORS[Math.floor(Math.random() * LABEL_COLORS.length)];
-
-const PRIORITY_TOKENS: Record<string, TIssuePriorities> = {
-  urgent: "urgent",
-  u: "urgent",
-  p1: "urgent",
-  high: "high",
-  h: "high",
-  p2: "high",
-  medium: "medium",
-  med: "medium",
-  m: "medium",
-  p3: "medium",
-  low: "low",
-  l: "low",
-  p4: "low",
-};
-
-const WEEKDAYS: Record<string, number> = {
-  sunday: 0,
-  sun: 0,
-  monday: 1,
-  mon: 1,
-  tuesday: 2,
-  tue: 2,
-  tues: 2,
-  wednesday: 3,
-  wed: 3,
-  thursday: 4,
-  thu: 4,
-  thurs: 4,
-  friday: 5,
-  fri: 5,
-  saturday: 6,
-  sat: 6,
-};
-
-/** Resolve an `@date` token (today/tomorrow/eod/eow/weekday/`3d`/`2w`/ISO/`M/D`) to a Date. */
-function parseDueToken(token: string): Date | undefined {
-  const t = token.toLowerCase();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const addDays = (n: number) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + n);
-    return d;
-  };
-  if (t === "today" || t === "tod" || t === "eod") return today;
-  if (t === "tomorrow" || t === "tom" || t === "tmr") return addDays(1);
-  // End of week → this week's upcoming Friday (or today if it's Friday).
-  if (t === "eow") return addDays((5 - today.getDay() + 7) % 7);
-  if (t in WEEKDAYS) return addDays((WEEKDAYS[t] - today.getDay() + 7) % 7 || 7);
-  const rel = /^(\d+)([dw])$/.exec(t);
-  if (rel) return addDays(rel[2] === "w" ? parseInt(rel[1], 10) * 7 : parseInt(rel[1], 10));
-  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
-  if (iso) {
-    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-    return Number.isNaN(d.getTime()) ? undefined : d;
-  }
-  const md = /^(\d{1,2})\/(\d{1,2})$/.exec(t);
-  if (md) {
-    const month = Number(md[1]) - 1;
-    const day = Number(md[2]);
-    let d = new Date(today.getFullYear(), month, day);
-    if (Number.isNaN(d.getTime())) return undefined;
-    if (d < today) d = new Date(today.getFullYear() + 1, month, day);
-    return d;
-  }
-  return undefined;
-}
-
-type ParsedQuickInput = {
-  name: string;
-  labelNames: string[];
-  projectName?: string;
-  priority?: TIssuePriorities;
-  dueDate?: Date;
-};
-
-const normalizeProjectToken = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-/** Strip recognized `#`/`@`/`*`/`/` tokens out of the title and return the rest. */
-function parseQuickInput(raw: string): ParsedQuickInput {
-  const labelNames: string[] = [];
-  let projectName: string | undefined;
-  let priority: TIssuePriorities | undefined;
-  let dueDate: Date | undefined;
-  const kept: string[] = [];
-  const parts = raw.split(/\s+/);
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (/^#[A-Za-z][\w-]*$/.test(part)) {
-      labelNames.push(part.slice(1));
-      continue;
-    }
-    if (part.length > 1 && part.startsWith("@")) {
-      const head = part.slice(1).toLowerCase();
-      // Multi-word: "@next monday" / "@this fri" consumes the following token.
-      if ((head === "next" || head === "this") && i + 1 < parts.length) {
-        const parsed = parseDueToken(parts[i + 1]);
-        if (parsed) {
-          dueDate = parsed;
-          i += 1;
-          continue;
-        }
-      }
-      const parsed = parseDueToken(head);
-      if (parsed) {
-        dueDate = parsed;
-        continue;
-      }
-    }
-    if (part.startsWith("*")) {
-      // Bare asterisks: "*" → high, "**"+ → urgent. Or "*high" / "*p2" keywords.
-      if (/^\*+$/.test(part)) {
-        priority = part.length >= 2 ? "urgent" : "high";
-        continue;
-      }
-      const parsed = PRIORITY_TOKENS[part.slice(1).toLowerCase()];
-      if (parsed) {
-        priority = parsed;
-        continue;
-      }
-    }
-    if (/^\/[A-Za-z][\w-]*$/.test(part)) {
-      projectName = part.slice(1);
-      continue;
-    }
-    kept.push(part);
-  }
-  return { name: kept.join(" ").replace(/\s+/g, " ").trim(), labelNames, projectName, priority, dueDate };
-}
-
 const issueService = new IssueService();
+
+/** Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent. */
+function sortIssues(issues: TBaseIssue[]): TBaseIssue[] {
+  // Copy before sorting (toSorted needs es2023 lib, which this project's tsc target predates).
+  // oxlint-disable-next-line unicorn/no-array-sort
+  return [...issues].sort((a, b) => {
+    const aDue = a.target_date ? (getDate(a.target_date)?.getTime() ?? Infinity) : Infinity;
+    const bDue = b.target_date ? (getDate(b.target_date)?.getTime() ?? Infinity) : Infinity;
+    if (aDue !== bDue) return aDue - bDue;
+    const aRank = PRIORITY_RANK[a.priority ?? "none"] ?? 4;
+    const bRank = PRIORITY_RANK[b.priority ?? "none"] ?? 4;
+    return aRank - bRank;
+  });
+}
+
+type ForestEntry = { issue: TBaseIssue; depth: number; height: number; ancestorIds: string[] };
+
+type Forest = {
+  /** Render order (parents before children) per project. */
+  entriesByProject: Map<string, ForestEntry[]>;
+  /** Render order across all projects (flat usage). */
+  allEntries: ForestEntry[];
+  byId: Map<string, TBaseIssue>;
+  depthById: Map<string, number>;
+  heightById: Map<string, number>;
+  /** All descendant ids per task (for cycle checks on nest). */
+  descendantIdsById: Map<string, Set<string>>;
+  /** Direct children per parent, in render order. */
+  childrenByParent: Map<string, TBaseIssue[]>;
+};
+
+/**
+ * Turn the flat open-issue list into a parent→child forest. A task is a root when it has no
+ * parent (or its parent isn't in the user's list). Each entry carries its depth, the height of
+ * its own subtree, and its ancestor chain. Children stay sorted by due → priority within a parent.
+ */
+function buildForest(issues: TBaseIssue[], openIds: Set<string>): Forest {
+  const byId = new Map(issues.map((i) => [i.id, i]));
+  const childrenByParent = new Map<string, TBaseIssue[]>();
+  const roots: TBaseIssue[] = [];
+  for (const issue of issues) {
+    const pid = issue.parent_id && openIds.has(issue.parent_id) ? issue.parent_id : null;
+    if (pid) {
+      const bucket = childrenByParent.get(pid);
+      if (bucket) bucket.push(issue);
+      else childrenByParent.set(pid, [issue]);
+    } else {
+      roots.push(issue);
+    }
+  }
+
+  const entriesByProject = new Map<string, ForestEntry[]>();
+  const allEntries: ForestEntry[] = [];
+  const depthById = new Map<string, number>();
+  const heightById = new Map<string, number>();
+  const descendantIdsById = new Map<string, Set<string>>();
+
+  const pushEntry = (entry: ForestEntry) => {
+    allEntries.push(entry);
+    const key = entry.issue.project_id ?? "__none__";
+    const bucket = entriesByProject.get(key);
+    if (bucket) bucket.push(entry);
+    else entriesByProject.set(key, [entry]);
+  };
+
+  const visit = (issue: TBaseIssue, depth: number, ancestorIds: string[]): { height: number; descendants: Set<string> } => {
+    depthById.set(issue.id, depth);
+    const entry: ForestEntry = { issue, depth, height: 0, ancestorIds };
+    pushEntry(entry);
+    const kids = sortIssues(childrenByParent.get(issue.id) ?? []);
+    const childAncestors = [...ancestorIds, issue.id];
+    const descendants = new Set<string>();
+    let height = 0;
+    for (const kid of kids) {
+      const res = visit(kid, depth + 1, childAncestors);
+      height = Math.max(height, res.height + 1);
+      descendants.add(kid.id);
+      for (const d of res.descendants) descendants.add(d);
+    }
+    entry.height = height;
+    heightById.set(issue.id, height);
+    descendantIdsById.set(issue.id, descendants);
+    return { height, descendants };
+  };
+
+  for (const root of sortIssues(roots)) visit(root, 0, []);
+
+  return { entriesByProject, allEntries, byId, depthById, heightById, descendantIdsById, childrenByParent };
+}
 
 type MyTasksSectionProps = {
   /** Whose tasks to show. Defaults to the signed-in user (home usage). */
@@ -171,18 +125,21 @@ type MyTasksSectionProps = {
   hideHeader?: boolean;
   /** Drop the card chrome (border/bg) so the list sits flat on the page — used by the home. */
   flat?: boolean;
+  /** Group tasks under collapsible per-project headers (full tasks page); flat list otherwise. */
+  groupByProject?: boolean;
 };
 
 export const MyTasksSection = observer(function MyTasksSection({
   userId: userIdProp,
   hideHeader = false,
   flat = false,
+  groupByProject = false,
 }: MyTasksSectionProps = {}) {
   const { workspaceSlug } = useParams();
   const searchParams = useSearchParams();
   const { data: currentUser } = useUser();
   const { getStateById, getProjectStates, fetchWorkspaceStates, fetchProjectStates } = useProjectState();
-  const { getProjectById, getProjectIdentifierById, joinedProjectIds } = useProject();
+  const { getProjectById, joinedProjectIds } = useProject();
   const { getProjectLabels, fetchProjectLabels, createLabel, getWorkspaceLabels, fetchWorkspaceLabels } = useLabel();
 
   const slug = workspaceSlug?.toString();
@@ -191,10 +148,7 @@ export const MyTasksSection = observer(function MyTasksSection({
   // Inline create (Reminders-style): only on your own list, and only if there's
   // a project to drop the new task into.
   const isOwnList = !!currentUser?.id && userId === currentUser.id;
-  const [newTaskName, setNewTaskName] = useState("");
   const [addProjectId, setAddProjectId] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const newTaskInputRef = useRef<HTMLInputElement>(null);
   const resolvedAddProjectId = addProjectId ?? joinedProjectIds[0] ?? null;
   const canAdd = isOwnList && !!resolvedAddProjectId;
 
@@ -202,6 +156,32 @@ export const MyTasksSection = observer(function MyTasksSection({
   // `completed` → completion confirmed, row is removed from the list.
   const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+
+  // Which project groups are collapsed (persisted per workspace). Default = all expanded.
+  const { storedValue: collapsedProjectIds, setValue: setCollapsedProjectIds } = useLocalStorage<string[]>(
+    `my-tasks-collapsed-projects:${slug ?? "default"}`,
+    []
+  );
+  const collapsedSet = new Set(collapsedProjectIds ?? []);
+  const toggleProjectCollapsed = (projectId: string) => {
+    const next = new Set(collapsedSet);
+    if (next.has(projectId)) next.delete(projectId);
+    else next.add(projectId);
+    setCollapsedProjectIds([...next]);
+  };
+
+  // The project + optional parent that currently shows a blank "new task" line (opened by
+  // pressing Enter on a task, editor-checklist style). Only one draft line is open at a time.
+  const [draft, setDraft] = useState<{ projectId: string; indentTargetId: string; defaultIndented: boolean } | null>(
+    null
+  );
+
+  // Latest computed forest, kept in a ref so the nest/indent/outdent callbacks can stay stable
+  // (otherwise they'd change every data update and re-register every row's drag listeners).
+  const forestRef = useRef<Forest | null>(null);
+
+  // Task whose inline title should grab focus next (set after creating from the add row).
+  const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
 
   const { data, isLoading, mutate } = useMyTasksData(slug, userId);
 
@@ -217,7 +197,10 @@ export const MyTasksSection = observer(function MyTasksSection({
   }, [slug, fetchWorkspaceLabels]);
 
   // id → label lookup for rendering chips (labels are workspace-wide here).
-  const labelById = new Map((slug ? (getWorkspaceLabels(slug) ?? []) : []).map((label) => [label.id, label]));
+  const labelById = useMemo(
+    () => new Map((slug ? (getWorkspaceLabels(slug) ?? []) : []).map((label) => [label.id, label])),
+    [slug, getWorkspaceLabels]
+  );
 
   const resolveCompletedStateId = useCallback(
     async (projectId: string): Promise<string | undefined> => {
@@ -250,11 +233,7 @@ export const MyTasksSection = observer(function MyTasksSection({
         });
         mutate();
       } catch {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Couldn't undo",
-          message: "Something went wrong. Please try again.",
-        });
+        setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't undo", message: "Something went wrong. Please try again." });
       }
     },
     [slug, mutate]
@@ -355,54 +334,135 @@ export const MyTasksSection = observer(function MyTasksSection({
     [joinedProjectIds, getProjectById]
   );
 
-  const handleCreate = useCallback(async () => {
-    const parsed = parseQuickInput(newTaskName);
-    if (!slug || !resolvedAddProjectId || !parsed.name || isCreating) return;
-    const targetProjectId = parsed.projectName ? resolveProjectId(parsed.projectName) : resolvedAddProjectId;
-    if (!targetProjectId) {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Couldn't find project",
-        message: `No joined project matches /${parsed.projectName}.`,
-      });
-      return;
-    }
-    setIsCreating(true);
-    try {
-      const labelIds = await resolveLabelIds(targetProjectId, parsed.labelNames);
-      const payload = createIssuePayload(targetProjectId, {
-        name: parsed.name,
-        assignee_ids: userId ? [userId] : [],
-        ...(parsed.priority ? { priority: parsed.priority } : {}),
-        ...(parsed.dueDate ? { target_date: renderFormattedPayloadDate(parsed.dueDate) } : {}),
-        ...(labelIds.length > 0 ? { label_ids: labelIds } : {}),
-      });
-      const created = await issueService.createIssue(slug, targetProjectId, payload);
-      // Optimistically surface the new task without a full refetch.
-      mutate(
-        (prev) => {
-          const results = Array.isArray(prev?.results) ? (prev!.results as TBaseIssue[]) : [];
-          return {
-            ...prev,
-            results: [created as TBaseIssue, ...results],
-            total_count: ((prev?.total_count as number | undefined) ?? 0) + 1,
-          } as TIssuesResponse;
-        },
-        { revalidate: false }
-      );
-      // Clear and keep focus for rapid continuous entry, like Reminders.
-      setNewTaskName("");
-      newTaskInputRef.current?.focus();
-    } catch {
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Couldn't add task",
-        message: "Something went wrong. Please try again.",
-      });
-    } finally {
-      setIsCreating(false);
-    }
-  }, [slug, resolvedAddProjectId, newTaskName, isCreating, resolveProjectId, userId, mutate, resolveLabelIds]);
+  // Create one task from raw quick-input text. `forcedProjectId` pins the target project; a
+  // `parentId` makes it a subtask. Returns the created issue, or null on no-op/failure.
+  const createTask = useCallback(
+    async (rawText: string, opts?: { projectId?: string; parentId?: string | null }): Promise<TBaseIssue | null> => {
+      const parsed = parseQuickInput(rawText);
+      if (!slug || !parsed.name) return null;
+      // Subtasks must stay in their parent's project (opts.projectId). For top-level creates a
+      // typed `/project` token wins, then the composer's project, then the add-row default.
+      const targetProjectId = opts?.parentId
+        ? opts.projectId
+        : (parsed.projectName ? resolveProjectId(parsed.projectName) : undefined) ??
+          opts?.projectId ??
+          resolvedAddProjectId;
+      if (!targetProjectId) {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Couldn't find project",
+          message: `No joined project matches /${parsed.projectName}.`,
+        });
+        return null;
+      }
+      try {
+        const labelIds = await resolveLabelIds(targetProjectId, parsed.labelNames);
+        const payload = createIssuePayload(targetProjectId, {
+          name: parsed.name,
+          assignee_ids: userId ? [userId] : [],
+          ...(opts?.parentId ? { parent_id: opts.parentId } : {}),
+          ...(parsed.priority ? { priority: parsed.priority } : {}),
+          ...(parsed.dueDate ? { target_date: renderFormattedPayloadDate(parsed.dueDate) } : {}),
+          ...(labelIds.length > 0 ? { label_ids: labelIds } : {}),
+        });
+        const created = await issueService.createIssue(slug, targetProjectId, payload);
+        // Optimistically surface the new task without a full refetch.
+        mutate(
+          (prev) => {
+            const results = Array.isArray(prev?.results) ? (prev!.results as TBaseIssue[]) : [];
+            return {
+              ...prev,
+              results: [created as TBaseIssue, ...results],
+              total_count: ((prev?.total_count as number | undefined) ?? 0) + 1,
+            } as TIssuesResponse;
+          },
+          { revalidate: false }
+        );
+        return created as TBaseIssue;
+      } catch {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Couldn't add task",
+          message: "Something went wrong. Please try again.",
+        });
+        return null;
+      }
+    },
+    [slug, resolvedAddProjectId, resolveProjectId, userId, mutate, resolveLabelIds]
+  );
+
+  // Save an inline edit to an existing task. The same `#label @date !priority` tokens the
+  // add row supports are parsed out, applied, and stripped from the title. Labels are added
+  // to (not removed from) the task; `/project` is ignored here (renaming doesn't move tasks).
+  const updateTask = useCallback(
+    async (issue: TBaseIssue, rawText: string) => {
+      const parsed = parseQuickInput(rawText);
+      const projectId = issue.project_id;
+      if (!slug || !projectId || !parsed.name) return;
+      const labelIds = parsed.labelNames.length > 0 ? await resolveLabelIds(projectId, parsed.labelNames) : [];
+      const mergedLabels = labelIds.length > 0 ? [...new Set([...(issue.label_ids ?? []), ...labelIds])] : undefined;
+      try {
+        await issueService.patchIssue(slug, projectId, issue.id, {
+          name: parsed.name,
+          ...(parsed.priority ? { priority: parsed.priority } : {}),
+          ...(parsed.dueDate ? { target_date: renderFormattedPayloadDate(parsed.dueDate) } : {}),
+          ...(mergedLabels ? { label_ids: mergedLabels } : {}),
+        });
+        mutate();
+      } catch {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Couldn't update task",
+          message: "Something went wrong. Please try again.",
+        });
+        // Re-throw so the inline field reverts to the last saved value.
+        throw new Error("update failed");
+      }
+    },
+    [slug, resolveLabelIds, mutate]
+  );
+
+  // Re-parent a task (drag-to-nest / Tab indent). Same project only; rejects cycles and any
+  // move that would push the subtree past MAX_TASK_DEPTH.
+  const nestTask = useCallback(
+    async (childId: string, parentId: string) => {
+      const f = forestRef.current;
+      const child = f?.byId.get(childId);
+      const parent = f?.byId.get(parentId);
+      if (!slug || !f || !child?.project_id || !parent) return;
+      if (childId === parentId || child.parent_id === parentId) return;
+      if (child.project_id !== parent.project_id) return;
+      // Don't nest a task under one of its own descendants.
+      if (f.descendantIdsById.get(childId)?.has(parentId)) return;
+      const newDepth = (f.depthById.get(parentId) ?? 0) + 1;
+      const childHeight = f.heightById.get(childId) ?? 0;
+      if (newDepth + childHeight > MAX_TASK_DEPTH) return;
+      try {
+        await issueService.patchIssue(slug, child.project_id, childId, { parent_id: parentId });
+        mutate();
+      } catch {
+        setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't nest task", message: "Something went wrong." });
+      }
+    },
+    [slug, mutate]
+  );
+
+  // Outdent one level: re-parent to the grandparent (or top level for a first-level subtask).
+  const outdentTask = useCallback(
+    async (issue: TBaseIssue) => {
+      const f = forestRef.current;
+      if (!slug || !issue.project_id || !issue.parent_id || !f) return;
+      const parent = f.byId.get(issue.parent_id);
+      const newParentId = parent?.parent_id && f.byId.has(parent.parent_id) ? parent.parent_id : null;
+      try {
+        await issueService.patchIssue(slug, issue.project_id, issue.id, { parent_id: newParentId });
+        mutate();
+      } catch {
+        setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't outdent task", message: "Something went wrong." });
+      }
+    },
+    [slug, mutate]
+  );
 
   const allIssues: TBaseIssue[] = Array.isArray(data?.results) ? (data!.results as TBaseIssue[]) : [];
 
@@ -420,37 +480,111 @@ export const MyTasksSection = observer(function MyTasksSection({
       (!searchQuery || (issue.name ?? "").toLowerCase().includes(searchQuery))
   );
 
-  // Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent.
-  // Copy before sorting (toSorted needs es2023 lib, which this project's tsc target predates).
-  // oxlint-disable-next-line unicorn/no-array-sort
-  const tasks = [...openIssues].sort((a, b) => {
-    const aDue = a.target_date ? (getDate(a.target_date)?.getTime() ?? Infinity) : Infinity;
-    const bDue = b.target_date ? (getDate(b.target_date)?.getTime() ?? Infinity) : Infinity;
-    if (aDue !== bDue) return aDue - bDue;
-    const aRank = PRIORITY_RANK[a.priority ?? "none"] ?? 4;
-    const bRank = PRIORITY_RANK[b.priority ?? "none"] ?? 4;
-    return aRank - bRank;
-  });
+  const tasks = sortIssues(openIssues);
+  const openIds = useMemo(() => new Set(openIssues.map((i) => i.id)), [openIssues]);
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const forest = useMemo(() => buildForest(openIssues, openIds), [openIssues, openIds]);
+  forestRef.current = forest;
 
-  // Live preview of what the inline tokens in the add input will resolve to.
-  const inputPreview = parseQuickInput(newTaskName);
-  const inputPreviewProjectId = inputPreview.projectName ? resolveProjectId(inputPreview.projectName) : undefined;
-  const inputPreviewProject = inputPreviewProjectId ? getProjectById(inputPreviewProjectId) : undefined;
-  const hasInputPreview =
-    !!inputPreview.dueDate ||
-    !!inputPreview.priority ||
-    inputPreview.labelNames.length > 0 ||
-    !!inputPreview.projectName;
+  // Stable midnight reference for "overdue" styling — recomputed once per mount.
+  const todayStart = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  // Indent a task under its preceding sibling at the same level (Tab). Capped at MAX_TASK_DEPTH.
+  const indentTask = useCallback((issue: TBaseIssue) => {
+    const f = forestRef.current;
+    if (!f) return;
+    const depth = f.depthById.get(issue.id) ?? 0;
+    const height = f.heightById.get(issue.id) ?? 0;
+    if (depth + 1 + height > MAX_TASK_DEPTH) return;
+    const effParent = issue.parent_id && f.byId.has(issue.parent_id) ? issue.parent_id : null;
+    const siblingsRaw = effParent
+      ? (f.childrenByParent.get(effParent) ?? [])
+      : f.allEntries.filter((e) => e.depth === 0 && (e.issue.project_id ?? null) === (issue.project_id ?? null)).map((e) => e.issue);
+    const siblings = sortIssues(siblingsRaw);
+    const idx = siblings.findIndex((i) => i.id === issue.id);
+    const prev = idx > 0 ? siblings[idx - 1] : undefined;
+    if (!prev) return;
+    nestTask(issue.id, prev.id);
+  }, [nestTask]);
+
+  const handleTaskEnter = useCallback(
+    (issue: TBaseIssue) => {
+      const projectId = issue.project_id;
+      if (!isOwnList || !projectId) return;
+      // Make sure the group is expanded so the new draft line is visible.
+      setCollapsedProjectIds((collapsedProjectIds ?? []).filter((id) => id !== projectId));
+      // From a subtask, keep the new line at the subtask level (under the same parent). From a
+      // top-level task, offer that task as the indent target (Tab to make the new line its child).
+      const isChild = !!issue.parent_id && openIds.has(issue.parent_id);
+      const indentTargetId = isChild ? issue.parent_id! : issue.id;
+      setDraft({ projectId, indentTargetId, defaultIndented: isChild });
+    },
+    [isOwnList, collapsedProjectIds, setCollapsedProjectIds, openIds]
+  );
+
+  const rowOps: TaskRowOps = useMemo(
+    () => ({
+      isOwnList,
+      todayStart,
+      getLabelById: (id) => labelById.get(id),
+      onComplete: handleComplete,
+      onSave: updateTask,
+      onEnter: handleTaskEnter,
+      onIndent: indentTask,
+      onOutdent: outdentTask,
+      onNest: nestTask,
+    }),
+    [isOwnList, todayStart, labelById, handleComplete, updateTask, handleTaskEnter, indentTask, outdentTask, nestTask]
+  );
+
+  const renderRow = (entry: ForestEntry, showProject: boolean) => (
+    <TaskRow
+      key={entry.issue.id}
+      issue={entry.issue}
+      isChecked={checkingIds.has(entry.issue.id)}
+      showProject={showProject}
+      projectName={getProjectById(entry.issue.project_id)?.name}
+      depth={entry.depth}
+      height={entry.height}
+      ancestorIds={entry.ancestorIds}
+      enableDrag={isOwnList && groupByProject}
+      shouldFocus={focusTaskId === entry.issue.id}
+      onFocused={() => setFocusTaskId(null)}
+      ops={rowOps}
+    />
+  );
+
+  // Partition the tasks into per-project groups, ordered by project name A→Z.
+  const projectGroups = groupByProject
+    ? (() => {
+        const byProject = new Map<string, TBaseIssue[]>();
+        for (const issue of tasks) {
+          const key = issue.project_id ?? "__none__";
+          const bucket = byProject.get(key);
+          if (bucket) bucket.push(issue);
+          else byProject.set(key, [issue]);
+        }
+        return [...byProject.entries()]
+          .map(([projectId, issues]) => ({
+            projectId,
+            name: getProjectById(projectId)?.name ?? "Other",
+            issues,
+          }))
+          // Sorting a freshly mapped array — no external mutation.
+          // oxlint-disable-next-line unicorn/no-array-sort
+          .sort((a, b) => a.name.localeCompare(b.name));
+      })()
+    : [];
 
   return (
     <section className="flex flex-col gap-2">
       {!hideHeader && (
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
-            {getSidebarNavigationItemIcon("your_work", "text-tertiary")}
             <div className="flex items-center gap-1">
               <h3 className="text-14 font-semibold text-secondary">My tasks</h3>
               {tasks.length > 0 && (
@@ -474,137 +608,84 @@ export const MyTasksSection = observer(function MyTasksSection({
                   </div>
                 )
               : null}
-            {tasks.length > 0 && (
-              <ul className="scrollbar-hide max-h-[420px] divide-y divide-subtle overflow-y-auto">
-                {tasks.map((issue) => {
-                  const isChecked = checkingIds.has(issue.id);
-                  const project = getProjectById(issue.project_id);
-                  const projectIdentifier = getProjectIdentifierById(issue.project_id) ?? "";
-                  const href = `/${slug}/browse/${projectIdentifier}-${issue.sequence_id}/`;
-                  const dueDate = getDate(issue.target_date);
-                  const dueLabel = issue.target_date ? renderFormattedDate(issue.target_date, "MMM d") : undefined;
-                  const isOverdue = !!dueDate && dueDate < todayStart;
-                  const priority = (issue.priority ?? "none") as TIssuePriorities | "none";
-                  const hasPriority = priority !== "none";
-                  const labels = (issue.label_ids ?? []).flatMap((id) => {
-                    const label = labelById.get(id);
-                    return label ? [label] : [];
-                  });
-                  const hasAttributes = !!dueLabel || hasPriority || labels.length > 0;
-                  const hasSubtitle = !!project?.name || hasAttributes;
-
-                  return (
-                    <li key={issue.id}>
-                      <div
-                        className={cn(
-                          "group flex items-start gap-2.5 px-3 py-1.5 transition-opacity hover:bg-layer-transparent-hover",
-                          isChecked && "opacity-60"
-                        )}
-                      >
+            {tasks.length > 0 &&
+              (groupByProject ? (
+                <div className="scrollbar-hide max-h-[420px] overflow-y-auto">
+                  {projectGroups.map((group) => {
+                    const isCollapsed = collapsedSet.has(group.projectId);
+                    return (
+                      <div key={group.projectId} className="pt-1 first:pt-0">
                         <button
                           type="button"
-                          aria-label="Mark task complete"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleComplete(issue);
-                          }}
-                          className={cn(
-                            "mt-0.5 flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
-                            isChecked
-                              ? "border-accent-primary bg-accent-primary text-white"
-                              : "hover:border-accent-primary border-strong text-transparent"
-                          )}
+                          onClick={() => toggleProjectCollapsed(group.projectId)}
+                          aria-expanded={!isCollapsed}
+                          className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1.5 text-left transition hover:bg-layer-transparent-hover"
                         >
-                          <Check className="size-3" strokeWidth={3} />
-                        </button>
-                        <Link href={href} className="flex min-w-0 flex-1 flex-col">
-                          <span
+                          <ChevronRight
                             className={cn(
-                              "truncate text-13 text-secondary",
-                              isChecked && "text-placeholder line-through"
+                              "size-3 flex-shrink-0 text-tertiary transition-transform",
+                              !isCollapsed && "rotate-90"
                             )}
-                          >
-                            {issue.name}
+                          />
+                          <span className="truncate text-14 font-semibold text-secondary">{group.name}</span>
+                          <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
+                            {group.issues.length}
                           </span>
-                          {hasSubtitle && (
-                            <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-11 text-placeholder">
-                              {project?.name && <span className="truncate">{project.name}</span>}
-                              {project?.name && hasAttributes && <span aria-hidden>·</span>}
-                              {hasAttributes && (
-                                <span className="font-newsreader flex flex-wrap items-center gap-1.5 text-12 text-primary">
-                                  {dueLabel && (
-                                    <span className={cn("flex-shrink-0", isOverdue && "text-danger-primary")}>
-                                      {dueLabel}
-                                    </span>
-                                  )}
-                                  {hasPriority && <span className="flex-shrink-0 capitalize">{priority}</span>}
-                                  {labels.map((label) => (
-                                    <span key={label.id} className="flex-shrink-0">
-                                      #{label.name}
-                                    </span>
-                                  ))}
-                                </span>
-                              )}
-                            </span>
-                          )}
-                        </Link>
+                        </button>
+                        {!isCollapsed && (
+                          <ul className="pb-1">
+                            {(forest.entriesByProject.get(group.projectId) ?? []).map((entry) =>
+                              renderRow(entry, false)
+                            )}
+                            {draft?.projectId === group.projectId && (
+                              <TaskQuickAdd
+                                slug={slug ?? ""}
+                                projectId={group.projectId}
+                                indentTargetId={draft.indentTargetId}
+                                defaultIndented={draft.defaultIndented}
+                                focusOnMount
+                                onCreate={createTask}
+                                onClose={() => setDraft(null)}
+                              />
+                            )}
+                          </ul>
+                        )}
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            {canAdd && (
-              <div className={cn("px-3 py-2", tasks.length > 0 && "border-t border-subtle")}>
-                <div className="flex items-center gap-3">
-                  <span className="flex size-[18px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-strong text-tertiary">
-                    <Plus className="size-3" />
-                  </span>
-                  <input
-                    ref={newTaskInputRef}
-                    value={newTaskName}
-                    onChange={(e) => setNewTaskName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCreate();
-                      } else if (e.key === "Escape") {
-                        setNewTaskName("");
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    placeholder="Add a task —  /project  #label  @date  *priority"
-                    className="min-w-0 flex-1 bg-transparent text-13 text-secondary outline-none placeholder:text-placeholder"
-                  />
-                  {isCreating && <Loader className="size-3.5 flex-shrink-0 animate-spin text-placeholder" />}
-                  {joinedProjectIds.length > 1 && resolvedAddProjectId && (
-                    <div className="flex-shrink-0">
-                      <ProjectDropdown
-                        value={resolvedAddProjectId}
-                        onChange={(id) => setAddProjectId(id)}
-                        multiple={false}
-                        buttonVariant="transparent-with-text"
-                        buttonClassName="text-11 text-tertiary"
-                        dropdownArrow={false}
-                      />
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-                {hasInputPreview && (
-                  <div className="font-newsreader mt-1.5 flex flex-wrap items-center gap-2 pl-[30px] text-12 text-primary">
-                    {inputPreview.projectName && (
-                      <span>
-                        {inputPreviewProject ? `/${inputPreviewProject.name}` : `/${inputPreview.projectName}`}
-                      </span>
-                    )}
-                    {inputPreview.dueDate && <span>{renderFormattedDate(inputPreview.dueDate, "MMM d")}</span>}
-                    {inputPreview.priority && <span className="capitalize">{inputPreview.priority}</span>}
-                    {inputPreview.labelNames.map((labelName) => (
-                      <span key={labelName}>#{labelName}</span>
-                    ))}
-                  </div>
-                )}
+              ) : (
+                <ul className="scrollbar-hide max-h-[420px] overflow-y-auto">
+                  {forest.allEntries.map((entry) => renderRow(entry, true))}
+                  {draft && (
+                    <TaskQuickAdd
+                      slug={slug ?? ""}
+                      projectId={draft.projectId}
+                      indentTargetId={draft.indentTargetId}
+                      defaultIndented={draft.defaultIndented}
+                      focusOnMount
+                      onCreate={createTask}
+                      onClose={() => setDraft(null)}
+                    />
+                  )}
+                </ul>
+              ))}
+            {canAdd && resolvedAddProjectId && (
+              <div className={cn(!flat && tasks.length > 0 && "border-t border-subtle")}>
+                <ul>
+                  <TaskQuickAdd
+                    slug={slug ?? ""}
+                    projectId={resolvedAddProjectId}
+                    persistent
+                    projectSelectable={joinedProjectIds.length > 1}
+                    onSelectProject={(id) => setAddProjectId(id)}
+                    onCreate={createTask}
+                    onCreated={(created) => {
+                      const id = (created as TBaseIssue | null)?.id;
+                      if (id) setFocusTaskId(id);
+                    }}
+                  />
+                </ul>
               </div>
             )}
           </>
