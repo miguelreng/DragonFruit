@@ -197,6 +197,7 @@ from .page.base import (
     WorkspacePagesListEndpoint,
 )
 from .page.version import PageVersionEndpoint
+from .page.capture import CapturedChatIngestEndpoint
 from .page.comment import PageBlockCommentEndpoint, PageBlockCommentDetailEndpoint
 from .page.template import (
     PageTemplateListEndpoint,

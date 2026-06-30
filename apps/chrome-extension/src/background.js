@@ -2,7 +2,7 @@
 
 // Logged on service-worker startup so you can confirm the running build in the
 // extension's DevTools console. Keep in sync with manifest.json "version".
-const EXTENSION_VERSION = "0.2.1";
+const EXTENSION_VERSION = "0.3.0";
 console.log(`DragonFruit Bookmarks extension v${EXTENSION_VERSION}`);
 
 const DEFAULT_API_URL = "https://api.dragonfruit.sh";
@@ -11,7 +11,28 @@ const DEFAULT_WEB_URL = "https://app.dragonfruit.sh";
 const MENU_SAVE_PAGE = "dragonfruit-save-page";
 const MENU_SAVE_LINK = "dragonfruit-save-link";
 const MENU_SAVE_IMAGE = "dragonfruit-save-image";
+const MENU_SAVE_CHAT = "dragonfruit-save-chat";
 const MENU_SETTINGS = "dragonfruit-settings";
+
+// AI chat sites where the toolbar action captures the whole conversation into a
+// DragonFruit doc page instead of saving a URL bookmark. Keep in sync with the
+// content_scripts matches in manifest.json and the adapters in src/capture/.
+const CHAT_CAPTURE_HOSTS = ["claude.ai", "chatgpt.com", "chat.openai.com", "gemini.google.com"];
+const CHAT_CAPTURE_MATCHES = [
+  "https://claude.ai/*",
+  "https://chatgpt.com/*",
+  "https://chat.openai.com/*",
+  "https://gemini.google.com/*",
+];
+
+function isChatCaptureUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return CHAT_CAPTURE_HOSTS.some((candidate) => host === candidate || host.endsWith(`.${candidate}`));
+  } catch {
+    return false;
+  }
+}
 const SAVED_PAGE_URLS_KEY = "savedPageUrls";
 const MAX_SAVED_PAGE_URLS = 500;
 const ACTION_ICON_IDLE = {
@@ -43,6 +64,12 @@ chrome.runtime.onInstalled.addListener(() => {
     id: MENU_SAVE_IMAGE,
     title: "Save image to DragonFruit",
     contexts: ["image"],
+  });
+  chrome.contextMenus.create({
+    id: MENU_SAVE_CHAT,
+    title: "Save conversation to DragonFruit",
+    contexts: ["page"],
+    documentUrlPatterns: CHAT_CAPTURE_MATCHES,
   });
   chrome.contextMenus.create({
     id: MENU_SETTINGS,
@@ -293,6 +320,11 @@ async function handleContextMenu(info, tab) {
   }
 
   if (!tab?.id) return;
+
+  if (info.menuItemId === MENU_SAVE_CHAT) {
+    await captureChatWithFeedback(tab);
+    return;
+  }
   if (info.menuItemId === MENU_SAVE_IMAGE && info.srcUrl) {
     await saveWithFeedback(tab, {
       savingText: "Saving image to DragonFruit...",
@@ -375,6 +407,76 @@ async function saveWithFeedback(tab, { savingText, savedText, save }) {
   });
 }
 
+// AI chat capture: ask the page's content script for the conversation, then
+// POST it to the captured-chats endpoint. Reuses the shared auth gate + toast
+// flow; the success toast's "View" pill opens the created doc page.
+async function captureChatWithFeedback(tab) {
+  await runWithFeedback(tab, {
+    loadingText: "Capturing conversation...",
+    successText: "Conversation saved to DragonFruit",
+    run: () => captureAndSaveConversation(tab),
+    successActionUrl: chatPageActionUrl,
+    enableProjectPicker: false,
+  });
+}
+
+async function captureAndSaveConversation(tab) {
+  let response;
+  try {
+    response = await chrome.tabs.sendMessage(tab.id, { type: "CAPTURE_CONVERSATION" });
+  } catch {
+    throw new Error("Couldn't read this page. Reload the chat and try again.");
+  }
+  if (!response) throw new Error("Couldn't read this page. Reload the chat and try again.");
+  if (!response.ok) throw new Error(response.error || "No conversation found on this page.");
+  return saveCapturedChat(response.conversation);
+}
+
+async function saveCapturedChat(conversation) {
+  const settings = await getSettings();
+  if (!settings.apiToken) {
+    throw new Error("Connect your DragonFruit account first.");
+  }
+  if (!settings.workspaceSlug || !settings.projectId) {
+    throw new Error("Choose a workspace and project in the extension popup first.");
+  }
+
+  const capturedChatUrl = (workspaceSlug, projectId) =>
+    `${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${projectId}/captured-chats/`;
+  const body = JSON.stringify(conversation);
+  const requestInit = () => ({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authorizedHeaders(settings.apiToken),
+      "X-DragonFruit-Source": "chrome-extension",
+    },
+    body,
+  });
+
+  let workspaceSlug = settings.workspaceSlug;
+  let projectId = settings.projectId;
+  let response = await fetch(capturedChatUrl(workspaceSlug, projectId), requestInit());
+
+  if (response.status === 403) {
+    const recovered = await recoverWritableProject(settings);
+    if (recovered) {
+      workspaceSlug = recovered.workspaceSlug;
+      projectId = recovered.projectId;
+      response = await fetch(capturedChatUrl(workspaceSlug, projectId), requestInit());
+    }
+  }
+
+  if (!response.ok) throw new Error(await responseErrorMessage(response, "Capture failed"));
+  return response.json();
+}
+
+function chatPageActionUrl(page) {
+  const webUrl = stringValue(page?.web_url);
+  if (!webUrl) return "";
+  return webUrl.startsWith("http") ? webUrl : `${DEFAULT_WEB_URL}${webUrl}`;
+}
+
 async function saveActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) return { ok: false, error: "No active tab URL." };
@@ -384,6 +486,13 @@ async function saveActiveTab() {
 
 async function handleActionClick(tab) {
   if (!tab?.id || !tab?.url) return;
+
+  // On AI chat sites the toolbar action captures the conversation into a doc
+  // page rather than bookmarking the URL.
+  if (isChatCaptureUrl(tab.url)) {
+    await captureChatWithFeedback(tab);
+    return;
+  }
 
   // Toggle: if this page already shows as saved, a second click removes it from
   // the workspace instead of saving a duplicate.
@@ -713,7 +822,13 @@ async function moveBookmark(bookmark, toProjectIdValue) {
 }
 
 async function bookmarkErrorMessage(response) {
-  const fallback = `Bookmark failed: ${response.status}`;
+  return responseErrorMessage(response, "Bookmark failed");
+}
+
+// Generic API error formatter: surfaces a wrapped {error|detail|message} or a
+// DRF field-error dict instead of a bare status code.
+async function responseErrorMessage(response, fallbackPrefix = "Request failed") {
+  const fallback = `${fallbackPrefix}: ${response.status}`;
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     const data = await response.json().catch(() => null);

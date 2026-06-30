@@ -43,6 +43,9 @@ export type TPage = {
   id: string | undefined;
   is_favorite: boolean;
   is_brief?: boolean;
+  /** True when this doc page was created by importing an external AI
+   * conversation (Claude/ChatGPT/Gemini) via the browser extension. */
+  is_captured_chat?: boolean;
   is_locked: boolean;
   label_ids: string[] | undefined;
   name: string | undefined;

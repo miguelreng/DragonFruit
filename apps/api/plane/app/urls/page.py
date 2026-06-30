@@ -18,6 +18,7 @@ from plane.app.views import (
     PageTemplateInstantiateEndpoint,
     PageTemplateListEndpoint,
     WorkspacePagesListEndpoint,
+    CapturedChatIngestEndpoint,
 )
 
 urlpatterns = [
@@ -35,6 +36,12 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/",
         PageViewSet.as_view({"get": "list", "post": "create"}),
         name="project-pages",
+    ),
+    # Ingest an AI conversation captured by the browser extension as a doc page.
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/captured-chats/",
+        CapturedChatIngestEndpoint.as_view(),
+        name="project-captured-chats",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/",

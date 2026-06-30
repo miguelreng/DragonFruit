@@ -49,6 +49,7 @@ class PageSerializer(BaseSerializer):
             "is_favorite",
             "is_locked",
             "is_brief",
+            "is_captured_chat",
             "archived_at",
             "workspace",
             "created_at",

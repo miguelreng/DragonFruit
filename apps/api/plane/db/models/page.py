@@ -89,6 +89,12 @@ class Page(BaseModel):
     logo_props = models.JSONField(default=dict)
     is_global = models.BooleanField(default=False)
     is_brief = models.BooleanField(default=False, db_index=True)
+    # Set on doc pages created by importing an external AI conversation
+    # (Claude/ChatGPT/Gemini) via the browser extension. Semantically flags the
+    # page as a "captured chat" artifact; orthogonal to page_type (still "doc").
+    # external_source ("claude"/"chatgpt"/"gemini") + external_id (the source
+    # conversation id) make re-imports idempotent. Mirrors the is_brief pattern.
+    is_captured_chat = models.BooleanField(default=False, db_index=True)
     projects = models.ManyToManyField("db.Project", related_name="pages", through="db.ProjectPage")
     moved_to_page = models.UUIDField(null=True, blank=True)
     moved_to_project = models.UUIDField(null=True, blank=True)
