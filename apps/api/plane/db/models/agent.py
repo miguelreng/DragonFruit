@@ -555,27 +555,14 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
                     deleted_at__isnull=True,
                 )
             )
-            automations = list(
-                AgentAutomation.objects.select_related("agent")
-                .filter(
-                    workspace_id=workspace_id,
-                    trigger_event="issue_created",
-                    is_enabled=True,
-                    deleted_at__isnull=True,
-                    agent__is_enabled=True,
-                    agent__deleted_at__isnull=True,
-                )
-            )
         except Exception:
-            # Never block issue creation if agent/automation persistence is out of
-            # sync (e.g. migrations not applied yet).
+            # Never block issue creation if agent persistence is out of sync
+            # (e.g. migrations not applied yet).
             logger.exception(
-                "agent automation bootstrap query failed for issue=%s workspace=%s",
+                "agent bootstrap query failed for issue=%s workspace=%s",
                 issue_id,
                 workspace_id,
             )
-            return
-        if not agents and not automations:
             return
 
         try:
@@ -598,21 +585,16 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
                     issue.id,
                 )
 
-        for automation in automations:
-            # If agent-level trigger already dispatched this same event, avoid duplicates.
-            if str(automation.agent_id) in dispatched_agent_ids:
-                continue
-            if not _automation_matches_issue(automation, issue):
-                continue
-            try:
-                dispatch_agent_event.delay(str(automation.agent_id), str(issue.id), "issue_created")
-                dispatched_agent_ids.add(str(automation.agent_id))
-            except Exception:  # noqa: BLE001
-                logger.exception(
-                    "agent automation dispatch enqueue failed for automation=%s issue=%s",
-                    automation.id,
-                    issue.id,
-                )
+        # Workflows (graph engine) replace AgentAutomation dispatch. The walker
+        # evaluates each graph's own condition node, so here we match only the
+        # trigger. Skip workflows whose companion agent already ran via an
+        # agent-level trigger, mirroring the old automation dedup.
+        try:
+            from plane.bgtasks.workflow_task import enqueue_workflows_for_issue
+
+            enqueue_workflows_for_issue(issue, "issue_created", skip_agent_ids=dispatched_agent_ids)
+        except Exception:  # noqa: BLE001
+            logger.exception("workflow dispatch failed for issue=%s", issue.id)
 
     transaction.on_commit(_enqueue_dispatches)
 

@@ -19,6 +19,7 @@ import {
   FolderWithFiles,
   RulerCrossPen,
   Repeat,
+  Routing,
   StickerSquare,
 } from "@solar-icons/react/ssr";
 import { renderSolarSidebarIcon } from "@/components/sidebar/solar-icon";
@@ -52,6 +53,8 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
       return renderSolarSidebarIcon(RulerCrossPen, isActive, cls);
     case "calendar":
       return renderSolarSidebarIcon(Calendar, isActive, cls);
+    case "workflows":
+      return renderSolarSidebarIcon(Routing, isActive, cls);
     case "agents":
       return renderSolarSidebarIcon(MagicStick, isActive, cls);
   }

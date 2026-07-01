@@ -64,6 +64,20 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
       return acc;
     }, []);
 
+    // Workflows is a DragonFruit-only surface (Atlas automations / apps / actions),
+    // so it's built inline here rather than in the shared @plane/constants nav map.
+    if (slug) {
+      const workflowsHref = `/${slug}/workflows`;
+      dockItems.push({
+        label: "Workflows",
+        icon: getSidebarNavigationItemIcon("workflows"),
+        activeIcon: getSidebarNavigationItemIcon("workflows", "", true),
+        href: workflowsHref,
+        isActive: (pathname || "").startsWith(workflowsHref),
+        shouldRender: true,
+      });
+    }
+
     return <WrappedComponent {...(props as P)} dockItems={dockItems} />;
   });
 

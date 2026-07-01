@@ -4,7 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export * from "./agent-avatar";
-export * from "./agent-runs-panel";
-export * from "./agents-list";
-export * from "./agents-list-item";
+export * from "./root";

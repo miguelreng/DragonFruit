@@ -76,6 +76,13 @@ from .view import IssueView
 from .webhook import Webhook, WebhookLog
 from .agent import Agent, AgentAutomation, AgentChatMessage, AgentChatSession, AgentMemory, AgentRun
 from .agent_webhook import WorkspaceAgentWebhook
+from .workflow import (
+    Workflow,
+    WorkflowNode,
+    WorkflowEdge,
+    WorkflowRun,
+    WorkflowNodeRun,
+)
 from .calendar_account import UserCalendarAccount
 from .workspace import (
     Workspace,

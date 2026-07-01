@@ -4,7 +4,5 @@
  * See the LICENSE file for details.
  */
 
-export * from "./agent-avatar";
-export * from "./agent-runs-panel";
-export * from "./agents-list";
-export * from "./agents-list-item";
+/** Top-level builder view: the canvas ("build") or the run history ("activity"). */
+export type TWorkflowView = "build" | "activity";

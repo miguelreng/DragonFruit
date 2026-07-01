@@ -25,6 +25,10 @@ from plane.app.views.agent import (
     AgentRunListEndpoint,
     AgentRunRespondEndpoint,
     AgentStopEndpoint,
+    WorkflowEndpoint,
+    WorkflowDetailEndpoint,
+    WorkflowRunListEndpoint,
+    WorkflowTestRunEndpoint,
 )
 
 
@@ -129,5 +133,26 @@ urlpatterns = [
         "workspaces/<str:slug>/agent-chats/sessions/<uuid:session_id>/doc-writes/",
         AgentChatDocWriteEndpoint.as_view(),
         name="workspace-agent-chat-doc-writes",
+    ),
+    # Workflow graph engine
+    path(
+        "workspaces/<str:slug>/workflows/",
+        WorkflowEndpoint.as_view(),
+        name="workspace-workflows",
+    ),
+    path(
+        "workspaces/<str:slug>/workflows/<uuid:workflow_id>/",
+        WorkflowDetailEndpoint.as_view(),
+        name="workspace-workflow-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/workflows/<uuid:workflow_id>/runs/",
+        WorkflowRunListEndpoint.as_view(),
+        name="workspace-workflow-runs",
+    ),
+    path(
+        "workspaces/<str:slug>/workflows/<uuid:workflow_id>/test/",
+        WorkflowTestRunEndpoint.as_view(),
+        name="workspace-workflow-test",
     ),
 ]

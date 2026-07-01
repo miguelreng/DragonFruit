@@ -359,6 +359,8 @@ CELERY_IMPORTS = (
     "plane.bgtasks.issue_description_version_sync",
     # agent dispatch (issue + page comment variants registered from the same module)
     "plane.bgtasks.agent_dispatch_task",
+    # workflow graph engine (run_workflow walker)
+    "plane.bgtasks.workflow_task",
     # landing page rebuild trigger for public essays
     "plane.bgtasks.landing_deploy_task",
 )

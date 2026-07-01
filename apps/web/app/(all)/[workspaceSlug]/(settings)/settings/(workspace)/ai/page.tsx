@@ -16,7 +16,7 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { cn } from "@plane/utils";
 // components
-import { AgentAutomationsModal, AgentsList } from "@/components/agents";
+import { AgentsList } from "@/components/agents";
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsBoxedControlItem } from "@/components/settings/boxed-control-item";
@@ -113,7 +113,6 @@ function AISettingsPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [showAutomationsModal, setShowAutomationsModal] = useState(false);
 
   // ---- Atlas profile (enable / triggers / automations) ----------------- //
   const { data: agents, mutate: mutateAgents } = useSWR<TAgent[]>(
@@ -268,31 +267,15 @@ function AISettingsPage() {
       <PageHead title={pageTitle} />
       <div className={cn("flex w-full flex-col gap-y-7", { "opacity-60": !canEdit })}>
         {/* Atlas — the one workspace companion. Identity & personality are
-            fixed in code; only on/off, triggers, and automations are tunable
-            here. The model + BYOK key it runs on are configured below. */}
-        <AgentAutomationsModal
-          workspaceSlug={workspaceSlug}
-          agents={visibleAgents}
-          isOpen={showAutomationsModal}
-          onClose={() => setShowAutomationsModal(false)}
-        />
+            fixed in code; only on/off and triggers are tunable here. Automations
+            now live on the top-level Workflows page. The model + BYOK key it runs
+            on are configured below. */}
         <div className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-0.5">
               <h3 className="text-15 font-medium text-primary">{ATLAS_IDENTITY.name}</h3>
               <p className="text-12 text-tertiary">{ATLAS_IDENTITY.description}</p>
             </div>
-            {atlasAgent && (
-              <Button
-                variant="secondary"
-                size="lg"
-                className="!h-8 px-3"
-                disabled={!canEdit}
-                onClick={() => setShowAutomationsModal(true)}
-              >
-                Automations
-              </Button>
-            )}
           </div>
           {atlasAgent ? (
             <AgentsList agents={visibleAgents} onToggle={handleToggle} onUpdateTrigger={handleUpdateTrigger} />

@@ -142,6 +142,11 @@ export const coreRoutes: RouteConfigEntry[] = [
           route(":workspaceSlug/tasks", "./(all)/[workspaceSlug]/(projects)/tasks/page.tsx"),
         ]),
 
+        // Workflows — Atlas automations, connected apps, and Atlas actions
+        layout("./(all)/[workspaceSlug]/(projects)/workflows/layout.tsx", [
+          route(":workspaceSlug/workflows", "./(all)/[workspaceSlug]/(projects)/workflows/page.tsx"),
+        ]),
+
         // Profile
         layout("./(all)/[workspaceSlug]/(projects)/profile/[userId]/layout.tsx", [
           route(":workspaceSlug/profile/:userId", "./(all)/[workspaceSlug]/(projects)/profile/[userId]/page.tsx"),

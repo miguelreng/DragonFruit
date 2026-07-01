@@ -138,6 +138,15 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         logger.warning("agent_dispatch: issue %s not found, skipping", issue_id)
         return
 
+    run_agent_on_issue(agent, issue, trigger_event)
+
+
+def run_agent_on_issue(agent: "Agent", issue: "Issue", trigger_event: str) -> Optional["AgentRun"]:
+    """Create an AgentRun for (agent, issue, trigger_event) and drive the LLM
+    loop. Returns the run (even when marked failed for a missing BYOK key) so
+    callers such as the workflow engine can link it. Shared by the direct
+    dispatch task and workflow `ask_atlas` action nodes.
+    """
     now = datetime.now(timezone.utc)
     run = AgentRun.objects.create(
         agent=agent,
@@ -157,9 +166,10 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
     except LLMConfigError as exc:
         _mark_failed(run, f"not configured: {exc}")
         logger.info("agent_dispatch: agent %s not configured (%s)", agent.id, exc)
-        return
+        return run
 
     _run_agent_loop(run, provider=provider, agent=agent, issue=issue)
+    return run
 
 
 def _run_agent_loop(

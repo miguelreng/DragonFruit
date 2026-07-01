@@ -22,3 +22,9 @@ from .chat import (
     AgentChatSessionDetailEndpoint,
     AgentChatSessionEndpoint,
 )
+from .workflow import (
+    WorkflowEndpoint,
+    WorkflowDetailEndpoint,
+    WorkflowRunListEndpoint,
+    WorkflowTestRunEndpoint,
+)
