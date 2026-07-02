@@ -135,7 +135,7 @@ export function parseQuickInput(raw: string): ParsedQuickInput {
         continue;
       }
     }
-    if (/^\/[A-Za-z][\w-]*$/.test(part)) {
+    if (/^\/[A-Za-z0-9][\w-]*$/.test(part)) {
       projectName = part.slice(1);
       continue;
     }
@@ -194,7 +194,7 @@ export function highlightTaskTokens(value: string): HighlightSegment[] {
         continue;
       }
     }
-    if (/^\/[A-Za-z][\w-]*$/.test(part)) {
+    if (/^\/[A-Za-z0-9][\w-]*$/.test(part)) {
       segments.push({ text: part, kind: "project" });
       continue;
     }

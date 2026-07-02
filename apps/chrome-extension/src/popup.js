@@ -223,7 +223,14 @@ async function loadProjectsForWorkspace(workspaceSlug) {
       }
       const data = response.data || {};
       const projects = data.projects || [];
-      renderProjects(projects, data.default_project_id || "");
+      // Prefer the last-selected project (shared with the bookmark/chat toast
+      // pickers via chrome.storage.sync.projectId) so reloading the list doesn't
+      // snap back to the workspace default. Fall back to the server default.
+      const { projectId: rememberedProjectId } = await chrome.storage.sync.get(["projectId"]);
+      const preselectedProjectId = projects.some((project) => project.id === rememberedProjectId)
+        ? rememberedProjectId
+        : data.default_project_id || "";
+      renderProjects(projects, preselectedProjectId);
       await persistSettings();
       setStatus(projects.length ? "Ready" : "No writable projects", projects.length ? "success" : "error");
       resolve(true);

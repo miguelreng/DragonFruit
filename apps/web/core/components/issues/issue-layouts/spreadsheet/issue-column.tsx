@@ -52,7 +52,11 @@ export const IssueColumn = observer(function IssueColumn(props: Props) {
     >
       <td
         tabIndex={0}
-        className="h-9 min-w-36 border-r-[1px] border-subtle text-13 after:absolute after:bottom-[-1px] after:w-full after:border after:border-subtle"
+        // No bottom border here — each column draws its own `border-b`, so adding
+        // one on the <td> too would double the horizontal divider. Property cells
+        // open a dropdown on click, so they don't get a focus box (only the task
+        // name cell does).
+        className="h-9 min-w-36 border-r-[0.5px] border-subtle text-13 outline-none"
         ref={tableCellRef}
       >
         <Column issue={issueDetail} onChange={handleUpdateIssue} disabled={disableUserActions} onClose={handleClose} />

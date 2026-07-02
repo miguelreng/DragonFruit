@@ -2,7 +2,7 @@
 
 // Logged on service-worker startup so you can confirm the running build in the
 // extension's DevTools console. Keep in sync with manifest.json "version".
-const EXTENSION_VERSION = "0.3.0";
+const EXTENSION_VERSION = "0.3.3";
 console.log(`DragonFruit Bookmarks extension v${EXTENSION_VERSION}`);
 
 const DEFAULT_API_URL = "https://api.dragonfruit.sh";
@@ -48,6 +48,19 @@ const ACTION_ICON_ACTIVE = {
   128: "src/icons/action/icon-active-128.png",
 };
 const actionIconImageDataCache = {};
+
+// pageId -> conversation payload for chats saved this service-worker session, so
+// the success toast's project picker can re-home a chat (create it in the new
+// project, delete the old page). Bounded so it can't grow without limit.
+const capturedConversations = new Map();
+const MAX_REMEMBERED_CONVERSATIONS = 20;
+function rememberCapturedConversation(pageId, conversation) {
+  if (!pageId || !conversation) return;
+  capturedConversations.set(pageId, conversation);
+  while (capturedConversations.size > MAX_REMEMBERED_CONVERSATIONS) {
+    capturedConversations.delete(capturedConversations.keys().next().value);
+  }
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -128,6 +141,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message?.type === "MOVE_BOOKMARK") {
     void respond(moveBookmark(message.bookmark, message.toProjectId), sendResponse);
+    return true;
+  }
+  if (message?.type === "MOVE_CAPTURED_CHAT") {
+    void respond(moveCapturedChat(message.bookmark, message.toProjectId), sendResponse);
     return true;
   }
   return false;
@@ -327,8 +344,8 @@ async function handleContextMenu(info, tab) {
   }
   if (info.menuItemId === MENU_SAVE_IMAGE && info.srcUrl) {
     await saveWithFeedback(tab, {
-      savingText: "Saving image to DragonFruit...",
-      savedText: "Image saved to DragonFruit",
+      savingText: "Saving image…",
+      savedText: "Image saved",
       save: () =>
         saveBookmark({
           title: titleFromUrl(info.srcUrl, "Saved image"),
@@ -349,8 +366,8 @@ async function handleContextMenu(info, tab) {
   const url = info.linkUrl || tab.url || "";
   if (!url) return;
   await saveWithFeedback(tab, {
-    savingText: "Saving to DragonFruit...",
-    savedText: "Saved to DragonFruit",
+    savingText: "Saving…",
+    savedText: "Saved",
     save: () => saveUrlBookmark(url, tab),
   });
 }
@@ -359,7 +376,10 @@ async function handleContextMenu(info, tab) {
 // toast, then a success toast or a routed recovery (login / settings / error
 // toast). `run` resolves with the action result; `successActionUrl(result)` may
 // return a URL to attach to the success toast's "View" pill.
-async function runWithFeedback(tab, { loadingText, successText, run, successActionUrl, enableProjectPicker = false }) {
+async function runWithFeedback(
+  tab,
+  { loadingText, successText, run, successActionUrl, enableProjectPicker = false, moveType = "MOVE_BOOKMARK" }
+) {
   const tabId = tab?.id;
   if (!tabId) return;
   try {
@@ -377,6 +397,7 @@ async function runWithFeedback(tab, { loadingText, successText, run, successActi
       actionUrl: typeof successActionUrl === "function" ? successActionUrl(result) : "",
       projects: picker?.projects ?? [],
       bookmark: picker?.bookmark ?? null,
+      moveType,
     });
   } catch (error) {
     const message = String(error?.message || "Something went wrong. Please try again.");
@@ -412,11 +433,12 @@ async function saveWithFeedback(tab, { savingText, savedText, save }) {
 // flow; the success toast's "View" pill opens the created doc page.
 async function captureChatWithFeedback(tab) {
   await runWithFeedback(tab, {
-    loadingText: "Capturing conversation...",
-    successText: "Conversation saved to DragonFruit",
+    loadingText: "Capturing…",
+    successText: "Conversation saved",
     run: () => captureAndSaveConversation(tab),
     successActionUrl: chatPageActionUrl,
-    enableProjectPicker: false,
+    enableProjectPicker: true,
+    moveType: "MOVE_CAPTURED_CHAT",
   });
 }
 
@@ -429,7 +451,11 @@ async function captureAndSaveConversation(tab) {
   }
   if (!response) throw new Error("Couldn't read this page. Reload the chat and try again.");
   if (!response.ok) throw new Error(response.error || "No conversation found on this page.");
-  return saveCapturedChat(response.conversation);
+  const page = await saveCapturedChat(response.conversation);
+  // Retain the conversation payload so the toast's project picker can re-home
+  // the chat (the created page doesn't carry a re-postable messages array).
+  rememberCapturedConversation(page?.id, response.conversation);
+  return page;
 }
 
 async function saveCapturedChat(conversation) {
@@ -477,6 +503,67 @@ function chatPageActionUrl(page) {
   return webUrl.startsWith("http") ? webUrl : `${DEFAULT_WEB_URL}${webUrl}`;
 }
 
+// Re-home a just-captured chat to another project (from the toast picker):
+// re-ingest the retained conversation into the new project, then delete the
+// original page. Idempotency is per-project, so this creates a fresh page there.
+async function moveCapturedChat(page, toProjectIdValue) {
+  const settings = await getSettings();
+  if (!settings.apiToken) throw new Error("Connect your DragonFruit account first.");
+
+  const workspaceSlug = stringValue(page?.workspace_slug) || settings.workspaceSlug;
+  const fromProjectId = stringValue(page?.project_id);
+  const pageId = stringValue(page?.id);
+  const toProjectId = stringValue(toProjectIdValue);
+  if (!workspaceSlug || !toProjectId || !pageId) throw new Error("Could not move the conversation.");
+  if (toProjectId === fromProjectId) return { ok: true, bookmark: page };
+
+  const conversation = capturedConversations.get(pageId);
+  if (!conversation) {
+    throw new Error("This conversation can no longer be moved — re-capture it into the project you want.");
+  }
+
+  const response = await fetch(
+    `${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${toProjectId}/captured-chats/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authorizedHeaders(settings.apiToken),
+        "X-DragonFruit-Source": "chrome-extension",
+      },
+      body: JSON.stringify(conversation),
+    }
+  );
+  if (!response.ok) throw new Error(await responseErrorMessage(response, "Move failed"));
+  const moved = await response.json();
+
+  if (fromProjectId) {
+    await deleteCapturedChatPage(workspaceSlug, fromProjectId, pageId).catch(() => {});
+  }
+  capturedConversations.delete(pageId);
+  rememberCapturedConversation(moved?.id, conversation);
+  await chrome.storage.sync.set({ projectId: toProjectId });
+  return { ok: true, bookmark: moved };
+}
+
+async function deleteCapturedChatPage(workspaceSlug, projectId, pageId) {
+  const settings = await getSettings();
+  const response = await fetch(
+    `${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${projectId}/pages/${pageId}/`,
+    {
+      method: "DELETE",
+      headers: {
+        ...authorizedHeaders(settings.apiToken),
+        "X-DragonFruit-Source": "chrome-extension",
+      },
+    }
+  ).catch(() => null);
+  // 404 means it's already gone — treat as success.
+  if (response && !response.ok && response.status !== 404) {
+    throw new Error(await responseErrorMessage(response, "Delete failed"));
+  }
+}
+
 async function saveActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) return { ok: false, error: "No active tab URL." };
@@ -499,8 +586,8 @@ async function handleActionClick(tab) {
   if (await isPageUrlLocallySaved(tab.url)) {
     await setActionIcon("idle", tab.id);
     await runWithFeedback(tab, {
-      loadingText: "Removing from DragonFruit...",
-      successText: "Removed from DragonFruit",
+      loadingText: "Removing…",
+      successText: "Removed",
       run: () => removeUrlBookmark(tab.url, tab),
     });
     return;
@@ -508,8 +595,8 @@ async function handleActionClick(tab) {
 
   await setActionIcon("active", tab.id);
   await saveWithFeedback(tab, {
-    savingText: "Saving to DragonFruit...",
-    savedText: "Saved to DragonFruit",
+    savingText: "Saving…",
+    savedText: "Saved",
     save: () => saveUrlBookmark(tab.url, tab),
   });
 }
@@ -903,7 +990,11 @@ function isConfigurationError(message) {
   return normalized.includes("choose a workspace") || normalized.includes("select workspace");
 }
 
-async function showTabToast(tabId, title, { message = "", state = "success", actionUrl = "", projects = [], bookmark = null } = {}) {
+async function showTabToast(
+  tabId,
+  title,
+  { message = "", state = "success", actionUrl = "", projects = [], bookmark = null, moveType = "MOVE_BOOKMARK" } = {}
+) {
   if (!tabId) return;
   try {
     const fontUrl = chrome.runtime.getURL("src/fonts/Figtree-Variable.ttf");
@@ -927,8 +1018,9 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
         String(actionUrl || ""),
         Array.isArray(projects) ? projects : [],
         bookmark || null,
+        String(moveType || "MOVE_BOOKMARK"),
       ],
-      func: (toastTitle, toastMessage, toastState, toastActionUrl, toastProjects, toastBookmark) => {
+      func: (toastTitle, toastMessage, toastState, toastActionUrl, toastProjects, toastBookmark, toastMoveType) => {
         const TOAST_ID = "dragonfruit-extension-toast";
         if (!toastTitle) return;
         const normalizedState = toastState === "error" || toastState === "loading" ? toastState : "success";
@@ -1080,6 +1172,10 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
             }
             .title {
               margin: 0;
+              max-width: 100%;
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
               color: var(--text-primary);
               font: 600 14px/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
               letter-spacing: 0.14px;
@@ -1215,7 +1311,8 @@ async function showTabToast(tabId, title, { message = "", state = "success", act
             const toProjectId = projectPicker.value;
             const projectName = toastProjects.find((entry) => entry.id === toProjectId)?.name || "project";
             projectPicker.disabled = true;
-            chrome.runtime.sendMessage({ type: "MOVE_BOOKMARK", bookmark: activeBookmark, toProjectId }, (response) => {
+            const moveMessageType = toastMoveType === "MOVE_CAPTURED_CHAT" ? "MOVE_CAPTURED_CHAT" : "MOVE_BOOKMARK";
+            chrome.runtime.sendMessage({ type: moveMessageType, bookmark: activeBookmark, toProjectId }, (response) => {
               projectPicker.disabled = false;
               if (response?.ok) {
                 titleElement.textContent = `Saved to ${projectName}`;

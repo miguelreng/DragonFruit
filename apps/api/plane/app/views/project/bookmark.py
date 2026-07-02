@@ -322,6 +322,44 @@ class ProjectBookmarkViewSet(BaseViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="PROJECT")
+    def move(self, request, slug, project_id, pk):
+        bookmark = self.get_queryset().get(pk=pk)
+        if not self.can_mutate(request, slug, bookmark):
+            return Response({"error": "You don't have the required permissions."}, status=status.HTTP_403_FORBIDDEN)
+
+        target_project_id = request.data.get("project_id")
+        if not target_project_id:
+            return Response({"error": "A target project is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # No-op when the bookmark already lives in the requested project.
+        if str(target_project_id) == str(bookmark.project_id):
+            return Response(ProjectBookmarkSerializer(bookmark).data, status=status.HTTP_200_OK)
+
+        target = Project.objects.filter(pk=target_project_id, workspace__slug=slug).first()
+        if target is None:
+            return Response({"error": "The selected project does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        # The mover must be an admin/member of the destination project too.
+        can_write_target = ProjectMember.objects.filter(
+            member=request.user,
+            workspace__slug=slug,
+            project_id=target_project_id,
+            role__in=[ROLE.ADMIN.value, ROLE.MEMBER.value],
+            is_active=True,
+        ).exists()
+        if not can_write_target:
+            return Response(
+                {"error": "You don't have access to the selected project."}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        bookmark.project = target
+        bookmark.updated_by = request.user
+        bookmark.save(update_fields=["project", "updated_by", "updated_at"])
+        # Keep comments queryable under the bookmark's new project scope.
+        ProjectBookmarkComment.objects.filter(bookmark=bookmark).update(project=target)
+        return Response(ProjectBookmarkSerializer(bookmark).data, status=status.HTTP_200_OK)
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="PROJECT")
     def destroy(self, request, slug, project_id, pk):
         bookmark = self.get_queryset().get(pk=pk)
         if not self.can_mutate(request, slug, bookmark):

@@ -27,6 +27,7 @@ import { CORE_EXTENSIONS } from "@/constants/extension";
 import {
   findTable,
   getTableHeightPx,
+  getTableNodeLocation,
   getTableWidthPx,
   isCellSelection,
   selectRow,
@@ -49,10 +50,13 @@ import { calculateRowDropIndex, constructRowDragPreview, getTableRowNodesInfo } 
 export type RowDragHandleProps = {
   editor: Editor;
   row: number;
+  // position (before the table node) the handle belongs to, so the row can be selected
+  // even when the cursor is not currently inside the table (e.g. surfaced on hover)
+  tablePos: number;
 };
 
 export function RowDragHandle(props: RowDragHandleProps) {
-  const { editor, row } = props;
+  const { editor, row, tablePos } = props;
   // states
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   // Track active event listeners for cleanup
@@ -130,7 +134,9 @@ export function RowDragHandle(props: RowDragHandleProps) {
       activeListenersRef.current.mouseup = undefined;
       activeListenersRef.current.mousemove = undefined;
 
-      const table = findTable(editor.state.selection);
+      // Prefer the table this handle was created for so the row can be selected even when
+      // the cursor is outside the table (handle surfaced on hover); fall back to selection.
+      const table = getTableNodeLocation(editor.state.doc, tablePos) ?? findTable(editor.state.selection);
       if (!table) return;
 
       editor.view.dispatch(selectRow(table, row, editor.state.tr));
@@ -218,7 +224,7 @@ export function RowDragHandle(props: RowDragHandleProps) {
         handleFinish();
       }
     },
-    [editor, row]
+    [editor, row, tablePos]
   );
 
   return (

@@ -70,7 +70,7 @@ export function ArchiveIssueModal(props: Props) {
   return (
     <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.CENTER} width={EModalWidth.LG}>
       <div className="px-5 py-4">
-        <h3 className="text-18 font-medium 2xl:text-20">
+        <h3 className="text-18 font-normal 2xl:text-20">
           {t("issue.archive.label")} {projectDetails?.identifier} {issue.sequence_id}
         </h3>
         <p className="mt-3 text-13 text-secondary">{t("issue.archive.confirm_message")}</p>

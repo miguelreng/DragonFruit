@@ -78,6 +78,7 @@ export const StateGroupIcon = ({
 // to Solar via lucide-shim; these keep the propel-shim consumers consistent.
 export const StartDatePropertyIcon = shim(Solar.Calendar);
 export const DueDatePropertyIcon = shim(Solar.CalendarMark);
+export const CalendarMinimalisticIcon = shim(Solar.CalendarMinimalistic);
 export const LabelPropertyIcon = shim(Solar.Tag);
 // Generic "Priority" property/filter glyph (matches the Solar Chart already used
 // for the priority activity icon elsewhere).

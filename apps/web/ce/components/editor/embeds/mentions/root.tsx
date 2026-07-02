@@ -11,11 +11,15 @@ import { Link } from "react-router";
 // plane imports
 import { fetchWikipediaSummary } from "@plane/editor";
 import type { TCallbackMentionComponentProps, TWikipediaSummary } from "@plane/editor";
+import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Popover } from "@plane/propel/popover";
 import { cn } from "@plane/utils";
+// components
+import { PageIcon } from "@/components/icons/propel-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
+import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 
 export type TEditorMentionComponentProps = TCallbackMentionComponentProps;
 
@@ -23,6 +27,9 @@ export function EditorAdditionalMentionsRoot(props: TEditorMentionComponentProps
   const { entity_identifier, entity_name } = props;
   if (entity_name === "issue" && entity_identifier) {
     return <EditorWorkItemMention issueId={entity_identifier} />;
+  }
+  if (entity_name === "page" && entity_identifier) {
+    return <EditorPageMention pageId={entity_identifier} />;
   }
   if (entity_name === "wiki" && entity_identifier) {
     return <EditorWikiMention articleUrl={entity_identifier} />;
@@ -32,6 +39,11 @@ export function EditorAdditionalMentionsRoot(props: TEditorMentionComponentProps
 
 const chipClassName =
   "not-prose inline rounded-lg bg-accent-subtle-active px-1 py-0.5 text-accent-primary no-underline";
+
+// Page links read as inline hyperlinks (icon + title, underlined) rather than
+// the accent chip used for @-mentions of users/work items.
+const pageLinkClassName =
+  "not-prose inline font-medium text-accent-primary underline decoration-accent-primary/40 underline-offset-2 hover:decoration-accent-primary [&>span]:mr-0.5";
 
 const EditorWorkItemMention = observer(function EditorWorkItemMention(props: { issueId: string }) {
   const { issueId } = props;
@@ -63,6 +75,47 @@ const EditorWorkItemMention = observer(function EditorWorkItemMention(props: { i
     <Link to={href} className={cn(chipClassName)} title={issue?.name ?? undefined}>
       @{label}
       {issue?.name ? <span className="font-normal opacity-80"> {issue.name}</span> : null}
+    </Link>
+  );
+});
+
+/**
+ * EditorPageMention — renders an inline link to another doc/page.
+ *
+ * The @-search is project-scoped, so a mentioned page belongs to the doc's
+ * current project; we resolve its title from the project page store (lazily
+ * fetching it if it isn't cached yet, e.g. after a reload) and link to it.
+ */
+const EditorPageMention = observer(function EditorPageMention(props: { pageId: string }) {
+  const { pageId } = props;
+  const { workspaceSlug, projectId } = useParams();
+  const ws = workspaceSlug?.toString();
+  const pid = projectId?.toString();
+  // store hooks
+  const { getPageById, fetchPageDetails } = usePageStore(EPageStoreType.PROJECT);
+  // derived values
+  const page = getPageById(pageId);
+
+  // Resolve the page if it isn't already in the store (e.g. after reload).
+  useEffect(() => {
+    if (!ws || !pid || !pageId || page) return;
+    void fetchPageDetails(ws, pid, pageId, { trackVisit: false }).catch(() => {});
+  }, [ws, pid, pageId, page, fetchPageDetails]);
+
+  const label = page?.name || "Untitled";
+  const redirectProjectId = page?.project_ids?.[0] ?? pid;
+  const href = ws && redirectProjectId ? `/${ws}/projects/${redirectProjectId}/pages/${pageId}` : "#";
+
+  return (
+    <Link to={href} className={cn(pageLinkClassName)} title={page?.name ?? undefined}>
+      <span className="inline-flex size-3.5 flex-shrink-0 items-center justify-center align-text-bottom">
+        {page?.logo_props?.in_use ? (
+          <Logo logo={page.logo_props} size={14} type="lucide" />
+        ) : (
+          <PageIcon className="size-3.5" />
+        )}
+      </span>
+      {label}
     </Link>
   );
 });

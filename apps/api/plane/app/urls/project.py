@@ -126,6 +126,11 @@ urlpatterns = [
         name="project-bookmarks",
     ),
     path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/<uuid:pk>/move/",
+        ProjectBookmarkViewSet.as_view({"post": "move"}),
+        name="project-bookmarks-move",
+    ),
+    path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/bookmarks/<uuid:bookmark_id>/comments/",
         ProjectBookmarkCommentViewSet.as_view({"get": "list", "post": "create"}),
         name="project-bookmark-comments",

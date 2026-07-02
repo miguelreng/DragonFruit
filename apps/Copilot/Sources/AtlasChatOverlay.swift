@@ -52,6 +52,7 @@ final class AtlasChatOverlayController: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private weak var store: MeetingStore?
     private var escMonitor: Any?
+    private var selectionTimer: Timer?
 
     /// Card is inset from the panel edges so the SwiftUI drop shadow has room
     /// to fade out completely. Must exceed the shadow blur radius (22) + offset,
@@ -103,10 +104,12 @@ final class AtlasChatOverlayController: ObservableObject {
         panel.alphaValue = 1
         panel.makeKeyAndOrderFront(nil)
         installEscapeMonitor()
+        startSelectionWatch()
     }
 
     private func hidePanel() {
         removeEscapeMonitor()
+        stopSelectionWatch()
         guard let panel, panel.isVisible else { return }
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.28
@@ -153,6 +156,24 @@ final class AtlasChatOverlayController: ObservableObject {
             NSEvent.removeMonitor(escMonitor)
             self.escMonitor = nil
         }
+    }
+
+    // Poll the frontmost app's text selection while the panel is open so a
+    // selection made AFTER opening still shows up as chat context.
+    private func startSelectionWatch() {
+        guard selectionTimer == nil else { return }
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.store?.refreshAtlasChatSelectionFromFrontmost()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        selectionTimer = timer
+    }
+
+    private func stopSelectionWatch() {
+        selectionTimer?.invalidate()
+        selectionTimer = nil
     }
 }
 
@@ -418,14 +439,15 @@ struct AtlasChatView: View {
         .padding(.top, 120)
     }
 
-    // "Thinking…" with a small spinner, text-12 text-tertiary.
+    // "Thinking…" with the morphing-infinity loader. text-secondary to stay
+    // legible over light backgrounds (matching the Ask / scope pills).
     private var thinkingRow: some View {
-        HStack(spacing: 6) {
-            ThinkingSpinner(theme: theme)
-                .frame(width: 12, height: 12)
+        HStack(spacing: 7) {
+            MorphingInfinityLoader(color: theme.textSecondary)
+                .frame(width: 18, height: 18)
             Text("Thinking…")
                 .font(.custom("Figtree", size: 12).weight(.regular))
-                .foregroundStyle(theme.textTertiary)
+                .foregroundStyle(theme.textSecondary)
         }
     }
 
@@ -594,10 +616,6 @@ private struct SelectionContextChip: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Rectangle()
-                .fill(theme.accent)
-                .frame(width: 2)
-
             VStack(alignment: .leading, spacing: 1) {
                 Text("Selected text")
                     .font(.custom("Figtree", size: 11).weight(.medium))
@@ -622,7 +640,7 @@ private struct SelectionContextChip: View {
             .accessibilityLabel("Remove selected text context")
             .onHover { isHovered = $0 }
         }
-        .padding(.leading, 8)
+        .padding(.leading, 10)
         .padding(.trailing, 2)
         .padding(.vertical, 4)
         .background(
@@ -630,6 +648,8 @@ private struct SelectionContextChip: View {
                 .fill(theme.surface2.opacity(0.7))
         )
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        // Hug the content's height so the chip never stretches the composer.
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -647,7 +667,7 @@ private struct ComposerIconButton: View {
         Button(action: action) {
             AtlasIcon(icon)
                 .frame(width: 14, height: 14)
-                .foregroundStyle(tint ?? (isHovered ? theme.textPrimary : theme.textTertiary))
+                .foregroundStyle(tint ?? (isHovered ? theme.textPrimary : theme.textSecondary))
                 .frame(width: 24, height: 24)
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -714,41 +734,211 @@ private struct AtlasChatBubble: View {
                     )
                     .frame(maxWidth: 260, alignment: .trailing)
             }
-        } else {
-            // Left-aligned plain text (markdown-ish), text-13 text-primary.
+        } else if !message.text.isEmpty {
+            // Left-aligned rendered markdown (bold, lists, headings, links).
+            // An empty assistant bubble renders nothing — the "Thinking…" row
+            // covers the in-flight state, so there's no "(empty reply)" filler.
             HStack {
-                if message.text.isEmpty {
-                    // Empty non-streaming reply → matches web "(empty reply)".
-                    Text("(empty reply)")
-                        .font(.custom("Figtree", size: 13).weight(.regular))
-                        .italic()
-                        .foregroundStyle(theme.textTertiary)
-                } else {
-                    Text(message.text)
-                        .font(.custom("Figtree", size: 13).weight(.regular))
-                        .foregroundStyle(theme.textPrimary)
-                        .lineSpacing(2)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                AtlasMarkdownText(text: message.text, theme: theme)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 0)
             }
         }
     }
 }
 
-/// Small indeterminate spinner matching the web "Thinking…" indicator.
-private struct ThinkingSpinner: View {
+// MARK: - Lightweight markdown renderer for assistant replies
+
+/// Renders the common markdown Atlas produces — paragraphs, headings, bullet /
+/// numbered lists, and inline **bold** / *italic* / `code` / [links](url) —
+/// mirroring the web AssistantMarkdown without pulling in a full parser.
+private struct AtlasMarkdownText: View {
+    let text: String
     let theme: CopilotThemeTokens
 
     var body: some View {
-        TimelineView(.animation) { timeline in
-            let angle = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1) * 360
-            Circle()
-                .trim(from: 0.1, to: 0.9)
-                .stroke(theme.textTertiary, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                .rotationEffect(.degrees(angle))
+        VStack(alignment: .leading, spacing: 5) {
+            ForEach(Array(Self.blocks(from: text).enumerated()), id: \.offset) { _, block in
+                row(for: block)
+            }
+        }
+        .tint(theme.accent)
+        .textSelection(.enabled)
+    }
+
+    @ViewBuilder
+    private func row(for block: MDBlock) -> some View {
+        switch block {
+        case let .heading(text):
+            inline(text)
+                .font(.custom("Figtree", size: 14).weight(.semibold))
+                .foregroundStyle(theme.textPrimary)
+        case let .paragraph(text):
+            inline(text)
+                .font(.custom("Figtree", size: 13).weight(.regular))
+                .foregroundStyle(theme.textPrimary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        case let .listItem(marker, text):
+            HStack(alignment: .top, spacing: 6) {
+                Text(marker)
+                    .font(.custom("Figtree", size: 13).weight(.regular))
+                    .foregroundStyle(theme.textTertiary)
+                inline(text)
+                    .font(.custom("Figtree", size: 13).weight(.regular))
+                    .foregroundStyle(theme.textPrimary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        case let .code(text):
+            Text(text)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(theme.textPrimary)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(theme.surface2.opacity(0.7), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+    }
+
+    // Inline markdown (bold/italic/code/links) via AttributedString; the bold
+    // intent resolves against whatever font the row applies.
+    private func inline(_ string: String) -> Text {
+        if let attributed = try? AttributedString(
+            markdown: string,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        ) {
+            return Text(attributed)
+        }
+        return Text(verbatim: string)
+    }
+
+    private enum MDBlock {
+        case heading(String)
+        case paragraph(String)
+        case listItem(String, String)
+        case code(String)
+    }
+
+    private static func blocks(from text: String) -> [MDBlock] {
+        var blocks: [MDBlock] = []
+        var inFence = false
+        var codeLines: [String] = []
+
+        for rawLine in text.components(separatedBy: "\n") {
+            let line = rawLine
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            if trimmed.hasPrefix("```") {
+                if inFence {
+                    blocks.append(.code(codeLines.joined(separator: "\n")))
+                    codeLines.removeAll()
+                }
+                inFence.toggle()
+                continue
+            }
+            if inFence {
+                codeLines.append(line)
+                continue
+            }
+            if trimmed.isEmpty { continue }
+
+            if let hashRange = trimmed.range(of: #"^#{1,6}\s+"#, options: .regularExpression) {
+                blocks.append(.heading(String(trimmed[hashRange.upperBound...])))
+            } else if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
+                blocks.append(.listItem("•", String(trimmed.dropFirst(2))))
+            } else if let match = trimmed.range(of: #"^(\d+)\.\s+"#, options: .regularExpression) {
+                let marker = String(trimmed[trimmed.startIndex..<trimmed.index(before: match.upperBound)]).trimmingCharacters(in: .whitespaces)
+                blocks.append(.listItem(marker, String(trimmed[match.upperBound...])))
+            } else {
+                blocks.append(.paragraph(trimmed))
+            }
+        }
+        if inFence, !codeLines.isEmpty {
+            blocks.append(.code(codeLines.joined(separator: "\n")))
+        }
+        return blocks
+    }
+}
+
+/// Morphing-infinity loader (loading-ui.com/morphing-infinity): an SVG path
+/// that morphs circle → infinity → circle over a 5s loop.
+struct MorphingInfinityLoader: View {
+    let color: Color
+    @State private var progress: Double = 0
+
+    var body: some View {
+        MorphingInfinityShape(progress: progress)
+            .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+            .onAppear {
+                progress = 0
+                withAnimation(.linear(duration: 5).repeatForever(autoreverses: false)) {
+                    progress = 1
+                }
+            }
+    }
+}
+
+/// Interpolates between the circle/infinity keyframes (verbatim control points
+/// from the loading-ui morphing-infinity SVG paths) in a 24×24 space.
+private struct MorphingInfinityShape: Shape {
+    var progress: Double
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    // start + 4×(cp1, cp2, end) = 13 points per keyframe.
+    private static let circleA: [CGPoint] = [
+        CGPoint(x: 12, y: 8),
+        CGPoint(x: 14.21, y: 8), CGPoint(x: 16, y: 9.79), CGPoint(x: 16, y: 12),
+        CGPoint(x: 16, y: 14.21), CGPoint(x: 14.21, y: 16), CGPoint(x: 12, y: 16),
+        CGPoint(x: 9.79, y: 16), CGPoint(x: 8, y: 14.21), CGPoint(x: 8, y: 12),
+        CGPoint(x: 8, y: 9.79), CGPoint(x: 9.79, y: 8), CGPoint(x: 12, y: 8),
+    ]
+    private static let infinity: [CGPoint] = [
+        CGPoint(x: 12, y: 12),
+        CGPoint(x: 14, y: 8.5), CGPoint(x: 19, y: 8.5), CGPoint(x: 19, y: 12),
+        CGPoint(x: 19, y: 15.5), CGPoint(x: 14, y: 15.5), CGPoint(x: 12, y: 12),
+        CGPoint(x: 10, y: 8.5), CGPoint(x: 5, y: 8.5), CGPoint(x: 5, y: 12),
+        CGPoint(x: 5, y: 15.5), CGPoint(x: 10, y: 15.5), CGPoint(x: 12, y: 12),
+    ]
+    private static let circleB: [CGPoint] = [
+        CGPoint(x: 12, y: 16),
+        CGPoint(x: 14.21, y: 16), CGPoint(x: 16, y: 14.21), CGPoint(x: 16, y: 12),
+        CGPoint(x: 16, y: 9.79), CGPoint(x: 14.21, y: 8), CGPoint(x: 12, y: 8),
+        CGPoint(x: 9.79, y: 8), CGPoint(x: 8, y: 9.79), CGPoint(x: 8, y: 12),
+        CGPoint(x: 8, y: 14.21), CGPoint(x: 9.79, y: 16), CGPoint(x: 12, y: 16),
+    ]
+    private static let keyframes: [[CGPoint]] = [circleA, infinity, circleB, infinity, circleA]
+
+    func path(in rect: CGRect) -> Path {
+        let pts = interpolated()
+        let scale = min(rect.width, rect.height) / 24
+        func P(_ i: Int) -> CGPoint {
+            CGPoint(x: rect.minX + pts[i].x * scale, y: rect.minY + pts[i].y * scale)
+        }
+        var path = Path()
+        path.move(to: P(0))
+        for seg in 0..<4 {
+            let base = 1 + seg * 3
+            path.addCurve(to: P(base + 2), control1: P(base), control2: P(base + 1))
+        }
+        path.closeSubpath()
+        return path
+    }
+
+    private func interpolated() -> [CGPoint] {
+        let frames = Self.keyframes
+        let segments = frames.count - 1
+        let clamped = max(0, min(1, progress))
+        let scaled = clamped * Double(segments)
+        let i = min(segments - 1, Int(scaled))
+        let t = CGFloat(scaled - Double(i))
+        let a = frames[i]
+        let b = frames[i + 1]
+        return zip(a, b).map { p, q in
+            CGPoint(x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t)
         }
     }
 }

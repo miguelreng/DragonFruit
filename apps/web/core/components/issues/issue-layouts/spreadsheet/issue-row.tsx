@@ -15,7 +15,7 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { ChevronRightIcon } from "@/components/icons/propel-shim";
 // types
 import { Tooltip } from "@plane/propel/tooltip";
-import type { IIssueDisplayProperties, TIssue } from "@plane/types";
+import type { IIssueDisplayProperties, IProjectCustomField, TIssue } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // ui
 import { ControlLink, ERowVariant, Row } from "@plane/ui";
@@ -31,11 +31,10 @@ import { useProject } from "@/hooks/store/use-project";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-// plane web components
-import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 // local components
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { isIssueNew } from "../utils";
+import { CustomFieldColumn } from "./custom-field-column";
 import { IssueColumn } from "./issue-column";
 
 interface Props {
@@ -50,6 +49,7 @@ interface Props {
   isScrolled: MutableRefObject<boolean>;
   containerRef: MutableRefObject<HTMLTableElement | null>;
   spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
+  customFields: IProjectCustomField[];
   spacingLeft?: number;
   selectionHelpers: TSelectionHelper;
   shouldRenderByDefault?: boolean;
@@ -69,6 +69,7 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
     isScrolled,
     containerRef,
     spreadsheetColumnsList,
+    customFields,
     spacingLeft = 6,
     selectionHelpers,
     shouldRenderByDefault,
@@ -97,7 +98,7 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
         placeholderChildren={
           <td
             colSpan={100}
-            className="border-[0.5px] border-transparent border-b-subtle-1"
+            className="border-[0.5px] border-transparent border-b-subtle"
             style={{ height: "calc(2.25rem - 1px)" }}
           />
         }
@@ -123,6 +124,7 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
           isExpanded={isExpanded}
           setExpanded={setExpanded}
           spreadsheetColumnsList={spreadsheetColumnsList}
+          customFields={customFields}
           selectionHelpers={selectionHelpers}
           isEpic={isEpic}
         />
@@ -145,6 +147,7 @@ export const SpreadsheetIssueRow = observer(function SpreadsheetIssueRow(props: 
             isScrolled={isScrolled}
             containerRef={containerRef}
             spreadsheetColumnsList={spreadsheetColumnsList}
+            customFields={customFields}
             selectionHelpers={selectionHelpers}
             shouldRenderByDefault={isExpanded}
           />
@@ -166,6 +169,7 @@ interface IssueRowDetailsProps {
   isExpanded: boolean;
   setExpanded: Dispatch<SetStateAction<boolean>>;
   spreadsheetColumnsList: (keyof IIssueDisplayProperties)[];
+  customFields: IProjectCustomField[];
   spacingLeft?: number;
   selectionHelpers: TSelectionHelper;
   isEpic?: boolean;
@@ -184,6 +188,7 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
     isExpanded,
     setExpanded,
     spreadsheetColumnsList,
+    customFields,
     spacingLeft = 6,
     selectionHelpers,
     isEpic = false,
@@ -259,12 +264,41 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
 
   return (
     <>
-      {/* Single sticky column containing both identifier and workitem */}
+      {/* Dedicated select column — its own frozen cell at the far left, always
+          visible (ClickUp/Notion-style) so the checkbox column anchors the row. */}
+      <td className="relative left-0 z-[11] h-9 w-12 min-w-12 border-r-[0.5px] border-b-[0.5px] border-subtle bg-surface-1 group-[.selected-issue-row]:bg-accent-primary/5 group-[.selected-issue-row]:hover:bg-accent-primary/10 md:sticky">
+        {projectId && canSelectIssues && (
+          <Tooltip
+            tooltipContent={
+              <>
+                Only tasks within the current
+                <br />
+                project can be selected.
+              </>
+            }
+            disabled={issueDetail.project_id === projectId}
+          >
+            <div className="flex h-full w-full items-center justify-center">
+              <MultipleSelectEntityAction
+                className={cn("opacity-60 transition-opacity hover:opacity-100", {
+                  "opacity-100": isIssueSelected,
+                })}
+                groupId={SPREADSHEET_SELECT_GROUP}
+                id={issueDetail.id}
+                selectionHelpers={selectionHelpers}
+                disabled={issueDetail.project_id !== projectId}
+              />
+            </div>
+          </Tooltip>
+        )}
+      </td>
+      {/* Title column, frozen to the right of the select column. */}
       <td
         id={`issue-${issueId}`}
         ref={cellRef}
         tabIndex={0}
-        className="group/list-block relative left-0 z-10 max-w-lg bg-surface-1 md:sticky"
+        // Bright-pink selection box when the task (name) cell is focused/selected.
+        className="group/list-block relative left-0 z-10 max-w-lg overflow-hidden bg-surface-1 outline-none transition duration-150 focus:z-[1] focus:rounded-[3px] focus:ring-2 focus:ring-inset focus:ring-[#ec4899] md:sticky md:left-12"
       >
         <ControlLink
           href={workItemLink}
@@ -273,14 +307,14 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
           disabled={!!issueDetail?.tempId}
         >
           <Row
-            // Hug (px-0): the header th has no horizontal padding, so the default
-            // px-page-x here pushed the row's checkbox + title right of the header.
+            // HUGGING + an explicit px-page-x so the title lines up with the
+            // header label (the header's Tasks cell uses the same inset).
             variant={ERowVariant.HUGGING}
             className={cn(
               // Tightened the row from h-11 (44px) → h-9 (36px) for a denser
               // spreadsheet — scanning a long task list, the extra 8px per row
               // was wasted breathing room. Cells in IssueColumn match.
-              "group clickable z-10 flex h-9 w-full cursor-pointer items-center border-r-[0.5px] border-subtle-1 bg-transparent text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
+              "group clickable z-10 flex h-9 w-full cursor-pointer items-center border-r-[0.5px] border-subtle bg-transparent px-page-x text-13 group-[.selected-issue-row]:bg-accent-primary/5 after:absolute group-[.selected-issue-row]:hover:bg-accent-primary/10",
               {
                 "border-b-[0.5px]": !getIsIssuePeeked(issueDetail.id),
                 "border border-accent-strong hover:border-accent-strong":
@@ -288,61 +322,9 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
               }
             )}
           >
-            {/* Leading select column. ClickUp-style: the checkbox is always
-                visible (not just on hover) so a column of empty checkboxes
-                anchors the row and bulk-select feels obvious at-a-glance.
-                Unchecked state is faded so it doesn't compete with content;
-                hover and selected states bring it to full opacity. Sits
-                BEFORE the identifier so it lines up top-to-bottom. */}
-            {projectId && canSelectIssues && (
-              <Tooltip
-                tooltipContent={
-                  <>
-                    Only tasks within the current
-                    <br />
-                    project can be selected.
-                  </>
-                }
-                disabled={issueDetail.project_id === projectId}
-              >
-                <div className="flex h-full w-6 flex-shrink-0 items-center justify-center">
-                  <MultipleSelectEntityAction
-                    className={cn("opacity-50 transition-opacity group-hover/list-block:opacity-100", {
-                      "opacity-100": isIssueSelected,
-                    })}
-                    groupId={SPREADSHEET_SELECT_GROUP}
-                    id={issueDetail.id}
-                    selectionHelpers={selectionHelpers}
-                    disabled={issueDetail.project_id !== projectId}
-                  />
-                </div>
-              </Tooltip>
-            )}
-
-            {/* Identifier section - conditionally rendered */}
-            {displayProperties?.key && (
-              <div className="flex h-full min-w-20 flex-shrink-0 items-center">
-                <div className="relative flex cursor-pointer items-center text-11 hover:text-primary">
-                  {issueDetail.project_id && (
-                    <IssueIdentifier
-                      issueId={issueDetail.id}
-                      projectId={issueDetail.project_id}
-                      size="xs"
-                      variant="tertiary"
-                      displayProperties={displayProperties}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Workitem section */}
-            <div
-              className={cn("flex flex-grow items-center gap-0.5 py-1", {
-                "min-w-[320px]": !displayProperties?.key,
-                "min-w-52": displayProperties?.key,
-              })}
-            >
+            {/* Workitem section — min-w-0 so the title truncates within a resized
+                column instead of overflowing into the next cell. */}
+            <div className="flex min-w-0 flex-grow items-center gap-0.5 py-1">
               {/* sub issues indentation */}
               {nestingLevel !== 0 && <div style={{ width: subIssueIndentation }} />}
 
@@ -437,6 +419,22 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
           isEstimateEnabled={isEstimateEnabled}
         />
       ))}
+      {/* Custom-field value cells — inline editors keyed by field id. */}
+      {customFields.map((field) => (
+        <td
+          key={field.id}
+          className="h-9 min-w-36 border-r-[0.5px] border-b-[0.5px] border-subtle text-13 outline-none group-[.selected-issue-row]:bg-accent-primary/5"
+        >
+          <CustomFieldColumn
+            customField={field}
+            issue={issueDetail}
+            disabled={disableUserActions}
+            updateIssue={updateIssue}
+          />
+        </td>
+      ))}
+      {/* Trailing cell under the "add column" (+) header. */}
+      <td className="h-9 border-b-[0.5px] border-subtle bg-surface-1 group-[.selected-issue-row]:bg-accent-primary/5" />
     </>
   );
 });

@@ -75,7 +75,7 @@ export function PageTemplateModal({ isOpen, workspaceSlug, template, onClose, on
       <div className="flex max-h-[85vh] flex-col">
         <header className="flex items-center justify-between border-b border-subtle px-5 py-3">
           <div className="flex flex-col gap-0.5">
-            <h2 className="text-14 font-medium text-primary">{isEdit ? "Edit doc template" : "New doc template"}</h2>
+            <h2 className="text-14 font-normal text-primary">{isEdit ? "Edit doc template" : "New doc template"}</h2>
             <p className="text-12 text-tertiary">
               Name the template now. You can refine its content later from the docs flow.
             </p>

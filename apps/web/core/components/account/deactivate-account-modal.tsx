@@ -72,7 +72,7 @@ export function DeactivateAccountModal(props: Props) {
               />
             </div>
             <div>
-              <h3 className="my-4 text-20 leading-6 font-medium text-primary">{t("deactivate_your_account")}</h3>
+              <h3 className="my-4 text-20 leading-6 font-normal text-primary">{t("deactivate_your_account")}</h3>
               <p className="mt-6 list-disc pr-4 text-14 font-regular text-secondary">
                 {t("deactivate_your_account_description")}
               </p>

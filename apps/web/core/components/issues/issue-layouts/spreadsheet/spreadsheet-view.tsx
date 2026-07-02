@@ -6,20 +6,20 @@
 
 import React, { useRef } from "react";
 import { observer } from "mobx-react";
+import { useParams } from "next/navigation";
 // plane constants
 import { SPREADSHEET_SELECT_GROUP, SPREADSHEET_PROPERTY_LIST } from "@plane/constants";
 // types
 import type { TIssue, IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
-import { EIssueLayoutTypes } from "@plane/types";
 // components
 import { MultipleSelectGroup } from "@/components/core/multiple-select";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
+import { useProjectCustomFields } from "@/hooks/use-project-custom-fields";
 // plane web hooks
 import { useBulkOperationStatus } from "@/plane-web/hooks/use-bulk-operation-status";
 // local imports
 import type { TRenderQuickActions } from "../list/list-view-types";
-import { QuickAddIssueRoot, SpreadsheetAddIssueButton } from "../quick-add";
 import { SpreadsheetTable } from "./spreadsheet-table";
 
 type Props = {
@@ -60,10 +60,19 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
   // refs
   const containerRef = useRef<HTMLTableElement | null>(null);
   const portalRef = useRef<HTMLDivElement | null>(null);
+  // router
+  const { workspaceSlug, projectId } = useParams();
   // store hooks
   const { currentProjectDetails } = useProject();
   // plane web hooks
   const isBulkOperationsEnabled = useBulkOperationStatus();
+
+  // Project custom fields render as extra columns. They're project-scoped, so
+  // only fetch/show them in a single-project table (not the workspace-level one).
+  const { customFields, refetchCustomFields } = useProjectCustomFields(
+    !isWorkspaceLevel ? workspaceSlug?.toString() : undefined,
+    !isWorkspaceLevel ? projectId?.toString() : undefined
+  );
 
   const isEstimateEnabled: boolean = currentProjectDetails?.estimate !== null;
 
@@ -77,7 +86,7 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
 
   if (!issueIds || issueIds.length === 0) return <></>;
   return (
-    <div className="relative flex h-full w-full flex-col overflow-x-hidden bg-layer-1 whitespace-nowrap text-secondary">
+    <div className="relative flex h-full w-full flex-col overflow-x-hidden bg-surface-1 whitespace-nowrap text-secondary">
       <div ref={portalRef} className="spreadsheet-menu-portal" />
       <MultipleSelectGroup
         containerRef={containerRef}
@@ -88,7 +97,10 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
       >
         {(helpers) => (
           <>
-            <div ref={containerRef} className="vertical-scrollbar horizontal-scrollbar scrollbar-lg h-full w-full">
+            <div
+              ref={containerRef}
+              className="vertical-scrollbar horizontal-scrollbar scrollbar-lg min-h-0 w-full flex-1"
+            >
               <SpreadsheetTable
                 displayProperties={displayProperties}
                 displayFilters={displayFilters}
@@ -98,26 +110,19 @@ export const SpreadsheetView = observer(function SpreadsheetView(props: Props) {
                 portalElement={portalRef}
                 quickActions={quickActions}
                 updateIssue={updateIssue}
+                quickAddCallback={quickAddCallback}
+                enableQuickCreateIssue={enableQuickCreateIssue}
+                disableIssueCreation={disableIssueCreation}
                 canEditProperties={canEditProperties}
                 containerRef={containerRef}
                 canLoadMoreIssues={canLoadMoreIssues}
                 loadMoreIssues={loadMoreIssues}
                 spreadsheetColumnsList={spreadsheetColumnsList}
+                customFields={customFields}
+                refetchCustomFields={refetchCustomFields}
                 selectionHelpers={helpers}
                 isEpic={isEpic}
               />
-            </div>
-            <div className="border-t border-subtle">
-              <div className="sticky bottom-0 left-0 z-5">
-                {enableQuickCreateIssue && !disableIssueCreation && (
-                  <QuickAddIssueRoot
-                    layout={EIssueLayoutTypes.SPREADSHEET}
-                    QuickAddButton={SpreadsheetAddIssueButton}
-                    quickAddCallback={quickAddCallback}
-                    isEpic={isEpic}
-                  />
-                )}
-              </div>
             </div>
           </>
         )}

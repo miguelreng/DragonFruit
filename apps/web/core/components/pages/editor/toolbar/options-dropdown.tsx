@@ -64,9 +64,11 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
   const docProjectId = project_ids?.[0];
   const isFocusMode = Boolean(view_props?.focus_mode);
   const isDropCapEnabled = Boolean(view_props?.drop_cap);
-  const currentFontStyle = normalizeDocFontStyle(view_props?.font_style);
   // page filters
-  const { isFullWidth, handleFullWidth, isStickyToolbarEnabled, handleStickyToolbar } = usePageFilters();
+  const { isFullWidth, handleFullWidth, isStickyToolbarEnabled, handleStickyToolbar, fontStyle: defaultFontStyle } =
+    usePageFilters();
+  // a per-doc override wins; otherwise the effective font is the user's default
+  const currentFontStyle = view_props?.font_style ? normalizeDocFontStyle(view_props.font_style) : defaultFontStyle;
   // menu items list
   const EXTRA_MENU_OPTIONS = useMemo(
     function EXTRA_MENU_OPTIONS(): React.ComponentProps<typeof PageActions>["extraOptions"] {

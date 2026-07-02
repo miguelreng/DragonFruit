@@ -71,7 +71,7 @@ export const LinkCreateUpdateModal = observer(function LinkCreateUpdateModal(pro
     <ModalCore isOpen={isModalOpen} handleClose={onClose}>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div className="space-y-5 p-5">
-          <h3 className="text-18 font-medium text-secondary">
+          <h3 className="text-18 font-normal text-secondary">
             {preloadedData?.id ? t("update") : t("add")} {t("home.quick_links.title")}
           </h3>
           <div className="mt-2 space-y-3">

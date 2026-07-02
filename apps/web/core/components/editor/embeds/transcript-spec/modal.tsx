@@ -151,7 +151,7 @@ export function TranscriptSpecModal(props: Props) {
             </button>
           )}
           <Sparkles className="size-4 shrink-0 text-accent-primary" />
-          <h2 className="text-14 font-medium text-primary">
+          <h2 className="text-14 font-normal text-primary">
             {stage === "preview" ? "Preview spec" : "Spec from transcript"}
           </h2>
           <span className="ml-auto text-12 text-tertiary">

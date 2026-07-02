@@ -77,6 +77,10 @@ from .doc_write import (
 
 logger = logging.getLogger(__name__)
 _DEFAULT_ASSISTANT_NAME = "Atlas"
+# Reserved name of the hidden per-project doc page that backs the "Brief" tab.
+# Matches _BRIEF_PAGE_NAME in bgtasks/agent_dispatch_task.py and the frontend
+# BRIEF_PAGE_NAME — the brief is identified by the is_brief flag OR this name.
+_BRIEF_PAGE_NAME = "Project Brief"
 
 
 # Per-attachment caps. The whole POST body is also bounded by Django's
@@ -104,6 +108,23 @@ _FETCH_URL_HEADERS = {
 }
 _DOCUMENT_CREATION_RE = re.compile(
     r"\b(create|write|draft|generate|make|prepare|crear|crea|redacta|genera|prepara|escribe)\b.{0,120}\b(document|doc|page|documento|pagina|página)\b",
+    re.IGNORECASE,
+)
+
+# Matches requests to write/update THE project's Brief (the is_brief doc page
+# rendered by the Brief tab) — routed to `update_project_brief`, not the generic
+# create_document flow. Requires a create/update verb followed by a phrase that
+# clearly names the project brief ("the brief", "el brief", "project brief",
+# "brief del proyecto", "brief oficial"). Deliberately does NOT match "brief me
+# on X" / "a brief on X", which are topic briefs handled by create_wikipedia_brief.
+_PROJECT_BRIEF_REQUEST_RE = re.compile(
+    r"\b(?:create|creating|write|writing|draft|make|generate|prepare|update|updating|edit|revise|"
+    r"fill(?:\s+(?:in|out))?|"
+    r"crea(?:r)?|escrib(?:e|ir)|redacta(?:r)?|genera(?:r)?|prepara(?:r)?|actualiza(?:r)?|"
+    r"rellena(?:r)?|llena(?:r)?)\b"
+    r"[^.?!]*?\b"
+    r"(?:the\s+(?:project(?:'s)?\s+)?brief|project\s+brief|"
+    r"el\s+brief|brief\s+oficial|brief\s+del?\s+proyecto|brief\s+de\s+(?:mi|este|el)\s+proyecto)\b",
     re.IGNORECASE,
 )
 
@@ -187,6 +208,10 @@ If the user asks to use an external app or service through Composio:
   the auth link to the user and wait for them to finish connecting
 - call `composio_execute_tool` only after the user has explicitly approved the exact external action and arguments
 Do not invent Composio tool slugs or auth URLs.
+If the user asks you to create, write, fill in, or update THE project's brief (e.g. "create the brief
+for this project", "crea el brief de mi proyecto", "update the project brief"), call
+`update_project_brief` — NOT `create_document`. The brief is the project's single canonical context
+page (the "Brief" tab); writing it as a normal document creates a duplicate the Brief tab won't show.
 Only if the user explicitly asks you to create a task, call `create_task`.
 Only if the user explicitly asks you to create a sticky/note, call `create_sticky`.
 For factual questions about real-world entities, history, science, or definitions, call `lookup_wikipedia`
@@ -351,6 +376,10 @@ def _generate_title(message_text: str) -> str:
 
 def _looks_like_document_request(text: str) -> bool:
     return bool(_DOCUMENT_CREATION_RE.search(text or ""))
+
+
+def _looks_like_brief_request(text: str) -> bool:
+    return bool(_PROJECT_BRIEF_REQUEST_RE.search(text or ""))
 
 
 def _should_use_agent_tools(tool_mode: str | None) -> bool:
@@ -654,6 +683,44 @@ def _search_workspace_content(*, workspace: Workspace, user, project_id: str | N
     return hits
 
 
+def _normalize_heading_text(value: str) -> str:
+    """Lowercase and collapse to alphanumerics for loose title comparison."""
+    return re.sub(r"[^a-z0-9]+", " ", (value or "").lower()).strip()
+
+
+def _strip_duplicate_title_heading(document_html: str, title: str) -> str:
+    """Drop a leading <h1>/<h2> that merely repeats the page title.
+
+    The doc editor renders the page name as the document's own title, so a body
+    that opens with the same heading shows the title twice (the bug users hit
+    when Atlas writes an <h1> title into the body). Punctuation/casing are
+    ignored so "Brief Oficial del Proyecto: X" matches page name "...X".
+    """
+    normalized_title = _normalize_heading_text(title)
+    if not document_html or not normalized_title:
+        return document_html
+    try:
+        soup = BeautifulSoup(document_html, "html.parser")
+    except Exception:  # noqa: BLE001 — never let title cleanup break creation
+        return document_html
+    first_tag = None
+    for node in soup.children:
+        if getattr(node, "name", None) is None:
+            # Leading whitespace text is fine; real leading prose is not a title.
+            if str(node).strip():
+                return document_html
+            continue
+        first_tag = node
+        break
+    if first_tag is None or first_tag.name not in {"h1", "h2"}:
+        return document_html
+    if _normalize_heading_text(first_tag.get_text()) != normalized_title:
+        return document_html
+    first_tag.extract()
+    remaining = str(soup).strip()
+    return remaining or "<p></p>"
+
+
 def _coerce_document_html(raw_html: str) -> str:
     """Return sanitized editor HTML, accepting plain text as a fallback."""
     document_html = (raw_html or "").strip()
@@ -756,6 +823,9 @@ def _make_create_document_tool(*, workspace: Workspace, user, project_id: str | 
             return "tool_error: `title` is required"
 
         description_html = _coerce_document_html(str(args.get("description_html") or ""))
+        # The editor renders page.name as the doc title, so drop a leading
+        # heading that just repeats it (otherwise the title shows twice).
+        description_html = _strip_duplicate_title_heading(description_html, title)
 
         page = Page(
             workspace=workspace,
@@ -801,6 +871,106 @@ def _make_create_document_tool(*, workspace: Workspace, user, project_id: str | 
                 },
             },
             "required": ["title", "description_html"],
+        },
+        handler=_handler,
+    )
+
+
+def _make_update_project_brief_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
+    """Write the current project's Brief (the single hidden `is_brief` doc page).
+
+    Distinct from `create_document`: asking Atlas for "the project brief" should
+    fill the same page the Brief tab renders, not spawn a new standalone doc.
+    """
+
+    def _handler(args: dict) -> str:
+        if not project_id:
+            return "tool_error: no project is currently open. Ask the user whose project brief to write."
+
+        project = Project.objects.filter(
+            workspace=workspace,
+            pk=project_id,
+            archived_at__isnull=True,
+        ).first()
+        if project is None:
+            return f"tool_error: no active project with id {project_id} in this workspace"
+
+        description_html = _coerce_document_html(str(args.get("description_html") or ""))
+
+        # Discover the existing brief page the same way the Brief tab does:
+        # prefer the is_brief flag, fall back to the reserved name.
+        project_page = (
+            ProjectPage.objects.filter(
+                workspace=workspace,
+                project=project,
+                deleted_at__isnull=True,
+                page__deleted_at__isnull=True,
+                page__page_type=Page.PAGE_TYPE_DOC,
+            )
+            .filter(Q(page__is_brief=True) | Q(page__name=_BRIEF_PAGE_NAME))
+            .select_related("page")
+            .order_by("-page__is_brief", "-page__updated_at")
+            .first()
+        )
+
+        if project_page is not None:
+            page = project_page.page
+            page.name = _BRIEF_PAGE_NAME
+            page.is_brief = True
+            page.description_html = description_html
+            page.description_json = {}
+            # Clear the collaborative binary so the editor re-seeds from the HTML
+            # we just wrote — otherwise the stale body persists (see the live-doc
+            # binary-seed gotcha).
+            page.description_binary = None
+            page.save()
+            action = "updated"
+        else:
+            page = Page(
+                workspace=workspace,
+                name=_BRIEF_PAGE_NAME,
+                page_type=Page.PAGE_TYPE_DOC,
+                is_brief=True,
+                description_html=description_html,
+                description_json={},
+                description_binary=None,
+                owned_by=user,
+            )
+            page.save(created_by_id=user.id)
+            ProjectPage(
+                workspace=workspace,
+                project=project,
+                page=page,
+            ).save(created_by_id=user.id)
+            action = "created"
+
+        return (
+            f"ok: {action} the project brief "
+            f"(id={page.id}, url=/{workspace.slug}/projects/{project.id}/brief)"
+        )
+
+    return LLMTool(
+        name="update_project_brief",
+        description=(
+            "Write or replace the current project's Brief — the single canonical project "
+            "context document Atlas reads on every task (the project's 'Brief' tab). Use this "
+            "whenever the user asks to create, write, fill in, or update THE brief / el brief "
+            "of the project. Do NOT use `create_document` for the project brief. This is "
+            "different from `create_wikipedia_brief`, which researches a standalone topic. "
+            "Calling this replaces the brief's entire contents with the HTML you provide."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "description_html": {
+                    "type": "string",
+                    "description": (
+                        "Complete brief body as safe HTML (headings, paragraphs, lists). "
+                        "You may open with a single top-level heading for the brief title."
+                    ),
+                },
+            },
+            "required": ["description_html"],
         },
         handler=_handler,
     )
@@ -1121,7 +1291,7 @@ def _make_wikipedia_brief_tool(*, workspace: Workspace, user, project_id: str | 
 def _fallback_tool_confirmation(result) -> str:
     """Give users a useful reply if the model stops after an action tool call."""
     for tool_call in reversed(result.tool_calls):
-        if tool_call.get("name") not in {"create_document", "create_task", "create_sticky"}:
+        if tool_call.get("name") not in {"create_document", "update_project_brief", "create_task", "create_sticky"}:
             continue
         return _tool_call_confirmation(tool_call)
     return ""
@@ -1141,12 +1311,18 @@ def _tool_call_confirmation(tool_call: dict) -> str:
     if not tool_result.startswith("ok:"):
         return tool_result
 
-    args = tool_call.get("arguments", {})
-    title = str(args.get("title") or args.get("name") or "item").strip()
     url = ""
     marker = "url="
     if marker in tool_result:
         url = tool_result.split(marker, 1)[1].rstrip(")")
+
+    # The brief tool carries no title arg and can create OR update the page.
+    if tool_call.get("name") == "update_project_brief":
+        verb = "Updated" if "ok: updated" in tool_result else "Created"
+        return f"{verb} the [project brief]({url})." if url else f"{verb} the project brief."
+
+    args = tool_call.get("arguments", {})
+    title = str(args.get("title") or args.get("name") or "item").strip()
     if url:
         return f"Created [{title}]({url})."
     return f"Created {title}."
@@ -1701,7 +1877,15 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 status=status.HTTP_200_OK,
             )
 
-        is_document_request = use_agent_tools and (force_document_tool or _looks_like_document_request(content))
+        # A "write the project brief" request routes to update_project_brief, so
+        # keep it out of the generic create_document flow (whose fallbacks would
+        # otherwise spawn a duplicate normal doc if the model calls the brief tool).
+        is_brief_request = use_agent_tools and _looks_like_brief_request(content)
+        is_document_request = (
+            use_agent_tools
+            and not is_brief_request
+            and (force_document_tool or _looks_like_document_request(content))
+        )
         document_subject = _normalise_document_subject(content) if is_document_request else ""
         document_title = _title_from_subject(document_subject) if document_subject else ""
         research_results = _search_web(document_subject or content) if is_document_request else []
@@ -1844,6 +2028,11 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     project_id=project_id,
                 ),
                 _make_create_document_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
+                _make_update_project_brief_tool(
                     workspace=session.workspace,
                     user=request.user,
                     project_id=project_id,

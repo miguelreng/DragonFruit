@@ -5,20 +5,24 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { when } from "mobx";
 import { observer } from "mobx-react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useSearchParams as useRouterSearchParams } from "react-router";
 import { TOAST_TYPE, dismissToast, setToast } from "@plane/propel/toast";
 import type { TBaseIssue, TIssuesResponse } from "@plane/types";
-import { cn, createIssuePayload, getDate, renderFormattedPayloadDate } from "@plane/utils";
+import { cn, createIssuePayload, renderFormattedPayloadDate } from "@plane/utils";
 import { Collapse } from "@/components/common/collapse";
-import { ChevronDown, ChevronUp } from "@/components/icons/lucide-shim";
+import { ChevronDown, ChevronUp, Plus } from "@/components/icons/lucide-shim";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { useUser } from "@/hooks/store/user";
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useLabel } from "@/hooks/store/use-label";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { IssueService } from "@/services/issue";
+import { buildForest, sortIssues, sortIssuesManual, type Forest, type ForestEntry } from "./task-forest";
 import { normalizeProjectToken, parseQuickInput, randomLabelColor } from "./task-parse";
 import { TaskQuickAdd } from "./task-quick-add";
 import { MAX_TASK_DEPTH, TaskRow, type TaskRowOps } from "./task-row";
@@ -27,102 +31,22 @@ import { isOpenIssue, useMyTasksData } from "./use-my-tasks";
 // How long the row stays visibly "checked" before it animates out of the list.
 const COMPLETE_ANIMATION_MS = 320;
 
-const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
+// Delay between each task's check landing when a parent cascades down its subtasks, so the
+// checks ripple parent → child → grandchild instead of all flipping at once.
+const CASCADE_STAGGER_MS = 90;
+
+// Gap left between adjacent tasks' sort_order values (Plane's manual-ordering step).
+const SORT_STEP = 65535;
+
+/** Pick a sort_order that lands between two neighbors (or just past the edge when at an end). */
+function computeSortOrder(before?: number, after?: number): number {
+  if (before != null && after != null) return (before + after) / 2;
+  if (before != null) return before + SORT_STEP;
+  if (after != null) return after - SORT_STEP;
+  return SORT_STEP;
+}
 
 const issueService = new IssueService();
-
-/** Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent. */
-function sortIssues(issues: TBaseIssue[]): TBaseIssue[] {
-  // Copy before sorting (toSorted needs es2023 lib, which this project's tsc target predates).
-  // oxlint-disable-next-line unicorn/no-array-sort
-  return [...issues].sort((a, b) => {
-    const aDue = a.target_date ? (getDate(a.target_date)?.getTime() ?? Infinity) : Infinity;
-    const bDue = b.target_date ? (getDate(b.target_date)?.getTime() ?? Infinity) : Infinity;
-    if (aDue !== bDue) return aDue - bDue;
-    const aRank = PRIORITY_RANK[a.priority ?? "none"] ?? 4;
-    const bRank = PRIORITY_RANK[b.priority ?? "none"] ?? 4;
-    return aRank - bRank;
-  });
-}
-
-type ForestEntry = { issue: TBaseIssue; depth: number; height: number; ancestorIds: string[] };
-
-type Forest = {
-  /** Render order (parents before children) per project. */
-  entriesByProject: Map<string, ForestEntry[]>;
-  /** Render order across all projects (flat usage). */
-  allEntries: ForestEntry[];
-  byId: Map<string, TBaseIssue>;
-  depthById: Map<string, number>;
-  heightById: Map<string, number>;
-  /** All descendant ids per task (for cycle checks on nest). */
-  descendantIdsById: Map<string, Set<string>>;
-  /** Direct children per parent, in render order. */
-  childrenByParent: Map<string, TBaseIssue[]>;
-};
-
-/**
- * Turn the flat open-issue list into a parent→child forest. A task is a root when it has no
- * parent (or its parent isn't in the user's list). Each entry carries its depth, the height of
- * its own subtree, and its ancestor chain. Children stay sorted by due → priority within a parent.
- */
-function buildForest(issues: TBaseIssue[], openIds: Set<string>): Forest {
-  const byId = new Map(issues.map((i) => [i.id, i]));
-  const childrenByParent = new Map<string, TBaseIssue[]>();
-  const roots: TBaseIssue[] = [];
-  for (const issue of issues) {
-    const pid = issue.parent_id && openIds.has(issue.parent_id) ? issue.parent_id : null;
-    if (pid) {
-      const bucket = childrenByParent.get(pid);
-      if (bucket) bucket.push(issue);
-      else childrenByParent.set(pid, [issue]);
-    } else {
-      roots.push(issue);
-    }
-  }
-
-  const entriesByProject = new Map<string, ForestEntry[]>();
-  const allEntries: ForestEntry[] = [];
-  const depthById = new Map<string, number>();
-  const heightById = new Map<string, number>();
-  const descendantIdsById = new Map<string, Set<string>>();
-
-  const pushEntry = (entry: ForestEntry) => {
-    allEntries.push(entry);
-    const key = entry.issue.project_id ?? "__none__";
-    const bucket = entriesByProject.get(key);
-    if (bucket) bucket.push(entry);
-    else entriesByProject.set(key, [entry]);
-  };
-
-  const visit = (
-    issue: TBaseIssue,
-    depth: number,
-    ancestorIds: string[]
-  ): { height: number; descendants: Set<string> } => {
-    depthById.set(issue.id, depth);
-    const entry: ForestEntry = { issue, depth, height: 0, ancestorIds };
-    pushEntry(entry);
-    const kids = sortIssues(childrenByParent.get(issue.id) ?? []);
-    const childAncestors = [...ancestorIds, issue.id];
-    const descendants = new Set<string>();
-    let height = 0;
-    for (const kid of kids) {
-      const res = visit(kid, depth + 1, childAncestors);
-      height = Math.max(height, res.height + 1);
-      descendants.add(kid.id);
-      for (const d of res.descendants) descendants.add(d);
-    }
-    entry.height = height;
-    heightById.set(issue.id, height);
-    descendantIdsById.set(issue.id, descendants);
-    return { height, descendants };
-  };
-
-  for (const root of sortIssues(roots)) visit(root, 0, []);
-
-  return { entriesByProject, allEntries, byId, depthById, heightById, descendantIdsById, childrenByParent };
-}
 
 type MyTasksSectionProps = {
   /** Whose tasks to show. Defaults to the signed-in user (home usage). */
@@ -133,6 +57,8 @@ type MyTasksSectionProps = {
   flat?: boolean;
   /** Group tasks under collapsible per-project headers (full tasks page); flat list otherwise. */
   groupByProject?: boolean;
+  /** Fill the parent's height with an internal scroll instead of the 420px widget cap. */
+  fullHeight?: boolean;
 };
 
 export const MyTasksSection = observer(function MyTasksSection({
@@ -140,6 +66,7 @@ export const MyTasksSection = observer(function MyTasksSection({
   hideHeader = false,
   flat = false,
   groupByProject = false,
+  fullHeight = false,
 }: MyTasksSectionProps = {}) {
   const { workspaceSlug } = useParams();
   const searchParams = useSearchParams();
@@ -148,6 +75,8 @@ export const MyTasksSection = observer(function MyTasksSection({
   const { getStateById, getProjectStates, fetchWorkspaceStates, fetchProjectStates } = useProjectState();
   const { getProjectById, joinedProjectIds } = useProject();
   const { getProjectLabels, fetchProjectLabels, createLabel, getWorkspaceLabels, fetchWorkspaceLabels } = useLabel();
+  const issueDetailStore = useIssueDetail();
+  const { setPeekIssue, peekIssue } = issueDetailStore;
 
   const slug = workspaceSlug?.toString();
   const userId = userIdProp ?? currentUser?.id;
@@ -183,12 +112,26 @@ export const MyTasksSection = observer(function MyTasksSection({
     null
   );
 
+  // Open a blank top-level task line in a project (expanding the group first if collapsed).
+  const addTaskInProject = (projectId: string) => {
+    if (collapsedSet.has(projectId)) {
+      const next = new Set(collapsedSet);
+      next.delete(projectId);
+      setCollapsedProjectIds([...next]);
+    }
+    setDraft({ projectId, indentTargetId: "", defaultIndented: false });
+  };
+
   // Latest computed forest, kept in a ref so the nest/indent/outdent callbacks can stay stable
   // (otherwise they'd change every data update and re-register every row's drag listeners).
   const forestRef = useRef<Forest | null>(null);
 
   // Task whose inline title should grab focus next (set after creating from the add row).
   const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
+
+  // Id of the task we last opened in the detail peek, so we can refresh the list
+  // if it gets deleted from there (the peek's delete is invisible to this SWR cache).
+  const openedPeekIdRef = useRef<string | null>(null);
 
   const { data, isLoading, mutate } = useMyTasksData(slug, userId);
 
@@ -220,22 +163,28 @@ export const MyTasksSection = observer(function MyTasksSection({
     [getProjectStates, fetchProjectStates, slug]
   );
 
-  // Revert a just-completed task back to the state it had before completing,
-  // bringing it back onto the list.
+  // Revert a just-completed task (and any subtasks it cascaded) back to the states they had
+  // before completing, bringing the whole chain back onto the list.
   const handleUndoComplete = useCallback(
-    async (issue: TBaseIssue, previousStateId: string | null | undefined) => {
-      const projectId = issue.project_id;
-      if (!slug || !projectId || !previousStateId) return;
+    async (chain: TBaseIssue[], previousStates: Map<string, string | null | undefined>) => {
+      if (!slug) return;
+      const ids = chain.map((i) => i.id);
       try {
-        await issueService.patchIssue(slug, projectId, issue.id, { state_id: previousStateId });
+        await Promise.all(
+          chain.map((issue) => {
+            const previousStateId = previousStates.get(issue.id);
+            if (!issue.project_id || !previousStateId) return Promise.resolve();
+            return issueService.patchIssue(slug, issue.project_id, issue.id, { state_id: previousStateId });
+          })
+        );
         setCompletedIds((prev) => {
           const next = new Set(prev);
-          next.delete(issue.id);
+          ids.forEach((id) => next.delete(id));
           return next;
         });
         setCheckingIds((prev) => {
           const next = new Set(prev);
-          next.delete(issue.id);
+          ids.forEach((id) => next.delete(id));
           return next;
         });
         mutate();
@@ -255,46 +204,84 @@ export const MyTasksSection = observer(function MyTasksSection({
       const projectId = issue.project_id;
       if (!slug || !projectId || checkingIds.has(issue.id) || completedIds.has(issue.id)) return;
 
-      // Remember the pre-completion state so the toast's "Undo" can restore it.
-      const previousStateId = issue.state_id;
+      // Completing a parent completes the subtasks nested under it too. Gather the descendant rows
+      // currently shown below this task, in render order (top → bottom), skipping any already
+      // mid-completion. Subtasks live in the parent's project, so one "done" state fits the chain.
+      const f = forestRef.current;
+      const descendantIds = f?.descendantIdsById.get(issue.id) ?? new Set<string>();
+      const descendants =
+        descendantIds.size > 0 && f
+          ? f.allEntries
+              .filter((e) => descendantIds.has(e.issue.id))
+              .map((e) => e.issue)
+              .filter((i) => !checkingIds.has(i.id) && !completedIds.has(i.id))
+          : [];
+      // Parent first, then its subtasks — this is the order the checks ripple in.
+      const chain = [issue, ...descendants];
 
-      // Optimistically show the row as checked.
-      setCheckingIds((prev) => new Set(prev).add(issue.id));
+      // Remember every task's pre-completion state so the toast's "Undo" can restore the chain.
+      const previousStates = new Map(chain.map((i) => [i.id, i.state_id]));
+
+      // Optimistically flip each row's check on with a stagger so the completion cascades down.
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      chain.forEach((node, idx) => {
+        if (idx === 0) {
+          setCheckingIds((prev) => new Set(prev).add(node.id));
+        } else {
+          timers.push(
+            setTimeout(() => setCheckingIds((prev) => new Set(prev).add(node.id)), idx * CASCADE_STAGGER_MS)
+          );
+        }
+      });
+
+      const clearCheck = (ids: string[]) =>
+        setCheckingIds((prev) => {
+          const next = new Set(prev);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+
       try {
         const completedStateId = await resolveCompletedStateId(projectId);
         if (!completedStateId) throw new Error("No completed state for project");
-        await issueService.patchIssue(slug, projectId, issue.id, { state_id: completedStateId });
-        // Let the check land, then slide the row out and refresh in the background.
+        await Promise.all(
+          chain.map((node) =>
+            node.project_id
+              ? issueService.patchIssue(slug, node.project_id, node.id, { state_id: completedStateId })
+              : Promise.resolve()
+          )
+        );
+        // Wait for the last check in the ripple to land, then slide the whole chain out and refresh.
+        const settleDelay = (chain.length - 1) * CASCADE_STAGGER_MS + COMPLETE_ANIMATION_MS;
         setTimeout(() => {
-          setCompletedIds((prev) => new Set(prev).add(issue.id));
-          setCheckingIds((prev) => {
+          const ids = chain.map((i) => i.id);
+          setCompletedIds((prev) => {
             const next = new Set(prev);
-            next.delete(issue.id);
+            ids.forEach((id) => next.add(id));
             return next;
           });
+          clearCheck(ids);
           mutate();
           // Offer a brief window to undo, Reminders-style.
           let toastId: string | undefined;
           const undo = () => {
             if (toastId) dismissToast(toastId);
-            handleUndoComplete(issue, previousStateId);
+            handleUndoComplete(chain, previousStates);
           };
+          const subCount = chain.length - 1;
           toastId = setToast({
             type: TOAST_TYPE.SUCCESS,
-            title: "Task completed",
+            title: subCount > 0 ? `Task + ${subCount} subtask${subCount > 1 ? "s" : ""} completed` : "Task completed",
             actionItems: (
               <button type="button" onClick={undo}>
                 Undo
               </button>
             ),
           });
-        }, COMPLETE_ANIMATION_MS);
+        }, settleDelay);
       } catch {
-        setCheckingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(issue.id);
-          return next;
-        });
+        timers.forEach(clearTimeout);
+        clearCheck(chain.map((i) => i.id));
         setToast({
           type: TOAST_TYPE.ERROR,
           title: "Couldn't complete task",
@@ -458,6 +445,64 @@ export const MyTasksSection = observer(function MyTasksSection({
     [slug, mutate]
   );
 
+  // Drag-to-reorder: place `sourceId` immediately above/below `targetId` as its sibling, and
+  // persist the new position via sort_order (manual order, grouped tasks page only).
+  const reorderTask = useCallback(
+    async (sourceId: string, targetId: string, position: "above" | "below") => {
+      const f = forestRef.current;
+      if (!slug || !f || sourceId === targetId) return;
+      const source = f.byId.get(sourceId);
+      const target = f.byId.get(targetId);
+      if (!source?.project_id || !target) return;
+      if (source.project_id !== target.project_id) return;
+      // Don't move a task next to one of its own descendants (would create a cycle).
+      if (f.descendantIdsById.get(sourceId)?.has(targetId)) return;
+
+      // The source becomes the target's sibling, so it inherits the target's parent + depth.
+      const targetParentId = target.parent_id && f.byId.has(target.parent_id) ? target.parent_id : null;
+      const newDepth = f.depthById.get(targetId) ?? 0;
+      const sourceHeight = f.heightById.get(sourceId) ?? 0;
+      if (newDepth + sourceHeight > MAX_TASK_DEPTH) return;
+
+      const siblingsRaw = targetParentId
+        ? (f.childrenByParent.get(targetParentId) ?? [])
+        : f.allEntries
+            .filter((e) => e.depth === 0 && (e.issue.project_id ?? null) === (target.project_id ?? null))
+            .map((e) => e.issue);
+      // Order as rendered, drop the source out, then reinsert relative to the target.
+      const siblings = sortIssuesManual(siblingsRaw).filter((s) => s.id !== sourceId);
+      const targetIdx = siblings.findIndex((s) => s.id === targetId);
+      if (targetIdx === -1) return;
+      const insertIdx = position === "above" ? targetIdx : targetIdx + 1;
+      const newSortOrder = computeSortOrder(siblings[insertIdx - 1]?.sort_order, siblings[insertIdx]?.sort_order);
+
+      // Move the row immediately, then persist — otherwise it visibly snaps back until the refetch lands.
+      mutate(
+        (prev) => {
+          const results = Array.isArray(prev?.results) ? (prev!.results as TBaseIssue[]) : [];
+          return {
+            ...prev,
+            results: results.map((i) =>
+              i.id === sourceId ? { ...i, parent_id: targetParentId, sort_order: newSortOrder } : i
+            ),
+          } as TIssuesResponse;
+        },
+        { revalidate: false }
+      );
+      try {
+        await issueService.patchIssue(slug, source.project_id, sourceId, {
+          parent_id: targetParentId,
+          sort_order: newSortOrder,
+        });
+        mutate();
+      } catch {
+        mutate();
+        setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't move task", message: "Something went wrong." });
+      }
+    },
+    [slug, mutate]
+  );
+
   // Outdent one level: re-parent to the grandparent (or top level for a first-level subtask).
   const outdentTask = useCallback(
     async (issue: TBaseIssue) => {
@@ -494,7 +539,7 @@ export const MyTasksSection = observer(function MyTasksSection({
   const tasks = sortIssues(openIssues);
   const openIds = useMemo(() => new Set(openIssues.map((i) => i.id)), [openIssues]);
 
-  const forest = useMemo(() => buildForest(openIssues, openIds), [openIssues, openIds]);
+  const forest = useMemo(() => buildForest(openIssues, openIds, groupByProject), [openIssues, openIds, groupByProject]);
   forestRef.current = forest;
 
   // Stable midnight reference for "overdue" styling — recomputed once per mount.
@@ -558,6 +603,39 @@ export const MyTasksSection = observer(function MyTasksSection({
     [setRouterSearchParams]
   );
 
+  // Open the task's detail peek overview (works on the home — HomePeekOverviewsRoot is mounted there).
+  const onOpenDetail = useCallback(
+    (issue: TBaseIssue) => {
+      if (!slug || !issue.project_id) return;
+      openedPeekIdRef.current = issue.id;
+      setPeekIssue({ workspaceSlug: slug, projectId: issue.project_id, issueId: issue.id });
+    },
+    [slug, setPeekIssue]
+  );
+
+  // When a peek this list opened closes, watch for its task being deleted from the
+  // drawer and refetch so the stale row drops out of this list's SWR cache. Only the
+  // list that opened the task reacts: `onOpenDetail` is the sole writer of the ref,
+  // so a task opened from anywhere else never triggers this.
+  //
+  // We can't just check the store synchronously here: the peek's delete is
+  // fire-and-forget (issue-details/issue.store `removeIssue` doesn't await the base
+  // store), so at close time the task is still in the map. Instead `when` waits until
+  // it actually leaves the store — which happens only after the DELETE completes, so
+  // the refetch sees fresh data. A plain close leaves the task in the map, so `when`
+  // simply never fires.
+  useEffect(() => {
+    const openedId = openedPeekIdRef.current;
+    if (!openedId || peekIssue?.issueId === openedId) return;
+    // Peek moved off the task we opened — stop tracking it. (If the list opened
+    // the new task, `onOpenDetail` already set the ref and we'd have returned above.)
+    openedPeekIdRef.current = null;
+    return when(
+      () => !issueDetailStore.issue.getIssueById(openedId),
+      () => mutate()
+    );
+  }, [peekIssue, issueDetailStore, mutate]);
+
   const rowOps: TaskRowOps = useMemo(
     () => ({
       isOwnList,
@@ -570,7 +648,9 @@ export const MyTasksSection = observer(function MyTasksSection({
       onIndent: indentTask,
       onOutdent: outdentTask,
       onNest: nestTask,
+      onReorder: reorderTask,
       onFilterLabel,
+      onOpenDetail,
     }),
     [
       isOwnList,
@@ -583,7 +663,9 @@ export const MyTasksSection = observer(function MyTasksSection({
       indentTask,
       outdentTask,
       nestTask,
+      reorderTask,
       onFilterLabel,
+      onOpenDetail,
     ]
   );
 
@@ -629,22 +711,32 @@ export const MyTasksSection = observer(function MyTasksSection({
     : [];
 
   return (
-    <section className="flex flex-col gap-2">
+    <section className={cn("flex flex-col gap-2", fullHeight && "h-full min-h-0")}>
       {!hideHeader && (
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <h3 className="text-14 font-semibold text-secondary">My tasks</h3>
               {tasks.length > 0 && (
-                <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
+                <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
                   {tasks.length}
                 </span>
               )}
             </div>
           </div>
+          {slug && (
+            <Link href={`/${slug}/tasks`} className="text-11 font-medium text-placeholder hover:text-secondary">
+              View all tasks
+            </Link>
+          )}
         </div>
       )}
-      <div className={cn(!flat && "rounded-[18px] border border-subtle bg-surface-1")}>
+      <div
+        className={cn(
+          !flat && "rounded-[18px] border border-subtle bg-surface-1",
+          fullHeight && "flex min-h-0 flex-1 flex-col"
+        )}
+      >
         {isLoading ? (
           <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
         ) : (
@@ -658,27 +750,37 @@ export const MyTasksSection = observer(function MyTasksSection({
               : null}
             {tasks.length > 0 &&
               (groupByProject ? (
-                <div className="scrollbar-hide max-h-[420px] overflow-y-auto">
+                <div className={cn("scrollbar-hide overflow-y-auto", fullHeight ? "min-h-0 flex-1" : "max-h-[420px]")}>
                   {projectGroups.map((group) => {
                     const isCollapsed = collapsedSet.has(group.projectId);
                     return (
                       <div key={group.projectId} className="pt-1 first:pt-0">
-                        <button
-                          type="button"
-                          onClick={() => toggleProjectCollapsed(group.projectId)}
-                          aria-expanded={!isCollapsed}
-                          className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1.5 text-left transition hover:bg-layer-transparent-hover"
-                        >
-                          {isCollapsed ? (
-                            <ChevronUp className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
-                          ) : (
-                            <ChevronDown className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
-                          )}
-                          <span className="truncate text-14 font-semibold text-secondary">{group.name}</span>
-                          <span className="rounded-full bg-layer-2 px-1.5 py-px text-11 font-medium text-tertiary">
-                            {group.issues.length}
-                          </span>
-                        </button>
+                        <div className="group/header flex items-center gap-1 rounded-lg px-3 py-1.5 transition hover:bg-layer-transparent-hover">
+                          <button
+                            type="button"
+                            onClick={() => toggleProjectCollapsed(group.projectId)}
+                            aria-expanded={!isCollapsed}
+                            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                          >
+                            {isCollapsed ? (
+                              <ChevronUp className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
+                            ) : (
+                              <ChevronDown className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
+                            )}
+                            <span className="truncate text-14 font-semibold text-secondary">{group.name}</span>
+                            <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
+                              {group.issues.length}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addTaskInProject(group.projectId)}
+                            aria-label={`Add task to ${group.name}`}
+                            className="grid size-5 flex-shrink-0 place-items-center rounded-md text-tertiary opacity-0 transition group-hover/header:opacity-100 hover:bg-layer-1 hover:text-primary focus-visible:opacity-100"
+                          >
+                            <Plus className="size-3.5" />
+                          </button>
+                        </div>
                         <Collapse open={!isCollapsed}>
                           <ul className="pb-1">
                             {(forest.entriesByProject.get(group.projectId) ?? []).map((entry) =>
@@ -702,7 +804,7 @@ export const MyTasksSection = observer(function MyTasksSection({
                   })}
                 </div>
               ) : (
-                <ul className="scrollbar-hide max-h-[420px] overflow-y-auto">
+                <ul className={cn("scrollbar-hide overflow-y-auto", fullHeight ? "min-h-0 flex-1" : "max-h-[420px]")}>
                   {forest.allEntries.map((entry) => renderRow(entry, true))}
                   {draft && (
                     <TaskQuickAdd

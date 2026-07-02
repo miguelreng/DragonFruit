@@ -7,10 +7,13 @@ from rest_framework import status
 
 from plane.app.views.agent.chat import (
     _build_fallback_document_html,
+    _looks_like_brief_request,
     _looks_like_document_request,
     _make_create_document_tool,
+    _make_update_project_brief_tool,
     _normalise_document_subject,
     _should_use_agent_tools,
+    _strip_duplicate_title_heading,
     _successful_tool_confirmation,
     _title_from_subject,
 )
@@ -87,6 +90,83 @@ class TestAgentAPI:
         assert result.startswith("tool_error: no project is currently open")
         assert Page.objects.filter(name="Benefits of Meditation").exists() is False
 
+    @pytest.mark.django_db
+    def test_chat_create_document_strips_duplicate_title_heading(self, workspace, create_user):
+        # The editor renders page.name as the doc title, so a leading heading that
+        # repeats it must be dropped to avoid the title showing twice.
+        project = Project.objects.create(name="Docs Project", identifier="DP", workspace=workspace)
+        tool = _make_create_document_tool(workspace=workspace, user=create_user, project_id=str(project.id))
+
+        tool.handler(
+            {
+                "title": "Launch Plan",
+                "description_html": "<h1>Launch Plan</h1><p>Ship in Q3.</p>",
+            }
+        )
+
+        page = Page.objects.get(name="Launch Plan")
+        assert "<h1>" not in page.description_html
+        assert "<p>Ship in Q3.</p>" in page.description_html
+
+    @pytest.mark.django_db
+    def test_chat_update_project_brief_tool_creates_brief_page(self, workspace, create_user):
+        project = Project.objects.create(name="Brief Project", identifier="BP", workspace=workspace)
+        tool = _make_update_project_brief_tool(
+            workspace=workspace,
+            user=create_user,
+            project_id=str(project.id),
+        )
+
+        result = tool.handler({"description_html": "<p>Ship on Fridays.</p>"})
+
+        assert result.startswith("ok: created the project brief")
+        assert f"url=/{workspace.slug}/projects/{project.id}/brief" in result
+        page = Page.objects.get(name="Project Brief")
+        assert page.is_brief is True
+        assert page.page_type == Page.PAGE_TYPE_DOC
+        assert "Ship on Fridays." in page.description_html
+        assert ProjectPage.objects.filter(project=project, page=page, workspace=workspace).exists()
+
+    @pytest.mark.django_db
+    def test_chat_update_project_brief_tool_updates_existing_brief_in_place(self, workspace, create_user):
+        # Asking Atlas to write the brief must edit the SAME page the Brief tab
+        # renders (matched by is_brief), not spawn a second brief/doc.
+        project = Project.objects.create(name="Brief Project", identifier="BP", workspace=workspace)
+        existing = Page.objects.create(
+            name="Project Brief",
+            workspace=workspace,
+            owned_by=create_user,
+            page_type=Page.PAGE_TYPE_DOC,
+            is_brief=True,
+            description_html="<p>Old context.</p>",
+            description_binary=b"stale-yjs",
+        )
+        ProjectPage.objects.create(project=project, page=existing, workspace=workspace)
+
+        tool = _make_update_project_brief_tool(
+            workspace=workspace,
+            user=create_user,
+            project_id=str(project.id),
+        )
+        result = tool.handler({"description_html": "<p>New context.</p>"})
+
+        assert result.startswith("ok: updated the project brief")
+        existing.refresh_from_db()
+        assert "New context." in existing.description_html
+        assert "Old context." not in existing.description_html
+        # Binary cleared so the editor re-seeds from the HTML we just wrote.
+        assert existing.description_binary is None
+        assert Page.objects.filter(is_brief=True, projects=project).count() == 1
+
+    @pytest.mark.django_db
+    def test_chat_update_project_brief_tool_requires_project_context(self, workspace, create_user):
+        tool = _make_update_project_brief_tool(workspace=workspace, user=create_user, project_id=None)
+
+        result = tool.handler({"description_html": "<p>Draft</p>"})
+
+        assert result.startswith("tool_error: no project is currently open")
+        assert Page.objects.filter(name="Project Brief").exists() is False
+
     def test_chat_prefers_created_document_confirmation_from_successful_tool(self):
         class Result:
             tool_calls = [
@@ -154,6 +234,36 @@ class TestAgentAPI:
     )
     def test_chat_document_request_detector_requires_explicit_creation(self, prompt, expected):
         assert _looks_like_document_request(prompt) is expected
+
+    @pytest.mark.parametrize(
+        ("prompt", "expected"),
+        [
+            ("Crea el brief oficial para mi proyecto", True),
+            ("create the brief for this project", True),
+            ("write the project brief", True),
+            ("update the project brief please", True),
+            ("actualiza el brief del proyecto", True),
+            ("crea el brief de mi proyecto", True),
+            # Topic briefs stay with create_wikipedia_brief, not the project brief.
+            ("brief me on quantum computing", False),
+            ("give me a brief on the French revolution", False),
+            ("write a brief on cats", False),
+            ("create a document about dogs", False),
+        ],
+    )
+    def test_chat_brief_request_detector_targets_project_brief(self, prompt, expected):
+        assert _looks_like_brief_request(prompt) is expected
+
+    def test_strip_duplicate_title_heading_ignores_non_matching_heading(self):
+        body = "<h1>Section One</h1><p>Body.</p>"
+        assert _strip_duplicate_title_heading(body, "My Doc") == body
+
+    def test_strip_duplicate_title_heading_matches_ignoring_punctuation(self):
+        out = _strip_duplicate_title_heading(
+            "<h1>Brief Oficial del Proyecto: DragonFruit</h1><p>Intro.</p>",
+            "Brief Oficial del Proyecto DragonFruit",
+        )
+        assert out == "<p>Intro.</p>"
 
     @pytest.mark.parametrize(
         ("tool_mode", "expected"),

@@ -48,6 +48,12 @@ export interface IBookmarkStore {
     payload: TProjectBookmarkCreatePayload
   ) => Promise<TProjectBookmark>;
   deleteBookmark: (workspaceSlug: string, projectId: string, bookmarkId: string) => Promise<void>;
+  moveBookmark: (
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    targetProjectId: string
+  ) => Promise<TProjectBookmark>;
   fetchBookmarkComments: (
     workspaceSlug: string,
     projectId: string,
@@ -95,6 +101,7 @@ export class BookmarkStore implements IBookmarkStore {
       importBookmarks: action,
       updateBookmark: action,
       deleteBookmark: action,
+      moveBookmark: action,
       fetchBookmarkComments: action,
       createBookmarkComment: action,
       updateBookmarkComment: action,
@@ -257,6 +264,46 @@ export class BookmarkStore implements IBookmarkStore {
           this.bookmarkMap[bookmarkId] = previous;
           this.projectBookmarkIds[projectId] = [bookmarkId, ...(this.projectBookmarkIds[projectId] ?? [])];
           this.workspaceBookmarkIds[workspaceSlug] = [bookmarkId, ...(this.workspaceBookmarkIds[workspaceSlug] ?? [])];
+        }
+      });
+      throw error;
+    }
+  };
+
+  moveBookmark = async (
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    targetProjectId: string
+  ) => {
+    const previous = this.bookmarkMap[bookmarkId];
+    // Optimistically regroup the bookmark under the destination project. The
+    // workspace grouping is unchanged since the bookmark stays in the workspace.
+    runInAction(() => {
+      if (previous) this.bookmarkMap[bookmarkId] = { ...previous, project_id: targetProjectId };
+      this.projectBookmarkIds[projectId] = (this.projectBookmarkIds[projectId] ?? []).filter((id) => id !== bookmarkId);
+      this.projectBookmarkIds[targetProjectId] = [
+        bookmarkId,
+        ...(this.projectBookmarkIds[targetProjectId] ?? []).filter((id) => id !== bookmarkId),
+      ];
+    });
+    try {
+      const bookmark = await this.service.moveBookmark(workspaceSlug, projectId, bookmarkId, targetProjectId);
+      runInAction(() => {
+        this.bookmarkMap[bookmark.id] = bookmark;
+      });
+      return bookmark;
+    } catch (error) {
+      runInAction(() => {
+        if (previous) {
+          this.bookmarkMap[bookmarkId] = previous;
+          this.projectBookmarkIds[targetProjectId] = (this.projectBookmarkIds[targetProjectId] ?? []).filter(
+            (id) => id !== bookmarkId
+          );
+          this.projectBookmarkIds[projectId] = [
+            bookmarkId,
+            ...(this.projectBookmarkIds[projectId] ?? []).filter((id) => id !== bookmarkId),
+          ];
         }
       });
       throw error;

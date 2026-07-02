@@ -4259,6 +4259,23 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         atlasChatSelectionContext = nil
     }
 
+    /// Poll the frontmost app's selection while the chat panel is open, so text
+    /// selected AFTER opening still becomes context. Skips our own app (so it
+    /// doesn't clobber the chip while you're typing) and only updates on a
+    /// non-empty selection (never clears — dismiss the chip with its ✕).
+    func refreshAtlasChatSelectionFromFrontmost() {
+        guard isAtlasChatVisible, !isAtlasChatSending, AXIsProcessTrusted() else { return }
+        if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == Bundle.main.bundleIdentifier {
+            return
+        }
+        guard let text = Self.focusedSelectedText()?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !text.isEmpty else { return }
+        let capped = String(text.prefix(4000))
+        if capped != atlasChatSelectionContext {
+            atlasChatSelectionContext = capped
+        }
+    }
+
     func closeAtlasChat() {
         guard isAtlasChatVisible else { return }
         isAtlasChatVisible = false
@@ -4360,17 +4377,26 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                     self.finishAtlasChatReply(at: placeholderIndex, with: Self.userFacingAgentErrorMessage(error), stream: false)
                 } else {
                     let reply = envelope.assistant_message.content.trimmingCharacters(in: .whitespacesAndNewlines)
-                    self.finishAtlasChatReply(
-                        at: placeholderIndex,
-                        with: reply.isEmpty ? "Atlas didn't return an answer for that — try rephrasing?" : reply,
-                        stream: true
-                    )
+                    if reply.isEmpty {
+                        // Nothing to show — drop the placeholder bubble rather
+                        // than display a canned "(empty reply)" / "finished".
+                        self.removeAtlasChatMessage(at: placeholderIndex)
+                    } else {
+                        self.finishAtlasChatReply(at: placeholderIndex, with: reply, stream: true)
+                    }
                 }
             } catch {
                 Self.logger.error("Atlas chat request failed: \(error.localizedDescription, privacy: .public)")
                 self.finishAtlasChatReply(at: placeholderIndex, with: Self.userFacingAgentErrorMessage(error.localizedDescription), stream: false)
             }
         }
+    }
+
+    /// Drop the pending assistant placeholder (used when the reply is empty).
+    private func removeAtlasChatMessage(at index: Int) {
+        atlasChatTypingTask?.cancel()
+        guard atlasChatMessages.indices.contains(index) else { return }
+        atlasChatMessages.remove(at: index)
     }
 
     /// Fill the pending assistant bubble, optionally with a typewriter reveal.

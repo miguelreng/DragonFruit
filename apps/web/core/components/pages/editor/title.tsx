@@ -29,7 +29,7 @@ export const PageEditorTitle = observer(function PageEditorTitle(props: Props) {
   // page filters
   const { fontSize } = usePageFilters();
   // ui
-  const titleFontClassName = cn("tracking-normal font-bold", {
+  const titleFontClassName = cn("tracking-normal font-semibold", {
     "text-[1.6rem] leading-[1.9rem]": fontSize === "small-font",
     "text-[2rem] leading-[2.375rem]": fontSize === "large-font",
   });

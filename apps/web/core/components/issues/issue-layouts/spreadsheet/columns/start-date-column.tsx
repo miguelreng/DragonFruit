@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { StartDatePropertyIcon } from "@/components/icons/propel-shim";
+import { CalendarMinimalisticIcon } from "@/components/icons/propel-shim";
 // types
 import type { TIssue } from "@plane/types";
 // components
@@ -41,12 +41,16 @@ export const SpreadsheetStartDateColumn = observer(function SpreadsheetStartDate
           );
         }}
         disabled={disabled}
-        placeholder="Start date"
-        icon={<StartDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
+        // Unset cells render blank (no icon, no placeholder text) but stay clickable.
+        placeholder=""
+        isClearable={false}
+        icon={<CalendarMinimalisticIcon className="h-3 w-3 flex-shrink-0" />}
+        hideIcon={!issue.start_date}
+        labelClassName={!issue.start_date ? "!font-normal" : undefined}
         buttonVariant="transparent-with-text"
         buttonClassName="!text-13 text-left rounded-none group-[.selected-issue-row]:bg-accent-primary/5 group-[.selected-issue-row]:hover:bg-accent-primary/10 px-page-x"
         buttonContainerClassName="w-full"
-        optionsClassName="z-[9]"
+        optionsClassName="z-30"
         onClose={onClose}
       />
     </div>

@@ -19,7 +19,8 @@ export const SpreadsheetLinkColumn = observer(function SpreadsheetLinkColumn(pro
 
   return (
     <Row className="flex h-9 w-full items-center border-b-[0.5px] border-subtle px-2.5 px-page-x py-0.5 text-13 group-[.selected-issue-row]:bg-accent-primary/5 hover:bg-layer-1 group-[.selected-issue-row]:hover:bg-accent-primary/10">
-      {issue?.link_count ?? 0} {issue?.link_count === 1 ? "link" : "links"}
+      {/* Empty cell when there are no links (matches other unset cells). */}
+      {issue?.link_count ? `${issue.link_count} ${issue.link_count === 1 ? "link" : "links"}` : null}
     </Row>
   );
 });

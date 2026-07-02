@@ -505,11 +505,15 @@ class SearchEndpoint(BaseAPIView):
                     pages = (
                         Page.objects.filter(
                             q,
+                            # Match the canonical page visibility rule (see
+                            # page/base.py): a user can reach a page if they own
+                            # it or it is public. The old `access=0` filter hid
+                            # the user's own private docs from the @-picker.
+                            Q(owned_by=self.request.user) | Q(access=0),
                             projects__project_projectmember__member=self.request.user,
                             projects__project_projectmember__is_active=True,
                             projects__id=project_id,
                             workspace__slug=slug,
-                            access=0,
                         )
                         .order_by("-created_at")
                         .distinct()
@@ -708,10 +712,12 @@ class SearchEndpoint(BaseAPIView):
                     pages = (
                         Page.objects.filter(
                             q,
+                            # See the project-scoped branch above: own-or-public
+                            # visibility, not public-only.
+                            Q(owned_by=self.request.user) | Q(access=0),
                             projects__project_projectmember__member=self.request.user,
                             projects__project_projectmember__is_active=True,
                             workspace__slug=slug,
-                            access=0,
                             is_global=True,
                         )
                         .order_by("-created_at")

@@ -175,7 +175,7 @@ export const SendProjectInvitationModal = observer(function SendProjectInvitatio
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XXL}>
       <form onSubmit={handleSubmit(onSubmit)} className="p-5">
         <div className="space-y-5">
-          <h3 className="text-16 leading-6 font-medium text-primary">
+          <h3 className="text-16 leading-6 font-normal text-primary">
             {t("project_settings.members.invite_members.title")}
           </h3>
           <div className="mt-2">

@@ -115,7 +115,7 @@ export const Exporter = observer(function Exporter(props: Props) {
       <div className="flex flex-col gap-6 gap-y-4 p-6">
         <div className="flex w-full items-center justify-start gap-6">
           <span className="flex items-center justify-start">
-            <h3 className="text-18 font-medium 2xl:text-20">
+            <h3 className="text-18 font-normal 2xl:text-20">
               {t("workspace_settings.settings.exports.modal.title")}{" "}
               {provider === "csv" ? "CSV" : provider === "xlsx" ? "Excel" : provider === "json" ? "JSON" : ""}
             </h3>

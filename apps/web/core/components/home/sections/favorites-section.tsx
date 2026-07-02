@@ -43,7 +43,7 @@ const FavoriteRow = observer(function FavoriteRow({
   const { itemIcon, itemTitle, itemLink } = useFavoriteItemDetails(workspaceSlug, favorite);
   return (
     <li>
-      <Link href={itemLink} className="group flex items-center gap-3 px-3 py-2.5 hover:bg-layer-transparent-hover">
+      <Link href={itemLink} className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-layer-transparent-hover">
         <div className="flex size-5 flex-shrink-0 items-center justify-center text-icon-tertiary">{itemIcon}</div>
         <span className="min-w-0 flex-1 truncate text-13 text-secondary">{itemTitle}</span>
         <span className="flex-shrink-0 text-11 font-medium text-placeholder">{labelForEntity(favorite)}</span>

@@ -23,7 +23,7 @@ import { IssuePeekOverview } from "../../peek-overview";
 import { CalendarLayout } from "../calendar/roots/project-root";
 import { BaseGanttRoot } from "../gantt";
 import { KanBanLayout } from "../kanban/roots/project-root";
-import { ListLayout } from "../list/roots/project-root";
+import { ProjectChecklist } from "../list/roots/project-checklist-root";
 import { ProjectSpreadsheetLayout } from "../spreadsheet/roots/project-root";
 
 const VALID_LAYOUTS = new Set<string>([
@@ -37,7 +37,7 @@ const VALID_LAYOUTS = new Set<string>([
 function ProjectIssueLayout(props: { activeLayout: EIssueLayoutTypes | undefined }) {
   switch (props.activeLayout) {
     case EIssueLayoutTypes.LIST:
-      return <ListLayout />;
+      return <ProjectChecklist />;
     case EIssueLayoutTypes.KANBAN:
       return <KanBanLayout />;
     case EIssueLayoutTypes.CALENDAR:
@@ -94,6 +94,27 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
       layout: requested as EIssueLayoutTypes,
     });
   }, [workspaceSlug, projectId, searchParams, workItemFilters, issuesFilter]);
+
+  // The project Tasks list mirrors the full My tasks page structure: grouped,
+  // collapsible sections with empty groups visible. For a single project those
+  // sections should be workflow statuses rather than project buckets.
+  useEffect(() => {
+    if (!workspaceSlug || !projectId || !workItemFilters || activeLayout !== EIssueLayoutTypes.LIST) return;
+
+    const displayFilters = workItemFilters.displayFilters;
+    if (
+      displayFilters?.group_by === "state" &&
+      displayFilters?.sub_group_by === null &&
+      displayFilters?.show_empty_groups === true
+    )
+      return;
+
+    issuesFilter?.updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, {
+      group_by: "state",
+      sub_group_by: null,
+      show_empty_groups: true,
+    });
+  }, [workspaceSlug, projectId, workItemFilters, activeLayout, issuesFilter]);
 
   if (!workspaceSlug || !projectId || !workItemFilters) return <></>;
   return (

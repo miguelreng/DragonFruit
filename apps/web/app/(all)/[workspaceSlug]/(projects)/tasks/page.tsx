@@ -9,15 +9,19 @@ import { ContentWrapper } from "@plane/ui";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { MyTasksSection } from "@/components/home/sections/my-tasks-section";
+// plane web imports
+import { HomePeekOverviewsRoot } from "@/plane-web/components/home";
 
 function MyTasksPage() {
   return (
     <>
       <PageHead title="My tasks" />
-      <ContentWrapper className="space-y-8">
+      {/* Mounts the task detail peek so a row's "Open" affordance has somewhere to render. */}
+      <HomePeekOverviewsRoot />
+      <ContentWrapper className="flex flex-col">
         {/* Cap the reading width so each task's title + inline metadata stay close together. */}
-        <div className="w-full max-w-xl">
-          <MyTasksSection hideHeader groupByProject flat />
+        <div className="flex min-h-0 w-full max-w-xl flex-1 flex-col">
+          <MyTasksSection hideHeader groupByProject flat fullHeight />
         </div>
       </ContentWrapper>
     </>

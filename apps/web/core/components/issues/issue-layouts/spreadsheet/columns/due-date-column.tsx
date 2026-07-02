@@ -6,7 +6,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { DueDatePropertyIcon } from "@/components/icons/propel-shim";
+import { CalendarMinimalisticIcon } from "@/components/icons/propel-shim";
 // types
 import type { TIssue } from "@plane/types";
 import { cn, getDate, renderFormattedPayloadDate, shouldHighlightIssueDueDate } from "@plane/utils";
@@ -47,8 +47,12 @@ export const SpreadsheetDueDateColumn = observer(function SpreadsheetDueDateColu
           );
         }}
         disabled={disabled}
-        placeholder="Due date"
-        icon={<DueDatePropertyIcon className="h-3 w-3 flex-shrink-0" />}
+        // Unset cells render blank (no icon, no placeholder text) but stay clickable.
+        placeholder=""
+        isClearable={false}
+        icon={<CalendarMinimalisticIcon className="h-3 w-3 flex-shrink-0" />}
+        hideIcon={!issue.target_date}
+        labelClassName={!issue.target_date ? "!font-normal" : undefined}
         buttonVariant="transparent-with-text"
         buttonContainerClassName="w-full"
         buttonClassName={cn(
@@ -57,7 +61,7 @@ export const SpreadsheetDueDateColumn = observer(function SpreadsheetDueDateColu
             "text-danger-primary": shouldHighlightIssueDueDate(issue.target_date, stateDetails?.group),
           }
         )}
-        optionsClassName="z-[9]"
+        optionsClassName="z-30"
         clearIconClassName="!text-primary"
         onClose={onClose}
       />

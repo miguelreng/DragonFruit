@@ -89,7 +89,7 @@ export function AlertModalCore(props: Props) {
           </span>
         )}
         <div className="text-center sm:text-left">
-          <h3 className="text-16 font-medium">{title}</h3>
+          <h3 className="text-16 font-normal">{title}</h3>
           <p className="mt-1 text-13 text-secondary">{content}</p>
         </div>
       </div>

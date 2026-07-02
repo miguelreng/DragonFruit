@@ -90,7 +90,7 @@ export const IssuesHeader = observer(function IssuesHeader() {
   return (
     <Header>
       <Header.LeftItem>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1.5">
           <Breadcrumbs onBack={() => router.back()} isLoading={loader === "init-loader"} className="flex-grow-0">
             <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
             <Breadcrumbs.Item

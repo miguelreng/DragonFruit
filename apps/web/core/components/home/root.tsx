@@ -63,7 +63,7 @@ export const WorkspaceHomeView = observer(function WorkspaceHomeView({ header }:
           {header}
           <div className="flex flex-col gap-8">
             {enabledKeys("recent_docs") && <RecentDocsSection />}
-            {enabledKeys("my_tasks") && <MyTasksSection flat />}
+            {enabledKeys("my_tasks") && <MyTasksSection flat groupByProject />}
             {enabledKeys("favorites") && <FavoritesSection />}
             {enabledKeys("recent_activity") && <RecentActivitySection />}
           </div>

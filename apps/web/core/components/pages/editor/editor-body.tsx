@@ -428,17 +428,18 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     workspaceSlug,
   });
   // page filters
-  const { fontSize, isFullWidth } = usePageFilters();
+  const { fontSize, isFullWidth, fontStyle: defaultFontStyle } = usePageFilters();
   // translation
   const { t } = useTranslation();
-  // derived values
+  // derived values — a per-doc font override wins; otherwise fall back to the
+  // user's default document font from Settings → Preferences.
   const displayConfig: TDisplayConfig = useMemo(
     () => ({
       fontSize,
-      fontStyle: normalizeDocFontStyle(view_props?.font_style),
+      fontStyle: view_props?.font_style ? normalizeDocFontStyle(view_props.font_style) : defaultFontStyle,
       wideLayout: isFullWidth,
     }),
-    [fontSize, isFullWidth, view_props?.font_style]
+    [fontSize, isFullWidth, view_props?.font_style, defaultFontStyle]
   );
 
   // Use the new hook to handle page events

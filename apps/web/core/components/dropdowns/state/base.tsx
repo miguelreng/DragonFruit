@@ -40,6 +40,8 @@ export type TWorkItemStateDropdownBaseProps = TDropdownProps & {
   projectId: string | undefined;
   renderByDefault?: boolean;
   showDefaultState?: boolean;
+  /** Render the selected state as a colored pill (tinted with the state color). */
+  showAsPill?: boolean;
   stateIds: string[];
   value: string | undefined | null;
 };
@@ -66,6 +68,7 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
     placement,
     renderByDefault = true,
     showDefaultState = true,
+    showAsPill = false,
     showTooltip = false,
     stateIds,
     tabIndex,
@@ -176,6 +179,29 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
           >
             {isInitializing ? (
               <Spinner className="h-3.5 w-3.5" />
+            ) : showAsPill && selectedState ? (
+              <>
+                <span
+                  className="inline-flex h-5 items-center gap-1 truncate rounded-full px-2 text-12 font-medium"
+                  style={{ backgroundColor: `${selectedState.color}1f`, color: selectedState.color }}
+                >
+                  {!hideIcon && (
+                    <StateGroupIcon
+                      stateGroup={selectedState.group ?? "backlog"}
+                      color={selectedState.color ?? "var(--text-color-tertiary)"}
+                      className={cn("flex-shrink-0", iconSize)}
+                      percentage={selectedState.order}
+                    />
+                  )}
+                  <span className="truncate">{selectedState.name}</span>
+                </span>
+                {dropdownArrow && (
+                  <ChevronDownIcon
+                    className={cn("h-2.5 w-2.5 flex-shrink-0", dropdownArrowClassName)}
+                    aria-hidden="true"
+                  />
+                )}
+              </>
             ) : (
               <>
                 {!hideIcon && (
@@ -216,7 +242,7 @@ export const WorkItemStateDropdownBase = observer(function WorkItemStateDropdown
       renderByDefault={renderByDefault}
     >
       {isOpen && (
-        <Combobox.Options className="fixed z-10" static>
+        <Combobox.Options className="fixed z-30" static>
           <div
             className="my-1 w-48 rounded-lg border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-13 shadow-raised-200 focus:outline-none"
             ref={setPopperElement}

@@ -48,9 +48,16 @@ export const QuickAddIssueFormRoot = observer(function QuickAddIssueFormRoot(pro
   const projectDetail = getProjectById(projectId);
   // refs
   const ref = useRef<HTMLFormElement>(null);
+  // Clicking outside commits the task (Notion-style) when there's a title;
+  // otherwise it just closes the empty draft. Escape always discards.
+  const handleOutsideClick = () => {
+    const value = ref.current?.querySelector("input")?.value?.trim();
+    if (value) onSubmit();
+    onClose();
+  };
   // click detection
   useKeypress("Escape", onClose);
-  useOutsideClickDetector(ref, onClose);
+  useOutsideClickDetector(ref, handleOutsideClick);
   // set focus on name input
   useEffect(() => {
     setFocus("name");

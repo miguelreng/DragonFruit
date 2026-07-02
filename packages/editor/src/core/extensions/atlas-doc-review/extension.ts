@@ -312,14 +312,59 @@ const buildProposalControls = (view: EditorView, proposal: TTrackedProposal, isS
   return controls;
 };
 
-const buildDecorations = (proposals: TTrackedProposal[], selectedIds: string[], state: EditorState): DecorationSet => {
+// Skeleton shown at the session anchor from the moment Atlas starts a write
+// until the first proposal streams in — so the document isn't blank while the
+// model composes. Reads as a "writing…" placeholder (pulsing label + shimmer
+// lines) rather than applied text, and is removed the instant real content lands.
+const buildWritingSkeleton = () => {
+  const wrap = document.createElement("div");
+  wrap.className = "atlas-doc-review-writing";
+  wrap.contentEditable = "false";
+  wrap.setAttribute("aria-live", "polite");
+  wrap.setAttribute("aria-label", "Atlas is writing");
+
+  const label = document.createElement("div");
+  label.className = "atlas-doc-review-writing-label";
+  const dot = document.createElement("span");
+  dot.className = "atlas-doc-review-writing-dot";
+  const text = document.createElement("span");
+  text.textContent = "Atlas is writing…";
+  label.appendChild(dot);
+  label.appendChild(text);
+  wrap.appendChild(label);
+
+  const lines = document.createElement("div");
+  lines.className = "atlas-doc-review-writing-lines";
+  for (const width of ["100%", "94%", "72%"]) {
+    const line = document.createElement("div");
+    line.className = "atlas-doc-review-writing-line";
+    line.style.width = width;
+    lines.appendChild(line);
+  }
+  wrap.appendChild(lines);
+  return wrap;
+};
+
+const buildDecorations = (
+  proposals: TTrackedProposal[],
+  selectedIds: string[],
+  state: EditorState,
+  loading: boolean,
+  session: TAtlasDocReviewSession | null
+): DecorationSet => {
   const visibleProposals = proposals.filter((proposal) => !["accepted", "rejected"].includes(proposal.status));
+
+  // While Atlas is composing and nothing has landed yet, show the writing
+  // skeleton at the anchor so the editor reflects that a doc is being drafted.
+  if (loading && visibleProposals.length === 0) {
+    const pos = clampPos(state, session?.anchorPos);
+    return DecorationSet.create(state.doc, [
+      Decoration.widget(pos, buildWritingSkeleton, { key: "atlas-doc-review-writing", side: 1 }),
+    ]);
+  }
 
   // Fast path: no visible proposals → return the singleton empty set immediately.
   if (visibleProposals.length === 0) return DecorationSet.empty;
-
-  // The "Atlas is drafting…" status now lives in the Atlas chat bar, so the
-  // document stays clean while the model is composing.
 
   // Note: bulk Accept all / Reject all lives in the Atlas chat bar (less
   // chrome inside the document), driven by the editor-ref commands.
@@ -537,12 +582,16 @@ export const AtlasDocReviewExtension = Extension.create({
                 session: action.session,
                 proposals: [],
                 loading: true,
-                decorations: DecorationSet.empty,
+                decorations: buildDecorations([], [], newState, true, action.session),
                 selectedIds: [],
               };
             }
             if (action.type === "set-loading") {
-              return { ...mapped, loading: action.loading };
+              return {
+                ...mapped,
+                loading: action.loading,
+                decorations: buildDecorations(mapped.proposals, mapped.selectedIds, newState, action.loading, mapped.session),
+              };
             }
             if (action.type === "append") {
               const newProposals = [...mapped.proposals, action.proposal];
@@ -550,7 +599,7 @@ export const AtlasDocReviewExtension = Extension.create({
                 ...mapped,
                 proposals: newProposals,
                 loading: false,
-                decorations: buildDecorations(newProposals, mapped.selectedIds, newState),
+                decorations: buildDecorations(newProposals, mapped.selectedIds, newState, false, mapped.session),
               };
             }
             if (action.type === "update") {
@@ -562,7 +611,7 @@ export const AtlasDocReviewExtension = Extension.create({
               return {
                 ...mapped,
                 proposals: newProposals,
-                decorations: buildDecorations(newProposals, mapped.selectedIds, newState),
+                decorations: buildDecorations(newProposals, mapped.selectedIds, newState, mapped.loading, mapped.session),
               };
             }
             if (action.type === "remove") {
@@ -573,7 +622,7 @@ export const AtlasDocReviewExtension = Extension.create({
                 ...mapped,
                 proposals: newProposals,
                 selectedIds: newSelectedIds,
-                decorations: buildDecorations(newProposals, newSelectedIds, newState),
+                decorations: buildDecorations(newProposals, newSelectedIds, newState, mapped.loading, mapped.session),
               };
             }
             if (action.type === "remove-many") {
@@ -584,7 +633,7 @@ export const AtlasDocReviewExtension = Extension.create({
                 ...mapped,
                 proposals: newProposals,
                 selectedIds: newSelectedIds,
-                decorations: buildDecorations(newProposals, newSelectedIds, newState),
+                decorations: buildDecorations(newProposals, newSelectedIds, newState, mapped.loading, mapped.session),
               };
             }
             if (action.type === "toggle-select") {
@@ -596,7 +645,7 @@ export const AtlasDocReviewExtension = Extension.create({
               return {
                 ...mapped,
                 selectedIds: newSelectedIds,
-                decorations: buildDecorations(mapped.proposals, newSelectedIds, newState),
+                decorations: buildDecorations(mapped.proposals, newSelectedIds, newState, mapped.loading, mapped.session),
               };
             }
             // "clear" action

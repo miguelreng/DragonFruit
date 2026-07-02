@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "DragonFruit",
   "description": "Save pages, images, and tweets to DragonFruit bookmarks, and capture AI chats from Claude, ChatGPT, and Gemini. Open a new tab for a Renaissance masterpiece from museums worldwide.",
-  "version": "0.3.0",
+  "version": "0.3.3",
   "icons": {
     "16": "src/icons/icon-16.png",
     "32": "src/icons/icon-32.png",

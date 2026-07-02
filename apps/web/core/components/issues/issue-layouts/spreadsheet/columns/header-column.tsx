@@ -5,23 +5,26 @@
  */
 
 //ui
+import { useParams } from "next/navigation";
 import {
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
   CheckIcon,
-  ChevronDownIcon,
   Eraser,
+  EyeOff,
   MoveRight,
 } from "@/components/icons/lucide-shim";
 // constants
-import { SPREADSHEET_PROPERTY_DETAILS } from "@plane/constants";
+import { EIssueFilterType, SPREADSHEET_PROPERTY_DETAILS } from "@plane/constants";
 // i18n
 import { useTranslation } from "@plane/i18n";
 // types
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties, TIssueOrderByOptions } from "@plane/types";
 import { CustomMenu, Row } from "@plane/ui";
+// hooks
+import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
+import { useIssuesActions } from "@/hooks/use-issues-actions";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { SpreadSheetPropertyIcon } from "../../utils";
 
 interface Props {
   property: keyof IIssueDisplayProperties;
@@ -39,17 +42,23 @@ export function HeaderColumn(props: Props) {
     "spreadsheetViewSorting",
     ""
   );
-  const { storedValue: activeSortingProperty, setValue: setActiveSortingProperty } = useLocalStorage(
-    "spreadsheetViewActiveSortingProperty",
-    ""
-  );
+  const { setValue: setActiveSortingProperty } = useLocalStorage("spreadsheetViewActiveSortingProperty", "");
   const propertyDetails = SPREADSHEET_PROPERTY_DETAILS[property];
+  // store hooks — used to hide the column from the menu (toggles its display property off)
+  const { projectId } = useParams();
+  const storeType = useIssueStoreType();
+  const { updateFilters } = useIssuesActions(storeType);
 
   const handleOrderBy = (order: TIssueOrderByOptions, itemKey: string) => {
     handleDisplayFilterUpdate({ order_by: order });
 
     setSelectedMenuItem(`${order}_${itemKey}`);
     setActiveSortingProperty(order === "-created_at" ? "" : itemKey);
+  };
+
+  const handleHide = () => {
+    if (!projectId) return;
+    updateFilters(projectId.toString(), EIssueFilterType.DISPLAY_PROPERTIES, { [property]: false });
   };
 
   if (!propertyDetails) return null;
@@ -62,20 +71,7 @@ export function HeaderColumn(props: Props) {
       customButton={
         <Row className="flex w-full cursor-pointer items-center justify-between gap-1 py-1.5 text-13 text-secondary hover:text-primary">
           <div className="flex items-center gap-1">
-            {<SpreadSheetPropertyIcon iconKey={propertyDetails.icon} className="h-3.5 w-3.5 text-placeholder" />}
             {property === "sub_issue_count" && isEpic ? t("issue.label", { count: 2 }) : t(propertyDetails.i18n_title)}
-          </div>
-          <div className="ml-2 flex">
-            {activeSortingProperty === property && (
-              <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full">
-                {propertyDetails.ascendingOrderKey === displayFilters.order_by ? (
-                  <ArrowDownWideNarrow className="h-3 w-3" />
-                ) : (
-                  <ArrowUpNarrowWide className="h-3 w-3" />
-                )}
-              </div>
-            )}
-            <ChevronDownIcon className="h-3 w-3" aria-hidden="true" />
           </div>
         </Row>
       }
@@ -136,6 +132,12 @@ export function HeaderColumn(props: Props) {
             </div>
           </CustomMenu.MenuItem>
         )}
+      <CustomMenu.MenuItem className="mt-0.5 border-t border-subtle pt-1" onClick={handleHide}>
+        <div className="flex items-center gap-2 px-1 text-secondary hover:text-primary">
+          <EyeOff className="h-3 w-3" />
+          <span>Hide property</span>
+        </div>
+      </CustomMenu.MenuItem>
     </CustomMenu>
   );
 }

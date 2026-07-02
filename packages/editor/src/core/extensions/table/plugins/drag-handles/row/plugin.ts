@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { findParentNodeClosestToPos } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { TableMap } from "@tiptap/pm/tables";
@@ -13,7 +14,7 @@ import { ReactRenderer } from "@tiptap/react";
 import {
   findTable,
   getTableCellWidgetDecorationPos,
-  haveTableRelatedChanges,
+  getTableNodeLocation,
 } from "@/extensions/table/table/utilities/helpers";
 // local imports
 import type { RowDragHandleProps } from "./drag-handle";
@@ -26,19 +27,56 @@ type TableRowDragHandlePluginState = {
   tableNodePos?: number;
   // track renderers for cleanup
   renderers?: ReactRenderer[];
+  // position (before the table node) of the table currently hovered by the pointer,
+  // so handles can surface on hover without first placing the cursor inside the table
+  hoveredTablePos?: number;
 };
 
 const TABLE_ROW_DRAG_HANDLE_PLUGIN_KEY = new PluginKey("tableRowDragHandlePlugin");
 
-export const TableRowDragHandlePlugin = (editor: Editor): Plugin<TableRowDragHandlePluginState> =>
-  new Plugin<TableRowDragHandlePluginState>({
+export const TableRowDragHandlePlugin = (editor: Editor): Plugin<TableRowDragHandlePluginState> => {
+  // The wrapper DOM element the pointer was last seen over, used to avoid recomputing
+  // the hovered table on every mousemove that stays within the same region.
+  let lastHoverWrapper: HTMLElement | null = null;
+
+  return new Plugin<TableRowDragHandlePluginState>({
     key: TABLE_ROW_DRAG_HANDLE_PLUGIN_KEY,
     state: {
       init: () => ({}),
       apply(tr, prev, oldState, newState) {
-        const table = findTable(newState.selection);
-        if (!haveTableRelatedChanges(editor, table, oldState, newState, tr)) {
-          return table !== undefined ? prev : {};
+        // Resolve the hovered table position: prefer an explicit meta update, otherwise
+        // map the previous one through the transaction so it survives doc edits.
+        const meta = tr.getMeta(TABLE_ROW_DRAG_HANDLE_PLUGIN_KEY) as { hoveredTablePos: number | null } | undefined;
+        let hoveredTablePos = prev.hoveredTablePos;
+        if (meta && "hoveredTablePos" in meta) {
+          hoveredTablePos = meta.hoveredTablePos ?? undefined;
+        } else if (hoveredTablePos !== undefined && tr.docChanged) {
+          hoveredTablePos = tr.mapping.map(hoveredTablePos);
+        }
+
+        const hoverChanged = (prev.hoveredTablePos ?? null) !== (hoveredTablePos ?? null);
+        const selectionChanged = !newState.selection.eq(oldState.selection);
+
+        // Nothing relevant changed - keep the existing decorations as-is.
+        if (!tr.docChanged && !selectionChanged && !hoverChanged) {
+          return { ...prev, hoveredTablePos };
+        }
+
+        // The active table is the one containing the selection, or - when the cursor is
+        // outside any table - the table currently hovered by the pointer.
+        const table =
+          findTable(newState.selection) ??
+          (hoveredTablePos !== undefined ? getTableNodeLocation(newState.doc, hoveredTablePos) : undefined);
+
+        if (!editor.isEditable || !table) {
+          prev.renderers?.forEach((renderer) => {
+            try {
+              renderer.destroy();
+            } catch (error) {
+              console.error("Error destroying renderer:", error);
+            }
+          });
+          return { hoveredTablePos };
         }
 
         const tableMap = TableMap.get(table.node);
@@ -67,6 +105,7 @@ export const TableRowDragHandlePlugin = (editor: Editor): Plugin<TableRowDragHan
             tableHeight: tableMap.height,
             tableNodePos: table.pos,
             renderers: prev.renderers,
+            hoveredTablePos,
           };
         }
 
@@ -90,6 +129,7 @@ export const TableRowDragHandlePlugin = (editor: Editor): Plugin<TableRowDragHan
             props: {
               editor,
               row,
+              tablePos: table.pos,
             } satisfies RowDragHandleProps,
             editor,
           });
@@ -103,6 +143,7 @@ export const TableRowDragHandlePlugin = (editor: Editor): Plugin<TableRowDragHan
           tableHeight: tableMap.height,
           tableNodePos: table.pos,
           renderers,
+          hoveredTablePos,
         };
       },
     },
@@ -110,6 +151,49 @@ export const TableRowDragHandlePlugin = (editor: Editor): Plugin<TableRowDragHan
       decorations(state) {
         return (TABLE_ROW_DRAG_HANDLE_PLUGIN_KEY.getState(state) as TableRowDragHandlePluginState | undefined)
           ?.decorations;
+      },
+      handleDOMEvents: {
+        mousemove: (view, event) => {
+          // Handles are only actionable in editable docs.
+          if (!view.editable) return false;
+          // Ignore moves while a button is held (selection drags, row reordering, etc.)
+          if (event.buttons !== 0) return false;
+
+          const target = event.target as HTMLElement | null;
+          const wrapper = target?.closest?.(".table-wrapper") ?? null;
+          // Skip work while the pointer stays within the same region as last time.
+          if (wrapper === lastHoverWrapper) return false;
+          lastHoverWrapper = wrapper instanceof HTMLElement ? wrapper : null;
+
+          const current = (
+            TABLE_ROW_DRAG_HANDLE_PLUGIN_KEY.getState(view.state) as TableRowDragHandlePluginState | undefined
+          )?.hoveredTablePos;
+
+          if (!lastHoverWrapper) {
+            if (current !== undefined) {
+              view.dispatch(view.state.tr.setMeta(TABLE_ROW_DRAG_HANDLE_PLUGIN_KEY, { hoveredTablePos: null }));
+            }
+            return false;
+          }
+
+          const cell = lastHoverWrapper.querySelector("td, th");
+          if (!cell) return false;
+          let pos: number;
+          try {
+            pos = view.posAtDOM(cell, 0);
+          } catch {
+            return false;
+          }
+          const table = findParentNodeClosestToPos(
+            view.state.doc.resolve(pos),
+            (node) => node.type.spec.tableRole === "table"
+          );
+          const next = table ? table.pos : null;
+          if (next !== (current ?? null)) {
+            view.dispatch(view.state.tr.setMeta(TABLE_ROW_DRAG_HANDLE_PLUGIN_KEY, { hoveredTablePos: next }));
+          }
+          return false;
+        },
       },
     },
     destroy() {
@@ -126,3 +210,4 @@ export const TableRowDragHandlePlugin = (editor: Editor): Plugin<TableRowDragHan
       });
     },
   });
+};

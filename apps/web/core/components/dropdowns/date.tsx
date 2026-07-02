@@ -8,7 +8,7 @@ import React, { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { createPortal } from "react-dom";
 import { usePopper } from "react-popper";
-import { CalendarDays } from "@/components/icons/lucide-shim";
+import { CalendarCheck, CalendarDays, X } from "@/components/icons/lucide-shim";
 import { Combobox } from "@headlessui/react";
 // ui
 import type { Matcher } from "@plane/propel/calendar";
@@ -73,6 +73,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
   } = props;
   // states
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [typed, setTyped] = useState("");
   // refs
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   // hooks
@@ -110,6 +111,7 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
 
   const dropdownOnChange = (val: Date | null) => {
     onChange(val);
+    setTyped("");
     if (closeOnSelect) {
       handleClose();
       referenceElement?.blur();
@@ -119,6 +121,29 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
   const disabledDays: Matcher[] = [];
   if (minDate) disabledDays.push({ before: minDate });
   if (maxDate) disabledDays.push({ after: maxDate });
+
+  // Notion-style quick options (Today / Tomorrow / Next week / No date).
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const nextMonday = new Date(today);
+  nextMonday.setDate(today.getDate() + (((8 - today.getDay()) % 7) || 7));
+  const weekday = (d: Date) => new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(d);
+  const fullDay = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(d);
+
+  const quickOptions: { label: string; hint: string; date: Date | null; Icon: typeof CalendarDays; tone: string }[] = [
+    { label: "Today", hint: weekday(today), date: today, Icon: CalendarCheck, tone: "text-secondary" },
+    { label: "Tomorrow", hint: weekday(tomorrow), date: tomorrow, Icon: CalendarDays, tone: "text-secondary" },
+    { label: "Next week", hint: fullDay(nextMonday), date: nextMonday, Icon: CalendarDays, tone: "text-secondary" },
+    { label: "No date", hint: "", date: null, Icon: X, tone: "text-secondary" },
+  ];
+
+  const commitTyped = () => {
+    const parsed = new Date(typed);
+    if (typed.trim() && !isNaN(parsed.getTime())) dropdownOnChange(parsed);
+  };
 
   const comboButton = (
     <button
@@ -185,28 +210,63 @@ export const DateDropdown = observer(function DateDropdown(props: Props) {
           <Combobox.Options data-prevent-outside-click static>
             <div
               className={cn(
-                "z-30 my-1 overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1 shadow-raised-200",
+                "z-30 my-1 w-72 overflow-hidden rounded-lg border-[0.5px] border-strong bg-surface-1 shadow-raised-200",
                 optionsClassName
               )}
               ref={setPopperElement}
               style={styles.popper}
               {...attributes.popper}
             >
-              <Calendar
-                className="rounded-lg border border-subtle p-3"
-                captionLayout="dropdown"
-                selected={getDate(value)}
-                defaultMonth={getDate(value)}
-                onSelect={(date: Date | undefined) => {
-                  dropdownOnChange(date ?? null);
-                }}
-                showOutsideDays
-                initialFocus
-                disabled={disabledDays}
-                mode="single"
-                fixedWeeks
-                weekStartsOn={startOfWeek}
-              />
+              {/* Free-text date entry */}
+              <div className="p-2">
+                <input
+                  type="text"
+                  autoFocus
+                  value={typed}
+                  placeholder="Enter a date"
+                  onChange={(e) => setTyped(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      commitTyped();
+                    }
+                  }}
+                  className="w-full rounded-md border-[0.5px] border-subtle bg-surface-1 px-3 py-2 text-13 text-secondary outline-none placeholder:text-placeholder focus:border-accent-primary"
+                />
+              </div>
+              {/* Quick options */}
+              <div className="px-1 pb-1">
+                {quickOptions.map((opt) => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => dropdownOnChange(opt.date)}
+                    className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-13 transition-colors hover:bg-layer-1"
+                  >
+                    <span className={cn("flex items-center gap-2 font-medium", opt.tone)}>
+                      <opt.Icon className="size-4 flex-shrink-0" />
+                      {opt.label}
+                    </span>
+                    {opt.hint && <span className="text-tertiary">{opt.hint}</span>}
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-subtle">
+                <Calendar
+                  className="p-3"
+                  captionLayout="dropdown"
+                  selected={getDate(value)}
+                  defaultMonth={getDate(value)}
+                  onSelect={(date: Date | undefined) => {
+                    dropdownOnChange(date ?? null);
+                  }}
+                  showOutsideDays
+                  disabled={disabledDays}
+                  mode="single"
+                  fixedWeeks
+                  weekStartsOn={startOfWeek}
+                />
+              </div>
             </div>
           </Combobox.Options>,
           document.body

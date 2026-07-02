@@ -153,7 +153,7 @@ export const ModuleIssueQuickActions = observer(function ModuleIssueQuickActions
         placement={placements}
         customButton={customActionButton}
         portalElement={portalElement}
-        menuItemsClassName="z-[14]" optionsClassName="!text-13"
+        menuItemsClassName="z-30" optionsClassName="!text-13"
         maxHeight="lg"
         useCaptureForOutsideClick
         closeOnSelect

@@ -36,7 +36,7 @@ export function ConnectInfoModal({ service, isOpen, onClose }: Props) {
     <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
       <div className="flex flex-col">
         <div className="border-b-[0.5px] border-subtle px-5 py-4">
-          <h3 className="text-18 font-medium text-secondary">
+          <h3 className="text-18 font-normal text-secondary">
             {t("workspace_settings.settings.imports.connect_modal.title", { service: label })}
           </h3>
           <p className="mt-1 text-13 text-tertiary">

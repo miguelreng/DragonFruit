@@ -145,7 +145,7 @@ export function ProjectTemplateModal(props: Props) {
     <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.XXL}>
       <div className="flex max-h-[85vh] flex-col">
         <header className="flex items-center justify-between border-b border-subtle px-5 py-3">
-          <h2 className="text-14 font-medium text-primary">
+          <h2 className="text-14 font-normal text-primary">
             {isEdit ? "Edit project template" : "New project template"}
           </h2>
           <button

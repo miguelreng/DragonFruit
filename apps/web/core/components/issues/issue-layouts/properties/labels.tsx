@@ -36,6 +36,10 @@ export interface IIssuePropertyLabels {
   maxRender?: number;
   noLabelBorder?: boolean;
   placeholderText?: string;
+  /** Drop the leading tag icon on the empty-state placeholder. */
+  hidePlaceholderIcon?: boolean;
+  /** Override the empty-state placeholder text styling (e.g. to match a row's font). */
+  placeholderClassName?: string;
   onClose?: () => void;
   renderByDefault?: boolean;
   fullWidth?: boolean;
@@ -47,9 +51,18 @@ type NoLabelProps = {
   noLabelBorder: boolean;
   fullWidth: boolean;
   placeholderText?: string;
+  hideIcon?: boolean;
+  placeholderClassName?: string;
 };
 
-const NoLabel = observer(function NoLabel({ isMobile, noLabelBorder, fullWidth, placeholderText }: NoLabelProps) {
+const NoLabel = observer(function NoLabel({
+  isMobile,
+  noLabelBorder,
+  fullWidth,
+  placeholderText,
+  hideIcon = false,
+  placeholderClassName,
+}: NoLabelProps) {
   const { t } = useTranslation();
 
   return (
@@ -64,54 +77,16 @@ const NoLabel = observer(function NoLabel({ isMobile, noLabelBorder, fullWidth, 
         className={cn(
           "flex h-full items-center justify-center gap-2 rounded-lg px-2.5 py-1 text-caption-sm-regular hover:bg-layer-1",
           noLabelBorder ? "rounded-lg" : "border-[0.5px] border-strong",
-          fullWidth && "w-full"
+          fullWidth && "w-full justify-start",
+          placeholderClassName
         )}
       >
-        <LabelPropertyIcon className="h-3.5 w-3.5" />
+        {!hideIcon && <LabelPropertyIcon className="h-3.5 w-3.5" />}
         {placeholderText}
       </div>
     </Tooltip>
   );
 });
-
-type LabelSummaryProps = {
-  isMobile: boolean;
-  fullWidth: boolean;
-  noLabelBorder: boolean;
-  disabled?: boolean;
-  projectLabels: IIssueLabel[];
-  value: string[];
-};
-
-function LabelSummary({ isMobile, fullWidth, noLabelBorder, disabled, projectLabels, value }: LabelSummaryProps) {
-  const { t } = useTranslation();
-  return (
-    <div
-      className={cn(
-        "flex h-5 flex-shrink-0 items-center justify-center rounded-lg px-2.5 text-caption-sm-regular",
-        fullWidth && "w-full",
-        noLabelBorder ? "rounded-lg" : "border-[0.5px] border-strong",
-        disabled ? "cursor-not-allowed" : "cursor-pointer"
-      )}
-    >
-      <Tooltip
-        isMobile={isMobile}
-        position="top"
-        tooltipHeading={t("common.labels")}
-        tooltipContent={projectLabels
-          ?.filter((l) => value.includes(l?.id))
-          .map((l) => l?.name)
-          .join(", ")}
-        renderByDefault={false}
-      >
-        <div className="flex h-full items-center gap-1.5 text-secondary">
-          <span className="h-2 w-2 flex-shrink-0 rounded-full bg-accent-primary" />
-          {`${value.length} Labels`}
-        </div>
-      </Tooltip>
-    </div>
-  );
-}
 
 type LabelItemProps = {
   label: IIssueLabel;
@@ -128,7 +103,6 @@ const LabelItem = observer(function LabelItem({
   renderByDefault,
   disabled,
   fullWidth,
-  noLabelBorder,
 }: LabelItemProps) {
   const { t } = useTranslation();
 
@@ -142,21 +116,14 @@ const LabelItem = observer(function LabelItem({
     >
       <div
         className={cn(
-          "flex h-full max-w-full flex-shrink-0 items-center justify-center overflow-hidden rounded-lg px-2.5 text-caption-sm-regular hover:bg-layer-1",
+          "flex h-5 max-w-full flex-shrink-0 items-center justify-center overflow-hidden rounded-full px-2 text-12 font-medium",
           !disabled && "cursor-pointer",
-          fullWidth && "w-full",
-          noLabelBorder ? "rounded-lg" : "border-[0.5px] border-strong"
+          fullWidth && "max-w-fit justify-start"
         )}
+        // Filled pill tinted with the label color (no leading dot).
+        style={{ backgroundColor: `${label?.color ?? "#6b7280"}1f`, color: label?.color ?? undefined }}
       >
-        <div className="flex max-w-full items-center gap-1.5 overflow-hidden text-secondary">
-          <span
-            className="h-2 w-2 flex-shrink-0 rounded-full"
-            style={{
-              backgroundColor: label?.color ?? "#000000",
-            }}
-          />
-          <div className="line-clamp-1 inline-block w-auto max-w-[200px] truncate">{label?.name}</div>
-        </div>
+        <div className="line-clamp-1 inline-block max-w-[200px] truncate">{label?.name}</div>
       </div>
     </Tooltip>
   );
@@ -176,6 +143,8 @@ export const IssuePropertyLabels = observer(function IssuePropertyLabels(props: 
     maxRender = 2,
     noLabelBorder = false,
     placeholderText,
+    hidePlaceholderIcon = false,
+    placeholderClassName,
     renderByDefault = true,
     fullWidth = false,
     fullHeight = false,
@@ -210,59 +179,48 @@ export const IssuePropertyLabels = observer(function IssuePropertyLabels(props: 
   return (
     <>
       {value.length > 0 ? (
-        value.length <= maxRender ? (
-          projectLabels
-            ?.filter((l) => value.includes(l?.id))
-            .map((label) => (
-              <LabelDropdown
-                key={label.id}
-                projectId={projectId}
-                value={value}
-                onChange={onChange}
-                buttonClassName={buttonClassName}
-                placement={placement}
-                hideDropdownArrow={hideDropdownArrow}
-                fullWidth={fullWidth}
-                fullHeight={fullHeight}
-                label={
+        // One dropdown for the whole cell (like the priority/state cells): the
+        // trigger shows the label pills inline, clicking anywhere opens the picker.
+        <LabelDropdown
+          projectId={projectId}
+          value={value}
+          onChange={onChange}
+          className={fullWidth ? "w-full" : ""}
+          buttonClassName={buttonClassName}
+          placement={placement}
+          hideDropdownArrow={hideDropdownArrow}
+          fullWidth={fullWidth}
+          fullHeight={fullHeight}
+          label={
+            <div className="flex items-center gap-1 overflow-hidden">
+              {projectLabels
+                ?.filter((l) => value.includes(l?.id))
+                .slice(0, maxRender)
+                .map((label) => (
                   <LabelItem
+                    key={label.id}
                     label={label}
                     isMobile={isMobile}
                     renderByDefault={renderByDefault}
                     disabled={disabled}
-                    fullWidth={fullWidth}
+                    fullWidth={false}
                     noLabelBorder={noLabelBorder}
                   />
-                }
-              />
-            ))
-        ) : (
-          <LabelDropdown
-            projectId={projectId}
-            value={value}
-            onChange={onChange}
-            hideDropdownArrow={hideDropdownArrow}
-            buttonClassName={buttonClassName}
-            placement={placement}
-            fullWidth={fullWidth}
-            fullHeight={fullHeight}
-            label={
-              <LabelSummary
-                isMobile={isMobile}
-                fullWidth={fullWidth}
-                noLabelBorder={noLabelBorder}
-                disabled={disabled}
-                projectLabels={projectLabels}
-                value={value}
-              />
-            }
-          />
-        )
+                ))}
+              {value.length > maxRender && (
+                <span className="flex h-5 flex-shrink-0 items-center rounded-full bg-layer-1 px-2 text-12 font-medium text-secondary">
+                  +{value.length - maxRender}
+                </span>
+              )}
+            </div>
+          }
+        />
       ) : (
         <LabelDropdown
           projectId={projectId}
           value={value}
           onChange={onChange}
+          className={fullWidth ? "w-full" : ""}
           hideDropdownArrow={hideDropdownArrow}
           buttonClassName={buttonClassName}
           placement={placement}
@@ -274,6 +232,8 @@ export const IssuePropertyLabels = observer(function IssuePropertyLabels(props: 
               noLabelBorder={noLabelBorder}
               fullWidth={fullWidth}
               placeholderText={placeholderText}
+              hideIcon={hidePlaceholderIcon}
+              placeholderClassName={placeholderClassName}
             />
           }
         />

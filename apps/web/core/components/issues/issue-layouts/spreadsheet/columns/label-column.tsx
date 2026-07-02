@@ -28,18 +28,22 @@ export const SpreadsheetLabelColumn = observer(function SpreadsheetLabelColumn(p
   const defaultLabelOptions = issue?.label_ids?.map((id) => labelMap[id]) || [];
 
   return (
+    // The whole cell is one clickable dropdown (like the priority/state cells);
+    // the trigger shows left-aligned inline pills.
     <div className="h-9 w-full border-b-[0.5px] border-subtle">
       <IssuePropertyLabels
         projectId={issue.project_id ?? null}
         value={issue.label_ids || []}
         defaultOptions={defaultLabelOptions}
         onChange={(data) => onChange(issue, { label_ids: data }, { changed_property: "labels", change_details: data })}
-        className="h-full w-full"
-        buttonClassName="px-page-x w-full h-full group-[.selected-issue-row]:bg-accent-primary/5 group-[.selected-issue-row]:hover:bg-accent-primary/10 rounded-none"
+        buttonClassName="h-full w-full justify-start gap-1 overflow-hidden rounded-none px-page-x pr-0 group-[.selected-issue-row]:bg-accent-primary/5 group-[.selected-issue-row]:hover:bg-accent-primary/10"
         hideDropdownArrow
-        maxRender={1}
+        maxRender={50}
         disabled={disabled}
-        placeholderText="Select labels"
+        // Unset cells render blank (no icon, no placeholder text) but stay clickable.
+        placeholderText=""
+        hidePlaceholderIcon
+        placeholderClassName="!text-13 w-full justify-start font-normal"
         onClose={onClose}
         noLabelBorder
         fullWidth

@@ -31,6 +31,8 @@ export const SpreadsheetStateColumn = observer(function SpreadsheetStateColumn(p
         buttonVariant="transparent-with-text"
         buttonClassName="!text-13 text-left rounded-none group-[.selected-issue-row]:bg-accent-primary/5 group-[.selected-issue-row]:hover:bg-accent-primary/10 px-page-x"
         buttonContainerClassName="w-full"
+        showAsPill
+        hideIcon
         onClose={onClose}
         showTooltip
       />

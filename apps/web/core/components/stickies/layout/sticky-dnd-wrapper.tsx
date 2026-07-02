@@ -16,7 +16,6 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/eleme
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { attachInstruction } from "@atlaskit/pragmatic-drag-and-drop-hitbox/tree-item";
 import { observer } from "mobx-react";
-import { createRoot } from "react-dom/client";
 // plane types
 import type { InstructionType } from "@plane/types";
 // plane ui
@@ -94,23 +93,23 @@ export const StickyDNDWrapper = observer(function StickyDNDWrapper(props: Props)
           setIsDragging(false);
         },
         onGenerateDragPreview: ({ nativeSetDragImage }) => {
+          // Snapshot the live card as the drag image. Re-mounting a fresh
+          // <StickyNote> via createRoot here paints on a later tick, so the
+          // browser captures the native drag image blank. Cloning the on-screen
+          // node is synchronous, so the actual card visibly follows the cursor.
+          const node = elementRef.current;
           setCustomNativeDragPreview({
             getOffset: pointerOutsideOfPreview({ x: "16px", y: "12px" }),
             render: ({ container }) => {
-              const root = createRoot(container);
-              root.render(
-                <div className="shadow-2xl scale-[0.92] rotate-[1.5deg] opacity-95">
-                  <div className="max-h-[190px] overflow-hidden rounded-lg ring-1 ring-black/10">
-                    <StickyNote
-                      className={"w-[290px]"}
-                      workspaceSlug={workspaceSlug.toString()}
-                      stickyId={stickyId}
-                      showToolbar={false}
-                    />
-                  </div>
-                </div>
-              );
-              return () => root.unmount();
+              if (!node) return () => undefined;
+              const clone = node.cloneNode(true) as HTMLElement;
+              clone.style.margin = "0";
+              const preview = document.createElement("div");
+              preview.className =
+                "max-h-[220px] overflow-hidden rounded-lg shadow-2xl ring-1 ring-black/10 rotate-[1.5deg]";
+              preview.appendChild(clone);
+              container.appendChild(preview);
+              return () => undefined;
             },
             nativeSetDragImage,
           });

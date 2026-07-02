@@ -68,6 +68,7 @@ import {
   Eraser,
   FileText,
   Image as ImageIconBase,
+  MoreHorizontal,
   PanelRight,
   Paperclip,
   Plus,
@@ -125,6 +126,45 @@ const chatService = new AgentChatService();
 const agentService = new AgentService();
 const workspaceService = new WorkspaceService();
 const bookmarkService = new BookmarkService();
+
+// Morphing-infinity loader (loading-ui.com/morphing-infinity): one SVG path
+// morphing circle → infinity → circle on a 5s loop, animated via SMIL so it
+// needs no motion library. The three keyframe paths share an identical
+// command structure (M + 4×C + Z) so `d` interpolates smoothly.
+const MI_CIRCLE_A =
+  "M 12 8 C 14.21 8 16 9.79 16 12 C 16 14.21 14.21 16 12 16 C 9.79 16 8 14.21 8 12 C 8 9.79 9.79 8 12 8 Z";
+const MI_INFINITY =
+  "M 12 12 C 14 8.5 19 8.5 19 12 C 19 15.5 14 15.5 12 12 C 10 8.5 5 8.5 5 12 C 5 15.5 10 15.5 12 12 Z";
+const MI_CIRCLE_B =
+  "M 12 16 C 14.21 16 16 14.21 16 12 C 16 9.79 14.21 8 12 8 C 9.79 8 8 9.79 8 12 C 8 14.21 9.79 16 12 16 Z";
+
+function MorphingInfinity({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="status"
+      aria-label="Loading"
+      className={className}
+    >
+      <path d={MI_CIRCLE_A}>
+        <animate
+          attributeName="d"
+          dur="5s"
+          repeatCount="indefinite"
+          calcMode="spline"
+          keyTimes="0;0.25;0.5;0.75;1"
+          keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"
+          values={`${MI_CIRCLE_A};${MI_INFINITY};${MI_CIRCLE_B};${MI_INFINITY};${MI_CIRCLE_A}`}
+        />
+      </path>
+    </svg>
+  );
+}
 
 // A drag carrying files (vs. selected text or a dragged element). Guards the
 // composer's drop overlay so it only appears for real file drags.
@@ -494,15 +534,6 @@ function ChatView(props: {
         <div className="flex items-center gap-0.5">
           <button
             type="button"
-            onClick={() => void onStartSession()}
-            className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
-            aria-label="New chat"
-            title="New chat"
-          >
-            <Plus className="size-4" />
-          </button>
-          <button
-            type="button"
             onClick={onOpenHistory}
             className="t-press flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label="Chats"
@@ -510,18 +541,38 @@ function ChatView(props: {
             <Dialog className="size-3.5" />
             Chats
           </button>
+          <button
+            type="button"
+            onClick={() => void onStartSession()}
+            className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+            aria-label="New chat"
+            title="New chat"
+          >
+            <Plus className="size-4" />
+          </button>
           {sessionId && (
             <>
               <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-subtle" />
-              <button
-                type="button"
-                onClick={openClearConfirm}
-                className="t-press grid size-7 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
-                aria-label="Clear conversation"
-                title="Clear conversation"
+              <CustomMenu
+                placement="bottom-end"
+                customButtonClassName="outline-none"
+                customButton={
+                  <span
+                    className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                    aria-label="More"
+                    title="More"
+                  >
+                    <MoreHorizontal className="size-4" weight="Bold" />
+                  </span>
+                }
               >
-                <Eraser className="size-4" />
-              </button>
+                <CustomMenu.MenuItem className="text-13" onClick={openClearConfirm}>
+                  <span className="flex items-center gap-2">
+                    <Eraser className="size-3.5" />
+                    Clear conversation
+                  </span>
+                </CustomMenu.MenuItem>
+              </CustomMenu>
             </>
           )}
           {onCollapse && (
@@ -1548,8 +1599,8 @@ function ChatThread(props: {
             ))}
             {sending && (
               <li className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-12 text-tertiary">
-                  <Spinner height="12px" width="12px" />
+                <span className="flex items-center gap-1.5 text-12 text-tertiary">
+                  <MorphingInfinity className="size-4" />
                   Thinking…
                 </span>
               </li>

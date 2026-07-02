@@ -122,7 +122,7 @@ export const CreateUpdateCustomFieldModal = (props: Props) => {
     >
       <div className="flex flex-col">
         <div className="border-b-[0.5px] border-subtle px-5 py-4">
-          <h3 className="text-18 font-medium text-secondary">
+          <h3 className="text-18 font-normal text-secondary">
             {isEdit
               ? t("workspace_settings.settings.imports.csv_modal.edit_custom_field")
               : t("workspace_settings.settings.imports.csv_modal.create_custom_field")}

@@ -60,6 +60,21 @@ export const findTable = (selection: Selection): TableNodeLocation | undefined =
   findParentNode((node) => node.type.spec.tableRole === "table")(selection);
 
 /**
+ * @description Resolve a table node location from a document position (the position before the table node).
+ * @param {ProseMirrorNode} doc - The document node.
+ * @param {number} pos - The position before the table node.
+ * @returns {TableNodeLocation | undefined} The table node location, if a table node exists at the position.
+ */
+export const getTableNodeLocation = (doc: ProseMirrorNode, pos: number): TableNodeLocation | undefined => {
+  if (pos < 0 || pos > doc.content.size) return undefined;
+  const node = doc.nodeAt(pos);
+  if (node && node.type.spec.tableRole === "table") {
+    return { pos, start: pos + 1, node };
+  }
+  return undefined;
+};
+
+/**
  * @description Check if the selection has table related changes.
  * @param {Editor} editor - The editor instance.
  * @param {TableNodeLocation | undefined} table - The table node location.

@@ -103,8 +103,7 @@ function PrioritySignalIcon(props: { className?: string; priority: TIssuePriorit
   };
 
   const Icon = icons[priority];
-  // BoldDuotone for the priority label/pill icon (per the priority-label rule).
-  return <Icon className={className} weight="BoldDuotone" aria-hidden />;
+  return <Icon className={className} weight="Bold" aria-hidden />;
 }
 
 function PrioritySignalValue(props: {
@@ -121,7 +120,7 @@ function PrioritySignalValue(props: {
   return (
     <span
       className={cn(
-        "inline-flex h-5 min-w-0 items-center gap-1 rounded-lg px-1.5",
+        "inline-flex h-5 min-w-0 items-center gap-1 rounded-full px-2",
         hideText ? "size-5 justify-center px-0" : "max-w-full",
         styles.badge
       )}
@@ -130,7 +129,7 @@ function PrioritySignalValue(props: {
         <PrioritySignalIcon priority={resolvedPriority} className={cn("size-3 shrink-0 stroke-2", styles.icon)} />
       )}
       {!hideText && (
-        <span className={cn("min-w-0 truncate text-body-xs-regular leading-5", styles.text)}>
+        <span className={cn("min-w-0 truncate text-12 font-medium leading-5", styles.text)}>
           {priorityDetails?.title ?? placeholder}
         </span>
       )}
@@ -423,7 +422,7 @@ export function PriorityDropdown(props: Props) {
       renderByDefault={renderByDefault}
     >
       {isOpen && (
-        <Combobox.Options className="fixed z-10" static>
+        <Combobox.Options className="fixed z-30" static>
           <div
             className="my-1 w-48 rounded-lg border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-13 shadow-raised-200 focus:outline-none"
             ref={setPopperElement}

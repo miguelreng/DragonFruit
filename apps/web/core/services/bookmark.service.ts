@@ -107,6 +107,21 @@ export class BookmarkService extends APIService {
       });
   }
 
+  async moveBookmark(
+    workspaceSlug: string,
+    projectId: string,
+    bookmarkId: string,
+    targetProjectId: string
+  ): Promise<TProjectBookmark> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/move/`, {
+      project_id: targetProjectId,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async deleteBookmark(workspaceSlug: string, projectId: string, bookmarkId: string): Promise<void> {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/bookmarks/${bookmarkId}/`)
       .then((response) => response?.data)

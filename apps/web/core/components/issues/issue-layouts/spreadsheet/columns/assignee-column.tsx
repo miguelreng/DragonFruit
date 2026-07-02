@@ -8,6 +8,7 @@ import React from "react";
 import { observer } from "mobx-react";
 // types
 import type { TIssue } from "@plane/types";
+import { cn } from "@plane/utils";
 // components
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 
@@ -20,6 +21,7 @@ type Props = {
 
 export const SpreadsheetAssigneeColumn = observer(function SpreadsheetAssigneeColumn(props: Props) {
   const { issue, onChange, disabled, onClose } = props;
+  const hasAssignees = !!issue?.assignee_ids?.length;
 
   return (
     <div className="h-9 border-b-[0.5px] border-subtle">
@@ -39,13 +41,18 @@ export const SpreadsheetAssigneeColumn = observer(function SpreadsheetAssigneeCo
         disabled={disabled}
         multiple
         includeAgents
-        placeholder="Assignees"
+        // Unset cells render blank (no icon, no placeholder text) but stay clickable.
+        placeholder=""
+        hideIcon={!hasAssignees}
         buttonVariant={
           issue?.assignee_ids && issue.assignee_ids.length > 1 ? "transparent-without-text" : "transparent-with-text"
         }
-        buttonClassName="!text-13 text-left rounded-none group-[.selected-issue-row]:bg-accent-primary/5 group-[.selected-issue-row]:hover:bg-accent-primary/10 px-page-x"
+        buttonClassName={cn(
+          "!text-13 text-left rounded-none group-[.selected-issue-row]:bg-accent-primary/5 group-[.selected-issue-row]:hover:bg-accent-primary/10 px-page-x",
+          !hasAssignees && "[&_span]:!font-normal"
+        )}
         buttonContainerClassName="w-full"
-        optionsClassName="z-[9]"
+        optionsClassName="z-30"
         onClose={onClose}
       />
     </div>

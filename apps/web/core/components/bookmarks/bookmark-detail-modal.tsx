@@ -11,6 +11,7 @@ import {
   Copy as Copy01Icon,
   Edit as PencilEdit02Icon,
   ExternalLink as LinkSquare01Icon,
+  Folder as FolderIcon,
   MoreHorizontal,
   Trash as Delete02Icon,
 } from "@/components/icons/lucide-shim";
@@ -155,12 +156,14 @@ type Props = {
   isOpen: boolean;
   showProject: boolean;
   canEdit: boolean;
+  moveTargets: { id: string; name: string }[];
   onClose: () => void;
   onDelete: (bookmark: TProjectBookmark) => void;
+  onMove: (bookmark: TProjectBookmark, targetProjectId: string) => void;
 };
 
 export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: Props) {
-  const { workspaceSlug, bookmarkId, isOpen, showProject, canEdit, onClose, onDelete } = props;
+  const { workspaceSlug, bookmarkId, isOpen, showProject, canEdit, moveTargets, onClose, onDelete, onMove } = props;
   const bookmarkStore = useBookmark();
   const { data: currentUser } = useUser();
   const bookmark = bookmarkId ? bookmarkStore.bookmarkMap[bookmarkId] : undefined;
@@ -200,6 +203,8 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
   const suggestedTags = bookmarkSuggestedTags(bookmark);
+  // Projects the bookmark can move to — everything writable except its own.
+  const otherProjects = moveTargets.filter((project) => project.id !== bookmark.project_id);
 
   const persist = async (payload: Parameters<typeof bookmarkStore.updateBookmark>[3], onError: () => void) => {
     try {
@@ -354,7 +359,7 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
                 useCaptureForOutsideClick
                 customButton={
                   <span className="grid size-8 place-items-center rounded-lg text-icon-tertiary transition-colors hover:bg-layer-1 hover:text-primary">
-                    <DetailIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
+                    <MoreHorizontal className="size-4" weight="Bold" />
                   </span>
                 }
               >
@@ -365,6 +370,22 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
                       Copy link
                     </span>
                   </CustomMenu.MenuItem>
+                )}
+                {canEdit && otherProjects.length > 0 && (
+                  <CustomMenu.SubMenu
+                    trigger={
+                      <span className="flex items-center gap-2">
+                        <DetailIcon icon={FolderIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                        Move to project
+                      </span>
+                    }
+                  >
+                    {otherProjects.map((project) => (
+                      <CustomMenu.MenuItem key={project.id} onClick={() => onMove(bookmark, project.id)}>
+                        <span className="flex items-center gap-2 truncate">{project.name}</span>
+                      </CustomMenu.MenuItem>
+                    ))}
+                  </CustomMenu.SubMenu>
                 )}
                 {canEdit && (
                   <CustomMenu.MenuItem

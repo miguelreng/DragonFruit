@@ -125,7 +125,7 @@ export const PageVersionHistoryModal = observer(function PageVersionHistoryModal
       <div className="flex max-h-[85vh] min-h-[68vh] flex-col overflow-hidden" data-prevent-outside-click>
         <div className="flex items-center justify-between gap-3 border-b border-subtle px-5 py-4">
           <div>
-            <h3 className="text-14 font-medium text-primary">
+            <h3 className="text-14 font-normal text-primary">
               {t("page_navigation_pane.tabs.info.version_history.label")}
             </h3>
           </div>
@@ -196,7 +196,7 @@ export const PageVersionHistoryModal = observer(function PageVersionHistoryModal
             ) : (
               <div className="grid h-full place-items-center px-6 py-10 text-center">
                 <div className="max-w-sm">
-                  <h4 className="text-14 font-medium text-primary">Select a version</h4>
+                  <h4 className="text-14 font-normal text-primary">Select a version</h4>
                   <p className="mt-2 text-12 text-tertiary">
                     Pick any saved version on the left to preview it in the editor.
                   </p>

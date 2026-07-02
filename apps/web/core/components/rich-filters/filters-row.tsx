@@ -6,7 +6,7 @@
 
 import React, { useCallback, useState } from "react";
 import { observer } from "mobx-react";
-import { ListFilterPlus } from "@/components/icons/lucide-shim";
+import { ListFilter } from "@/components/icons/lucide-shim";
 import { Transition } from "@headlessui/react";
 // plane imports
 import { Button } from "@plane/propel/button";
@@ -78,7 +78,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
           size: "lg",
           iconConfig: {
             shouldShowIcon: true,
-            iconComponent: ListFilterPlus,
+            iconComponent: ListFilter,
           },
           ...buttonConfig,
           isDisabled: disabledAllOperations,
@@ -125,7 +125,14 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
   );
 
   const mainContent = (
-    <div className="flex w-full items-start gap-2 rounded-lg bg-layer-1 px-4 py-2">
+    // Header variant sits flush (no gray container / extra padding); the modal
+    // variant keeps its boxed look.
+    <div
+      className={cn(
+        "flex w-full items-start gap-2",
+        variant === "modal" ? "rounded-lg bg-layer-1 px-4 py-2" : "py-1"
+      )}
+    >
       <div className="flex w-full flex-wrap items-center gap-2">{leftContent}</div>
       <div
         className={cn("flex items-center gap-2 border-l border-subtle pl-4", {
@@ -142,7 +149,7 @@ export const FiltersRow = observer(function FiltersRow<K extends TFilterProperty
   );
 
   const HeaderVariant = (
-    <Header variant={EHeaderVariant.TERNARY} className="min-h-11 bg-surface-1 !px-3">
+    <Header variant={EHeaderVariant.TERNARY} className="min-h-0 bg-surface-1 !px-3 !py-0">
       {mainContent}
     </Header>
   );

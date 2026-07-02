@@ -19,7 +19,10 @@ export const SpreadsheetAttachmentColumn = observer(function SpreadsheetAttachme
 
   return (
     <Row className="flex h-9 w-full items-center border-b-[0.5px] border-subtle py-0.5 text-13 group-[.selected-issue-row]:bg-accent-primary/5 hover:bg-layer-1 group-[.selected-issue-row]:hover:bg-accent-primary/10">
-      {issue?.attachment_count ?? 0} {issue?.attachment_count === 1 ? "attachment" : "attachments"}
+      {/* Empty cell when there are no attachments (matches other unset cells). */}
+      {issue?.attachment_count
+        ? `${issue.attachment_count} ${issue.attachment_count === 1 ? "attachment" : "attachments"}`
+        : null}
     </Row>
   );
 });

@@ -11,11 +11,13 @@ import { searchWikipedia } from "@plane/editor";
 import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
 // plane imports
 import { WorkItemsIcon } from "@/components/icons/propel-shim";
+import { FileText } from "@/components/icons/lucide-shim";
 // plane types
 import type { TSearchEntities, TSearchResponse } from "@plane/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
+import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // local components
 import { WikipediaLogo } from "@/plane-web/components/editor/embeds/mentions/wikipedia-logo";
 
@@ -49,9 +51,10 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
   const {
     issue: { getIssueById },
   } = useIssueDetail();
+  const { getPageById } = usePageStore(EPageStoreType.PROJECT);
 
   // Build the extra (non-user) sections for the @-mention dropdown. Work items
-  // come back under `issue` from the entity search.
+  // come back under `issue` from the entity search; other docs under `page`.
   const updateAdditionalSections = useCallback(
     ({ response }: TAdditionalEditorMentionHandlerArgs): TAdditionalEditorMentionHandlerReturnType => {
       const sections: TMentionSection[] = [];
@@ -66,6 +69,17 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
         }));
         sections.push({ key: "issues", title: "Work items", items });
       }
+      const pages = response?.page ?? [];
+      if (pages.length > 0) {
+        const items: TMentionSuggestion[] = pages.map((page) => ({
+          icon: <FileText className="size-3.5 flex-shrink-0 text-tertiary" />,
+          id: page.id,
+          entity_identifier: page.id,
+          entity_name: "page",
+          title: page.name || "Untitled",
+        }));
+        sections.push({ key: "pages", title: "Docs", items });
+      }
       return { sections };
     },
     []
@@ -75,6 +89,15 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
   // doc to markdown/HTML.
   const parseAdditionalEditorContent = useCallback(
     ({ id, entityType }: TAdditionalParseEditorContentArgs): TAdditionalParseEditorContentReturnType => {
+      if (entityType === "page") {
+        const page = getPageById(id);
+        const projectId = page?.project_ids?.[0];
+        if (!page || !projectId) return undefined;
+        return {
+          textContent: page.name || "Untitled",
+          redirectionPath: `${workspaceSlug}/projects/${projectId}/pages/${id}`,
+        };
+      }
       if (entityType !== "issue") return undefined;
       const issue = getIssueById(id);
       if (!issue?.project_id) return undefined;
@@ -84,10 +107,10 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
         redirectionPath: `${workspaceSlug}/projects/${issue.project_id}/issues/${id}`,
       };
     },
-    [getIssueById, getProjectIdentifierById, workspaceSlug]
+    [getIssueById, getPageById, getProjectIdentifierById, workspaceSlug]
   );
 
-  const editorMentionTypes: TSearchEntities[] = useMemo(() => ["user_mention", "issue"], []);
+  const editorMentionTypes: TSearchEntities[] = useMemo(() => ["user_mention", "issue", "page"], []);
 
   // Fetch Wikipedia suggestions for the @-mention dropdown.
   //

@@ -11,6 +11,7 @@ import {
   CancelCircle as CancelCircleIcon,
   Copy as Copy01Icon,
   ExternalLink as LinkSquare01Icon,
+  Folder as FolderIcon,
   MoreHorizontal,
   Plus as PlusSignIcon,
   Trash as Delete02Icon,
@@ -320,6 +321,8 @@ function BookmarkCard(props: {
   onOpen: (bookmark: TProjectBookmark) => void;
   onSelect: (bookmarkId: string, isRange: boolean) => void;
   onDelete: (bookmark: TProjectBookmark) => void;
+  onMove: (bookmark: TProjectBookmark, targetProjectId: string) => void;
+  moveTargets: { id: string; name: string }[];
   onAcceptTag: (bookmark: TProjectBookmark, tag: string) => void;
   onDismissTag: (bookmark: TProjectBookmark, tag: string) => void;
 }) {
@@ -332,11 +335,15 @@ function BookmarkCard(props: {
     onOpen,
     onSelect,
     onDelete,
+    onMove,
+    moveTargets,
     onAcceptTag,
     onDismissTag,
   } = props;
   const href = bookmarkHref(workspaceSlug, bookmark);
   const isExternal = !!bookmark.url;
+  // Projects the bookmark can move to — everything writable except its own.
+  const otherProjects = moveTargets.filter((project) => project.id !== bookmark.project_id);
   const imageUrl = bookmarkPreviewImage(bookmark);
   const hasTwitterScreenshot = bookmarkHasTwitterScreenshot(bookmark, imageUrl);
   const displayTitle = bookmarkDisplayTitle(bookmark);
@@ -431,7 +438,7 @@ function BookmarkCard(props: {
           useCaptureForOutsideClick
           customButton={
             <span className="shadow-sm grid size-6 place-items-center rounded-lg bg-layer-1 text-tertiary hover:bg-layer-2 hover:text-primary">
-              <DetailIcon icon={MoreHorizontal} className="size-4" color="currentColor" strokeWidth={1.5} />
+              <MoreHorizontal className="size-4" weight="Bold" />
             </span>
           }
         >
@@ -445,6 +452,22 @@ function BookmarkCard(props: {
               Copy link
             </span>
           </CustomMenu.MenuItem>
+          {otherProjects.length > 0 && (
+            <CustomMenu.SubMenu
+              trigger={
+                <span className="flex items-center gap-2">
+                  <DetailIcon icon={FolderIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                  Move to project
+                </span>
+              }
+            >
+              {otherProjects.map((project) => (
+                <CustomMenu.MenuItem key={project.id} onClick={() => onMove(bookmark, project.id)}>
+                  <span className="flex items-center gap-2 truncate">{project.name}</span>
+                </CustomMenu.MenuItem>
+              ))}
+            </CustomMenu.SubMenu>
+          )}
           <CustomMenu.MenuItem
             onClick={() => {
               onDelete(bookmark);
@@ -1173,6 +1196,17 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     }
   };
 
+  const handleMove = async (bookmark: TProjectBookmark, targetProjectId: string) => {
+    if (!targetProjectId || targetProjectId === bookmark.project_id) return;
+    try {
+      await bookmarkStore.moveBookmark(workspaceSlug, bookmark.project_id, bookmark.id, targetProjectId);
+      const targetName = getPartialProjectById(targetProjectId)?.name ?? "project";
+      setToast({ type: TOAST_TYPE.SUCCESS, title: "Bookmark moved", message: `Moved to ${targetName}.` });
+    } catch {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Bookmark could not be moved" });
+    }
+  };
+
   // Only bookmarks in projects the user can edit are deletable; the rest are skipped.
   const deletableSelected = selectedBookmarks.filter((bookmark) => writableProjectIds.includes(bookmark.project_id));
 
@@ -1369,8 +1403,10 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
         workspaceSlug={workspaceSlug}
         showProject={mode === "workspace"}
         canEdit={canEditDetail}
+        moveTargets={writableProjects}
         onClose={() => setDetailId(null)}
         onDelete={handleDelete}
+        onMove={handleMove}
       />
       <div className="relative flex h-full w-full flex-col overflow-hidden">
         {filteredBookmarks.length === 0 ? (
@@ -1429,6 +1465,8 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
                     onOpen={openDetail}
                     onSelect={handleSelect}
                     onDelete={handleDelete}
+                    onMove={handleMove}
+                    moveTargets={writableProjects}
                     onAcceptTag={handleAcceptTag}
                     onDismissTag={handleDismissTag}
                   />

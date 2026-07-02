@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 import { usePopper } from "react-popper";
 import { ISSUE_PRIORITIES } from "@plane/constants";
 import type { TIssuePriorities } from "@plane/types";
+import { Logo } from "@plane/propel/emoji-icon-picker";
 import { cn, renderFormattedDate } from "@plane/utils";
 import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
 import { Loader, Plus } from "@/components/icons/lucide-shim";
@@ -55,6 +56,8 @@ type TaskQuickAddProps = {
   defaultIndented?: boolean;
   /** Focus the input on mount (the Enter-spawned draft line). */
   focusOnMount?: boolean;
+  /** Hide the `/project` token (single-project contexts, e.g. the project Tasks checklist). */
+  hideProjectToken?: boolean;
   /** Bottom add row: stays mounted, keeps focus after each create, shows project picker + preview. */
   persistent?: boolean;
   /** Show the project picker (bottom row, multi-project workspaces). */
@@ -79,6 +82,7 @@ export const TaskQuickAdd = observer(function TaskQuickAdd({
   indentTargetId,
   defaultIndented,
   focusOnMount,
+  hideProjectToken,
   persistent,
   projectSelectable,
   onSelectProject,
@@ -119,6 +123,7 @@ export const TaskQuickAdd = observer(function TaskQuickAdd({
     if (!token) return [];
     const q = token.query.toLowerCase();
     if (token.sigil === "/") {
+      if (hideProjectToken) return [];
       const nq = normalizeProjectToken(token.query);
       return joinedProjectIds
         .map((id) => getProjectById(id))
@@ -188,6 +193,7 @@ export const TaskQuickAdd = observer(function TaskQuickAdd({
   };
 
   const targetProjectId = projectId;
+  const selectedProject = getProjectById(projectId);
 
   const submit = async (keepOpen: boolean) => {
     const trimmed = value.trim();
@@ -254,11 +260,24 @@ export const TaskQuickAdd = observer(function TaskQuickAdd({
   };
 
   const preview = persistent ? parseQuickInput(value) : null;
-  const previewProject = preview?.projectName
-    ? joinedProjectIds.map((id) => getProjectById(id)).find((p) => normalizeProjectToken(p?.name ?? "") === normalizeProjectToken(preview.projectName ?? ""))
-    : undefined;
+  // Resolve a typed `/project` token to a joined project, matching either its name or
+  // identifier (same rule the parent's createTask uses).
+  const previewProject = (() => {
+    const nq = normalizeProjectToken(preview?.projectName ?? "");
+    if (!nq) return undefined;
+    return joinedProjectIds
+      .map((id) => getProjectById(id))
+      .find((p) => p && (normalizeProjectToken(p.name ?? "") === nq || normalizeProjectToken(p.identifier ?? "") === nq));
+  })();
   const hasPreview =
     !!preview && (!!preview.dueDate || !!preview.priority || preview.labelNames.length > 0 || !!preview.projectName);
+
+  // Reflect a resolved `/project` token in the add-row dropdown and persist it as the default
+  // for subsequent tasks (persistent bottom row only). Guarded so we only switch on a real match.
+  const previewProjectId = persistent ? previewProject?.id : undefined;
+  useEffect(() => {
+    if (previewProjectId && previewProjectId !== projectId) onSelectProject?.(previewProjectId);
+  }, [previewProjectId, projectId, onSelectProject]);
 
   return (
     <li className={cn(indented && "ml-7")}>
@@ -327,7 +346,9 @@ export const TaskQuickAdd = observer(function TaskQuickAdd({
                 indented
                   ? "New subtask"
                   : persistent
-                    ? "Add a task —  /project  #label  @date  !priority"
+                    ? hideProjectToken
+                      ? "Add a task —  #label  @date  !priority"
+                      : "Add a task —  /project  #label  @date  !priority"
                     : "New task"
               }
               className={cn(
@@ -343,9 +364,21 @@ export const TaskQuickAdd = observer(function TaskQuickAdd({
                 value={projectId}
                 onChange={(id) => onSelectProject?.(id)}
                 multiple={false}
+                // buttonVariant is required by the dropdown's prop type but unused on the custom
+                // `button` path below.
                 buttonVariant="transparent-with-text"
-                buttonClassName="text-11 text-tertiary"
-                dropdownArrow={false}
+                // Custom trigger node (rendered inside the dropdown's own <button>) instead of the
+                // default DropdownButton, which nests a propel <button> inside that wrapper button.
+                button={
+                  <span className="flex items-center gap-1 rounded-md px-1.5 py-1 text-11 text-tertiary transition-colors hover:bg-layer-1">
+                    {selectedProject?.logo_props && (
+                      <span className="grid size-4 flex-shrink-0 place-items-center">
+                        <Logo logo={selectedProject.logo_props} size={12} />
+                      </span>
+                    )}
+                    <span className="max-w-40 truncate">{selectedProject?.name ?? "Project"}</span>
+                  </span>
+                }
               />
             </div>
           )}

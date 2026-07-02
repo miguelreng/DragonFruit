@@ -11,6 +11,7 @@ import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane
 //components
 import { shouldRenderColumn } from "@/helpers/issue-filter.helper";
 import { WithDisplayPropertiesHOC } from "../properties/with-display-properties-HOC";
+import { ColumnResizeHandle } from "./column-resize-handle";
 import { HeaderColumn } from "./columns/header-column";
 
 interface Props {
@@ -19,10 +20,12 @@ interface Props {
   isEstimateEnabled: boolean;
   displayFilters: IIssueDisplayFilterOptions;
   handleDisplayFilterUpdate: (data: Partial<IIssueDisplayFilterOptions>) => void;
+  onColumnResize: (key: string, width: number) => void;
   isEpic?: boolean;
 }
 export const SpreadsheetHeaderColumn = observer(function SpreadsheetHeaderColumn(props: Props) {
-  const { displayProperties, displayFilters, property, handleDisplayFilterUpdate, isEpic = false } = props;
+  const { displayProperties, displayFilters, property, handleDisplayFilterUpdate, onColumnResize, isEpic = false } =
+    props;
 
   //hooks
   const tableHeaderCellRef = useRef<HTMLTableCellElement | null>(null);
@@ -36,7 +39,9 @@ export const SpreadsheetHeaderColumn = observer(function SpreadsheetHeaderColumn
       shouldRenderProperty={() => shouldRenderProperty}
     >
       <th
-        className="h-9 min-w-36 items-center border border-t-0 border-b-0 border-subtle bg-layer-1 py-1 text-13 font-medium"
+        // Right border only — `border` on all sides double-lined against the
+        // neighbor's border. Matches the body cells' single `border-r`.
+        className="group/header relative h-9 min-w-36 items-center border-r-[0.5px] border-subtle bg-layer-1 py-1 text-13 font-medium"
         ref={tableHeaderCellRef}
         tabIndex={0}
       >
@@ -49,6 +54,7 @@ export const SpreadsheetHeaderColumn = observer(function SpreadsheetHeaderColumn
           }}
           isEpic={isEpic}
         />
+        <ColumnResizeHandle onResize={(width) => onColumnResize(property, width)} />
       </th>
     </WithDisplayPropertiesHOC>
   );

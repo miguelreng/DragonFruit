@@ -18,7 +18,16 @@ import {
   Trash as Delete02Icon,
 } from "@/components/icons/lucide-shim";
 import { List as ListBullets, LayoutGrid as SquaresFour } from "@/components/icons/lucide-shim";
-import { ChevronDown, File as FileIcon, FileText, Folder, Search, Whiteboard, X } from "@/components/icons/lucide-shim";
+import {
+  ChevronDown,
+  File as FileIcon,
+  FileText,
+  Folder,
+  Search,
+  UploadCloud,
+  Whiteboard,
+  X,
+} from "@/components/icons/lucide-shim";
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
@@ -47,6 +56,7 @@ import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { normalizeTags } from "@/helpers/tags";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
+import { isPdfFile, useCreatePdfPage } from "./use-create-pdf-page";
 
 type DocsIconComponent = ComponentType<{
   className?: string;
@@ -255,6 +265,58 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     await mutatePages();
   };
 
+  // Drag-and-drop PDF upload. Only where PDFs are actually listed and there is a
+  // project to attach the asset to (matches the New button's Upload PDF rule).
+  const { createPdfPage, isUploading: isUploadingPdf } = useCreatePdfPage(workspaceSlug);
+  const canDropPdf = !!scopeProjectId && activePageTypes.includes("pdf");
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const dragDepth = useRef(0);
+
+  const isFileDrag = (event: React.DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes("Files");
+  const handleFileDragEnter = (event: React.DragEvent) => {
+    if (!canDropPdf || !isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth.current += 1;
+    setIsDraggingFiles(true);
+  };
+  const handleFileDragOver = (event: React.DragEvent) => {
+    if (!canDropPdf || !isFileDrag(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+  const handleFileDragLeave = (event: React.DragEvent) => {
+    if (!canDropPdf || !isFileDrag(event)) return;
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setIsDraggingFiles(false);
+  };
+  const handleFileDrop = async (event: React.DragEvent) => {
+    if (!canDropPdf || !scopeProjectId || !isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth.current = 0;
+    setIsDraggingFiles(false);
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    if (files.length === 0) return;
+    const pdfs = files.filter(isPdfFile);
+    if (pdfs.length === 0) {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message: "Only PDF files can be added here." });
+      return;
+    }
+    let created = 0;
+    for (const file of pdfs) {
+      // Sequential so we don't fire N presign/upload chains at once.
+      const page = await createPdfPage(scopeProjectId, file);
+      if (page) created += 1;
+    }
+    if (created > 0) {
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: created === 1 ? "PDF added." : `${created} PDFs added.`,
+      });
+      await refreshPages();
+    }
+  };
+
   const hasFilters =
     searchQuery.length > 0 ||
     selectedProjectIds.length > 0 ||
@@ -390,7 +452,24 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       <AppHeader header={headerNode} />
-      <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <div
+        className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+        onDragEnter={handleFileDragEnter}
+        onDragOver={handleFileDragOver}
+        onDragLeave={handleFileDragLeave}
+        onDrop={handleFileDrop}
+      >
+        {canDropPdf && (isDraggingFiles || isUploadingPdf) && (
+          <div className="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-xl border-2 border-dashed border-accent-strong bg-surface-1/85 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <UploadCloud className="size-8 text-accent-primary" />
+              <p className="text-14 font-medium text-primary">
+                {isUploadingPdf ? "Uploading PDF…" : "Drop PDF files to add them"}
+              </p>
+              {!isUploadingPdf && <p className="text-12 text-tertiary">They'll be added to this project's docs.</p>}
+            </div>
+          </div>
+        )}
         {filteredPages.length === 0 ? (
           <EmptyStateDetailed
             assetKey={hasFilters ? "search" : undefined}

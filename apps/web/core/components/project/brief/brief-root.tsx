@@ -15,7 +15,6 @@ import { EFileAssetType } from "@plane/types";
 import { setActiveDocPageId } from "@/components/agent-chat/active-doc-page";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { EditorCapabilitiesGuide } from "@/components/editor/editor-capabilities-guide";
-import { Sparkles } from "@/components/icons/lucide-shim";
 import type { TPageRootConfig, TPageRootHandlers } from "@/components/pages/editor/page-root";
 import { PageRoot } from "@/components/pages/editor/page-root";
 // plane web components
@@ -145,11 +144,10 @@ const BriefPageActions = observer(function BriefPageActions(props: { page: TPage
   const canLock = page.canCurrentUserLockPage;
 
   return (
-    <div className="z-20 flex flex-shrink-0 items-center justify-between gap-2 px-page-x pt-3 pb-2">
+    <div className="z-20 flex flex-shrink-0 items-center justify-between gap-2 px-page-x pt-5 pb-5">
       <div className="flex min-w-0 items-center gap-2">
         <span className="truncate text-13 font-medium text-primary">{title}</span>
         <span className="hidden shrink-0 items-center gap-1 rounded-md border border-subtle bg-surface-1 px-2 py-0.5 text-11 font-medium text-secondary sm:inline-flex">
-          <Sparkles className="size-3" />
           Atlas reads this
         </span>
       </div>

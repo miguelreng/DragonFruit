@@ -48,7 +48,8 @@ export const SpreadsheetSubIssueColumn = observer(function SpreadsheetSubIssueCo
         }
       )}
     >
-      {isEpic ? <IssueStats issueId={issue.id} /> : label}
+      {/* Empty cell when there are no sub-tasks (matches other unset cells). */}
+      {isEpic ? <IssueStats issueId={issue.id} /> : subIssueCount ? label : null}
     </Row>
   );
 });

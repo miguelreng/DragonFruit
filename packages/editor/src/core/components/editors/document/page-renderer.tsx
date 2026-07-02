@@ -86,7 +86,7 @@ export function PageRenderer(props: Props) {
                   editor={titleEditor}
                   id={id + "-title"}
                   tabIndex={tabIndex}
-                  className="no-scrollbar placeholder-placeholder w-full resize-none rounded-none border-none bg-transparent p-0 text-[2rem] leading-[2.375rem] font-bold tracking-[-2%] outline-none"
+                  className="no-scrollbar placeholder-placeholder w-full resize-none rounded-none border-none bg-transparent p-0 text-[2rem] leading-[2.375rem] font-semibold tracking-[-2%] outline-none"
                 />
               </EditorContainer>
             </div>
