@@ -333,8 +333,35 @@ class LLMProvider:
                     }
                 )
 
-        # Fell off the loop without a terminating text message.
+        # Fell off the loop without a terminating text message — the model was
+        # still calling tools when it hit the iteration cap. Force ONE final
+        # tool-less turn so it synthesizes an answer from the tool output it
+        # already gathered, instead of returning an empty reply.
         result.stopped_reason = "max_iterations"
+        try:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "You've reached the tool-use limit. Give your best final answer now "
+                        "in plain text, using the information already gathered above. "
+                        "Do not call any tools."
+                    ),
+                }
+            )
+            final_kwargs: Dict[str, Any] = {
+                "model": self._litellm_model(),
+                "api_key": self.api_key,
+                "api_base": self.api_base_url,
+                "messages": messages,
+            }
+            if request_timeout is not None:
+                final_kwargs["timeout"] = request_timeout
+            final_completion = litellm.completion(**final_kwargs)
+            _accumulate_usage(result, final_completion)
+            result.final_text = getattr(final_completion.choices[0].message, "content", None) or ""
+        except Exception:  # noqa: BLE001 — best-effort; empty final_text falls through
+            logger.exception("llm final synthesis call failed model=%s", self.model)
         return result
 
     # ----------------------------------------------------------------- #

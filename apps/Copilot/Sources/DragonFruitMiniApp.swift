@@ -11,6 +11,7 @@ struct DragonFruitMiniApp: App {
     @StateObject private var toastController = VoiceToastController()
     @StateObject private var cursorBuddyController = CursorBuddyOverlayController()
     @StateObject private var meetingNotesOverlayController = MeetingNotesOverlayController()
+    @StateObject private var atlasChatController = AtlasChatOverlayController()
     @StateObject private var agentInbox = AgentInboxStore()
 
     // Drives Sparkle auto-updates in release builds. Debug builds skip Sparkle
@@ -45,6 +46,7 @@ struct DragonFruitMiniApp: App {
                 toastController.bind(to: store)
                 cursorBuddyController.bind(to: store)
                 meetingNotesOverlayController.bind(to: store)
+                atlasChatController.bind(to: store)
                 agentInbox.startPolling(
                     makeClient: { try store.makeClientPublic() },
                     workspaceSlug: { store.selectedWorkspaceSlug }
@@ -66,6 +68,7 @@ struct DragonFruitMiniApp: App {
                 toastController.bind(to: store)
                 cursorBuddyController.bind(to: store)
                 meetingNotesOverlayController.bind(to: store)
+                atlasChatController.bind(to: store)
             }
         }
         .menuBarExtraStyle(.window)
@@ -1410,11 +1413,6 @@ final class MeetingNotesOverlayController: ObservableObject {
     private var timer: Timer?
     private var cancellables: Set<AnyCancellable> = []
     private weak var store: MeetingStore?
-    private var moveObserver: NSObjectProtocol?
-    // Once the user drags the widget by its logo we pin it where they left it
-    // (for the rest of the session) instead of snapping back to the screen edge.
-    private var userOrigin: NSPoint?
-    private var isProgrammaticMove = false
 
     func bind(to store: MeetingStore) {
         guard self.store !== store else { return }
@@ -1484,82 +1482,92 @@ final class MeetingNotesOverlayController: ObservableObject {
         // Interactive so the stop button is clickable; .nonactivatingPanel keeps
         // clicks from stealing focus from the meeting app the user is in.
         panel.ignoresMouseEvents = false
-        panel.isMovable = true
+        panel.isMovable = false
+        // Above the menu bar so the pill can overlap the notch band.
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
-        moveObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didMoveNotification,
-            object: panel,
-            queue: nil
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, !self.isProgrammaticMove else { return }
-                self.userOrigin = self.panel?.frame.origin
-            }
-        }
         return panel
     }
 
     private func position(panel: NSPanel, size: NSSize) {
-        // The user dragged the widget — leave it where they put it.
-        if userOrigin != nil { return }
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
-        let frame = screen?.visibleFrame ?? .zero
-        // The panel is oversized by shadowMargin on every side; offset so the
-        // visible capsule (not the shadow padding) sits 18pt from the edge.
+        // Full frame (not visibleFrame) so the pill hugs the very top of the
+        // screen — the notch / menu-bar band, Dynamic Island style.
+        let frame = screen?.frame ?? .zero
         let margin = MeetingNotesRecordingOverlayView.shadowMargin
         let origin = NSPoint(
-            x: frame.maxX - size.width + margin - 18,
-            y: frame.midY - (size.height / 2)
+            x: frame.midX - (size.width / 2),
+            // Capsule top sits ~2pt below the screen top; it is inset from the
+            // panel top by `margin`, so lift the panel by that much.
+            y: frame.maxY - size.height + margin - 2
         )
-        isProgrammaticMove = true
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
-        isProgrammaticMove = false
     }
 }
 
 struct MeetingNotesRecordingOverlayView: View {
     @ObservedObject var store: MeetingStore
     @State private var isHoveringStop = false
+    @State private var isExpanded = false
 
-    /// The visible capsule. The hosting panel adds `shadowMargin` on every side
-    /// so the drop shadow can render fully — a panel sized exactly to the
-    /// capsule clipped the shadow into a hard square edge.
-    static let capsuleSize = NSSize(width: 56, height: 132)
-    static let shadowMargin: CGFloat = 46
+    /// Dynamic Island-style horizontal pill docked at the top-center of the
+    /// screen. The hosting panel is oversized by `shadowMargin` on every side so
+    /// the drop shadow renders fully instead of clipping into a hard edge, and
+    /// so the pill can grow on hover (to reveal the stop control) while staying
+    /// centered within a fixed panel.
+    static let pillHeight: CGFloat = 34
+    static let maxPillWidth: CGFloat = 168
+    static let shadowMargin: CGFloat = 40
     static var panelSize: NSSize {
         NSSize(
-            width: capsuleSize.width + shadowMargin * 2,
-            height: capsuleSize.height + shadowMargin * 2
+            width: maxPillWidth + shadowMargin * 2,
+            height: pillHeight + shadowMargin * 2
         )
     }
 
+    private let pillFill = Color(red: 0.09, green: 0.09, blue: 0.10)
+
     var body: some View {
         TimelineView(.animation) { timeline in
-            VStack(spacing: 14) {
+            HStack(spacing: 9) {
                 recordingLogo
-                    .frame(width: 24, height: 24)
-                    .overlay(WindowDragHandle())
 
                 MeetingNotesRecordingBars(date: timeline.date, level: store.audioLevel)
-                    .frame(width: 24, height: 22)
+                    .frame(width: 22, height: 16)
 
-                stopButton
+                if isExpanded {
+                    Text("Recording")
+                        .font(.custom("Figtree", size: 12).weight(.medium))
+                        .foregroundStyle(Color.white.opacity(0.82))
+                        .fixedSize()
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+
+                    stopButton
+                        .transition(.opacity.combined(with: .scale(scale: 0.7)))
+                }
             }
-            .frame(width: Self.capsuleSize.width, height: Self.capsuleSize.height)
+            .padding(.leading, 11)
+            .padding(.trailing, isExpanded ? 8 : 11)
+            .frame(height: Self.pillHeight)
             .background(
-                // Shadow on the capsule fill itself (not the whole subtree) so
-                // the logo/bars don't each cast their own inner shadow.
                 Capsule(style: .continuous)
-                    .fill(Color(red: 0.13, green: 0.13, blue: 0.13).opacity(0.96))
-                    .shadow(color: Color.black.opacity(0.24), radius: 8, y: 6)
-                    .shadow(color: Color.black.opacity(0.22), radius: 24, y: 18)
+                    .fill(pillFill.opacity(0.97))
+                    .shadow(color: Color.black.opacity(0.28), radius: 8, y: 5)
+                    .shadow(color: Color.black.opacity(0.22), radius: 22, y: 14)
             )
             .overlay(
                 Capsule(style: .continuous)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
             )
+            .fixedSize()
+            .contentShape(Capsule(style: .continuous))
+            .onHover { hovering in
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
+                    isExpanded = hovering
+                }
+            }
+            // Centre the pill within the oversized (shadow-margin) panel.
             .frame(width: Self.panelSize.width, height: Self.panelSize.height)
         }
         .accessibilityElement(children: .contain)
@@ -1574,15 +1582,15 @@ struct MeetingNotesRecordingOverlayView: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(Color(red: 0.95, green: 0.30, blue: 0.34).opacity(isHoveringStop ? 0.24 : 0.15))
+                    .fill(Color(red: 0.95, green: 0.30, blue: 0.34).opacity(isHoveringStop ? 0.30 : 0.18))
                 Circle()
-                    .stroke(Color(red: 0.95, green: 0.30, blue: 0.34).opacity(0.55), lineWidth: 1)
+                    .stroke(Color(red: 0.95, green: 0.30, blue: 0.34).opacity(0.6), lineWidth: 1)
                 RoundedRectangle(cornerRadius: 2.5, style: .continuous)
                     .fill(Color(red: 0.97, green: 0.43, blue: 0.46))
-                    .frame(width: 9, height: 9)
+                    .frame(width: 8, height: 8)
             }
-            .frame(width: 26, height: 26)
-            .scaleEffect(isHoveringStop ? 1.09 : 1.0)
+            .frame(width: 22, height: 22)
+            .scaleEffect(isHoveringStop ? 1.1 : 1.0)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -1592,36 +1600,24 @@ struct MeetingNotesRecordingOverlayView: View {
         .accessibilityLabel("Stop meeting notes")
     }
 
-    @ViewBuilder
     private var recordingLogo: some View {
-        if let icon = BrandTheme.templateMark(pointSize: 24) {
-            Image(nsImage: icon)
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .foregroundStyle(Color.white.opacity(0.90))
-        } else {
-            AtlasIcon(.bubbleChat)
-                .foregroundStyle(Color.white.opacity(0.90))
+        ZStack {
+            Circle().fill(Color.white.opacity(0.14))
+            if let icon = BrandTheme.templateMark(pointSize: 16) {
+                Image(nsImage: icon)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Color.white.opacity(0.92))
+                    .frame(width: 13, height: 13)
+            } else {
+                AtlasIcon(.bubbleChat)
+                    .foregroundStyle(Color.white.opacity(0.92))
+                    .frame(width: 13, height: 13)
+            }
         }
+        .frame(width: 22, height: 22)
     }
-}
-
-/// Click-and-drag area that moves the hosting panel — laid over the widget's
-/// logo so the whole recording pill can be repositioned by dragging the mark.
-private struct WindowDragHandle: NSViewRepresentable {
-    final class HandleView: NSView {
-        override func mouseDown(with event: NSEvent) {
-            window?.performDrag(with: event)
-        }
-
-        override func resetCursorRects() {
-            addCursorRect(bounds, cursor: .openHand)
-        }
-    }
-
-    func makeNSView(context: Context) -> HandleView { HandleView() }
-    func updateNSView(_ nsView: HandleView, context: Context) {}
 }
 
 struct MeetingNotesRecordingBars: View {

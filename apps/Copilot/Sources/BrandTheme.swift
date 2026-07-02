@@ -235,6 +235,16 @@ enum BrandTheme {
         return image
     }
 
+    /// The dragon glyph as a template image so it can be tinted (e.g. white on
+    /// the accent circle in the Atlas chat empty state).
+    static var dragonGlyphTemplate: NSImage? {
+        guard let path = Bundle.main.path(forResource: "dragon", ofType: "svg") else { return nil }
+        guard let image = NSImage(contentsOfFile: path) else { return nil }
+        image.size = NSSize(width: 22, height: 30)
+        image.isTemplate = true
+        return image
+    }
+
     static var cursorBuddyIcon: NSImage? {
         guard let path = Bundle.main.path(forResource: "AppIcon", ofType: "icns") else { return nil }
         guard let image = NSImage(contentsOfFile: path) else { return nil }

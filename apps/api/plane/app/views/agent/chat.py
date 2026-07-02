@@ -1877,7 +1877,11 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 system_prompt=system,
                 user_prompt=user_prompt,
                 tools=tools,
-                max_iterations=3,
+                # Enough turns to research (web/wikipedia/workspace lookups) AND
+                # then synthesize an answer. At 3 the loop often hit the cap
+                # mid-research and returned empty; provider.run also now forces
+                # a final tool-less synthesis turn as a backstop.
+                max_iterations=8,
             )
         except Exception as exc:  # noqa: BLE001 — surface any provider error
             logger.exception("agent chat call failed agent=%s session=%s", agent.id, session.id)

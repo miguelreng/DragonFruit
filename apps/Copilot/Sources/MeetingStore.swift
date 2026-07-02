@@ -8,6 +8,7 @@ import Foundation
 import os
 @preconcurrency import Speech
 import SwiftUI
+import UniformTypeIdentifiers
 import UserNotifications
 
 struct MeetingInfo: Identifiable {
@@ -185,6 +186,16 @@ struct AgentRoutingTarget {
     let workspaceSlug: String
     let agentId: String?
     let agentName: String
+}
+
+/// A single turn in the floating Atlas chat panel.
+struct AtlasChatMessage: Identifiable, Equatable {
+    enum Role { case user, assistant }
+    let id = UUID()
+    let role: Role
+    var text: String
+    /// Assistant placeholder that is still streaming / awaiting content.
+    var isStreaming: Bool = false
 }
 
 struct AgentOption: Identifiable, Hashable {
@@ -602,6 +613,19 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var lastAgentTextResponse = ""
     @Published var isAgentResponding = false
     @Published var isVoiceActionProcessing = false
+    /// Drives the floating glass chat panel (toggled with ⌥A). The overlay
+    /// controller observes this to show/hide the window.
+    @Published var isAtlasChatVisible = false
+    /// Full multi-turn transcript shown in the floating chat panel.
+    @Published var atlasChatMessages: [AtlasChatMessage] = []
+    /// True while a chat turn is in flight (request sent, awaiting/streaming reply).
+    @Published var isAtlasChatSending = false
+    /// Number of files staged (via the composer paperclip) for the next message.
+    @Published var atlasChatPendingAttachmentCount = 0
+    private var atlasChatPendingAttachments: [AgentChatAttachmentPayload] = []
+    /// Text selected in the frontmost app when the chat was opened, offered as
+    /// context for the next question (shown as a chip in the composer).
+    @Published var atlasChatSelectionContext: String?
     @Published var availableWorkspaces: [WorkspaceOption] = []
     @Published var selectedWorkspaceSlug = "" {
         didSet {
@@ -663,6 +687,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var recordingMeeting: MeetingInfo?
     private var notifiedMeetingIds: Set<String> = []
     private var actionHotKeyRef: EventHotKeyRef?
+    private var chatHotKeyRef: EventHotKeyRef?
     private var hotKeyEventHandlerRef: EventHandlerRef?
     private var optionFlagsMonitor: Any?
     private var localOptionFlagsMonitor: Any?
@@ -670,6 +695,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     private var activeAgentSessionByWorkspace: [String: String] = [:]
     private var agentTypingTask: Task<Void, Never>?
     private var agentResponseDismissTask: Task<Void, Never>?
+    private var atlasChatTypingTask: Task<Void, Never>?
     private var voiceCaptureMode: VoiceCaptureMode = .intent
     private struct PendingVoiceCaptureStart {
         let mode: VoiceCaptureMode
@@ -1959,14 +1985,16 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             return
         }
 
-        registerHotKey(id: 1, modifiers: UInt32(optionKey), storage: &actionHotKeyRef)
+        registerHotKey(id: 1, keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey), storage: &actionHotKeyRef)
+        // ⌥A toggles the floating glass chat panel.
+        registerHotKey(id: 2, keyCode: UInt32(kVK_ANSI_A), modifiers: UInt32(optionKey), storage: &chatHotKeyRef)
         setupOptionOnlyDictationMonitor()
     }
 
-    private func registerHotKey(id: UInt32, modifiers: UInt32, storage: inout EventHotKeyRef?) {
+    private func registerHotKey(id: UInt32, keyCode: UInt32, modifiers: UInt32, storage: inout EventHotKeyRef?) {
         let hotKeyID = EventHotKeyID(signature: Self.hotKeySignature, id: id)
         let status = RegisterEventHotKey(
-            UInt32(kVK_Space),
+            keyCode,
             modifiers,
             hotKeyID,
             GetApplicationEventTarget(),
@@ -2006,6 +2034,8 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 store.beginActionVoiceCapture(hotKeyID: hotKeyID.id)
             case (1, UInt32(kEventHotKeyReleased)):
                 store.endHeldVoiceCapture(hotKeyID: hotKeyID.id)
+            case (2, UInt32(kEventHotKeyPressed)):
+                store.toggleAtlasChat()
             default:
                 break
             }
@@ -4196,6 +4226,179 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             self?.lastAgentTextResponse = ""
         }
         agentResponseDismissTask = dismissTask
+    }
+
+    // MARK: - Floating chat panel (⌥A)
+
+    /// Show/hide the floating glass chat panel. Bound to the ⌥A global hotkey.
+    func toggleAtlasChat() {
+        if !isAtlasChatVisible {
+            // Read the selection from the app you're in NOW, before our panel
+            // activates and moves focus — so it can seed the question's context.
+            captureAtlasChatSelection()
+        }
+        isAtlasChatVisible.toggle()
+    }
+
+    /// Grab the frontmost app's current text selection (via Accessibility) to
+    /// offer as context. Clears the chip when nothing is selected.
+    private func captureAtlasChatSelection() {
+        guard AXIsProcessTrusted() else {
+            atlasChatSelectionContext = nil
+            return
+        }
+        let text = Self.focusedSelectedText()?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let text, !text.isEmpty {
+            atlasChatSelectionContext = String(text.prefix(4000))
+        } else {
+            atlasChatSelectionContext = nil
+        }
+    }
+
+    func clearAtlasChatSelectionContext() {
+        atlasChatSelectionContext = nil
+    }
+
+    func closeAtlasChat() {
+        guard isAtlasChatVisible else { return }
+        isAtlasChatVisible = false
+    }
+
+    /// Clear the visible transcript and drop the cached session so the next
+    /// message starts a brand-new Atlas conversation.
+    func startNewAtlasChat() {
+        atlasChatTypingTask?.cancel()
+        atlasChatMessages.removeAll()
+        isAtlasChatSending = false
+        activeAgentSessionByWorkspace.removeAll()
+    }
+
+    /// Stage files from the composer paperclip to send with the next message.
+    func attachAtlasChatFiles(_ urls: [URL]) {
+        for url in urls {
+            guard let data = try? Data(contentsOf: url) else { continue }
+            let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+            atlasChatPendingAttachments.append(
+                AgentChatAttachmentPayload(
+                    name: url.lastPathComponent,
+                    mimeType: mime,
+                    contentBase64: data.base64EncodedString()
+                )
+            )
+        }
+        atlasChatPendingAttachmentCount = atlasChatPendingAttachments.count
+    }
+
+    /// Open the workspace integrations settings page (composer grid button).
+    func openAtlasIntegrations() {
+        let slug = selectedWorkspaceSlug
+        let base = appURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let path = slug.isEmpty ? "\(base)/settings/integrations" : "\(base)/\(slug)/settings/integrations"
+        if let url = URL(string: path) {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Send a typed message from the floating chat panel, reusing the same
+    /// per-workspace Atlas session as voice so both share one conversation.
+    func sendAtlasChatMessage(_ rawText: String) {
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !isAtlasChatSending else { return }
+
+        let attachments = atlasChatPendingAttachments
+        atlasChatPendingAttachments.removeAll()
+        atlasChatPendingAttachmentCount = 0
+
+        let selection = atlasChatSelectionContext
+        atlasChatSelectionContext = nil
+        let contextNote = selection.map {
+            "The user has this text selected and is asking about it:\n\"\"\"\n\($0)\n\"\"\""
+        }
+
+        guard isAuthenticated else {
+            atlasChatMessages.append(AtlasChatMessage(role: .user, text: text))
+            atlasChatMessages.append(AtlasChatMessage(role: .assistant, text: "Sign in to DragonFruit first to chat with Atlas."))
+            return
+        }
+
+        atlasChatMessages.append(AtlasChatMessage(role: .user, text: text))
+        let placeholderIndex = atlasChatMessages.count
+        atlasChatMessages.append(AtlasChatMessage(role: .assistant, text: "", isStreaming: true))
+        isAtlasChatSending = true
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.isAtlasChatSending = false }
+            do {
+                let client = try self.makeClient()
+                let agentTarget = try await self.resolveAgentTarget(client: client)
+
+                let sessionId: String
+                if let existing = self.activeAgentSessionByWorkspace[agentTarget.workspaceSlug] {
+                    sessionId = existing
+                } else {
+                    let created = try await client.createAgentChatSession(
+                        workspaceSlug: agentTarget.workspaceSlug,
+                        agentId: agentTarget.agentId,
+                        title: "Atlas Chat"
+                    )
+                    sessionId = created.id
+                    self.activeAgentSessionByWorkspace[agentTarget.workspaceSlug] = sessionId
+                }
+
+                let envelope = try await client.sendAgentChatMessage(
+                    workspaceSlug: agentTarget.workspaceSlug,
+                    sessionId: sessionId,
+                    content: text,
+                    attachments: attachments,
+                    contextNote: contextNote
+                )
+
+                let error = envelope.assistant_message.error_message.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !error.isEmpty {
+                    Self.logger.error("Atlas chat error: \(error, privacy: .public)")
+                    self.finishAtlasChatReply(at: placeholderIndex, with: Self.userFacingAgentErrorMessage(error), stream: false)
+                } else {
+                    let reply = envelope.assistant_message.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                    self.finishAtlasChatReply(
+                        at: placeholderIndex,
+                        with: reply.isEmpty ? "Atlas didn't return an answer for that — try rephrasing?" : reply,
+                        stream: true
+                    )
+                }
+            } catch {
+                Self.logger.error("Atlas chat request failed: \(error.localizedDescription, privacy: .public)")
+                self.finishAtlasChatReply(at: placeholderIndex, with: Self.userFacingAgentErrorMessage(error.localizedDescription), stream: false)
+            }
+        }
+    }
+
+    /// Fill the pending assistant bubble, optionally with a typewriter reveal.
+    private func finishAtlasChatReply(at index: Int, with text: String, stream: Bool) {
+        atlasChatTypingTask?.cancel()
+        guard atlasChatMessages.indices.contains(index) else { return }
+
+        guard stream else {
+            atlasChatMessages[index].text = text
+            atlasChatMessages[index].isStreaming = false
+            return
+        }
+
+        let chars = Array(text)
+        let step = max(1, chars.count / 120)
+        atlasChatTypingTask = Task { @MainActor [weak self] in
+            var idx = 0
+            while idx < chars.count {
+                if Task.isCancelled { return }
+                guard let self, self.atlasChatMessages.indices.contains(index) else { return }
+                let next = min(chars.count, idx + step)
+                self.atlasChatMessages[index].text = String(chars[0..<next])
+                idx = next
+                try? await Task.sleep(nanoseconds: 14_000_000)
+            }
+            guard let self, self.atlasChatMessages.indices.contains(index) else { return }
+            self.atlasChatMessages[index].isStreaming = false
+        }
     }
 
 }
