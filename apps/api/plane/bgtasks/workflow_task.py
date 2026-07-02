@@ -72,6 +72,21 @@ def enqueue_workflows_for_issue(issue, event: str, skip_agent_ids=None) -> None:
             )
 
 
+def enqueue_workflows_for_issue_id(issue_id: str, event: str) -> None:
+    """Signal-friendly wrapper: load the issue by id, then enqueue matching
+    workflows for `event`. Used by the assigned/comment/updated triggers."""
+    from plane.db.models import Issue
+
+    try:
+        issue = Issue.objects.select_related("project", "workspace", "state").get(pk=issue_id)
+    except Issue.DoesNotExist:
+        return
+    except Exception:  # noqa: BLE001
+        logger.exception("workflow enqueue: issue %s fetch failed", issue_id)
+        return
+    enqueue_workflows_for_issue(issue, event)
+
+
 def _filters_match_issue(filters: dict, issue) -> bool:
     """Evaluate a condition node's `{filters: {...}}` against an issue. Mirrors
     the legacy AgentAutomation matching (project / priority / label / type),
@@ -263,12 +278,135 @@ def _execute_action(run, node, issue, default_agent):
         node_run.save(update_fields=["status", "error", "updated_at"])
         return 0, Decimal("0"), True
 
-    # Other action types (post_comment/change_state/add_label/slack/email/webhook)
-    # are not wired in Phase 1 — record a skipped node run so the graph is honest.
+    params = config.get("params") or {}
+
+    # Native, no-integration actions.
+    if action_type == "webhook":
+        return _run_webhook(node_run, params, issue, run)
+    if action_type in {"post_comment", "change_state", "add_label"}:
+        if default_agent is None or not default_agent.is_enabled:
+            return _fail(node_run, f"'{action_type}' needs an enabled Atlas agent to act as")
+        return _run_native_action(node_run, action_type, params, issue, default_agent)
+
+    # Integration actions (Slack / email) aren't wired yet — record a skipped
+    # node run so the graph stays honest.
     node_run.status = "cancelled"
     node_run.output = {"skipped": True, "reason": f"action '{action_type}' not supported yet"}
     node_run.save(update_fields=["status", "output", "updated_at"])
     return 0, Decimal("0"), False
+
+
+def _ok(node_run, output):
+    node_run.status = "completed"
+    node_run.output = output
+    node_run.save(update_fields=["status", "output", "updated_at"])
+    return 0, Decimal("0"), False
+
+
+def _fail(node_run, msg):
+    node_run.status = "failed"
+    node_run.error = msg
+    node_run.save(update_fields=["status", "error", "updated_at"])
+    return 0, Decimal("0"), True
+
+
+def _run_native_action(node_run, action_type, params, issue, agent):
+    """post_comment / change_state / add_label — reuse the same effects the agent
+    tools use, acting as the workflow's Atlas bot user."""
+    try:
+        if action_type == "post_comment":
+            from plane.bgtasks.agent_dispatch_task import _post_comment_as_bot, _wrap_in_paragraph
+
+            text = str(params.get("text") or "").strip()
+            if not text:
+                return _fail(node_run, "post_comment needs 'text'")
+            html = text if text.lstrip().startswith("<") else _wrap_in_paragraph(text)
+            comment = _post_comment_as_bot(agent=agent, issue=issue, html=html)
+            return _ok(node_run, {"comment_id": str(comment.id)})
+
+        if action_type == "change_state":
+            from plane.db.models import State
+            from plane.bgtasks.agent_dispatch_task import _emit_state_activity
+
+            wanted = str(params.get("state_name") or "").strip()
+            if not wanted:
+                return _fail(node_run, "change_state needs 'state_name'")
+            matched = State.objects.filter(
+                project=issue.project, deleted_at__isnull=True, name__iexact=wanted
+            ).first()
+            if matched is None:
+                candidates = list(
+                    State.objects.filter(project=issue.project, deleted_at__isnull=True, name__icontains=wanted)
+                )
+                matched = candidates[0] if len(candidates) == 1 else None
+            if matched is None:
+                return _fail(node_run, f"no state '{wanted}' in this task's project")
+            if issue.state_id == matched.id:
+                return _ok(node_run, {"unchanged": True, "state": matched.name})
+            previous_state_id = str(issue.state_id) if issue.state_id else None
+            issue.state = matched
+            issue.save(created_by_id=agent.bot_user_id, update_fields=["state", "completed_at", "updated_at"])
+            _emit_state_activity(
+                issue=issue, agent=agent, previous_state_id=previous_state_id, new_state_id=str(matched.id)
+            )
+            return _ok(node_run, {"state": matched.name})
+
+        if action_type == "add_label":
+            from plane.db.models import IssueLabel, Label
+
+            label_ids = [str(x) for x in (params.get("label_ids") or []) if str(x).strip()]
+            if not label_ids:
+                return _fail(node_run, "add_label needs 'label_ids'")
+            added = []
+            for lid in label_ids:
+                # Labels are project-scoped; only those in the triggered task's project apply.
+                label = Label.objects.filter(pk=lid, project=issue.project, deleted_at__isnull=True).first()
+                if not label:
+                    continue
+                if IssueLabel.objects.filter(issue=issue, label=label, deleted_at__isnull=True).exists():
+                    continue
+                IssueLabel.objects.create(
+                    workspace=issue.workspace, project=issue.project, issue=issue, label=label
+                )
+                added.append(label.name)
+            return _ok(node_run, {"added": added})
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("run_workflow: %s failed node=%s", action_type, node_run.node_id)
+        return _fail(node_run, f"{exc.__class__.__name__}: {exc}")
+
+    return _fail(node_run, f"unknown native action '{action_type}'")
+
+
+def _run_webhook(node_run, params, issue, run):
+    """POST a small task payload to a configured URL. No integration required."""
+    url = str(params.get("url") or "").strip()
+    if not url.startswith(("http://", "https://")):
+        return _fail(node_run, "webhook needs a valid http(s) 'url'")
+    payload = {
+        "event": run.trigger_event,
+        "workflow_id": str(run.workflow_id),
+        "run_id": str(run.id),
+        "issue": {
+            "id": str(issue.id),
+            "name": issue.name,
+            "priority": issue.priority,
+            "project_id": str(issue.project_id),
+        },
+    }
+    try:
+        import requests
+
+        resp = requests.post(url, json=payload, timeout=10)
+        ok = 200 <= resp.status_code < 300
+        node_run.status = "completed" if ok else "failed"
+        node_run.output = {"status_code": resp.status_code}
+        if not ok:
+            node_run.error = f"webhook returned {resp.status_code}"
+        node_run.save(update_fields=["status", "output", "error", "updated_at"])
+        return 0, Decimal("0"), not ok
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("run_workflow: webhook failed node=%s", node_run.node_id)
+        return _fail(node_run, f"webhook error: {exc}")
 
 
 def _finish_run(run, status: str, error: str = "") -> None:

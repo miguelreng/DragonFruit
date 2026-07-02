@@ -7,22 +7,19 @@
 import { Button } from "@plane/propel/button";
 import { ToggleSwitch } from "@plane/ui";
 import { cn } from "@plane/utils";
-import type { TWorkflow } from "@/services/workflow.service";
-import { ChevronDown, Plus, Trash } from "@/components/icons/lucide-shim";
+import { ArrowLeft, Trash } from "@/components/icons/lucide-shim";
 import type { TWorkflowView } from "./types";
 
 type Props = {
-  workflows: TWorkflow[];
   currentId: string | null;
   name: string;
   enabled: boolean;
   dirty: boolean;
   saving: boolean;
   view: TWorkflowView;
+  onBack: () => void;
   onChangeView: (view: TWorkflowView) => void;
   onChangeName: (name: string) => void;
-  onSelectWorkflow: (id: string) => void;
-  onNew: () => void;
   onToggleEnabled: (next: boolean) => void;
   onSave: () => void;
   onDelete: () => void;
@@ -35,17 +32,15 @@ const VIEWS: Array<{ key: TWorkflowView; label: string }> = [
 ];
 
 export function BuilderToolbar({
-  workflows,
   currentId,
   name,
   enabled,
   dirty,
   saving,
   view,
+  onBack,
   onChangeView,
   onChangeName,
-  onSelectWorkflow,
-  onNew,
   onToggleEnabled,
   onSave,
   onDelete,
@@ -56,6 +51,21 @@ export function BuilderToolbar({
   return (
     <div className="flex items-center justify-between gap-3 border-b border-subtle bg-layer-1 px-4 py-2">
       <div className="flex min-w-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-12 font-medium text-tertiary t-press hover:bg-layer-2 hover:text-secondary"
+        >
+          <ArrowLeft className="size-4" />
+          Workflows
+        </button>
+        <span className="mx-1 h-5 w-px bg-strong/30" />
+        <input
+          value={name}
+          onChange={(e) => onChangeName(e.target.value)}
+          placeholder="Untitled workflow"
+          className="min-w-0 max-w-[260px] rounded-lg border-[0.5px] border-transparent bg-transparent px-2 py-1 text-15 font-semibold text-primary placeholder:text-placeholder hover:border-subtle focus:border-subtle focus:bg-layer-2 focus:outline-none"
+        />
         <div className="flex items-center gap-0.5 rounded-lg border border-subtle bg-layer-2 p-0.5">
           {VIEWS.map((v) => (
             <button
@@ -71,37 +81,6 @@ export function BuilderToolbar({
             </button>
           ))}
         </div>
-        <span className="mx-1 h-5 w-px bg-strong/30" />
-        <input
-          value={name}
-          onChange={(e) => onChangeName(e.target.value)}
-          placeholder="Untitled workflow"
-          className="min-w-0 max-w-[240px] rounded-lg border-[0.5px] border-transparent bg-transparent px-2 py-1 text-15 font-semibold text-primary placeholder:text-placeholder hover:border-subtle focus:border-subtle focus:bg-layer-2 focus:outline-none"
-        />
-        <div className="relative flex items-center">
-          <select
-            value={currentId ?? ""}
-            onChange={(e) => (e.target.value ? onSelectWorkflow(e.target.value) : undefined)}
-            className="cursor-pointer appearance-none rounded-lg border-[0.5px] border-subtle bg-layer-1 py-1 pl-2.5 pr-7 text-12 text-secondary hover:bg-layer-2 focus:outline-none"
-            aria-label="Switch workflow"
-          >
-            {!isExisting && <option value="">Draft (unsaved)</option>}
-            {workflows.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 size-3.5 text-tertiary" />
-        </div>
-        <button
-          type="button"
-          onClick={onNew}
-          className="flex items-center gap-1 rounded-lg border-[0.5px] border-subtle bg-layer-1 px-2 py-1 text-12 font-medium text-secondary t-press hover:bg-layer-2"
-        >
-          <Plus className="size-3.5" />
-          New
-        </button>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">

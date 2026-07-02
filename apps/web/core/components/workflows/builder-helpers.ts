@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import type { TWorkflowEdge, TWorkflowNode, TWorkflowNodeKind } from "@/services/workflow.service";
+import type { TWorkflow, TWorkflowEdge, TWorkflowNode, TWorkflowNodeKind } from "@/services/workflow.service";
 
 // Canvas layout constants shared by the starter graph + auto-placement of new nodes.
 export const NODE_W = 300;
@@ -13,23 +13,23 @@ export const BRANCH_DX = 180;
 export const SPINE_X = 620;
 export const TOP_Y = 48;
 
-export const TRIGGER_EVENTS: Array<{ value: string; label: string }> = [
-  { value: "issue_created", label: "Task created" },
-  { value: "issue_updated", label: "Task updated" },
-  { value: "assigned", label: "Assigned" },
-  { value: "mentioned", label: "Mentioned" },
-  { value: "state_change", label: "State changed" },
-  { value: "comment", label: "New comment" },
+export const TRIGGER_EVENTS: Array<{ value: string; label: string; live: boolean }> = [
+  { value: "issue_created", label: "Task created", live: true },
+  { value: "assigned", label: "Assigned", live: true },
+  { value: "comment", label: "New comment", live: true },
+  { value: "issue_updated", label: "Task updated", live: false },
+  { value: "state_change", label: "State changed", live: false },
+  { value: "mentioned", label: "Mentioned", live: false },
 ];
 
 export const ACTION_TYPES: Array<{ value: string; label: string; live: boolean }> = [
   { value: "ask_atlas", label: "Ask Atlas", live: true },
-  { value: "post_comment", label: "Post comment", live: false },
-  { value: "change_state", label: "Change state", live: false },
-  { value: "add_label", label: "Add label", live: false },
+  { value: "post_comment", label: "Post comment", live: true },
+  { value: "change_state", label: "Change state", live: true },
+  { value: "add_label", label: "Add label", live: true },
+  { value: "webhook", label: "Webhook", live: true },
   { value: "post_to_slack", label: "Post to Slack", live: false },
   { value: "send_email", label: "Send email", live: false },
-  { value: "webhook", label: "Webhook", live: false },
 ];
 
 const TRIGGER_LABEL: Record<string, string> = Object.fromEntries(
@@ -112,6 +112,19 @@ export const starterGraph = (): { nodes: TWorkflowNode[]; edges: TWorkflowEdge[]
       { from_node: condition.id, to_node: action.id, branch: "true" },
     ],
   };
+};
+
+/** One-line summary of a workflow for the gallery cards. */
+export const workflowSummary = (w: TWorkflow): string => {
+  const trigger = w.nodes.find((n) => n.kind === "trigger");
+  const event = String(trigger?.config?.event ?? "issue_created");
+  const label = TRIGGER_EVENTS.find((t) => t.value === event)?.label ?? "Trigger";
+  const actions = w.nodes.filter((n) => n.kind === "action").length;
+  const conditions = w.nodes.filter((n) => n.kind === "condition").length;
+  const bits = [`On ${label}`];
+  if (conditions) bits.push(`${conditions} condition${conditions > 1 ? "s" : ""}`);
+  bits.push(`${actions} action${actions === 1 ? "" : "s"}`);
+  return bits.join(" · ");
 };
 
 /** Place a newly-added child node relative to its parent. */

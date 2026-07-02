@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -26,6 +26,7 @@ import { BuilderToolbar } from "./builder-toolbar";
 import { FlowCanvas } from "./flow-canvas";
 import { WorkflowInspector } from "./inspector";
 import { WorkflowActivity } from "./activity-view";
+import { WorkflowGallery } from "./workflow-gallery";
 import { newNodeId, placeChild, starterGraph } from "./builder-helpers";
 import type { TWorkflowView } from "./types";
 
@@ -94,18 +95,9 @@ function WorkflowsRootBase() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [view, setView] = useState<TWorkflowView>("build");
+  const [mode, setMode] = useState<"gallery" | "builder">("gallery");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const initialized = useRef(false);
-
-  // Seed once workflows load: open the first workflow, else a fresh draft.
-  useEffect(() => {
-    if (initialized.current || !workflows) return;
-    initialized.current = true;
-    const g = workflows.length ? graphFromWorkflow(workflows[0]) : draftGraph();
-    setGraph(g);
-    setSelectedNodeId(g.nodes.find((n) => n.kind === "trigger")?.id ?? null);
-  }, [workflows]);
 
   const selectedNode = useMemo(
     () => graph?.nodes.find((n) => n.id === selectedNodeId) ?? null,
@@ -119,16 +111,37 @@ function WorkflowsRootBase() {
     setDirty(false);
   };
 
-  const selectWorkflow = (id: string) => {
-    const w = (workflows ?? []).find((x) => x.id === id);
-    if (w) loadWorkflow(w);
-  };
-
   const startNew = () => {
     const g = draftGraph();
     setGraph(g);
     setSelectedNodeId(g.nodes.find((n) => n.kind === "trigger")?.id ?? null);
     setDirty(true);
+  };
+
+  // Gallery navigation
+  const openWorkflow = (id: string) => {
+    const w = (workflows ?? []).find((x) => x.id === id);
+    if (!w) return;
+    loadWorkflow(w);
+    setView("build");
+    setMode("builder");
+  };
+  const newFromGallery = () => {
+    startNew();
+    setView("build");
+    setMode("builder");
+  };
+  const backToGallery = () => {
+    setMode("gallery");
+    void mutate();
+  };
+  const toggleCard = async (id: string, next: boolean) => {
+    try {
+      await workflowService.update(workspaceSlug, id, { is_enabled: next });
+      await mutate();
+    } catch (err) {
+      setToast({ type: TOAST_TYPE.ERROR, title: errorTitle(err, "Could not update workflow") });
+    }
   };
 
   const selectNode = (id: string) => {
@@ -224,10 +237,8 @@ function WorkflowsRootBase() {
     if (!window.confirm(`Delete workflow "${graph.name || "Untitled"}"?`)) return;
     try {
       await workflowService.destroy(workspaceSlug, graph.currentId);
-      const next = await mutate();
-      const remaining = next ?? [];
-      if (remaining.length) loadWorkflow(remaining[0]);
-      else startNew();
+      await mutate();
+      setMode("gallery");
       setToast({ type: TOAST_TYPE.SUCCESS, title: "Workflow deleted" });
     } catch (err) {
       setToast({ type: TOAST_TYPE.ERROR, title: errorTitle(err, "Could not delete workflow") });
@@ -246,6 +257,20 @@ function WorkflowsRootBase() {
     }
   };
 
+  if (mode === "gallery") {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden">
+        <WorkflowGallery
+          workflows={workflows ?? []}
+          loading={!workflows}
+          onOpen={openWorkflow}
+          onNew={newFromGallery}
+          onToggle={toggleCard}
+        />
+      </div>
+    );
+  }
+
   if (!graph) {
     return (
       <div className="grid h-full w-full place-items-center">
@@ -257,17 +282,15 @@ function WorkflowsRootBase() {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       <BuilderToolbar
-        workflows={workflows ?? []}
         currentId={graph.currentId}
         name={graph.name}
         enabled={graph.enabled}
         dirty={dirty}
         saving={saving}
         view={view}
+        onBack={backToGallery}
         onChangeView={setView}
         onChangeName={changeName}
-        onSelectWorkflow={selectWorkflow}
-        onNew={startNew}
         onToggleEnabled={toggleEnabled}
         onSave={save}
         onDelete={remove}

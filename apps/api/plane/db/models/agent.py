@@ -482,13 +482,30 @@ def _dispatch_agent_on_assignee_added(sender, instance, created, **kwargs):
     if not created:
         return
 
-    # Most assignees are humans; cheap exit path keeps this near-free.
-    if not getattr(instance.assignee, "is_bot", False):
-        return
-
     issue_id = instance.issue_id
     assignee_id = instance.assignee_id
     workspace_id = instance.workspace_id
+    is_bot_assignee = getattr(instance.assignee, "is_bot", False)
+
+    # Workflow "assigned" trigger fires on human assignments (workspace-wide;
+    # the graph's condition node does the filtering). Bot assignments are
+    # skipped to avoid agent-driven feedback loops.
+    if not is_bot_assignee:
+
+        def _enqueue_workflows():
+            try:
+                from plane.bgtasks.workflow_task import enqueue_workflows_for_issue_id
+
+                enqueue_workflows_for_issue_id(str(issue_id), "assigned")
+            except Exception:  # noqa: BLE001
+                logger.exception("workflow assigned dispatch failed for issue=%s", issue_id)
+
+        transaction.on_commit(_enqueue_workflows)
+
+    # Agent-level "assigned" trigger only fires when the agent's own bot is the
+    # assignee; everything below is that path.
+    if not is_bot_assignee:
+        return
 
     def _enqueue_dispatch():
         try:
@@ -671,6 +688,20 @@ def _dispatch_agent_on_comment_mention(sender, instance, created, **kwargs):
         actor = getattr(instance, "actor", None)
         if actor is not None and getattr(actor, "is_bot", False):
             return
+
+        # Workflow "comment" trigger — any human comment on a task (workspace-wide;
+        # the graph's condition node filters). Bot comments were skipped above.
+        _issue_id_for_wf = instance.issue_id
+
+        def _enqueue_workflows_comment():
+            try:
+                from plane.bgtasks.workflow_task import enqueue_workflows_for_issue_id
+
+                enqueue_workflows_for_issue_id(str(_issue_id_for_wf), "comment")
+            except Exception:  # noqa: BLE001
+                logger.exception("workflow comment dispatch failed for issue=%s", _issue_id_for_wf)
+
+        transaction.on_commit(_enqueue_workflows_comment)
 
         # Reuse the existing comment-mention parser to avoid duplicating the
         # HTML/mention-component conventions. Import lazily — this module

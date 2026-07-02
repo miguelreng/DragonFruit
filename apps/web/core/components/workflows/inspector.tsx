@@ -8,7 +8,6 @@ import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import type { IIssueLabel } from "@plane/types";
 import { cn } from "@plane/utils";
-import { ATLAS_IDENTITY } from "@/constants/atlas";
 import type { TMcpServerSummary } from "@/services/agent.service";
 import type { TWorkflowNode } from "@/services/workflow.service";
 import type { TPartialProject } from "@/plane-web/types";
@@ -51,6 +50,39 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function Label({ children }: { children: ReactNode }) {
   return <span className="text-11 font-medium text-tertiary">{children}</span>;
+}
+
+function FilterMultiSelect({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: Array<{ id: string; name: string }>;
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <Label>{label}</Label>
+        {value.length > 0 && <span className="text-11 text-tertiary">{value.length} selected</span>}
+      </div>
+      <select
+        multiple
+        value={value}
+        onChange={(e) => onChange(Array.from(e.target.selectedOptions).map((o) => o.value))}
+        className="min-h-[84px] rounded-lg border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary"
+      >
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 export function WorkflowInspector({
@@ -96,35 +128,51 @@ export function WorkflowInspector({
 
   const actionType = String(config.type ?? "ask_atlas");
   const actionMeta = ACTION_TYPES.find((a) => a.value === actionType);
+  const params = (config.params as Record<string, unknown>) ?? {};
+  const setParams = (patch: Record<string, unknown>) =>
+    onChangeConfig({ ...config, params: { ...params, ...patch } });
 
   return (
     <div
       className={cn(
-        "absolute bottom-0 right-0 top-0 z-30 flex w-[360px] flex-col border-l border-subtle bg-layer-1 shadow-xl",
-        "transition-transform duration-200 ease-out",
-        open && node ? "translate-x-0" : "pointer-events-none translate-x-full"
+        "absolute bottom-4 right-4 top-4 z-30 flex w-[340px] flex-col overflow-hidden rounded-xl border border-subtle bg-layer-1 shadow-2xl",
+        "transition-all duration-200 ease-out",
+        open && node ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(100%+1.5rem)] opacity-0"
       )}
       aria-hidden={!open || !node}
     >
-      <div className="flex items-start justify-between gap-2 border-b border-subtle px-4 py-3">
-        <div className="flex flex-col gap-2">
-          <span className={cn("flex w-fit items-center gap-1 rounded-md px-2 py-0.5 text-12 font-semibold", KIND_PILL[kind])}>
+      <div className="flex flex-col gap-2 border-b border-subtle px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className={cn("flex w-fit items-center gap-1.5 rounded-md px-2 py-1 text-12 font-semibold", KIND_PILL[kind])}>
             <span className="grid size-3.5 place-items-center">{icon}</span>
             {kind === "trigger" ? "Trigger" : kind === "condition" ? "Condition" : "Action"}
           </span>
-          <div>
-            <h3 className="text-15 font-semibold text-primary">{display.title}</h3>
-            <p className="text-12 text-tertiary">{display.subtitle}</p>
+          <div className="flex items-center gap-1">
+            {node && kind !== "trigger" && (
+              <button
+                type="button"
+                onClick={onDelete}
+                aria-label="Delete step"
+                title="Delete step"
+                className="grid size-7 place-items-center rounded-lg text-tertiary t-press hover:bg-red-500/10 hover:text-red-600"
+              >
+                <Trash className="size-4" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close details"
+              className="grid size-7 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-2"
+            >
+              <X className="size-4" />
+            </button>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close details"
-          className="grid size-7 shrink-0 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-2"
-        >
-          <X className="size-4" />
-        </button>
+        <div>
+          <h3 className="text-15 font-semibold text-primary">{display.title}</h3>
+          <p className="text-12 text-tertiary">{display.subtitle}</p>
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -140,12 +188,13 @@ export function WorkflowInspector({
                 {TRIGGER_EVENTS.map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
+                    {t.live ? "" : " (soon)"}
                   </option>
                 ))}
               </select>
-              {String(config.event ?? "issue_created") !== "issue_created" && (
+              {TRIGGER_EVENTS.find((t) => t.value === String(config.event ?? "issue_created"))?.live === false && (
                 <span className="text-11 text-amber-600 dark:text-amber-500">
-                  Only “Task created” runs today; other triggers are coming soon.
+                  This trigger isn’t wired yet — coming soon.
                 </span>
               )}
             </div>
@@ -153,49 +202,64 @@ export function WorkflowInspector({
         )}
 
         {kind === "condition" && (
-          <Section title="Match conditions">
-            <p className="text-12 text-tertiary">Continue only for tasks matching every filter. Leave empty to match all.</p>
-            <div className="flex flex-col gap-1">
-              <Label>Projects</Label>
-              <select multiple value={filters.project_ids ?? []} onChange={(e) => setFilters({ project_ids: readMulti(e) })} className={SELECT_MULTI}>
-                {sortedProjects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+          <Section title="Conditions">
+            <p className="text-12 text-tertiary">
+              Continue only for tasks that match all of these. Leave empty to match every task.
+            </p>
+            <div className="flex flex-col gap-1.5">
+              <Label>Priority</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIORITY_OPTIONS.map((p) => {
+                  const on = (filters.priorities ?? []).includes(p);
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() =>
+                        setFilters({
+                          priorities: on
+                            ? (filters.priorities ?? []).filter((x) => x !== p)
+                            : [...(filters.priorities ?? []), p],
+                        })
+                      }
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-12 capitalize t-press",
+                        on
+                          ? "border-transparent bg-custom-primary-100 text-white"
+                          : "border-subtle text-secondary hover:bg-layer-2"
+                      )}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <Label>Priorities</Label>
-              <select multiple value={filters.priorities ?? []} onChange={(e) => setFilters({ priorities: readMulti(e) })} className={SELECT_MULTI}>
-                {PRIORITY_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label>Labels</Label>
-              <select multiple value={filters.label_ids ?? []} onChange={(e) => setFilters({ label_ids: readMulti(e) })} className={SELECT_MULTI}>
-                {sortedLabels.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label>Issue type IDs</Label>
+            <FilterMultiSelect
+              label="Projects"
+              options={sortedProjects.map((p) => ({ id: p.id, name: p.name }))}
+              value={filters.project_ids ?? []}
+              onChange={(v) => setFilters({ project_ids: v })}
+            />
+            <FilterMultiSelect
+              label="Labels"
+              options={sortedLabels.map((l) => ({ id: l.id, name: l.name }))}
+              value={filters.label_ids ?? []}
+              onChange={(v) => setFilters({ label_ids: v })}
+            />
+            <details>
+              <summary className="cursor-pointer list-none text-11 font-medium text-tertiary hover:text-secondary">
+                Advanced · issue type IDs
+              </summary>
               <input
                 value={(filters.issue_type_ids ?? []).join(", ")}
                 onChange={(e) =>
                   setFilters({ issue_type_ids: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })
                 }
                 placeholder="comma-separated IDs"
-                className={INPUT}
+                className={cn(INPUT, "mt-1.5 w-full")}
               />
-            </div>
+            </details>
           </Section>
         )}
 
@@ -218,10 +282,64 @@ export function WorkflowInspector({
                 </select>
                 {actionMeta && !actionMeta.live && (
                   <span className="text-11 text-amber-600 dark:text-amber-500">
-                    This action isn’t executed yet — only “Ask {ATLAS_IDENTITY.name}” runs today.
+                    This action isn’t executed yet — coming soon.
                   </span>
                 )}
               </div>
+              {actionType === "post_comment" && (
+                <div className="flex flex-col gap-1">
+                  <Label>Comment</Label>
+                  <textarea
+                    value={String(params.text ?? "")}
+                    onChange={(e) => setParams({ text: e.target.value })}
+                    rows={4}
+                    placeholder="The comment to post on the task…"
+                    className={cn(INPUT, "resize-y")}
+                  />
+                </div>
+              )}
+              {actionType === "change_state" && (
+                <div className="flex flex-col gap-1">
+                  <Label>Target state</Label>
+                  <input
+                    value={String(params.state_name ?? "")}
+                    onChange={(e) => setParams({ state_name: e.target.value })}
+                    placeholder="e.g. In Progress"
+                    className={INPUT}
+                  />
+                  <span className="text-11 text-tertiary">Matched by name within the triggered task’s project.</span>
+                </div>
+              )}
+              {actionType === "add_label" && (
+                <div className="flex flex-col gap-1">
+                  <Label>Labels</Label>
+                  <select
+                    multiple
+                    value={(params.label_ids as string[]) ?? []}
+                    onChange={(e) => setParams({ label_ids: readMulti(e) })}
+                    className={SELECT_MULTI}
+                  >
+                    {sortedLabels.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-11 text-tertiary">Only labels in the task’s project are applied.</span>
+                </div>
+              )}
+              {actionType === "webhook" && (
+                <div className="flex flex-col gap-1">
+                  <Label>URL</Label>
+                  <input
+                    value={String(params.url ?? "")}
+                    onChange={(e) => setParams({ url: e.target.value })}
+                    placeholder="https://example.com/hook"
+                    className={INPUT}
+                  />
+                  <span className="text-11 text-tertiary">Receives a POST with the task payload.</span>
+                </div>
+              )}
               {actionType === "ask_atlas" && (
                 <div className="flex items-center gap-2 rounded-lg border-[0.5px] border-subtle bg-layer-2 px-3 py-2">
                   <span className="grid size-5 place-items-center text-blue-600 dark:text-blue-400">
@@ -260,18 +378,6 @@ export function WorkflowInspector({
           </>
         )}
 
-        {node && kind !== "trigger" && (
-          <Section title="Danger zone">
-            <button
-              type="button"
-              onClick={onDelete}
-              className="flex w-fit items-center gap-1.5 rounded-lg border border-subtle px-2.5 py-1.5 text-12 font-medium text-red-600 t-press hover:bg-red-500/10"
-            >
-              <Trash className="size-3.5" />
-              Delete this step
-            </button>
-          </Section>
-        )}
       </div>
     </div>
   );
