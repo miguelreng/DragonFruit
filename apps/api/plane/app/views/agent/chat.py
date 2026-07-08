@@ -27,6 +27,7 @@ import urllib.request
 
 import requests
 from bs4 import BeautifulSoup
+from django.core.exceptions import ValidationError
 from django.http import StreamingHttpResponse
 from django.db import transaction
 from django.db.models import Q
@@ -805,18 +806,45 @@ def _build_fallback_document_html(*, title: str, subject: str, research_results:
     return "".join(body)
 
 
+def _resolve_agent_project(*, workspace: Workspace, project_id: str | None, hint: str | None):
+    """Resolve the project a write-tool should target.
+
+    An explicit `hint` (a project name, identifier, or id the user named in chat)
+    wins over the currently-open `project_id`, so Atlas can honor "in the work
+    project" even when opened at workspace scope. Returns a `Project` or `None`.
+    """
+    base = Project.objects.filter(workspace=workspace, archived_at__isnull=True)
+
+    hint = str(hint or "").strip()
+    if hint:
+        # UUID first (LLM may echo an id), then exact name/identifier, then fuzzy.
+        try:
+            project = base.filter(pk=hint).first()
+        except (ValueError, ValidationError):
+            project = None
+        if project is None:
+            project = base.filter(Q(name__iexact=hint) | Q(identifier__iexact=hint)).first()
+        if project is None:
+            project = base.filter(name__icontains=hint).order_by("name").first()
+        if project is not None:
+            return project
+
+    if project_id:
+        try:
+            return base.filter(pk=project_id).first()
+        except (ValueError, ValidationError):
+            return None
+    return None
+
+
 def _make_create_document_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
     def _handler(args: dict) -> str:
-        if not project_id:
-            return "tool_error: no project is currently open. Ask the user which project should contain the document."
-
-        project = Project.objects.filter(
-            workspace=workspace,
-            pk=project_id,
-            archived_at__isnull=True,
-        ).first()
+        hint = args.get("project") or args.get("project_id")
+        project = _resolve_agent_project(workspace=workspace, project_id=project_id, hint=hint)
         if project is None:
-            return f"tool_error: no active project with id {project_id} in this workspace"
+            if hint:
+                return f"tool_error: no active project matching '{str(hint).strip()}' in this workspace"
+            return "tool_error: no project is currently open. Ask the user which project should contain the document, then pass its name as `project`."
 
         title = str(args.get("title") or "").strip()[:255]
         if not title:
@@ -851,12 +879,21 @@ def _make_create_document_tool(*, workspace: Workspace, user, project_id: str | 
     return LLMTool(
         name="create_document",
         description=(
-            "Create a rich-text project document/page in the currently open DragonFruit project. "
-            "Use this when the user asks to create, write, draft, make, generate, or prepare a document."
+            "Create a rich-text project document/page in a DragonFruit project. "
+            "Use this when the user asks to create, write, draft, make, generate, or prepare a document. "
+            "Defaults to the currently open project; if the user names a different project (e.g. 'in the "
+            "work project'), pass that name as `project`."
         ),
         parameters_schema={
             "type": "object",
             "properties": {
+                "project": {
+                    "type": "string",
+                    "description": (
+                        "Optional project name, identifier, or id to create the document in. "
+                        "Omit to use the currently open project."
+                    ),
+                },
                 "title": {
                     "type": "string",
                     "description": "Document title. Preserve an explicit title if the user supplied one.",
@@ -884,16 +921,12 @@ def _make_update_project_brief_tool(*, workspace: Workspace, user, project_id: s
     """
 
     def _handler(args: dict) -> str:
-        if not project_id:
-            return "tool_error: no project is currently open. Ask the user whose project brief to write."
-
-        project = Project.objects.filter(
-            workspace=workspace,
-            pk=project_id,
-            archived_at__isnull=True,
-        ).first()
+        hint = args.get("project") or args.get("project_id")
+        project = _resolve_agent_project(workspace=workspace, project_id=project_id, hint=hint)
         if project is None:
-            return f"tool_error: no active project with id {project_id} in this workspace"
+            if hint:
+                return f"tool_error: no active project matching '{str(hint).strip()}' in this workspace"
+            return "tool_error: no project is currently open. Ask the user whose project brief to write, then pass its name as `project`."
 
         description_html = _coerce_document_html(str(args.get("description_html") or ""))
 
@@ -962,6 +995,13 @@ def _make_update_project_brief_tool(*, workspace: Workspace, user, project_id: s
         parameters_schema={
             "type": "object",
             "properties": {
+                "project": {
+                    "type": "string",
+                    "description": (
+                        "Optional project name, identifier, or id whose brief to write. "
+                        "Omit to use the currently open project."
+                    ),
+                },
                 "description_html": {
                     "type": "string",
                     "description": (
@@ -1096,16 +1136,16 @@ def _make_search_workspace_tool(*, workspace: Workspace, user, project_id: str |
 
 def _make_create_task_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
     def _handler(args: dict) -> str:
-        target_project_id = str(args.get("project_id") or project_id or "").strip()
+        hint = args.get("project") or args.get("project_id")
         name = str(args.get("name") or "").strip()[:255]
-        if not target_project_id:
-            return "tool_error: no project is currently open. Ask the user which project should contain the task."
         if not name:
             return "tool_error: `name` is required"
 
-        project = Project.objects.filter(workspace=workspace, pk=target_project_id, archived_at__isnull=True).first()
+        project = _resolve_agent_project(workspace=workspace, project_id=project_id, hint=hint)
         if project is None:
-            return f"tool_error: no active project with id {target_project_id} in this workspace"
+            if hint:
+                return f"tool_error: no active project matching '{str(hint).strip()}' in this workspace"
+            return "tool_error: no project is currently open. Ask the user which project should contain the task, then pass its name as `project`."
 
         priority = str(args.get("priority") or "none").strip().lower()
         if priority not in {"urgent", "high", "medium", "low", "none"}:
@@ -1127,10 +1167,19 @@ def _make_create_task_tool(*, workspace: Workspace, user, project_id: str | None
 
     return LLMTool(
         name="create_task",
-        description="Create a task/work item in the current DragonFruit project.",
+        description=(
+            "Create a task/work item in a DragonFruit project. Defaults to the currently open "
+            "project; if the user names a different project, pass that name as `project`."
+        ),
         parameters_schema={
             "type": "object",
             "properties": {
+                "project": {
+                    "type": "string",
+                    "description": (
+                        "Optional project name, identifier, or id. Omit to use the currently open project."
+                    ),
+                },
                 "project_id": {"type": "string"},
                 "name": {"type": "string", "maxLength": 255},
                 "description_html": {"type": "string"},
