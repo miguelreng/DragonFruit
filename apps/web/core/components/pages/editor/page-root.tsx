@@ -26,7 +26,7 @@ import { PageVersionsOverlay } from "../version";
 import { PagesVersionEditor } from "../version/editor";
 import { ContentLimitBanner } from "./content-limit-banner";
 import type { TEditorBodyConfig, TEditorBodyHandlers } from "./editor-body";
-import { EditorFallback, ExcalidrawEditor, PageEditorBody, PdfPageViewer } from "./editor-surfaces";
+import { EditorFallback, ExcalidrawEditor, PageEditorBody, PdfPageViewer, SheetEditor } from "./editor-surfaces";
 import { PageEditorToolbarRoot } from "./toolbar";
 
 export type TPageRootHandlers = {
@@ -205,6 +205,8 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
         <Suspense fallback={<EditorFallback />}>
           {page.page_type === "whiteboard" ? (
             <ExcalidrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+          ) : page.page_type === "sheet" ? (
+            <SheetEditor page={page} handlers={handlers} isEditable={isContentEditable} />
           ) : page.page_type === "pdf" ? (
             <PdfPageViewer page={page} projectId={projectId} workspaceSlug={workspaceSlug} />
           ) : (

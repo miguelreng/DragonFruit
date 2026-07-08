@@ -6,6 +6,7 @@ import AudioToolbox
 import Carbon
 import Foundation
 import os
+@preconcurrency import ScreenCaptureKit
 @preconcurrency import Speech
 import SwiftUI
 import UniformTypeIdentifiers
@@ -626,6 +627,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     /// Text selected in the frontmost app when the chat was opened, offered as
     /// context for the next question (shown as a chip in the composer).
     @Published var atlasChatSelectionContext: String?
+    /// When on, every message attaches a screenshot of the frontmost window so
+    /// Atlas can "see what I see" — regardless of the message wording. Keyword
+    /// detection (see `shouldAttachVisualContext`) still triggers capture when
+    /// this is off. Toggled from the composer's screen-vision button.
+    @Published var atlasChatScreenVisionEnabled = false
     @Published var availableWorkspaces: [WorkspaceOption] = []
     @Published var selectedWorkspaceSlug = "" {
         didSet {
@@ -2186,6 +2192,172 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         return captureScreenshotAttachment(rect: Self.boundedScreenshotRect(bounds, maxSide: 1_200), name: "page-context.jpg")
     }
 
+    /// Screen context for the floating chat's "see what I see": a screenshot of
+    /// the frontmost app's window plus its focused element's text/URL. Unlike the
+    /// voice path this roots on the frontmost app rather than the mouse position,
+    /// because when you send from the chat the pointer sits over the Atlas panel.
+    /// Async because the screenshot goes through ScreenCaptureKit.
+    private func captureAtlasChatVisualContext() async -> VoiceCursorContext {
+        guard AXIsProcessTrusted() else { return .empty }
+        var details: [String] = [frontmostAppContext()]
+        var url: String?
+        var title: String?
+        var role: String?
+        var selectedText: String?
+        if let element = Self.focusedUIElement() {
+            role = Self.copyAXStringAttribute(kAXRoleAttribute, from: element)
+            title = Self.copyAXAnyStringAttribute(kAXTitleAttribute, from: element)
+                ?? Self.copyAXAnyStringAttribute(kAXDescriptionAttribute, from: element)
+            url = Self.copyAXAnyStringAttribute("AXURL", from: element)
+            selectedText = Self.copyAXAnyStringAttribute(kAXSelectedTextAttribute, from: element)
+            if let title { details.append("title: \(title)") }
+            if let role { details.append("role: \(role)") }
+            if let url { details.append("url: \(url)") }
+        }
+        return VoiceCursorContext(
+            selectedText: selectedText,
+            focusedSelectedText: Self.focusedSelectedText(),
+            details: details,
+            attachments: await captureScreenAttachment(),
+            hoveredURL: url,
+            hoveredTitle: title,
+            hoveredRole: role
+        )
+    }
+
+    /// Screenshot the frontmost window for "see what I see". Uses ScreenCaptureKit
+    /// on macOS 14+ (the CGWindowList path is deprecated and returns wallpaper-only
+    /// frames on recent macOS), falling back to the legacy capture on macOS 13.
+    private func captureScreenAttachment() async -> [AgentChatAttachmentPayload] {
+        let frontmostPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let appName = NSWorkspace.shared.frontmostApplication?.localizedName ?? "?"
+        Self.logger.error("DIAG screen capture start: frontmost=\(appName, privacy: .public) pid=\(frontmostPID ?? -1) preflight=\(Self.hasScreenRecordingAccess())")
+        if #available(macOS 14.0, *) {
+            if let image = await Self.captureFrontmostWindowSCK(pid: frontmostPID) {
+                Self.logger.error("DIAG SCK image \(image.width)x\(image.height)")
+                if let data = Self.downscaledJPEG(image, maxSide: 1400, quality: 0.72) {
+                    Self.logger.error("DIAG attachment bytes=\(data.count)")
+                    return [
+                        AgentChatAttachmentPayload(
+                            name: "screen-context.jpg",
+                            mimeType: "image/jpeg",
+                            contentBase64: data.base64EncodedString()
+                        ),
+                    ]
+                }
+                Self.logger.error("DIAG downscaledJPEG returned nil")
+            } else {
+                Self.logger.error("DIAG SCK returned nil image")
+            }
+        }
+        // macOS 13, or ScreenCaptureKit returned nothing.
+        let legacy = captureFrontmostWindowAttachment()
+        Self.logger.error("DIAG legacy CGWindowList attachments=\(legacy.count)")
+        if legacy.isEmpty {
+            Self.logger.error("Atlas 'see my screen' capture returned no image (Screen Recording permission not granted?).")
+        }
+        return legacy
+    }
+
+    /// Capture the frontmost app's largest on-screen window via ScreenCaptureKit.
+    /// Falls back to the main display when no window is resolvable.
+    @available(macOS 14.0, *)
+    nonisolated private static func captureFrontmostWindowSCK(pid: pid_t?) async -> CGImage? {
+        do {
+            let content = try await SCShareableContent.excludingDesktopWindows(
+                true,
+                onScreenWindowsOnly: true
+            )
+            let ownBundleID = Bundle.main.bundleIdentifier
+            let windows = content.windows.filter { window in
+                guard window.isOnScreen, window.frame.width >= 120, window.frame.height >= 120 else { return false }
+                // Never screenshot Atlas's own panels.
+                if window.owningApplication?.bundleIdentifier == ownBundleID { return false }
+                if let pid { return window.owningApplication?.processID == pid }
+                return true
+            }
+            logger.error("DIAG SCK shareable windows=\(content.windows.count) eligible=\(windows.count) displays=\(content.displays.count)")
+            let target = windows.max { ($0.frame.width * $0.frame.height) < ($1.frame.width * $1.frame.height) }
+            if let target {
+                logger.error("DIAG SCK target window '\(target.title ?? "?", privacy: .public)' \(Int(target.frame.width))x\(Int(target.frame.height))")
+                let filter = SCContentFilter(desktopIndependentWindow: target)
+                let config = SCStreamConfiguration()
+                config.width = Int(target.frame.width)
+                config.height = Int(target.frame.height)
+                config.showsCursor = false
+                config.ignoreShadowsSingleWindow = true
+                return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+            }
+            if let display = content.displays.first {
+                let filter = SCContentFilter(display: display, excludingWindows: [])
+                let config = SCStreamConfiguration()
+                config.width = display.width
+                config.height = display.height
+                config.showsCursor = false
+                return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+            }
+        } catch {
+            logger.error("SCScreenshotManager capture failed: \(error.localizedDescription, privacy: .public)")
+        }
+        return nil
+    }
+
+    /// Aspect-preserving downscale to `maxSide` then JPEG-encode. Pure CoreGraphics
+    /// so it is safe to call off the main thread.
+    nonisolated private static func downscaledJPEG(_ image: CGImage, maxSide: Int, quality: CGFloat) -> Data? {
+        let maxDim = max(image.width, image.height)
+        guard maxDim > 0 else { return nil }
+        let scale = min(1.0, Double(maxSide) / Double(maxDim))
+        guard scale < 1.0 else { return jpegData(from: image, compressionQuality: quality) }
+        let targetW = max(1, Int(Double(image.width) * scale))
+        let targetH = max(1, Int(Double(image.height) * scale))
+        guard let context = CGContext(
+            data: nil,
+            width: targetW,
+            height: targetH,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return jpegData(from: image, compressionQuality: quality)
+        }
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: targetW, height: targetH))
+        guard let scaled = context.makeImage() else {
+            return jpegData(from: image, compressionQuality: quality)
+        }
+        return jpegData(from: scaled, compressionQuality: quality)
+    }
+
+    /// True when a typed chat message would trigger a screen capture — used by
+    /// the composer to show the "Atlas will look at your screen" hint. Either the
+    /// explicit toggle is on, or the wording asks about the screen.
+    func atlasChatWillCaptureScreen(for text: String) -> Bool {
+        atlasChatScreenVisionEnabled || shouldAttachVisualContext(for: text)
+    }
+
+    /// Flip the composer's screen-vision toggle. Turning it on also warms up the
+    /// Screen Recording permission so the first send doesn't stall on the prompt.
+    func toggleAtlasChatScreenVision() {
+        atlasChatScreenVisionEnabled.toggle()
+        if atlasChatScreenVisionEnabled {
+            Self.ensureScreenRecordingAccess()
+        }
+    }
+
+    /// Whether Screen Recording is already granted (window contents are visible).
+    nonisolated static func hasScreenRecordingAccess() -> Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
+    /// Prompt once for Screen Recording. Screenshot APIs only return real window
+    /// contents (not wallpaper-only frames) once this is granted + Atlas relaunched.
+    nonisolated static func ensureScreenRecordingAccess() {
+        guard !CGPreflightScreenCaptureAccess() else { return }
+        _ = CGRequestScreenCaptureAccess()
+    }
+
     private func captureScreenshotAttachment(rect: CGRect, name: String) -> [AgentChatAttachmentPayload] {
         let clipped = rect.integral
         guard clipped.width >= 24, clipped.height >= 24 else { return [] }
@@ -2345,6 +2517,14 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     nonisolated private static func focusedSelectedText() -> String? {
+        guard let element = focusedUIElement() else { return nil }
+        return copyAXAnyStringAttribute(kAXSelectedTextAttribute, from: element)
+    }
+
+    /// The system-wide focused UI element. With Atlas shown as a non-activating
+    /// panel this stays the focused element of the underlying doc/browser, so we
+    /// can read its selection / URL / title without stealing focus.
+    nonisolated private static func focusedUIElement() -> AXUIElement? {
         let systemWideElement = AXUIElementCreateSystemWide()
         var focusedElementValue: CFTypeRef?
         let error = AXUIElementCopyAttributeValue(
@@ -2354,7 +2534,7 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         )
         guard error == .success, let focusedElementValue else { return nil }
         guard CFGetTypeID(focusedElementValue) == AXUIElementGetTypeID() else { return nil }
-        return copyAXAnyStringAttribute(kAXSelectedTextAttribute, from: focusedElementValue as! AXUIElement)
+        return (focusedElementValue as! AXUIElement)
     }
 
     nonisolated private static func copyAXBoolAttribute(_ attribute: String, from element: AXUIElement) -> Bool? {
@@ -4322,15 +4502,21 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isAtlasChatSending else { return }
 
-        let attachments = atlasChatPendingAttachments
+        let pendingAttachments = atlasChatPendingAttachments
         atlasChatPendingAttachments.removeAll()
         atlasChatPendingAttachmentCount = 0
 
         let selection = atlasChatSelectionContext
         atlasChatSelectionContext = nil
-        let contextNote = selection.map {
+        let selectionNote = selection.map {
             "The user has this text selected and is asking about it:\n\"\"\"\n\($0)\n\"\"\""
         }
+        // "See what I see": either the screen-vision toggle is on, or the message
+        // asks about the screen ("what's on my screen", "look at this", "mira"…)
+        // → attach a screenshot of the frontmost window plus its focused element's
+        // text/URL. The chat panel is a non-activating panel, so the frontmost app
+        // stays the doc/browser — never Atlas itself.
+        let wantsScreen = atlasChatScreenVisionEnabled || shouldAttachVisualContext(for: text)
 
         guard isAuthenticated else {
             atlasChatMessages.append(AtlasChatMessage(role: .user, text: text))
@@ -4347,6 +4533,30 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             guard let self else { return }
             defer { self.isAtlasChatSending = false }
             do {
+                var attachments = pendingAttachments
+                var contextNote = selectionNote
+
+                if wantsScreen {
+                    // Screen Recording is required for real window contents. If it
+                    // isn't granted yet, trigger the system prompt and tell the
+                    // user how to finish — don't send a blank/wallpaper frame.
+                    if !Self.hasScreenRecordingAccess() {
+                        Self.ensureScreenRecordingAccess()
+                        self.finishAtlasChatReply(
+                            at: placeholderIndex,
+                            with: "I need **Screen Recording** permission to see your screen. I just opened the request — enable “DragonFruit Atlas” under System Settings → Privacy & Security → Screen Recording, then quit and reopen Atlas and ask me again.",
+                            stream: false
+                        )
+                        return
+                    }
+                    self.pendingCursorContext = await self.captureAtlasChatVisualContext()
+                    attachments += self.attachmentsForPrompt(text)
+                    if let visualNote = self.contextNoteForPrompt(text) {
+                        contextNote = visualNote
+                    }
+                    self.pendingCursorContext = .empty
+                }
+
                 let client = try self.makeClient()
                 let agentTarget = try await self.resolveAgentTarget(client: client)
 

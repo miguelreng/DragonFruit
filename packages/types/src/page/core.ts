@@ -10,9 +10,10 @@ import type { TPageExtended } from "./extended";
 
 /**
  * Page sub-type. "doc" is the collaborative rich-text editor;
- * "whiteboard" renders an Excalidraw canvas; "pdf" renders an uploaded PDF.
+ * "whiteboard" renders an Excalidraw canvas; "pdf" renders an uploaded PDF;
+ * "sheet" renders an editable spreadsheet grid.
  */
-export type TPageType = "doc" | "whiteboard" | "pdf";
+export type TPageType = "doc" | "whiteboard" | "pdf" | "sheet";
 
 export type TPagePdfViewProps = {
   asset_id: string;

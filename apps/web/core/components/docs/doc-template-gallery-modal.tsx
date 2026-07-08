@@ -10,11 +10,11 @@ import { useNavigate } from "react-router";
 import { EPageAccess, EUserPermissions } from "@plane/constants";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import type { TPage } from "@plane/types";
+import type { TPage, TPageType } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 import { EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 import { cn } from "@plane/utils";
-import { ArrowLeft, File as FileIcon, LayoutGrid, Search, X } from "@/components/icons/lucide-shim";
+import { ArrowLeft, File as FileIcon, GridIconShim, LayoutGrid, Search, X } from "@/components/icons/lucide-shim";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import { ProjectPageService } from "@/services/page/project-page.service";
@@ -60,8 +60,9 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
   const [activeRail, setActiveRail] = useState<RailKey>("all");
   const [projectSearch, setProjectSearch] = useState("");
   const [submittingProjectId, setSubmittingProjectId] = useState<string | null>(null);
-  // The template awaiting a project choice. `null` template = blank doc.
-  const [pending, setPending] = useState<{ template: TDocTemplate | null } | null>(null);
+  // The selection awaiting a project choice. `null` template = blank doc;
+  // `pageType` distinguishes a rich-text doc from a spreadsheet.
+  const [pending, setPending] = useState<{ template: TDocTemplate | null; pageType: TPageType } | null>(null);
 
   const eligibleProjects = useMemo(() => {
     const q = projectSearch.trim().toLowerCase();
@@ -101,12 +102,12 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
     }
   };
 
-  const createDoc = async (projectId: string, template: TDocTemplate | null) => {
+  const createDoc = async (projectId: string, template: TDocTemplate | null, pageType: TPageType = "doc") => {
     if (isCreating) return;
     setSubmittingProjectId(projectId);
     const payload: Partial<TPage> = {
       access: EPageAccess.PRIVATE,
-      page_type: "doc",
+      page_type: pageType,
       ...(template
         ? {
             name: template.title,
@@ -134,19 +135,19 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
     }
   };
 
-  // Picking a template: create straight away when the project is unambiguous,
-  // otherwise advance to the project picker.
-  const handleSelectTemplate = (template: TDocTemplate | null) => {
+  // Picking a template (or a blank doc / spreadsheet): create straight away when
+  // the project is unambiguous, otherwise advance to the project picker.
+  const handleSelectTemplate = (template: TDocTemplate | null, pageType: TPageType = "doc") => {
     if (isCreating) return;
     if (lockedProjectId) {
-      void createDoc(lockedProjectId, template);
+      void createDoc(lockedProjectId, template, pageType);
       return;
     }
     if (eligibleProjects.length === 1) {
-      void createDoc(eligibleProjects[0].id, template);
+      void createDoc(eligibleProjects[0].id, template, pageType);
       return;
     }
-    setPending({ template });
+    setPending({ template, pageType });
   };
 
   const showProjectStep = pending !== null && !lockedProjectId;
@@ -202,7 +203,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
                     key={project.id}
                     type="button"
                     disabled={isCreating}
-                    onClick={() => void createDoc(project.id, pending?.template ?? null)}
+                    onClick={() => void createDoc(project.id, pending?.template ?? null, pending?.pageType ?? "doc")}
                     className={cn(
                       "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-13 text-primary hover:bg-layer-1",
                       { "opacity-50": isCreating }
@@ -253,6 +254,13 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
                     icon={<FileIcon className="size-4" />}
                     disabled={isCreating}
                     onClick={() => handleSelectTemplate(null)}
+                  />
+                  <TemplateCard
+                    title="Spreadsheet"
+                    subtitle="Grid with formulas"
+                    icon={<GridIconShim className="size-4" />}
+                    disabled={isCreating}
+                    onClick={() => handleSelectTemplate(null, "sheet")}
                   />
                 </div>
               )}

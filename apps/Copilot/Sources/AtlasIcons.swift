@@ -38,13 +38,17 @@ enum AtlasIconName {
 
 struct AtlasIcon: View {
     let name: AtlasIconName
+    /// Renders the (stroke-based) glyph with a heavier stroke — the app's
+    /// equivalent of a "Bold" weight, used to mark an active/toggled state.
+    var bold: Bool = false
 
-    init(_ name: AtlasIconName) {
+    init(_ name: AtlasIconName, bold: Bool = false) {
         self.name = name
+        self.bold = bold
     }
 
     var body: some View {
-        if let image = name.templateImage {
+        if let image = Self.templateImage(for: name, bold: bold) {
             Image(nsImage: image)
                 .renderingMode(.template)
                 .resizable()
@@ -53,15 +57,25 @@ struct AtlasIcon: View {
             Color.clear
         }
     }
-}
 
-private extension AtlasIconName {
-    var templateImage: NSImage? {
+    private static func templateImage(for name: AtlasIconName, bold: Bool) -> NSImage? {
+        var svg = name.svg
+        if bold {
+            // Active/"Bold" state: fill the glyph solid (outline icons are drawn
+            // with fill="none") and thicken the stroke so it reads as a filled,
+            // heavier weight rather than a thin outline.
+            svg = svg
+                .replacingOccurrences(of: #"fill="none""#, with: #"fill="currentColor""#)
+                .replacingOccurrences(of: #"stroke-width="1.5""#, with: #"stroke-width="2""#)
+                .replacingOccurrences(of: #"stroke-width="2""#, with: #"stroke-width="2.5""#)
+        }
         guard let image = NSImage(data: Data(svg.utf8)) else { return nil }
         image.isTemplate = true
         return image
     }
+}
 
+private extension AtlasIconName {
     var svg: String {
         switch self {
         case .mic01:

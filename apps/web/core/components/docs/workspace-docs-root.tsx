@@ -23,6 +23,7 @@ import {
   File as FileIcon,
   FileText,
   Folder,
+  GridIconShim,
   Search,
   UploadCloud,
   Whiteboard,
@@ -623,7 +624,14 @@ function DocListItem({
     primaryProjectId && (isProjectBrief || page.id)
       ? `/${workspaceSlug}/projects/${primaryProjectId}/${isProjectBrief ? "brief" : `pages/${page.id}/`}`
       : "#";
-  const FallbackIcon = page.page_type === "pdf" ? FileText : page.page_type === "whiteboard" ? Whiteboard : PageIcon;
+  const FallbackIcon =
+    page.page_type === "pdf"
+      ? FileText
+      : page.page_type === "whiteboard"
+        ? Whiteboard
+        : page.page_type === "sheet"
+          ? GridIconShim
+          : PageIcon;
   const pdfMeta = page.page_type === "pdf" ? page.view_props?.pdf : undefined;
   const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
 
@@ -732,7 +740,14 @@ function DocCard({
       : null;
   // PDFs and whiteboards keep a distinct large glyph; docs/briefs use the same
   // duotone document glyph as the home tiles (handled in the fallback below).
-  const BigTypeIcon = page.page_type === "pdf" ? FileIcon : page.page_type === "whiteboard" ? Whiteboard : null;
+  const BigTypeIcon =
+    page.page_type === "pdf"
+      ? FileIcon
+      : page.page_type === "whiteboard"
+        ? Whiteboard
+        : page.page_type === "sheet"
+          ? GridIconShim
+          : null;
   // word_count is supplied by the workspace pages list endpoint; absent until the API ships it.
   const wordCount = (page as TPage & { word_count?: number }).word_count;
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -1344,6 +1359,7 @@ const TYPE_FILTER_META: Record<TPageType, { label: string; Icon: typeof FileText
   doc: { label: "Docs", Icon: FileText },
   whiteboard: { label: "Whiteboards", Icon: Whiteboard },
   pdf: { label: "PDFs", Icon: FileIcon },
+  sheet: { label: "Sheets", Icon: GridIconShim },
 };
 
 type TypeFilterSectionProps = {

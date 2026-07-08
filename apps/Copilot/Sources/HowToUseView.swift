@@ -113,7 +113,7 @@ struct HowToUseView: View {
     private var permissionsCard: some View {
         card {
             sectionLabel("Permissions")
-            Text("Microphone and speech recognition are required to use Atlas; the other two are optional and unlock extras. Change any of them later in System Settings → Privacy & Security.")
+            Text("Microphone and speech recognition are required to use Atlas; the others are optional and unlock extras. Change any of them later in System Settings → Privacy & Security.")
                 .font(.custom("Figtree", size: 11).weight(.medium))
                 .foregroundStyle(theme.textSecondary)
                 .lineSpacing(2)
@@ -141,6 +141,12 @@ struct HowToUseView: View {
                 name: "Accessibility",
                 isRequired: false,
                 detail: "Lets Atlas see where your cursor is and type dictation into the active field. Skip it and dictation stays off."
+            )
+            permissionRow(
+                icon: .record,
+                name: "Screen Recording",
+                isRequired: false,
+                detail: "Lets Atlas see what's on your screen. Ask “what's on my screen?” or toggle the screen button in the chat composer, and Atlas answers about the window you're looking at. Grant it, then reopen Atlas."
             )
         }
     }

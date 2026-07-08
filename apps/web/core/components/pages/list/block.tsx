@@ -12,7 +12,7 @@ import { PageIcon } from "@/components/icons/propel-shim";
 import { getPageName } from "@plane/utils";
 // components
 import { ListItem } from "@/components/core/list";
-import { FileText } from "@/components/icons/lucide-shim";
+import { FileText, GridIconShim } from "@/components/icons/lucide-shim";
 import { BlockItemAction } from "@/components/pages/list/block-item-action";
 // hooks
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -39,7 +39,7 @@ export const PageListBlock = observer(function PageListBlock(props: TPageListBlo
   if (!page) return null;
   // derived values
   const { name, logo_props, getRedirectionLink, page_type } = page;
-  const FallbackIcon = page_type === "pdf" ? FileText : PageIcon;
+  const FallbackIcon = page_type === "pdf" ? FileText : page_type === "sheet" ? GridIconShim : PageIcon;
 
   return (
     <ListItem

@@ -18,6 +18,7 @@ export const ExcalidrawEditor = lazy(() =>
   import("../whiteboard/excalidraw-editor").then((m) => ({ default: m.ExcalidrawEditor }))
 );
 export const PdfPageViewer = lazy(() => import("../pdf/pdf-page-viewer").then((m) => ({ default: m.PdfPageViewer })));
+export const SheetEditor = lazy(() => import("../sheet/sheet-editor").then((m) => ({ default: m.SheetEditor })));
 
 // HMR (React Refresh + Vite) invalidates and re-evaluates chunks on every
 // save. When a chunk that backs a `React.lazy` is invalidated, the lazy
@@ -31,6 +32,7 @@ if (import.meta.env.DEV) {
   void import("./editor-body");
   void import("../whiteboard/excalidraw-editor");
   void import("../pdf/pdf-page-viewer");
+  void import("../sheet/sheet-editor");
 }
 
 export const EditorFallback = () => (

@@ -53,16 +53,19 @@ class Page(BaseModel):
     ACCESS_CHOICES = ((PRIVATE_ACCESS, "Private"), (PUBLIC_ACCESS, "Public"))
 
     # "whiteboard" pages render an Excalidraw canvas; "pdf" pages render an
-    # uploaded file; "doc" pages use the collaborative rich-text editor.
+    # uploaded file; "sheet" pages render an editable spreadsheet grid; "doc"
+    # pages use the collaborative rich-text editor.
     # The renderer picks based on this field; description_html /
     # description_json carry the body in a type-specific shape.
     PAGE_TYPE_DOC = "doc"
     PAGE_TYPE_WHITEBOARD = "whiteboard"
     PAGE_TYPE_PDF = "pdf"
+    PAGE_TYPE_SHEET = "sheet"
     PAGE_TYPE_CHOICES = (
         (PAGE_TYPE_DOC, "Doc"),
         (PAGE_TYPE_WHITEBOARD, "Whiteboard"),
         (PAGE_TYPE_PDF, "PDF"),
+        (PAGE_TYPE_SHEET, "Sheet"),
     )
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="pages")

@@ -5,8 +5,6 @@
  */
 
 import { useEffect, useState } from "react";
-// plane utils — pre-baked unicode braille spinners (see packages/utils/src/unicode-spinners.ts)
-import { UNICODE_SPINNERS, type UnicodeSpinnerName } from "@plane/utils";
 // assets
 //
 // Three backdrops, one per loading "intent". All public domain via Wikimedia Commons.
@@ -17,8 +15,6 @@ import GardenBg from "@/app/assets/loading/garden-of-earthly-delights.jpg?url";
 import MeninasBg from "@/app/assets/loading/las-meninas.jpg?url";
 import ProdigalBg from "@/app/assets/loading/return-of-the-prodigal-son.jpg?url";
 import LogoBlack from "@/app/assets/plane-logos/logo-black.svg?url";
-
-const SPINNER_NAME: UnicodeSpinnerName = "helix";
 
 // SessionStorage key written by login/logout handlers just before the page-navigating
 // form submit; cleared by the loading screen on first read so a subsequent refresh
@@ -66,24 +62,44 @@ function resolveIntent(): LoadingIntent {
 let lastUnmountAt = 0;
 const REPLAY_GAP_MS = 4000;
 
+// Morphing-infinity loader — the same "Thinking…" animation Atlas uses in the
+// chat sidebar (web + mac app). One SVG path morphs circle → infinity → circle
+// on a 5s loop, animated via SMIL so it needs no motion library. The three
+// keyframe paths share an identical command structure (M + 4×C + Z) so `d`
+// interpolates smoothly.
+const MI_CIRCLE_A =
+  "M 12 8 C 14.21 8 16 9.79 16 12 C 16 14.21 14.21 16 12 16 C 9.79 16 8 14.21 8 12 C 8 9.79 9.79 8 12 8 Z";
+const MI_INFINITY =
+  "M 12 12 C 14 8.5 19 8.5 19 12 C 19 15.5 14 15.5 12 12 C 10 8.5 5 8.5 5 12 C 5 15.5 10 15.5 12 12 Z";
+const MI_CIRCLE_B =
+  "M 12 16 C 14.21 16 16 14.21 16 12 C 16 9.79 14.21 8 12 8 C 9.79 8 8 9.79 8 12 C 8 14.21 9.79 16 12 16 Z";
+
 function CardSpinner() {
-  const { frames, interval } = UNICODE_SPINNERS[SPINNER_NAME];
-  const [i, setI] = useState(0);
-
-  useEffect(() => {
-    const id = window.setInterval(() => setI((n) => (n + 1) % frames.length), interval);
-    return () => window.clearInterval(id);
-  }, [frames.length, interval]);
-
   return (
-    <div
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       role="status"
       aria-label="Loading"
-      className="font-mono flex items-center justify-center leading-none whitespace-pre select-none"
-      style={{ color: "#3F3F3F", fontSize: "1.5rem" }}
+      className="size-12"
+      style={{ color: "#3F3F3F" }}
     >
-      {frames[i]}
-    </div>
+      <path d={MI_CIRCLE_A}>
+        <animate
+          attributeName="d"
+          dur="5s"
+          repeatCount="indefinite"
+          calcMode="spline"
+          keyTimes="0;0.25;0.5;0.75;1"
+          keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"
+          values={`${MI_CIRCLE_A};${MI_INFINITY};${MI_CIRCLE_B};${MI_INFINITY};${MI_CIRCLE_A}`}
+        />
+      </path>
+    </svg>
   );
 }
 

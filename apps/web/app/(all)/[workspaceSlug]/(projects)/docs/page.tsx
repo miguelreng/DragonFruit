@@ -17,7 +17,7 @@ export default function WorkspaceDocsPage({ params }: Route.ComponentProps) {
       <PageHead title="Docs" />
       <WorkspaceDocsRoot
         workspaceSlug={workspaceSlug}
-        pageTypes={["doc", "pdf"]}
+        pageTypes={["doc", "pdf", "sheet"]}
         headerLabel="Docs"
         headerIcon={renderSolarSidebarIcon(DocumentsMinimalistic, false, "h-4 w-4 text-tertiary")}
       />

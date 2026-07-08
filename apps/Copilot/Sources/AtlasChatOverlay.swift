@@ -463,6 +463,9 @@ struct AtlasChatView: View {
                     store.clearAtlasChatSelectionContext()
                 }
             }
+            if store.atlasChatWillCaptureScreen(for: draft) {
+                ScreenContextHint(theme: theme)
+            }
             HStack(alignment: .bottom, spacing: 8) {
                 TextField("Message Atlas…  type @ to add a doc or task", text: $draft, axis: .vertical)
                     .textFieldStyle(.plain)
@@ -503,6 +506,17 @@ struct AtlasChatView: View {
                 ComposerIconButton(icon: .paperclip, theme: theme, accessibility: "Attach file",
                                    tint: store.atlasChatPendingAttachmentCount > 0 ? theme.accent : nil) {
                     presentAttachmentPicker()
+                }
+                ComposerIconButton(
+                    icon: .cursor,
+                    theme: theme,
+                    accessibility: store.atlasChatScreenVisionEnabled
+                        ? "Screen vision on — Atlas sees your screen"
+                        : "Let Atlas see your screen",
+                    tint: store.atlasChatScreenVisionEnabled ? theme.accent : nil,
+                    bold: store.atlasChatScreenVisionEnabled
+                ) {
+                    store.toggleAtlasChatScreenVision()
                 }
                 ComposerIconButton(icon: .layoutGrid, theme: theme, accessibility: "Integrations") {
                     store.openAtlasIntegrations()
@@ -653,6 +667,35 @@ private struct SelectionContextChip: View {
     }
 }
 
+// MARK: - Screen context hint ("see what I see")
+
+/// Shown above the composer when the draft asks about the screen, so the user
+/// knows Atlas will attach a screenshot of the frontmost window with this send.
+private struct ScreenContextHint: View {
+    let theme: CopilotThemeTokens
+
+    var body: some View {
+        HStack(spacing: 6) {
+            AtlasIcon(.cursor, bold: true)
+                .frame(width: 11, height: 11)
+                .foregroundStyle(theme.accent)
+            Text("Atlas will look at your current screen")
+                .font(.custom("Figtree", size: 11).weight(.medium))
+                .foregroundStyle(theme.textTertiary)
+            Spacer(minLength: 0)
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 8)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(theme.surface2.opacity(0.7))
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
 // MARK: - Composer toolbar icon button (size-6 · rounded-md · text-tertiary → primary)
 
 private struct ComposerIconButton: View {
@@ -660,12 +703,13 @@ private struct ComposerIconButton: View {
     let theme: CopilotThemeTokens
     var accessibility: String
     var tint: Color? = nil
+    var bold: Bool = false
     let action: () -> Void
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
-            AtlasIcon(icon)
+            AtlasIcon(icon, bold: bold)
                 .frame(width: 14, height: 14)
                 .foregroundStyle(tint ?? (isHovered ? theme.textPrimary : theme.textSecondary))
                 .frame(width: 24, height: 24)
