@@ -4,8 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { when } from "mobx";
 import { observer } from "mobx-react";
 import { useParams, useSearchParams } from "next/navigation";
@@ -47,6 +48,57 @@ function computeSortOrder(before?: number, after?: number): number {
 }
 
 const issueService = new IssueService();
+
+/**
+ * Header drop zone for a project group. Dropping a task that was dragged from another project onto
+ * this header moves it (and its subtree) into this project. It wraps only the header row — never the
+ * task rows — so it doesn't overlap the rows' own drag targets, and it's the one way to drop a task
+ * into a collapsed (row-less) group.
+ */
+function ProjectGroupDropZone({
+  projectId,
+  enabled,
+  onMoveToProject,
+  onDropInto,
+  children,
+}: {
+  projectId: string;
+  enabled: boolean;
+  onMoveToProject: (sourceId: string, destProjectId: string) => void;
+  /** Called after a successful drop so the group can expand to reveal the newly moved task. */
+  onDropInto: () => void;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [isOver, setIsOver] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !enabled) return;
+    return dropTargetForElements({
+      element: el,
+      // Only a task from a different project can land here; same-project ordering stays row-only.
+      canDrop: ({ source }) => ((source.data as { projectId?: string | null })?.projectId ?? null) !== projectId,
+      onDragEnter: () => setIsOver(true),
+      onDragLeave: () => setIsOver(false),
+      onDrop: ({ source }) => {
+        setIsOver(false);
+        const sd = source.data as { id?: string; projectId?: string | null };
+        if (sd?.id && (sd.projectId ?? null) !== projectId) {
+          onMoveToProject(sd.id, projectId);
+          onDropInto();
+        }
+      },
+    });
+  }, [projectId, enabled, onMoveToProject, onDropInto]);
+  return (
+    <div
+      ref={ref}
+      className={cn("rounded-lg transition", isOver && "bg-accent-primary/5 ring-accent-primary/30 ring-1 ring-inset")}
+    >
+      {children}
+    </div>
+  );
+}
 
 type MyTasksSectionProps = {
   /** Whose tasks to show. Defaults to the signed-in user (home usage). */
@@ -503,6 +555,48 @@ export const MyTasksSection = observer(function MyTasksSection({
     [slug, mutate]
   );
 
+  // Drag across project groups: move a task (and its whole subtree) into another project. This is
+  // the one cross-project drag op — same-project drops go through reorder/nest. States, labels,
+  // cycles and modules are project-scoped, so the server renumbers the item and remaps its state;
+  // here we just optimistically re-home the subtree so it jumps to the destination group at once.
+  const moveTaskToProject = useCallback(
+    async (sourceId: string, destinationProjectId: string) => {
+      const f = forestRef.current;
+      const source = f?.byId.get(sourceId);
+      if (!slug || !source?.project_id || source.project_id === destinationProjectId) return;
+      const subtreeIds = new Set<string>([sourceId, ...(f?.descendantIdsById.get(sourceId) ?? [])]);
+
+      // Move the subtree immediately; clear the dragged task's parent (its parent stays behind in
+      // the old project). The revalidate below reconciles the server's state/label remap.
+      mutate(
+        (prev) => {
+          const results = Array.isArray(prev?.results) ? (prev!.results as TBaseIssue[]) : [];
+          return {
+            ...prev,
+            results: results.map((i) =>
+              subtreeIds.has(i.id)
+                ? { ...i, project_id: destinationProjectId, ...(i.id === sourceId ? { parent_id: null } : {}) }
+                : i
+            ),
+          } as TIssuesResponse;
+        },
+        { revalidate: false }
+      );
+      try {
+        await issueService.moveIssueToProject(slug, source.project_id, sourceId, destinationProjectId);
+        mutate();
+      } catch (error) {
+        mutate();
+        const detail =
+          (error as { error?: string; detail?: string })?.error ??
+          (error as { detail?: string })?.detail ??
+          "Something went wrong.";
+        setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't move task", message: detail });
+      }
+    },
+    [slug, mutate]
+  );
+
   // Outdent one level: re-parent to the grandparent (or top level for a first-level subtask).
   const outdentTask = useCallback(
     async (issue: TBaseIssue) => {
@@ -649,6 +743,7 @@ export const MyTasksSection = observer(function MyTasksSection({
       onOutdent: outdentTask,
       onNest: nestTask,
       onReorder: reorderTask,
+      onMoveToProject: moveTaskToProject,
       onFilterLabel,
       onOpenDetail,
     }),
@@ -664,6 +759,7 @@ export const MyTasksSection = observer(function MyTasksSection({
       outdentTask,
       nestTask,
       reorderTask,
+      moveTaskToProject,
       onFilterLabel,
       onOpenDetail,
     ]
@@ -755,32 +851,41 @@ export const MyTasksSection = observer(function MyTasksSection({
                     const isCollapsed = collapsedSet.has(group.projectId);
                     return (
                       <div key={group.projectId} className="pt-1 first:pt-0">
-                        <div className="group/header flex items-center gap-1 rounded-lg px-3 py-1.5 transition hover:bg-layer-transparent-hover">
-                          <button
-                            type="button"
-                            onClick={() => toggleProjectCollapsed(group.projectId)}
-                            aria-expanded={!isCollapsed}
-                            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-                          >
-                            {isCollapsed ? (
-                              <ChevronUp className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
-                            ) : (
-                              <ChevronDown className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
-                            )}
-                            <span className="truncate text-14 font-semibold text-secondary">{group.name}</span>
-                            <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
-                              {group.issues.length}
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addTaskInProject(group.projectId)}
-                            aria-label={`Add task to ${group.name}`}
-                            className="grid size-5 flex-shrink-0 place-items-center rounded-md text-tertiary opacity-0 transition group-hover/header:opacity-100 hover:bg-layer-1 hover:text-primary focus-visible:opacity-100"
-                          >
-                            <Plus className="size-3.5" />
-                          </button>
-                        </div>
+                        <ProjectGroupDropZone
+                          projectId={group.projectId}
+                          enabled={isOwnList && groupByProject}
+                          onMoveToProject={moveTaskToProject}
+                          onDropInto={() =>
+                            setCollapsedProjectIds((collapsedProjectIds ?? []).filter((id) => id !== group.projectId))
+                          }
+                        >
+                          <div className="group/header flex items-center gap-1 rounded-lg px-3 py-1.5 transition hover:bg-layer-transparent-hover">
+                            <button
+                              type="button"
+                              onClick={() => toggleProjectCollapsed(group.projectId)}
+                              aria-expanded={!isCollapsed}
+                              className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                            >
+                              {isCollapsed ? (
+                                <ChevronUp className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
+                              ) : (
+                                <ChevronDown className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
+                              )}
+                              <span className="truncate text-14 font-semibold text-secondary">{group.name}</span>
+                              <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
+                                {group.issues.length}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => addTaskInProject(group.projectId)}
+                              aria-label={`Add task to ${group.name}`}
+                              className="grid size-5 flex-shrink-0 place-items-center rounded-md text-tertiary opacity-0 transition group-hover/header:opacity-100 hover:bg-layer-1 hover:text-primary focus-visible:opacity-100"
+                            >
+                              <Plus className="size-3.5" />
+                            </button>
+                          </div>
+                        </ProjectGroupDropZone>
                         <Collapse open={!isCollapsed}>
                           <ul className="pb-1">
                             {(forest.entriesByProject.get(group.projectId) ?? []).map((entry) =>

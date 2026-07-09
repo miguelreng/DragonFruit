@@ -20,6 +20,7 @@ from plane.app.views import (
     IssueSubscriberViewSet,
     ProjectUserDisplayPropertyEndpoint,
     IssueViewSet,
+    MoveIssueToProjectEndpoint,
     LabelViewSet,
     BulkArchiveIssuesEndpoint,
     DeletedIssuesListViewSet,
@@ -72,6 +73,11 @@ urlpatterns = [
             }
         ),
         name="project-issue",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/move/",
+        MoveIssueToProjectEndpoint.as_view(),
+        name="project-issue-move",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issue-labels/",

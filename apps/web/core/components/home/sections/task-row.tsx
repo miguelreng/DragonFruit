@@ -46,6 +46,11 @@ export type TaskRowOps = {
   onNest: (sourceId: string, targetId: string) => void;
   /** Reorder `sourceId` to sit immediately above/below `targetId` as its sibling. */
   onReorder: (sourceId: string, targetId: string, position: "above" | "below") => void;
+  /**
+   * Move `sourceId` (and its subtree) into `destProjectId` — the cross-project drop op. Omit in
+   * single-project surfaces (e.g. the project checklist), where cross-project drops can't arise.
+   */
+  onMoveToProject?: (sourceId: string, destProjectId: string) => void;
   /** Toggle the current view's filter to this label. When omitted, labels are non-clickable. */
   onFilterLabel?: (labelId: string) => void;
   /** Open the task's detail peek overview. When omitted, no open affordance is shown. */
@@ -196,6 +201,7 @@ export const TaskRow = observer(function TaskRow({
   const ancestorKey = ancestorIds.join(",");
   const onNest = ops.onNest;
   const onReorder = ops.onReorder;
+  const onMoveToProject = ops.onMoveToProject;
 
   useEffect(() => {
     const element = rowRef.current;
@@ -246,12 +252,16 @@ export const TaskRow = observer(function TaskRow({
         canDrop: ({ source }) => {
           const sd = source.data as Partial<RowData>;
           if (!sd?.id || sd.id === issue.id) return false;
-          // Reordering/nesting stays within a single project.
-          if (sd.projectId !== (issue.project_id ?? null)) return false;
-          // Same status group only (project checklist); reorder/nest across groups isn't supported.
-          if ((sd.statusId ?? null) !== (statusId ?? null)) return false;
-          // Can't drop a task onto one of its own descendants (would create a cycle).
-          if (sd.id && ancestorList.includes(sd.id)) return false;
+          const isCrossProject = (sd.projectId ?? null) !== (issue.project_id ?? null);
+          // A cross-project drop only makes sense where a move handler is wired up.
+          if (isCrossProject && !onMoveToProject) return false;
+          // A drop from another project is a whole-task move; skip the same-project checks below.
+          if (!isCrossProject) {
+            // Same status group only (project checklist); reorder/nest across groups isn't supported.
+            if ((sd.statusId ?? null) !== (statusId ?? null)) return false;
+            // Can't drop a task onto one of its own descendants (would create a cycle).
+            if (sd.id && ancestorList.includes(sd.id)) return false;
+          }
           return true;
         },
         getData: ({ input, element: dropEl, source }) => {
@@ -268,7 +278,12 @@ export const TaskRow = observer(function TaskRow({
             block: nestBlocked ? ["make-child"] : [],
           });
         },
-        onDrag: ({ self }) => {
+        onDrag: ({ self, source }) => {
+          // Cross-project = a whole-task move, not a reorder/nest; suppress the reorder/nest hints.
+          if (((source.data as Partial<RowData>)?.projectId ?? null) !== (issue.project_id ?? null)) {
+            setInstruction(null);
+            return;
+          }
           const type = extractInstruction(self.data)?.type;
           setInstruction(
             type === "reorder-above" || type === "reorder-below" || type === "make-child" ? type : null
@@ -277,16 +292,34 @@ export const TaskRow = observer(function TaskRow({
         onDragLeave: () => setInstruction(null),
         onDrop: ({ source, self }) => {
           setInstruction(null);
-          const type = extractInstruction(self.data)?.type;
-          const sourceId = (source.data as Partial<RowData>)?.id;
+          const sd = source.data as Partial<RowData>;
+          const sourceId = sd?.id;
           if (!sourceId) return;
+          // Dropped from another project → move the task into this row's project.
+          if ((sd.projectId ?? null) !== (issue.project_id ?? null)) {
+            if (issue.project_id) onMoveToProject?.(sourceId, issue.project_id);
+            return;
+          }
+          const type = extractInstruction(self.data)?.type;
           if (type === "make-child") onNest(sourceId, issue.id);
           else if (type === "reorder-above") onReorder(sourceId, issue.id, "above");
           else if (type === "reorder-below") onReorder(sourceId, issue.id, "below");
         },
       })
     );
-  }, [issue.id, issue.name, issue.project_id, statusId, depth, height, ancestorKey, enableDrag, onNest, onReorder]);
+  }, [
+    issue.id,
+    issue.name,
+    issue.project_id,
+    statusId,
+    depth,
+    height,
+    ancestorKey,
+    enableDrag,
+    onNest,
+    onReorder,
+    onMoveToProject,
+  ]);
 
   const dueDate = getDate(issue.target_date);
   const dueLabel = issue.target_date ? renderFormattedDate(issue.target_date, "MMM d") : undefined;

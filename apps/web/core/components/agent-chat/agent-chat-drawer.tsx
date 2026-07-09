@@ -1532,27 +1532,88 @@ function ChatThread(props: {
       ? `The user highlighted this passage in the current document and is asking a follow-up about it:\n\n"""\n${reply.text}\n"""`
       : "";
     const contextNote = [replyNote, mentionNote].filter(Boolean).join("\n\n") || undefined;
+    // Stream the reply token-by-token into an optimistic assistant bubble.
+    // `local-assistant-` ids mark the placeholder so the "Thinking…" loader
+    // steps aside once text starts, and the final `mutate()` swaps it for the
+    // persisted server rows.
+    const assistantLocalId = `local-assistant-${Date.now()}`;
+    let streamed = "";
+    let assistantAdded = false;
     try {
-      const response = await chatService.sendMessage(workspaceSlug, sessionId, trimmed, attachments, {
-        project_id: projectId,
-        tool_mode: shouldWriteIntoEditor ? "none" : "auto",
-        context_note: contextNote,
-        fact_check: true,
-      });
-      const generatedContent = response.assistant_message.content?.trim();
-      if (shouldWriteIntoEditor && generatedContent && !response.assistant_message.error_message) {
-        activePageEditorRef?.setEditorValueAtCursorPosition(markdownToEditorHtml(generatedContent));
-        activePageEditorRef?.scrollToNodeViaDOMCoordinates({ behavior: "smooth" });
-        setToast({
-          type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
-          title: "Added to page",
-          message: `${agent?.name ?? "Atlas"} wrote it into the editor.`,
-        });
-      }
+      await chatService.streamMessage(
+        workspaceSlug,
+        sessionId,
+        trimmed,
+        attachments,
+        {
+          project_id: projectId,
+          tool_mode: shouldWriteIntoEditor ? "none" : "auto",
+          context_note: contextNote,
+          fact_check: true,
+        },
+        {
+          onDelta: (text) => {
+            streamed += text;
+            if (!assistantAdded) {
+              assistantAdded = true;
+              const placeholder: TAgentChatMessage = {
+                id: assistantLocalId,
+                session: sessionId,
+                user: null,
+                user_display_name: "",
+                user_avatar_url: "",
+                role: "assistant",
+                content: streamed,
+                attachments: [],
+                prompt_tokens: 0,
+                completion_tokens: 0,
+                total_tokens: 0,
+                cost_usd: 0,
+                error_message: "",
+                created_at: new Date().toISOString(),
+              };
+              void mutate(
+                (current) =>
+                  current ? { session: current.session, messages: [...current.messages, placeholder] } : current,
+                { revalidate: false }
+              );
+            } else {
+              void mutate(
+                (current) =>
+                  current
+                    ? {
+                        session: current.session,
+                        messages: current.messages.map((m) =>
+                          m.id === assistantLocalId ? { ...m, content: streamed } : m
+                        ),
+                      }
+                    : current,
+                { revalidate: false }
+              );
+            }
+          },
+          onDone: (res) => {
+            const generatedContent = res.assistant_message.content?.trim();
+            if (shouldWriteIntoEditor && generatedContent && !res.assistant_message.error_message) {
+              activePageEditorRef?.setEditorValueAtCursorPosition(markdownToEditorHtml(generatedContent));
+              activePageEditorRef?.scrollToNodeViaDOMCoordinates({ behavior: "smooth" });
+              setToast({
+                type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
+                title: "Added to page",
+                message: `${agent?.name ?? "Atlas"} wrote it into the editor.`,
+              });
+            }
+          },
+          onError: (message) => {
+            setToast({ type: TOAST_TYPE.ERROR, title: "Send failed", message });
+          },
+        }
+      );
       await mutate();
       onSentRefreshSessions();
     } catch (err) {
-      const msg = (err as { error?: string } | undefined)?.error ?? "Couldn't send message.";
+      const msg =
+        err instanceof Error ? err.message : (err as { error?: string } | undefined)?.error ?? "Couldn't send message.";
       setToast({ type: TOAST_TYPE.ERROR, title: "Send failed", message: msg });
       await mutate();
     } finally {
@@ -1597,10 +1658,12 @@ function ChatThread(props: {
             {messages.map((m) => (
               <MessageRow key={m.id} message={m} />
             ))}
-            {sending && (
+            {/* Keep the loader up until the first streamed token arrives — once
+                the assistant bubble starts filling it takes over. */}
+            {sending && !messages.some((m) => m.id.startsWith("local-assistant-")) && (
               <li className="flex items-center gap-2">
                 <span className="flex items-center gap-1.5 text-12 text-tertiary">
-                  <MorphingInfinity className="size-4" />
+                  <MorphingInfinity className="size-5" />
                   Thinking…
                 </span>
               </li>

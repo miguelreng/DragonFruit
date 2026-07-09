@@ -132,6 +132,7 @@ from .asset.v2 import (
 from .issue.base import (
     IssueListEndpoint,
     IssueViewSet,
+    MoveIssueToProjectEndpoint,
     ProjectUserDisplayPropertyEndpoint,
     BulkDeleteIssuesEndpoint,
     DeletedIssuesListViewSet,

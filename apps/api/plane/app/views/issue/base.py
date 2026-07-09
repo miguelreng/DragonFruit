@@ -16,6 +16,7 @@ from django.db.models import (
     Exists,
     F,
     Func,
+    Max,
     OuterRef,
     Prefetch,
     Q,
@@ -24,6 +25,7 @@ from django.db.models import (
     Value,
 )
 from django.db.models.functions import Coalesce
+from django.db import connection, transaction
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.gzip import gzip_page
@@ -52,17 +54,21 @@ from plane.db.models import (
     IntakeIssue,
     Issue,
     IssueAssignee,
+    IssueComment,
     IssueLabel,
     IssueLink,
     IssueReaction,
     IssueRelation,
+    IssueSequence,
     IssueSubscriber,
     ProjectUserProperty,
     ModuleIssue,
     Project,
     ProjectMember,
+    State,
     UserRecentVisit,
 )
+from plane.utils.uuid import convert_uuid_to_integer
 from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
 from plane.utils.global_paginator import paginate
 from plane.utils.grouper import (
@@ -774,6 +780,141 @@ class IssueViewSet(BaseViewSet):
             subscriber=False,
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MoveIssueToProjectEndpoint(BaseAPIView):
+    """Move a work item (and its whole subtree) into another project in the same workspace.
+
+    A cross-project move is not a plain field edit: sequence ids, states, labels, cycles and
+    modules are all scoped to a single project. So for every moved item we renumber it in the
+    destination project, reassign it to the destination's default state, carry the associations
+    that can move (assignees, subscribers, links, attachments, comments) and drop the ones that
+    can't (labels, cycle, module, estimate). The dragged item detaches from its old-project
+    parent; descendants keep their parent within the moved subtree so the hierarchy is preserved.
+    """
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def post(self, request, slug, project_id, issue_id):
+        destination_project_id = request.data.get("destination_project_id")
+        if not destination_project_id:
+            return Response(
+                {"error": "destination_project_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Moving into the same project is a no-op.
+        if str(destination_project_id) == str(project_id):
+            return Response(
+                {"error": "Work item is already in this project"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # The destination must exist in this workspace and the caller must be an active member of it.
+        destination_project = Project.objects.filter(pk=destination_project_id, workspace__slug=slug).first()
+        if not destination_project:
+            return Response({"error": "Destination project not found"}, status=status.HTTP_404_NOT_FOUND)
+        if not ProjectMember.objects.filter(
+            project_id=destination_project_id, member=request.user, is_active=True
+        ).exists():
+            return Response(
+                {"error": "You are not a member of the destination project"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        root_issue = Issue.issue_objects.filter(workspace__slug=slug, project_id=project_id, pk=issue_id).first()
+        if not root_issue:
+            return Response({"error": "Work item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Landing state in the destination: its default, else its first backlog state, else any state.
+        destination_state = (
+            State.objects.filter(~Q(is_triage=True), project_id=destination_project_id, default=True).first()
+            or State.objects.filter(~Q(is_triage=True), project_id=destination_project_id, group="backlog").first()
+            or State.objects.filter(~Q(is_triage=True), project_id=destination_project_id).first()
+        )
+        if not destination_state:
+            return Response(
+                {"error": "Destination project has no available state"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Walk the subtree (root + all descendants) so the hierarchy moves together.
+        subtree_ids = [root_issue.id]
+        frontier = [root_issue.id]
+        while frontier:
+            children = list(
+                Issue.issue_objects.filter(parent_id__in=frontier, workspace__slug=slug)
+                .exclude(pk__in=subtree_ids)
+                .values_list("id", flat=True)
+            )
+            if not children:
+                break
+            subtree_ids.extend(children)
+            frontier = children
+
+        with transaction.atomic():
+            # Serialize sequence assignment for the destination project, matching Issue.save().
+            lock_key = convert_uuid_to_integer(destination_project.id)
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_key])
+
+            last_sequence = (
+                IssueSequence.objects.filter(project_id=destination_project_id).aggregate(
+                    largest=Max("sequence")
+                )["largest"]
+                or 0
+            )
+
+            for issue in Issue.objects.filter(pk__in=subtree_ids):
+                last_sequence += 1
+                issue.project_id = destination_project_id
+                issue.state = destination_state
+                issue.sequence_id = last_sequence
+                # Estimate points are project-scoped and can't carry across.
+                issue.estimate_point = None
+                # Only the dragged item detaches; its descendants stay parented within the subtree.
+                if issue.id == root_issue.id:
+                    issue.parent = None
+                issue.save(
+                    update_fields=["project", "state", "sequence_id", "estimate_point", "parent", "updated_at"]
+                )
+                # Keep the sequence ledger consistent with the new project + number.
+                IssueSequence.objects.filter(issue_id=issue.id).update(
+                    project_id=destination_project_id, sequence=issue.sequence_id
+                )
+
+            # Re-home the through rows that CAN carry across projects.
+            IssueAssignee.objects.filter(issue_id__in=subtree_ids).update(project_id=destination_project_id)
+            IssueSubscriber.objects.filter(issue_id__in=subtree_ids).update(project_id=destination_project_id)
+            IssueLink.objects.filter(issue_id__in=subtree_ids).update(project_id=destination_project_id)
+            IssueComment.objects.filter(issue_id__in=subtree_ids).update(project_id=destination_project_id)
+            FileAsset.objects.filter(issue_id__in=subtree_ids).update(project_id=destination_project_id)
+
+            # Drop the associations that belong to the source project only.
+            IssueLabel.objects.filter(issue_id__in=subtree_ids).delete()
+            CycleIssue.objects.filter(issue_id__in=subtree_ids).delete()
+            ModuleIssue.objects.filter(issue_id__in=subtree_ids).delete()
+
+        # Log the move on the dragged item.
+        issue_activity.delay(
+            type="issue.activity.updated",
+            requested_data=json.dumps({"project_id": str(destination_project_id)}),
+            actor_id=str(request.user.id),
+            issue_id=str(root_issue.id),
+            project_id=str(destination_project_id),
+            current_instance=json.dumps({"project_id": str(project_id)}),
+            epoch=int(timezone.now().timestamp()),
+            notification=True,
+            origin=base_host(request=request, is_app=True),
+        )
+
+        return Response(
+            {
+                "id": str(root_issue.id),
+                "project_id": str(destination_project_id),
+                "moved_count": len(subtree_ids),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class ProjectUserDisplayPropertyEndpoint(BaseAPIView):

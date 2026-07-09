@@ -20,6 +20,7 @@ mention, where AgentRun + Celery already cover it.
 
 import base64
 import html
+import json
 import logging
 import re
 import urllib.parse
@@ -28,6 +29,7 @@ import urllib.request
 import requests
 from bs4 import BeautifulSoup
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import StreamingHttpResponse
 from django.db import transaction
 from django.db.models import Q
@@ -58,7 +60,7 @@ from plane.utils.html_builders import escape_text, link_html, list_html, paragra
 from plane.llm.composio import build_composio_tools, get_composio_config_for_workspace
 from plane.llm.persona import ATLAS_PERSONA
 from plane.llm.pricing import estimate_cost_usd
-from plane.llm.provider import LLMConfigError, LLMProvider, LLMTool
+from plane.llm.provider import LLMConfigError, LLMProvider, LLMRunResult, LLMTool
 from plane.llm.wikipedia import search_wikipedia, wikipedia_summary
 
 from ..base import BaseAPIView
@@ -395,6 +397,15 @@ def _coerce_bool(value) -> bool:
     if isinstance(value, (int, float)):
         return bool(value)
     return False
+
+
+def _chat_stream_event(event_type: str, **payload):
+    """Serialize one newline-delimited JSON chat-stream event.
+
+    Mirrors `_doc_write_event` but keys on `type` (delta/done/error) since
+    the chat stream carries text fragments, not doc-write proposals.
+    """
+    return json.dumps({"type": event_type, **payload}, cls=DjangoJSONEncoder, separators=(",", ":")) + "\n"
 
 
 def _get_or_create_default_agent(workspace: Workspace) -> Agent:
@@ -2109,6 +2120,96 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     workspace=session.workspace,
                 )
             )
+
+        # Streaming path: token-by-token NDJSON for the conversational case.
+        # Document requests keep the blocking JSON path — their reply is a
+        # tool-confirmation built from post-run inspection, not streamed prose,
+        # and the client detects the non-NDJSON content-type and handles it.
+        wants_stream = _coerce_bool(request.data.get("stream"))
+        if wants_stream and not is_document_request:
+
+            def chat_stream():
+                buffer_parts: list[str] = []
+                run_result = None
+                yield _chat_stream_event("start", user_message=AgentChatMessageSerializer(user_msg).data)
+                try:
+                    for kind, value in provider.stream_run(
+                        system_prompt=system,
+                        user_prompt=user_prompt,
+                        tools=tools,
+                        max_iterations=8,
+                    ):
+                        if kind == "delta":
+                            if value:
+                                buffer_parts.append(value)
+                                yield _chat_stream_event("delta", value=value)
+                        else:  # "result"
+                            run_result = value
+                except Exception:  # noqa: BLE001 — surface any provider error
+                    logger.exception("agent chat stream failed agent=%s session=%s", agent.id, session.id)
+                    # Nothing streamed yet? Retry once via the blocking path so the
+                    # user still gets an answer on providers that can't stream
+                    # tool-use. If text already streamed, keep it as the reply.
+                    if not "".join(buffer_parts).strip():
+                        try:
+                            run_result = provider.run(
+                                system_prompt=system,
+                                user_prompt=user_prompt,
+                                tools=tools,
+                                max_iterations=8,
+                            )
+                        except Exception as exc2:  # noqa: BLE001
+                            logger.exception(
+                                "agent chat stream fallback failed agent=%s session=%s", agent.id, session.id
+                            )
+                            err = f"{exc2.__class__.__name__}: {exc2}"
+                            assistant_err = AgentChatMessage.objects.create(
+                                session=session, role="assistant", content="", error_message=err
+                            )
+                            yield _chat_stream_event(
+                                "error",
+                                error=err,
+                                user_message=AgentChatMessageSerializer(user_msg).data,
+                                assistant_message=AgentChatMessageSerializer(assistant_err).data,
+                            )
+                            return
+
+                run_result = run_result or LLMRunResult()
+                streamed_text = "".join(buffer_parts).strip()
+                assistant_content = (
+                    streamed_text or (run_result.final_text or "").strip() or _fallback_tool_confirmation(run_result)
+                )
+                # If nothing streamed (model only ran tools, or a blocking
+                # fallback produced the text) surface it as one delta so the
+                # bubble fills in before the final reload.
+                if not streamed_text and assistant_content:
+                    yield _chat_stream_event("delta", value=assistant_content)
+                cost = estimate_cost_usd(
+                    agent.provider_model or "", run_result.prompt_tokens, run_result.completion_tokens
+                )
+                assistant_msg = AgentChatMessage.objects.create(
+                    session=session,
+                    role="assistant",
+                    content=assistant_content,
+                    prompt_tokens=run_result.prompt_tokens,
+                    completion_tokens=run_result.completion_tokens,
+                    total_tokens=run_result.prompt_tokens + run_result.completion_tokens,
+                    cost_usd=cost,
+                )
+                session.save(update_fields=["updated_at", "last_activity_at"])
+                yield _chat_stream_event(
+                    "done",
+                    user_message=AgentChatMessageSerializer(user_msg).data,
+                    assistant_message=AgentChatMessageSerializer(assistant_msg).data,
+                )
+
+            response = StreamingHttpResponse(chat_stream(), content_type="application/x-ndjson")
+            # Same buffer-defeating headers as the doc-write stream so tokens
+            # flow through Django/nginx instead of arriving as one block.
+            response["Content-Encoding"] = "identity"
+            response["Cache-Control"] = "no-cache, no-transform"
+            response["X-Accel-Buffering"] = "no"
+            return response
 
         try:
             result = provider.run(

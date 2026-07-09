@@ -72,6 +72,18 @@ export type TAgentChatPostResponse = {
   assistant_message: TAgentChatMessage;
 };
 
+/**
+ * NDJSON events emitted by the streaming chat endpoint. `start` carries the
+ * persisted user row, `delta` carries an assistant text fragment, `done`
+ * carries both final rows (with token/cost telemetry), `error` carries a
+ * message and — when it got far enough to persist one — the assistant row.
+ */
+export type TAgentChatStreamEvent =
+  | { type: "start"; user_message: TAgentChatMessage }
+  | { type: "delta"; value: string }
+  | { type: "done"; user_message: TAgentChatMessage; assistant_message: TAgentChatMessage }
+  | { type: "error"; error: string; user_message?: TAgentChatMessage; assistant_message?: TAgentChatMessage };
+
 export type TAtlasDocWriteMode = "create" | "update";
 
 export type TAtlasDocWriteIntent = "insert" | "replace" | "delete" | "update";
@@ -209,6 +221,101 @@ export class AgentChatService extends APIService {
       .catch((error) => {
         throw error?.response?.data;
       });
+  }
+
+  /**
+   * Streaming twin of `sendMessage`. POSTs with `stream: true` and reads the
+   * NDJSON reply, calling handlers as text arrives. The server keeps the
+   * blocking JSON path for document requests (whose reply is a tool
+   * confirmation, not streamed prose); we detect the non-NDJSON content-type
+   * and surface it as a single `onDone`, so callers get one uniform contract.
+   */
+  async streamMessage(
+    workspaceSlug: string,
+    sessionId: string,
+    content: string,
+    attachments: TAgentChatAttachmentPayload[] | undefined,
+    context: { project_id?: string; tool_mode?: "auto" | "none"; context_note?: string; fact_check?: boolean } | undefined,
+    handlers: {
+      onStart?: (userMessage: TAgentChatMessage) => void;
+      onDelta: (text: string) => void;
+      onDone: (res: TAgentChatPostResponse) => void;
+      onError: (message: string, res?: TAgentChatPostResponse) => void;
+    }
+  ): Promise<void> {
+    const response = await fetch(
+      `${this.baseURL}/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/messages/`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content,
+          attachments: attachments ?? [],
+          project_id: context?.project_id,
+          tool_mode: context?.tool_mode,
+          context_note: context?.context_note,
+          fact_check: context?.fact_check,
+          stream: true,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      let message = response.statusText || "Send failed.";
+      try {
+        const body = await response.json();
+        message = body?.error || body?.detail || message;
+      } catch {
+        // Keep the status-text fallback.
+      }
+      throw new Error(message);
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/x-ndjson")) {
+      // Non-streamed reply (document request, or a server that answered in one
+      // shot) — parse the whole JSON body and emit it as a single done event.
+      const data = (await response.json()) as TAgentChatPostResponse;
+      handlers.onDone(data);
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Streaming is not available in this browser.");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    const handle = (raw: string) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+      const event = JSON.parse(trimmed) as TAgentChatStreamEvent;
+      if (event.type === "start") handlers.onStart?.(event.user_message);
+      else if (event.type === "delta") handlers.onDelta(event.value);
+      else if (event.type === "done")
+        handlers.onDone({ user_message: event.user_message, assistant_message: event.assistant_message });
+      else if (event.type === "error")
+        handlers.onError(
+          event.error,
+          event.assistant_message && event.user_message
+            ? { user_message: event.user_message, assistant_message: event.assistant_message }
+            : undefined
+        );
+    };
+
+    while (true) {
+      // eslint-disable-next-line no-await-in-loop -- Streams have to be consumed sequentially.
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) handle(line);
+    }
+
+    buffer += decoder.decode();
+    if (buffer.trim()) handle(buffer);
   }
 
   async streamDocWrite(

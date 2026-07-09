@@ -231,6 +231,27 @@ export class IssueService extends APIService {
       });
   }
 
+  /**
+   * Move a work item (and its subtree) into another project in the same workspace. Cross-project
+   * moves can't be a plain patch (project is read-only + states/labels/cycles are project-scoped),
+   * so this hits the dedicated move endpoint which renumbers the item and remaps its state.
+   */
+  async moveIssueToProject(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string,
+    destinationProjectId: string
+  ): Promise<any> {
+    return this.post(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/move/`,
+      { destination_project_id: destinationProjectId }
+    )
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async deleteIssue(workspaceSlug: string, projectId: string, issuesId: string): Promise<any> {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issuesId}/`)
       .then((response) => response?.data)

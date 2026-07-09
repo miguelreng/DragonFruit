@@ -439,6 +439,180 @@ class LLMProvider:
             if text:
                 yield text
 
+    # ----------------------------------------------------------------- #
+    # Streaming tool-use loop                                            #
+    # ----------------------------------------------------------------- #
+
+    def stream_run(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt,
+        tools: Iterable[LLMTool] = (),
+        max_iterations: Optional[int] = None,
+        request_timeout: Optional[float] = None,
+    ):
+        """Streaming counterpart to `run()` — a tool-use loop that yields text.
+
+        Yields 2-tuples in order:
+          - `("delta", str)` for each assistant text fragment as it streams in
+          - `("result", LLMRunResult)` exactly once at the very end
+
+        Tool calls execute between turns exactly like `run()`; only the
+        model's natural-language text is streamed. Reassembling streamed
+        chunks (content + fragmented tool-call args) into a normal message
+        relies on litellm's `stream_chunk_builder`; if a provider can't
+        stream tool use the caller should catch the exception and fall back
+        to the blocking `run()`.
+        """
+        import litellm  # local import — heavy module, only load when used
+
+        builder = getattr(litellm, "stream_chunk_builder", None)
+        if builder is None:
+            raise RuntimeError("litellm.stream_chunk_builder unavailable; cannot stream tool-use")
+
+        max_iters = max_iterations if max_iterations is not None else self.default_max_iterations
+        tools_by_name: Dict[str, LLMTool] = {t.name: t for t in tools}
+        litellm_tools = _serialise_tools_for_litellm(tools_by_name.values())
+
+        messages: List[Dict[str, Any]] = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        result = LLMRunResult()
+
+        def _stream_turn(turn_messages, turn_tools):
+            """Run one streaming completion. Yields ("delta", text) as tokens
+            arrive, then a single ("_rebuilt", message) with the reassembled
+            completion so the caller can inspect tool calls + usage."""
+            completion_kwargs: Dict[str, Any] = {
+                "model": self._litellm_model(),
+                "api_key": self.api_key,
+                "api_base": self.api_base_url,
+                "messages": turn_messages,
+                "tools": turn_tools if turn_tools else None,
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            }
+            if request_timeout is not None:
+                completion_kwargs["timeout"] = request_timeout
+            response = litellm.completion(**completion_kwargs)
+            chunks = []
+            for chunk in response:
+                chunks.append(chunk)
+                try:
+                    delta = chunk.choices[0].delta
+                except (AttributeError, IndexError, TypeError):
+                    continue
+                text = getattr(delta, "content", None)
+                if text:
+                    yield ("delta", text)
+            yield ("_rebuilt", builder(chunks, messages=turn_messages))
+
+        for iteration in range(max_iters):
+            result.iterations = iteration + 1
+
+            rebuilt = None
+            try:
+                for kind, val in _stream_turn(messages, litellm_tools):
+                    if kind == "delta":
+                        yield ("delta", val)
+                    else:  # "_rebuilt"
+                        rebuilt = val
+            except Exception:  # noqa: BLE001 — surface any provider error
+                logger.exception("llm stream call failed model=%s", self.model)
+                result.stopped_reason = "error"
+                raise
+
+            if rebuilt is None:
+                result.stopped_reason = "error"
+                break
+
+            _accumulate_usage(result, rebuilt)
+            message = rebuilt.choices[0].message
+            assistant_content = getattr(message, "content", None) or ""
+            tool_calls = getattr(message, "tool_calls", None) or []
+
+            assistant_entry: Dict[str, Any] = {"role": "assistant", "content": assistant_content}
+            provider_specific_fields = _read_field(message, "provider_specific_fields")
+            if provider_specific_fields:
+                assistant_entry["provider_specific_fields"] = provider_specific_fields
+            if tool_calls:
+                assistant_entry["tool_calls"] = [_serialise_tool_call_for_history(tc) for tc in tool_calls]
+            messages.append(assistant_entry)
+
+            if not tool_calls:
+                result.final_text = assistant_content
+                result.stopped_reason = "completed"
+                yield ("result", result)
+                return
+
+            for tc in tool_calls:
+                tool_name = tc.function.name
+                tool = tools_by_name.get(tool_name)
+                raw_args = tc.function.arguments or "{}"
+                try:
+                    import json as _json
+
+                    args = _json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
+                except Exception:  # noqa: BLE001
+                    args = {}
+
+                if tool is None:
+                    tool_output = f"tool_error: unknown tool '{tool_name}'"
+                else:
+                    try:
+                        tool_output = tool.handler(args)
+                        if not isinstance(tool_output, str):
+                            tool_output = str(tool_output)
+                    except Exception as exc:  # noqa: BLE001
+                        logger.exception("tool '%s' raised", tool_name)
+                        tool_output = f"tool_error: {exc.__class__.__name__}: {exc}"
+
+                result.tool_calls.append(
+                    {
+                        "name": tool_name,
+                        "arguments": args,
+                        "result": tool_output[:4000],
+                        "iteration": iteration + 1,
+                    }
+                )
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "name": tool_name,
+                        "content": tool_output,
+                    }
+                )
+
+        # Hit the iteration cap mid-tool-use: force ONE final tool-less turn so
+        # the model synthesizes an answer (streamed) instead of returning empty.
+        result.stopped_reason = "max_iterations"
+        try:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "You've reached the tool-use limit. Give your best final answer now "
+                        "in plain text, using the information already gathered above. "
+                        "Do not call any tools."
+                    ),
+                }
+            )
+            rebuilt = None
+            for kind, val in _stream_turn(messages, None):
+                if kind == "delta":
+                    yield ("delta", val)
+                else:  # "_rebuilt"
+                    rebuilt = val
+            if rebuilt is not None:
+                _accumulate_usage(result, rebuilt)
+                result.final_text = getattr(rebuilt.choices[0].message, "content", None) or ""
+        except Exception:  # noqa: BLE001 — best-effort; empty final_text falls through
+            logger.exception("llm final synthesis stream failed model=%s", self.model)
+        yield ("result", result)
+
 
 # ===================================================================== #
 # Helpers                                                               #

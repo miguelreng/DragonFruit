@@ -475,7 +475,7 @@ struct AtlasChatView: View {
                     .lineSpacing(2) // leading-snug on 13px
                     .lineLimit(1...7)
                     .focused($inputFocused)
-                    .onSubmit(send)
+                    .modifier(ComposerSubmitModifier(send: send))
 
                 // Send: UndoLeft rotated 180 · size-4 (16px) · text-secondary → primary
                 Button(action: send) {
@@ -576,6 +576,31 @@ struct AtlasChatView: View {
         draft = ""
         store.sendAtlasChatMessage(text)
         inputFocused = true
+    }
+}
+
+// MARK: - Composer submit behavior (Return sends · Shift+Return = newline)
+
+/// Return sends the message; Shift+Return inserts a line break in the composer.
+/// Uses `.onKeyPress` on macOS 14+ (which lets us distinguish the modifier and
+/// pass Shift+Return through to the field editor as a line break). On macOS 13
+/// we fall back to `.onSubmit`, which only fires on plain Return.
+private struct ComposerSubmitModifier: ViewModifier {
+    let send: () -> Void
+
+    func body(content: Content) -> some View {
+        if #available(macOS 14.0, *) {
+            content.onKeyPress { press in
+                guard press.key == .return else { return .ignored }
+                // Let Shift+Return fall through so the field editor inserts a
+                // line break instead of submitting.
+                if press.modifiers.contains(.shift) { return .ignored }
+                send()
+                return .handled
+            }
+        } else {
+            content.onSubmit(send)
+        }
     }
 }
 
