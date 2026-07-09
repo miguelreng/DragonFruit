@@ -21,8 +21,10 @@ class WorkflowNodeSerializer(serializers.ModelSerializer):
 
 
 class WorkflowEdgeSerializer(serializers.ModelSerializer):
-    from_node = serializers.UUIDField()
-    to_node = serializers.UUIDField()
+    # Serialize the FK ids, not the related objects — a bare UUIDField would
+    # receive the WorkflowNode instance and stringify its __str__.
+    from_node = serializers.UUIDField(source="from_node_id")
+    to_node = serializers.UUIDField(source="to_node_id")
 
     class Meta:
         model = WorkflowEdge

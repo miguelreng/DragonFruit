@@ -159,6 +159,9 @@ function WorkflowsRootBase() {
       const parent = g.nodes.find((n) => n.id === parentId);
       if (!parent) return g;
       const pos = placeChild(parent, branch);
+      // Nudge down until the spot is clear of existing nodes (roughly one card).
+      const overlaps = (y: number) => g.nodes.some((n) => Math.abs(n.x - pos.x) < 240 && Math.abs(n.y - y) < 110);
+      while (overlaps(pos.y)) pos.y += 120;
       const node: TWorkflowNode = {
         id: newNodeId(),
         kind,

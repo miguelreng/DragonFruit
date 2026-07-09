@@ -7,6 +7,7 @@
 import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import type { IIssueLabel } from "@plane/types";
+import { CustomSelect, CustomSearchSelect } from "@plane/ui";
 import { cn } from "@plane/utils";
 import type { TMcpServerSummary } from "@/services/agent.service";
 import type { TWorkflowNode } from "@/services/workflow.service";
@@ -16,8 +17,6 @@ import { ArrowRight, ListFilter, Sparkles, Trash, X } from "@/components/icons/l
 import { ACTION_TYPES, TRIGGER_EVENTS, getFilters, nodeDisplay, type TConditionFilters } from "./builder-helpers";
 
 const PRIORITY_OPTIONS = ["urgent", "high", "medium", "low", "none"] as const;
-const SELECT_MULTI = "min-h-[112px] rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary";
-const SELECT_ONE = "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary";
 const INPUT = "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder";
 
 const KIND_PILL: Record<string, string> = {
@@ -54,33 +53,40 @@ function Label({ children }: { children: ReactNode }) {
 
 function FilterMultiSelect({
   label,
+  placeholder,
   options,
   value,
   onChange,
 }: {
   label: string;
+  placeholder: string;
   options: Array<{ id: string; name: string }>;
   value: string[];
   onChange: (v: string[]) => void;
 }) {
+  const summary =
+    value.length === 0
+      ? placeholder
+      : value.length === 1
+        ? (options.find((o) => o.id === value[0])?.name ?? "1 selected")
+        : `${value.length} selected`;
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <Label>{label}</Label>
-        {value.length > 0 && <span className="text-11 text-tertiary">{value.length} selected</span>}
-      </div>
-      <select
-        multiple
+      <Label>{label}</Label>
+      <CustomSearchSelect
         value={value}
-        onChange={(e) => onChange(Array.from(e.target.selectedOptions).map((o) => o.value))}
-        className="min-h-[84px] rounded-lg border-[0.5px] border-subtle bg-layer-1 px-2 py-1.5 text-13 text-primary"
-      >
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
-          </option>
-        ))}
-      </select>
+        onChange={(v: string[] | null) => onChange(v ?? [])}
+        options={options.map((o) => ({
+          value: o.id,
+          query: o.name,
+          content: <span className="truncate">{o.name}</span>,
+        }))}
+        label={<span className={cn("truncate text-13", value.length === 0 && "text-placeholder")}>{summary}</span>}
+        multiple
+        input
+        buttonClassName="w-full"
+        optionsClassName="w-64"
+      />
     </div>
   );
 }
@@ -120,8 +126,6 @@ export function WorkflowInspector({
       <Sparkles className="size-3.5" />
     );
 
-  const readMulti = (e: React.ChangeEvent<HTMLSelectElement>) =>
-    Array.from(e.target.selectedOptions).map((o) => o.value);
   const filters = node ? getFilters(node) : {};
   const setFilters = (patch: Partial<TConditionFilters>) =>
     onChangeConfig({ ...config, filters: { ...filters, ...patch } });
@@ -180,18 +184,26 @@ export function WorkflowInspector({
           <Section title="Trigger">
             <div className="flex flex-col gap-1">
               <Label>Event</Label>
-              <select
+              <CustomSelect
                 value={String(config.event ?? "issue_created")}
-                onChange={(e) => onChangeConfig({ ...config, event: e.target.value, object: "issue" })}
-                className={SELECT_ONE}
+                label={
+                  TRIGGER_EVENTS.find((t) => t.value === String(config.event ?? "issue_created"))?.label ??
+                  "Select event"
+                }
+                onChange={(val: string) => onChangeConfig({ ...config, event: val, object: "issue" })}
+                input
+                buttonClassName="w-full"
+                optionsClassName="w-64"
               >
                 {TRIGGER_EVENTS.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                    {t.live ? "" : " (soon)"}
-                  </option>
+                  <CustomSelect.Option key={t.value} value={t.value}>
+                    <span className="flex items-center gap-1.5">
+                      {t.label}
+                      {!t.live && <span className="text-11 text-tertiary">soon</span>}
+                    </span>
+                  </CustomSelect.Option>
                 ))}
-              </select>
+              </CustomSelect>
               {TRIGGER_EVENTS.find((t) => t.value === String(config.event ?? "issue_created"))?.live === false && (
                 <span className="text-11 text-amber-600 dark:text-amber-500">
                   This trigger isn’t wired yet — coming soon.
@@ -225,7 +237,7 @@ export function WorkflowInspector({
                       className={cn(
                         "rounded-full border px-2.5 py-1 text-12 capitalize t-press",
                         on
-                          ? "border-transparent bg-custom-primary-100 text-white"
+                          ? "border-transparent bg-accent-primary text-on-color"
                           : "border-subtle text-secondary hover:bg-layer-2"
                       )}
                     >
@@ -237,12 +249,14 @@ export function WorkflowInspector({
             </div>
             <FilterMultiSelect
               label="Projects"
+              placeholder="All projects"
               options={sortedProjects.map((p) => ({ id: p.id, name: p.name }))}
               value={filters.project_ids ?? []}
               onChange={(v) => setFilters({ project_ids: v })}
             />
             <FilterMultiSelect
               label="Labels"
+              placeholder="All labels"
               options={sortedLabels.map((l) => ({ id: l.id, name: l.name }))}
               value={filters.label_ids ?? []}
               onChange={(v) => setFilters({ label_ids: v })}
@@ -268,18 +282,23 @@ export function WorkflowInspector({
             <Section title="Action">
               <div className="flex flex-col gap-1">
                 <Label>Type</Label>
-                <select
+                <CustomSelect
                   value={actionType}
-                  onChange={(e) => onChangeConfig({ ...config, type: e.target.value, params: config.params ?? {} })}
-                  className={SELECT_ONE}
+                  label={actionMeta?.label ?? "Select action"}
+                  onChange={(val: string) => onChangeConfig({ ...config, type: val, params: config.params ?? {} })}
+                  input
+                  buttonClassName="w-full"
+                  optionsClassName="w-64"
                 >
                   {ACTION_TYPES.map((a) => (
-                    <option key={a.value} value={a.value}>
-                      {a.label}
-                      {a.live ? "" : " (soon)"}
-                    </option>
+                    <CustomSelect.Option key={a.value} value={a.value}>
+                      <span className="flex items-center gap-1.5">
+                        {a.label}
+                        {!a.live && <span className="text-11 text-tertiary">soon</span>}
+                      </span>
+                    </CustomSelect.Option>
                   ))}
-                </select>
+                </CustomSelect>
                 {actionMeta && !actionMeta.live && (
                   <span className="text-11 text-amber-600 dark:text-amber-500">
                     This action isn’t executed yet — coming soon.
@@ -312,19 +331,13 @@ export function WorkflowInspector({
               )}
               {actionType === "add_label" && (
                 <div className="flex flex-col gap-1">
-                  <Label>Labels</Label>
-                  <select
-                    multiple
+                  <FilterMultiSelect
+                    label="Labels"
+                    placeholder="Pick labels"
+                    options={sortedLabels.map((l) => ({ id: l.id, name: l.name }))}
                     value={(params.label_ids as string[]) ?? []}
-                    onChange={(e) => setParams({ label_ids: readMulti(e) })}
-                    className={SELECT_MULTI}
-                  >
-                    {sortedLabels.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setParams({ label_ids: v })}
+                  />
                   <span className="text-11 text-tertiary">Only labels in the task’s project are applied.</span>
                 </div>
               )}

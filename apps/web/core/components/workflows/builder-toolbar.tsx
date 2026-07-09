@@ -49,32 +49,32 @@ export function BuilderToolbar({
   const isExisting = !!currentId;
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-subtle bg-layer-1 px-4 py-2">
+    <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-subtle bg-surface-1 px-4 py-2">
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1 rounded-lg px-2 py-1 text-12 font-medium text-tertiary t-press hover:bg-layer-2 hover:text-secondary"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-12 font-medium text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
         >
           <ArrowLeft className="size-4" />
           Workflows
         </button>
-        <span className="mx-1 h-5 w-px bg-strong/30" />
+        <span className="mx-1 h-5 w-px flex-shrink-0 bg-subtle" />
         <input
           value={name}
           onChange={(e) => onChangeName(e.target.value)}
           placeholder="Untitled workflow"
-          className="min-w-0 max-w-[260px] rounded-lg border-[0.5px] border-transparent bg-transparent px-2 py-1 text-15 font-semibold text-primary placeholder:text-placeholder hover:border-subtle focus:border-subtle focus:bg-layer-2 focus:outline-none"
+          className="min-w-0 max-w-[260px] rounded-md border-[0.5px] border-transparent bg-transparent px-2 py-1 text-14 font-semibold text-primary placeholder:text-placeholder hover:border-subtle focus:border-subtle focus:bg-layer-1 focus:outline-none"
         />
-        <div className="flex items-center gap-0.5 rounded-lg border border-subtle bg-layer-2 p-0.5">
+        <div className="flex items-center gap-0.5 rounded-lg border border-subtle p-0.5">
           {VIEWS.map((v) => (
             <button
               key={v.key}
               type="button"
               onClick={() => onChangeView(v.key)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-12 font-medium t-press",
-                view === v.key ? "bg-layer-1 text-primary shadow-sm" : "text-tertiary hover:text-secondary"
+                "rounded-md px-2.5 py-1 text-12 font-medium transition-colors",
+                view === v.key ? "bg-layer-1 text-primary" : "text-tertiary hover:text-primary"
               )}
             >
               {v.label}
@@ -98,7 +98,7 @@ export function BuilderToolbar({
             <button
               type="button"
               onClick={onTest}
-              className="rounded-lg px-2 py-1 text-12 font-medium text-tertiary t-press hover:bg-layer-2"
+              className="rounded-md px-2 py-1 text-12 font-medium text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
               title="Run a test on one task"
             >
               Test
@@ -106,7 +106,7 @@ export function BuilderToolbar({
             <button
               type="button"
               onClick={onDelete}
-              className="grid size-7 place-items-center rounded-lg text-red-600 t-press hover:bg-red-500/10"
+              className="grid size-7 flex-shrink-0 place-items-center rounded-md text-red-600 transition-colors hover:bg-red-500/10"
               aria-label="Delete workflow"
               title="Delete"
             >
