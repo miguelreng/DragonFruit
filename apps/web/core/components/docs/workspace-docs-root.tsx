@@ -505,6 +505,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   workspaceSlug={workspaceSlug}
                   getProjectById={getProjectById}
                   canModify={canDeleteDoc(page)}
+                  isProjectScoped={Boolean(scopeProjectId)}
                   isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
                   isSelectionActive={isSelectionActive}
                   onSelect={handleDocSelect}
@@ -671,7 +672,7 @@ function DocListItem({
       className={cn({
         "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief,
       })}
-      titleClassName={cn({ "font-medium text-accent-primary": isProjectBrief })}
+      titleClassName={cn("font-semibold text-secondary", { "text-accent-primary": isProjectBrief })}
       actionableItems={
         <div className="flex items-center gap-3 text-13 text-tertiary">
           {pdfMeta && <span className="shrink-0 text-11">PDF | {convertBytesToSize(pdfMeta.size)}</span>}
@@ -713,9 +714,20 @@ type DocCardProps = {
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
   /** Whether the current user can archive/delete this doc (owner or project admin). */
   canModify: boolean;
+  /** When viewing a single project's docs, the project name is redundant — hide it. */
+  isProjectScoped: boolean;
   isSelected: boolean;
   isSelectionActive: boolean;
   onSelect: (pageId: string, isRange: boolean) => void;
+};
+
+// Muted per-type accent hues for the tinted icon tile. Briefs keep the brand
+// accent instead (handled in the card). doc/whiteboard/sheet/pdf → plum/sage/steel/clay.
+const DOC_CARD_TYPE_TINT: Record<string, string> = {
+  doc: "#9d4b7c",
+  sheet: "#5f8d6f",
+  whiteboard: "#6b73a8",
+  pdf: "#b5654a",
 };
 
 function DocCard({
@@ -724,6 +736,7 @@ function DocCard({
   workspaceSlug,
   getProjectById,
   canModify,
+  isProjectScoped,
   isSelected,
   isSelectionActive,
   onSelect,
@@ -738,18 +751,28 @@ function DocCard({
     primaryProjectId && page.id
       ? `/${workspaceSlug}/projects/${primaryProjectId}/${isProjectBrief ? "brief" : `pages/${page.id}/`}`
       : null;
-  // PDFs and whiteboards keep a distinct large glyph; docs/briefs use the same
-  // duotone document glyph as the home tiles (handled in the fallback below).
-  const BigTypeIcon =
+  // Per-type filled glyph for the tile; docs & briefs share the document glyph.
+  const TypeIcon =
     page.page_type === "pdf"
       ? FileIcon
       : page.page_type === "whiteboard"
         ? Whiteboard
         : page.page_type === "sheet"
           ? GridIconShim
-          : null;
+          : DocumentText;
+  const typeTint = DOC_CARD_TYPE_TINT[page.page_type ?? "doc"] ?? DOC_CARD_TYPE_TINT.doc;
   // word_count is supplied by the workspace pages list endpoint; absent until the API ships it.
   const wordCount = (page as TPage & { word_count?: number }).word_count;
+  const pdfMeta = page.page_type === "pdf" ? page.view_props?.pdf : undefined;
+  // Type-appropriate detail: PDF size, or estimated read time (~200 wpm) for docs.
+  const detail = pdfMeta
+    ? convertBytesToSize(pdfMeta.size)
+    : typeof wordCount === "number" && wordCount > 0
+      ? `${Math.max(1, Math.round(wordCount / 200))} min read`
+      : undefined;
+  // Subtitle line. On a project page the project name is redundant, so we show
+  // only the detail (read time); across the workspace we prefix the project name.
+  const metaText = [isProjectScoped ? undefined : primaryProject?.name, detail].filter(Boolean).join(" · ");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -865,7 +888,7 @@ function DocCard({
   const card = (
     <div
       className={cn(
-        "group t-press relative flex h-[156px] flex-col items-center justify-center gap-3 rounded-2xl px-4 text-center transition-colors",
+        "group t-press relative flex h-[156px] flex-col justify-between rounded-2xl p-4 transition-colors",
         {
           "bg-layer-1 hover:bg-layer-3": !isProjectBrief && !isSelected,
           "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief && !isSelected,
@@ -954,31 +977,35 @@ function DocCard({
           </CustomMenu>
         </div>
       )}
-      {/* Big glyph — the doc's own logo, a type glyph for PDF/whiteboard, or the
-          duotone document glyph shared with the home tiles */}
-      <span className={cn("text-tertiary", { "text-accent-primary/70": isProjectBrief })}>
+      {/* Type tile — the doc's own logo, or a filled type glyph on a muted tint.
+          Briefs keep the brand accent; other types use their muted per-type hue. */}
+      <span
+        className={cn(
+          "grid size-9 place-items-center rounded-[10px]",
+          isProjectBrief && "bg-accent-primary/10 text-accent-primary"
+        )}
+        style={
+          isProjectBrief
+            ? undefined
+            : { color: typeTint, backgroundColor: `color-mix(in srgb, ${typeTint} 14%, transparent)` }
+        }
+      >
         {page.logo_props?.in_use ? (
-          <Logo logo={page.logo_props} size={44} type="lucide" />
-        ) : BigTypeIcon ? (
-          <BigTypeIcon weight="BoldDuotone" className="size-14" />
+          <Logo logo={page.logo_props} size={20} type="lucide" />
         ) : (
-          <DocumentText weight="BoldDuotone" className="size-14" />
+          <TypeIcon weight="Bold" className="size-5" />
         )}
       </span>
-      <div className="flex flex-col items-center gap-0.5 px-1">
+      <div className="flex flex-col gap-0.5">
         <h3
           className={cn(
-            "line-clamp-2 text-13 leading-snug font-medium text-secondary transition-colors group-hover:text-primary",
+            "line-clamp-2 text-13 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary",
             { "text-accent-primary": isProjectBrief }
           )}
         >
           {displayName}
         </h3>
-        {typeof wordCount === "number" && wordCount > 0 && (
-          <p className="text-11 text-placeholder">
-            {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
-          </p>
-        )}
+        {metaText && <p className="truncate text-11 text-placeholder">{metaText}</p>}
       </div>
     </div>
   );

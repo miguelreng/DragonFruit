@@ -50,24 +50,56 @@ export type TCellNumberFormat =
   | "currency_rounded"
   | "euro";
 
+export type TNumberFormatOption = {
+  label: string;
+  sample: string;
+  numberFormat: TCellNumberFormat;
+  /** ISO 4217 code for currency options */
+  currency?: string;
+};
+
+/** Sample string for a currency, computed via Intl so menu previews match output. */
+const currencySample = (code: string): string => {
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(1000.12);
+  } catch {
+    return `${code} 1,000.12`;
+  }
+};
+
 /** Number-format options for the "123" toolbar menu, grouped like a spreadsheet's. */
-export const NUMBER_FORMAT_GROUPS: { key: TCellNumberFormat; label: string; sample: string }[][] = [
+export const NUMBER_FORMAT_GROUPS: TNumberFormatOption[][] = [
   [
-    { key: "automatic", label: "Automatic", sample: "" },
-    { key: "plain_text", label: "Plain text", sample: "" },
+    { label: "Automatic", sample: "", numberFormat: "automatic" },
+    { label: "Plain text", sample: "", numberFormat: "plain_text" },
   ],
   [
-    { key: "number", label: "Number", sample: "1,000.12" },
-    { key: "percent", label: "Percent", sample: "10.12%" },
-    { key: "scientific", label: "Scientific", sample: "1.01E+03" },
+    { label: "Number", sample: "1,000.12", numberFormat: "number" },
+    { label: "Percent", sample: "10.12%", numberFormat: "percent" },
+    { label: "Scientific", sample: "1.01E+03", numberFormat: "scientific" },
   ],
   [
-    { key: "accounting", label: "Accounting", sample: "$ (1,000.12)" },
-    { key: "financial", label: "Financial", sample: "(1,000.12)" },
-    { key: "currency", label: "Currency", sample: "$1,000.12" },
-    { key: "currency_rounded", label: "Currency rounded", sample: "$1,000" },
+    { label: "Accounting", sample: "$ (1,000.12)", numberFormat: "accounting" },
+    { label: "Financial", sample: "(1,000.12)", numberFormat: "financial" },
+    { label: "Currency", sample: "$1,000.12", numberFormat: "currency", currency: "USD" },
+    { label: "Currency rounded", sample: "$1,000", numberFormat: "currency_rounded", currency: "USD" },
   ],
-  [{ key: "euro", label: "Euro", sample: "€1,000.12" }],
+  [
+    { label: "US Dollar", sample: currencySample("USD"), numberFormat: "currency", currency: "USD" },
+    { label: "Euro", sample: currencySample("EUR"), numberFormat: "currency", currency: "EUR" },
+    { label: "British Pound", sample: currencySample("GBP"), numberFormat: "currency", currency: "GBP" },
+    { label: "Japanese Yen", sample: currencySample("JPY"), numberFormat: "currency", currency: "JPY" },
+    { label: "Canadian Dollar", sample: currencySample("CAD"), numberFormat: "currency", currency: "CAD" },
+  ],
+  [
+    { label: "Mexican Peso", sample: currencySample("MXN"), numberFormat: "currency", currency: "MXN" },
+    { label: "Brazilian Real", sample: currencySample("BRL"), numberFormat: "currency", currency: "BRL" },
+    { label: "Colombian Peso", sample: currencySample("COP"), numberFormat: "currency", currency: "COP" },
+    { label: "Argentine Peso", sample: currencySample("ARS"), numberFormat: "currency", currency: "ARS" },
+    { label: "Chilean Peso", sample: currencySample("CLP"), numberFormat: "currency", currency: "CLP" },
+    { label: "Peruvian Sol", sample: currencySample("PEN"), numberFormat: "currency", currency: "PEN" },
+    { label: "Uruguayan Peso", sample: currencySample("UYU"), numberFormat: "currency", currency: "UYU" },
+  ],
 ];
 
 export type TCellFormat = {
@@ -82,6 +114,8 @@ export type TCellFormat = {
   /** text overflow behaviour; "overflow" (default) clips to a single line */
   wrap?: "overflow" | "wrap" | "clip";
   numberFormat?: TCellNumberFormat;
+  /** ISO 4217 code applied when numberFormat is a currency (defaults to USD) */
+  currency?: string;
   /** fixed decimal places for numeric formats */
   decimals?: number;
 };
@@ -230,6 +264,18 @@ export const isEmptyFormat = (f: TCellFormat | undefined): boolean =>
 const groupNumber = (n: number, decimals: number): string =>
   n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
+const formatCurrency = (n: number, code: string, decimals: number | undefined): string => {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+      ...(decimals !== undefined ? { minimumFractionDigits: decimals, maximumFractionDigits: decimals } : {}),
+    }).format(n);
+  } catch {
+    return `${code} ${groupNumber(n, decimals ?? 2)}`;
+  }
+};
+
 export const formatDisplayValue = (value: string, format: TCellFormat | undefined): string => {
   const nf = format?.numberFormat;
   // "Plain text" never coerces; automatic/plain just honor an explicit decimal count.
@@ -255,11 +301,11 @@ export const formatDisplayValue = (value: string, format: TCellFormat | undefine
         .replace(/e([+-])(\d)$/i, (_m, sign, dig) => `E${sign}0${dig}`)
         .replace(/e/i, "E");
     case "currency":
-      return `$${groupNumber(n, d ?? 2)}`;
+      return formatCurrency(n, format.currency || "USD", d);
     case "currency_rounded":
-      return `$${groupNumber(n, d ?? 0)}`;
+      return formatCurrency(n, format.currency || "USD", d ?? 0);
     case "euro":
-      return `€${groupNumber(n, d ?? 2)}`;
+      return formatCurrency(n, "EUR", d);
     case "accounting":
       return n < 0 ? `$(${groupNumber(-n, d ?? 2)})` : `$${groupNumber(n, d ?? 2)}`;
     case "financial":
@@ -320,6 +366,29 @@ export const clearColumn = (grid: TSheetGrid, at: number): TSheetGrid => ({
   cells: remapByPosition(grid.cells, (p) => (p.col === at ? null : p)),
   formats: remapByPosition(grid.formats, (p) => (p.col === at ? null : p)),
 });
+
+/** Move a column from index `from` to index `to`, shifting the others. */
+export const moveColumn = (grid: TSheetGrid, from: number, to: number): TSheetGrid => {
+  if (from === to || from < 0 || to < 0) return grid;
+  // Build the new column order (array of old indices), then a old→new lookup.
+  const order: number[] = [];
+  for (let i = 0; i < grid.cols; i++) if (i !== from) order.push(i);
+  order.splice(Math.min(to, order.length), 0, from);
+  const newOf = new Map<number, number>();
+  order.forEach((oldIdx, newIdx) => newOf.set(oldIdx, newIdx));
+  const move = (p: { row: number; col: number }) => ({ row: p.row, col: newOf.get(p.col) ?? p.col });
+  const colWidths: Record<number, number> = {};
+  for (const [key, value] of Object.entries(grid.colWidths ?? {})) {
+    const ni = newOf.get(Number(key));
+    if (ni !== undefined) colWidths[ni] = value;
+  }
+  return {
+    ...grid,
+    cells: remapByPosition(grid.cells, move),
+    formats: remapByPosition(grid.formats, move),
+    colWidths,
+  };
+};
 
 export const insertRow = (grid: TSheetGrid, at: number): TSheetGrid => ({
   ...grid,
@@ -424,6 +493,77 @@ export const clearRect = (grid: TSheetGrid, r1: number, c1: number, r2: number, 
     }
   }
   return { ...grid, cells, formats };
+};
+
+/** Distinct colors cycled through for the cell references inside a formula. */
+export const FORMULA_REF_COLORS = ["#1a73e8", "#e8710a", "#188038", "#9334e6", "#c5221f", "#12a4af"];
+
+export type TFormulaRef = {
+  token: string;
+  start: number;
+  end: number;
+  color: string;
+  r1: number;
+  c1: number;
+  r2: number;
+  c2: number;
+};
+
+/**
+ * Extract the cell references (and ranges) from a formula, assigning each a
+ * stable color. Used to colorize references in the editor and highlight the
+ * referenced cells in the grid, like a spreadsheet.
+ */
+export const parseFormulaRefs = (raw: string): TFormulaRef[] => {
+  if (!raw.startsWith("=")) return [];
+  const re = /([A-Za-z]+\d+):([A-Za-z]+\d+)|([A-Za-z]+\d+)/g;
+  const out: TFormulaRef[] = [];
+  const colorByToken = new Map<string, string>();
+  let colorIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw)) !== null) {
+    const token = m[0];
+    const key = token.toUpperCase();
+    let color = colorByToken.get(key);
+    if (!color) {
+      color = FORMULA_REF_COLORS[colorIndex % FORMULA_REF_COLORS.length];
+      colorIndex += 1;
+      colorByToken.set(key, color);
+    }
+    let r1: number;
+    let c1: number;
+    let r2: number;
+    let c2: number;
+    if (m[1] && m[2]) {
+      const a = parseCellId(m[1].toUpperCase());
+      const b = parseCellId(m[2].toUpperCase());
+      if (!a || !b) continue;
+      r1 = Math.min(a.row, b.row);
+      r2 = Math.max(a.row, b.row);
+      c1 = Math.min(a.col, b.col);
+      c2 = Math.max(a.col, b.col);
+    } else {
+      const p = parseCellId((m[3] ?? "").toUpperCase());
+      if (!p) continue;
+      r1 = r2 = p.row;
+      c1 = c2 = p.col;
+    }
+    out.push({ token, start: m.index, end: m.index + token.length, color, r1, c1, r2, c2 });
+  }
+  return out;
+};
+
+/** Split a formula into colored/plain runs for syntax-highlighted rendering. */
+export const formulaSegments = (raw: string, refs: TFormulaRef[]): { text: string; color: string | null }[] => {
+  const parts: { text: string; color: string | null }[] = [];
+  let i = 0;
+  for (const ref of refs) {
+    if (ref.start > i) parts.push({ text: raw.slice(i, ref.start), color: null });
+    parts.push({ text: raw.slice(ref.start, ref.end), color: ref.color });
+    i = ref.end;
+  }
+  if (i < raw.length) parts.push({ text: raw.slice(i), color: null });
+  return parts;
 };
 
 /** Functions the formula engine understands — offered as autocomplete. */

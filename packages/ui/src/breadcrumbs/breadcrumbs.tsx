@@ -101,9 +101,14 @@ type BreadcrumbItemProps = {
 
 function BreadcrumbItem(props: BreadcrumbItemProps) {
   const { component, showSeparator = true, isLast = false } = props;
+  // Forward isLast into the rendered component (e.g. BreadcrumbLink) so the
+  // last crumb — the page title — can style itself; an explicit prop wins.
+  const componentWithPosition = React.isValidElement<{ isLast?: boolean }>(component)
+    ? React.cloneElement(component, { isLast: component.props.isLast ?? isLast })
+    : component;
   return (
     <div className="flex h-6 items-center gap-0.5">
-      {component}
+      {componentWithPosition}
       {showSeparator && !isLast && <BreadcrumbSeparator />}
     </div>
   );
@@ -178,7 +183,7 @@ function BreadcrumbItemWrapper(props: BreadcrumbItemWrapperProps) {
         className={cn(
           "group flex h-full cursor-default items-center gap-2 rounded-lg px-1.5 py-1 text-13 font-medium",
           {
-            "text-primary": isLast,
+            "font-semibold text-secondary": isLast,
             "text-tertiary": !isLast,
             "cursor-pointer hover:bg-layer-transparent-hover hover:text-primary": type === "link" && !isLast,
           },

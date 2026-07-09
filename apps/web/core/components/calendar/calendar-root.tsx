@@ -80,7 +80,7 @@ type TCalendarEventWithSource = TCalendarEvent & {
 };
 type TCalendarPrefs = Record<string, { visible: boolean; color: string }>;
 type TDragonfruitEventMeta =
-  | { kind: "task"; projectId: string; taskId: string; workspaceSlug: string }
+  | { kind: "task"; projectId: string | null; taskId: string; workspaceSlug: string }
   | { kind: "google_event"; event: TCalendarEventWithSource };
 
 const GOOGLE_COLORS = ["#2563eb", "#0f9f6e", "#f97316", "#7c3aed", "#0891b2", "#be123c"];
@@ -432,13 +432,36 @@ export function CalendarRoot() {
   // callbacks closure — we don't want to recreate the calendar on every render.
   const openQuickAddRef = useRef<(date: string) => void>(() => {});
   openQuickAddRef.current = (date) => setQuickAddDate(date);
-  // Same trick for the task peek handler — the closure inside createCalendar
-  // captures the *first* render's setPeekIssue, so we route through a ref.
-  const openTaskPeekRef = useRef<(payload: { projectId: string; taskId: string }) => void>(() => {});
-  openTaskPeekRef.current = ({ projectId, taskId }) => {
-    setHasOpenedIssuePeek(true);
-    setPeekIssue({ workspaceSlug, projectId, issueId: taskId });
+  // Same trick for opening a clicked calendar item — the closure inside
+  // createCalendar captures the *first* render's setPeekIssue, so we route
+  // through a ref. Also reused by the day-events overflow modal.
+  const openCalendarItemRef = useRef<(meta: TDragonfruitEventMeta | undefined) => void>(() => {});
+  openCalendarItemRef.current = (meta) => {
+    if (meta?.kind === "task") {
+      if (!meta.projectId) return;
+      setHasOpenedIssuePeek(true);
+      setPeekIssue({ workspaceSlug, projectId: meta.projectId, issueId: meta.taskId });
+      return;
+    }
+    if (meta?.kind === "google_event") {
+      const e = meta.event;
+      const start = e.start?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+      const end = e.end?.slice(0, 10) ?? start;
+      setQuickAddSeed({
+        name: e.title,
+        description_html: e.description || "",
+        start_date: start,
+        target_date: end,
+      });
+      setQuickAddDate(start);
+    }
   };
+  // "+ N events" in the month grid: Schedule-X's default is to switch to the
+  // Day view, but we only register the month grid — so without a callback the
+  // click silently does nothing. Open our own day-events modal instead.
+  const [dayEventsDate, setDayEventsDate] = useState<string | null>(null);
+  const openDayEventsRef = useRef<(date: string) => void>(() => {});
+  openDayEventsRef.current = (date) => setDayEventsDate(date);
 
   const calendarApp = useMemo(
     () =>
@@ -452,25 +475,9 @@ export function CalendarRoot() {
           onClickDate: (date) => openQuickAddRef.current(typeof date === "string" ? date.slice(0, 10) : ""),
           onClickDateTime: (dateTime) =>
             openQuickAddRef.current(typeof dateTime === "string" ? dateTime.slice(0, 10) : ""),
-          onEventClick: (event) => {
-            const meta = (event as unknown as { _dragonfruit?: TDragonfruitEventMeta })._dragonfruit;
-            if (meta?.kind === "task") {
-              openTaskPeekRef.current({ projectId: meta.projectId, taskId: meta.taskId });
-              return;
-            }
-            if (meta?.kind === "google_event") {
-              const e = meta.event;
-              const start = e.start?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
-              const end = e.end?.slice(0, 10) ?? start;
-              setQuickAddSeed({
-                name: e.title,
-                description_html: e.description || "",
-                start_date: start,
-                target_date: end,
-              });
-              setQuickAddDate(start);
-            }
-          },
+          onEventClick: (event) =>
+            openCalendarItemRef.current((event as unknown as { _dragonfruit?: TDragonfruitEventMeta })._dragonfruit),
+          onClickPlusEvents: (date) => openDayEventsRef.current(date.toString().slice(0, 10)),
           onRangeUpdate: () => {
             // Fires when navigation moves to a different month. Use it to keep
             // our custom toolbar label in sync with Schedule-X.
@@ -530,6 +537,25 @@ export function CalendarRoot() {
     eventsService.set(sxEvents);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calendarConfigKey, sxEvents]);
+
+  // Events shown in the day-overflow modal. Day membership mirrors the month
+  // grid: Schedule-X assigns events by the date part of start/end.toString(),
+  // with the end date inclusive.
+  const dayEvents = useMemo(() => {
+    if (!dayEventsDate) return [];
+    return sxEvents
+      .filter((ev) => {
+        const start = ev.start.toString().slice(0, 10);
+        const end = ev.end.toString().slice(0, 10);
+        return start <= dayEventsDate && dayEventsDate <= end;
+      })
+      .sort((a, b) => {
+        const aAllDay = a.start.toString().length === 10;
+        const bAllDay = b.start.toString().length === 10;
+        if (aAllDay !== bAllDay) return aAllDay ? -1 : 1;
+        return a.start.toString().localeCompare(b.start.toString());
+      });
+  }, [dayEventsDate, sxEvents]);
 
   return (
     <>
@@ -603,6 +629,19 @@ export function CalendarRoot() {
           void refetchGoogleEvents();
         }}
       />
+      {/* "+ N events" in a month cell → full list for that day. */}
+      {dayEventsDate !== null && (
+        <DayEventsModal
+          date={dayEventsDate}
+          events={dayEvents}
+          calendarsConfig={calendarsConfig}
+          onClose={() => setDayEventsDate(null)}
+          onSelectEvent={(meta) => {
+            setDayEventsDate(null);
+            openCalendarItemRef.current(meta);
+          }}
+        />
+      )}
     </>
   );
 }
@@ -688,9 +727,7 @@ function CalendarPageHeader({
     <Header>
       <Header.LeftItem>
         <Breadcrumbs>
-          <Breadcrumbs.Item
-            component={<BreadcrumbLink label="Calendar" />}
-          />
+          <Breadcrumbs.Item component={<BreadcrumbLink label="Calendar" />} />
         </Breadcrumbs>
         <div className="ml-2 flex items-center gap-3 text-12 text-tertiary">
           <span className="flex items-center gap-1.5">
@@ -893,6 +930,63 @@ function GoogleAccountsMenu({
 
 function LegendDot({ color }: { color: string }) {
   return <span className="inline-block size-2 rounded-full" style={{ backgroundColor: color }} />;
+}
+
+type TDayListEvent = {
+  id: string;
+  title: string;
+  start: Temporal.PlainDate | Temporal.ZonedDateTime;
+  end: Temporal.PlainDate | Temporal.ZonedDateTime;
+  calendarId: string;
+  _dragonfruit?: TDragonfruitEventMeta;
+};
+
+// Same time rendering as Schedule-X's month grid: the Temporal value's own
+// wall-clock time, no timezone conversion.
+function dayListEventTime(ev: TDayListEvent) {
+  if (ev.start.toString().length === 10) return "All day";
+  return ev.start.toLocaleString(undefined, { hour: "numeric", minute: "numeric" });
+}
+
+function DayEventsModal(props: {
+  date: string;
+  events: TDayListEvent[];
+  calendarsConfig: Record<string, { lightColors: { main: string } }>;
+  onClose: () => void;
+  onSelectEvent: (meta: TDragonfruitEventMeta | undefined) => void;
+}) {
+  const { date, events, calendarsConfig, onClose, onSelectEvent } = props;
+  const heading = new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  return (
+    <ModalCore isOpen handleClose={onClose} width={EModalWidth.MD}>
+      <div className="border-b border-subtle px-5 py-4">
+        <h2 className="text-16 font-semibold text-primary">{heading}</h2>
+        <p className="mt-0.5 text-12 text-tertiary">
+          {events.length} {events.length === 1 ? "event" : "events"}
+        </p>
+      </div>
+      <div className="max-h-[60vh] overflow-y-auto px-2 py-2">
+        {events.map((ev) => (
+          <button
+            key={ev.id}
+            type="button"
+            onClick={() => onSelectEvent(ev._dragonfruit)}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-layer-2-hover"
+          >
+            <LegendDot color={calendarsConfig[ev.calendarId]?.lightColors.main ?? CALENDAR_ACCENT} />
+            <span className="w-20 shrink-0 text-12 text-tertiary">{dayListEventTime(ev)}</span>
+            <span className="min-w-0 flex-1 truncate text-13 text-primary">{ev.title}</span>
+          </button>
+        ))}
+        {events.length === 0 && <div className="px-3 py-4 text-13 text-tertiary">No events on this day.</div>}
+      </div>
+    </ModalCore>
+  );
 }
 
 const EVENT_FIELD_CLASS =

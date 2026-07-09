@@ -109,6 +109,47 @@ class TestAgentAPI:
         assert "<p>Ship in Q3.</p>" in page.description_html
 
     @pytest.mark.django_db
+    def test_chat_create_document_redirects_brief_titled_doc_on_brief_turn(self, workspace, create_user):
+        # "Crea el brief oficial..." turns must not spawn a standalone doc the
+        # Brief tab won't render — the handler bounces the model to
+        # update_project_brief so the tool loop self-corrects mid-run.
+        project = Project.objects.create(name="Docs Project", identifier="DP", workspace=workspace)
+        tool = _make_create_document_tool(
+            workspace=workspace,
+            user=create_user,
+            project_id=str(project.id),
+            brief_request=True,
+        )
+
+        result = tool.handler(
+            {
+                "title": "Brief Oficial del Proyecto DragonFruit",
+                "description_html": "<p>Contexto del proyecto.</p>",
+            }
+        )
+
+        assert result.startswith("tool_error")
+        assert "update_project_brief" in result
+        assert Page.objects.filter(name="Brief Oficial del Proyecto DragonFruit").exists() is False
+
+    @pytest.mark.django_db
+    def test_chat_create_document_allows_non_brief_doc_on_brief_turn(self, workspace, create_user):
+        # The guard only blocks brief-titled docs; an unrelated doc requested in
+        # the same breath as the brief must still go through.
+        project = Project.objects.create(name="Docs Project", identifier="DP", workspace=workspace)
+        tool = _make_create_document_tool(
+            workspace=workspace,
+            user=create_user,
+            project_id=str(project.id),
+            brief_request=True,
+        )
+
+        result = tool.handler({"title": "Roadmap Q3", "description_html": "<p>Plan.</p>"})
+
+        assert result.startswith("ok: created document")
+        assert Page.objects.filter(name="Roadmap Q3").exists() is True
+
+    @pytest.mark.django_db
     def test_chat_update_project_brief_tool_creates_brief_page(self, workspace, create_user):
         project = Project.objects.create(name="Brief Project", identifier="BP", workspace=workspace)
         tool = _make_update_project_brief_tool(

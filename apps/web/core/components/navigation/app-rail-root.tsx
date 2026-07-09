@@ -92,7 +92,7 @@ const COMPRESSED_ICON_CLASS =
   "relative grid size-8 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
 const EXPANDED_ICON_CLASS =
   "group relative flex w-full max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-13 font-medium leading-5 text-tertiary outline-none t-press dark:text-white/70";
-const EXPANDED_ICON_ACTIVE = "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]";
+const EXPANDED_ICON_ACTIVE = "!bg-[var(--neutral-600)] !text-secondary font-semibold";
 const EXPANDED_ICON_INACTIVE =
   "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]";
 const COMPACT_RAIL_ICON_CLASS = "grid size-5 place-items-center [&_svg]:size-4 [&_svg]:text-current";
@@ -238,7 +238,7 @@ const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => voi
         aria-label={item.label}
         onClick={onActivate}
         className={cn(COMPRESSED_ICON_CLASS, {
-          "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]": item.isActive,
+          "!bg-[var(--neutral-600)] !text-secondary": item.isActive,
         })}
       >
         <span
@@ -603,7 +603,9 @@ const ProjectRailItem = (props: { item: TProjectRailItem; workspaceSlug: string 
             >
               {item.icon}
             </span>
-            <span className="min-w-0 flex-1 truncate text-13 font-medium">{item.label}</span>
+            <span className={cn("min-w-0 flex-1 truncate text-13", item.isActive ? "font-semibold" : "font-medium")}>
+              {item.label}
+            </span>
           </Link>
         </AppSidebarTooltip>
         <CustomMenu

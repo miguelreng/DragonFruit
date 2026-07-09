@@ -10,8 +10,8 @@ struct DragonFruitMiniApp: App {
     @StateObject private var pomodoro = PomodoroTimerModel()
     @StateObject private var toastController = VoiceToastController()
     @StateObject private var cursorBuddyController = CursorBuddyOverlayController()
-    @StateObject private var meetingNotesOverlayController = MeetingNotesOverlayController()
     @StateObject private var atlasChatController = AtlasChatOverlayController()
+    @StateObject private var atlasIslandController = AtlasIslandOverlayController()
     @StateObject private var agentInbox = AgentInboxStore()
 
     // Drives Sparkle auto-updates in release builds. Debug builds skip Sparkle
@@ -45,8 +45,8 @@ struct DragonFruitMiniApp: App {
             .onAppear {
                 toastController.bind(to: store)
                 cursorBuddyController.bind(to: store)
-                meetingNotesOverlayController.bind(to: store)
                 atlasChatController.bind(to: store)
+                atlasIslandController.bind(to: store)
                 agentInbox.startPolling(
                     makeClient: { try store.makeClientPublic() },
                     workspaceSlug: { store.selectedWorkspaceSlug }
@@ -67,8 +67,8 @@ struct DragonFruitMiniApp: App {
             .onAppear {
                 toastController.bind(to: store)
                 cursorBuddyController.bind(to: store)
-                meetingNotesOverlayController.bind(to: store)
                 atlasChatController.bind(to: store)
+                atlasIslandController.bind(to: store)
             }
         }
         .menuBarExtraStyle(.window)
@@ -493,19 +493,27 @@ final class VoiceToastController: ObservableObject {
         return panel
     }
 
+    // `size` is the card size; the window gets a `halo` ring around it so the
+    // corner-floating close button isn't clipped at the window edge. The card
+    // itself stays 12pt from the screen corner.
     private func position(panel: NSPanel, size: NSSize) {
+        let halo = AtlasToastMetrics.halo
+        let panelSize = NSSize(width: size.width + halo * 2, height: size.height + halo * 2)
         let screenFrame = NSScreen.main?.visibleFrame ?? .zero
         let origin = NSPoint(
-            x: screenFrame.maxX - size.width - 12,
-            y: screenFrame.maxY - size.height - 12
+            x: screenFrame.maxX - size.width - 12 - halo,
+            y: screenFrame.maxY - size.height - 12 - halo
         )
-        panel.setFrame(NSRect(origin: origin, size: size), display: true)
+        panel.setFrame(NSRect(origin: origin, size: panelSize), display: true)
     }
 }
 
 private enum AtlasToastMetrics {
     static let width: CGFloat = 360
     static let cornerRadius: CGFloat = 16
+    /// Window margin around the card so the corner-floating close button and
+    /// part of the drop shadow can render outside the card bounds.
+    static let halo: CGFloat = 14
     static let leadingPadding: CGFloat = 14
     static let trailingPadding: CGFloat = 14
     static let trailingPaddingWithClose: CGFloat = 36
@@ -567,17 +575,19 @@ private struct AtlasToastCard<Content: View>: View {
             .padding(.vertical, verticalPadding)
             .frame(width: AtlasToastMetrics.width, height: height, alignment: alignment)
             .background(toastBackground(theme: theme))
-            .overlay(alignment: .topTrailing) {
-                if let onClose {
-                    ToastCloseButton(theme: theme, isVisible: isHovered, action: onClose)
-                        .padding(AtlasToastMetrics.closePadding)
-                }
-            }
             .overlay(toastBorder(theme: theme))
             .clipShape(RoundedRectangle(cornerRadius: AtlasToastMetrics.cornerRadius, style: .continuous))
             .compositingGroup()
             .shadow(color: theme.toastShadowSoft, radius: 5, y: 10)
             .shadow(color: theme.toastShadowLift, radius: 30, y: 30)
+            // Floats right on the card's top-left corner, macOS-notification
+            // style — applied after the clip so it can overhang the edge.
+            .overlay(alignment: .topLeading) {
+                if let onClose {
+                    ToastCloseButton(theme: theme, isVisible: isHovered, action: onClose)
+                        .offset(x: -9, y: -9)
+                }
+            }
             .onHover { isHovered = $0 }
     }
 }
@@ -1291,14 +1301,24 @@ struct ToastCloseButton: View {
 
     var body: some View {
         Button(action: action) {
-            AtlasIcon(.cancel)
-                .frame(width: 14, height: 14)
-                .foregroundStyle(isHovered ? theme.textSecondary : theme.textTertiary)
-                .frame(width: 18, height: 18)
+            ZStack {
+                Circle()
+                    .fill(theme.surface)
+                Circle()
+                    .stroke(theme.borderStrong, lineWidth: 1)
+                AtlasIcon(.cancel)
+                    .frame(width: 9, height: 9)
+                    .foregroundStyle(isHovered ? theme.textPrimary : theme.textSecondary)
+            }
+            .frame(width: 22, height: 22)
+            .shadow(color: theme.shadow, radius: 4, y: 2)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Close toast")
         .opacity(isVisible || isHovered ? 1 : 0)
+        .scaleEffect(isVisible || isHovered ? 1 : 0.6)
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isVisible || isHovered)
         .onHover { isHovered = $0 }
     }
 }
@@ -1311,6 +1331,7 @@ struct ToastMotionContainer<Content: View>: View {
 
     var body: some View {
         content()
+            .padding(AtlasToastMetrics.halo)
             .offset(y: isOpen ? 0 : -80)
             .opacity(isOpen ? 1 : 0)
             .modifier(ShakeEffect(animatableData: shakeTrigger))
@@ -1405,219 +1426,6 @@ private func isErrorStatus(_ message: String) -> Bool {
         || text.contains("missing")
         || text.contains("not allowed")
         || text.contains("try again")
-}
-
-@MainActor
-final class MeetingNotesOverlayController: ObservableObject {
-    private var panel: NSPanel?
-    private var timer: Timer?
-    private var cancellables: Set<AnyCancellable> = []
-    private weak var store: MeetingStore?
-
-    func bind(to store: MeetingStore) {
-        guard self.store !== store else { return }
-        self.store = store
-        cancellables.removeAll()
-
-        store.$isMeetingRecording
-            .combineLatest(store.$copilotTheme)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self, weak store] _, _ in
-                guard let self, let store else { return }
-                self.update(for: store)
-            }
-            .store(in: &cancellables)
-
-        update(for: store)
-    }
-
-    private func update(for store: MeetingStore) {
-        guard store.isMeetingRecording else {
-            hideOverlay()
-            return
-        }
-        showOverlay(for: store)
-    }
-
-    private func showOverlay(for store: MeetingStore) {
-        let size = MeetingNotesRecordingOverlayView.panelSize
-        let panel = panel ?? makePanel(size: size)
-        self.panel = panel
-        panel.contentView = TransparentHostingView(rootView: MeetingNotesRecordingOverlayView(store: store))
-        position(panel: panel, size: size)
-
-        if !panel.isVisible {
-            panel.orderFrontRegardless()
-        }
-        startTracking()
-    }
-
-    private func hideOverlay() {
-        timer?.invalidate()
-        timer = nil
-        panel?.orderOut(nil)
-    }
-
-    private func startTracking() {
-        guard timer == nil else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self, let panel = self.panel else { return }
-                self.position(panel: panel, size: panel.frame.size)
-            }
-        }
-        RunLoop.main.add(timer!, forMode: .common)
-    }
-
-    private func makePanel(size: NSSize) -> NSPanel {
-        let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = false
-        // Interactive so the stop button is clickable; .nonactivatingPanel keeps
-        // clicks from stealing focus from the meeting app the user is in.
-        panel.ignoresMouseEvents = false
-        panel.isMovable = false
-        // Above the menu bar so the pill can overlap the notch band.
-        panel.level = .statusBar
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
-        return panel
-    }
-
-    private func position(panel: NSPanel, size: NSSize) {
-        let mouse = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
-        // Full frame (not visibleFrame) so the pill hugs the very top of the
-        // screen — the notch / menu-bar band, Dynamic Island style.
-        let frame = screen?.frame ?? .zero
-        let margin = MeetingNotesRecordingOverlayView.shadowMargin
-        let origin = NSPoint(
-            x: frame.midX - (size.width / 2),
-            // Capsule top sits ~2pt below the screen top; it is inset from the
-            // panel top by `margin`, so lift the panel by that much.
-            y: frame.maxY - size.height + margin - 2
-        )
-        panel.setFrame(NSRect(origin: origin, size: size), display: true)
-    }
-}
-
-struct MeetingNotesRecordingOverlayView: View {
-    @ObservedObject var store: MeetingStore
-    @State private var isHoveringStop = false
-    @State private var isExpanded = false
-
-    /// Dynamic Island-style horizontal pill docked at the top-center of the
-    /// screen. The hosting panel is oversized by `shadowMargin` on every side so
-    /// the drop shadow renders fully instead of clipping into a hard edge, and
-    /// so the pill can grow on hover (to reveal the stop control) while staying
-    /// centered within a fixed panel.
-    static let pillHeight: CGFloat = 34
-    static let maxPillWidth: CGFloat = 168
-    static let shadowMargin: CGFloat = 40
-    static var panelSize: NSSize {
-        NSSize(
-            width: maxPillWidth + shadowMargin * 2,
-            height: pillHeight + shadowMargin * 2
-        )
-    }
-
-    private let pillFill = Color(red: 0.09, green: 0.09, blue: 0.10)
-
-    var body: some View {
-        TimelineView(.animation) { timeline in
-            HStack(spacing: 9) {
-                recordingLogo
-
-                MeetingNotesRecordingBars(date: timeline.date, level: store.audioLevel)
-                    .frame(width: 22, height: 16)
-
-                if isExpanded {
-                    Text("Recording")
-                        .font(.custom("Figtree", size: 12).weight(.medium))
-                        .foregroundStyle(Color.white.opacity(0.82))
-                        .fixedSize()
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
-
-                    stopButton
-                        .transition(.opacity.combined(with: .scale(scale: 0.7)))
-                }
-            }
-            .padding(.leading, 11)
-            .padding(.trailing, isExpanded ? 8 : 11)
-            .frame(height: Self.pillHeight)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(pillFill.opacity(0.97))
-                    .shadow(color: Color.black.opacity(0.28), radius: 8, y: 5)
-                    .shadow(color: Color.black.opacity(0.22), radius: 22, y: 14)
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
-            )
-            .fixedSize()
-            .contentShape(Capsule(style: .continuous))
-            .onHover { hovering in
-                withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
-                    isExpanded = hovering
-                }
-            }
-            // Centre the pill within the oversized (shadow-margin) panel.
-            .frame(width: Self.panelSize.width, height: Self.panelSize.height)
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Atlas meeting notes active")
-    }
-
-    // Stop + save the meeting notes. toggleRecording() ends the session while
-    // one is live, which also tears down audio capture and resets the level.
-    private var stopButton: some View {
-        Button {
-            store.toggleRecording()
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(Color(red: 0.95, green: 0.30, blue: 0.34).opacity(isHoveringStop ? 0.30 : 0.18))
-                Circle()
-                    .stroke(Color(red: 0.95, green: 0.30, blue: 0.34).opacity(0.6), lineWidth: 1)
-                RoundedRectangle(cornerRadius: 2.5, style: .continuous)
-                    .fill(Color(red: 0.97, green: 0.43, blue: 0.46))
-                    .frame(width: 8, height: 8)
-            }
-            .frame(width: 22, height: 22)
-            .scaleEffect(isHoveringStop ? 1.1 : 1.0)
-            .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .onHover { isHoveringStop = $0 }
-        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isHoveringStop)
-        .help("Stop meeting notes")
-        .accessibilityLabel("Stop meeting notes")
-    }
-
-    private var recordingLogo: some View {
-        ZStack {
-            Circle().fill(Color.white.opacity(0.14))
-            if let icon = BrandTheme.templateMark(pointSize: 16) {
-                Image(nsImage: icon)
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(Color.white.opacity(0.92))
-                    .frame(width: 13, height: 13)
-            } else {
-                AtlasIcon(.bubbleChat)
-                    .foregroundStyle(Color.white.opacity(0.92))
-                    .frame(width: 13, height: 13)
-            }
-        }
-        .frame(width: 22, height: 22)
-    }
 }
 
 struct MeetingNotesRecordingBars: View {

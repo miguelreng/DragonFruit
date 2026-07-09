@@ -68,10 +68,14 @@ import {
   Eraser,
   FileText,
   Image as ImageIconBase,
+  Lightbulb,
+  ListChecks,
   MoreHorizontal,
   PanelRight,
   Paperclip,
+  Pencil,
   Plus,
+  Search,
   Sparkles,
   LayoutGrid,
   Trash2,
@@ -529,7 +533,7 @@ function ChatView(props: {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-full z-10 h-6 bg-gradient-to-b from-surface-1 to-transparent"
         />
-        <span className="text-13 font-medium text-primary">Atlas</span>
+        <span className="text-13 font-semibold text-secondary">Atlas</span>
         <span className="min-w-0 flex-1" />
         <div className="flex items-center gap-0.5">
           <button
@@ -1638,6 +1642,33 @@ function ChatThread(props: {
 
   const isEmpty = messages.length === 0;
 
+  // Starter shortcuts for the empty state — scoped to what the user is
+  // looking at: an open doc beats project, project beats workspace. The
+  // label doubles as the prompt; clicking prefills the composer so the
+  // user can tweak before sending.
+  const emptyStateSuggestions = useMemo(() => {
+    if (pageId)
+      return [
+        { icon: Sparkles, label: "Summarize this page" },
+        { icon: Pencil, label: "Improve the writing on this page" },
+        { icon: ListChecks, label: "Turn this page into action items" },
+        { icon: Lightbulb, label: "Brainstorm what's missing here" },
+      ];
+    if (projectId)
+      return [
+        { icon: Search, label: "Catch me up on this project" },
+        { icon: ListChecks, label: "Create tasks from my notes" },
+        { icon: FileText, label: "Draft a project brief" },
+        { icon: Lightbulb, label: "Brainstorm ideas for this project" },
+      ];
+    return [
+      { icon: Search, label: "What's happening in my workspace?" },
+      { icon: ListChecks, label: "Help me plan my week" },
+      { icon: FileText, label: "Draft a doc for me" },
+      { icon: Lightbulb, label: "Brainstorm ideas" },
+    ];
+  }, [pageId, projectId]);
+
   return (
     <>
       <div ref={scrollRef} className="vertical-scrollbar scrollbar-sm flex-1 overflow-y-auto px-4 py-5">
@@ -1650,6 +1681,22 @@ function ChatThread(props: {
                 Ask a question, brainstorm, or paste in something you want rewritten. Tasks and pages are not
                 auto-attached.
               </div>
+            </div>
+            <div className="mt-1 flex w-full max-w-xs flex-col">
+              {emptyStateSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion.label}
+                  type="button"
+                  className="t-press flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-13 text-secondary hover:bg-layer-1 hover:text-primary"
+                  onClick={() => {
+                    setDraft(suggestion.label);
+                    textareaRef.current?.focus();
+                  }}
+                >
+                  <suggestion.icon className="size-4 shrink-0 text-tertiary" />
+                  {suggestion.label}
+                </button>
+              ))}
             </div>
           </div>
         )}

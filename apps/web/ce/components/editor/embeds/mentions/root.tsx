@@ -18,7 +18,6 @@ import { cn } from "@plane/utils";
 import { PageIcon } from "@/components/icons/propel-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { useProject } from "@/hooks/store/use-project";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 
 export type TEditorMentionComponentProps = TCallbackMentionComponentProps;
@@ -53,7 +52,6 @@ const EditorWorkItemMention = observer(function EditorWorkItemMention(props: { i
   const ws = workspaceSlug?.toString();
   const pid = projectId?.toString();
   // store hooks
-  const { getProjectIdentifierById } = useProject();
   const {
     issue: { getIssueById },
     fetchIssue,
@@ -67,14 +65,12 @@ const EditorWorkItemMention = observer(function EditorWorkItemMention(props: { i
     void fetchIssue(ws, pid, issueId).catch(() => {});
   }, [ws, pid, issueId, issue, fetchIssue]);
 
-  const identifier = issue?.project_id ? getProjectIdentifierById(issue.project_id) : undefined;
-  const label = issue && identifier ? `${identifier}-${issue.sequence_id}` : "work item";
+  const label = issue?.name || "work item";
   const href = ws && pid ? `/${ws}/projects/${pid}/issues/${issueId}` : "#";
 
   return (
     <Link to={href} className={cn(chipClassName)} title={issue?.name ?? undefined}>
       @{label}
-      {issue?.name ? <span className="font-normal opacity-80"> {issue.name}</span> : null}
     </Link>
   );
 });

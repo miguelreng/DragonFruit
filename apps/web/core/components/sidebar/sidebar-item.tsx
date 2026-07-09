@@ -82,19 +82,19 @@ const styles = {
   baseInline:
     "transition-colors group relative flex w-full max-w-full cursor-pointer items-center rounded-lg px-2 py-1 outline-none text-tertiary dark:text-white/70 !justify-start gap-1.5",
   icon: "transition-colors flex items-center justify-center gap-2 size-8 rounded-lg text-icon-tertiary dark:text-white/55 [&_svg]:size-4 [&_svg]:text-current",
-  iconActive: "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]",
+  iconActive: "!bg-[var(--neutral-600)] !text-secondary",
   iconInactive:
     "group-hover:text-icon-secondary group-hover:bg-layer-transparent-hover !text-icon-tertiary dark:!text-white/55 dark:group-hover:!text-white/85 dark:group-hover:bg-white/[0.08]",
   iconInline: "flex size-5 flex-shrink-0 items-center justify-center [&_svg]:size-4 [&_svg]:text-current",
-  iconInlineActive: "!text-[oklch(0.43_0_0)]",
+  iconInlineActive: "!text-secondary",
   iconInlineInactive: "text-icon-tertiary dark:text-white/55",
   label: "text-11 font-medium",
   labelInline: "flex h-5 items-center text-13 leading-5 font-medium",
-  labelActive: "!text-[oklch(0.43_0_0)]",
+  labelActive: "!text-secondary",
   labelInactive: "group-hover:text-secondary text-tertiary dark:text-white/65 dark:group-hover:text-white/90",
-  inlineActive: "!bg-[var(--neutral-600)] !text-[oklch(0.43_0_0)]",
+  inlineActive: "!bg-[var(--neutral-600)] !text-secondary",
   // Active text only — no fill — for when a sliding indicator paints the fill.
-  inlineActiveText: "!text-[oklch(0.43_0_0)]",
+  inlineActiveText: "!text-secondary",
   inlineInactive:
     "text-secondary hover:bg-layer-transparent-hover active:bg-layer-transparent-selected dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/[0.12]",
 } as const;
@@ -121,6 +121,7 @@ function AppSidebarItemLabel({ highlight = false, label, isInline }: AppSidebarI
       className={cn(isInline ? styles.labelInline : styles.label, {
         [styles.labelActive]: !isInline && highlight,
         [styles.labelInactive]: !isInline && !highlight,
+        "font-semibold": highlight,
       })}
     >
       {label}

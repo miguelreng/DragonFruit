@@ -26,7 +26,7 @@ IconWrapper.displayName = "IconWrapper";
 
 const LabelWrapper = React.memo(function LabelWrapper({ label }: { label: React.ReactNode }) {
   return (
-    <div className="relative inline-flex max-w-[150px] items-center truncate overflow-hidden leading-none text-primary">
+    <div className="relative inline-flex max-w-[150px] items-center truncate overflow-hidden leading-none text-secondary">
       {label}
     </div>
   );

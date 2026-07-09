@@ -102,6 +102,7 @@ export const CheckCircle = shim(Solar.CheckCircle);
 export const CheckCircle2 = shim(Solar.CheckCircle);
 export const CheckSquare = shim(Solar.CheckSquare);
 export const ChevronDown = shim(Solar.AltArrowDown);
+export const ChevronLeft = shim(Solar.AltArrowLeft);
 export const ChevronRight = shim(Solar.AltArrowRight);
 export const ChevronUp = shim(Solar.AltArrowUp);
 export const Circle = shim(Solar.RecordCircle);

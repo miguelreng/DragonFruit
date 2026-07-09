@@ -1214,6 +1214,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     func startPromptedMeetingNotes() {
+        // Starting notes from the prompt means the meeting is beginning now —
+        // jump into the call too when the event carries a Meet/Zoom link.
+        if let url = meetingStartPrompt?.joinURL {
+            NSWorkspace.shared.open(url)
+        }
         meetingStartPrompt = nil
         toggleRecording()
     }

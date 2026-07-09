@@ -236,7 +236,7 @@ export const PageActions = observer(function PageActions(props: Props) {
           },
           title: "Delete",
           icon: TrashIcon,
-          shouldRender: canCurrentUserDeletePage && !!archived_at && !isProjectBrief,
+          shouldRender: canCurrentUserDeletePage && !isProjectBrief,
         },
         {
           key: "move",

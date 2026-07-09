@@ -16,7 +16,6 @@ import { FileText } from "@/components/icons/lucide-shim";
 import type { TSearchEntities, TSearchResponse } from "@plane/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
-import { useProject } from "@/hooks/store/use-project";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // local components
 import { WikipediaLogo } from "@/plane-web/components/editor/embeds/mentions/wikipedia-logo";
@@ -47,7 +46,6 @@ export type TAdditionalParseEditorContentReturnType =
 
 export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArgs) => {
   const { workspaceSlug } = useParams();
-  const { getProjectIdentifierById } = useProject();
   const {
     issue: { getIssueById },
   } = useIssueDetail();
@@ -65,7 +63,7 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
           id: issue.id,
           entity_identifier: issue.id,
           entity_name: "issue",
-          title: `${issue.project__identifier}-${issue.sequence_id} ${issue.name}`,
+          title: issue.name,
         }));
         sections.push({ key: "issues", title: "Work items", items });
       }
@@ -101,13 +99,12 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
       if (entityType !== "issue") return undefined;
       const issue = getIssueById(id);
       if (!issue?.project_id) return undefined;
-      const identifier = getProjectIdentifierById(issue.project_id);
       return {
-        textContent: `${identifier}-${issue.sequence_id} ${issue.name}`,
+        textContent: issue.name,
         redirectionPath: `${workspaceSlug}/projects/${issue.project_id}/issues/${id}`,
       };
     },
-    [getIssueById, getPageById, getProjectIdentifierById, workspaceSlug]
+    [getIssueById, getPageById, workspaceSlug]
   );
 
   const editorMentionTypes: TSearchEntities[] = useMemo(() => ["user_mention", "issue", "page"], []);

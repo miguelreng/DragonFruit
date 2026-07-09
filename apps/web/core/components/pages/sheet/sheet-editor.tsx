@@ -35,7 +35,9 @@ import {
   columnLabel,
   computeCell,
   createGrid,
+  formulaSegments,
   formulaSuggestions,
+  parseFormulaRefs,
   deleteColumn,
   deleteRow,
   fillRange,
@@ -44,6 +46,7 @@ import {
   insertColumn,
   insertRow,
   isEmptyFormat,
+  moveColumn,
   NUMBER_FORMAT_GROUPS,
   parseCellId,
   parseClipboard,
@@ -58,6 +61,7 @@ import {
   SHEET_ROWNUM_WIDTH,
   type TCellFormat,
   type TCellNumberFormat,
+  type TNumberFormatOption,
   type TSheetGrid,
   type TSheetSnapshot,
 } from "./sheet-utils";
@@ -71,6 +75,7 @@ type Props = {
 type Rect = { r1: number; c1: number; r2: number; c2: number };
 type ContextMenu = { x: number; y: number; kind: "col" | "row"; index: number };
 
+// Strong palette — for text color.
 const PALETTE = [
   "#1c1e26",
   "#6b7280",
@@ -84,18 +89,33 @@ const PALETTE = [
   "#db2777",
 ];
 
-// Selection outline colour — the brand magenta, darker than the light range fill.
-const SEL_BORDER = "#aa0276";
+// Soft/tinted palette — for fill (cell background), so text stays readable.
+const FILL_PALETTE = [
+  "#e5e7eb",
+  "#fecaca",
+  "#fed7aa",
+  "#fef08a",
+  "#bbf7d0",
+  "#a5f3fc",
+  "#bfdbfe",
+  "#ddd6fe",
+  "#fbcfe8",
+  "#f5d0fe",
+];
 
-// Per-cell inset box-shadow drawing the selection perimeter for cell (r, c).
-const selectionBorder = (rect: Rect, r: number, c: number): string | undefined => {
+// Selection outline colour — a light pink.
+const SEL_BORDER = "#ec4899";
+
+// Per-cell inset box-shadow drawing a rect's perimeter for cell (r, c) in `color`.
+const rectBorder = (rect: Rect, r: number, c: number, color: string = SEL_BORDER): string | undefined => {
   const parts: string[] = [];
-  if (r === rect.r1) parts.push(`inset 0 2px 0 0 ${SEL_BORDER}`);
-  if (r === rect.r2) parts.push(`inset 0 -2px 0 0 ${SEL_BORDER}`);
-  if (c === rect.c1) parts.push(`inset 2px 0 0 0 ${SEL_BORDER}`);
-  if (c === rect.c2) parts.push(`inset -2px 0 0 0 ${SEL_BORDER}`);
+  if (r === rect.r1) parts.push(`inset 0 2px 0 0 ${color}`);
+  if (r === rect.r2) parts.push(`inset 0 -2px 0 0 ${color}`);
+  if (c === rect.c1) parts.push(`inset 2px 0 0 0 ${color}`);
+  if (c === rect.c2) parts.push(`inset -2px 0 0 0 ${color}`);
   return parts.join(", ") || undefined;
 };
+const selectionBorder = (rect: Rect, r: number, c: number): string | undefined => rectBorder(rect, r, c);
 
 const normRect = (r1: number, c1: number, r2: number, c2: number): Rect => ({
   r1: Math.min(r1, r2),
@@ -118,6 +138,15 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const [viewport, setViewport] = useState({ width: 0, height: 0, maxWidth: 0 });
   const [showSuggest, setShowSuggest] = useState(false);
   const [suggestIndex, setSuggestIndex] = useState(0);
+  // True while the fx formula bar is being edited (vs. editing in a cell) — decides
+  // where the suggestion dropdown anchors so only one shows at a time.
+  const [barFocused, setBarFocused] = useState(false);
+  // Horizontal scroll of the input being edited, so the syntax-highlight overlay stays aligned.
+  const [editScroll, setEditScroll] = useState(0);
+  // Set while a formula is actively being typed — enables click-to-insert of a
+  // clicked cell's reference into the formula (like a spreadsheet).
+  const [formulaEditing, setFormulaEditing] = useState<{ id: string; source: "cell" | "bar" } | null>(null);
+  const barInputRef = useRef<HTMLInputElement | null>(null);
 
   const fillRef = useRef<{ srcId: string; srcR: number; srcC: number; r: number; c: number } | null>(null);
 
@@ -213,10 +242,6 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     [commitGrid, focused, isEditable, selection]
   );
 
-  const addRow = useCallback(() => {
-    if (!isEditable) return;
-    commitGrid((grid) => ({ ...grid, rows: Math.min(grid.rows + 1, SHEET_MAX_ROWS) }));
-  }, [commitGrid, isEditable]);
 
   // Column drag-resize.
   const startResize = useCallback(
@@ -238,6 +263,64 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       document.body.style.cursor = "col-resize";
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
+    },
+    [active, commitGrid, isEditable]
+  );
+
+  // Drag a column header to reorder columns.
+  const colDragRef = useRef<{ from: number; startX: number; moved: boolean } | null>(null);
+  const didDragColRef = useRef(false);
+  const [colDrag, setColDrag] = useState<{ from: number; over: number } | null>(null);
+  const startColDrag = useCallback(
+    (event: React.MouseEvent, from: number) => {
+      if (!isEditable || event.button !== 0) return;
+      colDragRef.current = { from, startX: event.clientX, moved: false };
+      const onMove = (e: MouseEvent) => {
+        const d = colDragRef.current;
+        if (!d) return;
+        if (!d.moved && Math.abs(e.clientX - d.startX) > 4) {
+          d.moved = true;
+          setColDrag({ from: d.from, over: d.from });
+        }
+      };
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        const d = colDragRef.current;
+        colDragRef.current = null;
+        document.body.style.cursor = "";
+        setColDrag((cd) => {
+          if (d?.moved && cd && cd.over !== cd.from) commitGrid((g) => moveColumn(g, cd.from, cd.over));
+          return null;
+        });
+        if (d?.moved) didDragColRef.current = true;
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [commitGrid, isEditable]
+  );
+
+  // Double-click the resize edge → fit the column to its widest content.
+  const autoFitColumn = useCallback(
+    (col: number) => {
+      if (!isEditable) return;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const sample = document.getElementById(`sheet-cell-${cellId(0, col)}`);
+      const cs = sample ? getComputedStyle(sample) : null;
+      ctx.font = cs ? `${cs.fontSize} ${cs.fontFamily}` : "12px sans-serif";
+      let max = 0;
+      for (let r = 0; r < active.rows; r++) {
+        const raw = active.cells[cellId(r, col)];
+        if (raw === undefined) continue;
+        const fmt = active.formats?.[cellId(r, col)];
+        const text = formatDisplayValue(computeCell(cellId(r, col), active.cells), fmt);
+        max = Math.max(max, ctx.measureText(text).width);
+      }
+      const width = max > 0 ? Math.min(Math.max(Math.ceil(max) + 24, SHEET_MIN_COL_WIDTH), SHEET_MAX_COL_WIDTH) : SHEET_DEFAULT_COL_WIDTH;
+      commitGrid((grid) => ({ ...grid, colWidths: { ...(grid.colWidths ?? {}), [col]: width } }));
     },
     [active, commitGrid, isEditable]
   );
@@ -298,6 +381,17 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const focusedFormat = focused ? active.formats?.[focused] : undefined;
   const focusedRaw = focused ? (active.cells[focused] ?? "") : "";
 
+  // Formula reference highlighting: color each cell reference and highlight the
+  // referenced cells in the grid, like a spreadsheet.
+  const editingFormula = !!focused && isEditable && focusedRaw.startsWith("=");
+  const formulaRefs = editingFormula ? parseFormulaRefs(focusedRaw) : [];
+  const renderFormulaText = (raw: string) =>
+    formulaSegments(raw, parseFormulaRefs(raw)).map((seg, i) => (
+      <span key={i} style={seg.color ? { color: seg.color } : undefined}>
+        {seg.text}
+      </span>
+    ));
+
   // Cell autocomplete: a leading "=" offers formula functions; an "@" token
   // offers people mentions (workspace members).
   const members = getMemberIds()
@@ -329,12 +423,39 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
         el.setSelectionRange(el.value.length, el.value.length);
       }
     });
-  const onCellInput = (id: string, value: string) => {
+  const onCellInput = (id: string, value: string, source: "cell" | "bar" = "cell") => {
     setCellValue(id, value);
     const hasFormula = value.startsWith("=") && formulaSuggestions(value).length > 0;
     const hasMention = !value.startsWith("=") && /@([^@\s]*)$/.test(value);
     setShowSuggest(hasFormula || hasMention);
     setSuggestIndex(0);
+    setFormulaEditing(value.startsWith("=") ? { id, source } : null);
+  };
+
+  // Insert a clicked cell's reference into the formula being edited (replacing a
+  // reference currently under the caret, like a spreadsheet).
+  const insertRef = (targetId: string) => {
+    const editing = formulaEditing;
+    if (!editing) return;
+    const el =
+      editing.source === "bar"
+        ? barInputRef.current
+        : (document.getElementById(`sheet-cell-${editing.id}`) as HTMLInputElement | null);
+    if (!el) return;
+    const raw = active.cells[editing.id] ?? "";
+    const caret = el.selectionStart ?? raw.length;
+    const before = raw.slice(0, caret);
+    const after = raw.slice(caret);
+    const partial = /[A-Za-z]+\d*$/.exec(before); // a reference under construction
+    const start = partial ? caret - partial[0].length : caret;
+    const next = raw.slice(0, start) + targetId + after;
+    const newCaret = start + targetId.length;
+    setCellValue(editing.id, next);
+    setShowSuggest(false);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(newCaret, newCaret);
+    });
   };
   const acceptFormula = (fn: string) => {
     if (!focused) return;
@@ -352,6 +473,32 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const acceptActive = () => {
     if (suggestKind === "formula" && formulaItems[activeSuggest]) acceptFormula(formulaItems[activeSuggest]);
     else if (suggestKind === "mention" && mentionItems[activeSuggest]) acceptMention(mentionItems[activeSuggest]);
+  };
+  // Suggestion navigation shared by the cell inputs and the formula bar.
+  // Returns true when it consumed the key.
+  const handleSuggestKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): boolean => {
+    if (suggestCount === 0) return false;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSuggestIndex((i) => (i + 1) % suggestCount);
+      return true;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSuggestIndex((i) => (i - 1 + suggestCount) % suggestCount);
+      return true;
+    }
+    if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      acceptActive();
+      return true;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setShowSuggest(false);
+      return true;
+    }
+    return false;
   };
   const handleCellKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, row: number, col: number) => {
     if ((event.metaKey || event.ctrlKey) && !event.altKey) {
@@ -385,32 +532,64 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       commitGrid((g) => clearRect(g, rect.r1, rect.c1, rect.r2, rect.c2));
       return;
     }
-    if (suggestCount > 0) {
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        setSuggestIndex((i) => (i + 1) % suggestCount);
-        return;
-      }
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        setSuggestIndex((i) => (i - 1 + suggestCount) % suggestCount);
-        return;
-      }
-      if (event.key === "Enter" || event.key === "Tab") {
-        event.preventDefault();
-        acceptActive();
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setShowSuggest(false);
-        return;
-      }
-    }
+    if (handleSuggestKeyDown(event)) return;
     if (event.key === "Enter") {
       event.preventDefault();
       document.getElementById(`sheet-cell-${cellId(row + 1, col)}`)?.focus();
     }
+  };
+
+  // Suggestion dropdown, positioned via `anchorClass` — reused by cells and the fx bar.
+  const renderSuggestions = (anchorClass: string) => {
+    if (suggestKind === "formula" && formulaItems.length > 0) {
+      return (
+        <div className={cn("absolute z-30 mt-px max-h-56 w-52 overflow-auto rounded-md border border-subtle bg-surface-1 py-1 text-left shadow-lg", anchorClass)}>
+          {formulaItems.map((fn, i) => (
+            <button
+              key={fn}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                acceptFormula(fn);
+              }}
+              className={cn("block w-full px-3 py-1 text-left font-mono text-12", {
+                "bg-layer-2 text-primary": i === activeSuggest,
+                "text-secondary hover:bg-layer-1": i !== activeSuggest,
+              })}
+            >
+              {fn}
+            </button>
+          ))}
+        </div>
+      );
+    }
+    if (suggestKind === "mention" && mentionItems.length > 0) {
+      return (
+        <div className={cn("absolute z-30 mt-px max-h-60 w-64 overflow-auto rounded-md border border-subtle bg-surface-1 py-1 text-left shadow-lg", anchorClass)}>
+          {mentionItems.map((m, i) => (
+            <button
+              key={m.id}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                acceptMention(m);
+              }}
+              className={cn("flex w-full items-center gap-2 px-3 py-1 text-left", {
+                "bg-layer-2": i === activeSuggest,
+                "hover:bg-layer-1": i !== activeSuggest,
+              })}
+            >
+              <span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent-primary/15 text-10 font-medium text-accent-primary">
+                {memberLabel(m).charAt(0).toUpperCase()}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-12 text-primary">{memberLabel(m)}</span>
+              {m.email && <span className="shrink-0 truncate text-11 text-tertiary">{m.email}</span>}
+            </button>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
   const toggle = (key: "bold" | "italic" | "strike") => applyFormat({ [key]: !focusedFormat?.[key] });
@@ -437,6 +616,17 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const rows = Array.from({ length: renderRows }, (_, r) => r);
   const cols = Array.from({ length: renderCols }, (_, c) => c);
   const totalWidth = SHEET_ROWNUM_WIDTH + cols.reduce((sum, c) => sum + colWidth(active, c), 0);
+
+  // Add row/column relative to what's actually rendered, so one always appears
+  // (the grid fills the viewport, so grid.cols may be below the visible count).
+  const addRow = () => {
+    if (!isEditable) return;
+    commitGrid((grid) => ({ ...grid, rows: Math.min(renderRows + 1, SHEET_MAX_ROWS) }));
+  };
+  const addColumn = () => {
+    if (!isEditable) return;
+    commitGrid((grid) => ({ ...grid, cols: Math.min(renderCols + 1, SHEET_MAX_COLS) }));
+  };
 
   // Frozen columns: sticky-left offsets for the first `frozen` columns.
   const frozen = active.frozenCols ?? 0;
@@ -572,12 +762,13 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
             <Strikethrough className="size-4" />
           </ToolbarButton>
           <ColorMenu title="Text color" disabled={!focused} value={focusedFormat?.color} onSelect={(color) => applyFormat({ color })} icon={<Type className="size-4" />} />
-          <ColorMenu title="Fill color" disabled={!focused} value={focusedFormat?.fill} onSelect={(fill) => applyFormat({ fill })} icon={<PaintBucket className="size-4" />} />
+          <ColorMenu title="Fill color" disabled={!focused} value={focusedFormat?.fill} palette={FILL_PALETTE} onSelect={(fill) => applyFormat({ fill })} icon={<PaintBucket className="size-4" />} />
           <Separator />
           <NumberFormatMenu
             disabled={!focused}
-            value={focusedFormat?.numberFormat}
-            onSelect={(nf) => applyFormat({ numberFormat: nf, decimals: undefined })}
+            numberFormat={focusedFormat?.numberFormat}
+            currency={focusedFormat?.currency}
+            onSelect={(opt) => applyFormat({ numberFormat: opt.numberFormat, currency: opt.currency, decimals: undefined })}
           />
           <ToolbarButton title="Format as currency" disabled={!focused} active={focusedFormat?.numberFormat === "currency"} onClick={() => setNumberFormat("currency")}>
             <DollarSign className="size-4" />
@@ -598,26 +789,58 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       )}
 
       {/* Formula bar. */}
-      <div className="flex flex-shrink-0 items-center gap-2 border-b border-subtle px-4 py-2">
+      <div className="relative flex flex-shrink-0 items-center gap-2 border-b border-subtle px-4 py-2">
         <span className="grid h-6 min-w-9 shrink-0 place-items-center rounded-md bg-layer-1 px-1.5 font-mono text-11 text-tertiary">
           {focused ?? "—"}
         </span>
         <span className="shrink-0 select-none border-l border-subtle pl-2 font-serif text-13 italic text-tertiary" aria-hidden>
           fx
         </span>
-        <input
-          type="text"
-          value={focusedRaw}
-          onChange={(e) => focused && setCellValue(focused, e.target.value)}
-          readOnly={!isEditable || !focused}
-          placeholder={focused ? "Value or =formula (e.g. =SUM(A1:A5))" : "Select a cell"}
-          aria-label="Formula bar"
-          className="h-6 w-full min-w-0 flex-1 bg-transparent px-1 font-mono text-12 text-primary outline-none placeholder:text-placeholder read-only:cursor-default"
-        />
+        <div className="relative min-w-0 flex-1">
+          {editingFormula && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden whitespace-pre px-1 font-mono text-12 text-primary"
+              style={{ transform: `translateX(${-editScroll}px)` }}
+            >
+              {renderFormulaText(focusedRaw)}
+            </div>
+          )}
+          <input
+            ref={barInputRef}
+            type="text"
+            value={focusedRaw}
+            onChange={(e) => focused && onCellInput(focused, e.target.value, "bar")}
+            onKeyDown={handleSuggestKeyDown}
+            onFocus={() => {
+              setBarFocused(true);
+              setEditScroll(0);
+              if (focused) setFormulaEditing(focusedRaw.startsWith("=") ? { id: focused, source: "bar" } : null);
+            }}
+            onBlur={() =>
+              window.setTimeout(() => {
+                setBarFocused(false);
+                setShowSuggest(false);
+                setFormulaEditing(null);
+              }, 120)
+            }
+            onScroll={(e) => setEditScroll(e.currentTarget.scrollLeft)}
+            readOnly={!isEditable || !focused}
+            placeholder={focused ? "Value or =formula (e.g. =SUM(A1:A5))" : "Select a cell"}
+            aria-label="Formula bar"
+            style={{ caretColor: editingFormula ? "#1c1e26" : undefined }}
+            className={cn(
+              "relative z-[1] h-6 w-full bg-transparent px-1 font-mono text-12 text-primary outline-none placeholder:text-placeholder read-only:cursor-default",
+              { "text-transparent": editingFormula }
+            )}
+          />
+          {barFocused && renderSuggestions("left-0 top-full")}
+        </div>
       </div>
 
-      {/* Grid. */}
-      <div ref={wrapRef} onCopy={handleCopy} onCut={handleCut} onPaste={handlePaste} className="min-h-0 flex-1 overflow-auto">
+      {/* Grid + fixed add-column strip on the right. */}
+      <div className="flex min-h-0 flex-1">
+        <div ref={wrapRef} onCopy={handleCopy} onCut={handleCut} onPaste={handlePaste} className="min-h-0 flex-1 overflow-auto">
         <table className="select-none border-collapse text-12" style={{ tableLayout: "fixed", width: totalWidth }}>
           <colgroup>
             <col style={{ width: SHEET_ROWNUM_WIDTH }} />
@@ -637,22 +860,42 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                   thStyle.zIndex = 20;
                 }
                 if (c === frozen - 1) thStyle.boxShadow = "inset -2px 0 0 0 rgba(0,0,0,0.22)";
+                const isDragging = colDrag?.from === c;
+                const isDropOver = colDrag && colDrag.over === c && colDrag.from !== c;
+                if (isDropOver) {
+                  // Drop indicator: pink bar on the side the column will land.
+                  thStyle.boxShadow = `inset ${colDrag.from < c ? "-3px" : "3px"} 0 0 0 ${SEL_BORDER}`;
+                }
                 return (
                   <th
                     key={c}
-                    onClick={() => selectColumn(c)}
+                    onClick={() => {
+                      if (didDragColRef.current) {
+                        didDragColRef.current = false;
+                        return;
+                      }
+                      selectColumn(c);
+                    }}
+                    onMouseDown={(e) => startColDrag(e, c)}
+                    onMouseEnter={() => {
+                      if (colDragRef.current?.moved) setColDrag((cd) => (cd ? { ...cd, over: c } : cd));
+                    }}
                     onContextMenu={(e) => openMenu(e, "col", c)}
                     style={Object.keys(thStyle).length ? thStyle : undefined}
                     className={cn(
-                      "sticky top-0 z-10 h-7 cursor-pointer border border-subtle bg-layer-1 text-center font-normal text-tertiary hover:bg-layer-2",
-                      { "bg-accent-primary/15 text-primary": colSelected }
+                      "sticky top-0 z-10 h-7 cursor-grab border border-subtle bg-layer-1 text-center font-normal text-tertiary hover:bg-layer-2",
+                      { "bg-accent-primary/15 text-primary": colSelected, "opacity-50": isDragging }
                     )}
                   >
                     <span className="pointer-events-none block truncate px-2">{columnLabel(c)}</span>
                     {isEditable && (
                       <span
                         onMouseDown={(e) => startResize(e, c)}
-                        title="Drag to resize column"
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          autoFitColumn(c);
+                        }}
+                        title="Drag to resize · double-click to fit"
                         className="absolute -right-1 top-0 z-10 h-full w-2 cursor-col-resize hover:bg-accent-primary/40"
                       />
                     )}
@@ -696,6 +939,9 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                     };
                     const selected = !!selection && inRect(selection, r, c);
                     const inFill = inRect(fillPreview, r, c);
+                    const fref = editingFormula
+                      ? formulaRefs.find((rf) => r >= rf.r1 && r <= rf.r2 && c >= rf.c1 && c <= rf.c2)
+                      : undefined;
                     const isFrozen = c < frozen;
                     const tdStyle: React.CSSProperties = {};
                     if (fmt?.fill) tdStyle.backgroundColor = fmt.fill;
@@ -725,12 +971,28 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                             {display || " "}
                           </div>
                         )}
+                        {isFocused && editingFormula && (
+                          <div
+                            aria-hidden
+                            className="pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden whitespace-pre px-2 font-mono text-12 text-primary"
+                            style={{ transform: `translateX(${-editScroll}px)` }}
+                          >
+                            {renderFormulaText(display)}
+                          </div>
+                        )}
                         <input
                           id={`sheet-cell-${id}`}
                           type="text"
                           value={display}
                           readOnly={!isEditable}
                           onMouseDown={(e) => {
+                            // While editing a formula, clicking another cell inserts its
+                            // reference instead of moving focus.
+                            if (formulaEditing && formulaEditing.id !== id) {
+                              e.preventDefault();
+                              insertRef(id);
+                              return;
+                            }
                             if (e.shiftKey && focused) {
                               // Extend the selection from the anchor to this cell.
                               e.preventDefault();
@@ -742,17 +1004,27 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                             setFocused(id);
                             setSelection({ r1: r, c1: c, r2: r, c2: c });
                             setShowSuggest(false);
+                            setEditScroll(0);
+                            setFormulaEditing((active.cells[id] ?? "").startsWith("=") ? { id, source: "cell" } : null);
                           }}
-                          onBlur={() => window.setTimeout(() => setShowSuggest(false), 120)}
+                          onBlur={() =>
+                            window.setTimeout(() => {
+                              setShowSuggest(false);
+                              setFormulaEditing(null);
+                            }, 120)
+                          }
                           onChange={(e) => onCellInput(id, e.target.value)}
                           onKeyDown={(e) => handleCellKeyDown(e, r, c)}
-                          style={textStyle}
+                          onScroll={(e) => setEditScroll(e.currentTarget.scrollLeft)}
+                          style={{ ...textStyle, caretColor: isFocused && editingFormula ? "#1c1e26" : undefined }}
                           className={cn(
                             "z-0 w-full bg-transparent px-2 text-12 text-primary outline-none",
                             layered ? "absolute inset-0 h-full" : "relative h-full",
                             isFocused ? "cursor-text" : "cursor-default",
                             {
                               "font-mono": isFocused && display.startsWith("="),
+                              // Hide the input's own text so the colored overlay shows (caret stays visible).
+                              "text-transparent": isFocused && editingFormula,
                               "text-transparent caret-transparent": layered && !isFocused,
                             }
                           )}
@@ -762,12 +1034,21 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                           <span
                             className="pointer-events-none absolute -inset-px z-[2]"
                             style={{
-                              backgroundColor: isFocused ? undefined : "rgba(170,2,118,0.08)",
+                              backgroundColor: isFocused ? undefined : "rgba(236,72,153,0.1)",
                               boxShadow: selectionBorder(selection, r, c),
                             }}
                           />
                         )}
                         {inFill && !selected && <span className="pointer-events-none absolute inset-0 z-[2] bg-accent-primary/20" />}
+                        {fref && (
+                          <span
+                            className="pointer-events-none absolute -inset-px z-[3]"
+                            style={{
+                              backgroundColor: `${fref.color}1a`,
+                              boxShadow: rectBorder({ r1: fref.r1, c1: fref.c1, r2: fref.r2, c2: fref.c2 }, r, c, fref.color),
+                            }}
+                          />
+                        )}
                         {isEditable && selection && r === selection.r2 && c === selection.c2 && (
                           <span
                             onMouseDown={startFill}
@@ -775,50 +1056,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                             className="absolute -bottom-[3px] -right-[3px] z-10 size-[7px] cursor-crosshair rounded-[1px] border border-white bg-accent-primary"
                           />
                         )}
-                        {isFocused && suggestKind === "formula" && formulaItems.length > 0 && (
-                          <div className="absolute left-0 top-full z-30 mt-px max-h-56 w-52 overflow-auto rounded-md border border-subtle bg-surface-1 py-1 text-left shadow-lg">
-                            {formulaItems.map((fn, i) => (
-                              <button
-                                key={fn}
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  acceptFormula(fn);
-                                }}
-                                className={cn("block w-full px-3 py-1 text-left font-mono text-12", {
-                                  "bg-layer-2 text-primary": i === activeSuggest,
-                                  "text-secondary hover:bg-layer-1": i !== activeSuggest,
-                                })}
-                              >
-                                {fn}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {isFocused && suggestKind === "mention" && mentionItems.length > 0 && (
-                          <div className="absolute left-0 top-full z-30 mt-px max-h-60 w-64 overflow-auto rounded-md border border-subtle bg-surface-1 py-1 text-left shadow-lg">
-                            {mentionItems.map((m, i) => (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  acceptMention(m);
-                                }}
-                                className={cn("flex w-full items-center gap-2 px-3 py-1 text-left", {
-                                  "bg-layer-2": i === activeSuggest,
-                                  "hover:bg-layer-1": i !== activeSuggest,
-                                })}
-                              >
-                                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent-primary/15 text-10 font-medium text-accent-primary">
-                                  {memberLabel(m).charAt(0).toUpperCase()}
-                                </span>
-                                <span className="min-w-0 flex-1 truncate text-12 text-primary">{memberLabel(m)}</span>
-                                {m.email && <span className="shrink-0 truncate text-11 text-tertiary">{m.email}</span>}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {isFocused && !barFocused && renderSuggestions("left-0 top-full")}
                       </td>
                     );
                   })}
@@ -827,6 +1065,17 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
             })}
           </tbody>
         </table>
+        </div>
+        {isEditable && (
+          <button
+            type="button"
+            onClick={addColumn}
+            title="Add column"
+            className="flex w-8 flex-shrink-0 items-center justify-center border-l border-subtle bg-white text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Add-row control — pinned below the grid. */}
@@ -1102,11 +1351,12 @@ function WrapMenu({ disabled, value, onSelect }: WrapMenuProps) {
 
 type NumberFormatMenuProps = {
   disabled?: boolean;
-  value?: TCellNumberFormat;
-  onSelect: (nf: TCellNumberFormat) => void;
+  numberFormat?: TCellNumberFormat;
+  currency?: string;
+  onSelect: (opt: TNumberFormatOption) => void;
 };
 
-function NumberFormatMenu({ disabled, value, onSelect }: NumberFormatMenuProps) {
+function NumberFormatMenu({ disabled, numberFormat, currency, onSelect }: NumberFormatMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -1135,26 +1385,29 @@ function NumberFormatMenu({ disabled, value, onSelect }: NumberFormatMenuProps) 
         123
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
+        <div className="absolute left-0 top-full z-30 mt-1 max-h-[60vh] w-64 overflow-auto rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
           {NUMBER_FORMAT_GROUPS.map((group, gi) => (
             <div key={gi} className={cn({ "border-t border-subtle": gi > 0 })}>
-              {group.map((f) => (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => {
-                    onSelect(f.key);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left text-12 hover:bg-layer-1",
-                    value === f.key ? "text-primary" : "text-secondary"
-                  )}
-                >
-                  <span className="truncate">{f.label}</span>
-                  {f.sample && <span className="shrink-0 text-tertiary">{f.sample}</span>}
-                </button>
-              ))}
+              {group.map((f) => {
+                const active = f.numberFormat === numberFormat && (f.currency ?? undefined) === (currency ?? undefined);
+                return (
+                  <button
+                    key={f.label}
+                    type="button"
+                    onClick={() => {
+                      onSelect(f);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left text-12 hover:bg-layer-1",
+                      active ? "text-primary" : "text-secondary"
+                    )}
+                  >
+                    <span className="truncate">{f.label}</span>
+                    {f.sample && <span className="shrink-0 text-tertiary">{f.sample}</span>}
+                  </button>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -1168,10 +1421,11 @@ type ColorMenuProps = {
   disabled?: boolean;
   value?: string;
   icon: React.ReactNode;
+  palette?: string[];
   onSelect: (color: string | undefined) => void;
 };
 
-function ColorMenu({ title, disabled, value, icon, onSelect }: ColorMenuProps) {
+function ColorMenu({ title, disabled, value, icon, palette = PALETTE, onSelect }: ColorMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -1203,7 +1457,7 @@ function ColorMenu({ title, disabled, value, icon, onSelect }: ColorMenuProps) {
       {open && (
         <div className="absolute left-0 top-full z-30 mt-1 w-max rounded-lg border border-subtle bg-surface-1 p-2 shadow-lg">
           <div className="grid grid-cols-5 gap-1">
-            {PALETTE.map((c) => (
+            {palette.map((c) => (
               <button
                 key={c}
                 type="button"

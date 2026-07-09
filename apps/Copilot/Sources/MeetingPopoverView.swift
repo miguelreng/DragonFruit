@@ -735,8 +735,9 @@ struct MeetingPopoverView: View {
                             Text(store.meeting.title)
                                 .font(.custom("Newsreader", size: 16).weight(.regular))
                                 .foregroundStyle(theme.textPrimary)
-                                .lineLimit(2)
+                                .lineLimit(3)
                                 .lineSpacing(0)
+                                .fixedSize(horizontal: false, vertical: true)
 
                             Text(store.nextUpCountdownLabel)
                                 .font(.custom("Figtree", size: 11).weight(.medium))

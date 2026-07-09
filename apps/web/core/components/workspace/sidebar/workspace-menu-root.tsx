@@ -124,7 +124,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                   />
                   {showLabel && (
                     <>
-                      <span className="min-w-0 flex-1 truncate text-left text-13 font-medium text-secondary dark:text-white/80">
+                      <span className="min-w-0 flex-1 truncate text-left text-13 font-semibold text-secondary dark:text-white/80">
                         {activeWorkspace?.name ?? t("loading")}
                       </span>
                       <ChevronDownIcon
@@ -154,7 +154,7 @@ export const WorkspaceMenuRoot = observer(function WorkspaceMenuRoot(props: Work
                     workspaceId={activeWorkspace?.id}
                     classNames="border border-subtle rounded-lg size-7"
                   />
-                  <h4 className="truncate text-14 font-medium text-primary">{activeWorkspace?.name ?? t("loading")}</h4>
+                  <h4 className="truncate text-14 font-semibold text-secondary">{activeWorkspace?.name ?? t("loading")}</h4>
                 </div>
                 <ChevronDownIcon
                   className={cn("size-4 flex-shrink-0 text-placeholder duration-300", {

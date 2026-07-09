@@ -49,7 +49,7 @@ export function TabNavigationVisibleItem({
           <ContextMenu.Trigger>
             <Link key={`${item.key}-${isActive ? "active" : "inactive"}`} to={item.href}>
               <TabNavigationItem isActive={false} className={cn(isActive && "hover:bg-transparent")}>
-                <span className={cn(isActive && "text-primary")}>{label}</span>
+                <span className={cn(isActive && "font-semibold text-secondary")}>{label}</span>
               </TabNavigationItem>
             </Link>
           </ContextMenu.Trigger>

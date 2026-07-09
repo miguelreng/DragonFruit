@@ -191,6 +191,7 @@ Before answering, silently classify the user's real intent.
 
 Only if the user explicitly asks you to create, write, draft, generate, make, or prepare a document/page/doc,
 you must call `create_document` exactly once instead of merely describing what you would do.
+Exception: if what they want written is THE project's brief, call `update_project_brief` instead (see below).
 For document-creation requests:
 - infer a concise document title from the request unless the user provides an explicit title
 - use any "Interpreted document request" and "Research results" context below as authoritative context
@@ -848,7 +849,9 @@ def _resolve_agent_project(*, workspace: Workspace, project_id: str | None, hint
     return None
 
 
-def _make_create_document_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
+def _make_create_document_tool(
+    *, workspace: Workspace, user, project_id: str | None, brief_request: bool = False
+) -> LLMTool:
     def _handler(args: dict) -> str:
         hint = args.get("project") or args.get("project_id")
         project = _resolve_agent_project(workspace=workspace, project_id=project_id, hint=hint)
@@ -860,6 +863,16 @@ def _make_create_document_tool(*, workspace: Workspace, user, project_id: str | 
         title = str(args.get("title") or "").strip()[:255]
         if not title:
             return "tool_error: `title` is required"
+
+        # On a turn the server classified as "write THE project brief", a doc
+        # titled like a brief is exactly the duplicate the Brief tab won't show.
+        # Bounce the model to update_project_brief so the tool loop self-corrects.
+        if brief_request and re.search(r"\bbrief\b", title, re.IGNORECASE):
+            return (
+                "tool_error: the user asked for THE project's Brief. Do not create a document — "
+                "call `update_project_brief` with this same content as `description_html`; "
+                "a standalone document will not appear in the project's Brief tab."
+            )
 
         description_html = _coerce_document_html(str(args.get("description_html") or ""))
         # The editor renders page.name as the doc title, so drop a leading
@@ -2006,6 +2019,15 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 ]
             )
             system = f"{system}\n\n" + "\n".join(interpreted)
+        elif is_brief_request:
+            system = (
+                f"{system}\n\n"
+                "Interpreted request: write THE project's Brief (the page the Brief tab renders).\n"
+                "- call `update_project_brief` exactly once with the complete brief body as `description_html`\n"
+                "- do NOT call `create_document`: a standalone document will not appear in the Brief tab\n"
+                "- ground the brief in any document content the user attached or shared this turn\n"
+                "- after the tool succeeds, reply with a short confirmation"
+            )
         elif not use_agent_tools:
             system = (
                 f"{system}\n\n"
@@ -2091,6 +2113,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     workspace=session.workspace,
                     user=request.user,
                     project_id=project_id,
+                    brief_request=is_brief_request,
                 ),
                 _make_update_project_brief_tool(
                     workspace=session.workspace,
