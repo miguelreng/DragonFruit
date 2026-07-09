@@ -85,6 +85,8 @@ export const useCreatePdfPage = (workspaceSlug: string) => {
       // entry behind when a later step fails.
       const rollback = async () => {
         try {
+          // The API only deletes archived pages, so archive before removing.
+          await pageService.archive(workspaceSlug, projectId, page.id as string);
           await pageService.remove(workspaceSlug, projectId, page.id as string);
         } catch {
           // best-effort cleanup

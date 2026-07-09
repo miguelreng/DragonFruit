@@ -372,7 +372,11 @@ export class ProjectPageStore implements IProjectPageStore {
         throw new Error("Project briefs can't be deleted.");
       }
 
-      if (shouldSync) await this.service.remove(workspaceSlug, projectId, pageId);
+      if (shouldSync) {
+        // The API only deletes archived pages, so archive first when needed.
+        if (page && !page.archived_at) await this.service.archive(workspaceSlug, projectId, pageId);
+        await this.service.remove(workspaceSlug, projectId, pageId);
+      }
       runInAction(() => {
         unset(this.data, [pageId]);
         if (this.rootStore.favorite.entityMap[pageId]) this.rootStore.favorite.removeFavoriteFromStore(pageId);

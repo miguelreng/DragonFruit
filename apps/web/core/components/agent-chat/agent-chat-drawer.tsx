@@ -112,17 +112,24 @@ import type { TAgent, TAgentInboxItem, TMcpServerSummary } from "@/services/agen
 import { INTEGRATIONS } from "@/constants/integrations";
 import { WorkspaceService } from "@/services/workspace.service";
 import { BookmarkService } from "@/services/bookmark.service";
+import { IssueService } from "@/services/issue/issue.service";
+import { ProjectPageService } from "@/services/page/project-page.service";
 // local imports — `./reply-context` (not the barrel) avoids a self-import cycle
 import { useActiveDocPageId } from "./active-doc-page";
 import {
+  buildAtlasReferencesContext,
   getAtlasMentionMatch,
   getAtlasMentionToken,
   getAtlasPromptHighlightParts,
   getAtlasReferenceTypeLabel,
+  htmlToPlainText,
+  issueToReferenceContextContent,
   referenceIdentity,
   bookmarkToMentionedReference,
+  whiteboardJsonToPlainText,
   type TAtlasMentionedReference,
   type TAtlasMentionMatch,
+  type TAtlasReferenceContextSource,
 } from "./atlas-doc-mentions";
 import { consumePendingReplyContext, subscribePendingReplyContext, type PendingReplyContext } from "./reply-context";
 
@@ -130,6 +137,8 @@ const chatService = new AgentChatService();
 const agentService = new AgentService();
 const workspaceService = new WorkspaceService();
 const bookmarkService = new BookmarkService();
+const issueService = new IssueService();
+const projectPageService = new ProjectPageService();
 
 // Morphing-infinity loader (loading-ui.com/morphing-infinity): one SVG path
 // morphing circle → infinity → circle on a 5s loop, animated via SMIL so it
@@ -1254,6 +1263,42 @@ function ChatThread(props: {
     [projectId, workspaceSlug]
   );
 
+  // @-mentions only carry a title/id from the picker. Before sending, pull each
+  // referenced entity's actual body so Atlas grounds on the real doc/task
+  // instead of guessing from the name (and answering "I couldn't find X").
+  // Fetches run in parallel and fail soft: a reference we can't read still ships
+  // its title/id so the model at least knows it was mentioned.
+  const buildMentionedReferencesContext = useCallback(
+    async (references: TAtlasMentionedReference[]): Promise<string> => {
+      if (!workspaceSlug || references.length === 0) return "";
+      const sources = await Promise.all(
+        references.map(async (reference): Promise<TAtlasReferenceContextSource> => {
+          try {
+            if ((reference.type === "doc" || reference.type === "whiteboard") && reference.projectId) {
+              const page = await projectPageService.fetchById(workspaceSlug, reference.projectId, reference.id, false);
+              const content =
+                reference.type === "whiteboard"
+                  ? whiteboardJsonToPlainText(page.description_json)
+                  : htmlToPlainText(page.description_html);
+              return { ...reference, content };
+            }
+            if (reference.type === "task" && reference.projectId) {
+              const issue = await issueService.retrieve(workspaceSlug, reference.projectId, reference.id);
+              return { ...reference, content: issueToReferenceContextContent(issue) };
+            }
+            // Bookmarks carry their url/title on the reference itself, which
+            // buildAtlasReferencesContext already emits — no body to fetch.
+          } catch {
+            // fall through to a content-less source
+          }
+          return { ...reference, content: "" };
+        })
+      );
+      return buildAtlasReferencesContext(sources);
+    },
+    [workspaceSlug]
+  );
+
   useEffect(() => {
     if (!workspaceSlug || !docMentionMatch) {
       setDocMentionResults([]);
@@ -1524,14 +1569,12 @@ function ChatThread(props: {
     setMentionedDocs([]);
     setDocMentionMatch(null);
     // Private grounding context: a pinned passage (so Atlas can resolve
-    // "this/that") plus any @-mentioned docs/issues the user referenced. The
-    // backend caps context_note at 4k chars.
+    // "this/that") plus any @-mentioned docs/issues the user referenced. For
+    // mentions we pull the referenced entity's actual body — not just its title
+    // — so Atlas answers from the real content instead of searching by name.
+    // The backend caps context_note at 12k chars.
     const mentionedRefs = mentionedDocs.filter((doc) => trimmed.includes(doc.insertText));
-    const mentionNote = mentionedRefs.length
-      ? `The user referenced:\n${mentionedRefs
-          .map((d) => `- ${d.title} (${getAtlasReferenceTypeLabel(d.type)})`)
-          .join("\n")}`
-      : "";
+    const mentionNote = await buildMentionedReferencesContext(mentionedRefs);
     const replyNote = reply
       ? `The user highlighted this passage in the current document and is asking a follow-up about it:\n\n"""\n${reply.text}\n"""`
       : "";
@@ -1629,6 +1672,7 @@ function ChatThread(props: {
     aiMode,
     draft,
     mentionedDocs,
+    buildMentionedReferencesContext,
     pendingFiles,
     replyContext,
     sending,

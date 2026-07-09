@@ -25,6 +25,7 @@ import logging
 import re
 import urllib.parse
 import urllib.request
+from uuid import uuid4
 
 import requests
 from bs4 import BeautifulSoup
@@ -1040,6 +1041,292 @@ def _make_update_project_brief_tool(*, workspace: Workspace, user, project_id: s
     )
 
 
+# ---------------------------------------------------------------------------
+# Spreadsheet ("sheet" page type) tools. Sheets are non-Yjs pages whose data
+# lives in `description_json.sheet_snapshot` as { sheets: [grid], activeId },
+# each grid being { id, name, rows, cols, cells } with cells keyed "A1"-style.
+# These helpers mirror the front-end model in
+# apps/web/core/components/pages/sheet/sheet-utils.ts.
+# ---------------------------------------------------------------------------
+
+_SHEET_DEFAULT_ROWS = 20
+_SHEET_DEFAULT_COLS = 8
+_SHEET_MAX_ROWS = 500
+_SHEET_MAX_COLS = 52
+
+
+def _sheet_column_label(index: int) -> str:
+    """0 -> "A", 25 -> "Z", 26 -> "AA" (matches front-end columnLabel)."""
+    label = ""
+    n = index
+    while True:
+        label = chr(65 + (n % 26)) + label
+        n = n // 26 - 1
+        if n < 0:
+            break
+    return label
+
+
+def _sheet_cell_text(value) -> str:
+    if value is None or isinstance(value, bool):
+        return "" if value is None else ("TRUE" if value else "FALSE")
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _sheet_matrix_from_args(headers, rows) -> list[list]:
+    matrix: list[list] = []
+    if isinstance(headers, list) and headers:
+        matrix.append(list(headers))
+    if isinstance(rows, list):
+        for row in rows:
+            matrix.append(list(row) if isinstance(row, list) else [row])
+    return matrix
+
+
+def _sheet_cells_from_matrix(matrix: list[list], row_offset: int = 0) -> dict:
+    cells: dict = {}
+    for r, row in enumerate(matrix):
+        for c, value in enumerate(row):
+            text = _sheet_cell_text(value)
+            if text != "":
+                cells[f"{_sheet_column_label(c)}{r + 1 + row_offset}"] = text
+    return cells
+
+
+def _make_create_sheet_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
+    def _handler(args: dict) -> str:
+        hint = args.get("project") or args.get("project_id")
+        project = _resolve_agent_project(workspace=workspace, project_id=project_id, hint=hint)
+        if project is None:
+            if hint:
+                return f"tool_error: no active project matching '{str(hint).strip()}' in this workspace"
+            return (
+                "tool_error: no project is currently open. Ask the user which project should contain "
+                "the spreadsheet, then pass its name as `project`."
+            )
+
+        title = str(args.get("title") or "").strip()[:255]
+        if not title:
+            return "tool_error: `title` is required"
+
+        matrix = _sheet_matrix_from_args(args.get("headers"), args.get("rows"))
+        if not matrix:
+            return "tool_error: provide the spreadsheet content as `rows` (a list of rows), optionally with `headers`"
+
+        used_cols = max((len(row) for row in matrix), default=0)
+        n_rows = min(max(len(matrix), _SHEET_DEFAULT_ROWS), _SHEET_MAX_ROWS)
+        n_cols = min(max(used_cols, _SHEET_DEFAULT_COLS), _SHEET_MAX_COLS)
+        cells = _sheet_cells_from_matrix(matrix)
+
+        grid_id = f"sheet-{uuid4().hex[:12]}"
+        snapshot = {
+            "sheets": [{"id": grid_id, "name": "Sheet 1", "rows": n_rows, "cols": n_cols, "cells": cells}],
+            "activeId": grid_id,
+        }
+
+        page = Page(
+            workspace=workspace,
+            name=title,
+            page_type=Page.PAGE_TYPE_SHEET,
+            description_html="",
+            description_json={"sheet_snapshot": snapshot},
+            description_binary=None,
+            owned_by=user,
+        )
+        page.save(created_by_id=user.id)
+        ProjectPage(workspace=workspace, project=project, page=page).save(created_by_id=user.id)
+
+        return (
+            "ok: created spreadsheet "
+            f"'{page.name}' (id={page.id}, url=/{workspace.slug}/projects/{project.id}/pages/{page.id})"
+        )
+
+    return LLMTool(
+        name="create_sheet",
+        description=(
+            "Create a spreadsheet page in a DragonFruit project. Use this when the user asks to create, "
+            "build, make, or generate a spreadsheet, sheet, table of data, budget, tracker, or similar "
+            "tabular document. Pass the tabular data as `rows` (and optionally `headers` for the header "
+            "row). Defaults to the currently open project; if the user names a different project, pass "
+            "that name as `project`. Formulas are supported — a cell value beginning with '=' (e.g. "
+            "'=SUM(B2:B10)') is evaluated by the spreadsheet."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "string",
+                    "description": "Optional project name, identifier, or id. Omit to use the currently open project.",
+                },
+                "title": {"type": "string", "description": "Spreadsheet title.", "maxLength": 255},
+                "headers": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional column header labels, written as the first row.",
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {"type": "array", "items": {"type": ["string", "number", "boolean", "null"]}},
+                    "description": (
+                        "Spreadsheet data as a list of rows; each row is a list of cell values (strings, "
+                        "numbers, or formulas beginning with '='). Written below `headers` if provided."
+                    ),
+                },
+            },
+            "required": ["title", "rows"],
+        },
+        handler=_handler,
+    )
+
+
+def _make_update_sheet_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
+    def _handler(args: dict) -> str:
+        hint = args.get("project") or args.get("project_id")
+        project = _resolve_agent_project(workspace=workspace, project_id=project_id, hint=hint)
+        if project is None:
+            if hint:
+                return f"tool_error: no active project matching '{str(hint).strip()}' in this workspace"
+            return (
+                "tool_error: no project is currently open. Ask the user which project the spreadsheet "
+                "is in, then pass its name as `project`."
+            )
+
+        sheet_pages = list(
+            ProjectPage.objects.filter(
+                workspace=workspace,
+                project=project,
+                deleted_at__isnull=True,
+                page__deleted_at__isnull=True,
+                page__page_type=Page.PAGE_TYPE_SHEET,
+            )
+            .select_related("page")
+            .order_by("-page__updated_at")
+        )
+        if not sheet_pages:
+            return "tool_error: this project has no spreadsheet yet. Use `create_sheet` to make one first."
+
+        wanted = str(args.get("sheet") or args.get("title") or "").strip()
+        if wanted:
+            match = next((pp for pp in sheet_pages if pp.page.name.strip().lower() == wanted.lower()), None)
+            if match is None:
+                names = ", ".join(f"'{pp.page.name}'" for pp in sheet_pages[:10])
+                return f"tool_error: no spreadsheet named '{wanted}' in this project. Available: {names}"
+        elif len(sheet_pages) > 1:
+            names = ", ".join(f"'{pp.page.name}'" for pp in sheet_pages[:10])
+            return f"tool_error: this project has multiple spreadsheets ({names}). Pass the one to edit as `sheet`."
+        else:
+            match = sheet_pages[0]
+
+        page = match.page
+        matrix = _sheet_matrix_from_args(args.get("headers"), args.get("rows"))
+        if not matrix:
+            return "tool_error: provide the new content as `rows` (a list of rows), optionally with `headers`"
+
+        mode = str(args.get("mode") or "replace").strip().lower()
+
+        # Load the existing snapshot, tolerating legacy/empty shapes.
+        dj = page.description_json if isinstance(page.description_json, dict) else {}
+        snap = dj.get("sheet_snapshot") if isinstance(dj.get("sheet_snapshot"), dict) else {}
+        sheets = snap.get("sheets") if isinstance(snap.get("sheets"), list) else []
+        active_id = snap.get("activeId")
+        grid = None
+        if sheets:
+            grid = next((g for g in sheets if isinstance(g, dict) and g.get("id") == active_id), None) or (
+                sheets[0] if isinstance(sheets[0], dict) else None
+            )
+        if grid is None:
+            grid = {
+                "id": f"sheet-{uuid4().hex[:12]}",
+                "name": "Sheet 1",
+                "rows": _SHEET_DEFAULT_ROWS,
+                "cols": _SHEET_DEFAULT_COLS,
+                "cells": {},
+            }
+            sheets = [grid]
+            active_id = grid["id"]
+
+        existing_cells = grid.get("cells") if isinstance(grid.get("cells"), dict) else {}
+
+        if mode == "append":
+            # Find the highest occupied row so new rows land beneath the data.
+            max_row = 0
+            for key in existing_cells:
+                m = re.match(r"^[A-Za-z]+(\d+)$", key)
+                if m:
+                    max_row = max(max_row, int(m.group(1)))
+            new_cells = dict(existing_cells)
+            new_cells.update(_sheet_cells_from_matrix(matrix, row_offset=max_row))
+            appended_from = max_row
+        else:
+            new_cells = _sheet_cells_from_matrix(matrix)
+            appended_from = 0
+
+        used_cols = max((len(row) for row in matrix), default=0)
+        needed_rows = appended_from + len(matrix)
+        grid["cells"] = new_cells
+        grid["rows"] = min(max(int(grid.get("rows") or 0), needed_rows, _SHEET_DEFAULT_ROWS), _SHEET_MAX_ROWS)
+        grid["cols"] = min(max(int(grid.get("cols") or 0), used_cols, _SHEET_DEFAULT_COLS), _SHEET_MAX_COLS)
+
+        dj["sheet_snapshot"] = {"sheets": sheets, "activeId": active_id or grid["id"]}
+        page.description_json = dj
+        page.description_binary = None
+        page.save()
+
+        verb = "appended rows to" if mode == "append" else "updated"
+        return (
+            f"ok: {verb} spreadsheet '{page.name}' "
+            f"(id={page.id}, url=/{workspace.slug}/projects/{project.id}/pages/{page.id})"
+        )
+
+    return LLMTool(
+        name="update_sheet",
+        description=(
+            "Edit an existing spreadsheet page in a DragonFruit project. Use when the user asks to update, "
+            "edit, add rows to, or fill in an existing sheet. By default it replaces the sheet's contents "
+            "with the `rows` you provide; pass mode='append' to add `rows` beneath the existing data. If "
+            "the project has more than one spreadsheet, pass its title as `sheet`."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "string",
+                    "description": "Optional project name, identifier, or id. Omit to use the currently open project.",
+                },
+                "sheet": {
+                    "type": "string",
+                    "description": (
+                        "Title of the spreadsheet to edit. Required only if the project has multiple "
+                        "spreadsheets."
+                    ),
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": ["replace", "append"],
+                    "description": "replace (default) overwrites all cells; append adds rows below the existing data.",
+                },
+                "headers": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional column header labels (written as the first row; omit when appending).",
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {"type": "array", "items": {"type": ["string", "number", "boolean", "null"]}},
+                    "description": (
+                        "New spreadsheet data as a list of rows; each row is a list of cell values or "
+                        "formulas."
+                    ),
+                },
+            },
+            "required": ["rows"],
+        },
+        handler=_handler,
+    )
+
+
 def _make_web_search_tool() -> LLMTool:
     def _handler(args: dict) -> str:
         try:
@@ -1364,7 +1651,7 @@ def _make_wikipedia_brief_tool(*, workspace: Workspace, user, project_id: str | 
 def _fallback_tool_confirmation(result) -> str:
     """Give users a useful reply if the model stops after an action tool call."""
     for tool_call in reversed(result.tool_calls):
-        if tool_call.get("name") not in {"create_document", "update_project_brief", "create_task", "create_sticky"}:
+        if tool_call.get("name") not in {"create_document", "update_project_brief", "create_task", "create_sticky", "create_sheet", "update_sheet"}:
             continue
         return _tool_call_confirmation(tool_call)
     return ""
@@ -1395,6 +1682,17 @@ def _tool_call_confirmation(tool_call: dict) -> str:
         return f"{verb} the [project brief]({url})." if url else f"{verb} the project brief."
 
     args = tool_call.get("arguments", {})
+
+    # update_sheet edits an existing spreadsheet (matched by `sheet`), so it
+    # reads as "Updated", and the result's quoted name is the source of truth.
+    if tool_call.get("name") == "update_sheet":
+        verb = "Appended rows to" if "ok: appended" in tool_result else "Updated"
+        name = ""
+        if "'" in tool_result:
+            name = tool_result.split("'", 2)[1]
+        label = str(args.get("sheet") or name or "the spreadsheet").strip()
+        return f"{verb} [{label}]({url})." if url else f"{verb} {label}."
+
     title = str(args.get("title") or args.get("name") or "item").strip()
     if url:
         return f"Created [{title}]({url})."
@@ -1877,7 +2175,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         content = (request.data.get("content") or "").strip()
         raw_attachments = request.data.get("attachments") or []
         project_id = (request.data.get("project_id") or "").strip() or None
-        context_note = str(request.data.get("context_note") or "").strip()[:4_000]
+        context_note = str(request.data.get("context_note") or "").strip()[:12_000]
         force_document_tool = _coerce_bool(request.data.get("force_document_tool"))
         use_agent_tools = _should_use_agent_tools(request.data.get("tool_mode"))
         fact_check_mode = _coerce_bool(request.data.get("fact_check"))
@@ -2039,7 +2337,10 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 f"{system}\n\n"
                 "Private Atlas context (do not quote this block unless the user asks):\n"
                 f"{context_note}\n\n"
-                "Use this context only to resolve references like 'this/that' and improve grounding."
+                "Use this context to resolve references (like 'this/that' or the @mentioned docs and "
+                "tasks below) and as authoritative source material when answering — the content of a "
+                "referenced entity is already provided here, so rely on it directly instead of searching "
+                "for it by name."
             )
         composio_config = get_composio_config_for_workspace(session.workspace)
         if composio_config is not None:
@@ -2121,6 +2422,16 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     project_id=project_id,
                 ),
                 _make_create_task_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
+                _make_create_sheet_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
+                _make_update_sheet_tool(
                     workspace=session.workspace,
                     user=request.user,
                     project_id=project_id,

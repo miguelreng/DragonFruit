@@ -21,6 +21,8 @@ export type TSheetGrid = {
   name: string;
   rows: number;
   cols: number;
+  /** optional tab accent color (hex); shown as a strip under the tab label */
+  color?: string;
   /** raw cell contents keyed by cell id ("A1"); empty cells are omitted */
   cells: Record<string, string>;
   /** per-cell display formatting keyed by cell id; empty formats are omitted */
@@ -29,7 +31,35 @@ export type TSheetGrid = {
   colWidths?: Record<number, number>;
   /** number of leading columns kept frozen (sticky) during horizontal scroll */
   frozenCols?: number;
+  /** when true, column filters are active and header funnels are shown */
+  filterEnabled?: boolean;
+  /** per-column filters keyed by 0-based column index */
+  filters?: Record<number, TColumnFilter>;
+  /** per-column dropdown/"pill" config keyed by 0-based column index */
+  selects?: Record<number, TColumnSelect>;
 };
+
+/** A column filter: hide specific displayed values and/or a "contains" query. */
+export type TColumnFilter = {
+  hidden?: string[];
+  query?: string;
+};
+
+/** A dropdown option shown as a colored pill. */
+export type TSelectOption = { value: string; color: string };
+/** Turns a column into a single/multi-select dropdown of colored pills. */
+export type TColumnSelect = { options: TSelectOption[]; multi: boolean };
+
+/** Cell value ("a, b") → selected values. */
+export const parseSelected = (value: string): string[] =>
+  value
+    ? value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+/** Selected values → cell value. */
+export const serializeSelected = (values: string[]): string => values.join(", ");
 
 /** A spreadsheet document holds one or more grids and tracks the active one. */
 export type TSheetSnapshot = {
@@ -118,7 +148,21 @@ export type TCellFormat = {
   currency?: string;
   /** fixed decimal places for numeric formats */
   decimals?: number;
+  /** per-cell borders (color + stroke shared across the cell's active sides) */
+  border?: TCellBorder;
 };
+
+export type TCellBorderStyle = "solid" | "dashed";
+export type TCellBorder = {
+  top?: boolean;
+  right?: boolean;
+  bottom?: boolean;
+  left?: boolean;
+  color: string;
+  width: number;
+  style: TCellBorderStyle;
+};
+export type TBorderPosition = "all" | "outer" | "inner" | "top" | "bottom" | "left" | "right" | "none";
 
 export const SHEET_DEFAULT_ROWS = 20;
 export const SHEET_DEFAULT_COLS = 8;
@@ -202,15 +246,43 @@ const parseGrid = (raw: Record<string, unknown>, id: string, name: string): TShe
   const boundedCols = Math.min(Math.max(cols, 1), SHEET_MAX_COLS);
   const frozenCols =
     typeof raw.frozenCols === "number" ? Math.min(Math.max(Math.floor(raw.frozenCols), 0), boundedCols) : 0;
+  const filters: Record<number, TColumnFilter> = {};
+  if (isRecord(raw.filters)) {
+    for (const [key, value] of Object.entries(raw.filters)) {
+      const idx = Number(key);
+      if (Number.isInteger(idx) && isRecord(value)) {
+        const hidden = Array.isArray(value.hidden) ? value.hidden.filter((v): v is string => typeof v === "string") : undefined;
+        const query = typeof value.query === "string" ? value.query : undefined;
+        filters[idx] = { hidden, query };
+      }
+    }
+  }
+  const selects: Record<number, TColumnSelect> = {};
+  if (isRecord(raw.selects)) {
+    for (const [key, value] of Object.entries(raw.selects)) {
+      const idx = Number(key);
+      if (Number.isInteger(idx) && isRecord(value) && Array.isArray(value.options)) {
+        const options = value.options
+          .filter(isRecord)
+          .map((o) => ({ value: String(o.value ?? ""), color: typeof o.color === "string" ? o.color : "#e5e7eb" }))
+          .filter((o) => o.value);
+        if (options.length) selects[idx] = { options, multi: value.multi === true };
+      }
+    }
+  }
   return {
     id,
     name,
+    color: typeof raw.color === "string" ? raw.color : undefined,
     rows: Math.min(Math.max(rows, 1), SHEET_MAX_ROWS),
     cols: boundedCols,
     cells,
     formats,
     colWidths,
     frozenCols,
+    filterEnabled: raw.filterEnabled === true,
+    filters,
+    selects,
   };
 };
 
@@ -255,7 +327,8 @@ export const isEmptyFormat = (f: TCellFormat | undefined): boolean =>
     (!f.align || f.align === "left") &&
     (!f.wrap || f.wrap === "overflow") &&
     (!f.numberFormat || f.numberFormat === "plain") &&
-    f.decimals === undefined);
+    f.decimals === undefined &&
+    !(f.border && (f.border.top || f.border.right || f.border.bottom || f.border.left)));
 
 /**
  * Apply a cell's number format to its already-computed value. Non-numeric
@@ -495,6 +568,63 @@ export const clearRect = (grid: TSheetGrid, r1: number, c1: number, r2: number, 
   return { ...grid, cells, formats };
 };
 
+/** Whether a border carries any visible edge. */
+export const hasBorder = (b: TCellBorder | undefined): b is TCellBorder =>
+  !!b && (!!b.top || !!b.right || !!b.bottom || !!b.left);
+
+/**
+ * Apply borders across a rectangular range. `position` picks which edges each
+ * cell gains; color/width/style are merged into the cell's existing border so
+ * repeated applications keep prior sides. "none" clears borders in the range.
+ */
+export const applyBorders = (
+  grid: TSheetGrid,
+  r1: number,
+  c1: number,
+  r2: number,
+  c2: number,
+  position: TBorderPosition,
+  style: { color: string; width: number; style: TCellBorderStyle }
+): TSheetGrid => {
+  const rMin = Math.min(r1, r2);
+  const rMax = Math.max(r1, r2);
+  const cMin = Math.min(c1, c2);
+  const cMax = Math.max(c1, c2);
+  const formats = { ...(grid.formats ?? {}) };
+  for (let r = rMin; r <= rMax; r++) {
+    for (let c = cMin; c <= cMax; c++) {
+      const id = cellId(r, c);
+      const prev = formats[id];
+      if (position === "none") {
+        if (prev?.border) {
+          const { border: _drop, ...rest } = prev;
+          if (isEmptyFormat(rest)) delete formats[id];
+          else formats[id] = rest;
+        }
+        continue;
+      }
+      const sides = {
+        top: position === "all" || position === "top" || (position === "outer" && r === rMin) || (position === "inner" && r > rMin),
+        bottom: position === "all" || position === "bottom" || (position === "outer" && r === rMax) || (position === "inner" && r < rMax),
+        left: position === "all" || position === "left" || (position === "outer" && c === cMin) || (position === "inner" && c > cMin),
+        right: position === "all" || position === "right" || (position === "outer" && c === cMax) || (position === "inner" && c < cMax),
+      };
+      const base = prev?.border;
+      const border: TCellBorder = {
+        top: sides.top || (!!base?.top && position !== "all"),
+        right: sides.right || (!!base?.right && position !== "all"),
+        bottom: sides.bottom || (!!base?.bottom && position !== "all"),
+        left: sides.left || (!!base?.left && position !== "all"),
+        color: style.color,
+        width: style.width,
+        style: style.style,
+      };
+      if (hasBorder(border)) formats[id] = { ...prev, border };
+    }
+  }
+  return { ...grid, formats };
+};
+
 /** Distinct colors cycled through for the cell references inside a formula. */
 export const FORMULA_REF_COLORS = ["#1a73e8", "#e8710a", "#188038", "#9334e6", "#c5221f", "#12a4af"];
 
@@ -626,6 +756,46 @@ export const computeCell = (id: string, cells: Record<string, string>, visiting:
   const next = new Set(visiting).add(id);
   const result = evaluateFormula(raw.slice(1), cells, next);
   return result;
+};
+
+// ---------------------------------------------------------------------------
+// Column filters
+// ---------------------------------------------------------------------------
+
+/** The value shown for a cell (computed + number-formatted) — what filters match on. */
+export const displayValue = (grid: TSheetGrid, row: number, col: number): string => {
+  const id = cellId(row, col);
+  return formatDisplayValue(computeCell(id, grid.cells), grid.formats?.[id]);
+};
+
+/** Distinct displayed values in a column's data rows (for the filter checklist). */
+export const columnDistinctValues = (grid: TSheetGrid, col: number): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (let r = 0; r < grid.rows; r++) {
+    const v = displayValue(grid, r, col);
+    if (!seen.has(v)) {
+      seen.add(v);
+      out.push(v);
+    }
+  }
+  return out.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+};
+
+/** Whether a column has an active filter. */
+export const isColumnFiltered = (f: TColumnFilter | undefined): boolean =>
+  !!f && ((f.hidden?.length ?? 0) > 0 || !!f.query?.trim());
+
+/** Whether a data row passes every active column filter. */
+export const rowPassesFilters = (grid: TSheetGrid, row: number): boolean => {
+  if (!grid.filterEnabled || !grid.filters) return true;
+  for (const [key, f] of Object.entries(grid.filters)) {
+    if (!isColumnFiltered(f)) continue;
+    const v = displayValue(grid, row, Number(key));
+    if (f.query?.trim() && !v.toLowerCase().includes(f.query.trim().toLowerCase())) return false;
+    if (f.hidden?.includes(v)) return false;
+  }
+  return true;
 };
 
 const cellNumber = (id: string, cells: Record<string, string>, visiting: Set<string>): number => {
