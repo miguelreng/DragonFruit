@@ -103,10 +103,10 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
         } else {
           router.push(currentRedirectRoute);
         }
-        return <></>;
+        return <AppLoadingScreen />;
       } else {
         router.push("/onboarding");
-        return <></>;
+        return <AppLoadingScreen />;
       }
     }
   }
@@ -114,7 +114,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
   if (pageType === EPageTypes.ONBOARDING) {
     if (!currentUser?.id) {
       router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
-      return <></>;
+      return <AppLoadingScreen />;
     } else {
       if (currentUser && currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
@@ -123,7 +123,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
         } else {
           router.replace(currentRedirectRoute);
         }
-        return <></>;
+        return <AppLoadingScreen />;
       } else return <>{children}</>;
     }
   }
@@ -131,7 +131,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
   if (pageType === EPageTypes.SET_PASSWORD) {
     if (!currentUser?.id) {
       router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
-      return <></>;
+      return <AppLoadingScreen />;
     } else {
       if (currentUser && !currentUser?.is_password_autoset && currentUserProfile?.id && isUserOnboard) {
         const currentRedirectRoute = getWorkspaceRedirectionUrl();
@@ -140,7 +140,7 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
         } else {
           router.push(currentRedirectRoute);
         }
-        return <></>;
+        return <AppLoadingScreen />;
       } else return <>{children}</>;
     }
   }
@@ -150,11 +150,11 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
       if (currentUserProfile && currentUserProfile?.id && isUserOnboard) return <>{children}</>;
       else {
         router.push(`/onboarding`);
-        return <></>;
+        return <AppLoadingScreen />;
       }
     } else {
       router.push(`/${pathname ? `?next_path=${pathname}` : ``}`);
-      return <></>;
+      return <AppLoadingScreen />;
     }
   }
 

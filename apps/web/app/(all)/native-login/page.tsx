@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { API_BASE_URL } from "@plane/constants";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 
 const PRODUCTION_API_BASE_URL = "https://api.dragonfruit.sh";
 
@@ -175,17 +176,13 @@ export default function NativeLoginPage() {
     })();
   }, [searchParams]);
 
+  if (!error) return <AppLoadingScreen />;
+
   return (
     <div className="flex h-screen w-full items-center justify-center bg-canvas">
       <div className="max-w-md text-center">
-        {error ? (
-          <>
-            <div className="text-base font-medium text-danger-primary">Connection failed</div>
-            <div className="text-sm mt-1 text-tertiary">{error}</div>
-          </>
-        ) : (
-          <div className="text-sm text-tertiary">Connecting DragonFruit…</div>
-        )}
+        <div className="text-base font-medium text-danger-primary">Connection failed</div>
+        <div className="text-sm mt-1 text-tertiary">{error}</div>
       </div>
     </div>
   );

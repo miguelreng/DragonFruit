@@ -13,6 +13,7 @@ import { TranslationProvider } from "@plane/i18n";
 import { Toast } from "@plane/propel/toast";
 // helpers
 import { resolveGeneralTheme } from "@plane/utils";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { MobileAppInstallPrompt } from "@/components/pwa/mobile-app-install-prompt";
 import AppProgressBar from "@/lib/b-progress/AppProgressBar";
 // mobx store provider
@@ -38,7 +39,7 @@ export function AppProvider(props: IAppProvider) {
           <MobileAppInstallPrompt />
           <StoreWrapper>
             <InstanceWrapper>
-              <Suspense>
+              <Suspense fallback={<AppLoadingScreen />}>
                 <SWRConfig value={WEB_SWR_CONFIG}>{children}</SWRConfig>
               </Suspense>
             </InstanceWrapper>

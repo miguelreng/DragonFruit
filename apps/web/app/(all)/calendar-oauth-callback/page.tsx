@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { observer } from "mobx-react";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { CalendarService } from "@/services/calendar.service";
 
 const calendarService = new CalendarService();
@@ -54,23 +55,19 @@ function CalendarOauthCallbackPage() {
     })();
   }, [searchParams, navigate]);
 
+  if (!error) return <AppLoadingScreen />;
+
   return (
     <div className="flex h-screen w-full items-center justify-center bg-canvas">
       <div className="max-w-md text-center">
-        {error ? (
-          <>
-            <div className="text-base font-medium text-danger-primary">Connection failed</div>
-            <div className="text-sm mt-1 text-tertiary">{error}</div>
-            <button
-              onClick={() => navigate("/")}
-              className="bg-primary text-sm text-primary-foreground mt-4 rounded-lg px-3 py-1.5"
-            >
-              Go home
-            </button>
-          </>
-        ) : (
-          <div className="text-sm text-tertiary">Connecting your Google Calendar…</div>
-        )}
+        <div className="text-base font-medium text-danger-primary">Connection failed</div>
+        <div className="text-sm mt-1 text-tertiary">{error}</div>
+        <button
+          onClick={() => navigate("/")}
+          className="bg-primary text-sm text-primary-foreground mt-4 rounded-lg px-3 py-1.5"
+        >
+          Go home
+        </button>
       </div>
     </div>
   );
