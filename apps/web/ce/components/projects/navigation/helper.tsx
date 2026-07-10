@@ -6,14 +6,7 @@
 
 // plane imports
 import { EUserPermissions, EProjectFeatureKey } from "@plane/constants";
-import {
-  Calendar,
-  Checklist,
-  Document,
-  Eye,
-  Inbox,
-  Layers,
-} from "@solar-icons/react/ssr";
+import { Calendar, Checklist, Document, Eye, Inbox, Layers } from "@solar-icons/react/ssr";
 // components
 import type { TNavigationItem } from "@/components/workspace/sidebar/project-navigation";
 import { createSolarSidebarIconPair } from "@/components/sidebar/solar-icon";
@@ -40,6 +33,16 @@ export const getProjectFeatureNavigation = (
     sortOrder: 1,
   },
   {
+    i18n_key: "sidebar.calendar",
+    key: "calendar",
+    name: "Calendar",
+    href: `/${workspaceSlug}/projects/${projectId}/calendar`,
+    ...createSolarSidebarIconPair(Calendar),
+    access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+    shouldRender: true,
+    sortOrder: 2,
+  },
+  {
     i18n_key: "sidebar.cycles",
     key: EProjectFeatureKey.CYCLES,
     name: "Cycles",
@@ -47,7 +50,7 @@ export const getProjectFeatureNavigation = (
     ...createSolarSidebarIconPair(Calendar),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     shouldRender: project.cycle_view,
-    sortOrder: 2,
+    sortOrder: 3,
   },
   {
     i18n_key: "sidebar.modules",
@@ -57,7 +60,7 @@ export const getProjectFeatureNavigation = (
     ...createSolarSidebarIconPair(Layers),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     shouldRender: project.module_view,
-    sortOrder: 3,
+    sortOrder: 4,
   },
   {
     i18n_key: "sidebar.views",
@@ -67,7 +70,7 @@ export const getProjectFeatureNavigation = (
     ...createSolarSidebarIconPair(Eye),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
     shouldRender: project.issue_views_view,
-    sortOrder: 4,
+    sortOrder: 5,
   },
   {
     i18n_key: "sidebar.pages",
@@ -77,7 +80,7 @@ export const getProjectFeatureNavigation = (
     ...createSolarSidebarIconPair(Document),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
     shouldRender: project.page_view,
-    sortOrder: 5,
+    sortOrder: 6,
   },
   {
     i18n_key: "sidebar.intake",
@@ -87,6 +90,6 @@ export const getProjectFeatureNavigation = (
     ...createSolarSidebarIconPair(Inbox),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
     shouldRender: project.inbox_view,
-    sortOrder: 6,
+    sortOrder: 7,
   },
 ];

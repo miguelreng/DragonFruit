@@ -16,27 +16,63 @@ final class PomodoroTimerModel: ObservableObject {
                 return "Break"
             }
         }
-
-        var duration: Int {
-            switch self {
-            case .focus:
-                return 25 * 60
-            case .shortBreak:
-                return 5 * 60
-            }
-        }
     }
+
+    static let focusPresets = [15, 25, 45, 60, 90]
+    static let breakPresets = [5, 10, 15]
+    private static let focusMinutesKey = "df_pomodoro_focus_minutes"
+    private static let breakMinutesKey = "df_pomodoro_break_minutes"
 
     @Published private(set) var phase: Phase = .focus
     @Published private(set) var isRunning = false
-    @Published private(set) var remainingSeconds: Int = Phase.focus.duration
+    @Published private(set) var remainingSeconds: Int
     @Published private(set) var completedFocusSessions = 0
+
+    @Published var focusMinutes: Int {
+        didSet {
+            UserDefaults.standard.set(focusMinutes, forKey: Self.focusMinutesKey)
+            syncRemainingAfterDurationChange(for: .focus)
+        }
+    }
+
+    @Published var breakMinutes: Int {
+        didSet {
+            UserDefaults.standard.set(breakMinutes, forKey: Self.breakMinutesKey)
+            syncRemainingAfterDurationChange(for: .shortBreak)
+        }
+    }
 
     private var timer: Timer?
 
+    init() {
+        let storedFocus = UserDefaults.standard.integer(forKey: Self.focusMinutesKey)
+        let storedBreak = UserDefaults.standard.integer(forKey: Self.breakMinutesKey)
+        let focus = storedFocus > 0 ? storedFocus : 25
+        focusMinutes = focus
+        breakMinutes = storedBreak > 0 ? storedBreak : 5
+        remainingSeconds = focus * 60
+    }
+
+    func duration(for phase: Phase) -> Int {
+        switch phase {
+        case .focus:
+            return focusMinutes * 60
+        case .shortBreak:
+            return breakMinutes * 60
+        }
+    }
+
     /// True once a session has been started, even while paused mid-phase.
     var isActive: Bool {
-        isRunning || remainingSeconds != phase.duration
+        isRunning || remainingSeconds != duration(for: phase)
+    }
+
+    // Picking a new duration while the current phase sits untouched (or
+    // paused) restarts that phase's clock; a running timer is left alone and
+    // picks up the new length on the next phase.
+    private func syncRemainingAfterDurationChange(for changed: Phase) {
+        guard phase == changed, !isRunning else { return }
+        remainingSeconds = duration(for: phase)
     }
 
     var timeLabel: String {
@@ -44,7 +80,7 @@ final class PomodoroTimerModel: ObservableObject {
     }
 
     var progress: Double {
-        let total = Double(phase.duration)
+        let total = Double(duration(for: phase))
         guard total > 0 else { return 0 }
         return 1 - (Double(remainingSeconds) / total)
     }
@@ -79,7 +115,7 @@ final class PomodoroTimerModel: ObservableObject {
     func reset() {
         pause()
         phase = .focus
-        remainingSeconds = Phase.focus.duration
+        remainingSeconds = duration(for: .focus)
         completedFocusSessions = 0
     }
 
@@ -100,7 +136,7 @@ final class PomodoroTimerModel: ObservableObject {
             completedFocusSessions += 1
         }
         phase = phase == .focus ? .shortBreak : .focus
-        remainingSeconds = phase.duration
+        remainingSeconds = duration(for: phase)
         if playChime {
             NSSound(named: "Glass")?.play()
         }
@@ -130,16 +166,65 @@ struct PomodoroCardContent: View {
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(pomodoro.timeLabel)
-                    .font(.custom("Newsreader", size: 26).weight(.regular))
-                    .foregroundStyle(theme.textPrimary)
-                    .monospacedDigit()
+                if pomodoro.isRunning {
+                    timeText
+                } else {
+                    // Idle/paused, the time is a menu: pick focus and break
+                    // lengths without leaving the card.
+                    Menu {
+                        durationMenuItems
+                    } label: {
+                        HStack(alignment: .center, spacing: 5) {
+                            timeText
+                            AtlasIcon(.arrowDown)
+                                .frame(width: 9, height: 9)
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .help("Change focus and break lengths")
+                }
                 Text(pomodoro.phase.label)
                     .font(.custom("Figtree", size: 11).weight(.medium))
                     .foregroundStyle(pomodoro.phase == .focus ? theme.accent : theme.success)
                 Spacer(minLength: 0)
             }
 
+            durationControls
+        }
+    }
+
+    private var timeText: some View {
+        Text(pomodoro.timeLabel)
+            .font(.custom("Newsreader", size: 26).weight(.regular))
+            .foregroundStyle(theme.textPrimary)
+            .monospacedDigit()
+    }
+
+    @ViewBuilder
+    private var durationMenuItems: some View {
+        Section("Focus") {
+            ForEach(PomodoroTimerModel.focusPresets, id: \.self) { minutes in
+                Toggle("\(minutes) minutes", isOn: Binding(
+                    get: { pomodoro.focusMinutes == minutes },
+                    set: { if $0 { pomodoro.focusMinutes = minutes } }
+                ))
+            }
+        }
+        Section("Break") {
+            ForEach(PomodoroTimerModel.breakPresets, id: \.self) { minutes in
+                Toggle("\(minutes) minutes", isOn: Binding(
+                    get: { pomodoro.breakMinutes == minutes },
+                    set: { if $0 { pomodoro.breakMinutes = minutes } }
+                ))
+            }
+        }
+    }
+
+    private var durationControls: some View {
             HStack(spacing: 10) {
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
@@ -179,7 +264,7 @@ struct PomodoroCardContent: View {
                     .help("Reset")
                 }
             }
-        }
+            .frame(maxWidth: .infinity)
     }
 }
 

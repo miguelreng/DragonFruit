@@ -46,5 +46,17 @@ const ogImageUrl = new URL(ogImage, siteOrigin).toString();
   </head>
   <body class={bodyClass}>
     <slot />
+    <script is:inline>
+      (() => {
+        const cards = document.querySelectorAll('[data-spotlight-card]');
+        cards.forEach((card) => {
+          card.addEventListener('pointermove', (event) => {
+            const rect = card.getBoundingClientRect();
+            card.style.setProperty('--spotlight-x', `${event.clientX - rect.left}px`);
+            card.style.setProperty('--spotlight-y', `${event.clientY - rect.top}px`);
+          });
+        });
+      })();
+    </script>
   </body>
 </html>

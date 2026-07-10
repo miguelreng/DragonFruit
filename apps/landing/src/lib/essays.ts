@@ -163,13 +163,9 @@ async function fetchEssays(): Promise<Essay[]> {
   const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
-    if (response.status >= 500) {
-      essaysSourceError = `Essays source returned ${response.status} ${response.statusText}.`;
-      console.warn(`${essaysSourceError} Building the landing site with an empty essays index.`);
-      return [];
-    }
-
-    throw new Error(`Failed to fetch essays from DragonFruit (${response.status} ${response.statusText})`);
+    essaysSourceError = `Essays source returned ${response.status} ${response.statusText}.`;
+    console.warn(`${essaysSourceError} Building the landing site with an empty essays index.`);
+    return [];
   }
 
   return response.json();

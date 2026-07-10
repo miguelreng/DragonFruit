@@ -5,7 +5,17 @@
  */
 import { Collapse } from "@/components/common/collapse";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+  type RefObject,
+  type ReactNode,
+} from "react";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { Link } from "react-router";
@@ -19,11 +29,14 @@ import {
 } from "@/components/icons/lucide-shim";
 import { List as ListBullets, LayoutGrid as SquaresFour } from "@/components/icons/lucide-shim";
 import {
+  ArrowRightLeft,
   ChevronDown,
   File as FileIcon,
   FileText,
   Folder,
+  FolderPlus,
   GridIconShim,
+  Pencil,
   Search,
   UploadCloud,
   Whiteboard,
@@ -36,7 +49,16 @@ import { PageIcon } from "@/components/icons/propel-shim";
 import { ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
 import { DocumentText } from "@solar-icons/react/ssr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore, Breadcrumbs, Checkbox, CustomMenu, Header } from "@plane/ui";
+import {
+  AlertModalCore,
+  Breadcrumbs,
+  Checkbox,
+  CustomMenu,
+  EModalPosition,
+  EModalWidth,
+  Header,
+  ModalCore,
+} from "@plane/ui";
 import { cn, convertBytesToSize, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
 import { EPageAccess } from "@plane/types";
 import type { TPage, TPageType } from "@plane/types";
@@ -53,7 +75,6 @@ import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { EUserPermissions } from "@plane/constants";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { normalizeTags } from "@/helpers/tags";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
@@ -81,17 +102,33 @@ const DetailIcon = ({
 }) => <Icon className={className} color={color} size={size} strokeWidth={strokeWidth} />;
 
 const pageService = new ProjectPageService();
+const DEFAULT_FOLDER_NAME = "Untitled";
 
 // Page service methods reject with the API response body (e.g. {error: "..."}),
 // a bare string, or an Axios error. Pull out the human-readable reason so the
 // real cause (403/locked/not-archived) surfaces instead of a generic message.
 const pageActionErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === "string" && error.trim()) return error.trim();
-  if (error && typeof error === "object") {
-    const data = error as { error?: unknown; detail?: unknown; message?: unknown };
-    const detail = data.error ?? data.detail ?? data.message;
-    if (typeof detail === "string" && detail.trim()) return detail.trim();
-  }
+  if (Array.isArray(error))
+    return error
+      .map((item) => pageActionErrorMessage(item, ""))
+      .filter(Boolean)
+      .join(" ");
+  if (!error || typeof error !== "object") return fallback;
+
+  const data = error as { error?: unknown; detail?: unknown; message?: unknown };
+  const detail = data.error ?? data.detail ?? data.message;
+  if (detail !== undefined) return pageActionErrorMessage(detail, fallback);
+
+  const fieldErrors = Object.entries(error)
+    .map(([field, value]) => {
+      const message = pageActionErrorMessage(value, "");
+      return message ? `${field}: ${message}` : "";
+    })
+    .filter(Boolean)
+    .join(" ");
+  if (fieldErrors) return fieldErrors;
+
   return fallback;
 };
 
@@ -159,11 +196,6 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     "grid"
   );
   const viewMode: ViewMode = storedViewMode ?? "grid";
-  // The open rail eats horizontal space, so drop the gallery from 4 to 3
-  // columns at xl while it's expanded.
-  const { preferences: railPreferences } = useAppRailPreferences();
-  const isRailExpanded = railPreferences.displayMode === "icon_with_label";
-
   const {
     data: pages,
     isLoading,
@@ -221,6 +253,173 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     });
   }, [visiblePages, searchQuery, selectedProjectIds, selectedTypes, selectedAccess, getProjectById]);
 
+  // ----- Folders (docs surface only) -----
+  // A folder is a page with page_type "folder"; docs point their `parent` at
+  // it. Folders never open in an editor — clicking one drills the list in.
+  const foldersEnabled = activePageTypes.includes("doc");
+  const folders = useMemo(
+    () =>
+      foldersEnabled
+        ? sortBy(
+            (pages ?? []).filter(
+              (p) =>
+                p.page_type === "folder" &&
+                !p.archived_at &&
+                (!scopeProjectId || (p.project_ids ?? []).includes(scopeProjectId))
+            ),
+            [(f) => getPageName(f.name).toLowerCase()]
+          )
+        : [],
+    [foldersEnabled, pages, scopeProjectId]
+  );
+  const folderIdSet = useMemo(() => new Set(folders.map((f) => f.id)), [folders]);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const activeFolder = activeFolderId ? folders.find((f) => f.id === activeFolderId) : undefined;
+  // Folder rename modal and delete confirm.
+  const [folderNameModal, setFolderNameModal] = useState<{ folder: TPage | null } | null>(null);
+  const [isInlineFolderDraftVisible, setIsInlineFolderDraftVisible] = useState(false);
+  const [inlineFolderName, setInlineFolderName] = useState("");
+  const [isSavingInlineFolder, setIsSavingInlineFolder] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<TPage | null>(null);
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false);
+  const inlineFolderInputRef = useRef<HTMLInputElement>(null);
+  const inlineFolderSaveInFlightRef = useRef(false);
+  useEffect(() => {
+    // Deleted (or filtered-away) folder — fall back to the root list.
+    if (activeFolderId && !isLoading && !folderIdSet.has(activeFolderId)) setActiveFolderId(null);
+  }, [activeFolderId, folderIdSet, isLoading]);
+
+  const isSearching = searchQuery.trim().length > 0;
+  const showFolderUi = foldersEnabled && !showArchived;
+  // Docs scoped by the folder drill-in. Inside a folder, search narrows within
+  // it; at the root, a search flattens across all folders. Docs whose parent
+  // folder isn't visible (e.g. it was archived) fall back to the root list.
+  const displayedDocs = useMemo(() => {
+    if (!showFolderUi) return filteredPages;
+    if (activeFolder?.id) return filteredPages.filter((p) => p.parent === activeFolder.id);
+    if (isSearching) return filteredPages;
+    return filteredPages.filter((p) => !p.parent || !folderIdSet.has(p.parent));
+  }, [showFolderUi, filteredPages, activeFolder?.id, isSearching, folderIdSet]);
+  const displayedFolders = showFolderUi && !activeFolder && !isSearching ? folders : [];
+  const folderDocCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    visiblePages.forEach((p) => {
+      if (p.parent) counts.set(p.parent, (counts.get(p.parent) ?? 0) + 1);
+    });
+    return counts;
+  }, [visiblePages]);
+  const canCreateFolder = showFolderUi && !!scopeProjectId && !activeFolder;
+  const showInlineFolderDraft = canCreateFolder && isInlineFolderDraftVisible;
+
+  useEffect(() => {
+    if (!showInlineFolderDraft) return;
+    const timeout = window.setTimeout(() => {
+      inlineFolderInputRef.current?.focus();
+      inlineFolderInputRef.current?.select();
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [showInlineFolderDraft, viewMode]);
+
+  const handleFolderNameSubmit = async (name: string) => {
+    const target = folderNameModal?.folder ?? null;
+    const projectId = target ? target.project_ids?.[0] : scopeProjectId;
+    if (!projectId) return;
+    if (target?.id) await pageService.update(workspaceSlug, projectId, target.id, { name });
+    else await pageService.create(workspaceSlug, projectId, { name, page_type: "folder", access: EPageAccess.PRIVATE });
+    await mutatePages();
+  };
+
+  const startInlineFolderCreate = () => {
+    if (!canCreateFolder) return;
+    if (isInlineFolderDraftVisible) {
+      if (!inlineFolderName.trim()) setInlineFolderName(DEFAULT_FOLDER_NAME);
+      window.setTimeout(() => {
+        inlineFolderInputRef.current?.focus();
+        inlineFolderInputRef.current?.select();
+      }, 0);
+      return;
+    }
+    setInlineFolderName(DEFAULT_FOLDER_NAME);
+    setIsInlineFolderDraftVisible(true);
+  };
+
+  const cancelInlineFolderCreate = () => {
+    if (inlineFolderSaveInFlightRef.current) return;
+    setInlineFolderName("");
+    setIsInlineFolderDraftVisible(false);
+  };
+
+  const saveInlineFolder = async (rawName = inlineFolderName) => {
+    if (inlineFolderSaveInFlightRef.current) return;
+    const name = rawName.trim();
+    if (!name) {
+      cancelInlineFolderCreate();
+      return;
+    }
+    if (!scopeProjectId) return;
+
+    inlineFolderSaveInFlightRef.current = true;
+    setIsSavingInlineFolder(true);
+    try {
+      await pageService.create(workspaceSlug, scopeProjectId, {
+        name,
+        page_type: "folder",
+        access: EPageAccess.PRIVATE,
+      });
+      setInlineFolderName("");
+      setIsInlineFolderDraftVisible(false);
+      await mutatePages();
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: pageActionErrorMessage(error, "Folder could not be saved. Please try again later."),
+      });
+      window.setTimeout(() => {
+        inlineFolderInputRef.current?.focus();
+        inlineFolderInputRef.current?.select();
+      }, 0);
+    } finally {
+      inlineFolderSaveInFlightRef.current = false;
+      setIsSavingInlineFolder(false);
+    }
+  };
+
+  const confirmDeleteFolder = async () => {
+    const folder = folderToDelete;
+    const projectId = folder?.project_ids?.[0];
+    if (!folder?.id || !projectId) return;
+    setIsDeletingFolder(true);
+    try {
+      // Move contents back to the root first — archiving the folder would
+      // otherwise cascade-archive every doc inside it.
+      const children = (pages ?? []).filter((p) => p.parent === folder.id && p.id);
+      await Promise.all(
+        children.map((child) => pageService.update(workspaceSlug, projectId, child.id as string, { parent: null }))
+      );
+      // The API only deletes archived pages, so archive before removing.
+      await pageService.archive(workspaceSlug, projectId, folder.id);
+      await pageService.remove(workspaceSlug, projectId, folder.id);
+      if (activeFolderId === folder.id) setActiveFolderId(null);
+      setFolderToDelete(null);
+      await mutatePages();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: children.length > 0 ? "Folder deleted. Its docs are back in the main list." : "Folder deleted.",
+      });
+    } catch (error) {
+      await mutatePages().catch(() => undefined);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: pageActionErrorMessage(error, "Folder could not be deleted. Please try again later."),
+      });
+    } finally {
+      setIsDeletingFolder(false);
+    }
+  };
+
   const toggleProject = (projectId: string) => {
     setSelectedProjectIds((prev) =>
       prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
@@ -240,7 +439,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   // in render order — classic range selection. The range is unioned into the
   // current selection and the anchor stays put so it can be re-extended.
   const selectDocRange = (targetPageId: string) => {
-    const order = filteredPages.map((p) => p.id).filter((id): id is string => Boolean(id));
+    const order = displayedDocs.map((p) => p.id).filter((id): id is string => Boolean(id));
     const targetIdx = order.indexOf(targetPageId);
     if (targetIdx === -1) return;
     const anchorIdx = anchorDocId ? order.indexOf(anchorDocId) : -1;
@@ -305,7 +504,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     let created = 0;
     for (const file of pdfs) {
       // Sequential so we don't fire N presign/upload chains at once.
-      const page = await createPdfPage(scopeProjectId, file);
+      const page = await createPdfPage(scopeProjectId, file, activeFolder?.id);
       if (page) created += 1;
     }
     if (created > 0) {
@@ -357,10 +556,27 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
       <Header.LeftItem>
         <div className="flex items-center gap-1.5">
           <Breadcrumbs className="flex-grow-0">
-            <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} />} />
+            {activeFolder ? (
+              <>
+                <Breadcrumbs.Item
+                  component={
+                    <button
+                      type="button"
+                      onClick={() => setActiveFolderId(null)}
+                      className="text-13 font-medium text-tertiary hover:text-primary"
+                    >
+                      {headerLabel}
+                    </button>
+                  }
+                />
+                <Breadcrumbs.Item component={<BreadcrumbLink label={getPageName(activeFolder.name)} />} />
+              </>
+            ) : (
+              <Breadcrumbs.Item component={<BreadcrumbLink label={headerLabel} />} />
+            )}
           </Breadcrumbs>
           <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
-            {visiblePages.length}
+            {activeFolder ? displayedDocs.length : visiblePages.length}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -428,10 +644,22 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
       <Header.RightItem className="items-center">
         <ViewModeToggle mode={viewMode} onChange={setViewMode} />
         <PageSearchInput searchQuery={searchQuery} updateSearchQuery={setSearchQuery} />
+        {canCreateFolder && (
+          <Button
+            variant="secondary"
+            size="lg"
+            prependIcon={<FolderPlus className="size-4" />}
+            onClick={startInlineFolderCreate}
+            disabled={isSavingInlineFolder}
+          >
+            New folder
+          </Button>
+        )}
         <WorkspaceCreateDocButton
           workspaceSlug={workspaceSlug}
           defaultType={pageType}
           lockedProjectId={scopeProjectId}
+          parentFolderId={scopeProjectId ? activeFolder?.id : undefined}
         />
       </Header.RightItem>
     </Header>
@@ -471,33 +699,60 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
             </div>
           </div>
         )}
-        {filteredPages.length === 0 ? (
-          <EmptyStateDetailed
-            assetKey={hasFilters ? "search" : undefined}
-            asset={hasFilters ? undefined : <EmptyStateIcon name={isWhiteboardSurface ? "whiteboards" : "docs"} />}
-            title={
-              hasFilters
-                ? (labels?.filteredEmptyTitle ?? "No docs match your filters")
-                : (labels?.emptyTitle ?? "No docs yet")
-            }
-            description={
-              hasFilters
-                ? "Try clearing the search or project filter."
-                : (labels?.emptyDescription ?? "Use the New button to create your first page.")
-            }
-          />
+        {displayedDocs.length === 0 && displayedFolders.length === 0 && !showInlineFolderDraft ? (
+          activeFolder && !hasFilters ? (
+            <EmptyStateDetailed
+              asset={<EmptyStateIcon name="docs" />}
+              title="This folder is empty"
+              description="Create a doc here, or move docs in from their card menu."
+            />
+          ) : (
+            <EmptyStateDetailed
+              assetKey={hasFilters ? "search" : undefined}
+              asset={hasFilters ? undefined : <EmptyStateIcon name={isWhiteboardSurface ? "whiteboards" : "docs"} />}
+              title={
+                hasFilters
+                  ? (labels?.filteredEmptyTitle ?? "No docs match your filters")
+                  : (labels?.emptyTitle ?? "No docs yet")
+              }
+              description={
+                hasFilters
+                  ? "Try clearing the search or project filter."
+                  : (labels?.emptyDescription ?? "Use the New button to create your first page.")
+              }
+            />
+          )
         ) : viewMode === "grid" ? (
           /* Reserve the scrollbar gutter on BOTH edges so the 16px scrollbar
              doesn't make the right margin wider than the left — content stays
              centered (net ~20px each side, aligned with the header). */
-          <div className="scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
-            <div
-              className={cn(
-                "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3",
-                isRailExpanded ? "xl:grid-cols-3" : "xl:grid-cols-4"
+          <div className="dragonfruit-gallery-container scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
+            <div className="dragonfruit-card-grid">
+              {showInlineFolderDraft && (
+                <FolderDraftCard
+                  name={inlineFolderName}
+                  isSaving={isSavingInlineFolder}
+                  inputRef={inlineFolderInputRef}
+                  onChange={setInlineFolderName}
+                  onCommit={saveInlineFolder}
+                  onCancel={cancelInlineFolderCreate}
+                />
               )}
-            >
-              {filteredPages.map((page) => (
+              {displayedFolders.map((folder) => (
+                <FolderCard
+                  key={folder.id}
+                  folder={folder}
+                  count={folder.id ? (folderDocCounts.get(folder.id) ?? 0) : 0}
+                  projectName={
+                    scopeProjectId ? undefined : (getProjectById(folder.project_ids?.[0] ?? "")?.name ?? undefined)
+                  }
+                  canDelete={canDeleteDoc(folder)}
+                  onOpen={() => folder.id && setActiveFolderId(folder.id)}
+                  onRename={() => setFolderNameModal({ folder })}
+                  onDelete={() => setFolderToDelete(folder)}
+                />
+              ))}
+              {displayedDocs.map((page) => (
                 <DocCard
                   key={page.id}
                   page={page}
@@ -509,13 +764,35 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
                   isSelectionActive={isSelectionActive}
                   onSelect={handleDocSelect}
+                  folders={showFolderUi ? folders : []}
                 />
               ))}
             </div>
           </div>
         ) : (
           <ListLayout>
-            {filteredPages.map((page) => (
+            {showInlineFolderDraft && (
+              <FolderDraftListItem
+                name={inlineFolderName}
+                isSaving={isSavingInlineFolder}
+                inputRef={inlineFolderInputRef}
+                onChange={setInlineFolderName}
+                onCommit={saveInlineFolder}
+                onCancel={cancelInlineFolderCreate}
+              />
+            )}
+            {displayedFolders.map((folder) => (
+              <FolderListItem
+                key={folder.id}
+                folder={folder}
+                count={folder.id ? (folderDocCounts.get(folder.id) ?? 0) : 0}
+                canDelete={canDeleteDoc(folder)}
+                onOpen={() => folder.id && setActiveFolderId(folder.id)}
+                onRename={() => setFolderNameModal({ folder })}
+                onDelete={() => setFolderToDelete(folder)}
+              />
+            ))}
+            {displayedDocs.map((page) => (
               <DocListItem
                 key={page.id}
                 page={page}
@@ -537,12 +814,489 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
             canDeleteDoc={canDeleteDoc}
             onClear={clearDocSelection}
             onRefresh={refreshPages}
+            folders={showFolderUi ? folders : []}
           />
         )}
+        <FolderNameModal
+          isOpen={folderNameModal !== null}
+          isRename={Boolean(folderNameModal?.folder)}
+          initialName={folderNameModal?.folder ? getPageName(folderNameModal.folder.name) : DEFAULT_FOLDER_NAME}
+          onClose={() => setFolderNameModal(null)}
+          onSubmit={handleFolderNameSubmit}
+        />
+        <AlertModalCore
+          isOpen={folderToDelete !== null}
+          handleClose={() => {
+            if (!isDeletingFolder) setFolderToDelete(null);
+          }}
+          handleSubmit={() => void confirmDeleteFolder()}
+          isSubmitting={isDeletingFolder}
+          title="Delete folder"
+          content={`Delete ${folderToDelete ? getPageName(folderToDelete.name) : "this folder"}? Docs inside move back to the main list.`}
+        />
       </div>
     </div>
   );
 });
+
+type FolderVisualVariant = {
+  back: string;
+  front: string;
+  slot: string;
+  lip: string;
+  paper: string;
+  paperLine: string;
+  labelStyle: CSSProperties;
+  metaStyle: CSSProperties;
+  shadow: string;
+};
+
+const FOLDER_VARIANTS: FolderVisualVariant[] = [
+  {
+    back: "linear-gradient(180deg, #eaa43a 0%, #cf8721 100%)",
+    front: "linear-gradient(180deg, #ffc85f 0%, #f1a63a 54%, #dc8427 100%)",
+    slot: "rgba(255,255,255,0.58)",
+    lip: "linear-gradient(180deg, rgba(255,244,188,0.74) 0%, rgba(255,199,92,0.08) 100%)",
+    paper: "#fffaf0",
+    paperLine: "rgba(143, 116, 82, 0.32)",
+    labelStyle: { color: "#ffffff", textShadow: "0 1px 1px rgba(98,55,0,0.36)" },
+    metaStyle: { color: "rgba(255,255,255,0.78)", textShadow: "0 1px 1px rgba(98,55,0,0.22)" },
+    shadow: "0 17px 30px -22px rgba(130,76,10,0.88)",
+  },
+  {
+    back: "linear-gradient(180deg, #555b66 0%, #22262b 100%)",
+    front: "linear-gradient(180deg, #3a3f47 0%, #23262b 56%, #15171a 100%)",
+    slot: "rgba(255,255,255,0.66)",
+    lip: "linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 100%)",
+    paper: "#f6f7f8",
+    paperLine: "rgba(92, 98, 108, 0.28)",
+    labelStyle: { color: "#f5f7f8", textShadow: "0 1px 1px rgba(0,0,0,0.44)" },
+    metaStyle: { color: "rgba(245,247,248,0.62)", textShadow: "0 1px 1px rgba(0,0,0,0.34)" },
+    shadow: "0 18px 32px -22px rgba(0,0,0,0.74)",
+  },
+  {
+    back: "linear-gradient(180deg, #64baf0 0%, #2f8fd0 100%)",
+    front: "linear-gradient(180deg, #92ddff 0%, #5ebbed 58%, #438ecb 100%)",
+    slot: "rgba(255,255,255,0.64)",
+    lip: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.06) 100%)",
+    paper: "#f8fbff",
+    paperLine: "rgba(78, 128, 164, 0.26)",
+    labelStyle: { color: "#073452", textShadow: "0 1px 0 rgba(255,255,255,0.3)" },
+    metaStyle: { color: "rgba(7,52,82,0.68)" },
+    shadow: "0 18px 32px -22px rgba(37,107,153,0.78)",
+  },
+  {
+    back: "linear-gradient(180deg, #ffd844 0%, #dfa618 100%)",
+    front: "linear-gradient(180deg, #fff17a 0%, #ffd95a 58%, #e3aa24 100%)",
+    slot: "rgba(255,255,255,0.64)",
+    lip: "linear-gradient(180deg, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.08) 100%)",
+    paper: "#fffdf3",
+    paperLine: "rgba(133, 103, 20, 0.26)",
+    labelStyle: { color: "#4d3904", textShadow: "0 1px 0 rgba(255,255,255,0.32)" },
+    metaStyle: { color: "rgba(77,57,4,0.66)" },
+    shadow: "0 18px 32px -22px rgba(150,103,0,0.78)",
+  },
+  {
+    back: "linear-gradient(180deg, #dfe4df 0%, #b4bbb5 100%)",
+    front: "linear-gradient(180deg, #fbfcf8 0%, #e8ede6 56%, #cfd6cf 100%)",
+    slot: "rgba(150,158,154,0.48)",
+    lip: "linear-gradient(180deg, rgba(255,255,255,0.76) 0%, rgba(255,255,255,0.12) 100%)",
+    paper: "#ffffff",
+    paperLine: "rgba(115, 124, 119, 0.24)",
+    labelStyle: { color: "#303630", textShadow: "0 1px 0 rgba(255,255,255,0.4)" },
+    metaStyle: { color: "rgba(48,54,48,0.62)" },
+    shadow: "0 18px 32px -22px rgba(70,76,70,0.68)",
+  },
+];
+
+const getFolderVariant = (folder?: Pick<TPage, "id" | "name">): FolderVisualVariant => {
+  const seed = String(folder?.id ?? folder?.name ?? "folder");
+  const hash = Array.from(seed).reduce((value, char) => (value * 31 + char.charCodeAt(0)) >>> 0, 0);
+  return FOLDER_VARIANTS[hash % FOLDER_VARIANTS.length] ?? FOLDER_VARIANTS[0];
+};
+
+type FolderNameModalProps = {
+  isOpen: boolean;
+  isRename: boolean;
+  initialName: string;
+  onClose: () => void;
+  onSubmit: (name: string) => Promise<void>;
+};
+
+function FolderNameModal({ isOpen, isRename, initialName, onClose, onSubmit }: FolderNameModalProps) {
+  const [name, setName] = useState(initialName);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Re-seed the input every time the modal opens (create vs rename target).
+  useEffect(() => {
+    if (isOpen) setName(initialName);
+  }, [isOpen, initialName]);
+
+  const handleSubmit = async () => {
+    const trimmed = name.trim();
+    if (!trimmed || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit(trimmed);
+      onClose();
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: pageActionErrorMessage(error, "Folder could not be saved. Please try again later."),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.SM}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSubmit();
+        }}
+        className="p-5"
+      >
+        <h3 className="text-16 font-medium text-primary">{isRename ? "Rename folder" : "New folder"}</h3>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Folder name"
+          className="mt-3 w-full appearance-none rounded-lg border-0 bg-transparent px-0 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+        />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" size="lg" type="button" onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button variant="primary" size="lg" type="submit" loading={isSubmitting} disabled={!name.trim()}>
+            {isRename ? "Save" : "Create folder"}
+          </Button>
+        </div>
+      </form>
+    </ModalCore>
+  );
+}
+
+type FolderActionsMenuProps = {
+  canDelete: boolean;
+  onRename: () => void;
+  onDelete: () => void;
+  buttonClassName?: string;
+};
+
+function FolderActionsMenu({ canDelete, onRename, onDelete, buttonClassName }: FolderActionsMenuProps) {
+  return (
+    <CustomMenu
+      ariaLabel="Folder actions"
+      placement="bottom-end"
+      closeOnSelect
+      useCaptureForOutsideClick
+      customButton={
+        <span
+          className={cn(
+            "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary",
+            buttonClassName
+          )}
+        >
+          <MoreHorizontal weight="Bold" className="size-4" />
+        </span>
+      }
+    >
+      <CustomMenu.MenuItem onClick={onRename}>
+        <span className="flex items-center gap-2">
+          <Pencil className="size-4" />
+          Rename
+        </span>
+      </CustomMenu.MenuItem>
+      {canDelete && (
+        <CustomMenu.MenuItem onClick={onDelete} className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500">
+          <span className="flex items-center gap-2">
+            <DetailIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+            Delete
+          </span>
+        </CustomMenu.MenuItem>
+      )}
+    </CustomMenu>
+  );
+}
+
+type FolderCardProps = {
+  folder: TPage;
+  count: number;
+  /** Shown on the workspace-wide gallery where the project isn't implied. */
+  projectName?: string;
+  canDelete: boolean;
+  onOpen: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+};
+
+function FolderMiniGlyph({ folder, className }: { folder?: Pick<TPage, "id" | "name">; className?: string }) {
+  const variant = getFolderVariant(folder);
+  return (
+    <span aria-hidden className={cn("relative inline-block h-4 w-5 shrink-0", className)}>
+      <span
+        className="absolute top-0 left-[8%] h-[38%] w-[42%] rounded-t-[4px] rounded-br-[2px]"
+        style={{ background: variant.back }}
+      />
+      <span
+        className="absolute inset-x-0 top-[22%] bottom-[8%] rounded-[4px]"
+        style={{
+          background: variant.back,
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
+        }}
+      />
+      <span
+        className="absolute top-[40%] right-[12%] left-[13%] h-[3px] rounded-full"
+        style={{ background: variant.slot }}
+      />
+      <span
+        className="absolute inset-x-0 bottom-0 h-[58%] rounded-[4px]"
+        style={{
+          background: variant.front,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.28)",
+        }}
+      />
+    </span>
+  );
+}
+
+/** One tucked document sheet. Position and rotation come in via className so
+ * each sheet fans differently; the springy rise transition is shared. */
+function FolderPaper({ className, delay }: { className?: string; delay?: string }) {
+  const lineWidths = ["84%", "62%", "76%", "50%"];
+  return (
+    <div
+      className={cn(
+        "absolute z-10 rounded-[7px] p-2 pb-3",
+        "transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform motion-reduce:transform-none motion-reduce:transition-none",
+        className
+      )}
+      style={delay ? { transitionDelay: delay } : undefined}
+    >
+      <div className="flex flex-col gap-1">
+        {lineWidths.map((width) => (
+          <div key={width} className="h-[3px] rounded-full bg-layer-3" style={{ width }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FolderSurface({
+  folder,
+  count,
+  children,
+  className,
+}: {
+  folder: Pick<TPage, "id" | "name">;
+  count: number;
+  children: ReactNode;
+  className?: string;
+}) {
+  const tabLabel = getPageName(folder.name);
+
+  return (
+    <div className={cn("relative h-[156px] overflow-visible", className)}>
+      <div
+        className="absolute top-0 left-5 h-10 w-[42%] rounded-t-[18px] rounded-br-[8px] bg-layer-1 transition-colors group-focus-within:bg-layer-3 group-hover:bg-layer-3"
+        style={{
+          transform: "skewX(13deg)",
+          transformOrigin: "bottom left",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-[9px] left-8 z-30 flex h-3 items-center overflow-hidden"
+        style={{
+          transform: "skewX(13deg)",
+          transformOrigin: "bottom left",
+          width: "calc(42% - 20px)",
+        }}
+      >
+        <span
+          className="block w-full min-w-0 truncate text-[9px] leading-3 font-semibold text-tertiary/60 not-italic opacity-80"
+          style={{
+            transform: "skewX(-13deg)",
+            transformOrigin: "bottom left",
+            textShadow: "0 1px 0 rgba(255,255,255,0.5), 0 -1px 0 rgba(0,0,0,0.08)",
+          }}
+        >
+          {tabLabel}
+        </span>
+      </div>
+      <div className="absolute inset-x-0 top-[18px] bottom-1 rounded-[22px] bg-layer-1 transition-colors group-focus-within:bg-layer-3 group-hover:bg-layer-3" />
+      <div className="absolute top-[58px] right-7 left-7 z-10 h-2 rounded-full bg-layer-2/80 shadow-[0_1px_0_rgba(255,255,255,0.58)] transition-colors group-focus-within:bg-layer-1 group-hover:bg-layer-1" />
+      {count > 0 && (
+        <>
+          <FolderPaper className="shadow-sm top-[32px] left-[13%] h-[82px] w-[28%] -rotate-[10deg] border border-subtle bg-surface-1 group-focus-within:-translate-x-1 group-focus-within:-translate-y-14 group-focus-within:-rotate-[18deg] group-hover:-translate-x-1 group-hover:-translate-y-14 group-hover:-rotate-[18deg]" />
+          <FolderPaper
+            className="shadow-sm top-[28px] left-[35%] h-[90px] w-[28%] rotate-[1deg] border border-subtle bg-surface-1 group-focus-within:-translate-y-16 group-focus-within:-rotate-[3deg] group-hover:-translate-y-16 group-hover:-rotate-[3deg]"
+            delay="40ms"
+          />
+          <FolderPaper
+            className="shadow-sm top-[33px] left-[59%] h-[78px] w-[27%] rotate-[10deg] border border-subtle bg-surface-1 group-focus-within:translate-x-1 group-focus-within:-translate-y-14 group-focus-within:rotate-[18deg] group-hover:translate-x-1 group-hover:-translate-y-14 group-hover:rotate-[18deg]"
+            delay="75ms"
+          />
+        </>
+      )}
+      <div className="absolute inset-x-0 bottom-0 z-20 flex h-[108px] flex-col justify-end overflow-hidden rounded-[22px] bg-layer-1 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_-1px_0_rgba(0,0,0,0.08),0_-12px_18px_-18px_rgba(0,0,0,0.42)] transition-colors group-focus-within:bg-layer-3 group-hover:bg-layer-3">
+        <div className="relative z-10 flex min-w-0 flex-col gap-0.5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+type FolderDraftProps = {
+  name: string;
+  isSaving: boolean;
+  inputRef: RefObject<HTMLInputElement>;
+  onChange: (value: string) => void;
+  onCommit: (value: string) => void | Promise<void>;
+  onCancel: () => void;
+};
+
+const draftFolderVisualSeed = { id: "inline-folder-draft", name: DEFAULT_FOLDER_NAME };
+
+function FolderNameInput({ name, isSaving, inputRef, onChange, onCommit, onCancel }: FolderDraftProps) {
+  const skipNextBlurCommitRef = useRef(false);
+
+  return (
+    <input
+      ref={inputRef}
+      value={name}
+      disabled={isSaving}
+      placeholder="Folder name"
+      aria-label="Folder name"
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={(e) => {
+        if (skipNextBlurCommitRef.current) {
+          skipNextBlurCommitRef.current = false;
+          return;
+        }
+        void onCommit(e.currentTarget.value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          void onCommit(e.currentTarget.value);
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          skipNextBlurCommitRef.current = true;
+          onCancel();
+        }
+      }}
+      className="relative w-full min-w-0 appearance-none rounded-md border-0 bg-transparent px-0 py-0 text-13 font-semibold text-primary outline-none placeholder:text-placeholder focus:border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none disabled:opacity-70"
+    />
+  );
+}
+
+function FolderDraftCard(props: FolderDraftProps) {
+  return (
+    <div className="group relative h-[156px]">
+      <FolderSurface folder={draftFolderVisualSeed} count={0}>
+        <FolderNameInput {...props} />
+        <p className="truncate text-11 text-placeholder">{props.isSaving ? "Saving..." : "0 docs"}</p>
+      </FolderSurface>
+    </div>
+  );
+}
+
+function FolderDraftListItem(props: FolderDraftProps) {
+  return (
+    <div className="relative">
+      <div className="group flex min-h-[52px] w-full flex-col items-center justify-between gap-3 border-b border-subtle bg-accent-primary/5 py-4 text-13 lg:flex-row lg:gap-5 lg:py-0">
+        <div className="relative flex w-full min-w-0 items-center justify-between gap-3 truncate">
+          <div className="relative flex w-full min-w-0 items-center gap-3 overflow-hidden">
+            <span className="flex flex-shrink-0 items-center">
+              <FolderMiniGlyph folder={draftFolderVisualSeed} />
+            </span>
+            <FolderNameInput {...props} />
+          </div>
+        </div>
+        {props.isSaving && (
+          <div className="relative flex w-full flex-shrink-0 flex-wrap items-center justify-start gap-4 lg:w-auto lg:flex-nowrap">
+            <span className="text-11 text-tertiary">Saving...</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FolderCard({ folder, count, projectName, canDelete, onOpen, onRename, onDelete }: FolderCardProps) {
+  const metaText = [projectName, `${count} ${count === 1 ? "doc" : "docs"}`].filter(Boolean).join(" · ");
+  const folderName = getPageName(folder.name);
+  return (
+    <div className="group relative block h-[156px] rounded-2xl">
+      <button
+        type="button"
+        aria-label={`Open folder ${folderName}`}
+        onClick={onOpen}
+        className="t-press focus-visible:ring-accent-primary/40 relative h-full w-full cursor-pointer rounded-2xl text-left focus:outline-none focus-visible:ring-2"
+      >
+        <FolderSurface folder={folder} count={count}>
+          <h3 className="line-clamp-2 text-13 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary">
+            {folderName}
+          </h3>
+          <p className="truncate text-11 text-placeholder">{metaText}</p>
+        </FolderSurface>
+      </button>
+      <div
+        className="absolute top-8 right-3 z-30 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        <FolderActionsMenu canDelete={canDelete} onRename={onRename} onDelete={onDelete} />
+      </div>
+    </div>
+  );
+}
+
+type FolderListItemProps = {
+  folder: TPage;
+  count: number;
+  canDelete: boolean;
+  onOpen: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+};
+
+function FolderListItem({ folder, count, canDelete, onOpen, onRename, onDelete }: FolderListItemProps) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const { isMobile } = usePlatformOS();
+  return (
+    <ListItem
+      prependTitleElement={<FolderMiniGlyph folder={folder} />}
+      title={getPageName(folder.name)}
+      itemLink="#"
+      onItemClick={(e) => {
+        e.preventDefault();
+        onOpen();
+      }}
+      titleClassName="font-semibold text-secondary"
+      actionableItems={
+        <div
+          className="flex items-center gap-3 text-13 text-tertiary"
+          role="presentation"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <span className="text-11">
+            {count} {count === 1 ? "doc" : "docs"}
+          </span>
+          <FolderActionsMenu canDelete={canDelete} onRename={onRename} onDelete={onDelete} />
+        </div>
+      }
+      isMobile={isMobile}
+      parentRef={parentRef}
+    />
+  );
+}
 
 type FilterSummaryPillProps = {
   label: string;
@@ -719,6 +1473,8 @@ type DocCardProps = {
   isSelected: boolean;
   isSelectionActive: boolean;
   onSelect: (pageId: string, isRange: boolean) => void;
+  /** Folders the doc could be moved into (docs surface only). */
+  folders?: TPage[];
 };
 
 // Muted per-type accent hues for the tinted icon tile. Briefs keep the brand
@@ -740,6 +1496,7 @@ function DocCard({
   isSelected,
   isSelectionActive,
   onSelect,
+  folders = [],
 }: DocCardProps) {
   const { mutate } = useSWRConfig();
   const projectIds = page.project_ids ?? [];
@@ -788,6 +1545,29 @@ function DocCard({
       title: "Link copied",
       message: "Page link copied to clipboard.",
     });
+  };
+
+  // Folders live in a single project, so only offer ones the doc shares.
+  const eligibleFolders = folders.filter((f) => primaryProjectId && (f.project_ids ?? []).includes(primaryProjectId));
+  const showFolderMenu = !isProjectBrief && (eligibleFolders.length > 0 || Boolean(page.parent));
+
+  const handleMoveToFolder = async (folderId: string | null) => {
+    if (!primaryProjectId || !page.id) return;
+    try {
+      await pageService.update(workspaceSlug, primaryProjectId, page.id, { parent: folderId });
+      await refreshPages();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: folderId ? "Doc moved to folder." : "Doc removed from folder.",
+      });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: pageActionErrorMessage(error, "Doc could not be moved. Please try again later."),
+      });
+    }
   };
 
   const handleDuplicate = async () => {
@@ -951,6 +1731,40 @@ function DocCard({
                 Duplicate
               </span>
             </CustomMenu.MenuItem>
+            {showFolderMenu && (
+              <CustomMenu.SubMenu
+                trigger={
+                  <span className="flex items-center gap-2">
+                    <FolderMiniGlyph className="h-4 w-5" />
+                    Move to folder
+                  </span>
+                }
+              >
+                {page.parent && (
+                  <CustomMenu.MenuItem onClick={() => void handleMoveToFolder(null)}>
+                    <span className="flex items-center gap-2">
+                      <X className="size-4" />
+                      Remove from folder
+                    </span>
+                  </CustomMenu.MenuItem>
+                )}
+                {eligibleFolders.map((folder) => (
+                  <CustomMenu.MenuItem
+                    key={folder.id}
+                    disabled={page.parent === folder.id}
+                    onClick={() => void handleMoveToFolder(folder.id ?? null)}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <FolderMiniGlyph folder={folder} />
+                      <span className="truncate">{getPageName(folder.name)}</span>
+                      {page.parent === folder.id && (
+                        <span className="ml-auto shrink-0 text-10 text-tertiary">Current</span>
+                      )}
+                    </span>
+                  </CustomMenu.MenuItem>
+                ))}
+              </CustomMenu.SubMenu>
+            )}
             {!isProjectBrief && canModify && (
               <>
                 <CustomMenu.MenuItem onClick={() => void handleArchive()}>
@@ -1082,7 +1896,7 @@ function DocSelectionCheckbox({ pageId, isSelected, isSelectionActive, onSelect 
   );
 }
 
-type BulkOperation = "delete" | "duplicate" | "move";
+type BulkOperation = "delete" | "duplicate" | "move" | "folder";
 
 type DocsBulkActionBarProps = {
   selectedPages: TPage[];
@@ -1092,6 +1906,8 @@ type DocsBulkActionBarProps = {
   canDeleteDoc: (page: TPage) => boolean;
   onClear: () => void;
   onRefresh: () => Promise<void>;
+  /** Folders the selected docs could be moved into (docs surface only). */
+  folders?: TPage[];
 };
 
 type BulkActionPage = {
@@ -1115,6 +1931,7 @@ function DocsBulkActionBar({
   canDeleteDoc,
   onClear,
   onRefresh,
+  folders = [],
 }: DocsBulkActionBarProps) {
   const [operation, setOperation] = useState<BulkOperation | null>(null);
   const [projectSearch, setProjectSearch] = useState("");
@@ -1269,6 +2086,43 @@ function DocsBulkActionBar({
     );
   };
 
+  // `folder: null` clears the selection's folder membership.
+  const anySelectedInFolder = movablePages.some(({ page }) => Boolean(page.parent));
+  const handleBulkMoveToFolder = async (folder: TPage | null) => {
+    if (isBusy) return;
+    // A folder lives in one project — only docs sharing it can move in.
+    const pagesToProcess = folder
+      ? movablePages.filter(
+          ({ page, projectId }) => (folder.project_ids ?? []).includes(projectId) && page.parent !== folder.id
+        )
+      : movablePages.filter(({ page }) => Boolean(page.parent));
+    const skippedCount = actionPages.length - pagesToProcess.length;
+
+    if (pagesToProcess.length === 0) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "Nothing to move",
+        message: folder
+          ? "The selected docs are already in that folder or belong to a different project."
+          : "None of the selected docs are in a folder.",
+      });
+      return;
+    }
+
+    await finishBulkOperation(
+      "folder",
+      pagesToProcess,
+      async ({ pageId, projectId }) =>
+        await pageService.update(workspaceSlug, projectId, pageId, { parent: folder?.id ?? null }),
+      (processedCount) =>
+        folder
+          ? `${processedCount} ${docLabel(processedCount)} moved to ${getPageName(folder.name)}.${skippedDocsMessage(skippedCount)}`
+          : `${processedCount} ${docLabel(processedCount)} removed from folders.`,
+      (failedCount, processedCount) =>
+        `Couldn't move ${failedCount} of ${processedCount} selected ${docLabel(processedCount)}.`
+    );
+  };
+
   return (
     <>
       <AlertModalCore
@@ -1302,6 +2156,47 @@ function DocsBulkActionBar({
             <X className="size-3.5" />
             <span>Clear</span>
           </Button>
+          {(folders.length > 0 || anySelectedInFolder) && (
+            <CustomMenu
+              ariaLabel="Move selected docs to a folder"
+              placement="top-start"
+              maxHeight="lg"
+              disabled={isBusy || movablePages.length === 0}
+              customButtonClassName={cn(
+                "inline-flex h-7 items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-2 text-11 font-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active",
+                { "cursor-not-allowed opacity-60": isBusy || movablePages.length === 0 }
+              )}
+              customButton={
+                <>
+                  <FolderMiniGlyph className="h-3.5 w-[18px]" />
+                  <span>{operation === "folder" ? "Moving..." : "Add to folder"}</span>
+                  <ChevronDown className="size-3" />
+                </>
+              }
+              optionsClassName="w-64"
+            >
+              {anySelectedInFolder && (
+                <CustomMenu.MenuItem disabled={isBusy} onClick={() => void handleBulkMoveToFolder(null)}>
+                  <span className="flex items-center gap-2">
+                    <X className="size-4" />
+                    Remove from folder
+                  </span>
+                </CustomMenu.MenuItem>
+              )}
+              {folders.map((folder) => (
+                <CustomMenu.MenuItem
+                  key={folder.id}
+                  disabled={isBusy}
+                  onClick={() => void handleBulkMoveToFolder(folder)}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <FolderMiniGlyph folder={folder} />
+                    <span className="truncate">{getPageName(folder.name)}</span>
+                  </span>
+                </CustomMenu.MenuItem>
+              ))}
+            </CustomMenu>
+          )}
           <CustomMenu
             ariaLabel="Move selected docs"
             placement="top-start"
@@ -1314,8 +2209,8 @@ function DocsBulkActionBar({
             )}
             customButton={
               <>
-                <Folder className="size-3.5" />
-                <span>{operation === "move" ? "Moving..." : "Move"}</span>
+                <ArrowRightLeft className="size-3.5" />
+                <span>{operation === "move" ? "Moving..." : "Move to project"}</span>
                 <ChevronDown className="size-3" />
               </>
             }
@@ -1387,6 +2282,9 @@ const TYPE_FILTER_META: Record<TPageType, { label: string; Icon: typeof FileText
   whiteboard: { label: "Whiteboards", Icon: Whiteboard },
   pdf: { label: "PDFs", Icon: FileIcon },
   sheet: { label: "Sheets", Icon: GridIconShim },
+  // Never offered as a filter option (folders aren't content), but the record
+  // must cover every TPageType.
+  folder: { label: "Folders", Icon: Folder },
 };
 
 type TypeFilterSectionProps = {

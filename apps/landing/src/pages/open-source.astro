@@ -1,0 +1,57 @@
+---
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const trustCards = [
+  ["Self-hostable", "Run DragonFruit when data control matters more than SaaS convenience."],
+  ["AGPL source", "Inspect the code, understand the product, and trust the workspace that stores your context."],
+  ["Bring your own key", "Use the AI provider you already trust and keep inference costs visible."],
+  ["Cloud when you want speed", "Use hosted DragonFruit when you would rather ship than operate infrastructure."],
+];
+---
+
+<BaseLayout
+  title="Open source — DragonFruit"
+  description="DragonFruit is an AGPL open-source tasks and docs workspace with Atlas, BYOK, and a hosted Cloud path."
+  canonicalPath="/open-source"
+  bodyClass="home-page"
+>
+  <main class="landing-main subpage-main">
+    <SiteHeader />
+    <section class="subpage-hero">
+      <div>
+        <p class="meta">Open source</p>
+        <h1>Trust the workspace that holds your tasks, docs, and AI context.</h1>
+        <p>
+          DragonFruit is open-source because AI leverage should not require blind trust. Self-host when you need control,
+          or use Cloud when momentum matters more than operations.
+        </p>
+        <div class="landing-actions">
+          <a class="primary-action" href="https://app.dragonfruit.sh">Start free</a>
+          <a class="secondary-action" href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noreferrer noopener">
+            View source
+          </a>
+        </div>
+      </div>
+      <div class="subpage-panel" data-spotlight-card>
+        <span class="status-chip">BYOK</span>
+        <h2>Near-zero AI markup when you bring your key</h2>
+        <p>Keep provider choice, privacy posture, and inference costs visible instead of hidden inside a per-message plan.</p>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="bento-grid compact-bento">
+        {trustCards.map(([title, body]) => (
+          <article class="bento-card" data-spotlight-card>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <SiteFooter />
+  </main>
+</BaseLayout>

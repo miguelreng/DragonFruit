@@ -99,6 +99,16 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         sortOrder: 1,
       },
       {
+        i18n_key: "sidebar.calendar",
+        key: "calendar",
+        name: "Calendar",
+        href: `/${workspaceSlug}/projects/${projectId}/calendar`,
+        ...createSolarSidebarIconPair(Calendar),
+        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
+        shouldRender: true,
+        sortOrder: 2,
+      },
+      {
         i18n_key: "sidebar.cycles",
         key: "cycles",
         name: "Cycles",
@@ -106,7 +116,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         ...createSolarSidebarIconPair(Calendar),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
         shouldRender: project?.cycle_view ?? false,
-        sortOrder: 2,
+        sortOrder: 3,
       },
       {
         i18n_key: "sidebar.modules",
@@ -116,7 +126,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         ...createSolarSidebarIconPair(Layers),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
         shouldRender: project?.module_view ?? false,
-        sortOrder: 3,
+        sortOrder: 4,
       },
       {
         i18n_key: "sidebar.views",
@@ -126,7 +136,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         ...createSolarSidebarIconPair(Eye),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.issue_views_view ?? false,
-        sortOrder: 4,
+        sortOrder: 5,
       },
       {
         i18n_key: "sidebar.docs",
@@ -136,7 +146,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         ...createSolarSidebarIconPair(Document),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.page_view ?? false,
-        sortOrder: 5,
+        sortOrder: 6,
       },
       {
         i18n_key: "bookmarks",
@@ -146,7 +156,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         ...createSolarSidebarIconPair(Bookmark),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: true,
-        sortOrder: 6,
+        sortOrder: 7,
       },
       {
         i18n_key: "sidebar.whiteboards",
@@ -156,7 +166,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         ...createSolarSidebarIconPair(RulerPen),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.page_view ?? false,
-        sortOrder: 7,
+        sortOrder: 8,
       },
       {
         i18n_key: "sidebar.intake",
@@ -166,7 +176,7 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         ...createSolarSidebarIconPair(Inbox),
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: project?.inbox_view ?? false,
-        sortOrder: 8,
+        sortOrder: 9,
       },
     ],
     [project, projectId, workspaceSlug]

@@ -112,12 +112,14 @@ final class AtlasIslandOverlayController: ObservableObject {
     private var timer: Timer?
     private var cancellables: Set<AnyCancellable> = []
     private weak var store: MeetingStore?
+    private weak var pomodoro: PomodoroTimerModel?
     private var currentNotch: NotchGeometry?
     private var mouseTimer: Timer?
     private let hitRegion = IslandHitRegion()
     private let interaction = IslandInteractionState()
 
-    func bind(to store: MeetingStore) {
+    func bind(to store: MeetingStore, pomodoro: PomodoroTimerModel) {
+        self.pomodoro = pomodoro
         guard self.store !== store else { return }
         self.store = store
         cancellables.removeAll()
@@ -219,7 +221,13 @@ final class AtlasIslandOverlayController: ObservableObject {
         if currentNotch != notch || panel.contentView == nil {
             currentNotch = notch
             let host = IslandHostingView(
-                rootView: AtlasIslandView(store: store, notch: notch, hitRegion: hitRegion, interaction: interaction)
+                rootView: AtlasIslandView(
+                    store: store,
+                    pomodoro: pomodoro ?? PomodoroTimerModel(),
+                    notch: notch,
+                    hitRegion: hitRegion,
+                    interaction: interaction
+                )
             )
             host.hitRegion = hitRegion
             panel.contentView = host
@@ -270,6 +278,7 @@ private enum IslandNotice: Equatable {
 
 struct AtlasIslandView: View {
     @ObservedObject var store: MeetingStore
+    @ObservedObject var pomodoro: PomodoroTimerModel
     let notch: NotchGeometry
     let hitRegion: IslandHitRegion
     @ObservedObject var interaction: IslandInteractionState
@@ -455,11 +464,27 @@ struct AtlasIslandView: View {
                         .frame(width: 17, height: 17)
                         .transition(.opacity.combined(with: .scale(scale: 0.7)))
                 case .idle:
-                    // No idle indicator — a resting dot reads like a live
-                    // recording light. The wing stays black until hovered.
+                    // A running pomodoro is moment-scale state, so it earns
+                    // the wing; otherwise the wing stays black until hovered —
+                    // a resting indicator reads like a live recording light.
+                    // On hover, an upcoming meeting outranks the ⌥A hint.
                     if isHovered {
-                        shortcutBadge
-                            .transition(.opacity.combined(with: .scale(scale: 0.7)))
+                        if let preview = upcomingMeetingPreview {
+                            Text(preview)
+                                .font(.custom("Figtree", size: 11).weight(.medium))
+                                .foregroundStyle(Color.white.opacity(0.75))
+                                .lineLimit(1)
+                                .transition(.opacity.combined(with: .scale(scale: 0.7)))
+                        } else if pomodoro.isRunning {
+                            pomodoroWingLabel
+                                .transition(.opacity)
+                        } else {
+                            shortcutBadge
+                                .transition(.opacity.combined(with: .scale(scale: 0.7)))
+                        }
+                    } else if pomodoro.isRunning {
+                        pomodoroWingLabel
+                            .transition(.opacity)
                     }
                 }
             }
@@ -488,6 +513,27 @@ struct AtlasIslandView: View {
             topTrailingRadius: 0,
             style: .continuous
         )
+    }
+
+    private var pomodoroWingLabel: some View {
+        Text(pomodoro.timeLabel)
+            .font(.custom("Figtree", size: 11).weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(Color.white.opacity(0.85))
+            .fixedSize()
+    }
+
+    /// "GYM · in 5h 51m" — read-only calendar glance for the next event when
+    /// it starts within the next few hours. Imminent meetings graduate to the
+    /// meeting-prompt bubble, so this never carries a call to action.
+    private var upcomingMeetingPreview: String? {
+        let meeting = store.meeting
+        guard meeting.id != "empty" else { return nil }
+        let delta = meeting.startAt.timeIntervalSinceNow
+        guard delta > 0, delta <= 8 * 3600 else { return nil }
+        let title = meeting.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return nil }
+        return "\(title) · \(store.nextUpCountdownLabel)"
     }
 
     private var shortcutBadge: some View {

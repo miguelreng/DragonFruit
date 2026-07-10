@@ -6,37 +6,10 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@plane/utils";
+import type { TWorkflowNodeKind } from "@/services/workflow.service";
+import { NODE_KIND_ACCENTS } from "./builder-helpers";
 
-export type TFlowNodeKind = "trigger" | "condition" | "action";
-
-type AccentConfig = {
-  headerBg: string;
-  headerText: string;
-  ring: string;
-  border: string;
-};
-
-// Per-kind accent (matches the reference: pink trigger, purple condition, blue action).
-const ACCENTS: Record<TFlowNodeKind, AccentConfig> = {
-  trigger: {
-    headerBg: "bg-rose-500/10",
-    headerText: "text-rose-600 dark:text-rose-400",
-    ring: "ring-rose-400/70",
-    border: "border-rose-300/70 dark:border-rose-500/40",
-  },
-  condition: {
-    headerBg: "bg-purple-500/10",
-    headerText: "text-purple-600 dark:text-purple-400",
-    ring: "ring-purple-400/70",
-    border: "border-purple-300/70 dark:border-purple-500/40",
-  },
-  action: {
-    headerBg: "bg-blue-500/10",
-    headerText: "text-blue-600 dark:text-blue-400",
-    ring: "ring-blue-400/70",
-    border: "border-blue-300/70 dark:border-blue-500/40",
-  },
-};
+export type TFlowNodeKind = TWorkflowNodeKind;
 
 type Props = {
   kind: TFlowNodeKind;
@@ -53,19 +26,24 @@ type Props = {
 
 /** Presentational node card. Selection + dragging are owned by the canvas wrapper. */
 export function FlowNode({ kind, icon, kindLabel, title, subtitle, selected, ghost, showDataChip = true }: Props) {
-  const accent = ACCENTS[kind];
+  const accent = NODE_KIND_ACCENTS[kind];
   return (
     <div
       className={cn(
-        "w-[300px] overflow-hidden rounded-xl border bg-layer-1 shadow-sm",
+        "shadow-sm w-[300px] overflow-hidden rounded-xl border bg-layer-1",
         "transition-[box-shadow,border-color] duration-150 ease-out",
         selected ? cn("ring-2", accent.ring, accent.border) : "border-subtle",
         ghost && "border-dashed opacity-60"
       )}
     >
       {/* Colored kind header — the node's one icon lives here. */}
-      <div className={cn("flex items-center gap-1.5 px-3 py-2", accent.headerBg, accent.headerText)}>
-        <span className="grid size-4 place-items-center">{icon}</span>
+      <div className={cn("flex items-center gap-2 px-3 py-2", accent.headerBg, accent.headerText)}>
+        <span
+          className="shadow-sm grid size-6 place-items-center rounded-md"
+          style={{ backgroundColor: accent.iconBg, color: accent.iconText, boxShadow: `0 0 0 1px ${accent.iconRing}` }}
+        >
+          {icon}
+        </span>
         <span className="text-12 font-semibold">{kindLabel}</span>
       </div>
       {/* Body — text only, no second icon. */}

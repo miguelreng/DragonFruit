@@ -186,6 +186,13 @@ export const coreRoutes: RouteConfigEntry[] = [
               "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/page.tsx"
             ),
           ]),
+          // Project Calendar
+          layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/calendar/layout.tsx", [
+            route(
+              ":workspaceSlug/projects/:projectId/calendar",
+              "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/calendar/page.tsx"
+            ),
+          ]),
           // Issue Detail
           route(
             ":workspaceSlug/projects/:projectId/issues/:issueId",

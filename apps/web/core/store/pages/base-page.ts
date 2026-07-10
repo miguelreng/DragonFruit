@@ -97,7 +97,10 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
   access: EPageAccess | undefined;
   is_favorite: boolean;
   is_brief?: boolean;
+  is_captured_chat?: boolean;
   is_locked: boolean;
+  /** Id of the containing folder page, or null when at the root. */
+  parent?: string | null;
   archived_at: string | null | undefined;
   workspace: string | undefined;
   project_ids?: string[] | undefined;
@@ -140,7 +143,9 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
     this.access = page?.access || EPageAccess.PRIVATE;
     this.is_favorite = page?.is_favorite || false;
     this.is_brief = page?.is_brief || false;
+    this.is_captured_chat = page?.is_captured_chat || false;
     this.is_locked = page?.is_locked || false;
+    this.parent = page?.parent ?? null;
     this.archived_at = page?.archived_at || undefined;
     this.workspace = page?.workspace || undefined;
     this.project_ids = page?.project_ids || undefined;
@@ -168,7 +173,9 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       access: observable.ref,
       is_favorite: observable.ref,
       is_brief: observable.ref,
+      is_captured_chat: observable.ref,
       is_locked: observable.ref,
+      parent: observable.ref,
       archived_at: observable.ref,
       workspace: observable.ref,
       project_ids: observable,
@@ -250,7 +257,9 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       logo_props: this.logo_props,
       is_favorite: this.is_favorite,
       is_brief: this.is_brief,
+      is_captured_chat: this.is_captured_chat,
       is_locked: this.is_locked,
+      parent: this.parent,
       archived_at: this.archived_at,
       workspace: this.workspace,
       project_ids: this.project_ids,

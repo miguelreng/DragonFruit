@@ -139,6 +139,63 @@ class TestPageAPIGet:
 
 
 @pytest.mark.contract
+class TestPageFolderAPI:
+    """Folders = pages with page_type "folder"; docs join one via `parent`."""
+
+    def get_pages_url(self, workspace_slug: str, project_id: str) -> str:
+        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/pages/"
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.page.base.page_transaction.delay")
+    def test_folder_lifecycle(self, _mock_page_tx, session_client, workspace, create_user):
+        project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
+        ProjectMember.objects.create(project=project, member=create_user, role=20, is_active=True)
+        url = self.get_pages_url(workspace.slug, str(project.id))
+
+        # Create a folder and a doc, then file the doc into the folder.
+        folder_response = session_client.post(url, {"name": "Research", "page_type": "folder"}, format="json")
+        doc_response = session_client.post(url, {"name": "Spec", "page_type": "doc"}, format="json")
+        assert folder_response.status_code == status.HTTP_201_CREATED
+        assert folder_response.data["page_type"] == "folder"
+        assert doc_response.status_code == status.HTTP_201_CREATED
+        folder_id = folder_response.data["id"]
+        doc_id = doc_response.data["id"]
+
+        move_response = session_client.patch(f"{url}{doc_id}/", {"parent": folder_id}, format="json")
+        assert move_response.status_code == status.HTTP_200_OK
+        assert str(move_response.data["parent"]) == str(folder_id)
+
+        # The parented doc must stay listable and retrievable.
+        list_response = session_client.get(url)
+        assert list_response.status_code == status.HTTP_200_OK
+        listed_ids = {str(page["id"]) for page in list_response.data}
+        assert {str(folder_id), str(doc_id)} <= listed_ids
+
+        retrieve_response = session_client.get(f"{url}{doc_id}/")
+        assert retrieve_response.status_code == status.HTTP_200_OK
+        assert str(retrieve_response.data["parent"]) == str(folder_id)
+
+        # The workspace docs list returns folders alongside a doc-typed filter.
+        workspace_response = session_client.get(f"/api/workspaces/{workspace.slug}/pages/?page_type=doc")
+        assert workspace_response.status_code == status.HTTP_200_OK
+        workspace_types = {str(page["id"]): page["page_type"] for page in workspace_response.data}
+        assert workspace_types.get(str(folder_id)) == "folder"
+        assert workspace_types.get(str(doc_id)) == "doc"
+
+        # Deleting the folder (archive first, per the API rule) unparents the doc.
+        unfile_response = session_client.patch(f"{url}{doc_id}/", {"parent": None}, format="json")
+        assert unfile_response.status_code == status.HTTP_200_OK
+        assert unfile_response.data["parent"] is None
+
+        archive_response = session_client.post(f"{url}{folder_id}/archive/", format="json")
+        assert archive_response.status_code == status.HTTP_200_OK
+        delete_response = session_client.delete(f"{url}{folder_id}/")
+        assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+
+        assert Page.objects.filter(pk=doc_id, parent__isnull=True).exists()
+
+
+@pytest.mark.contract
 class TestPageAssetAPI:
     @pytest.mark.django_db
     @patch("plane.app.views.asset.v2.S3Storage")

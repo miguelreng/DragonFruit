@@ -181,9 +181,7 @@ class WorkflowDetailEndpoint(BaseAPIView):
 
     @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
     def patch(self, request, slug, workflow_id):
-        workflow = Workflow.objects.filter(
-            workspace__slug=slug, pk=workflow_id, deleted_at__isnull=True
-        ).first()
+        workflow = Workflow.objects.filter(workspace__slug=slug, pk=workflow_id, deleted_at__isnull=True).first()
         if not workflow:
             return Response({"error": "workflow not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -214,9 +212,7 @@ class WorkflowDetailEndpoint(BaseAPIView):
 
     @allow_permission(allowed_roles=[ROLE.ADMIN], level="WORKSPACE")
     def delete(self, request, slug, workflow_id):
-        workflow = Workflow.objects.filter(
-            workspace__slug=slug, pk=workflow_id, deleted_at__isnull=True
-        ).first()
+        workflow = Workflow.objects.filter(workspace__slug=slug, pk=workflow_id, deleted_at__isnull=True).first()
         if not workflow:
             return Response({"error": "workflow not found"}, status=status.HTTP_404_NOT_FOUND)
         workflow.delete()
@@ -241,28 +237,20 @@ class WorkflowRunListEndpoint(BaseAPIView):
 class WorkflowTestRunEndpoint(BaseAPIView):
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug, workflow_id):
-        workflow = Workflow.objects.filter(
-            workspace__slug=slug, pk=workflow_id, deleted_at__isnull=True, is_enabled=True
-        ).first()
+        workflow = Workflow.objects.filter(workspace__slug=slug, pk=workflow_id, deleted_at__isnull=True).first()
         if not workflow:
-            return Response(
-                {"error": "workflow not found or disabled"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "workflow not found"}, status=status.HTTP_404_NOT_FOUND)
         issue_id = request.data.get("issue_id")
         if not issue_id:
             return Response({"error": "issue_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        issue = Issue.objects.filter(
-            workspace__slug=slug, pk=issue_id, deleted_at__isnull=True
-        ).first()
+        issue = Issue.objects.filter(workspace__slug=slug, pk=issue_id, deleted_at__isnull=True).first()
         if not issue:
             return Response({"error": "issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Reuse the workflow's own trigger event so the run mirrors production.
         trigger = workflow.nodes.filter(kind="trigger").first()
         event = (trigger.config or {}).get("event", "issue_created") if trigger else "issue_created"
-        run = WorkflowRun.objects.create(
-            workflow=workflow, trigger_event=event, issue=issue, status="pending"
-        )
+        run = WorkflowRun.objects.create(workflow=workflow, trigger_event=event, issue=issue, status="pending")
         from plane.bgtasks.workflow_task import run_workflow
 
         run_workflow.delay(str(run.id))

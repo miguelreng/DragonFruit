@@ -12,19 +12,15 @@ import { EIssueFilterType, ISSUE_DISPLAY_FILTERS_BY_PAGE } from "@plane/constant
 import { useTranslation } from "@plane/i18n";
 import { ChevronDownIcon } from "@/components/icons/propel-shim";
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
-import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
+import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
 // components
 import { WorkItemsModal } from "@/components/analytics/work-items/modal";
-import {
-  DisplayFiltersSelection,
-  FiltersDropdown,
-  MobileLayoutSelection,
-} from "@/components/issues/issue-layouts/filters";
+import { DisplayFiltersSelection, FiltersDropdown } from "@/components/issues/issue-layouts/filters";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 
-export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHeader() {
+export const ProjectCalendarMobileHeader = observer(function ProjectCalendarMobileHeader() {
   // i18n
   const { t } = useTranslation();
   const [analyticsModal, setAnalyticsModal] = useState(false);
@@ -35,15 +31,6 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
   const {
     issuesFilter: { issueFilters, updateFilters },
   } = useIssues(EIssuesStoreType.PROJECT);
-  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
-
-  const handleLayoutChange = useCallback(
-    (layout: EIssueLayoutTypes) => {
-      if (!workspaceSlug || !projectId) return;
-      updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, { layout: layout });
-    },
-    [workspaceSlug, projectId, updateFilters]
-  );
 
   const handleDisplayFilters = useCallback(
     (updatedDisplayFilter: Partial<IIssueDisplayFilterOptions>) => {
@@ -69,15 +56,10 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
         projectDetails={currentProjectDetails ?? undefined}
       />
       <div className="z-[13] flex justify-evenly border-b border-subtle bg-surface-1 py-2 md:hidden">
-        <MobileLayoutSelection
-          layouts={[EIssueLayoutTypes.SPREADSHEET, EIssueLayoutTypes.LIST, EIssueLayoutTypes.KANBAN]}
-          onChange={handleLayoutChange}
-          activeLayout={activeLayout}
-        />
-        <div className="flex flex-grow items-center justify-center border-l border-subtle text-13 text-secondary">
+        <div className="flex flex-grow items-center justify-center text-13 text-secondary">
           <FiltersDropdown
             title={t("common.display")}
-            placement="bottom-end"
+            placement="bottom-start"
             menuButton={
               <span className="flex items-center text-13 text-secondary">
                 {t("common.display")}
@@ -87,7 +69,7 @@ export const ProjectIssuesMobileHeader = observer(function ProjectIssuesMobileHe
           >
             <DisplayFiltersSelection
               layoutDisplayFiltersOptions={
-                activeLayout ? ISSUE_DISPLAY_FILTERS_BY_PAGE.issues.layoutOptions[activeLayout] : undefined
+                ISSUE_DISPLAY_FILTERS_BY_PAGE.issues.layoutOptions[EIssueLayoutTypes.CALENDAR]
               }
               displayFilters={issueFilters?.displayFilters ?? {}}
               handleDisplayFiltersUpdate={handleDisplayFilters}

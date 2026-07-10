@@ -630,7 +630,7 @@ a.public-doc-mention:hover {
   font-size: clamp(2rem, 4vw, 2.75rem);
   line-height: 1.15;
   font-weight: 500;
-  letter-spacing: 0;
+  letter-spacing: 0 !important;
 }
 
 .published-doc {
@@ -652,10 +652,15 @@ a.public-doc-mention:hover {
   color: var(--text-color-primary);
 }
 
+.published-doc > :where(:first-child) {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
 .published-doc :where(h1, h2, h3, .editor-heading-block:is(h1, h2, h3)) {
   font-family: var(--published-doc-heading-font);
   font-weight: 500 !important;
-  letter-spacing: 0;
+  letter-spacing: 0 !important;
   color: var(--text-color-primary);
 }
 
@@ -665,24 +670,24 @@ a.public-doc-mention:hover {
 
 .published-doc :where(h1, h1.editor-heading-block) {
   margin: 0;
-  padding-top: 1.375rem;
-  padding-bottom: 0.25rem;
+  padding-top: 2rem;
+  padding-bottom: 0.45rem;
   font-size: 1.875rem !important;
   line-height: 2.25rem !important;
 }
 
 .published-doc :where(h2, h2.editor-heading-block) {
   margin: 0;
-  padding-top: 1.25rem;
-  padding-bottom: 0.25rem;
+  padding-top: 1.75rem;
+  padding-bottom: 0.4rem;
   font-size: 1.4375rem !important;
   line-height: 1.85rem !important;
 }
 
 .published-doc :where(h3, h3.editor-heading-block) {
   margin: 0;
-  padding-top: 1rem;
-  padding-bottom: 0.125rem;
+  padding-top: 1.35rem;
+  padding-bottom: 0.35rem;
   font-size: 1.1875rem !important;
   line-height: 1.65rem !important;
 }
@@ -690,22 +695,40 @@ a.public-doc-mention:hover {
 .published-doc :where(h4, h5, h6, h4.editor-heading-block, h5.editor-heading-block, h6.editor-heading-block) {
   font-family: var(--published-doc-display-sans-font);
   font-weight: 600 !important;
-  letter-spacing: 0;
+  letter-spacing: 0 !important;
   color: var(--text-color-primary);
 }
 
 .published-doc :where(p, p.editor-paragraph-block) {
   margin: 0;
-  padding-top: 0.125rem;
-  padding-bottom: 0.25rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.55rem;
   font-size: 0.9375rem !important;
   line-height: 1.55 !important;
   color: var(--text-color-primary);
 }
 
+.published-doc :where(h1, h2, h3, h4, h5, h6, .editor-heading-block) + :where(p, p.editor-paragraph-block) {
+  padding-top: 0.15rem;
+}
+
+.published-doc div[data-type="horizontalRule"] + :is(h1, h2, h3, .editor-heading-block) {
+  padding-top: 0.45rem;
+}
+
 .published-doc :where(ul, ol) {
-  margin-top: 0.25rem;
-  margin-bottom: 0.75rem;
+  margin-top: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.published-doc :where(li) {
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.published-doc :where(li) :where(p, p.editor-paragraph-block) {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .published-doc :where(blockquote) {
@@ -753,7 +776,12 @@ a.public-doc-mention:hover {
   border-radius: 8px;
 }
 
-.published-doc :where(div[data-type="horizontalRule"] > div) {
+.published-doc div[data-type="horizontalRule"] {
+  margin: 1.1rem 0 0.85rem;
+  padding: 0 !important;
+}
+
+.published-doc div[data-type="horizontalRule"] > div {
   border-color: color-mix(in srgb, var(--text-color-primary) 12%, transparent) !important;
   border-bottom-width: 1px !important;
 }
@@ -789,7 +817,6 @@ a.public-doc-mention:hover {
   }
 }
 
-
 .page-focus-mode .page-summary-container {
   display: none !important;
 }
@@ -809,4 +836,39 @@ a.public-doc-mention:hover {
   margin-right: 0.35rem;
   margin-top: 0.2rem;
   font-weight: 600;
+}
+
+.dragonfruit-gallery-container {
+  container: dragonfruit-gallery / inline-size;
+}
+
+.dragonfruit-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dragonfruit-masonry-columns {
+  columns: 2;
+  column-gap: 1rem;
+}
+
+@container dragonfruit-gallery (min-width: 640px) {
+  .dragonfruit-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dragonfruit-masonry-columns {
+    columns: 3;
+  }
+}
+
+@container dragonfruit-gallery (min-width: 960px) {
+  .dragonfruit-card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dragonfruit-masonry-columns {
+    columns: 4;
+  }
 }

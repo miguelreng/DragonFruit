@@ -1,0 +1,58 @@
+---
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { pricingPlans } from "../lib/landing";
+---
+
+<BaseLayout
+  title="Pricing — DragonFruit"
+  description="DragonFruit pricing: Free for solo tasks and docs, Pro with Atlas at $12 per user, Business at $24 per user, and optional Atlas Cloud usage."
+  canonicalPath="/pricing"
+  bodyClass="home-page"
+>
+  <main class="landing-main subpage-main">
+    <SiteHeader />
+    <section class="subpage-hero">
+      <div>
+        <p class="meta">Pricing</p>
+        <h1>Free for the workspace. Paid when Atlas joins the work.</h1>
+        <p>
+          Start with tasks and docs. Upgrade to Pro when you want Atlas organizing, drafting, and triaging in context.
+          Bring your own key, or add managed Atlas Cloud usage.
+        </p>
+      </div>
+      <div class="subpage-panel" data-spotlight-card>
+        <span class="status-chip">Recommended launch pricing</span>
+        <h2>$12 Pro. $24 Business.</h2>
+        <p>Keep Cloud simple: per-seat subscriptions for the product, usage-based pricing only for managed LLM calls.</p>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="pricing-grid">
+        {pricingPlans.map((plan) => (
+          <article class="pricing-card" data-spotlight-card>
+            <span>{plan.name}</span>
+            <h2>{plan.price}</h2>
+            <p class="price-detail">{plan.priceDetail}</p>
+            <p>{plan.body}</p>
+            <ul>
+              {plan.items.map((item) => <li>{item}</li>)}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-final">
+      <div>
+        <p class="meta">Best next step</p>
+        <h2>Try tasks and docs first. Upgrade when Atlas is doing real work.</h2>
+      </div>
+      <a class="primary-action" href="https://app.dragonfruit.sh">Start free</a>
+    </section>
+
+    <SiteFooter />
+  </main>
+</BaseLayout>

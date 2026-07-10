@@ -46,7 +46,7 @@ struct DragonFruitMiniApp: App {
                 toastController.bind(to: store)
                 cursorBuddyController.bind(to: store)
                 atlasChatController.bind(to: store)
-                atlasIslandController.bind(to: store)
+                atlasIslandController.bind(to: store, pomodoro: pomodoro)
                 agentInbox.startPolling(
                     makeClient: { try store.makeClientPublic() },
                     workspaceSlug: { store.selectedWorkspaceSlug }
@@ -68,7 +68,7 @@ struct DragonFruitMiniApp: App {
                 toastController.bind(to: store)
                 cursorBuddyController.bind(to: store)
                 atlasChatController.bind(to: store)
-                atlasIslandController.bind(to: store)
+                atlasIslandController.bind(to: store, pomodoro: pomodoro)
             }
         }
         .menuBarExtraStyle(.window)

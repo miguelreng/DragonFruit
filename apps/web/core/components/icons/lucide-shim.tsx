@@ -30,9 +30,7 @@ const DEFAULT_WEIGHT: IconWeight = "Linear";
 // to the LucideIcon/LucideProps signatures consumers type their icon fields as.
 const shim =
   (Icon: SolarIconComponent) =>
-  ({ weight, ...props }: SolarIconProps) =>
-    <Icon weight={weight ?? DEFAULT_WEIGHT} {...props} />;
-
+  ({ weight, ...props }: SolarIconProps) => <Icon weight={weight ?? DEFAULT_WEIGHT} {...props} />;
 
 export const Activity = shim(Solar.Pulse);
 export const ALargeSmall = shim(Solar.Text);
@@ -198,6 +196,7 @@ export const Pencil = shim(Solar.Pen);
 export const PenTool = shim(Solar.Pen2);
 export const Pin = shim(Solar.Pin);
 export const PinOff = shim(Solar.Pin);
+export const Play = shim(Solar.Play);
 // Bare plus glyph (no enclosing circle). Solar only ships AddCircle/AddSquare,
 // so this is a hand-rolled stroke icon matching the original lucide `Plus`.
 export const Plus = ({ strokeWidth = 2, ...props }: SVGProps<SVGSVGElement> & { strokeWidth?: number }) => (

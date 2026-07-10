@@ -2,70 +2,295 @@
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { audienceCards, bentoFeatures, pricingPlans } from "../lib/landing";
+
+const flowSteps = [
+  ["01", "Capture", "Drop a note, transcript, decision, or messy list into the workspace."],
+  ["02", "Ask Atlas", "Turn the raw material into a draft, task list, summary, or clean next step."],
+  ["03", "Approve", "Keep control visible before Atlas changes anything that matters."],
+];
+
+const faqs = [
+  {
+    question: "What is DragonFruit?",
+    answer: "An open-source tasks and docs workspace with one built-in AI teammate, Atlas.",
+  },
+  {
+    question: "Is Atlas included in the free Cloud plan?",
+    answer: "No. Free is for solo tasks and docs. Atlas is the reason to upgrade to Pro.",
+  },
+  {
+    question: "Can I self-host it?",
+    answer: "Yes. DragonFruit is AGPL open source, so self-hosting is part of the trust model and funnel.",
+  },
+  {
+    question: "How does AI pricing work?",
+    answer: "Pro and Business are per-seat. You can bring your own model key, or use Atlas Cloud as a managed usage add-on with spend caps.",
+  },
+];
 ---
 
-<BaseLayout bodyClass="home-page">
-  <main class="home-main">
-    <div class="home-copy">
-      <header class="home-header">
-        <SiteHeader />
-        <h1>A workspace for the new generalists.</h1>
-      </header>
-
-      <section class="home-section home-intro" id="about">
+<BaseLayout
+  title="DragonFruit — Tasks, docs, and one AI teammate"
+  description="DragonFruit is an open-source tasks and docs workspace with Atlas, one AI teammate for creators, technical teams, and creative studios."
+  bodyClass="home-page"
+>
+  <main class="landing-main">
+    <section class="landing-hero" aria-labelledby="hero-title">
+      <SiteHeader />
+      <div class="landing-hero-copy">
+        <p class="meta">Open-source tasks + docs with Atlas</p>
+        <h1 id="hero-title">Your workspace, plus one AI teammate who actually does the work.</h1>
         <p>
-          Before the printing press, knowledge moved slowly. It lived in rooms, guilds, monasteries, families, and
-          professions you were usually born near before you ever got to choose them.
+          DragonFruit keeps tasks and docs simple. Atlas organizes notes, drafts the next doc, triages messy projects,
+          and asks before anything risky.
         </p>
-        <p>
-          Then books started moving. Not all at once, and not equally, but enough. A person could read outside their
-          assigned lane. A carpenter could become an astronomer. A clerk could become a political thinker. A curious
-          person could become harder to contain.
-        </p>
-      </section>
-
-      <div class="home-content">
-        <section class="home-section home-rest" aria-labelledby="manifesto-title">
-          <p>
-            AI feels like another one of those openings. It does not make craft cheap. It makes more doors reachable. The
-            person who can think clearly, ask well, and keep going can cross disciplines without waiting for a whole
-            institution to give permission.
-          </p>
-          <p>DragonFruit is for that person.</p>
-          <h2 id="manifesto-title">Manifesto</h2>
-          <ul>
-            <li>Work should begin as thinking, not as tickets.</li>
-            <li>Documents and tasks belong in the same room.</li>
-            <li>The best builders cross disciplines.</li>
-            <li>AI is useful when it helps you make the next honest thing.</li>
-            <li>A workspace should be quiet enough for a thought to survive.</li>
-            <li>The future belongs to people who can move between fields.</li>
-          </ul>
-          <span class="cta-row"><span aria-hidden="true">→</span><a href="https://app.dragonfruit.sh">Start now for free</a></span>
-        </section>
+        <div class="landing-actions">
+          <a class="primary-action" href="https://app.dragonfruit.sh">Start free</a>
+          <a class="secondary-action" href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noreferrer noopener">
+            View source
+          </a>
+        </div>
+        <div class="landing-proof" aria-label="DragonFruit principles">
+          <span>Tasks + docs</span>
+          <span>One Atlas</span>
+          <span>BYOK</span>
+          <span>AGPL</span>
+        </div>
       </div>
 
-      <SiteFooter />
-    </div>
+      <div class="landing-hero-media">
+        <div class="product-window" role="img" aria-label="DragonFruit workspace preview">
+          <div class="product-rail" aria-hidden="true">
+            <span class="product-rail-mark is-active"></span>
+            <span class="product-rail-mark"></span>
+            <span class="product-rail-mark"></span>
+            <span class="product-rail-mark"></span>
+          </div>
+          <div class="product-sidebar" aria-hidden="true">
+            <span class="product-sidebar-title">DragonFruit</span>
+            <span class="product-sidebar-item is-active">Launch room</span>
+            <span class="product-sidebar-item">Docs</span>
+            <span class="product-sidebar-item">Tasks</span>
+            <span class="product-sidebar-item">Atlas</span>
+          </div>
+          <div class="product-canvas">
+            <div class="product-toolbar">
+              <div>
+                <span class="product-kicker">Project</span>
+                <strong>Founder launch plan</strong>
+              </div>
+              <span class="status-chip">Atlas ready</span>
+            </div>
 
-    <div class="home-illustration-wrap">
-      <video
-        class="home-illustration"
-        data-home-video
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="metadata"
-        aria-label="Renaissance-style scene of a small coworking meeting with people using laptops and a phone"
-        width="1536"
-        height="1024"
-      >
-        <source media="(max-width: 860px)" src="/assets/hero-video-loop-mobile.mp4" type="video/mp4" />
-        <source media="(min-width: 861px)" src="/assets/hero-video-loop.mp4" type="video/mp4" />
-        <source src="/assets/hero-video-smooth.mp4" type="video/mp4" />
-      </video>
-    </div>
+            <div class="product-doc-card">
+              <div class="product-doc-top">
+                <span class="product-icon" aria-hidden="true">D</span>
+                <div>
+                  <span class="product-kicker">Meeting note</span>
+                  <h3>Launch plan brain dump</h3>
+                </div>
+              </div>
+              <p>Messy notes, open questions, owner decisions, and half-written positioning in one doc.</p>
+              <div class="product-tags" aria-label="Document tags">
+                <span>Spec</span>
+                <span>Transcript</span>
+                <span>Risks</span>
+              </div>
+            </div>
+
+            <div class="product-task-list" aria-label="Generated tasks">
+              <div class="product-task-row">
+                <span class="task-check" aria-hidden="true"></span>
+                <span>Draft launch doc from notes</span>
+                <span class="task-pill">Today</span>
+              </div>
+              <div class="product-task-row">
+                <span class="task-check" aria-hidden="true"></span>
+                <span>Assign customer follow-ups</span>
+                <span class="task-pill">3 owners</span>
+              </div>
+              <div class="product-task-row">
+                <span class="task-check" aria-hidden="true"></span>
+                <span>Approve public changelog</span>
+                <span class="task-pill is-warning">Review</span>
+              </div>
+            </div>
+
+            <div class="product-atlas-card">
+              <span class="atlas-avatar" aria-hidden="true">A</span>
+              <p><strong>Atlas suggests</strong> 6 tasks, 3 risks, and one launch doc. Approval required before changes.</p>
+            </div>
+
+            <div class="product-media-card">
+              <video
+                class="landing-hero-video"
+                data-home-video
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                aria-label="Renaissance-style scene of a small coworking meeting with people using laptops and a phone"
+                width="1536"
+                height="1024"
+              >
+                <source media="(max-width: 860px)" src="/assets/hero-video-loop-mobile.mp4" type="video/mp4" />
+                <source media="(min-width: 861px)" src="/assets/hero-video-loop.mp4" type="video/mp4" />
+                <source src="/assets/hero-video-smooth.mp4" type="video/mp4" />
+              </video>
+              <span>Context asset</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-section" id="product" aria-labelledby="product-title">
+      <div class="landing-section-heading">
+        <p class="meta">Product</p>
+        <h2 id="product-title">One quiet room for the work before the work.</h2>
+        <p>
+          Ideas rarely arrive as tickets. DragonFruit gives the note, the task, and the AI help the same place to live.
+        </p>
+      </div>
+
+      <div class="bento-grid" data-spotlight-grid>
+        {bentoFeatures.map((feature) => (
+          <article class={`bento-card is-${feature.size}`} data-spotlight-card>
+            <span class="bento-kicker">{feature.meta}</span>
+            <h3>{feature.title}</h3>
+            <p>{feature.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-section" aria-labelledby="flow-title">
+      <div class="landing-section-heading">
+        <p class="meta">How it works</p>
+        <h2 id="flow-title">A shorter path from raw thought to real work.</h2>
+      </div>
+
+      <div class="flow-grid">
+        {flowSteps.map(([number, title, body]) => (
+          <article>
+            <span>{number}</span>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-showcase" aria-labelledby="atlas-title">
+      <div class="showcase-copy">
+        <p class="meta">Atlas</p>
+        <h2 id="atlas-title">Not another chat tab. One teammate inside the workflow.</h2>
+        <p>
+          Atlas belongs where the work already lives. Ask for a plan, a draft, a triage pass, or the next set of tasks.
+          The context is already there.
+        </p>
+        <ul>
+          <li>Organizes brain dumps into grouped tasks.</li>
+          <li>Drafts docs from meetings, notes, and decisions.</li>
+          <li>Works with workspace context instead of a blank prompt.</li>
+          <li>Pauses for approval before risky actions.</li>
+        </ul>
+      </div>
+      <div class="showcase-panel" aria-label="Example Atlas workflow">
+        <div class="showcase-toolbar">
+          <span>Atlas in context</span>
+          <span class="status-chip is-subtle">Needs approval</span>
+        </div>
+        <div class="workspace-card">
+          <span class="workspace-card-kicker">Meeting note</span>
+          <h3>Launch plan brain dump</h3>
+          <p>Messy notes, open questions, and half-written decisions from the team.</p>
+        </div>
+        <div class="workspace-card is-atlas">
+          <span class="workspace-card-kicker">Atlas suggests</span>
+          <h3>6 tasks, 3 risks, 1 launch doc</h3>
+          <p>Review the structure, approve the tasks, then keep the source doc beside the work.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-section" id="use-cases" aria-labelledby="use-cases-title">
+      <div class="landing-section-heading">
+        <p class="meta">Use cases</p>
+        <h2 id="use-cases-title">Built for people who move between thinking and shipping.</h2>
+      </div>
+
+      <div class="use-case-list">
+        {audienceCards.map((useCase) => (
+          <article>
+            <h3>{useCase.title}</h3>
+            <p>{useCase.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-section" aria-labelledby="pricing-title">
+      <div class="landing-section-heading">
+        <p class="meta">Pricing</p>
+        <h2 id="pricing-title">Free for tasks and docs. Paid when Atlas joins the work.</h2>
+        <p>
+          Start solo for free. Upgrade to Pro when Atlas becomes part of your daily flow. Bring your own key, or use
+          Atlas Cloud when you want managed usage.
+        </p>
+      </div>
+
+      <div class="pricing-grid">
+        {pricingPlans.map((plan) => (
+          <article class="pricing-card" data-spotlight-card>
+            <span>{plan.name}</span>
+            <h2>{plan.price}</h2>
+            <p class="price-detail">{plan.priceDetail}</p>
+            <p>{plan.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-open-source" aria-labelledby="open-source-title">
+      <div>
+        <p class="meta">Open source</p>
+        <h2 id="open-source-title">Open source is the trust model, not a side project.</h2>
+      </div>
+      <p>
+        DragonFruit is AGPL. Inspect the code, self-host when control matters, or use Cloud when you want the product
+        without running infrastructure. Built on Plane, with Atlas as the opinionated teammate layer.
+      </p>
+    </section>
+
+    <section class="landing-section landing-faq" aria-labelledby="faq-title">
+      <div class="landing-section-heading">
+        <p class="meta">FAQ</p>
+        <h2 id="faq-title">The important details.</h2>
+      </div>
+
+      <div class="faq-list">
+        {faqs.map((faq) => (
+          <details>
+            <summary>{faq.question}</summary>
+            <p>{faq.answer}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-final" aria-labelledby="final-title">
+      <div>
+        <p class="meta">Start</p>
+        <h2 id="final-title">Bring one messy project. Let Atlas organize the next move.</h2>
+        <p>Open-source. Self-hostable. Bring your own AI key.</p>
+      </div>
+      <a class="primary-action" href="https://app.dragonfruit.sh">Start free</a>
+    </section>
+
+    <SiteFooter />
   </main>
 
   <script is:inline>
@@ -81,6 +306,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
       video.addEventListener('loadeddata', showVideo, { once: true });
       window.setTimeout(showVideo, 900);
+
     })();
   </script>
 </BaseLayout>

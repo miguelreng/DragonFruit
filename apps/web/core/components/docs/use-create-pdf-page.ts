@@ -59,7 +59,7 @@ export const useCreatePdfPage = (workspaceSlug: string) => {
   );
 
   const createPdfPage = useCallback(
-    async (projectId: string, file: File): Promise<TPage | null> => {
+    async (projectId: string, file: File, parentPageId?: string): Promise<TPage | null> => {
       if (!isPdfFile(file)) {
         setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message: `"${file.name}" is not a PDF file.` });
         return null;
@@ -73,6 +73,7 @@ export const useCreatePdfPage = (workspaceSlug: string) => {
           access: EPageAccess.PUBLIC,
           page_type: "pdf",
           name,
+          ...(parentPageId ? { parent: parentPageId } : {}),
         });
         if (!page?.id) throw new Error("Page could not be created.");
       } catch (err: unknown) {

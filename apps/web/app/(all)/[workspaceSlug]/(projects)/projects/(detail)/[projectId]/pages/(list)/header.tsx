@@ -37,9 +37,9 @@ type Props = {
   contentType?: TPageType;
 };
 
-// This header only ever creates docs and whiteboards; PDFs and sheets are
-// created from the Docs gallery, not here.
-type TCreatableHeaderPageType = Exclude<TPageType, "pdf" | "sheet">;
+// This header only ever creates docs and whiteboards; PDFs, sheets, and
+// folders are created from the Docs surface, not here.
+type TCreatableHeaderPageType = Exclude<TPageType, "pdf" | "sheet" | "folder">;
 
 const PAGE_CONTENT_META: Record<TCreatableHeaderPageType, { addLabel: string; breadcrumbLabel: string }> = {
   doc: {

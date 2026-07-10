@@ -40,7 +40,6 @@ import { useBookmark } from "@/hooks/store/use-bookmark";
 import { useProject } from "@/hooks/store/use-project";
 import { useUserPermissions } from "@/hooks/store/user";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
 import { BookmarkDetailModal } from "./bookmark-detail-modal";
@@ -898,14 +897,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
     "grid"
   );
   const viewMode: ViewMode = storedViewMode ?? "grid";
-  // The open rail eats horizontal space, so drop the masonry one column at the
-  // top breakpoints while it's expanded.
-  const { preferences: railPreferences } = useAppRailPreferences();
-  const isRailExpanded = railPreferences.displayMode === "icon_with_label";
-  const bookmarkColumnsClass = cn(
-    "columns-1 gap-4 sm:columns-2 lg:columns-3",
-    isRailExpanded ? "xl:columns-3 2xl:columns-4" : "xl:columns-4 2xl:columns-5"
-  );
+  const bookmarkColumnsClass = "dragonfruit-masonry-columns";
 
   // Track the initial fetch so the UI can show a loader instead of flashing
   // the "No bookmarks yet" empty state while the request is still in flight.
@@ -1412,7 +1404,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
         {filteredBookmarks.length === 0 ? (
           isLoading ? (
             viewMode === "grid" ? (
-              <div className="scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
+              <div className="dragonfruit-gallery-container scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
                 <div className={bookmarkColumnsClass}>
                   {["180", "260", "320", "210", "290", "240", "181", "261", "321", "211", "291", "241"].map(
                     (height) => (
@@ -1452,7 +1444,7 @@ export const BookmarkBoard = observer(function BookmarkBoard(props: Props) {
             />
           )
         ) : viewMode === "grid" ? (
-          <div className="scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
+          <div className="dragonfruit-gallery-container scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
             <div className={bookmarkColumnsClass}>
               {filteredBookmarks.map((bookmark) => (
                 <div key={bookmark.id} className="mb-4 break-inside-avoid">

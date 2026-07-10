@@ -150,7 +150,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               : true;
           if (isPasswordValid) {
             setIsSubmitting(true);
-            // Tags the upcoming page reload so AppLoadingScreen can pick the "logging in" painting.
+            // Tags the upcoming page reload; AppLoadingScreen clears the legacy loading intent.
             window.sessionStorage.setItem("df-loading-intent", "login");
             if (formRef.current) formRef.current.submit(); // Manually submit the form if the condition is met
           } else {

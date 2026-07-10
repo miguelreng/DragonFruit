@@ -78,9 +78,11 @@ export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavor
   // on the Tasks page) restore that layout via a `?layout=` query param. The
   // Tasks page reads it once on mount and applies it to display filters. See
   // addProjectToFavorites for the write side.
+  const favoriteLayout = favorite.entity_data?.view_layout;
+  const opensProjectCalendar = favorite.entity_type === "project" && favoriteLayout === EIssueLayoutTypes.CALENDAR;
   const layoutQuery =
-    favorite.entity_type === "project" && favorite.entity_data?.view_layout
-      ? `?layout=${encodeURIComponent(favorite.entity_data.view_layout)}`
+    favorite.entity_type === "project" && favoriteLayout && !opensProjectCalendar
+      ? `?layout=${encodeURIComponent(favoriteLayout)}`
       : "";
   const openedFromFavoritesQuery =
     favorite.entity_type === "page" ? `${layoutQuery ? "&" : "?"}openFrom=favorites` : "";
@@ -88,7 +90,8 @@ export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavor
   if (entityLinkDetails.itemLevel === "workspace") {
     return `/${workspaceSlug}/${entityLinkDetails.getLink(favorite)}${layoutQuery}${openedFromFavoritesQuery}`;
   } else if (entityLinkDetails.itemLevel === "project") {
-    return `/${workspaceSlug}/projects/${favorite.project_id}/${entityLinkDetails.getLink(favorite)}${layoutQuery}${openedFromFavoritesQuery}`;
+    const projectLink = opensProjectCalendar ? "calendar" : entityLinkDetails.getLink(favorite);
+    return `/${workspaceSlug}/projects/${favorite.project_id}/${projectLink}${layoutQuery}${openedFromFavoritesQuery}`;
   } else {
     return `/${workspaceSlug}`;
   }

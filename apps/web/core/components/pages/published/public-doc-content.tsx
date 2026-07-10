@@ -49,6 +49,8 @@ export function PublicDocContent({ html, embeds }: Props) {
 }
 
 export function PublicDocIndex({ headings }: { headings: TPublicDocHeading[] }) {
+  const activeHeadingId = usePublicDocActiveHeading(headings);
+
   if (headings.length === 0) return null;
 
   return (
@@ -56,20 +58,25 @@ export function PublicDocIndex({ headings }: { headings: TPublicDocHeading[] }) 
       <div className="sticky top-24">
         <div className="group/public-doc-toc relative px-page-x">
           <div className="max-h-[50vh] overflow-hidden text-left" aria-hidden="true">
-            <PublicDocOutlineBars headings={headings} />
+            <PublicDocOutlineBars headings={headings} activeHeadingId={activeHeadingId} />
           </div>
           <div className="vertical-scrollbar pointer-events-none absolute top-0 right-0 scrollbar-sm max-h-[70vh] w-56 translate-x-1/2 overflow-y-scroll rounded-lg bg-surface-2 p-4 whitespace-nowrap opacity-0 transition-all duration-300 group-hover/public-doc-toc:pointer-events-auto group-hover/public-doc-toc:-translate-x-1/4 group-hover/public-doc-toc:opacity-100">
             <div className="flex flex-col items-start gap-y-1">
-              {headings.map((heading) => (
-                <button
-                  key={heading.id}
-                  type="button"
-                  onClick={() => handleHeadingClick(heading)}
-                  className={getPublicDocHeadingClassName(heading.level)}
-                >
-                  {heading.text}
-                </button>
-              ))}
+              {headings.map((heading) => {
+                const isActive = heading.id === activeHeadingId;
+
+                return (
+                  <button
+                    key={heading.id}
+                    type="button"
+                    aria-current={isActive ? "true" : undefined}
+                    onClick={() => handleHeadingClick(heading)}
+                    className={getPublicDocHeadingClassName(heading.level, isActive)}
+                  >
+                    {heading.text}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -82,28 +89,91 @@ function handleHeadingClick(heading: TPublicDocHeading) {
   document.getElementById(heading.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function PublicDocOutlineBars({ headings }: { headings: TPublicDocHeading[] }) {
+function usePublicDocActiveHeading(headings: TPublicDocHeading[]) {
+  const firstHeadingId = headings[0]?.id;
+  const [activeHeadingId, setActiveHeadingId] = useState(firstHeadingId);
+
+  useEffect(() => {
+    setActiveHeadingId(firstHeadingId);
+  }, [firstHeadingId]);
+
+  useEffect(() => {
+    if (!firstHeadingId) return undefined;
+
+    let animationFrame: number | undefined;
+
+    const updateActiveHeading = () => {
+      animationFrame = undefined;
+      const activeLine = Math.min(window.innerHeight * 0.35, 240);
+      let nextActiveHeadingId = firstHeadingId;
+
+      for (const heading of headings) {
+        const headingElement = document.getElementById(heading.id);
+        if (!headingElement) continue;
+        if (headingElement.getBoundingClientRect().top > activeLine) break;
+        nextActiveHeadingId = heading.id;
+      }
+
+      setActiveHeadingId((currentHeadingId) =>
+        currentHeadingId === nextActiveHeadingId ? currentHeadingId : nextActiveHeadingId
+      );
+    };
+
+    const requestUpdate = () => {
+      if (animationFrame !== undefined) return;
+      animationFrame = window.requestAnimationFrame(updateActiveHeading);
+    };
+
+    requestUpdate();
+    document.addEventListener("scroll", requestUpdate, { capture: true, passive: true });
+    window.addEventListener("resize", requestUpdate);
+
+    return () => {
+      if (animationFrame !== undefined) window.cancelAnimationFrame(animationFrame);
+      document.removeEventListener("scroll", requestUpdate, true);
+      window.removeEventListener("resize", requestUpdate);
+    };
+  }, [firstHeadingId, headings]);
+
+  return activeHeadingId;
+}
+
+function PublicDocOutlineBars({
+  activeHeadingId,
+  headings,
+}: {
+  activeHeadingId?: string;
+  headings: TPublicDocHeading[];
+}) {
   return (
     <div className="mt-2 flex h-full flex-col items-start gap-y-2">
-      {headings.map((heading) => (
-        <div
-          key={heading.id}
-          className="h-0.5 flex-shrink-0 self-end rounded-xs bg-layer-3"
-          style={{
-            width: heading.level === 1 ? "20px" : heading.level === 2 ? "18px" : "14px",
-          }}
-        />
-      ))}
+      {headings.map((heading) => {
+        const isActive = heading.id === activeHeadingId;
+        const width = heading.level === 1 ? 20 : heading.level === 2 ? 18 : 14;
+
+        return (
+          <div
+            key={heading.id}
+            data-active={isActive ? "true" : undefined}
+            className={`h-0.5 flex-shrink-0 self-end rounded-xs transition-all duration-200 ${
+              isActive ? "bg-accent-primary opacity-100" : "bg-layer-3 opacity-70"
+            }`}
+            style={{
+              width: `${isActive ? width + 8 : width}px`,
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
 
-function getPublicDocHeadingClassName(level: TPublicDocHeading["level"]) {
-  const common =
-    "flex-shrink-0 w-full py-1 text-left font-medium text-tertiary hover:text-accent-primary truncate transition-colors";
-  if (level === 1) return `${common} pl-1 text-13`;
-  if (level === 2) return `${common} pl-2 text-11`;
-  return `${common} pl-4 text-11`;
+function getPublicDocHeadingClassName(level: TPublicDocHeading["level"], isActive = false) {
+  const common = "flex-shrink-0 w-full py-1 text-left font-medium hover:text-accent-primary truncate transition-colors";
+  const tone = isActive ? "text-accent-primary" : "text-tertiary";
+  if (level === 1) return `${common} ${tone} pl-1 text-13`;
+  if (level === 2) return `${common} ${tone} pl-2 text-11`;
+  return `${common} ${tone} pl-4 text-11`;
 }
 
 export function getPublicDocHeadings(html: string): TPublicDocHeading[] {

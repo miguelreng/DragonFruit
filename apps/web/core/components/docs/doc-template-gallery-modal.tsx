@@ -45,6 +45,9 @@ type Props = {
   onClose: () => void;
   /** When set, create directly in this project and skip the project picker. */
   lockedProjectId?: string;
+  /** When set, the new doc is created inside this folder page. Only meaningful
+   * together with `lockedProjectId` — a folder lives in a single project. */
+  parentPageId?: string;
 };
 
 export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal({
@@ -52,6 +55,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
   isOpen,
   onClose,
   lockedProjectId,
+  parentPageId,
 }: Props) {
   const navigate = useNavigate();
   const { joinedProjectIds, getProjectById } = useProject();
@@ -108,6 +112,8 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
     const payload: Partial<TPage> = {
       access: EPageAccess.PRIVATE,
       page_type: pageType,
+      // Folders are project-scoped; only attach when creating in that project.
+      ...(parentPageId && projectId === lockedProjectId ? { parent: parentPageId } : {}),
       ...(template
         ? {
             name: template.title,

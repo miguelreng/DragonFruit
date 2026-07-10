@@ -18,28 +18,34 @@ import { useIssues } from "@/hooks/store/use-issues";
 import type { TProject } from "@/plane-web/types";
 // local imports
 import { WorkItemFiltersToggle } from "../work-item-filters/filters-toggle";
-import {
-  DisplayFiltersSelection,
-  FiltersDropdown,
-  LayoutSelection,
-} from "./issue-layouts/filters";
+import { DisplayFiltersSelection, FiltersDropdown, LayoutSelection } from "./issue-layouts/filters";
 
 type Props = {
   currentProjectDetails: TProject | undefined;
   projectId: string;
   workspaceSlug: string;
   storeType?: EIssuesStoreType.PROJECT | EIssuesStoreType.EPIC;
+  layouts?: EIssueLayoutTypes[];
+  displayFiltersLayout?: EIssueLayoutTypes;
+  showLayoutSelection?: boolean;
 };
-const LAYOUTS = [
+const PROJECT_TASK_LAYOUTS = [
   EIssueLayoutTypes.SPREADSHEET,
   EIssueLayoutTypes.LIST,
   EIssueLayoutTypes.KANBAN,
-  EIssueLayoutTypes.CALENDAR,
   EIssueLayoutTypes.GANTT,
 ];
 
 export const HeaderFilters = observer(function HeaderFilters(props: Props) {
-  const { currentProjectDetails, projectId, workspaceSlug, storeType = EIssuesStoreType.PROJECT } = props;
+  const {
+    currentProjectDetails,
+    displayFiltersLayout,
+    layouts = PROJECT_TASK_LAYOUTS,
+    projectId,
+    showLayoutSelection = true,
+    workspaceSlug,
+    storeType = EIssuesStoreType.PROJECT,
+  } = props;
   // i18n
   const { t } = useTranslation();
   // store hooks
@@ -48,7 +54,8 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
   } = useIssues(storeType);
   // derived values
   const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
-  const layoutDisplayFiltersOptions = ISSUE_STORE_TO_FILTERS_MAP[storeType]?.layoutOptions[activeLayout];
+  const layoutForDisplayFilters = displayFiltersLayout ?? activeLayout;
+  const layoutDisplayFiltersOptions = ISSUE_STORE_TO_FILTERS_MAP[storeType]?.layoutOptions[layoutForDisplayFilters];
 
   const handleLayoutChange = useCallback(
     (layout: EIssueLayoutTypes) => {
@@ -76,13 +83,15 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
 
   return (
     <>
-      <div className="flex">
-        <LayoutSelection
-          layouts={LAYOUTS}
-          onChange={(layout) => handleLayoutChange(layout)}
-          selectedLayout={activeLayout}
-        />
-      </div>
+      {showLayoutSelection && (
+        <div className="flex">
+          <LayoutSelection
+            layouts={layouts}
+            onChange={(layout) => handleLayoutChange(layout)}
+            selectedLayout={activeLayout}
+          />
+        </div>
+      )}
       <WorkItemFiltersToggle entityType={storeType} entityId={projectId} />
       <FiltersDropdown
         miniIcon={<SlidersHorizontal className="size-3.5" />}

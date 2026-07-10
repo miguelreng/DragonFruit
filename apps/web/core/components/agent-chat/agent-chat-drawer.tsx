@@ -217,7 +217,17 @@ export const AgentChatDrawer = observer(function AgentChatDrawer({
   // Most doc routes carry :pageId; the Brief publishes its resolved page id via
   // the active-doc-page bridge so co-writing works there too.
   const overrideDocPageId = useActiveDocPageId();
-  const pageId = rawPageId?.toString() ?? overrideDocPageId ?? undefined;
+  const routeDocPageId = rawPageId?.toString() ?? overrideDocPageId ?? undefined;
+  // The composer surfaces the doc as a context pill; its ✕ drops the doc from
+  // Atlas' context (no co-writing target, no doc-scoped suggestions). Keyed by
+  // page id so navigating to a different doc re-attaches automatically.
+  const [dismissedDocPageId, setDismissedDocPageId] = useState<string | null>(null);
+  // A dismissal only lasts while the user stays on that doc — navigating away
+  // (even to the docs list) forgets it, so coming back re-attaches the pill.
+  useEffect(() => {
+    setDismissedDocPageId((current) => (current && current !== routeDocPageId ? null : current));
+  }, [routeDocPageId]);
+  const pageId = routeDocPageId && routeDocPageId !== dismissedDocPageId ? routeDocPageId : undefined;
   const { toggleAgentChat } = useAppTheme();
   const projectPages = usePageStore(EPageStoreType.PROJECT);
   const { joinedProjectIds, getProjectById } = useProject();
@@ -327,6 +337,12 @@ export const AgentChatDrawer = observer(function AgentChatDrawer({
   );
   const activePage = pageId ? projectPages.getPageById(pageId) : undefined;
   const activePageEditorRef = activePage?.editor.editorRef ?? null;
+  // Pill label. Falls back to "Untitled" while a real doc is attached — the
+  // pill should still show (and be dismissible) for unnamed docs.
+  const activeDocTitle = activePage ? activePage.name?.trim() || "Untitled" : undefined;
+  const handleDismissDocContext = useCallback(() => {
+    if (routeDocPageId) setDismissedDocPageId(routeDocPageId);
+  }, [routeDocPageId]);
 
   return (
     // In-flow column. The parent (WorkspaceContentWrapper) already
@@ -351,6 +367,8 @@ export const AgentChatDrawer = observer(function AgentChatDrawer({
           agent={activeAgent}
           sessions={sessions}
           pageId={pageId}
+          activeDocTitle={activeDocTitle}
+          onDismissDocContext={handleDismissDocContext}
           activePageEditorRef={activePageEditorRef}
           onClose={onClose}
           onCollapse={onCollapse}
@@ -434,6 +452,8 @@ function ChatView(props: {
   getProjectById: (projectId: string | undefined | null) => TProject | undefined;
   onScopeChange: (projectId: string | undefined) => void;
   pageId: string | undefined;
+  activeDocTitle: string | undefined;
+  onDismissDocContext: () => void;
   sessionId: string | null;
   agent: TAgent | undefined;
   sessions: TAgentChatSession[];
@@ -453,6 +473,8 @@ function ChatView(props: {
     getProjectById,
     onScopeChange,
     pageId,
+    activeDocTitle,
+    onDismissDocContext,
     sessionId,
     agent,
     activePageEditorRef,
@@ -645,6 +667,8 @@ function ChatView(props: {
           sessionId={sessionId}
           projectId={projectId}
           pageId={pageId}
+          activeDocTitle={activeDocTitle}
+          onDismissDocContext={onDismissDocContext}
           agent={agent}
           activePageEditorRef={activePageEditorRef}
           joinedProjectIds={joinedProjectIds}
@@ -1012,6 +1036,8 @@ function ChatThread(props: {
   sessionId: string;
   projectId: string | undefined;
   pageId: string | undefined;
+  activeDocTitle: string | undefined;
+  onDismissDocContext: () => void;
   agent: TAgent | undefined;
   activePageEditorRef: EditorRefApi | null;
   joinedProjectIds: string[];
@@ -1024,6 +1050,8 @@ function ChatThread(props: {
     sessionId,
     projectId,
     pageId,
+    activeDocTitle,
+    onDismissDocContext,
     agent,
     activePageEditorRef,
     joinedProjectIds,
@@ -1856,6 +1884,28 @@ function ChatThread(props: {
             "flex flex-col gap-1.5 rounded-xl border-[0.5px] border-subtle bg-surface-1 px-3 py-2 transition-colors focus-within:border-strong"
           )}
         >
+          {activeDocTitle !== undefined && (
+            <div className="flex">
+              {/* Current-doc context pill — shows which doc Atlas is grounded
+                  in right now. The ✕ (revealed on hover) detaches the doc for
+                  this visit; opening another doc re-attaches automatically. */}
+              <span
+                className="group/doc-pill flex h-6 min-w-0 max-w-full items-center gap-1.5 rounded-full border border-subtle bg-layer-1 pl-2 pr-1.5 text-[11px] font-medium text-secondary"
+                title={`Atlas is using "${activeDocTitle}" as context`}
+              >
+                <FileText className="size-3 shrink-0 text-tertiary" />
+                <span className="truncate">{activeDocTitle}</span>
+                <button
+                  type="button"
+                  onClick={onDismissDocContext}
+                  className="grid size-4 shrink-0 place-items-center rounded-full text-tertiary opacity-0 transition-opacity hover:bg-layer-2 hover:text-primary focus-visible:opacity-100 group-hover/doc-pill:opacity-100"
+                  aria-label={`Remove "${activeDocTitle}" from context`}
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            </div>
+          )}
           {replyContext && (
             <div className="border-accent-primary flex items-start gap-2 rounded-lg border-l-2 bg-layer-2 py-1 pr-1 pl-2">
               <div className="min-w-0 flex-1 py-0.5">

@@ -18,9 +18,9 @@ import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
+import { useAppRouter } from "@/hooks/use-app-router";
 // local imports
 import { IssuePeekOverview } from "../../peek-overview";
-import { CalendarLayout } from "../calendar/roots/project-root";
 import { BaseGanttRoot } from "../gantt";
 import { KanBanLayout } from "../kanban/roots/project-root";
 import { ProjectChecklist } from "../list/roots/project-checklist-root";
@@ -29,7 +29,6 @@ import { ProjectSpreadsheetLayout } from "../spreadsheet/roots/project-root";
 const VALID_LAYOUTS = new Set<string>([
   EIssueLayoutTypes.LIST,
   EIssueLayoutTypes.KANBAN,
-  EIssueLayoutTypes.CALENDAR,
   EIssueLayoutTypes.GANTT,
   EIssueLayoutTypes.SPREADSHEET,
 ]);
@@ -40,8 +39,6 @@ function ProjectIssueLayout(props: { activeLayout: EIssueLayoutTypes | undefined
       return <ProjectChecklist />;
     case EIssueLayoutTypes.KANBAN:
       return <KanBanLayout />;
-    case EIssueLayoutTypes.CALENDAR:
-      return <CalendarLayout />;
     case EIssueLayoutTypes.GANTT:
       return <BaseGanttRoot />;
     case EIssueLayoutTypes.SPREADSHEET:
@@ -57,11 +54,16 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
   const workspaceSlug = routerWorkspaceSlug ? routerWorkspaceSlug.toString() : undefined;
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
   const searchParams = useSearchParams();
+  const router = useAppRouter();
   // hooks
   const { issues, issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
   // derived values
   const workItemFilters = projectId ? issuesFilter?.getIssueFilters(projectId) : undefined;
-  const activeLayout = workItemFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
+  const storedLayout = workItemFilters?.displayFilters?.layout;
+  const activeLayout =
+    storedLayout === EIssueLayoutTypes.CALENDAR
+      ? EIssueLayoutTypes.SPREADSHEET
+      : (storedLayout ?? EIssueLayoutTypes.SPREADSHEET);
 
   useSWR(
     workspaceSlug && projectId ? `PROJECT_ISSUES_${workspaceSlug}_${projectId}` : null,
@@ -82,6 +84,10 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
   useEffect(() => {
     if (!workspaceSlug || !projectId || !workItemFilters) return;
     const requested = searchParams?.get("layout");
+    if (requested === EIssueLayoutTypes.CALENDAR) {
+      router.replace(`/${workspaceSlug}/projects/${projectId}/calendar`);
+      return;
+    }
     if (!requested || !VALID_LAYOUTS.has(requested)) return;
     const key = `${projectId}:${requested}`;
     if (appliedLayoutRef.current === key) return;
@@ -92,6 +98,16 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
     appliedLayoutRef.current = key;
     issuesFilter?.updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, {
       layout: requested as EIssueLayoutTypes,
+    });
+  }, [workspaceSlug, projectId, searchParams, workItemFilters, issuesFilter, router]);
+
+  useEffect(() => {
+    if (!workspaceSlug || !projectId || !workItemFilters) return;
+    if (searchParams?.get("layout") === EIssueLayoutTypes.CALENDAR) return;
+    if (workItemFilters.displayFilters?.layout !== EIssueLayoutTypes.CALENDAR) return;
+
+    issuesFilter?.updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, {
+      layout: EIssueLayoutTypes.SPREADSHEET,
     });
   }, [workspaceSlug, projectId, searchParams, workItemFilters, issuesFilter]);
 

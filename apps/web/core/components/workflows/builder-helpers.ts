@@ -13,6 +13,47 @@ export const BRANCH_DX = 180;
 export const SPINE_X = 620;
 export const TOP_Y = 48;
 
+export type TNodeKindAccent = {
+  headerBg: string;
+  headerText: string;
+  iconBg: string;
+  iconText: string;
+  iconRing: string;
+  ring: string;
+  border: string;
+};
+
+// Icon backgrounds use the same soft fill colours as the sheet background palette.
+export const NODE_KIND_ACCENTS: Record<TWorkflowNodeKind, TNodeKindAccent> = {
+  trigger: {
+    headerBg: "bg-rose-500/10",
+    headerText: "text-rose-600 dark:text-rose-400",
+    iconBg: "#fbcfe8",
+    iconText: "#db2777",
+    iconRing: "rgba(219, 39, 119, 0.22)",
+    ring: "ring-rose-400/70",
+    border: "border-rose-300/70 dark:border-rose-500/40",
+  },
+  condition: {
+    headerBg: "bg-purple-500/10",
+    headerText: "text-purple-600 dark:text-purple-400",
+    iconBg: "#ddd6fe",
+    iconText: "#7c3aed",
+    iconRing: "rgba(124, 58, 237, 0.22)",
+    ring: "ring-purple-400/70",
+    border: "border-purple-300/70 dark:border-purple-500/40",
+  },
+  action: {
+    headerBg: "bg-blue-500/10",
+    headerText: "text-blue-600 dark:text-blue-400",
+    iconBg: "#bfdbfe",
+    iconText: "#2563eb",
+    iconRing: "rgba(37, 99, 235, 0.22)",
+    ring: "ring-blue-400/70",
+    border: "border-blue-300/70 dark:border-blue-500/40",
+  },
+};
+
 export const TRIGGER_EVENTS: Array<{ value: string; label: string; live: boolean }> = [
   { value: "issue_created", label: "Task created", live: true },
   { value: "assigned", label: "Assigned", live: true },
@@ -32,9 +73,7 @@ export const ACTION_TYPES: Array<{ value: string; label: string; live: boolean }
   { value: "send_email", label: "Send email", live: false },
 ];
 
-const TRIGGER_LABEL: Record<string, string> = Object.fromEntries(
-  TRIGGER_EVENTS.map((t) => [t.value, t.label])
-);
+const TRIGGER_LABEL: Record<string, string> = Object.fromEntries(TRIGGER_EVENTS.map((t) => [t.value, t.label]));
 const ACTION_LABEL: Record<string, string> = Object.fromEntries(ACTION_TYPES.map((a) => [a.value, a.label]));
 
 /** A client-side id for new nodes; the server re-issues real ids on save. */

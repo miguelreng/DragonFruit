@@ -149,7 +149,8 @@ class PageViewSet(BaseViewSet):
                 projects__project_projectmember__is_active=True,
                 projects__archived_at__isnull=True,
             )
-            .filter(parent__isnull=True)
+            # Pages inside a folder (parent set) stay listable/retrievable —
+            # the docs UI groups them client-side under their folder.
             .filter(Q(owned_by=self.request.user) | Q(access=0))
             .prefetch_related("projects")
             .select_related("workspace")
@@ -504,7 +505,9 @@ class PageViewSet(BaseViewSet):
                 projects__project_projectmember__is_active=True,
                 projects__archived_at__isnull=True,
             )
-            .filter(parent__isnull=True)
+            # Count docs inside folders too; folders themselves aren't pages
+            # from the user's point of view, so keep them out of the stats.
+            .exclude(page_type=Page.PAGE_TYPE_FOLDER)
             .filter(Q(owned_by=request.user) | Q(access=0))
             .annotate(
                 project=Exists(
@@ -724,12 +727,14 @@ class PageDuplicateEndpoint(BaseAPIView):
 class WorkspacePagesListEndpoint(BaseAPIView):
     """List every page across the workspace that the user can access.
 
-    Returns top-level (non-child) pages where the user is an active member of at
-    least one of the page's projects, the project is not archived, and the page
-    is either public or owned by the user. Annotates `project_ids` so the
-    frontend can filter by project without an extra round trip.
+    Returns pages where the user is an active member of at least one of the
+    page's projects, the project is not archived, and the page is either
+    public or owned by the user. Annotates `project_ids` so the frontend can
+    filter by project without an extra round trip. Pages inside a folder
+    (parent set) are included — the docs UI groups them client-side.
 
-    Accepts `?page_type=<doc|whiteboard|pdf>` to scope to a single type.
+    Accepts `?page_type=<doc|whiteboard|pdf>` to scope to a single type;
+    folder pages are always included alongside so the list can be grouped.
     """
 
     ALLOWED_PAGE_TYPES = {choice[0] for choice in Page.PAGE_TYPE_CHOICES}
@@ -742,13 +747,12 @@ class WorkspacePagesListEndpoint(BaseAPIView):
                 projects__project_projectmember__is_active=True,
                 projects__archived_at__isnull=True,
             )
-            .filter(parent__isnull=True)
             .filter(Q(owned_by=request.user) | Q(access=0))
         )
 
         page_type = request.query_params.get("page_type")
         if page_type and page_type in self.ALLOWED_PAGE_TYPES:
-            qs = qs.filter(page_type=page_type)
+            qs = qs.filter(Q(page_type=page_type) | Q(page_type=Page.PAGE_TYPE_FOLDER))
 
         pages = (
             qs.annotate(

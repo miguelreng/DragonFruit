@@ -26,12 +26,16 @@ type Props = {
   defaultType?: TPageType;
   /** Create directly in this project (skips the gallery's project picker). */
   lockedProjectId?: string;
+  /** When the docs list is drilled into a folder, new docs/PDFs are created
+   * inside it. Requires `lockedProjectId` (folders are project-scoped). */
+  parentFolderId?: string;
 };
 
 export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButton({
   workspaceSlug,
   defaultType = "doc",
   lockedProjectId,
+  parentFolderId,
 }: Props) {
   const navigate = useNavigate();
   const { createPdfPage, isUploading } = useCreatePdfPage(workspaceSlug);
@@ -83,7 +87,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
 
   const uploadPdf = async (projectId: string, file: File) => {
     if (submitting || isUploading) return;
-    const page = await createPdfPage(projectId, file);
+    const page = await createPdfPage(projectId, file, parentFolderId);
     if (!page?.id) return;
     // Avoid opening the viewer before the new page is queryable.
     await waitForCreatedPage(projectId, page.id);
@@ -137,6 +141,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
           isOpen={galleryOpen}
           onClose={() => setGalleryOpen(false)}
           lockedProjectId={lockedProjectId}
+          parentPageId={parentFolderId}
         />
       )}
     </>

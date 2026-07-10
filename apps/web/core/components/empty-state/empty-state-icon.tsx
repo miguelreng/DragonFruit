@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Bookmark, Checklist, DocumentText, RulerCrossPen, StickerSquare } from "@solar-icons/react/ssr";
+import { Bookmark, Checklist, DocumentText, Routing, RulerCrossPen, StickerSquare } from "@solar-icons/react/ssr";
 import { cn } from "@plane/utils";
 
 // An empty tab echoes the same Solar glyph its sidebar/nav entry uses, so a blank
@@ -17,6 +17,7 @@ const EMPTY_STATE_ICONS = {
   bookmarks: Bookmark,
   whiteboards: RulerCrossPen,
   stickies: StickerSquare,
+  workflows: Routing,
 } as const;
 
 export type TEmptyStateIconName = keyof typeof EMPTY_STATE_ICONS;

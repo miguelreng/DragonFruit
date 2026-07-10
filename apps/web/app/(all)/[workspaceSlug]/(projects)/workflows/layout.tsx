@@ -6,19 +6,13 @@
 
 import { observer } from "mobx-react";
 import { Outlet } from "react-router";
-// components
-import { AppHeader } from "@/components/core/app-header";
-// local components
-import { WorkflowsHeader } from "./header";
 
+// The AppHeader lives inside WorkflowsRoot (docs pattern) so the gallery can
+// put its count + create CTA in the header and the builder its breadcrumb.
 function WorkflowsLayout() {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
-      <AppHeader header={<WorkflowsHeader />} />
-      {/* Full-height builder — the canvas + inspector manage their own scroll. */}
-      <div className="min-h-0 flex-1">
-        <Outlet />
-      </div>
+      <Outlet />
     </div>
   );
 }

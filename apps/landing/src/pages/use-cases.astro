@@ -1,0 +1,54 @@
+---
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { audienceCards } from "../lib/landing";
+---
+
+<BaseLayout
+  title="Use cases — DragonFruit"
+  description="DragonFruit use cases for creators, people in tech, creative teams, and self-host builders."
+  canonicalPath="/use-cases"
+  bodyClass="home-page"
+>
+  <main class="landing-main subpage-main">
+    <SiteHeader />
+    <section class="subpage-hero">
+      <div>
+        <p class="meta">Use cases</p>
+        <h1>For people whose work starts before the ticket exists.</h1>
+        <p>
+          DragonFruit is built for creators, technical generalists, and creative teams who need a calm room for ideas,
+          decisions, docs, tasks, and AI-assisted follow-through.
+        </p>
+      </div>
+      <div class="subpage-panel" data-spotlight-card>
+        <span class="status-chip">Best fit</span>
+        <h2>Small teams with big context</h2>
+        <p>Founders, designers, engineers, operators, studios, and creators working across disciplines.</p>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="audience-grid">
+        {audienceCards.map((audience) => (
+          <article class="audience-card" data-spotlight-card>
+            <span>{audience.stat}</span>
+            <h2>{audience.title}</h2>
+            <p>{audience.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-final">
+      <div>
+        <p class="meta">Start</p>
+        <h2>Bring one messy project into DragonFruit and let Atlas organize the next move.</h2>
+      </div>
+      <a class="primary-action" href="https://app.dragonfruit.sh">Start free</a>
+    </section>
+
+    <SiteFooter />
+  </main>
+</BaseLayout>

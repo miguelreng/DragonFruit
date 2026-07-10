@@ -1,0 +1,67 @@
+---
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const atlasJobs = [
+  ["Organize chaos", "Turn brain dumps, meeting notes, and customer feedback into grouped tasks and decisions."],
+  ["Draft in context", "Create first drafts from the doc, task, project, and workspace context already around the work."],
+  ["Triage the pile", "Summarize what changed, what is blocked, and what needs a human decision."],
+  ["Ask before risk", "Prepare actions, then pause for approval before changing work that matters."],
+];
+---
+
+<BaseLayout
+  title="Atlas — DragonFruit's AI teammate"
+  description="Meet Atlas, the one AI teammate inside DragonFruit for organizing, drafting, triaging, and approval-gated execution."
+  canonicalPath="/atlas"
+  bodyClass="home-page"
+>
+  <main class="landing-main subpage-main">
+    <SiteHeader />
+    <section class="subpage-hero">
+      <div>
+        <p class="meta">Atlas</p>
+        <h1>One AI teammate inside the workspace, not another chat tab.</h1>
+        <p>
+          Atlas sits where the work lives. It sees the surrounding docs and tasks, helps with the busywork, and asks
+          before risky changes.
+        </p>
+        <div class="landing-actions">
+          <a class="primary-action" href="https://app.dragonfruit.sh">Start free</a>
+          <a class="secondary-action" href="/pricing">See pricing</a>
+        </div>
+      </div>
+      <div class="subpage-panel" data-spotlight-card>
+        <span class="status-chip">Approval required</span>
+        <h2>Atlas suggests</h2>
+        <p>6 tasks, 3 risks, one launch doc, and a clean owner list from a messy meeting note.</p>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-section-heading">
+        <p class="meta">What Atlas does</p>
+        <h2>Useful autonomy, with human control where it counts.</h2>
+      </div>
+      <div class="bento-grid compact-bento">
+        {atlasJobs.map(([title, body]) => (
+          <article class="bento-card" data-spotlight-card>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-final">
+      <div>
+        <p class="meta">Try it</p>
+        <h2>Give Atlas a messy thought and ask for the next honest plan.</h2>
+      </div>
+      <a class="primary-action" href="https://app.dragonfruit.sh">Open DragonFruit</a>
+    </section>
+
+    <SiteFooter />
+  </main>
+</BaseLayout>

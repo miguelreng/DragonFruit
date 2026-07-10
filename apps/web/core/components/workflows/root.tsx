@@ -13,16 +13,15 @@ import type { IIssueLabel, ISearchIssueResponse, TProjectIssuesSearchParams } fr
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { ATLAS_IDENTITY } from "@/constants/atlas";
 import { AgentService, type TAgent } from "@/services/agent.service";
-import {
-  WorkflowService,
-  type TWorkflow,
-  type TWorkflowEdge,
-  type TWorkflowNode,
-} from "@/services/workflow.service";
+import { WorkflowService, type TWorkflow, type TWorkflowEdge, type TWorkflowNode } from "@/services/workflow.service";
 import { IssueLabelService } from "@/services/issue/issue_label.service";
 import { ProjectService } from "@/services/project/project.service";
 import type { TPartialProject } from "@/plane-web/types";
-import { PanelRight } from "@/components/icons/lucide-shim";
+import { Breadcrumbs, Header } from "@plane/ui";
+import { Button } from "@plane/propel/button";
+import { PanelRight, Plus } from "@/components/icons/lucide-shim";
+import { AppHeader } from "@/components/core/app-header";
+import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { BuilderToolbar } from "./builder-toolbar";
 import { FlowCanvas } from "./flow-canvas";
@@ -65,8 +64,7 @@ const draftGraph = (): TGraph => {
   return { currentId: null, name: "", enabled: true, nodes, edges };
 };
 
-const errorTitle = (err: unknown, fallback: string) =>
-  (err as { error?: string } | undefined)?.error ?? fallback;
+const errorTitle = (err: unknown, fallback: string) => (err as { error?: string } | undefined)?.error ?? fallback;
 
 function WorkflowsRootBase() {
   const params = useParams();
@@ -182,9 +180,7 @@ function WorkflowsRootBase() {
 
   const changeConfig = (config: Record<string, unknown>) => {
     if (!selectedNodeId) return;
-    setGraph((g) =>
-      g ? { ...g, nodes: g.nodes.map((n) => (n.id === selectedNodeId ? { ...n, config } : n)) } : g
-    );
+    setGraph((g) => (g ? { ...g, nodes: g.nodes.map((n) => (n.id === selectedNodeId ? { ...n, config } : n)) } : g));
     setDirty(true);
   };
 
@@ -231,8 +227,7 @@ function WorkflowsRootBase() {
     const outBranches = graph.edges.filter((e) => e.from_node === fromId).map((e) => e.branch);
     if (from.kind === "condition" && outBranches.includes(branch))
       return fail(`The ${branch === "true" ? "If True" : "If False"} branch is already connected`);
-    if (from.kind !== "condition" && outBranches.length > 0)
-      return fail("This step already continues to another step");
+    if (from.kind !== "condition" && outBranches.length > 0) return fail("This step already continues to another step");
     // Reject cycles: if `from` is reachable from `to`, this edge closes a loop.
     const reachable = new Set<string>();
     const stack = [toId];
@@ -256,8 +251,9 @@ function WorkflowsRootBase() {
     setDirty(true);
   };
 
-  const save = async () => {
-    if (!graph) return;
+  const save = async ({ notify = true }: { notify?: boolean } = {}): Promise<TWorkflow | null> => {
+    if (!graph) return null;
+    const wasExisting = !!graph.currentId;
     setSaving(true);
     try {
       const payload = {
@@ -272,12 +268,23 @@ function WorkflowsRootBase() {
         : await workflowService.create(workspaceSlug, payload);
       await mutate();
       loadWorkflow(saved); // re-sync to server-issued node ids
-      setToast({ type: TOAST_TYPE.SUCCESS, title: graph.currentId ? "Workflow saved" : "Workflow created" });
+      if (notify) setToast({ type: TOAST_TYPE.SUCCESS, title: wasExisting ? "Workflow saved" : "Workflow created" });
+      return saved;
     } catch (err) {
       setToast({ type: TOAST_TYPE.ERROR, title: errorTitle(err, "Could not save workflow") });
+      return null;
     } finally {
       setSaving(false);
     }
+  };
+
+  const openTestPicker = async () => {
+    if (!graph || saving) return;
+    if (!graph.currentId || dirty) {
+      const saved = await save({ notify: false });
+      if (!saved?.id) return;
+    }
+    setTestModalOpen(true);
   };
 
   const remove = async () => {
@@ -294,11 +301,12 @@ function WorkflowsRootBase() {
   };
 
   const runTestOn = async (selected: ISearchIssueResponse[]) => {
-    if (!graph?.currentId || selected.length === 0) return;
+    const workflowId = graph?.currentId;
+    if (!workflowId || selected.length === 0) return;
     try {
-      for (const issue of selected) {
-        await workflowService.test(workspaceSlug, graph.currentId, { issue_id: issue.id });
-      }
+      await Promise.all(
+        selected.map((issue) => workflowService.test(workspaceSlug, workflowId, { issue_id: issue.id }))
+      );
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: selected.length === 1 ? "Test run queued" : `${selected.length} test runs queued`,
@@ -311,22 +319,81 @@ function WorkflowsRootBase() {
 
   // Workspace-wide task search for the Test picker. The search endpoint is
   // project-scoped in its URL, so bind any project and force workspace_search.
-  const testSearchCallback = (params: TProjectIssuesSearchParams) => {
+  const testSearchCallback = (query: TProjectIssuesSearchParams) => {
     const anyProjectId = (projects ?? [])[0]?.id;
     if (!anyProjectId) return Promise.resolve([] as ISearchIssueResponse[]);
-    return projectService.projectIssuesSearch(workspaceSlug, anyProjectId, { ...params, workspace_search: true });
+    return projectService.projectIssuesSearch(workspaceSlug, anyProjectId, { ...query, workspace_search: true });
   };
+
+  // Docs-pattern chrome: the root owns its AppHeader — breadcrumb + count on
+  // the left, the create CTA on the right (never inside the grid).
+  const galleryHeader = (
+    <Header>
+      <Header.LeftItem>
+        <div className="flex items-center gap-1.5">
+          <Breadcrumbs>
+            <Breadcrumbs.Item component={<BreadcrumbLink label="Workflows" disableTooltip />} />
+          </Breadcrumbs>
+          <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
+            {(workflows ?? []).length}
+          </span>
+        </div>
+      </Header.LeftItem>
+      <Header.RightItem className="items-center">
+        <Button variant="primary" size="lg" prependIcon={<Plus className="size-4" />} onClick={newFromGallery}>
+          New workflow
+        </Button>
+      </Header.RightItem>
+    </Header>
+  );
+
+  const builderHeader = (
+    <Header>
+      <Header.LeftItem className="min-w-0">
+        <Breadcrumbs>
+          <Breadcrumbs.Item
+            component={
+              <button
+                type="button"
+                onClick={backToGallery}
+                className="text-13 font-medium text-tertiary hover:text-primary"
+              >
+                Workflows
+              </button>
+            }
+          />
+          <Breadcrumbs.Item
+            component={
+              <div className="content-title-font inline-flex min-w-0 items-center">
+                <input
+                  type="text"
+                  value={graph?.name ?? ""}
+                  onChange={(e) => changeName(e.target.value)}
+                  maxLength={255}
+                  placeholder="Untitled workflow"
+                  aria-label="Workflow name"
+                  className="h-6 w-[min(42vw,320px)] min-w-0 bg-transparent text-14 font-semibold text-primary outline-none placeholder:text-placeholder"
+                />
+              </div>
+            }
+          />
+        </Breadcrumbs>
+      </Header.LeftItem>
+    </Header>
+  );
 
   if (mode === "gallery") {
     return (
       <div className="flex h-full w-full flex-col overflow-hidden">
-        <WorkflowGallery
-          workflows={workflows ?? []}
-          loading={!workflows}
-          onOpen={openWorkflow}
-          onNew={newFromGallery}
-          onToggle={toggleCard}
-        />
+        <AppHeader header={galleryHeader} />
+        <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+          <WorkflowGallery
+            workflows={workflows ?? []}
+            loading={!workflows}
+            onOpen={openWorkflow}
+            onToggle={toggleCard}
+          />
+        </div>
       </div>
     );
   }
@@ -341,20 +408,18 @@ function WorkflowsRootBase() {
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
+      <AppHeader header={builderHeader} />
       <BuilderToolbar
         currentId={graph.currentId}
-        name={graph.name}
         enabled={graph.enabled}
         dirty={dirty}
         saving={saving}
         view={view}
-        onBack={backToGallery}
         onChangeView={setView}
-        onChangeName={changeName}
         onToggleEnabled={toggleEnabled}
-        onSave={save}
+        onSave={() => void save()}
         onDelete={remove}
-        onTest={() => setTestModalOpen(true)}
+        onTest={openTestPicker}
       />
       <ExistingIssuesListModal
         workspaceSlug={workspaceSlug}
@@ -367,7 +432,7 @@ function WorkflowsRootBase() {
         submitLabel="Run test"
       />
       {agents && !atlasAgent && (
-        <div className="flex items-center gap-2 border-b border-subtle bg-amber-500/10 px-4 py-1.5 text-12 text-amber-700 dark:text-amber-400">
+        <div className="bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center gap-2 border-b border-subtle px-4 py-1.5 text-12">
           <span className="min-w-0 flex-1 truncate">
             Atlas isn’t set up in this workspace — Ask Atlas and task actions won’t run until it is.
           </span>
@@ -405,7 +470,7 @@ function WorkflowsRootBase() {
             <button
               type="button"
               onClick={() => setInspectorOpen(true)}
-              className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-12 font-medium text-secondary shadow-sm t-press hover:bg-layer-2"
+              className="shadow-sm t-press absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5 text-12 font-medium text-secondary hover:bg-layer-2"
             >
               <PanelRight className="size-4" />
               Details

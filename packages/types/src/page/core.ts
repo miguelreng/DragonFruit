@@ -11,9 +11,10 @@ import type { TPageExtended } from "./extended";
 /**
  * Page sub-type. "doc" is the collaborative rich-text editor;
  * "whiteboard" renders an Excalidraw canvas; "pdf" renders an uploaded PDF;
- * "sheet" renders an editable spreadsheet grid.
+ * "sheet" renders an editable spreadsheet grid; "folder" is a container-only
+ * page used to group docs (never opens in an editor).
  */
-export type TPageType = "doc" | "whiteboard" | "pdf" | "sheet";
+export type TPageType = "doc" | "whiteboard" | "pdf" | "sheet" | "folder";
 
 export type TPagePdfViewProps = {
   asset_id: string;
@@ -51,6 +52,8 @@ export type TPage = {
   label_ids: string[] | undefined;
   name: string | undefined;
   page_type?: TPageType;
+  /** Id of the containing folder page (a page with page_type "folder"), or null. */
+  parent?: string | null;
   owned_by: string | undefined;
   project_ids?: string[] | undefined;
   updated_at: Date | undefined;

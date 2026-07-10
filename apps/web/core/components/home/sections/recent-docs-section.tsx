@@ -10,18 +10,22 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { DocumentText } from "@solar-icons/react/ssr";
-import type { TPage } from "@plane/types";
+import type { TPage, TPageType } from "@plane/types";
 import { calculateTimeAgo, getPageName } from "@plane/utils";
+import { FileText, GridIconShim } from "@/components/icons/lucide-shim";
 import { isBriefPage } from "@/components/project/brief/constants";
 import { ProjectPageService } from "@/services/page/project-page.service";
 
 // Matches the inspo's four-up "study plan" row.
 const PREVIEW_COUNT = 4;
+const RECENT_PAGE_TYPES: TPageType[] = ["doc", "pdf", "sheet"];
+const RECENT_PAGE_TYPES_KEY = RECENT_PAGE_TYPES.join("_");
 const pageService = new ProjectPageService();
 
 const RecentDocTile = observer(function RecentDocTile({ doc, slug }: { doc: TPage; slug: string }) {
   const projectId = doc.project_ids?.[0];
   const docLink = projectId ? `/${slug}/projects/${projectId}/pages/${doc.id}/` : `/${slug}/pages/${doc.id}`;
+  const pageType = doc.page_type ?? "doc";
 
   return (
     <Link
@@ -29,16 +33,28 @@ const RecentDocTile = observer(function RecentDocTile({ doc, slug }: { doc: TPag
       className="group flex min-w-0 flex-1 flex-col gap-3 px-4 first:pl-2 last:pr-2"
       title={getPageName(doc.name)}
     >
-      <DocumentText
-        weight="BoldDuotone"
-        className="size-14 text-placeholder transition-colors group-hover:text-tertiary"
-      />
+      {pageType === "sheet" ? (
+        <GridIconShim
+          weight="BoldDuotone"
+          className="size-14 text-placeholder transition-colors group-hover:text-tertiary"
+        />
+      ) : pageType === "pdf" ? (
+        <FileText
+          weight="BoldDuotone"
+          className="size-14 text-placeholder transition-colors group-hover:text-tertiary"
+        />
+      ) : (
+        <DocumentText
+          weight="BoldDuotone"
+          className="size-14 text-placeholder transition-colors group-hover:text-tertiary"
+        />
+      )}
       <div className="min-w-0">
         <p className="truncate text-13 font-medium text-secondary transition-colors group-hover:text-primary">
           {getPageName(doc.name)}
         </p>
         {doc.updated_at && (
-          <p className="mt-0.5 truncate text-11 text-placeholder">Edited {calculateTimeAgo(doc.updated_at)}</p>
+          <p className="mt-0.5 truncate text-11 text-placeholder">Updated {calculateTimeAgo(doc.updated_at)}</p>
         )}
       </div>
     </Link>
@@ -51,12 +67,12 @@ export const RecentDocsSection = observer(function RecentDocsSection() {
 
   // Reuses the same SWR key/fetcher as the Docs page so the list is warm there.
   const { data: pages, isLoading } = useSWR(
-    slug ? `WORKSPACE_PAGES_${slug}_doc` : null,
-    slug ? () => pageService.fetchWorkspacePages(slug, "doc") : null
+    slug ? `WORKSPACE_PAGES_${slug}_${RECENT_PAGE_TYPES_KEY}` : null,
+    slug ? () => pageService.fetchWorkspacePages(slug) : null
   );
 
   const docs = orderBy(
-    (pages ?? []).filter((p) => !p.archived_at && (p.page_type ?? "doc") === "doc" && !isBriefPage(p)),
+    (pages ?? []).filter((p) => !p.archived_at && RECENT_PAGE_TYPES.includes(p.page_type ?? "doc") && !isBriefPage(p)),
     [(p) => p.updated_at],
     ["desc"]
   ).slice(0, PREVIEW_COUNT);
@@ -76,7 +92,9 @@ export const RecentDocsSection = observer(function RecentDocsSection() {
       {isLoading && !pages ? (
         <div className="px-2 py-6 text-12 text-placeholder">Loading…</div>
       ) : docs.length === 0 ? (
-        <div className="px-2 py-6 text-12 text-placeholder">No docs yet. Create one to see it here.</div>
+        <div className="px-2 py-6 text-12 text-placeholder">
+          No docs, PDFs, or sheets yet. Create one to see it here.
+        </div>
       ) : (
         <div className="flex divide-x divide-subtle">
           {slug && docs.map((doc) => <RecentDocTile key={doc.id} doc={doc} slug={slug} />)}

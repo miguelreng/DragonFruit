@@ -57,15 +57,19 @@ class Page(BaseModel):
     # pages use the collaborative rich-text editor.
     # The renderer picks based on this field; description_html /
     # description_json carry the body in a type-specific shape.
+    # "folder" pages are containers only — they have no body and never open in
+    # an editor; docs are placed inside one by pointing their `parent` FK at it.
     PAGE_TYPE_DOC = "doc"
     PAGE_TYPE_WHITEBOARD = "whiteboard"
     PAGE_TYPE_PDF = "pdf"
     PAGE_TYPE_SHEET = "sheet"
+    PAGE_TYPE_FOLDER = "folder"
     PAGE_TYPE_CHOICES = (
         (PAGE_TYPE_DOC, "Doc"),
         (PAGE_TYPE_WHITEBOARD, "Whiteboard"),
         (PAGE_TYPE_PDF, "PDF"),
         (PAGE_TYPE_SHEET, "Sheet"),
+        (PAGE_TYPE_FOLDER, "Folder"),
     )
 
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="pages")

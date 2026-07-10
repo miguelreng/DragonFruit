@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 /**
  * Loading spinner — the same morphing-infinity "Thinking…" animation Atlas uses
  * in the chat sidebar (web + mac app). One SVG path morphs circle → infinity →
- * circle on a 5s loop, animated via SMIL so it needs no motion library. The three
+ * circle on a quick loop, animated via SMIL so it needs no motion library. The three
  * keyframe paths share an identical command structure (M + 4×C + Z) so `d`
  * interpolates smoothly.
  *
@@ -42,7 +42,7 @@ export function LogoSpinner() {
       <path d={MI_CIRCLE_A}>
         <animate
           attributeName="d"
-          dur="5s"
+          dur="1.8s"
           repeatCount="indefinite"
           calcMode="spline"
           keyTimes="0;0.25;0.5;0.75;1"

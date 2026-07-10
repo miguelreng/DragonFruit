@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, type ReactNode, type SVGProps } from "react";
 import Link from "next/link";
 import type { IIssueLabel } from "@plane/types";
 import { CustomSelect, CustomSearchSelect } from "@plane/ui";
@@ -13,17 +13,36 @@ import type { TMcpServerSummary } from "@/services/agent.service";
 import type { TWorkflowNode } from "@/services/workflow.service";
 import type { TPartialProject } from "@/plane-web/types";
 import { Bolt } from "@solar-icons/react/ssr";
-import { ArrowRight, ListFilter, Sparkles, Trash, X } from "@/components/icons/lucide-shim";
-import { ACTION_TYPES, TRIGGER_EVENTS, getFilters, nodeDisplay, type TConditionFilters } from "./builder-helpers";
+import { ArrowRight, ListFilter, Sparkles, Trash } from "@/components/icons/lucide-shim";
+import {
+  ACTION_TYPES,
+  NODE_KIND_ACCENTS,
+  TRIGGER_EVENTS,
+  getFilters,
+  nodeDisplay,
+  nodeKindLabel,
+  type TConditionFilters,
+} from "./builder-helpers";
 
 const PRIORITY_OPTIONS = ["urgent", "high", "medium", "low", "none"] as const;
-const INPUT = "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder";
+const INPUT =
+  "rounded-lg border-[0.5px] border-subtle bg-white px-3 py-2 text-13 text-[#1c1e26] shadow-sm placeholder:text-placeholder";
+const SELECT_BUTTON = "w-full !border-subtle !bg-white text-[#1c1e26] shadow-sm hover:!bg-white focus:!bg-white";
+const INPUT_GROUP = "rounded-lg border-[0.5px] border-subtle bg-white p-2 shadow-sm";
 
-const KIND_PILL: Record<string, string> = {
-  trigger: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-  condition: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  action: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-};
+const PlainX = (props: SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
 
 type Props = {
   open: boolean;
@@ -84,7 +103,7 @@ function FilterMultiSelect({
         label={<span className={cn("truncate text-13", value.length === 0 && "text-placeholder")}>{summary}</span>}
         multiple
         input
-        buttonClassName="w-full"
+        buttonClassName={SELECT_BUTTON}
         optionsClassName="w-64"
       />
     </div>
@@ -115,6 +134,7 @@ export function WorkflowInspector({
   );
 
   const kind = node?.kind ?? "trigger";
+  const accent = NODE_KIND_ACCENTS[kind];
   const config = node?.config ?? {};
   const display = node ? nodeDisplay(node, agentName) : { title: "", subtitle: "" };
   const icon =
@@ -133,13 +153,12 @@ export function WorkflowInspector({
   const actionType = String(config.type ?? "ask_atlas");
   const actionMeta = ACTION_TYPES.find((a) => a.value === actionType);
   const params = (config.params as Record<string, unknown>) ?? {};
-  const setParams = (patch: Record<string, unknown>) =>
-    onChangeConfig({ ...config, params: { ...params, ...patch } });
+  const setParams = (patch: Record<string, unknown>) => onChangeConfig({ ...config, params: { ...params, ...patch } });
 
   return (
     <div
       className={cn(
-        "absolute bottom-4 right-4 top-4 z-30 flex w-[340px] flex-col overflow-hidden rounded-xl border border-subtle bg-layer-1 shadow-2xl",
+        "shadow-2xl absolute top-4 right-4 bottom-4 z-30 flex w-[340px] flex-col overflow-hidden rounded-xl border border-subtle bg-layer-1",
         "transition-all duration-200 ease-out",
         open && node ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(100%+1.5rem)] opacity-0"
       )}
@@ -147,9 +166,24 @@ export function WorkflowInspector({
     >
       <div className="flex flex-col gap-2 border-b border-subtle px-4 py-3">
         <div className="flex items-center justify-between gap-2">
-          <span className={cn("flex w-fit items-center gap-1.5 rounded-md px-2 py-1 text-12 font-semibold", KIND_PILL[kind])}>
-            <span className="grid size-3.5 place-items-center">{icon}</span>
-            {kind === "trigger" ? "Trigger" : kind === "condition" ? "Condition" : "Action"}
+          <span
+            className={cn(
+              "flex w-fit items-center gap-2 rounded-md py-1 pr-2 text-12 font-semibold",
+              accent.headerBg,
+              accent.headerText
+            )}
+          >
+            <span
+              className="shadow-sm grid size-6 place-items-center rounded-md"
+              style={{
+                backgroundColor: accent.iconBg,
+                color: accent.iconText,
+                boxShadow: `0 0 0 1px ${accent.iconRing}`,
+              }}
+            >
+              {icon}
+            </span>
+            {nodeKindLabel(kind)}
           </span>
           <div className="flex items-center gap-1">
             {node && kind !== "trigger" && (
@@ -158,7 +192,7 @@ export function WorkflowInspector({
                 onClick={onDelete}
                 aria-label="Delete step"
                 title="Delete step"
-                className="grid size-7 place-items-center rounded-lg text-tertiary t-press hover:bg-red-500/10 hover:text-red-600"
+                className="t-press hover:bg-red-500/10 hover:text-red-600 grid size-7 place-items-center rounded-lg text-tertiary"
               >
                 <Trash className="size-4" />
               </button>
@@ -167,9 +201,9 @@ export function WorkflowInspector({
               type="button"
               onClick={onClose}
               aria-label="Close details"
-              className="grid size-7 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-2"
+              className="t-press grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2"
             >
-              <X className="size-4" />
+              <PlainX className="size-4" />
             </button>
           </div>
         </div>
@@ -192,7 +226,7 @@ export function WorkflowInspector({
                 }
                 onChange={(val: string) => onChangeConfig({ ...config, event: val, object: "issue" })}
                 input
-                buttonClassName="w-full"
+                buttonClassName={SELECT_BUTTON}
                 optionsClassName="w-64"
               >
                 {TRIGGER_EVENTS.map((t) => (
@@ -205,7 +239,7 @@ export function WorkflowInspector({
                 ))}
               </CustomSelect>
               {TRIGGER_EVENTS.find((t) => t.value === String(config.event ?? "issue_created"))?.live === false && (
-                <span className="text-11 text-amber-600 dark:text-amber-500">
+                <span className="text-amber-600 dark:text-amber-500 text-11">
                   This trigger isn’t wired yet — coming soon.
                 </span>
               )}
@@ -220,7 +254,7 @@ export function WorkflowInspector({
             </p>
             <div className="flex flex-col gap-1.5">
               <Label>Priority</Label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className={cn(INPUT_GROUP, "flex flex-wrap gap-1.5")}>
                 {PRIORITY_OPTIONS.map((p) => {
                   const on = (filters.priorities ?? []).includes(p);
                   return (
@@ -235,10 +269,10 @@ export function WorkflowInspector({
                         })
                       }
                       className={cn(
-                        "rounded-full border px-2.5 py-1 text-12 capitalize t-press",
+                        "t-press rounded-full border px-2.5 py-1 text-12 capitalize",
                         on
                           ? "border-transparent bg-accent-primary text-on-color"
-                          : "border-subtle text-secondary hover:bg-layer-2"
+                          : "border-subtle bg-white text-secondary hover:bg-layer-2"
                       )}
                     >
                       {p}
@@ -268,7 +302,12 @@ export function WorkflowInspector({
               <input
                 value={(filters.issue_type_ids ?? []).join(", ")}
                 onChange={(e) =>
-                  setFilters({ issue_type_ids: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })
+                  setFilters({
+                    issue_type_ids: e.target.value
+                      .split(",")
+                      .map((v) => v.trim())
+                      .filter(Boolean),
+                  })
                 }
                 placeholder="comma-separated IDs"
                 className={cn(INPUT, "mt-1.5 w-full")}
@@ -287,7 +326,7 @@ export function WorkflowInspector({
                   label={actionMeta?.label ?? "Select action"}
                   onChange={(val: string) => onChangeConfig({ ...config, type: val, params: config.params ?? {} })}
                   input
-                  buttonClassName="w-full"
+                  buttonClassName={SELECT_BUTTON}
                   optionsClassName="w-64"
                 >
                   {ACTION_TYPES.map((a) => (
@@ -300,7 +339,7 @@ export function WorkflowInspector({
                   ))}
                 </CustomSelect>
                 {actionMeta && !actionMeta.live && (
-                  <span className="text-11 text-amber-600 dark:text-amber-500">
+                  <span className="text-amber-600 dark:text-amber-500 text-11">
                     This action isn’t executed yet — coming soon.
                   </span>
                 )}
@@ -354,8 +393,8 @@ export function WorkflowInspector({
                 </div>
               )}
               {actionType === "ask_atlas" && (
-                <div className="flex items-center gap-2 rounded-lg border-[0.5px] border-subtle bg-layer-2 px-3 py-2">
-                  <span className="grid size-5 place-items-center text-blue-600 dark:text-blue-400">
+                <div className="shadow-sm flex items-center gap-2 rounded-lg border-[0.5px] border-subtle bg-white px-3 py-2">
+                  <span className="text-blue-600 dark:text-blue-400 grid size-5 place-items-center">
                     <Sparkles className="size-4" />
                   </span>
                   <div className="min-w-0">
@@ -370,7 +409,7 @@ export function WorkflowInspector({
                 {connectedApps.length === 0 ? (
                   <p className="text-12 text-tertiary">No apps connected yet.</p>
                 ) : (
-                  <ul className="flex flex-col divide-y divide-subtle overflow-hidden rounded-lg border border-subtle">
+                  <ul className="shadow-sm flex flex-col divide-y divide-subtle overflow-hidden rounded-lg border border-subtle bg-white">
                     {connectedApps.map((app) => (
                       <li key={app.name} className="flex items-center gap-2 px-3 py-2">
                         <ListFilter className="size-3.5 text-tertiary" />
@@ -381,7 +420,7 @@ export function WorkflowInspector({
                 )}
                 <Link
                   href={`/${workspaceSlug}/settings/integrations`}
-                  className="flex w-fit items-center gap-1 text-12 font-medium text-blue-600 hover:underline dark:text-blue-400"
+                  className="text-blue-600 dark:text-blue-400 flex w-fit items-center gap-1 text-12 font-medium hover:underline"
                 >
                   Manage in Integrations
                   <ArrowRight className="size-3.5" />
@@ -390,7 +429,6 @@ export function WorkflowInspector({
             )}
           </>
         )}
-
       </div>
     </div>
   );

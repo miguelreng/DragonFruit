@@ -63,6 +63,9 @@ struct MeetingPopoverView: View {
             withAnimation(AtlasMotion.panelReveal) {
                 isPanelRevealed = true
             }
+            // Settings are set-once; every open starts on the glanceable
+            // cards instead of wherever the last session left the disclosure.
+            isSettingsExpanded = false
             store.isPopoverOpen = true
             store.refreshPermissionStatuses()
             Task { await store.refreshMyTasks() }
@@ -93,26 +96,28 @@ struct MeetingPopoverView: View {
                 .foregroundStyle(theme.textPrimary.opacity(0.82))
             Spacer()
             if store.isAuthenticated {
-                Button {
-                    withAnimation(.easeInOut(duration: AtlasMotion.fastDuration)) {
-                        isShowingHowToUse.toggle()
+                // Log out is a once-a-quarter action; it lives behind the
+                // overflow menu instead of sitting in the header. "How to
+                // use Atlas" is reachable from Settings.
+                Menu {
+                    Button("Log out") {
+                        store.logout()
                     }
                 } label: {
-                    AtlasIcon(.info)
-                        .frame(width: 12, height: 12)
-                        .foregroundStyle(isShowingHowToUse ? theme.textPrimary : theme.textSecondary)
-                        .frame(width: 18, height: 18)
-                        .contentShape(Rectangle())
+                    HStack(spacing: 2.5) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            Circle()
+                                .fill(theme.textSecondary)
+                                .frame(width: 2.5, height: 2.5)
+                        }
+                    }
+                    .frame(width: 18, height: 18)
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .help("How to use Atlas")
-
-                Button("Log out") {
-                    store.logout()
-                }
-                .buttonStyle(.plain)
-                .font(.custom("Figtree", size: 11).weight(.medium))
-                .foregroundStyle(theme.textSecondary)
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("More")
             }
         }
     }
@@ -439,23 +444,15 @@ struct MeetingPopoverView: View {
 
     private func myTaskRow(_ task: MyTaskSummary) -> some View {
         HStack(alignment: .center, spacing: 9) {
-            Button {
+            // Empty circle that reveals its check on hover — these are OPEN
+            // tasks, and a resting checkmark glyph made the whole list read
+            // as already completed.
+            TaskDoneButton(
+                theme: theme,
+                isCompleting: store.isCompletingTask(task)
+            ) {
                 store.markTaskDone(task)
-            } label: {
-                if store.isCompletingTask(task) {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .frame(width: 18, height: 18)
-                } else {
-                    AtlasIcon(.checkCircle)
-                        .frame(width: 14, height: 14)
-                        .foregroundStyle(theme.textTertiary)
-                        .frame(width: 18, height: 18)
-                }
             }
-            .buttonStyle(.plain)
-            .help("Mark as done")
-            .disabled(store.isCompletingTask(task))
 
             Text(task.name)
                 .font(.custom("Figtree", size: 12).weight(.medium))
@@ -483,6 +480,41 @@ struct MeetingPopoverView: View {
     private var pomodoroCard: some View {
         card {
             PomodoroCardContent(pomodoro: pomodoro, theme: theme)
+        }
+    }
+
+    private struct TaskDoneButton: View {
+        let theme: CopilotThemeTokens
+        let isCompleting: Bool
+        let action: () -> Void
+        @State private var isHovered = false
+
+        var body: some View {
+            Button(action: action) {
+                if isCompleting {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .frame(width: 18, height: 18)
+                } else {
+                    ZStack {
+                        Circle()
+                            .stroke(isHovered ? theme.accent : theme.borderStrong, lineWidth: 1.2)
+                            .frame(width: 13, height: 13)
+                        if isHovered {
+                            AtlasIcon(.check)
+                                .frame(width: 7, height: 7)
+                                .foregroundStyle(theme.accent)
+                        }
+                    }
+                    .frame(width: 18, height: 18)
+                    .contentShape(Circle())
+                }
+            }
+            .buttonStyle(.plain)
+            .help("Mark as done")
+            .disabled(isCompleting)
+            .onHover { isHovered = $0 }
+            .animation(.easeOut(duration: 0.12), value: isHovered)
         }
     }
 
@@ -515,7 +547,7 @@ struct MeetingPopoverView: View {
                 themePicker
                 languagePicker
                 featureToggle("Voice", isOn: $store.voiceActionsEnabled, detail: "⌥Space")
-                featureToggle("Atlas cursor", isOn: $store.showCursorBuddyEnabled, detail: store.showCursorBuddyEnabled ? "Yes" : "No")
+                featureToggle("Atlas cursor", isOn: $store.showCursorBuddyEnabled)
                 if store.showCursorBuddyEnabled {
                     buddyCursorTransparencyControl
                 }
@@ -759,6 +791,11 @@ struct MeetingPopoverView: View {
         }
     }
 
+    // Loud only when it makes sense to press it: the meeting is about to
+    // start (same lead window as the island prompt) or already happening.
+    // Real-but-distant meetings get a quiet button; events with no other
+    // attendees or video link (gym, blocks) get none — starting notes hours
+    // early just records an empty room.
     @ViewBuilder
     private var meetingNotesButton: some View {
         if store.isMeetingRecording {
@@ -766,12 +803,27 @@ struct MeetingPopoverView: View {
                 store.toggleRecording()
             }
             .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
-        } else {
-            Button("Start notes") {
-                store.toggleRecording()
+        } else if store.meeting.isLikelyRealMeeting {
+            if isMeetingImminent {
+                Button("Start notes") {
+                    store.toggleRecording()
+                }
+                .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
+            } else {
+                Button("Start notes") {
+                    store.toggleRecording()
+                }
+                .buttonStyle(DragonFruitSecondaryButtonStyle(theme: theme))
             }
-            .buttonStyle(DragonFruitPrimaryButtonStyle(theme: theme))
         }
+    }
+
+    private var isMeetingImminent: Bool {
+        let now = Date()
+        if now >= store.meeting.startAt && now <= store.meeting.endAt { return true }
+        let lead = Double(max(1, store.autoStartMinutesBefore) * 60)
+        let delta = store.meeting.startAt.timeIntervalSince(now)
+        return delta >= 0 && delta <= lead
     }
 
     private var systemAudioMeetingBanner: some View {

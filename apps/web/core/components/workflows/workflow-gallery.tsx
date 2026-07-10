@@ -4,70 +4,88 @@
  * See the LICENSE file for details.
  */
 
-import { ContentWrapper, ToggleSwitch } from "@plane/ui";
-import { cn } from "@plane/utils";
-import type { TWorkflow } from "@/services/workflow.service";
 import { Routing } from "@solar-icons/react/ssr";
-import { Plus } from "@/components/icons/lucide-shim";
+import { EmptyStateDetailed } from "@plane/propel/empty-state";
+import { ToggleSwitch } from "@plane/ui";
+import type { TWorkflow } from "@/services/workflow.service";
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { workflowSummary } from "./builder-helpers";
 
 type Props = {
   workflows: TWorkflow[];
   loading: boolean;
   onOpen: (id: string) => void;
-  onNew: () => void;
   onToggle: (id: string, next: boolean) => void;
 };
 
-// Matches the app's index-card language (cf. project cards): bg-layer-2, subtle
-// border → strong on hover, medium radius, raised shadow on hover.
-const CARD = "rounded-lg border border-subtle bg-layer-2 transition-all duration-200 hover:border-strong hover:shadow-raised-200";
+/**
+ * The workflows index — mirrors the docs grid: same scroller (scroll-shadow,
+ * gutter-stable), same rounded-2xl tile cards, same empty-state convention
+ * (the create CTA lives in the AppHeader, not in the grid).
+ */
+export function WorkflowGallery({ workflows, loading, onOpen, onToggle }: Props) {
+  if (!loading && workflows.length === 0) {
+    return (
+      <EmptyStateDetailed
+        asset={<EmptyStateIcon name="workflows" />}
+        title="No workflows yet"
+        description="Automate your workspace — run Atlas or actions when tasks are created, assigned, or commented on."
+      />
+    );
+  }
 
-export function WorkflowGallery({ workflows, loading, onOpen, onNew, onToggle }: Props) {
   return (
-    <ContentWrapper>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {/* New workflow */}
-        <button
-          type="button"
-          onClick={onNew}
-          className="flex h-32 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-subtle text-tertiary transition-colors hover:border-strong hover:text-secondary"
-        >
-          <Plus className="size-5" />
-          <span className="text-13 font-medium">New workflow</span>
-        </button>
-
+    <div className="dragonfruit-gallery-container scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
+      <div className="dragonfruit-card-grid">
         {loading && workflows.length === 0
-          ? [0, 1, 2].map((i) => <div key={i} className="h-32 animate-pulse rounded-lg border border-subtle bg-layer-2" />)
-          : workflows.map((w) => (
-              <div
-                key={w.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => onOpen(w.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onOpen(w.id);
-                  }
-                }}
-                className={cn("group flex h-32 cursor-pointer flex-col justify-between p-4 text-left", CARD)}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-layer-1 text-tertiary">
-                    <Routing className="size-4" />
-                  </span>
-                  <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
-                    <ToggleSwitch value={w.is_enabled} onChange={() => onToggle(w.id, !w.is_enabled)} />
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-13 font-medium text-primary">{w.name || "Untitled workflow"}</p>
-                  <p className="mt-0.5 truncate text-12 text-tertiary">{workflowSummary(w)}</p>
-                </div>
-              </div>
-            ))}
+          ? [0, 1, 2].map((i) => <div key={i} className="h-[156px] animate-pulse rounded-2xl bg-layer-1" />)
+          : workflows.map((w) => <WorkflowCard key={w.id} workflow={w} onOpen={onOpen} onToggle={onToggle} />)}
       </div>
-    </ContentWrapper>
+    </div>
+  );
+}
+
+function WorkflowCard({
+  workflow: w,
+  onOpen,
+  onToggle,
+}: {
+  workflow: TWorkflow;
+  onOpen: (id: string) => void;
+  onToggle: (id: string, next: boolean) => void;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(w.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(w.id);
+        }
+      }}
+      className="focus-visible:ring-accent-primary/40 block cursor-pointer rounded-lg focus:outline-none focus-visible:ring-2"
+    >
+      <div className="group t-press relative flex h-[156px] flex-col justify-between rounded-2xl bg-layer-1 p-4 transition-colors hover:bg-layer-3">
+        <div
+          className="absolute top-3 right-3 z-10"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          role="presentation"
+        >
+          <ToggleSwitch value={w.is_enabled} onChange={() => onToggle(w.id, !w.is_enabled)} />
+        </div>
+        <span className="grid size-9 place-items-center rounded-[10px] bg-accent-primary/10 text-accent-primary">
+          <Routing weight="Bold" className="size-5" />
+        </span>
+        <div className="flex flex-col gap-0.5">
+          <h3 className="line-clamp-2 text-13 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary">
+            {w.name || "Untitled workflow"}
+          </h3>
+          <p className="truncate text-11 text-placeholder">{workflowSummary(w)}</p>
+        </div>
+      </div>
+    </div>
   );
 }
