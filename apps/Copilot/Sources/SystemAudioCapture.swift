@@ -136,7 +136,17 @@ final class SystemAudioCapture {
 
         let callback: AudioDeviceIOBlock = { [weak self] _, inputData, _, _, _ in
             guard let self else { return }
-            guard let buffer = AVAudioPCMBuffer(pcmFormat: audioFormat, bufferListNoCopy: inputData, deallocator: nil) else {
+            // The HAL owns `inputData` only for the duration of this IO cycle,
+            // but consumers hold the buffer past it — speech recognition
+            // queues it and converts asynchronously on its own thread. A
+            // no-copy wrapper here caused use-after-free crashes inside
+            // SFSpeechAudioBufferRecognitionRequest when the device recycled
+            // or tore down its buffers (EXC_BAD_ACCESS in
+            // CrashIfClientProvidedBogusAudioBufferList). Deep-copy into
+            // memory the AVAudioPCMBuffer owns.
+            guard let wrapper = AVAudioPCMBuffer(pcmFormat: audioFormat, bufferListNoCopy: inputData, deallocator: nil),
+                  let buffer = Self.ownedCopy(of: wrapper, format: audioFormat)
+            else {
                 self.onError?(Self.makeAudioError(code: -1, message: "System audio buffer is unavailable."))
                 return
             }
@@ -192,6 +202,25 @@ final class SystemAudioCapture {
         if activeProcessTapID.isValidAudioObject {
             AudioHardwareDestroyProcessTap(activeProcessTapID)
         }
+    }
+
+    /// Copies a HAL-backed (no-copy) buffer into a self-owned AVAudioPCMBuffer
+    /// that stays valid after the IO cycle returns.
+    private static func ownedCopy(of source: AVAudioPCMBuffer, format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        guard let copy = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: max(source.frameLength, 1)) else {
+            return nil
+        }
+        copy.frameLength = source.frameLength
+        let sourceBuffers = UnsafeMutableAudioBufferListPointer(
+            UnsafeMutablePointer(mutating: source.audioBufferList)
+        )
+        let copyBuffers = UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)
+        for (index, sourceBuffer) in sourceBuffers.enumerated() where index < copyBuffers.count {
+            guard let sourceData = sourceBuffer.mData, let copyData = copyBuffers[index].mData else { continue }
+            let byteCount = min(Int(sourceBuffer.mDataByteSize), Int(copyBuffers[index].mDataByteSize))
+            memcpy(copyData, sourceData, byteCount)
+        }
+        return copy
     }
 
     private static func makeAudioError(code: OSStatus, message: String) -> NSError {

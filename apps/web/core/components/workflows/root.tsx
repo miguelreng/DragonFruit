@@ -7,8 +7,9 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import useSWR from "swr";
-import type { IIssueLabel } from "@plane/types";
+import type { IIssueLabel, ISearchIssueResponse, TProjectIssuesSearchParams } from "@plane/types";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { ATLAS_IDENTITY } from "@/constants/atlas";
 import { AgentService, type TAgent } from "@/services/agent.service";
@@ -22,6 +23,7 @@ import { IssueLabelService } from "@/services/issue/issue_label.service";
 import { ProjectService } from "@/services/project/project.service";
 import type { TPartialProject } from "@/plane-web/types";
 import { PanelRight } from "@/components/icons/lucide-shim";
+import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { BuilderToolbar } from "./builder-toolbar";
 import { FlowCanvas } from "./flow-canvas";
 import { WorkflowInspector } from "./inspector";
@@ -98,6 +100,7 @@ function WorkflowsRootBase() {
   const [mode, setMode] = useState<"gallery" | "builder">("gallery");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testModalOpen, setTestModalOpen] = useState(false);
 
   const selectedNode = useMemo(
     () => graph?.nodes.find((n) => n.id === selectedNodeId) ?? null,
@@ -202,6 +205,48 @@ function WorkflowsRootBase() {
     setDirty(true);
   };
 
+  const deleteEdge = (edge: { from_node: string; to_node: string; branch: string }) => {
+    setGraph((g) =>
+      g
+        ? {
+            ...g,
+            edges: g.edges.filter(
+              (e) => !(e.from_node === edge.from_node && e.to_node === edge.to_node && e.branch === edge.branch)
+            ),
+          }
+        : g
+    );
+    setDirty(true);
+  };
+
+  const connectNodes = (fromId: string, toId: string, branch: "" | "true" | "false") => {
+    if (!graph) return;
+    const from = graph.nodes.find((n) => n.id === fromId);
+    const to = graph.nodes.find((n) => n.id === toId);
+    if (!from || !to) return;
+    const fail = (title: string) => setToast({ type: TOAST_TYPE.ERROR, title });
+    if (to.kind === "trigger") return fail("Triggers can’t have incoming connections");
+    if (graph.edges.some((e) => e.from_node === fromId && e.to_node === toId))
+      return fail("These steps are already connected");
+    const outBranches = graph.edges.filter((e) => e.from_node === fromId).map((e) => e.branch);
+    if (from.kind === "condition" && outBranches.includes(branch))
+      return fail(`The ${branch === "true" ? "If True" : "If False"} branch is already connected`);
+    if (from.kind !== "condition" && outBranches.length > 0)
+      return fail("This step already continues to another step");
+    // Reject cycles: if `from` is reachable from `to`, this edge closes a loop.
+    const reachable = new Set<string>();
+    const stack = [toId];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      if (reachable.has(cur)) continue;
+      reachable.add(cur);
+      for (const e of graph.edges) if (e.from_node === cur) stack.push(e.to_node);
+    }
+    if (reachable.has(fromId)) return fail("That connection would create a loop");
+    setGraph((g) => (g ? { ...g, edges: [...g.edges, { from_node: fromId, to_node: toId, branch }] } : g));
+    setDirty(true);
+  };
+
   const changeName = (name: string) => {
     setGraph((g) => (g ? { ...g, name } : g));
     setDirty(true);
@@ -248,16 +293,28 @@ function WorkflowsRootBase() {
     }
   };
 
-  const test = async () => {
-    if (!graph?.currentId) return;
-    const issueId = window.prompt("Task ID to test this workflow on:");
-    if (!issueId) return;
+  const runTestOn = async (selected: ISearchIssueResponse[]) => {
+    if (!graph?.currentId || selected.length === 0) return;
     try {
-      await workflowService.test(workspaceSlug, graph.currentId, { issue_id: issueId.trim() });
-      setToast({ type: TOAST_TYPE.SUCCESS, title: "Test run queued" });
+      for (const issue of selected) {
+        await workflowService.test(workspaceSlug, graph.currentId, { issue_id: issue.id });
+      }
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: selected.length === 1 ? "Test run queued" : `${selected.length} test runs queued`,
+      });
+      setView("activity");
     } catch (err) {
       setToast({ type: TOAST_TYPE.ERROR, title: errorTitle(err, "Could not queue test run") });
     }
+  };
+
+  // Workspace-wide task search for the Test picker. The search endpoint is
+  // project-scoped in its URL, so bind any project and force workspace_search.
+  const testSearchCallback = (params: TProjectIssuesSearchParams) => {
+    const anyProjectId = (projects ?? [])[0]?.id;
+    if (!anyProjectId) return Promise.resolve([] as ISearchIssueResponse[]);
+    return projectService.projectIssuesSearch(workspaceSlug, anyProjectId, { ...params, workspace_search: true });
   };
 
   if (mode === "gallery") {
@@ -297,8 +354,28 @@ function WorkflowsRootBase() {
         onToggleEnabled={toggleEnabled}
         onSave={save}
         onDelete={remove}
-        onTest={test}
+        onTest={() => setTestModalOpen(true)}
       />
+      <ExistingIssuesListModal
+        workspaceSlug={workspaceSlug}
+        isOpen={testModalOpen}
+        handleClose={() => setTestModalOpen(false)}
+        searchParams={{}}
+        handleOnSubmit={runTestOn}
+        workItemSearchServiceCallback={testSearchCallback}
+        title="Run a test — pick the task the workflow should act on"
+        submitLabel="Run test"
+      />
+      {agents && !atlasAgent && (
+        <div className="flex items-center gap-2 border-b border-subtle bg-amber-500/10 px-4 py-1.5 text-12 text-amber-700 dark:text-amber-400">
+          <span className="min-w-0 flex-1 truncate">
+            Atlas isn’t set up in this workspace — Ask Atlas and task actions won’t run until it is.
+          </span>
+          <Link href={`/${workspaceSlug}/settings/ai`} className="shrink-0 font-medium underline underline-offset-2">
+            Set up in Settings → AI
+          </Link>
+        </div>
+      )}
       {view === "build" ? (
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
           <FlowCanvas
@@ -309,6 +386,8 @@ function WorkflowsRootBase() {
             onSelect={selectNode}
             onMoveNode={moveNode}
             onAddChild={addChild}
+            onDeleteEdge={deleteEdge}
+            onConnect={connectNodes}
           />
           <WorkflowInspector
             open={inspectorOpen}
@@ -335,7 +414,12 @@ function WorkflowsRootBase() {
         </div>
       ) : (
         <div className="min-h-0 flex-1">
-          <WorkflowActivity workspaceSlug={workspaceSlug} workflowId={graph.currentId} />
+          <WorkflowActivity
+            workspaceSlug={workspaceSlug}
+            workflowId={graph.currentId}
+            nodes={graph.nodes}
+            agentName={agentName}
+          />
         </div>
       )}
     </div>

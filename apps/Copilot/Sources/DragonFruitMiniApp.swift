@@ -106,19 +106,12 @@ private final class TransparentHostingView<Content: View>: NSHostingView<Content
 final class VoiceToastController: ObservableObject {
     private enum ToastKind: Equatable {
         case none
-        case listening
-        case processing
-        case agentResponse
         case permissions(String, Int)
-        case meetingPrompt(String)
-        case error
-        case result(UUID)
     }
 
     private var panel: NSPanel?
     private var hideTask: Task<Void, Never>?
     private var closeTask: Task<Void, Never>?
-    private var hiddenResultId: UUID?
     private var currentKind: ToastKind = .none
     private var dismissedKind: ToastKind?
     private var cancellables: Set<AnyCancellable> = []
@@ -151,15 +144,6 @@ final class VoiceToastController: ObservableObject {
             .sink { [weak self, weak store] _ in
                 guard let self, let store else { return }
                 self.update(for: store)
-            }
-            .store(in: &cancellables)
-
-        store.$lastVoiceActionResult
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self, weak store] result in
-                guard let self, let store, let result else { return }
-                self.hiddenResultId = nil
-                self.showResultToast(result, theme: store.copilotTheme.tokens)
             }
             .store(in: &cancellables)
 
@@ -217,67 +201,25 @@ final class VoiceToastController: ObservableObject {
     }
 
     private func update(for store: MeetingStore) {
-        let nextKind: ToastKind
-        if isErrorStatus(store.statusMessage) {
-            nextKind = .error
-        } else if store.isVoiceActionProcessing || store.isAgentResponding || store.isSavingMeetingNotes {
-            nextKind = .processing
-        } else if let permission = store.currentMissingCopilotPermission, store.needsPermissionOnboarding,
-                  store.isAuthenticated, !store.isPopoverOpen, !store.permissionsOnboardingDismissed {
-            // Only nudge from the menu bar after sign-in, when the popover isn't
-            // already showing the onboarding, and only until the user skips it.
-            nextKind = .permissions(permission.id, store.completedCopilotPermissionCount)
-        } else if let prompt = store.meetingStartPrompt, !store.isMeetingRecording {
-            nextKind = .meetingPrompt(prompt.id)
-        } else if store.isListening {
-            nextKind = .listening
-        } else if !store.lastAgentTextResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            nextKind = .agentResponse
-        } else if let result = store.lastVoiceActionResult, result.id != hiddenResultId {
-            nextKind = .result(result.id)
-        } else {
+        // Voice/meeting/agent notices render as bubbles under the notch
+        // island now (AtlasIslandOverlayController). The corner toast only
+        // handles the permissions onboarding nudge: after sign-in, when the
+        // popover isn't already showing it, and only until the user skips it.
+        guard let permission = store.currentMissingCopilotPermission, store.needsPermissionOnboarding,
+              store.isAuthenticated, !store.isPopoverOpen, !store.permissionsOnboardingDismissed
+        else {
             dismissedKind = nil
             hideToast()
             return
         }
 
-        if dismissedKind == nextKind {
+        let kind = ToastKind.permissions(permission.id, store.completedCopilotPermissionCount)
+        if dismissedKind == kind {
             hideToast()
             return
         }
-
         dismissedKind = nil
-
-        switch nextKind {
-        case .error:
-            showStatusToast(for: store)
-        case .listening:
-            showToast(for: store)
-        case .processing:
-            showProcessingToast(for: store)
-        case .agentResponse:
-            showAgentResponseToast(for: store)
-        case let .permissions(permissionId, _):
-            guard store.currentMissingCopilotPermission?.id == permissionId else {
-                hideToast()
-                return
-            }
-            showPermissionsToast(for: store)
-        case let .meetingPrompt(meetingId):
-            guard store.meetingStartPrompt?.id == meetingId else {
-                hideToast()
-                return
-            }
-            showMeetingPromptToast(for: store)
-        case let .result(resultId):
-            guard let result = store.lastVoiceActionResult, result.id == resultId else {
-                hideToast()
-                return
-            }
-            showResultToast(result, theme: store.copilotTheme.tokens)
-        case .none:
-            hideToast()
-        }
+        showPermissionsToast(for: store)
     }
 
     private func showPermissionsToast(for store: MeetingStore) {
@@ -301,147 +243,6 @@ final class VoiceToastController: ObservableObject {
         }
         position(panel: panel, size: size)
         if shouldReveal { reveal(panel: panel) }
-    }
-
-    private func showMeetingPromptToast(for store: MeetingStore) {
-        let kind = ToastKind.meetingPrompt(store.meetingStartPrompt?.id ?? "")
-        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.standardHeight)
-        let panel = panel ?? makePanel(size: size)
-        self.panel = panel
-        hideTask?.cancel()
-        closeTask?.cancel()
-        panel.ignoresMouseEvents = false
-        let shouldReveal = prepare(panel: panel, for: kind)
-        if currentKind != kind {
-            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
-                MeetingStartToast(store: store) { [weak self] in
-                    self?.dismissCurrentToast()
-                }
-            })
-            currentKind = kind
-        }
-        position(panel: panel, size: size)
-        if shouldReveal { reveal(panel: panel) }
-    }
-
-    private func showProcessingToast(for store: MeetingStore) {
-        let kind = ToastKind.processing
-        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.loadingHeight)
-        let panel = panel ?? makePanel(size: size)
-        self.panel = panel
-        hideTask?.cancel()
-        closeTask?.cancel()
-        panel.ignoresMouseEvents = false
-        let shouldReveal = prepare(panel: panel, for: kind)
-        if currentKind != kind {
-            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
-                VoiceProcessingToast(store: store) { [weak self] in
-                    self?.dismissCurrentToast()
-                }
-            })
-            currentKind = kind
-        }
-        position(panel: panel, size: size)
-        if shouldReveal { reveal(panel: panel) }
-    }
-
-    private func showToast(for store: MeetingStore) {
-        let kind = ToastKind.listening
-        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.standardHeight)
-        let panel = panel ?? makePanel(size: size)
-        self.panel = panel
-        hideTask?.cancel()
-        closeTask?.cancel()
-        panel.ignoresMouseEvents = false
-        let shouldReveal = prepare(panel: panel, for: kind)
-        if currentKind != kind {
-            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
-                VoiceRecordingToast(store: store) { [weak self] in
-                    self?.dismissCurrentToast()
-                }
-            })
-            currentKind = kind
-        }
-        position(panel: panel, size: size)
-        if shouldReveal { reveal(panel: panel) }
-    }
-
-    private func showAgentResponseToast(for store: MeetingStore) {
-        let kind = ToastKind.agentResponse
-        let size = NSSize(width: AtlasToastMetrics.width, height: VoiceAgentResponseToast.preferredHeight(for: store))
-        let panel = panel ?? makePanel(size: size)
-        self.panel = panel
-        closeTask?.cancel()
-        panel.ignoresMouseEvents = false
-        let shouldReveal = prepare(panel: panel, for: kind)
-        if currentKind != kind {
-            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
-                VoiceAgentResponseToast(store: store) { [weak self] in
-                    self?.dismissCurrentToast()
-                }
-            })
-            currentKind = kind
-        }
-        position(panel: panel, size: size)
-        if shouldReveal { reveal(panel: panel) }
-    }
-
-    private func showStatusToast(for store: MeetingStore) {
-        let kind = ToastKind.error
-        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.standardHeight)
-        let panel = panel ?? makePanel(size: size)
-        self.panel = panel
-        hideTask?.cancel()
-        closeTask?.cancel()
-        panel.ignoresMouseEvents = false
-        let shouldReveal = prepare(panel: panel, for: kind)
-        if currentKind != kind {
-            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: true) {
-                VoiceStatusToast(store: store) { [weak self] in
-                    self?.dismissCurrentToast()
-                }
-            })
-            currentKind = kind
-        }
-        position(panel: panel, size: size)
-        if shouldReveal { reveal(panel: panel) }
-    }
-
-    private func showResultToast(_ result: VoiceActionResult, theme: CopilotThemeTokens) {
-        let kind = ToastKind.result(result.id)
-        let size = NSSize(width: AtlasToastMetrics.width, height: AtlasToastMetrics.standardHeight)
-        let panel = panel ?? makePanel(size: size)
-        self.panel = panel
-        closeTask?.cancel()
-        panel.ignoresMouseEvents = false
-        let shouldReveal = prepare(panel: panel, for: kind)
-        if currentKind != kind {
-            panel.contentView = TransparentHostingView(rootView: ToastMotionContainer(isError: false) {
-                VoiceCreatedToast(result: result, theme: theme) { [weak self] in
-                    self?.dismissCurrentToast()
-                }
-            })
-            currentKind = kind
-        }
-        position(panel: panel, size: size)
-        if shouldReveal { reveal(panel: panel) }
-
-        hideTask?.cancel()
-        hideTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 6_000_000_000)
-            guard let self else { return }
-            self.hiddenResultId = result.id
-            self.hideToast()
-        }
-    }
-
-    private func dismissCurrentToast() {
-        let kind = currentKind
-        dismissedKind = kind
-        if case let .result(resultId) = kind {
-            hiddenResultId = resultId
-        }
-        hideToast()
     }
 
     private func hideToast() {
@@ -535,7 +336,7 @@ private enum AtlasToastTypography {
     static let action = Font.custom("Figtree", size: 13).weight(.medium)
 }
 
-private enum AtlasToastStatusIconKind {
+enum AtlasToastStatusIconKind {
     case success
     case error
     case warning
@@ -543,56 +344,7 @@ private enum AtlasToastStatusIconKind {
     case loading
 }
 
-private struct AtlasToastCard<Content: View>: View {
-    let theme: CopilotThemeTokens
-    let height: CGFloat?
-    let verticalPadding: CGFloat
-    let alignment: Alignment
-    let onClose: (() -> Void)?
-    let content: Content
-    @State private var isHovered = false
-
-    init(
-        theme: CopilotThemeTokens,
-        height: CGFloat? = nil,
-        verticalPadding: CGFloat = AtlasToastMetrics.verticalPadding,
-        alignment: Alignment = .center,
-        onClose: (() -> Void)? = nil,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.theme = theme
-        self.height = height
-        self.verticalPadding = verticalPadding
-        self.alignment = alignment
-        self.onClose = onClose
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .padding(.leading, AtlasToastMetrics.leadingPadding)
-            .padding(.trailing, onClose == nil ? AtlasToastMetrics.trailingPadding : AtlasToastMetrics.trailingPaddingWithClose)
-            .padding(.vertical, verticalPadding)
-            .frame(width: AtlasToastMetrics.width, height: height, alignment: alignment)
-            .background(toastBackground(theme: theme))
-            .overlay(toastBorder(theme: theme))
-            .clipShape(RoundedRectangle(cornerRadius: AtlasToastMetrics.cornerRadius, style: .continuous))
-            .compositingGroup()
-            .shadow(color: theme.toastShadowSoft, radius: 5, y: 10)
-            .shadow(color: theme.toastShadowLift, radius: 30, y: 30)
-            // Floats right on the card's top-left corner, macOS-notification
-            // style — applied after the clip so it can overhang the edge.
-            .overlay(alignment: .topLeading) {
-                if let onClose {
-                    ToastCloseButton(theme: theme, isVisible: isHovered, action: onClose)
-                        .offset(x: -9, y: -9)
-                }
-            }
-            .onHover { isHovered = $0 }
-    }
-}
-
-private struct AtlasToastStatusIcon: View {
+struct AtlasToastStatusIcon: View {
     let kind: AtlasToastStatusIconKind
     let theme: CopilotThemeTokens
 
@@ -612,7 +364,7 @@ private struct AtlasToastStatusIcon: View {
             }
         }
         .frame(width: 22, height: 22)
-        .flexibilityShrinkDisabled()
+        .fixedSize()
     }
 }
 
@@ -688,92 +440,6 @@ private struct AtlasToastLoadingIcon: View {
             }
         }
         .frame(width: 22, height: 22)
-    }
-}
-
-private struct AtlasToastCursorBuddyIcon: View {
-    let state: CursorBuddyOverlayView.BuddyVisualState
-    let theme: CopilotThemeTokens
-
-    var body: some View {
-        CursorBuddyDot(state: state, theme: theme)
-            .frame(width: 18, height: 18)
-            .frame(width: 22, height: 22)
-            .flexibilityShrinkDisabled()
-    }
-}
-
-private struct AtlasToastActionButtonStyle: ButtonStyle {
-    let theme: CopilotThemeTokens
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(AtlasToastTypography.action)
-            .foregroundStyle(configuration.isPressed ? theme.textPrimary : theme.textSecondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(theme.surface2.opacity(configuration.isPressed ? 0.72 : 1), in: Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(configuration.isPressed ? theme.borderStrong : theme.border, lineWidth: 1)
-            )
-            .scaleEffect(configuration.isPressed ? 0.99 : 1)
-    }
-}
-
-private extension View {
-    func flexibilityShrinkDisabled() -> some View {
-        fixedSize()
-    }
-}
-
-struct MeetingStartToast: View {
-    @ObservedObject var store: MeetingStore
-    let onClose: () -> Void
-
-    private var theme: CopilotThemeTokens {
-        store.copilotTheme.tokens
-    }
-
-    private var meetingTitle: String {
-        store.meetingStartPrompt?.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-            ? store.meetingStartPrompt?.title ?? "Meeting"
-            : "Meeting"
-    }
-
-    var body: some View {
-        AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: {
-            store.dismissMeetingStartPrompt()
-            onClose()
-        }) {
-            HStack(alignment: .center, spacing: 12) {
-                AtlasToastStatusIcon(kind: .info, theme: theme)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Meeting starting")
-                        .font(AtlasToastTypography.title)
-                        .tracking(AtlasToastMetrics.titleTracking)
-                        .foregroundStyle(theme.textPrimary)
-                    Text(meetingTitle)
-                        .font(AtlasToastTypography.body)
-                        .tracking(AtlasToastMetrics.bodyTracking)
-                        .foregroundStyle(theme.textTertiary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 8)
-
-                Button {
-                    store.startPromptedMeetingNotes()
-                    onClose()
-                } label: {
-                    Text("Start notes")
-                        .tracking(AtlasToastMetrics.actionTracking)
-                }
-                .buttonStyle(AtlasToastActionButtonStyle(theme: theme))
-            }
-        }
     }
 }
 
@@ -929,124 +595,16 @@ struct PermissionOnboardingToast: View {
     }
 }
 
-struct VoiceProcessingToast: View {
-    @ObservedObject var store: MeetingStore
-    let onClose: () -> Void
-
-    private var theme: CopilotThemeTokens {
-        store.copilotTheme.tokens
-    }
-
-    private var statusMessage: String {
-        store.statusMessage
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "Asking Bot", with: "Asking Atlas")
-    }
-
-    private var usesCursorBuddyIcon: Bool {
-        statusMessage.hasPrefix("Asking ") || store.isAgentResponding
-    }
-
-    private var subtitle: String {
-        // While a stopped meeting is being saved, keep a single steady label
-        // regardless of the internal transcribe/upload status churn.
-        if store.isSavingMeetingNotes {
-            return "Creating meeting notes…"
-        }
-        let status = statusMessage
-        let normalized = status.lowercased()
-        if status.hasPrefix("Asking ") || status.hasPrefix("Creating ") || status.hasPrefix("Atlas is creating") {
-            return status
-        }
-        if normalized.contains("thinking") || normalized.contains("saving") {
-            return "Working on it"
-        }
-        return "Working on it"
-    }
-
-    var body: some View {
-        AtlasToastCard(theme: theme, height: AtlasToastMetrics.loadingHeight, onClose: onClose) {
-            HStack(spacing: 12) {
-                if usesCursorBuddyIcon {
-                    AtlasToastCursorBuddyIcon(state: .thinking, theme: theme)
-                } else {
-                    AtlasToastStatusIcon(kind: .loading, theme: theme)
-                }
-
-                Text(subtitle == "Working on it" ? "Thinking" : subtitle)
-                    .font(AtlasToastTypography.title)
-                    .tracking(AtlasToastMetrics.titleTracking)
-                    .foregroundStyle(theme.textPrimary)
-                    .lineLimit(1)
-
-                Spacer(minLength: 0)
-            }
-        }
-    }
-}
-
-struct VoiceAgentResponseToast: View {
-    @ObservedObject var store: MeetingStore
-    let onClose: () -> Void
-
-    private struct ResponsePresentation {
+/// Extracts the "[label](url)" action link Atlas appends to voice responses,
+/// returning clean display text plus the resolved URL. Used by the island's
+/// agent-response bubble (formerly part of the corner response toast).
+enum AgentResponsePresenter {
+    struct Presentation {
         let message: String
         let actionURL: URL?
     }
 
-    private var theme: CopilotThemeTokens {
-        store.copilotTheme.tokens
-    }
-
-    private var responsePresentation: ResponsePresentation {
-        Self.makeResponsePresentation(from: store.lastAgentTextResponse, appURL: store.appURL)
-    }
-
-    private var toastHeight: CGFloat {
-        Self.preferredHeight(for: store)
-    }
-
-    var body: some View {
-        AtlasToastCard(theme: theme, height: toastHeight, verticalPadding: 14, alignment: .topLeading, onClose: onClose) {
-            let presentation = responsePresentation
-            HStack(alignment: .top, spacing: 12) {
-                AtlasToastCursorBuddyIcon(state: .complete, theme: theme)
-
-                Text(presentation.message)
-                    .font(AtlasToastTypography.title)
-                    .tracking(AtlasToastMetrics.titleTracking)
-                    .foregroundStyle(theme.toastResponseText)
-                    .lineSpacing(2)
-                    .lineLimit(presentation.actionURL == nil ? 5 : 4)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.trailing, 20)
-
-                Spacer(minLength: 8)
-
-                if let url = presentation.actionURL {
-                    Button {
-                        NSWorkspace.shared.open(url)
-                    } label: {
-                        Text("View")
-                            .tracking(AtlasToastMetrics.actionTracking)
-                    }
-                    .buttonStyle(AtlasToastActionButtonStyle(theme: theme))
-                }
-            }
-        }
-    }
-
-    static func preferredHeight(for store: MeetingStore) -> CGFloat {
-        let presentation = makeResponsePresentation(from: store.lastAgentTextResponse, appURL: store.appURL)
-        let textWidth = textWidthForResponse(hasAction: presentation.actionURL != nil)
-        let textHeight = measuredTextHeight(presentation.message, width: textWidth)
-        let contentHeight = max(textHeight, 22)
-        let rawHeight = ceil((14 * 2) + contentHeight)
-        return min(max(rawHeight, AtlasToastMetrics.agentResponseMinHeight), AtlasToastMetrics.agentResponseMaxHeight)
-    }
-
-    private static func makeResponsePresentation(from text: String, appURL: String) -> ResponsePresentation {
+    static func make(from text: String, appURL: String) -> Presentation {
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let pattern = #"(?i)(?:\s*(?:Puedes verlo aquí|Puedes verlo aqui|Puedes abrirlo aquí|Puedes abrirlo aqui|View it here|You can view it here)\s*:\s*)?\[([^\]]+)\]\(([^)]+)\)"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
@@ -1058,7 +616,7 @@ struct VoiceAgentResponseToast: View {
               let urlRange = Range(match.range(at: 2), in: trimmedText),
               let fullRange = Range(match.range, in: trimmedText)
         else {
-            return ResponsePresentation(message: cleanedResponseText(trimmedText), actionURL: nil)
+            return Presentation(message: cleanedResponseText(trimmedText), actionURL: nil)
         }
 
         let label = String(trimmedText[labelRange]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1067,7 +625,7 @@ struct VoiceAgentResponseToast: View {
         message.removeSubrange(fullRange)
         let cleanedMessage = cleanedResponseText(message)
 
-        return ResponsePresentation(
+        return Presentation(
             message: linkedResponseMessage(cleanedMessage, fallbackLabel: label),
             actionURL: resolvedResponseURL(from: rawURL, appURL: appURL)
         )
@@ -1092,29 +650,6 @@ struct VoiceAgentResponseToast: View {
             cleaned = String(cleaned.dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return cleaned.isEmpty ? "Atlas finished." : cleaned
-    }
-
-    private static func textWidthForResponse(hasAction: Bool) -> CGFloat {
-        let horizontalPadding = AtlasToastMetrics.leadingPadding + AtlasToastMetrics.trailingPaddingWithClose
-        let iconAndSpacing: CGFloat = 22 + 12
-        let actionWidth: CGFloat = hasAction ? 74 : 0
-        return max(180, AtlasToastMetrics.width - horizontalPadding - iconAndSpacing - actionWidth - 20)
-    }
-
-    private static func measuredTextHeight(_ text: String, width: CGFloat) -> CGFloat {
-        let font = NSFont(name: "Figtree", size: 14) ?? NSFont.systemFont(ofSize: 14, weight: .semibold)
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = 2
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .paragraphStyle: paragraph,
-        ]
-        let rect = (text as NSString).boundingRect(
-            with: NSSize(width: width, height: .greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: attributes
-        )
-        return ceil(rect.height)
     }
 
     private static func resolvedResponseURL(from rawURL: String, appURL: String) -> URL? {
@@ -1173,124 +708,6 @@ struct AgentDragonMark: View {
             }
         }
     }
-}
-
-struct VoiceRecordingToast: View {
-    @ObservedObject var store: MeetingStore
-    let onClose: () -> Void
-
-    private var theme: CopilotThemeTokens {
-        store.copilotTheme.tokens
-    }
-
-    private var transcriptPreview: String {
-        let text = store.lastTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
-        return text.isEmpty ? "Speak now" : text
-    }
-
-    var body: some View {
-        AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: onClose) {
-            HStack(spacing: 12) {
-                AtlasToastStatusIcon(kind: .loading, theme: theme)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Listening")
-                        .font(AtlasToastTypography.title)
-                        .tracking(AtlasToastMetrics.titleTracking)
-                        .foregroundStyle(theme.textPrimary)
-                    Text(transcriptPreview)
-                        .font(AtlasToastTypography.body)
-                        .tracking(AtlasToastMetrics.bodyTracking)
-                        .foregroundStyle(theme.textTertiary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 0)
-            }
-        }
-    }
-}
-
-struct VoiceStatusToast: View {
-    @ObservedObject var store: MeetingStore
-    let onClose: () -> Void
-
-    private var theme: CopilotThemeTokens {
-        store.copilotTheme.tokens
-    }
-
-    private var message: String {
-        let status = store.statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let separator = status.firstIndex(of: ":") else { return status }
-        let detailStart = status.index(after: separator)
-        let detail = status[detailStart...].trimmingCharacters(in: .whitespacesAndNewlines)
-        return detail.isEmpty ? status : detail
-    }
-
-    var body: some View {
-        AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: onClose) {
-            HStack(spacing: 12) {
-                AtlasToastStatusIcon(kind: .error, theme: theme)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Error!")
-                        .font(AtlasToastTypography.title)
-                        .tracking(AtlasToastMetrics.titleTracking)
-                        .foregroundStyle(theme.textPrimary)
-                        .lineLimit(1)
-                    Text(message)
-                        .font(AtlasToastTypography.body)
-                        .tracking(AtlasToastMetrics.bodyTracking)
-                        .foregroundStyle(theme.textTertiary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 0)
-            }
-        }
-    }
-}
-
-struct VoiceCreatedToast: View {
-    let result: VoiceActionResult
-    let theme: CopilotThemeTokens
-    let onClose: () -> Void
-
-    var body: some View {
-        AtlasToastCard(theme: theme, height: AtlasToastMetrics.standardHeight, onClose: onClose) {
-            HStack(spacing: 12) {
-                AtlasToastStatusIcon(kind: .success, theme: theme)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(result.type.rawValue) created")
-                        .font(AtlasToastTypography.title)
-                        .tracking(AtlasToastMetrics.titleTracking)
-                        .foregroundStyle(theme.textPrimary)
-                    Text(result.title)
-                        .font(AtlasToastTypography.body)
-                        .tracking(AtlasToastMetrics.bodyTracking)
-                        .foregroundStyle(theme.textTertiary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 8)
-
-                if let url = result.resourceURL {
-                    Button {
-                        NSWorkspace.shared.open(url)
-                    } label: {
-                        Text("View")
-                            .tracking(AtlasToastMetrics.actionTracking)
-                    }
-                    .buttonStyle(AtlasToastActionButtonStyle(theme: theme))
-                }
-            }
-        }
-    }
-
 }
 
 struct ToastCloseButton: View {
@@ -1405,17 +822,7 @@ struct ShakeEffect: GeometryEffect {
     }
 }
 
-private func toastBackground(theme: CopilotThemeTokens, cornerRadius: CGFloat = AtlasToastMetrics.cornerRadius) -> some View {
-    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        .fill(theme.surface)
-}
-
-private func toastBorder(theme: CopilotThemeTokens, cornerRadius: CGFloat = AtlasToastMetrics.cornerRadius) -> some View {
-    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        .stroke(theme.border, lineWidth: 1)
-}
-
-private func isErrorStatus(_ message: String) -> Bool {
+func isErrorStatus(_ message: String) -> Bool {
     let text = message.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     guard !text.isEmpty else { return false }
     return text.contains("failed")

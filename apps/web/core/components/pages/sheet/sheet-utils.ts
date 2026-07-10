@@ -50,6 +50,37 @@ export type TSelectOption = { value: string; color: string };
 /** Turns a column into a single/multi-select dropdown of colored pills. */
 export type TColumnSelect = { options: TSelectOption[]; multi: boolean };
 
+/** A cell value recognised as a single web link. */
+export type TCellLink = { href: string; host: string };
+
+/**
+ * If a cell's (trimmed) value is a single URL — either an explicit http(s) URL
+ * or a bare domain like "example.com/path" — return the normalized href and a
+ * display host (without a leading "www."). Otherwise null. Values with spaces
+ * or formulas are never treated as links.
+ */
+export const parseCellUrl = (value: string): TCellLink | null => {
+  const raw = (value ?? "").trim();
+  if (!raw || /\s/.test(raw) || raw.startsWith("=")) return null;
+  let candidate = raw;
+  if (!/^https?:\/\//i.test(candidate)) {
+    // Bare domain: at least one dot, a 2+ char TLD, optional path — no "@" (skip emails).
+    if (raw.includes("@") || !/^[a-z0-9.-]+\.[a-z]{2,}(\/.*)?$/i.test(candidate)) return null;
+    candidate = `https://${candidate}`;
+  }
+  try {
+    const u = new URL(candidate);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return { href: u.href, host: u.hostname.replace(/^www\./, "") };
+  } catch {
+    return null;
+  }
+};
+
+/** Favicon image URL for a host, via Google's public favicon service. */
+export const faviconUrl = (host: string): string =>
+  `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
+
 /** Cell value ("a, b") → selected values. */
 export const parseSelected = (value: string): string[] =>
   value
@@ -162,7 +193,7 @@ export type TCellBorder = {
   width: number;
   style: TCellBorderStyle;
 };
-export type TBorderPosition = "all" | "outer" | "inner" | "top" | "bottom" | "left" | "right" | "none";
+export type TBorderPosition = "all" | "outer" | "inner" | "top" | "bottom" | "left" | "right" | "none" | "restyle";
 
 export const SHEET_DEFAULT_ROWS = 20;
 export const SHEET_DEFAULT_COLS = 8;
@@ -600,6 +631,14 @@ export const applyBorders = (
           const { border: _drop, ...rest } = prev;
           if (isEmptyFormat(rest)) delete formats[id];
           else formats[id] = rest;
+        }
+        continue;
+      }
+      // "restyle" recolors/reweights the borders a cell already has — it never
+      // adds sides, so picking a new color in the menu updates live.
+      if (position === "restyle") {
+        if (hasBorder(prev?.border)) {
+          formats[id] = { ...prev, border: { ...prev!.border!, color: style.color, width: style.width, style: style.style } };
         }
         continue;
       }

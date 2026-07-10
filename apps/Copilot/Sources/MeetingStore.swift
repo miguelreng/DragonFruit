@@ -119,6 +119,12 @@ struct VoiceActionResult: Identifiable {
     let resourceURL: URL?
 }
 
+struct MeetingNotesSavedNotice: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let url: URL?
+}
+
 struct VoiceCursorContext {
     var selectedText: String?
     var focusedSelectedText: String?
@@ -611,6 +617,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var lastTranscript = ""
     @Published var lastCapture: VoiceCaptureResult?
     @Published var lastVoiceActionResult: VoiceActionResult?
+    /// Set when meeting notes finish saving; the notch island shows it as a
+    /// success bubble with a View button.
+    @Published var lastMeetingNotesSavedNotice: MeetingNotesSavedNotice?
     @Published var lastAgentTextResponse = ""
     @Published var isAgentResponding = false
     @Published var isVoiceActionProcessing = false
@@ -1828,9 +1837,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         guard secondsUntilStart >= 0, secondsUntilStart <= Double(max(1, autoStartMinutesBefore) * 60) else { return }
         notifiedMeetingIds.insert(meeting.id)
         if meetingNotesEnabled && meeting.isLikelyRealMeeting {
+            // The notch island shows the prompt (with Start notes); a system
+            // banner on top of it would be a duplicate.
             meetingStartPrompt = meeting
+        } else {
+            deliverNotification(title: "Meeting starting", body: meeting.title)
         }
-        deliverNotification(title: "Meeting starting", body: meeting.title)
     }
 
     private func parseCalendarDate(_ value: String) -> Date? {
@@ -3150,7 +3162,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     }
 
     private func notifyMeetingNotesSaved(title: String) {
-        deliverNotification(title: "Meeting notes saved", body: title)
+        // Shown as a success bubble under the notch island (with a View
+        // button) instead of a system banner.
+        lastMeetingNotesSavedNotice = MeetingNotesSavedNotice(title: title, url: lastMeetingNotesURL)
     }
 
     private func deliverNotification(title: String, body: String) {

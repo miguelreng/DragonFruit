@@ -1095,6 +1095,113 @@ def _sheet_cells_from_matrix(matrix: list[list], row_offset: int = 0) -> dict:
     return cells
 
 
+def _parse_sheet_cell_id(ref) -> tuple[int, int] | None:
+    """"B3" -> (row 2, col 1); None when the ref isn't a valid A1-style id."""
+    m = re.match(r"^([A-Za-z]{1,3})([0-9]+)$", str(ref or "").strip())
+    if not m:
+        return None
+    col = 0
+    for ch in m.group(1).upper():
+        col = col * 26 + (ord(ch) - 64)
+    row = int(m.group(2)) - 1
+    if row < 0:
+        return None
+    return (row, col - 1)
+
+
+_SHEET_NUMBER_FORMATS = {
+    "automatic",
+    "plain",
+    "plain_text",
+    "number",
+    "percent",
+    "scientific",
+    "currency",
+    "currency_rounded",
+    "euro",
+    "accounting",
+    "financial",
+}
+
+
+def _sanitize_sheet_format(raw) -> dict | None:
+    """Keep only the format keys/values the sheet editor understands."""
+    if not isinstance(raw, dict):
+        return None
+    out: dict = {}
+    for key in ("bold", "italic", "strike"):
+        if isinstance(raw.get(key), bool):
+            out[key] = raw[key]
+    for key in ("color", "fill"):
+        value = raw.get(key)
+        if isinstance(value, str) and re.match(r"^#[0-9a-fA-F]{3,8}$", value):
+            out[key] = value
+    if raw.get("align") in {"left", "center", "right"}:
+        out["align"] = raw["align"]
+    if raw.get("numberFormat") in _SHEET_NUMBER_FORMATS:
+        out["numberFormat"] = raw["numberFormat"]
+    currency = raw.get("currency")
+    if isinstance(currency, str) and re.match(r"^[A-Za-z]{3}$", currency):
+        out["currency"] = currency.upper()
+    decimals = raw.get("decimals")
+    if isinstance(decimals, int) and not isinstance(decimals, bool) and 0 <= decimals <= 10:
+        out["decimals"] = decimals
+    return out or None
+
+
+def _find_project_sheet_page(*, workspace: Workspace, project, wanted: str):
+    """Resolve the sheet page a tool call targets. Returns (page, error)."""
+    sheet_pages = list(
+        ProjectPage.objects.filter(
+            workspace=workspace,
+            project=project,
+            deleted_at__isnull=True,
+            page__deleted_at__isnull=True,
+            page__page_type=Page.PAGE_TYPE_SHEET,
+        )
+        .select_related("page")
+        .order_by("-page__updated_at")
+    )
+    if not sheet_pages:
+        return None, "tool_error: this project has no spreadsheet yet. Use `create_sheet` to make one first."
+    if wanted:
+        match = next((pp for pp in sheet_pages if pp.page.name.strip().lower() == wanted.lower()), None)
+        if match is None:
+            names = ", ".join(f"'{pp.page.name}'" for pp in sheet_pages[:10])
+            return None, f"tool_error: no spreadsheet named '{wanted}' in this project. Available: {names}"
+    elif len(sheet_pages) > 1:
+        names = ", ".join(f"'{pp.page.name}'" for pp in sheet_pages[:10])
+        return None, f"tool_error: this project has multiple spreadsheets ({names}). Pass the one to edit as `sheet`."
+    else:
+        match = sheet_pages[0]
+    return match.page, None
+
+
+def _load_active_sheet_grid(page) -> tuple[dict, list, dict, str]:
+    """Load (description_json, sheets, active grid, active_id), creating an
+    empty grid when the snapshot is missing or malformed."""
+    dj = page.description_json if isinstance(page.description_json, dict) else {}
+    snap = dj.get("sheet_snapshot") if isinstance(dj.get("sheet_snapshot"), dict) else {}
+    sheets = snap.get("sheets") if isinstance(snap.get("sheets"), list) else []
+    active_id = snap.get("activeId")
+    grid = None
+    if sheets:
+        grid = next((g for g in sheets if isinstance(g, dict) and g.get("id") == active_id), None) or (
+            sheets[0] if isinstance(sheets[0], dict) else None
+        )
+    if grid is None:
+        grid = {
+            "id": f"sheet-{uuid4().hex[:12]}",
+            "name": "Sheet 1",
+            "rows": _SHEET_DEFAULT_ROWS,
+            "cols": _SHEET_DEFAULT_COLS,
+            "cells": {},
+        }
+        sheets = [grid]
+        active_id = grid["id"]
+    return dj, sheets, grid, active_id or grid["id"]
+
+
 def _make_create_sheet_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
     def _handler(args: dict) -> str:
         hint = args.get("project") or args.get("project_id")
@@ -1193,60 +1300,19 @@ def _make_update_sheet_tool(*, workspace: Workspace, user, project_id: str | Non
                 "is in, then pass its name as `project`."
             )
 
-        sheet_pages = list(
-            ProjectPage.objects.filter(
-                workspace=workspace,
-                project=project,
-                deleted_at__isnull=True,
-                page__deleted_at__isnull=True,
-                page__page_type=Page.PAGE_TYPE_SHEET,
-            )
-            .select_related("page")
-            .order_by("-page__updated_at")
+        page, err = _find_project_sheet_page(
+            workspace=workspace, project=project, wanted=str(args.get("sheet") or args.get("title") or "").strip()
         )
-        if not sheet_pages:
-            return "tool_error: this project has no spreadsheet yet. Use `create_sheet` to make one first."
+        if page is None:
+            return err
 
-        wanted = str(args.get("sheet") or args.get("title") or "").strip()
-        if wanted:
-            match = next((pp for pp in sheet_pages if pp.page.name.strip().lower() == wanted.lower()), None)
-            if match is None:
-                names = ", ".join(f"'{pp.page.name}'" for pp in sheet_pages[:10])
-                return f"tool_error: no spreadsheet named '{wanted}' in this project. Available: {names}"
-        elif len(sheet_pages) > 1:
-            names = ", ".join(f"'{pp.page.name}'" for pp in sheet_pages[:10])
-            return f"tool_error: this project has multiple spreadsheets ({names}). Pass the one to edit as `sheet`."
-        else:
-            match = sheet_pages[0]
-
-        page = match.page
         matrix = _sheet_matrix_from_args(args.get("headers"), args.get("rows"))
         if not matrix:
             return "tool_error: provide the new content as `rows` (a list of rows), optionally with `headers`"
 
         mode = str(args.get("mode") or "replace").strip().lower()
 
-        # Load the existing snapshot, tolerating legacy/empty shapes.
-        dj = page.description_json if isinstance(page.description_json, dict) else {}
-        snap = dj.get("sheet_snapshot") if isinstance(dj.get("sheet_snapshot"), dict) else {}
-        sheets = snap.get("sheets") if isinstance(snap.get("sheets"), list) else []
-        active_id = snap.get("activeId")
-        grid = None
-        if sheets:
-            grid = next((g for g in sheets if isinstance(g, dict) and g.get("id") == active_id), None) or (
-                sheets[0] if isinstance(sheets[0], dict) else None
-            )
-        if grid is None:
-            grid = {
-                "id": f"sheet-{uuid4().hex[:12]}",
-                "name": "Sheet 1",
-                "rows": _SHEET_DEFAULT_ROWS,
-                "cols": _SHEET_DEFAULT_COLS,
-                "cells": {},
-            }
-            sheets = [grid]
-            active_id = grid["id"]
-
+        dj, sheets, grid, active_id = _load_active_sheet_grid(page)
         existing_cells = grid.get("cells") if isinstance(grid.get("cells"), dict) else {}
 
         if mode == "append":
@@ -1322,6 +1388,155 @@ def _make_update_sheet_tool(*, workspace: Workspace, user, project_id: str | Non
                 },
             },
             "required": ["rows"],
+        },
+        handler=_handler,
+    )
+
+
+def _make_set_cells_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
+    """Surgical spreadsheet edits: set/clear/format individual cells without
+    touching the rest of the sheet (unlike update_sheet's whole-matrix write)."""
+
+    def _handler(args: dict) -> str:
+        hint = args.get("project") or args.get("project_id")
+        project = _resolve_agent_project(workspace=workspace, project_id=project_id, hint=hint)
+        if project is None:
+            if hint:
+                return f"tool_error: no active project matching '{str(hint).strip()}' in this workspace"
+            return (
+                "tool_error: no project is currently open. Ask the user which project the spreadsheet "
+                "is in, then pass its name as `project`."
+            )
+
+        page, err = _find_project_sheet_page(
+            workspace=workspace, project=project, wanted=str(args.get("sheet") or "").strip()
+        )
+        if page is None:
+            return err
+
+        edits = args.get("cells")
+        if not isinstance(edits, list) or not edits:
+            return "tool_error: `cells` must be a non-empty list of {cell, value?, format?} edits"
+
+        dj, sheets, grid, active_id = _load_active_sheet_grid(page)
+        cells = dict(grid.get("cells") if isinstance(grid.get("cells"), dict) else {})
+        formats = dict(grid.get("formats") if isinstance(grid.get("formats"), dict) else {})
+
+        applied = 0
+        errors: list[str] = []
+        max_row = max_col = -1
+        for entry in edits:
+            if not isinstance(entry, dict):
+                errors.append("skipped a non-object entry")
+                continue
+            pos = _parse_sheet_cell_id(entry.get("cell"))
+            if pos is None:
+                errors.append(f"invalid cell ref '{entry.get('cell')}'")
+                continue
+            row, col = pos
+            if row >= _SHEET_MAX_ROWS or col >= _SHEET_MAX_COLS:
+                errors.append(f"cell '{entry.get('cell')}' is outside the {_SHEET_MAX_ROWS}x{_SHEET_MAX_COLS} limit")
+                continue
+            cid = f"{_sheet_column_label(col)}{row + 1}"
+            touched = False
+            if "value" in entry:
+                text = _sheet_cell_text(entry.get("value"))
+                if text == "":
+                    cells.pop(cid, None)
+                else:
+                    cells[cid] = text
+                touched = True
+            fmt = _sanitize_sheet_format(entry.get("format"))
+            if fmt:
+                formats[cid] = {**(formats.get(cid) if isinstance(formats.get(cid), dict) else {}), **fmt}
+                touched = True
+            if not touched:
+                errors.append(f"'{cid}' had neither a value nor a recognized format")
+                continue
+            applied += 1
+            max_row = max(max_row, row)
+            max_col = max(max_col, col)
+
+        if applied == 0:
+            return "tool_error: no valid edits; " + "; ".join(errors[:5])
+
+        grid["cells"] = cells
+        grid["formats"] = formats
+        grid["rows"] = min(max(int(grid.get("rows") or 0), max_row + 1, _SHEET_DEFAULT_ROWS), _SHEET_MAX_ROWS)
+        grid["cols"] = min(max(int(grid.get("cols") or 0), max_col + 1, _SHEET_DEFAULT_COLS), _SHEET_MAX_COLS)
+
+        dj["sheet_snapshot"] = {"sheets": sheets, "activeId": active_id}
+        page.description_json = dj
+        page.description_binary = None
+        page.save()
+
+        note = f" ({'; '.join(errors[:3])})" if errors else ""
+        return (
+            f"ok: updated {applied} cell(s) in spreadsheet '{page.name}'{note} "
+            f"(id={page.id}, url=/{workspace.slug}/projects/{project.id}/pages/{page.id})"
+        )
+
+    return LLMTool(
+        name="set_cells",
+        description=(
+            "Edit specific cells of an existing spreadsheet without touching the rest — set or clear "
+            "values/formulas and apply formatting. Use this for targeted requests like 'change B3 to 500', "
+            "'make the header row bold', 'format column C as USD', or 'highlight A2 in green' — NOT "
+            "`update_sheet`, which rewrites the whole sheet. Fill colors should be light tints (e.g. "
+            "#bbf7d0 green, #bfdbfe blue, #fecaca red) so the dark text stays readable."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "string",
+                    "description": "Optional project name, identifier, or id. Omit to use the currently open project.",
+                },
+                "sheet": {
+                    "type": "string",
+                    "description": (
+                        "Title of the spreadsheet to edit. Required only if the project has multiple "
+                        "spreadsheets."
+                    ),
+                },
+                "cells": {
+                    "type": "array",
+                    "description": "The cell edits to apply.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "cell": {"type": "string", "description": "A1-style reference, e.g. 'B3'."},
+                            "value": {
+                                "type": ["string", "number", "boolean", "null"],
+                                "description": (
+                                    "New value or '='-formula. null or '' clears the cell. Omit to only "
+                                    "change formatting."
+                                ),
+                            },
+                            "format": {
+                                "type": "object",
+                                "description": "Formatting to merge into the cell.",
+                                "properties": {
+                                    "bold": {"type": "boolean"},
+                                    "italic": {"type": "boolean"},
+                                    "strike": {"type": "boolean"},
+                                    "color": {"type": "string", "description": "Text color hex, e.g. '#c5221f'."},
+                                    "fill": {"type": "string", "description": "Background hex; use light tints."},
+                                    "align": {"type": "string", "enum": ["left", "center", "right"]},
+                                    "numberFormat": {
+                                        "type": "string",
+                                        "enum": sorted(_SHEET_NUMBER_FORMATS),
+                                    },
+                                    "currency": {"type": "string", "description": "ISO 4217 code, e.g. 'USD'."},
+                                    "decimals": {"type": "integer", "minimum": 0, "maximum": 10},
+                                },
+                            },
+                        },
+                        "required": ["cell"],
+                    },
+                },
+            },
+            "required": ["cells"],
         },
         handler=_handler,
     )
@@ -1651,7 +1866,16 @@ def _make_wikipedia_brief_tool(*, workspace: Workspace, user, project_id: str | 
 def _fallback_tool_confirmation(result) -> str:
     """Give users a useful reply if the model stops after an action tool call."""
     for tool_call in reversed(result.tool_calls):
-        if tool_call.get("name") not in {"create_document", "update_project_brief", "create_task", "create_sticky", "create_sheet", "update_sheet"}:
+        action_tools = {
+            "create_document",
+            "update_project_brief",
+            "create_task",
+            "create_sticky",
+            "create_sheet",
+            "update_sheet",
+            "set_cells",
+        }
+        if tool_call.get("name") not in action_tools:
             continue
         return _tool_call_confirmation(tool_call)
     return ""
@@ -1683,9 +1907,9 @@ def _tool_call_confirmation(tool_call: dict) -> str:
 
     args = tool_call.get("arguments", {})
 
-    # update_sheet edits an existing spreadsheet (matched by `sheet`), so it
-    # reads as "Updated", and the result's quoted name is the source of truth.
-    if tool_call.get("name") == "update_sheet":
+    # update_sheet / set_cells edit an existing spreadsheet (matched by `sheet`),
+    # so they read as "Updated", and the result's quoted name is the source of truth.
+    if tool_call.get("name") in {"update_sheet", "set_cells"}:
         verb = "Appended rows to" if "ok: appended" in tool_result else "Updated"
         name = ""
         if "'" in tool_result:
@@ -2432,6 +2656,11 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     project_id=project_id,
                 ),
                 _make_update_sheet_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
+                _make_set_cells_tool(
                     workspace=session.workspace,
                     user=request.user,
                     project_id=project_id,

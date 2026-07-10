@@ -20,6 +20,7 @@ import {
   Copy,
   DollarSign,
   Eraser,
+  ExternalLink,
   Italic,
   ListFilter,
   PaintBucket,
@@ -54,9 +55,11 @@ import {
   parseFormulaRefs,
   deleteColumn,
   deleteRow,
+  faviconUrl,
   fillRange,
   formatDisplayValue,
   getInitialSnapshot,
+  parseCellUrl,
   insertColumn,
   insertRow,
   isEmptyFormat,
@@ -158,6 +161,8 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   // True once the user has typed into the focused cell — so ⌘A selects the cell's
   // text rather than all cells.
   const typingRef = useRef(false);
+  // Moving corner of a keyboard (Shift+Arrow) selection; the focused cell anchors it.
+  const selectionActiveRef = useRef<{ row: number; col: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const [selection, setSelection] = useState<Rect | null>(null);
@@ -720,6 +725,30 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
         return;
       }
     }
+    // Shift+Arrow extends a cell-range selection from the focused (anchor) cell.
+    // Skip once the user is actively typing so Shift+Arrow selects text instead.
+    const arrowDelta: Record<string, [number, number]> = {
+      ArrowUp: [-1, 0],
+      ArrowDown: [1, 0],
+      ArrowLeft: [0, -1],
+      ArrowRight: [0, 1],
+    };
+    if (event.shiftKey && !typingRef.current && arrowDelta[event.key]) {
+      event.preventDefault();
+      const [dr, dc] = arrowDelta[event.key];
+      // Active corner = last moved corner, else the selection corner opposite the
+      // anchor (handles a mouse-dragged selection), else the focused cell itself.
+      const cur =
+        selectionActiveRef.current ??
+        (selection
+          ? { row: selection.r1 === row ? selection.r2 : selection.r1, col: selection.c1 === col ? selection.c2 : selection.c1 }
+          : { row, col });
+      const nr = Math.max(0, Math.min(cur.row + dr, renderRows - 1));
+      const nc = Math.max(0, Math.min(cur.col + dc, renderCols - 1));
+      selectionActiveRef.current = { row: nr, col: nc };
+      setSelection(normRect(row, col, nr, nc));
+      return;
+    }
     // Delete/Backspace over a multi-cell selection clears every selected cell
     // (a single cell still edits its text natively).
     if (
@@ -996,7 +1025,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
         : [];
 
   return (
-    <div ref={rootRef} className="flex h-full w-full flex-col bg-white">
+    <div ref={rootRef} className="flex h-full w-full flex-col bg-surface-1">
       {/* Title. */}
       <div className="flex flex-shrink-0 items-center border-b border-subtle px-4 py-2.5">
         <input
@@ -1095,7 +1124,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
             readOnly={!isEditable || !focused}
             placeholder={focused ? "Value or =formula (e.g. =SUM(A1:A5))" : "Select a cell"}
             aria-label="Formula bar"
-            style={{ caretColor: editingFormula ? "#1c1e26" : undefined }}
+            style={{ caretColor: editingFormula ? "var(--txt-primary)" : undefined }}
             className={cn(
               "relative z-[1] h-6 w-full bg-transparent px-1 font-mono text-12 text-primary outline-none placeholder:text-placeholder read-only:cursor-default",
               { "text-transparent": editingFormula }
@@ -1209,9 +1238,14 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                     const isFocused = focused === id;
                     const fmt = active.formats?.[id];
                     const colSelect = active.selects?.[c];
+                    // Row 0 of a dropdown column is its header/label — keep it a normal
+                    // (editable, formattable) text cell; only data rows render as pills.
+                    const pillCell = !!colSelect && r > 0;
                     const display = isFocused
                       ? (active.cells[id] ?? "")
                       : formatDisplayValue(computeCell(id, active.cells), fmt);
+                    // A non-editing cell whose value is a URL renders as a link chip.
+                    const cellLink = !isFocused && !pillCell ? parseCellUrl(display) : null;
                     const wrapMode = fmt?.wrap;
                     // "wrap"/"clip" render via an in-flow div (which sizes the row);
                     // the input is then overlaid for editing. Default is input-only.
@@ -1220,7 +1254,8 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                       fontWeight: fmt?.bold ? 600 : undefined,
                       fontStyle: fmt?.italic ? "italic" : undefined,
                       textDecoration: fmt?.strike ? "line-through" : undefined,
-                      color: fmt?.color || undefined,
+                      // Fills use light tints, so keep text dark (readable in every theme).
+                      color: fmt?.color || (fmt?.fill ? "#1c1e26" : undefined),
                       textAlign: fmt?.align,
                     };
                     const selected = !!selection && inRect(selection, r, c);
@@ -1242,11 +1277,11 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                         key={c}
                         onMouseEnter={() => onCellEnter(r, c)}
                         style={Object.keys(tdStyle).length ? tdStyle : undefined}
-                        className={cn("relative border border-subtle p-0", layered ? "min-h-7 align-top" : "h-7", {
+                        className={cn("group relative border border-subtle p-0", layered ? "min-h-7 align-top" : "h-7", {
                           "bg-canvas": isFrozen && !fmt?.fill,
                         })}
                       >
-                        {colSelect ? (
+                        {pillCell ? (
                           <button
                             type="button"
                             id={`sheet-cell-${id}`}
@@ -1264,7 +1299,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                               return (
                                 <span
                                   key={v}
-                                  className="shrink-0 rounded-full px-1.5 py-0.5 text-11 text-primary"
+                                  className="shrink-0 rounded-full px-1.5 py-0.5 text-11 text-[#1c1e26]"
                                   style={{ backgroundColor: opt?.color ?? "#e5e7eb" }}
                                 >
                                   {v}
@@ -1312,11 +1347,13 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                               e.preventDefault();
                               const a = parseCellId(focused);
                               if (a) setSelection(normRect(a.row, a.col, r, c));
+                              selectionActiveRef.current = { row: r, col: c };
                             }
                           }}
                           onFocus={() => {
                             setFocused(id);
                             setSelection({ r1: r, c1: c, r2: r, c2: c });
+                            selectionActiveRef.current = null;
                             setShowSuggest(false);
                             setEditScroll(0);
                             editOriginalRef.current = active.cells[id] ?? "";
@@ -1332,7 +1369,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                           onChange={(e) => onCellInput(id, e.target.value)}
                           onKeyDown={(e) => handleCellKeyDown(e, r, c)}
                           onScroll={(e) => setEditScroll(e.currentTarget.scrollLeft)}
-                          style={{ ...textStyle, caretColor: isFocused && editingFormula ? "#1c1e26" : undefined }}
+                          style={{ ...textStyle, caretColor: isFocused && editingFormula ? "var(--txt-primary)" : undefined }}
                           className={cn(
                             "z-0 w-full bg-transparent px-2 text-12 text-primary outline-none",
                             layered ? "absolute inset-0 h-full" : "relative h-full",
@@ -1341,10 +1378,44 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                               "font-mono": isFocused && display.startsWith("="),
                               // Hide the input's own text so the colored overlay shows (caret stays visible).
                               "text-transparent": isFocused && editingFormula,
-                              "text-transparent caret-transparent": layered && !isFocused,
+                              "text-transparent caret-transparent": (layered && !isFocused) || !!cellLink,
                             }
                           )}
                         />
+                        {cellLink && (
+                          <>
+                            {/* Display-only chip (clicks fall through to the input so the
+                                cell still selects / edits); an open button appears on hover. */}
+                            <span
+                              aria-hidden
+                              style={{ justifyContent: fmt?.align === "center" ? "center" : fmt?.align === "right" ? "flex-end" : "flex-start" }}
+                              className="pointer-events-none absolute inset-0 z-[1] flex items-center gap-1.5 overflow-hidden pl-2 pr-6"
+                            >
+                              <img
+                                src={faviconUrl(cellLink.host)}
+                                alt=""
+                                className="size-3.5 shrink-0 rounded-sm"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                              <span className="truncate text-12 text-accent-primary underline decoration-accent-primary/40 underline-offset-2">
+                                {cellLink.host}
+                              </span>
+                            </span>
+                            <a
+                              href={cellLink.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Open ${cellLink.href}`}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0.5 top-1/2 z-[4] grid size-5 -translate-y-1/2 place-items-center rounded text-tertiary opacity-0 transition-opacity hover:bg-layer-2 hover:text-primary focus:opacity-100 group-hover:opacity-100"
+                            >
+                              <ExternalLink className="size-3.5" />
+                            </a>
+                          </>
+                        )}
                           </>
                         )}
                         {fmt?.border && (
@@ -1383,7 +1454,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                           <span
                             onMouseDown={startFill}
                             title="Drag to fill"
-                            className="absolute -bottom-[3px] -right-[3px] z-10 size-[7px] cursor-crosshair rounded-[1px] border border-white bg-accent-primary"
+                            className="absolute -bottom-[3px] -right-[3px] z-10 size-[7px] cursor-crosshair rounded-[1px] border border-[var(--bg-surface-1)] bg-accent-primary"
                           />
                         )}
                         {isFocused && !barFocused && renderSuggestions("left-0 top-full")}
@@ -1401,7 +1472,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
             type="button"
             onClick={addColumn}
             title="Add column"
-            className="flex w-8 flex-shrink-0 items-center justify-center border-l border-subtle bg-white text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+            className="flex w-8 flex-shrink-0 items-center justify-center border-l border-subtle bg-surface-1 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
           >
             <Plus className="size-3.5" />
           </button>
@@ -1414,7 +1485,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
           type="button"
           onClick={addRow}
           title="Add row"
-          className="flex h-7 flex-shrink-0 items-center gap-1.5 border-b border-t border-subtle bg-white pl-3 text-11 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+          className="flex h-7 flex-shrink-0 items-center gap-1.5 border-b border-t border-subtle bg-surface-1 pl-3 text-11 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
         >
           <Plus className="size-3.5" />
           <span>Add row</span>
@@ -1422,7 +1493,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       )}
 
       {/* Sheet tabs. */}
-      <div ref={tabBarRef} className="flex flex-shrink-0 items-center gap-1 overflow-x-auto border-t border-subtle bg-white px-2 py-1.5">
+      <div ref={tabBarRef} className="flex flex-shrink-0 items-center gap-1 overflow-x-auto border-t border-subtle bg-surface-1 px-2 py-1.5">
         {snapshot.sheets.map((sheet, sheetIndex) => {
           const isActive = sheet.id === snapshot.activeId;
           const isRenaming = renaming?.id === sheet.id;
@@ -1450,7 +1521,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                 "group relative flex flex-shrink-0 select-none items-center gap-1 rounded-md border px-2 py-1 text-12 transition-colors",
                 tabDrag ? "cursor-grabbing" : "cursor-grab",
                 sheet.color
-                  ? cn("text-primary", isActive ? "border-strong font-medium" : "border-transparent hover:border-subtle")
+                  ? cn("text-[#1c1e26]", isActive ? "border-strong font-medium" : "border-transparent hover:border-subtle")
                   : isActive
                     ? "border-subtle bg-layer-2 font-medium text-primary"
                     : "border-transparent text-tertiary hover:bg-layer-1 hover:text-primary",
@@ -1992,7 +2063,7 @@ function PillPicker({ x, y, options, selected, onToggle }: PillPickerProps) {
               <span className={cn("grid size-4 shrink-0 place-items-center rounded border", on ? "border-accent-primary text-accent-primary" : "border-subtle text-transparent")}>
                 {on && <Check className="size-3" />}
               </span>
-              <span className="shrink-0 rounded-full px-1.5 py-0.5 text-11 text-primary" style={{ backgroundColor: o.color }}>
+              <span className="shrink-0 rounded-full px-1.5 py-0.5 text-11 text-[#1c1e26]" style={{ backgroundColor: o.color }}>
                 {o.value}
               </span>
             </button>
@@ -2214,6 +2285,15 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
     onApply(p, { color, width, style });
     setOpen(false);
   };
+  // Changing color / width / dash restyles the selection's existing borders
+  // immediately (no need to re-click a position icon).
+  const update = (next: Partial<{ color: string; width: number; style: TCellBorderStyle }>) => {
+    const merged = { color, width, style, ...next };
+    setColor(merged.color);
+    setWidth(merged.width);
+    setStyle(merged.style);
+    onApply("restyle", merged);
+  };
 
   return (
     <div ref={ref} className="relative flex-shrink-0">
@@ -2254,19 +2334,19 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
                 key={w}
                 type="button"
                 title={`${w}px`}
-                onClick={() => setWidth(w)}
+                onClick={() => update({ width: w })}
                 className={cn("flex h-6 w-7 items-center justify-center rounded-md hover:bg-layer-1", { "bg-layer-2 ring-1 ring-accent-primary": width === w })}
               >
-                <span className="w-4 rounded-full bg-primary" style={{ height: w }} />
+                <span className="w-4 rounded-full" style={{ height: w, backgroundColor: "var(--txt-primary)" }} />
               </button>
             ))}
             <button
               type="button"
               title="Dashed"
-              onClick={() => setStyle((s) => (s === "dashed" ? "solid" : "dashed"))}
+              onClick={() => update({ style: style === "dashed" ? "solid" : "dashed" })}
               className={cn("ml-0.5 flex h-6 w-7 items-center justify-center rounded-md hover:bg-layer-1", { "bg-layer-2 ring-1 ring-accent-primary": style === "dashed" })}
             >
-              <span className="w-4 border-t border-dashed border-primary" style={{ borderTopWidth: 1.5 }} />
+              <span className="w-4 border-t border-dashed" style={{ borderTopWidth: 1.5, borderColor: "var(--txt-primary)" }} />
             </button>
           </div>
 
@@ -2277,7 +2357,7 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
                   key={c}
                   type="button"
                   title={c}
-                  onClick={() => setColor(c)}
+                  onClick={() => update({ color: c })}
                   className={cn("size-4 rounded border border-subtle transition-transform hover:scale-110", {
                     "ring-1 ring-accent-primary ring-offset-1": color === c,
                   })}
@@ -2289,7 +2369,7 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
               <input
                 type="color"
                 value={color}
-                onChange={(e) => setColor(e.target.value)}
+                onChange={(e) => update({ color: e.target.value })}
                 className="size-5 cursor-pointer rounded border border-subtle bg-transparent p-0"
               />
               <span>Custom color…</span>

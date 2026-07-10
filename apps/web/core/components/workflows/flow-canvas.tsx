@@ -7,7 +7,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Bolt } from "@solar-icons/react/ssr";
 import { cn } from "@plane/utils";
-import { ListFilter, Sparkles, Plus, Minus, Maximize } from "@/components/icons/lucide-shim";
+import { ListFilter, Sparkles, Plus, Minus, Maximize, X } from "@/components/icons/lucide-shim";
 import type { TWorkflowEdge, TWorkflowNode, TWorkflowNodeKind } from "@/services/workflow.service";
 import { FlowNode } from "./flow-node";
 import { nodeDisplay, nodeKindLabel, NODE_W } from "./builder-helpers";
@@ -23,6 +23,8 @@ type Props = {
   onSelect: (id: string) => void;
   onMoveNode: (id: string, x: number, y: number) => void;
   onAddChild: (parentId: string, branch: Branch, kind: AddKind) => void;
+  onDeleteEdge: (edge: TWorkflowEdge) => void;
+  onConnect: (fromId: string, toId: string, branch: Branch) => void;
 };
 
 type XY = { x: number; y: number };
@@ -36,6 +38,9 @@ const DOTTED_BG = {
   backgroundSize: "16px 16px",
 } as const;
 const EDGE_STROKE = "rgba(120,120,120,0.55)";
+const EDGE_SELECTED = "#e548a5";
+
+const edgeKey = (e: TWorkflowEdge) => e.id ?? `${e.from_node}-${e.to_node}-${e.branch}`;
 
 const kindIcon = (kind: TWorkflowNodeKind): ReactNode => {
   if (kind === "trigger") return <Bolt weight="Bold" className="size-3.5" />;
@@ -43,12 +48,27 @@ const kindIcon = (kind: TWorkflowNodeKind): ReactNode => {
   return <Sparkles className="size-3.5" />;
 };
 
-export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMoveNode, onAddChild }: Props) {
+export function FlowCanvas({
+  nodes,
+  edges,
+  agentName,
+  selectedId,
+  onSelect,
+  onMoveNode,
+  onAddChild,
+  onDeleteEdge,
+  onConnect,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [heights, setHeights] = useState<Record<string, number>>({});
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<XY>({ x: 0, y: 0 });
   const [addMenu, setAddMenu] = useState<{ parentId: string; branch: Branch; x: number; y: number } | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
+  // In-flight drag-to-connect: source node + current cursor position (world coords).
+  const [pending, setPending] = useState<{ fromId: string; x: number; y: number } | null>(null);
+  // Shown when dropping from a condition whose both branches are free.
+  const [branchMenu, setBranchMenu] = useState<{ fromId: string; toId: string; x: number; y: number } | null>(null);
 
   useLayoutEffect(() => {
     const cw = containerRef.current?.clientWidth ?? 0;
@@ -58,6 +78,15 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
   const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
   const h = (id: string) => heights[id] ?? EST_H;
   const nodeById = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, n])), [nodes]);
+
+  const toWorld = (clientX: number, clientY: number): XY => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: (clientX - rect.left - pan.x) / zoom, y: (clientY - rect.top - pan.y) / zoom };
+  };
+
+  const nodeAt = (p: XY): TWorkflowNode | undefined =>
+    nodes.find((n) => p.x >= n.x && p.x <= n.x + NODE_W && p.y >= n.y && p.y <= n.y + h(n.id));
 
   const edgePaths = useMemo(
     () =>
@@ -72,14 +101,22 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
           const y2 = b.y;
           const my = (y1 + y2) / 2;
           return {
-            key: e.id ?? `${e.from_node}-${e.to_node}-${e.branch}`,
+            edge: e,
+            key: edgeKey(e),
             d: `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`,
             label: e.branch === "true" ? "If True" : e.branch === "false" ? "If False" : "",
             lx: (x1 + x2) / 2,
             ly: my,
           };
         })
-        .filter(Boolean) as Array<{ key: string; d: string; label: string; lx: number; ly: number }>,
+        .filter(Boolean) as Array<{
+        edge: TWorkflowEdge;
+        key: string;
+        d: string;
+        label: string;
+        lx: number;
+        ly: number;
+      }>,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [edges, nodeById, heights]
   );
@@ -102,15 +139,54 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges, heights]);
 
+  const clearOverlays = () => {
+    setAddMenu(null);
+    setSelectedEdge(null);
+    setBranchMenu(null);
+  };
+
+  const finishConnect = (fromId: string, drop: XY) => {
+    const target = nodeAt(drop);
+    setPending(null);
+    if (!target || target.id === fromId) return;
+    const from = nodeById[fromId];
+    if (!from) return;
+    if (from.kind === "condition") {
+      const used = edges.filter((e) => e.from_node === fromId).map((e) => e.branch);
+      const freeBranches = (["true", "false"] as const).filter((b) => !used.includes(b));
+      if (freeBranches.length === 2) {
+        // Ambiguous — ask which branch this connection represents.
+        setBranchMenu({ fromId, toId: target.id, x: drop.x, y: drop.y });
+        return;
+      }
+      onConnect(fromId, target.id, freeBranches[0] ?? "true");
+      return;
+    }
+    onConnect(fromId, target.id, "");
+  };
+
   const resetView = () => {
     setZoom(1);
     const cw = containerRef.current?.clientWidth ?? 0;
     setPan({ x: Math.round(cw / 2 - 620), y: 12 });
   };
 
+  const pendingPath = useMemo(() => {
+    if (!pending) return null;
+    const from = nodeById[pending.fromId];
+    if (!from) return null;
+    const x1 = from.x + NODE_W / 2;
+    const y1 = from.y + h(from.id);
+    const my = (y1 + pending.y) / 2;
+    return `M${x1},${y1} C${x1},${my} ${pending.x},${my} ${pending.x},${pending.y}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, nodeById, heights]);
+
+  const selectedEdgePath = edgePaths.find((e) => e.key === selectedEdge);
+
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden" style={DOTTED_BG}>
-      <PanLayer pan={pan} setPan={setPan} onBackgroundClick={() => setAddMenu(null)}>
+      <PanLayer pan={pan} setPan={setPan} onBackgroundClick={clearOverlays}>
         <div
           className="absolute left-0 top-0"
           style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: "0 0" }}
@@ -120,10 +196,39 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
               <marker id="wf-arrow" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
                 <path d="M1,1 L5,4 L1,7" fill="none" stroke={EDGE_STROKE} strokeWidth="1.25" />
               </marker>
+              <marker id="wf-arrow-selected" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+                <path d="M1,1 L5,4 L1,7" fill="none" stroke={EDGE_SELECTED} strokeWidth="1.5" />
+              </marker>
             </defs>
             {edgePaths.map((e) => (
-              <path key={e.key} d={e.d} fill="none" stroke={EDGE_STROKE} strokeWidth={1.5} markerEnd="url(#wf-arrow)" />
+              <g key={e.key}>
+                <path
+                  d={e.d}
+                  fill="none"
+                  stroke={selectedEdge === e.key ? EDGE_SELECTED : EDGE_STROKE}
+                  strokeWidth={selectedEdge === e.key ? 2 : 1.5}
+                  markerEnd={selectedEdge === e.key ? "url(#wf-arrow-selected)" : "url(#wf-arrow)"}
+                />
+                {/* Invisible fat hit-area so the edge is clickable. */}
+                <path
+                  d={e.d}
+                  fill="none"
+                  stroke="transparent"
+                  strokeWidth={14}
+                  style={{ pointerEvents: "stroke", cursor: "pointer" }}
+                  onPointerDown={(ev) => ev.stopPropagation()}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    setAddMenu(null);
+                    setBranchMenu(null);
+                    setSelectedEdge((k) => (k === e.key ? null : e.key));
+                  }}
+                />
+              </g>
             ))}
+            {pendingPath && (
+              <path d={pendingPath} fill="none" stroke={EDGE_SELECTED} strokeWidth={1.5} strokeDasharray="5 4" />
+            )}
           </svg>
 
           {edgePaths
@@ -138,6 +243,25 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
               </span>
             ))}
 
+          {/* Delete affordance on the selected edge. */}
+          {selectedEdgePath && (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteEdge(selectedEdgePath.edge);
+                setSelectedEdge(null);
+              }}
+              className="absolute grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-subtle bg-layer-1 text-red-600 shadow-md transition-colors hover:bg-red-500/10"
+              style={{ left: selectedEdgePath.lx, top: selectedEdgePath.ly + (selectedEdgePath.label ? 18 : 0) }}
+              aria-label="Delete connection"
+              title="Delete connection"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+
           {nodes.map((n) => {
             const d = nodeDisplay(n, agentName);
             return (
@@ -146,7 +270,10 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
                 pos={{ x: n.x, y: n.y }}
                 zoom={zoom}
                 onDragTo={(x, y) => onMoveNode(n.id, x, y)}
-                onSelect={() => onSelect(n.id)}
+                onSelect={() => {
+                  clearOverlays();
+                  onSelect(n.id);
+                }}
                 onMeasure={(height) =>
                   setHeights((prev) => (prev[n.id] === height ? prev : { ...prev, [n.id]: height }))
                 }
@@ -163,6 +290,41 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
             );
           })}
 
+          {/* Connection ports — drag from a node's bottom edge to another node. */}
+          {nodes.map((n) => (
+            <div
+              key={`${n.id}-port`}
+              className={cn(
+                "absolute size-3 -translate-x-1/2 -translate-y-1/2 cursor-crosshair rounded-full border-2 border-strong bg-layer-1 transition-transform hover:scale-125 hover:border-[#e548a5]",
+                pending?.fromId === n.id && "border-[#e548a5]"
+              )}
+              style={{ left: n.x + NODE_W / 2, top: n.y + h(n.id) }}
+              title="Drag to connect to another step"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                const p = toWorld(e.clientX, e.clientY);
+                clearOverlays();
+                setPending({ fromId: n.id, x: p.x, y: p.y });
+              }}
+              onPointerMove={(e) => {
+                if (!pending || pending.fromId !== n.id) return;
+                const p = toWorld(e.clientX, e.clientY);
+                setPending({ fromId: n.id, x: p.x, y: p.y });
+              }}
+              onPointerUp={(e) => {
+                if (!pending || pending.fromId !== n.id) return;
+                finishConnect(n.id, toWorld(e.clientX, e.clientY));
+                try {
+                  (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+                } catch {
+                  /* already released */
+                }
+              }}
+            />
+          ))}
+
           {/* Add-child (+) slots */}
           {addSlots.map((s) => (
             <button
@@ -171,10 +333,12 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
+                setSelectedEdge(null);
+                setBranchMenu(null);
                 setAddMenu({ parentId: s.parentId, branch: s.branch, x: s.x, y: s.y });
               }}
               className="absolute grid size-6 -translate-x-1/2 place-items-center rounded-full border border-subtle bg-layer-1 text-tertiary shadow-sm t-press hover:bg-layer-2 hover:text-primary"
-              style={{ left: s.x, top: s.y }}
+              style={{ left: s.x, top: s.y + 8 }}
               aria-label="Add step"
             >
               <Plus className="size-3.5" />
@@ -185,7 +349,7 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
           {addMenu && (
             <div
               className="absolute z-20 w-36 -translate-x-1/2 overflow-hidden rounded-lg border border-subtle bg-layer-1 py-1 shadow-lg"
-              style={{ left: addMenu.x, top: addMenu.y + 16 }}
+              style={{ left: addMenu.x, top: addMenu.y + 24 }}
               onPointerDown={(e) => e.stopPropagation()}
             >
               {(["condition", "action"] as const).map((k) => (
@@ -201,6 +365,30 @@ export function FlowCanvas({ nodes, edges, agentName, selectedId, onSelect, onMo
                 >
                   <span className="grid size-4 place-items-center text-tertiary">{kindIcon(k)}</span>
                   {nodeKindLabel(k)}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Branch picker when connecting from a condition with both branches free */}
+          {branchMenu && (
+            <div
+              className="absolute z-20 w-32 -translate-x-1/2 overflow-hidden rounded-lg border border-subtle bg-layer-1 py-1 shadow-lg"
+              style={{ left: branchMenu.x, top: branchMenu.y }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              {(["true", "false"] as const).map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onConnect(branchMenu.fromId, branchMenu.toId, b);
+                    setBranchMenu(null);
+                  }}
+                  className="flex w-full items-center px-3 py-1.5 text-left text-13 text-secondary hover:bg-layer-2"
+                >
+                  {b === "true" ? "If True" : "If False"}
                 </button>
               ))}
             </div>
