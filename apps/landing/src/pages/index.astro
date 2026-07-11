@@ -2,12 +2,54 @@
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { audienceCards, bentoFeatures, pricingPlans } from "../lib/landing";
+import { pricingPlans } from "../lib/landing";
 
-const flowSteps = [
-  ["01", "Capture", "Drop a note, transcript, decision, or messy list into the workspace."],
-  ["02", "Ask Atlas", "Turn the raw material into a draft, task list, summary, or clean next step."],
-  ["03", "Approve", "Keep control visible before Atlas changes anything that matters."],
+const proofItems = [
+  ["Creators", "Ideas, scripts, research, launches"],
+  ["Tech teams", "Specs, triage, docs, decisions"],
+  ["Creative studios", "Client work, campaigns, handoffs"],
+  ["Self-host builders", "Open source, BYOK, visible control"],
+];
+
+const problemCards = [
+  {
+    number: "01",
+    title: "Context lives everywhere but the task.",
+    body: "The brief is in a doc, the decision is in chat, the asset is on someone's desktop, and the task only says 'follow up'.",
+  },
+  {
+    number: "02",
+    title: "AI starts from a blank prompt.",
+    body: "Generic chats can be useful, but they do not know the project, the source material, or what the team already decided.",
+  },
+  {
+    number: "03",
+    title: "Project work turns into project archaeology.",
+    body: "Before anyone can ship, someone has to reconstruct the plan, rewrite the brief, and guess what still matters.",
+  },
+];
+
+const solutionCards = [
+  {
+    meta: "Capture",
+    title: "Drop the messy source material in one room.",
+    body: "Notes, transcripts, decisions, docs, tasks, and saved context stay close enough for Atlas to understand the work.",
+  },
+  {
+    meta: "Draft",
+    title: "Make the first version instantly useful.",
+    body: "Ask Atlas for a project brief, task list, summary, follow-up plan, or launch doc without starting from a blank page.",
+  },
+  {
+    meta: "Triage",
+    title: "See what is stuck before the meeting.",
+    body: "Atlas can surface missing owners, unresolved questions, stale docs, and risky next steps while the project is still movable.",
+  },
+  {
+    meta: "Approve",
+    title: "Keep control before anything changes.",
+    body: "Atlas prepares the work, then waits for a human yes before risky edits, assignments, or workflow changes.",
+  },
 ];
 
 const faqs = [
@@ -40,20 +82,19 @@ const faqs = [
       <SiteHeader />
       <div class="landing-hero-copy">
         <p class="meta">Open-source tasks + docs with Atlas</p>
-        <h1 id="hero-title">Your workspace, plus one AI teammate who actually does the work.</h1>
+        <h1 id="hero-title">Your project manager that actually knows the project.</h1>
         <p>
-          DragonFruit keeps tasks and docs simple. Atlas organizes notes, drafts the next doc, triages messy projects,
-          and asks before anything risky.
+          DragonFruit keeps tasks, docs, notes, and decisions in one calm place. Atlas turns messy project context into
+          drafts, next steps, and clean handoffs, then asks before anything risky changes.
         </p>
         <div class="landing-actions">
           <a class="primary-action" href="https://app.dragonfruit.sh">Start free</a>
-          <a class="secondary-action" href="https://github.com/miguelreng/DragonFruit" target="_blank" rel="noreferrer noopener">
-            View source
-          </a>
+          <a class="secondary-action" href="/pricing">See pricing</a>
         </div>
         <div class="landing-proof" aria-label="DragonFruit principles">
-          <span>Tasks + docs</span>
-          <span>One Atlas</span>
+          <span>Tasks</span>
+          <span>Docs</span>
+          <span>Atlas</span>
           <span>BYOK</span>
           <span>AGPL</span>
         </div>
@@ -146,87 +187,58 @@ const faqs = [
       </div>
     </section>
 
-    <section class="landing-section" id="product" aria-labelledby="product-title">
-      <div class="landing-section-heading">
-        <p class="meta">Product</p>
-        <h2 id="product-title">One quiet room for the work before the work.</h2>
+    <section class="reference-proof" aria-labelledby="proof-title">
+      <div class="reference-proof-heading">
+        <p class="meta">Built for the work between thinking and shipping</p>
+        <h2 id="proof-title">One workspace for creators, people in tech, creative teams, and self-host builders.</h2>
+      </div>
+      <div class="proof-strip" aria-label="DragonFruit audiences">
+        {proofItems.map(([label, body]) => (
+          <article>
+            <strong>{label}</strong>
+            <span>{body}</span>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-section problem-section" aria-labelledby="problem-title">
+      <div class="landing-section-heading is-centered">
+        <p class="meta">The problem</p>
+        <h2 id="problem-title">The project loop is broken.</h2>
         <p>
-          Ideas rarely arrive as tickets. DragonFruit gives the note, the task, and the AI help the same place to live.
+          Most tools separate the thing you know from the thing you need to do next. That leaves everyone rebuilding
+          context instead of moving the work forward.
         </p>
       </div>
 
-      <div class="bento-grid" data-spotlight-grid>
-        {bentoFeatures.map((feature) => (
-          <article class={`bento-card is-${feature.size}`} data-spotlight-card>
-            <span class="bento-kicker">{feature.meta}</span>
+      <div class="problem-grid">
+        {problemCards.map((problem) => (
+          <article class="problem-card">
+            <span>{problem.number}</span>
+            <h3>{problem.title}</h3>
+            <p>{problem.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-section solution-section" id="product" aria-labelledby="solution-title">
+      <div class="landing-section-heading is-centered">
+        <p class="meta">Atlas</p>
+        <h2 id="solution-title">Use thoughtful AI to make the first draft.</h2>
+        <p>
+          Atlas reads the project around it, then helps create the useful first version: the brief, the plan, the task
+          list, or the decision summary.
+        </p>
+      </div>
+
+      <div class="solution-grid">
+        {solutionCards.map((feature) => (
+          <article class="solution-card">
+            <span>{feature.meta}</span>
             <h3>{feature.title}</h3>
             <p>{feature.body}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-
-    <section class="landing-section" aria-labelledby="flow-title">
-      <div class="landing-section-heading">
-        <p class="meta">How it works</p>
-        <h2 id="flow-title">A shorter path from raw thought to real work.</h2>
-      </div>
-
-      <div class="flow-grid">
-        {flowSteps.map(([number, title, body]) => (
-          <article>
-            <span>{number}</span>
-            <h3>{title}</h3>
-            <p>{body}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-
-    <section class="landing-showcase" aria-labelledby="atlas-title">
-      <div class="showcase-copy">
-        <p class="meta">Atlas</p>
-        <h2 id="atlas-title">Not another chat tab. One teammate inside the workflow.</h2>
-        <p>
-          Atlas belongs where the work already lives. Ask for a plan, a draft, a triage pass, or the next set of tasks.
-          The context is already there.
-        </p>
-        <ul>
-          <li>Organizes brain dumps into grouped tasks.</li>
-          <li>Drafts docs from meetings, notes, and decisions.</li>
-          <li>Works with workspace context instead of a blank prompt.</li>
-          <li>Pauses for approval before risky actions.</li>
-        </ul>
-      </div>
-      <div class="showcase-panel" aria-label="Example Atlas workflow">
-        <div class="showcase-toolbar">
-          <span>Atlas in context</span>
-          <span class="status-chip is-subtle">Needs approval</span>
-        </div>
-        <div class="workspace-card">
-          <span class="workspace-card-kicker">Meeting note</span>
-          <h3>Launch plan brain dump</h3>
-          <p>Messy notes, open questions, and half-written decisions from the team.</p>
-        </div>
-        <div class="workspace-card is-atlas">
-          <span class="workspace-card-kicker">Atlas suggests</span>
-          <h3>6 tasks, 3 risks, 1 launch doc</h3>
-          <p>Review the structure, approve the tasks, then keep the source doc beside the work.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="landing-section" id="use-cases" aria-labelledby="use-cases-title">
-      <div class="landing-section-heading">
-        <p class="meta">Use cases</p>
-        <h2 id="use-cases-title">Built for people who move between thinking and shipping.</h2>
-      </div>
-
-      <div class="use-case-list">
-        {audienceCards.map((useCase) => (
-          <article>
-            <h3>{useCase.title}</h3>
-            <p>{useCase.body}</p>
           </article>
         ))}
       </div>
