@@ -5,6 +5,9 @@
 # Third party imports
 from rest_framework import serializers
 import base64
+import re
+
+from bs4 import BeautifulSoup
 
 # Module imports
 from .base import BaseSerializer
@@ -152,11 +155,25 @@ class WorkspacePageListSerializer(PageSerializer):
     """
 
     SNIPPET_MAX_CHARS = 280
+    # content_preview caps — the gallery renders small thumbnails, so trim
+    # aggressively to keep the list payload light.
+    PREVIEW_BLOCK_LIMIT = 10
+    PREVIEW_TEXT_MAX = 160
+    PREVIEW_HTML_MAX = 40000
+    SHEET_PREVIEW_ROWS = 40
+    SHEET_PREVIEW_COLS = 12
+    SHEET_PREVIEW_CELL_CAP = 600
+    WHITEBOARD_PREVIEW_ELEMENTS = 80
+    WHITEBOARD_PREVIEW_POINTS = 24
+
+    CELL_ID_RE = re.compile(r"^([A-Z]+)([0-9]+)$")
+
     description_snippet = serializers.SerializerMethodField()
     word_count = serializers.SerializerMethodField()
+    content_preview = serializers.SerializerMethodField()
 
     class Meta(PageSerializer.Meta):
-        fields = PageSerializer.Meta.fields + ["description_snippet", "word_count"]
+        fields = PageSerializer.Meta.fields + ["description_snippet", "word_count", "content_preview"]
 
     def get_description_snippet(self, obj):
         text = obj.description_stripped or ""
@@ -171,6 +188,225 @@ class WorkspacePageListSerializer(PageSerializer):
         # Counts the full stripped body (not the truncated snippet) so the
         # gallery can show an accurate length without a per-page fetch.
         return len((obj.description_stripped or "").split())
+
+    def get_content_preview(self, obj):
+        """Per-type thumbnail payload for the docs gallery preview cards.
+
+        Docs → first blocks of the body (heading/paragraph/list structure),
+        sheets → the active grid's top-left cell window, whiteboards → a light
+        Excalidraw element list. PDFs need no payload (the client streams the
+        asset itself). Best-effort: a malformed body yields None, never a 500.
+        """
+        try:
+            if obj.page_type == Page.PAGE_TYPE_SHEET:
+                return self._sheet_preview(obj)
+            if obj.page_type == Page.PAGE_TYPE_WHITEBOARD:
+                return self._whiteboard_preview(obj)
+            if obj.page_type == Page.PAGE_TYPE_DOC:
+                return self._doc_preview(obj)
+        except Exception:
+            return None
+        return None
+
+    def _doc_preview(self, obj):
+        html = (obj.description_html or "")[: self.PREVIEW_HTML_MAX]
+        if not html:
+            return None
+        soup = BeautifulSoup(html, "html.parser")
+        blocks = []
+
+        def push(kind, text):
+            text = " ".join((text or "").split())
+            if not text and kind != "img":
+                return
+            blocks.append({"t": kind, "x": text[: self.PREVIEW_TEXT_MAX]})
+
+        root = soup.body or soup
+        for node in root.children:
+            if len(blocks) >= self.PREVIEW_BLOCK_LIMIT:
+                break
+            name = getattr(node, "name", None)
+            if not name:
+                continue
+            if name in ("h1", "h2"):
+                push(name, node.get_text(" ", strip=True))
+            elif name in ("h3", "h4", "h5", "h6"):
+                push("h3", node.get_text(" ", strip=True))
+            elif name == "p":
+                if node.find("img"):
+                    push("img", "")
+                else:
+                    push("p", node.get_text(" ", strip=True))
+            elif name in ("ul", "ol"):
+                is_task_list = node.get("data-type") == "taskList"
+                for li in node.find_all("li", recursive=False):
+                    if len(blocks) >= self.PREVIEW_BLOCK_LIMIT:
+                        break
+                    if is_task_list:
+                        checked = str(li.get("data-checked", "")).lower() == "true"
+                        push("done" if checked else "todo", li.get_text(" ", strip=True))
+                    else:
+                        push("li", li.get_text(" ", strip=True))
+            elif name == "blockquote":
+                push("quote", node.get_text(" ", strip=True))
+            elif name == "pre":
+                push("code", node.get_text("\n", strip=True))
+            elif name == "table":
+                first_row = node.find("tr")
+                if first_row:
+                    cells = [c.get_text(" ", strip=True) for c in first_row.find_all(["td", "th"])]
+                    push("table", " · ".join([c for c in cells if c][:4]))
+            elif name in ("img", "figure", "image-component"):
+                push("img", "")
+            elif name == "div":
+                if node.find("img"):
+                    push("img", "")
+                else:
+                    push("p", node.get_text(" ", strip=True))
+        if not blocks:
+            return None
+        return {"kind": "doc", "blocks": blocks}
+
+    def _sheet_preview(self, obj):
+        description_json = obj.description_json if isinstance(obj.description_json, dict) else {}
+        snapshot = description_json.get("sheet_snapshot")
+        if not isinstance(snapshot, dict):
+            return None
+        grids = [s for s in (snapshot.get("sheets") or []) if isinstance(s, dict)]
+        if not grids:
+            return None
+        active = next((s for s in grids if s.get("id") == snapshot.get("activeId")), grids[0])
+
+        def as_count(value, fallback):
+            return value if isinstance(value, int) and value > 0 else fallback
+
+        max_rows = min(as_count(active.get("rows"), 20), self.SHEET_PREVIEW_ROWS)
+        max_cols = min(as_count(active.get("cols"), 8), self.SHEET_PREVIEW_COLS)
+
+        def parse_cell_id(key):
+            match = self.CELL_ID_RE.match(str(key))
+            if not match:
+                return None
+            col = 0
+            for char in match.group(1):
+                col = col * 26 + (ord(char) - 64)
+            return int(match.group(2)) - 1, col - 1
+
+        raw_cells = active.get("cells") if isinstance(active.get("cells"), dict) else {}
+        window = []
+        for key, value in raw_cells.items():
+            position = parse_cell_id(key)
+            if position is None or not isinstance(value, str) or not value.strip():
+                continue
+            row, col = position
+            if row < max_rows and col < max_cols:
+                window.append((row, col, key, value))
+        # Deterministic top-left-first trim when a sheet is dense.
+        window.sort()
+        cells = {key: value for (_, _, key, value) in window[: self.SHEET_PREVIEW_CELL_CAP]}
+
+        raw_formats = active.get("formats") if isinstance(active.get("formats"), dict) else {}
+        formats = {key: fmt for key, fmt in raw_formats.items() if key in cells and isinstance(fmt, dict)}
+
+        col_widths = {}
+        raw_widths = active.get("colWidths") if isinstance(active.get("colWidths"), dict) else {}
+        for key, width in raw_widths.items():
+            try:
+                index = int(key)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= index < max_cols and isinstance(width, (int, float)):
+                col_widths[str(index)] = width
+
+        selects = {}
+        raw_selects = active.get("selects") if isinstance(active.get("selects"), dict) else {}
+        for key, select in raw_selects.items():
+            try:
+                index = int(key)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= index < max_cols and isinstance(select, dict):
+                options = [o for o in (select.get("options") or []) if isinstance(o, dict)][:8]
+                selects[str(index)] = {"options": options, "multi": bool(select.get("multi"))}
+
+        return {
+            "kind": "sheet",
+            "name": str(active.get("name") or ""),
+            "rows": max_rows,
+            "cols": max_cols,
+            "cells": cells,
+            "formats": formats,
+            "colWidths": col_widths,
+            "selects": selects,
+            "tabs": len(grids),
+        }
+
+    def _whiteboard_preview(self, obj):
+        description_json = obj.description_json if isinstance(obj.description_json, dict) else {}
+        snapshot = description_json.get("excalidraw_snapshot")
+        if not isinstance(snapshot, dict):
+            return None
+        raw_elements = snapshot.get("elements")
+        if not isinstance(raw_elements, list):
+            return None
+
+        elements = []
+        for element in raw_elements:
+            if len(elements) >= self.WHITEBOARD_PREVIEW_ELEMENTS:
+                break
+            if not isinstance(element, dict) or element.get("isDeleted"):
+                continue
+            element_type = element.get("type")
+            if not isinstance(element_type, str):
+                continue
+
+            def as_number(value, fallback=0.0):
+                return float(value) if isinstance(value, (int, float)) else fallback
+
+            entry = {
+                "type": element_type,
+                "x": round(as_number(element.get("x"))),
+                "y": round(as_number(element.get("y"))),
+                "w": round(as_number(element.get("width"))),
+                "h": round(as_number(element.get("height"))),
+            }
+            angle = element.get("angle")
+            if isinstance(angle, (int, float)) and angle:
+                entry["a"] = round(float(angle), 3)
+            stroke = element.get("strokeColor")
+            if isinstance(stroke, str):
+                entry["stroke"] = stroke
+            background = element.get("backgroundColor")
+            if isinstance(background, str) and background != "transparent":
+                entry["bg"] = background
+            if element_type in ("line", "arrow", "freedraw", "draw"):
+                points = element.get("points")
+                if isinstance(points, list) and points:
+                    stride = max(1, len(points) // self.WHITEBOARD_PREVIEW_POINTS)
+                    sampled = points[::stride][: self.WHITEBOARD_PREVIEW_POINTS - 1] + [points[-1]]
+                    entry["pts"] = [
+                        [round(as_number(p[0])), round(as_number(p[1]))]
+                        for p in sampled
+                        if isinstance(p, (list, tuple)) and len(p) >= 2
+                    ]
+            if element_type == "text":
+                text_value = element.get("text")
+                if isinstance(text_value, str):
+                    entry["text"] = text_value[:80]
+                font_size = element.get("fontSize")
+                if isinstance(font_size, (int, float)):
+                    entry["fs"] = round(float(font_size))
+            elements.append(entry)
+
+        if not elements:
+            return None
+        app_state = snapshot.get("appState") if isinstance(snapshot.get("appState"), dict) else {}
+        view_background = app_state.get("viewBackgroundColor")
+        return {
+            "kind": "whiteboard",
+            "bg": view_background if isinstance(view_background, str) else "#ffffff",
+            "els": elements,
+        }
 
 
 class PageVersionSerializer(BaseSerializer):

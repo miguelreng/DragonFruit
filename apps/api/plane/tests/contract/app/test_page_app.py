@@ -196,6 +196,93 @@ class TestPageFolderAPI:
 
 
 @pytest.mark.contract
+class TestWorkspacePagesContentPreviewAPI:
+    """The workspace pages list ships per-type `content_preview` payloads the
+    docs gallery renders as thumbnails (doc blocks / sheet window / whiteboard
+    elements; PDFs and empty bodies get None)."""
+
+    @pytest.mark.django_db
+    def test_content_preview_shapes_per_page_type(self, session_client, workspace, create_user):
+        project = Project.objects.create(name="Preview", identifier="PRV", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20, is_active=True)
+
+        def make_page(name, **kwargs):
+            page = Page.objects.create(name=name, workspace=workspace, owned_by=create_user, access=0, **kwargs)
+            ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+            return page
+
+        doc = make_page(
+            "Doc",
+            description_html=(
+                "<h1>Title</h1><p>Body text</p>"
+                '<ul data-type="taskList"><li data-checked="true"><p>Done item</p></li></ul>'
+                "<ul><li>Bullet</li></ul>"
+            ),
+        )
+        sheet = make_page(
+            "Sheet",
+            page_type=Page.PAGE_TYPE_SHEET,
+            description_json={
+                "sheet_snapshot": {
+                    "activeId": "s1",
+                    "sheets": [
+                        {
+                            "id": "s1",
+                            "name": "Grid",
+                            "rows": 100,
+                            "cols": 30,
+                            "cells": {"A1": "Label", "B2": "=1+1", "ZZ99": "far away"},
+                            "formats": {"A1": {"bold": True}},
+                            "colWidths": {"0": 120, "25": 80},
+                        }
+                    ],
+                }
+            },
+        )
+        whiteboard = make_page(
+            "Board",
+            page_type=Page.PAGE_TYPE_WHITEBOARD,
+            description_json={
+                "excalidraw_snapshot": {
+                    "elements": [
+                        {"type": "rectangle", "x": 1.4, "y": 2.6, "width": 10, "height": 5, "strokeColor": "#111"},
+                        {"type": "rectangle", "x": 0, "y": 0, "width": 1, "height": 1, "isDeleted": True},
+                        {"type": "text", "x": 0, "y": 0, "width": 4, "height": 2, "text": "hi", "fontSize": 20},
+                    ],
+                    "appState": {"viewBackgroundColor": "#fafafa"},
+                }
+            },
+        )
+        pdf = make_page("Pdf", page_type=Page.PAGE_TYPE_PDF)
+        empty = make_page("Empty", description_html="")
+
+        response = session_client.get(f"/api/workspaces/{workspace.slug}/pages/")
+        assert response.status_code == status.HTTP_200_OK
+        previews = {str(page["id"]): page["content_preview"] for page in response.data}
+
+        doc_preview = previews[str(doc.id)]
+        assert doc_preview["kind"] == "doc"
+        assert [block["t"] for block in doc_preview["blocks"]] == ["h1", "p", "done", "li"]
+
+        sheet_preview = previews[str(sheet.id)]
+        assert sheet_preview["kind"] == "sheet"
+        # Window trims to the serializer caps and drops out-of-window cells.
+        assert sheet_preview["rows"] == 40 and sheet_preview["cols"] == 12
+        assert set(sheet_preview["cells"]) == {"A1", "B2"}
+        assert sheet_preview["formats"] == {"A1": {"bold": True}}
+        assert sheet_preview["colWidths"] == {"0": 120}
+
+        board_preview = previews[str(whiteboard.id)]
+        assert board_preview["kind"] == "whiteboard"
+        assert board_preview["bg"] == "#fafafa"
+        assert [el["type"] for el in board_preview["els"]] == ["rectangle", "text"]
+        assert board_preview["els"][0]["x"] == 1 and board_preview["els"][1]["text"] == "hi"
+
+        assert previews[str(pdf.id)] is None
+        assert previews[str(empty.id)] is None
+
+
+@pytest.mark.contract
 class TestPageAssetAPI:
     @pytest.mark.django_db
     @patch("plane.app.views.asset.v2.S3Storage")

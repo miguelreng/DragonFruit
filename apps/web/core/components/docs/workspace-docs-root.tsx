@@ -16,6 +16,10 @@ import {
   type RefObject,
   type ReactNode,
 } from "react";
+import { createRoot } from "react-dom/client";
+import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/element/pointer-outside-of-preview";
+import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
 import { Link } from "react-router";
@@ -47,10 +51,11 @@ import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { PageIcon } from "@/components/icons/propel-shim";
 import { ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
-import { DocumentText } from "@solar-icons/react/ssr";
+import { Folder as SolarFolder, Home as SolarHome } from "@solar-icons/react/ssr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import {
   AlertModalCore,
+  Avatar,
   Breadcrumbs,
   Checkbox,
   CustomMenu,
@@ -59,7 +64,7 @@ import {
   Header,
   ModalCore,
 } from "@plane/ui";
-import { cn, convertBytesToSize, copyUrlToClipboard, getPageName, renderFormattedDate } from "@plane/utils";
+import { cn, convertBytesToSize, copyUrlToClipboard, getFileURL, getPageName, renderFormattedDate } from "@plane/utils";
 import { EPageAccess } from "@plane/types";
 import type { TPage, TPageType } from "@plane/types";
 import { AppHeader } from "@/components/core/app-header";
@@ -70,6 +75,7 @@ import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues
 import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { PageSearchInput } from "@/components/pages/list/search-input";
 import { getBriefPageDisplayName, isBriefPage } from "@/components/project/brief/constants";
+import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import { EUserPermissions } from "@plane/constants";
@@ -79,6 +85,7 @@ import { normalizeTags } from "@/helpers/tags";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
 import { isPdfFile, useCreatePdfPage } from "./use-create-pdf-page";
+import { DOC_CARD_TYPE_LABEL, DOC_CARD_TYPE_TINT, DocCardPreviewSurface, getDocPreviewIcon } from "./doc-card-preview";
 
 type DocsIconComponent = ComponentType<{
   className?: string;
@@ -103,6 +110,132 @@ const DetailIcon = ({
 
 const pageService = new ProjectPageService();
 const DEFAULT_FOLDER_NAME = "Untitled";
+const DOCS_PAGE_DRAG_TYPE = "workspace-doc-page";
+
+type DocsPageDragData = {
+  type: typeof DOCS_PAGE_DRAG_TYPE;
+  pageId: string;
+  projectId: string;
+  title: string;
+  parent: string | null;
+  pageType: TPageType;
+};
+
+type DocDragPreviewProps = {
+  title: string;
+  metaText?: string;
+  pageType: TPageType;
+  logoProps?: TPage["logo_props"];
+  typeTint: string;
+  isProjectBrief: boolean;
+};
+
+const isDocsPageDragData = (data: Record<string | symbol, unknown> | undefined): data is DocsPageDragData =>
+  data?.type === DOCS_PAGE_DRAG_TYPE &&
+  typeof data.pageId === "string" &&
+  typeof data.projectId === "string" &&
+  typeof data.title === "string";
+
+function DocDragPreview({ title, metaText, pageType, logoProps, typeTint, isProjectBrief }: DocDragPreviewProps) {
+  const PreviewIcon = getDocPreviewIcon(pageType);
+  return (
+    <div className="shadow-lg flex w-[240px] items-center gap-3 rounded-xl border border-strong bg-surface-1 px-3 py-2 text-13">
+      <span
+        className={cn(
+          "grid size-8 shrink-0 place-items-center rounded-[10px]",
+          isProjectBrief && "bg-accent-primary/10 text-accent-primary"
+        )}
+        style={
+          isProjectBrief
+            ? undefined
+            : { color: typeTint, backgroundColor: `color-mix(in srgb, ${typeTint} 14%, transparent)` }
+        }
+      >
+        {logoProps?.in_use ? <Logo logo={logoProps} size={18} type="lucide" /> : <PreviewIcon className="size-4" />}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate font-medium text-primary">{title}</span>
+        {metaText && <span className="block truncate text-11 text-tertiary">{metaText}</span>}
+      </span>
+    </div>
+  );
+}
+
+function useDocsPageDraggable<TElement extends HTMLElement>({
+  elementRef,
+  enabled,
+  dragData,
+  preview,
+  setIsDragging,
+}: {
+  elementRef: RefObject<TElement | null>;
+  enabled: boolean;
+  dragData: DocsPageDragData | null;
+  preview: DocDragPreviewProps;
+  setIsDragging: (value: boolean) => void;
+}) {
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!element || !enabled || !dragData) return;
+
+    return draggable({
+      element,
+      getInitialData: () => dragData,
+      onDragStart: () => setIsDragging(true),
+      onDrop: () => setIsDragging(false),
+      onGenerateDragPreview: ({ nativeSetDragImage }) => {
+        setCustomNativeDragPreview({
+          getOffset: pointerOutsideOfPreview({ x: "12px", y: "8px" }),
+          render: ({ container }) => {
+            const root = createRoot(container);
+            root.render(<DocDragPreview {...preview} />);
+            return () => root.unmount();
+          },
+          nativeSetDragImage,
+        });
+      },
+    });
+  }, [dragData, elementRef, enabled, preview, setIsDragging]);
+}
+
+function useFolderDocDropTarget<TElement extends HTMLElement>({
+  elementRef,
+  folder,
+  onDropDoc,
+  setIsDropTargetActive,
+}: {
+  elementRef: RefObject<TElement | null>;
+  folder: TPage;
+  onDropDoc: (dragData: DocsPageDragData, folder: TPage) => void | Promise<void>;
+  setIsDropTargetActive: (value: boolean) => void;
+}) {
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!element || !folder.id) return;
+
+    return dropTargetForElements({
+      element,
+      canDrop: ({ source }) => {
+        const dragData = isDocsPageDragData(source.data) ? source.data : null;
+        return Boolean(
+          dragData &&
+          dragData.parent !== folder.id &&
+          dragData.pageId &&
+          (folder.project_ids ?? []).includes(dragData.projectId)
+        );
+      },
+      getData: () => ({ folderId: folder.id }),
+      onDragEnter: () => setIsDropTargetActive(true),
+      onDragLeave: () => setIsDropTargetActive(false),
+      onDrop: ({ source }) => {
+        setIsDropTargetActive(false);
+        const dragData = isDocsPageDragData(source.data) ? source.data : null;
+        if (!dragData) return;
+        void onDropDoc(dragData, folder);
+      },
+    });
+  }, [elementRef, folder, onDropDoc, setIsDropTargetActive]);
+}
 
 // Page service methods reject with the API response body (e.g. {error: "..."}),
 // a bare string, or an Axios error. Pull out the human-readable reason so the
@@ -133,6 +266,9 @@ const pageActionErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 type ViewMode = "list" | "grid";
+/** Grid card treatment: "paper" = title over an inset content sheet (Craft-style);
+ * "tile" = compact header + large content thumbnail + meta footer (Drive-style). */
+type DocCardStyle = "paper" | "tile";
 
 type Props = {
   workspaceSlug: string;
@@ -196,6 +332,12 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     "grid"
   );
   const viewMode: ViewMode = storedViewMode ?? "grid";
+  // Shared across surfaces (docs, whiteboards, project tabs) so the pick sticks everywhere.
+  const { storedValue: storedCardStyle, setValue: setCardStyle } = useLocalStorage<DocCardStyle>(
+    "workspace_docs_card_style",
+    "paper"
+  );
+  const cardStyle: DocCardStyle = storedCardStyle ?? "paper";
   const {
     data: pages,
     isLoading,
@@ -420,6 +562,39 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     }
   };
 
+  const handleDocDropIntoFolder = useCallback(
+    async (dragData: DocsPageDragData, folder: TPage) => {
+      if (!folder.id) return;
+      const folderProjectIds = folder.project_ids ?? [];
+      if (dragData.parent === folder.id) return;
+      if (!folderProjectIds.includes(dragData.projectId)) {
+        setToast({
+          type: TOAST_TYPE.WARNING,
+          title: "Can't move doc",
+          message: "Docs can only be dropped into folders from the same project.",
+        });
+        return;
+      }
+
+      try {
+        await pageService.update(workspaceSlug, dragData.projectId, dragData.pageId, { parent: folder.id });
+        await mutatePages();
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Doc moved",
+          message: `${dragData.title} moved to ${getPageName(folder.name)}.`,
+        });
+      } catch (error) {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Error!",
+          message: pageActionErrorMessage(error, "Doc could not be moved. Please try again later."),
+        });
+      }
+    },
+    [mutatePages, workspaceSlug]
+  );
+
   const toggleProject = (projectId: string) => {
     setSelectedProjectIds((prev) =>
       prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
@@ -642,6 +817,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         </div>
       </Header.LeftItem>
       <Header.RightItem className="items-center">
+        {viewMode === "grid" && <CardStyleToggle style={cardStyle} onChange={setCardStyle} />}
         <ViewModeToggle mode={viewMode} onChange={setViewMode} />
         <PageSearchInput searchQuery={searchQuery} updateSearchQuery={setSearchQuery} />
         {canCreateFolder && (
@@ -750,6 +926,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   onOpen={() => folder.id && setActiveFolderId(folder.id)}
                   onRename={() => setFolderNameModal({ folder })}
                   onDelete={() => setFolderToDelete(folder)}
+                  onDropDoc={handleDocDropIntoFolder}
                 />
               ))}
               {displayedDocs.map((page) => (
@@ -765,6 +942,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   isSelectionActive={isSelectionActive}
                   onSelect={handleDocSelect}
                   folders={showFolderUi ? folders : []}
+                  cardStyle={cardStyle}
                 />
               ))}
             </div>
@@ -790,6 +968,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 onOpen={() => folder.id && setActiveFolderId(folder.id)}
                 onRename={() => setFolderNameModal({ folder })}
                 onDelete={() => setFolderToDelete(folder)}
+                onDropDoc={handleDocDropIntoFolder}
               />
             ))}
             {displayedDocs.map((page) => (
@@ -1031,6 +1210,7 @@ type FolderCardProps = {
   onOpen: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onDropDoc: (dragData: DocsPageDragData, folder: TPage) => void | Promise<void>;
 };
 
 function FolderMiniGlyph({ folder, className }: { folder?: Pick<TPage, "id" | "name">; className?: string }) {
@@ -1085,18 +1265,61 @@ function FolderPaper({ className, delay }: { className?: string; delay?: string 
   );
 }
 
+const FOLDER_PAPER_LAYOUTS = {
+  backLeft: {
+    className:
+      "shadow-sm top-[36px] left-[23%] h-[76px] w-[24%] -rotate-[5deg] border border-subtle bg-surface-1 opacity-90 group-focus-within:-translate-y-5 group-focus-within:-rotate-[9deg] group-hover:-translate-y-5 group-hover:-rotate-[9deg]",
+    activeClassName: "-translate-y-5 -rotate-[9deg]",
+  },
+  backRight: {
+    className:
+      "shadow-sm top-[36px] left-[51%] h-[76px] w-[24%] rotate-[5deg] border border-subtle bg-surface-1 opacity-90 group-focus-within:-translate-y-5 group-focus-within:rotate-[9deg] group-hover:-translate-y-5 group-hover:rotate-[9deg]",
+    activeClassName: "-translate-y-5 rotate-[9deg]",
+  },
+  left: {
+    className:
+      "shadow-sm top-[32px] left-[13%] h-[82px] w-[28%] -rotate-[10deg] border border-subtle bg-surface-1 group-focus-within:-translate-x-0.5 group-focus-within:-translate-y-6 group-focus-within:-rotate-[12deg] group-hover:-translate-x-0.5 group-hover:-translate-y-6 group-hover:-rotate-[12deg]",
+    activeClassName: "-translate-x-0.5 -translate-y-6 -rotate-[12deg]",
+  },
+  center: {
+    className:
+      "shadow-sm top-[28px] left-[35%] h-[90px] w-[28%] rotate-[1deg] border border-subtle bg-surface-1 group-focus-within:-translate-y-7 group-focus-within:-rotate-[1deg] group-hover:-translate-y-7 group-hover:-rotate-[1deg]",
+    activeClassName: "-translate-y-7 -rotate-[1deg]",
+    delay: "40ms",
+  },
+  right: {
+    className:
+      "shadow-sm top-[33px] left-[59%] h-[78px] w-[27%] rotate-[10deg] border border-subtle bg-surface-1 group-focus-within:translate-x-0.5 group-focus-within:-translate-y-6 group-focus-within:rotate-[12deg] group-hover:translate-x-0.5 group-hover:-translate-y-6 group-hover:rotate-[12deg]",
+    activeClassName: "translate-x-0.5 -translate-y-6 rotate-[12deg]",
+    delay: "75ms",
+  },
+} as const;
+
+const getFolderPaperLayoutKeys = (count: number, isDropTargetActive: boolean) => {
+  const visibleCount = count > 3 ? 5 : count > 0 ? count : isDropTargetActive ? 1 : 0;
+  if (visibleCount <= 0) return [] as const;
+  if (visibleCount === 1) return ["center"] as const;
+  if (visibleCount === 2) return ["left", "right"] as const;
+  if (visibleCount === 3) return ["left", "center", "right"] as const;
+  return ["backLeft", "backRight", "left", "center", "right"] as const;
+};
+
 function FolderSurface({
   folder,
   count,
   children,
   className,
+  isDropTargetActive = false,
 }: {
   folder: Pick<TPage, "id" | "name">;
   count: number;
   children: ReactNode;
   className?: string;
+  isDropTargetActive?: boolean;
 }) {
   const tabLabel = getPageName(folder.name);
+  const paperLayoutKeys = getFolderPaperLayoutKeys(count, isDropTargetActive);
+  const showPapers = paperLayoutKeys.length > 0;
 
   return (
     <div className={cn("relative h-[156px] overflow-visible", className)}>
@@ -1109,7 +1332,7 @@ function FolderSurface({
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute top-[9px] left-8 z-30 flex h-3 items-center overflow-hidden"
+        className="pointer-events-none absolute top-[9px] left-8 z-[1] flex h-3 items-center overflow-hidden"
         style={{
           transform: "skewX(13deg)",
           transformOrigin: "bottom left",
@@ -1129,19 +1352,17 @@ function FolderSurface({
       </div>
       <div className="absolute inset-x-0 top-[18px] bottom-1 rounded-[22px] bg-layer-1 transition-colors group-focus-within:bg-layer-3 group-hover:bg-layer-3" />
       <div className="absolute top-[58px] right-7 left-7 z-10 h-2 rounded-full bg-layer-2/80 shadow-[0_1px_0_rgba(255,255,255,0.58)] transition-colors group-focus-within:bg-layer-1 group-hover:bg-layer-1" />
-      {count > 0 && (
-        <>
-          <FolderPaper className="shadow-sm top-[32px] left-[13%] h-[82px] w-[28%] -rotate-[10deg] border border-subtle bg-surface-1 group-focus-within:-translate-x-1 group-focus-within:-translate-y-14 group-focus-within:-rotate-[18deg] group-hover:-translate-x-1 group-hover:-translate-y-14 group-hover:-rotate-[18deg]" />
-          <FolderPaper
-            className="shadow-sm top-[28px] left-[35%] h-[90px] w-[28%] rotate-[1deg] border border-subtle bg-surface-1 group-focus-within:-translate-y-16 group-focus-within:-rotate-[3deg] group-hover:-translate-y-16 group-hover:-rotate-[3deg]"
-            delay="40ms"
-          />
-          <FolderPaper
-            className="shadow-sm top-[33px] left-[59%] h-[78px] w-[27%] rotate-[10deg] border border-subtle bg-surface-1 group-focus-within:translate-x-1 group-focus-within:-translate-y-14 group-focus-within:rotate-[18deg] group-hover:translate-x-1 group-hover:-translate-y-14 group-hover:rotate-[18deg]"
-            delay="75ms"
-          />
-        </>
-      )}
+      {showPapers &&
+        paperLayoutKeys.map((key) => {
+          const layout = FOLDER_PAPER_LAYOUTS[key];
+          return (
+            <FolderPaper
+              key={key}
+              className={cn(layout.className, isDropTargetActive && layout.activeClassName)}
+              delay={"delay" in layout ? layout.delay : undefined}
+            />
+          );
+        })}
       <div className="absolute inset-x-0 bottom-0 z-20 flex h-[108px] flex-col justify-end overflow-hidden rounded-[22px] bg-layer-1 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_-1px_0_rgba(0,0,0,0.08),0_-12px_18px_-18px_rgba(0,0,0,0.42)] transition-colors group-focus-within:bg-layer-3 group-hover:bg-layer-3">
         <div className="relative z-10 flex min-w-0 flex-col gap-0.5">{children}</div>
       </div>
@@ -1227,24 +1448,30 @@ function FolderDraftListItem(props: FolderDraftProps) {
   );
 }
 
-function FolderCard({ folder, count, projectName, canDelete, onOpen, onRename, onDelete }: FolderCardProps) {
+function FolderCard({ folder, count, projectName, canDelete, onOpen, onRename, onDelete, onDropDoc }: FolderCardProps) {
   const metaText = [projectName, `${count} ${count === 1 ? "doc" : "docs"}`].filter(Boolean).join(" · ");
   const folderName = getPageName(folder.name);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const [isDropTargetActive, setIsDropTargetActive] = useState(false);
+  useFolderDocDropTarget({ elementRef: dropRef, folder, onDropDoc, setIsDropTargetActive });
   return (
-    <div className="group relative block h-[156px] rounded-2xl">
+    <div ref={dropRef} className="group relative block h-[156px] rounded-2xl">
       <button
         type="button"
         aria-label={`Open folder ${folderName}`}
         onClick={onOpen}
         className="t-press focus-visible:ring-accent-primary/40 relative h-full w-full cursor-pointer rounded-2xl text-left focus:outline-none focus-visible:ring-2"
       >
-        <FolderSurface folder={folder} count={count}>
+        <FolderSurface folder={folder} count={count} isDropTargetActive={isDropTargetActive}>
           <h3 className="line-clamp-2 text-13 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary">
             {folderName}
           </h3>
-          <p className="truncate text-11 text-placeholder">{metaText}</p>
+          <p className="truncate text-11 text-placeholder">{isDropTargetActive ? "Drop to move here" : metaText}</p>
         </FolderSurface>
       </button>
+      {isDropTargetActive && (
+        <div className="pointer-events-none absolute inset-x-0 top-[18px] bottom-1 z-30 rounded-[22px] ring-2 ring-accent-strong" />
+      )}
       <div
         className="absolute top-8 right-3 z-30 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
         role="presentation"
@@ -1264,11 +1491,14 @@ type FolderListItemProps = {
   onOpen: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onDropDoc: (dragData: DocsPageDragData, folder: TPage) => void | Promise<void>;
 };
 
-function FolderListItem({ folder, count, canDelete, onOpen, onRename, onDelete }: FolderListItemProps) {
+function FolderListItem({ folder, count, canDelete, onOpen, onRename, onDelete, onDropDoc }: FolderListItemProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatformOS();
+  const [isDropTargetActive, setIsDropTargetActive] = useState(false);
+  useFolderDocDropTarget({ elementRef: parentRef, folder, onDropDoc, setIsDropTargetActive });
   return (
     <ListItem
       prependTitleElement={<FolderMiniGlyph folder={folder} />}
@@ -1279,6 +1509,7 @@ function FolderListItem({ folder, count, canDelete, onOpen, onRename, onDelete }
         onOpen();
       }}
       titleClassName="font-semibold text-secondary"
+      className={cn({ "bg-accent-primary/5": isDropTargetActive })}
       actionableItems={
         <div
           className="flex items-center gap-3 text-13 text-tertiary"
@@ -1287,7 +1518,7 @@ function FolderListItem({ folder, count, canDelete, onOpen, onRename, onDelete }
           onKeyDown={(e) => e.stopPropagation()}
         >
           <span className="text-11">
-            {count} {count === 1 ? "doc" : "docs"}
+            {isDropTargetActive ? "Drop to move here" : `${count} ${count === 1 ? "doc" : "docs"}`}
           </span>
           <FolderActionsMenu canDelete={canDelete} onRename={onRename} onDelete={onDelete} />
         </div>
@@ -1346,6 +1577,75 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
   );
 }
 
+type CardStyleToggleProps = {
+  style: DocCardStyle;
+  onChange: (style: DocCardStyle) => void;
+};
+
+/** Pictograms: "paper" = title lines over a content sheet; "tile" = thumbnail over a caption. */
+function CardStyleToggle({ style, onChange }: CardStyleToggleProps) {
+  const options: Array<{ value: DocCardStyle; label: string; glyph: ReactNode }> = [
+    {
+      value: "paper",
+      label: "Paper cards (title above content preview)",
+      glyph: (
+        <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
+          <path d="M3 3.5h6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+          <rect x="3" y="6.5" width="10" height="6.5" rx="1.5" fill="currentColor" opacity="0.45" />
+        </svg>
+      ),
+    },
+    {
+      value: "tile",
+      label: "Tile cards (content thumbnail above caption)",
+      glyph: (
+        <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
+          <rect x="3" y="3" width="10" height="6.5" rx="1.5" fill="currentColor" opacity="0.45" />
+          <path d="M3 12.5h6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+        </svg>
+      ),
+    },
+  ];
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg border border-subtle p-0.5">
+      {options.map(({ value, label, glyph }) => {
+        const isActive = style === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            aria-label={label}
+            title={label}
+            aria-pressed={isActive}
+            onClick={() => onChange(value)}
+            className={cn("t-press grid size-6 place-items-center rounded-lg text-tertiary hover:text-primary", {
+              "bg-layer-1 text-primary": isActive,
+            })}
+          >
+            {glyph}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Observer wrapper so the avatar appears once the member store hydrates. */
+const DocOwnerAvatar = observer(function DocOwnerAvatar({ userId }: { userId: string }) {
+  const { getUserDetails } = useMember();
+  const owner = getUserDetails(userId);
+  if (!owner) return null;
+  return (
+    <Avatar
+      src={getFileURL(owner.avatar_url ?? "")}
+      name={owner.display_name}
+      size="sm"
+      className="shrink-0"
+      showTooltip={false}
+    />
+  );
+});
+
 const isProjectBriefPage = (page: TPage) => isBriefPage(page);
 
 const getWorkspaceDocDisplayName = (page: TPage, projectName: string | undefined) =>
@@ -1374,7 +1674,24 @@ function DocListItem({
   const primaryProjectId = projectIds[0];
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
   const isProjectBrief = isProjectBriefPage(page);
+  const pageType = page.page_type ?? "doc";
   const displayName = getWorkspaceDocDisplayName(page, primaryProject?.name);
+  const canDragDoc = Boolean(page.id && primaryProjectId && !isProjectBrief);
+  const [isDraggingDoc, setIsDraggingDoc] = useState(false);
+  const dragData = useMemo<DocsPageDragData | null>(
+    () =>
+      page.id && primaryProjectId && !isProjectBrief
+        ? {
+            type: DOCS_PAGE_DRAG_TYPE,
+            pageId: page.id,
+            projectId: primaryProjectId,
+            title: displayName,
+            parent: page.parent ?? null,
+            pageType,
+          }
+        : null,
+    [displayName, isProjectBrief, page.id, page.parent, pageType, primaryProjectId]
+  );
   const itemLink =
     primaryProjectId && (isProjectBrief || page.id)
       ? `/${workspaceSlug}/projects/${primaryProjectId}/${isProjectBrief ? "brief" : `pages/${page.id}/`}`
@@ -1387,8 +1704,32 @@ function DocListItem({
         : page.page_type === "sheet"
           ? GridIconShim
           : PageIcon;
-  const pdfMeta = page.page_type === "pdf" ? page.view_props?.pdf : undefined;
+  const pdfMeta = pageType === "pdf" ? page.view_props?.pdf : undefined;
   const tags = normalizeTags((page.view_props as Record<string, unknown> | undefined)?.tags);
+  const dragPreviewMeta = [
+    primaryProject?.name,
+    pageType === "pdf" && pdfMeta ? convertBytesToSize(pdfMeta.size) : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const dragPreview = useMemo<DocDragPreviewProps>(
+    () => ({
+      title: displayName,
+      metaText: dragPreviewMeta,
+      pageType,
+      logoProps: page.logo_props,
+      typeTint: DOC_CARD_TYPE_TINT[pageType] ?? DOC_CARD_TYPE_TINT.doc,
+      isProjectBrief,
+    }),
+    [displayName, dragPreviewMeta, isProjectBrief, page.logo_props, pageType]
+  );
+  useDocsPageDraggable({
+    elementRef: parentRef,
+    enabled: canDragDoc,
+    dragData,
+    preview: dragPreview,
+    setIsDragging: setIsDraggingDoc,
+  });
 
   return (
     <ListItem
@@ -1425,6 +1766,8 @@ function DocListItem({
       disableLink={!primaryProjectId}
       className={cn({
         "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief,
+        "cursor-grab active:cursor-grabbing": canDragDoc,
+        "opacity-50": isDraggingDoc,
       })}
       titleClassName={cn("font-semibold text-secondary", { "text-accent-primary": isProjectBrief })}
       actionableItems={
@@ -1475,15 +1818,7 @@ type DocCardProps = {
   onSelect: (pageId: string, isRange: boolean) => void;
   /** Folders the doc could be moved into (docs surface only). */
   folders?: TPage[];
-};
-
-// Muted per-type accent hues for the tinted icon tile. Briefs keep the brand
-// accent instead (handled in the card). doc/whiteboard/sheet/pdf → plum/sage/steel/clay.
-const DOC_CARD_TYPE_TINT: Record<string, string> = {
-  doc: "#9d4b7c",
-  sheet: "#5f8d6f",
-  whiteboard: "#6b73a8",
-  pdf: "#b5654a",
+  cardStyle: DocCardStyle;
 };
 
 function DocCard({
@@ -1497,30 +1832,27 @@ function DocCard({
   isSelectionActive,
   onSelect,
   folders = [],
+  cardStyle,
 }: DocCardProps) {
   const { mutate } = useSWRConfig();
   const projectIds = page.project_ids ?? [];
   const primaryProjectId = projectIds[0];
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
   const isProjectBrief = isProjectBriefPage(page);
+  const pageType = page.page_type ?? "doc";
   const displayName = getWorkspaceDocDisplayName(page, primaryProject?.name);
   const itemLink =
     primaryProjectId && page.id
       ? `/${workspaceSlug}/projects/${primaryProjectId}/${isProjectBrief ? "brief" : `pages/${page.id}/`}`
       : null;
-  // Per-type filled glyph for the tile; docs & briefs share the document glyph.
-  const TypeIcon =
-    page.page_type === "pdf"
-      ? FileIcon
-      : page.page_type === "whiteboard"
-        ? Whiteboard
-        : page.page_type === "sheet"
-          ? GridIconShim
-          : DocumentText;
-  const typeTint = DOC_CARD_TYPE_TINT[page.page_type ?? "doc"] ?? DOC_CARD_TYPE_TINT.doc;
+  // Per-type filled glyph; docs & briefs share the document glyph.
+  const TypeIcon = getDocPreviewIcon(pageType);
+  const typeTint = DOC_CARD_TYPE_TINT[pageType] ?? DOC_CARD_TYPE_TINT.doc;
+  const typeLabel = DOC_CARD_TYPE_LABEL[pageType] ?? DOC_CARD_TYPE_LABEL.doc;
+  const updatedLabel = page.updated_at ? renderFormattedDate(page.updated_at) : undefined;
   // word_count is supplied by the workspace pages list endpoint; absent until the API ships it.
   const wordCount = (page as TPage & { word_count?: number }).word_count;
-  const pdfMeta = page.page_type === "pdf" ? page.view_props?.pdf : undefined;
+  const pdfMeta = pageType === "pdf" ? page.view_props?.pdf : undefined;
   // Type-appropriate detail: PDF size, or estimated read time (~200 wpm) for docs.
   const detail = pdfMeta
     ? convertBytesToSize(pdfMeta.size)
@@ -1532,6 +1864,41 @@ function DocCard({
   const metaText = [isProjectScoped ? undefined : primaryProject?.name, detail].filter(Boolean).join(" · ");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDraggingDoc, setIsDraggingDoc] = useState(false);
+  const dragContainerRef = useRef<HTMLDivElement>(null);
+  const canDragDoc = Boolean(itemLink && page.id && primaryProjectId && !isProjectBrief);
+  const dragData = useMemo<DocsPageDragData | null>(
+    () =>
+      page.id && primaryProjectId && !isProjectBrief
+        ? {
+            type: DOCS_PAGE_DRAG_TYPE,
+            pageId: page.id,
+            projectId: primaryProjectId,
+            title: displayName,
+            parent: page.parent ?? null,
+            pageType,
+          }
+        : null,
+    [displayName, isProjectBrief, page.id, page.parent, pageType, primaryProjectId]
+  );
+  const dragPreview = useMemo<DocDragPreviewProps>(
+    () => ({
+      title: displayName,
+      metaText,
+      pageType,
+      logoProps: page.logo_props,
+      typeTint,
+      isProjectBrief,
+    }),
+    [displayName, isProjectBrief, metaText, page.logo_props, pageType, typeTint]
+  );
+  useDocsPageDraggable({
+    elementRef: dragContainerRef,
+    enabled: canDragDoc,
+    dragData,
+    preview: dragPreview,
+    setIsDragging: setIsDraggingDoc,
+  });
 
   const refreshPages = async () => {
     await mutate(pagesKey);
@@ -1665,60 +2032,68 @@ function DocCard({
     }
   };
 
-  const card = (
-    <div
-      className={cn(
-        "group t-press relative flex h-[156px] flex-col justify-between rounded-2xl p-4 transition-colors",
-        {
-          "bg-layer-1 hover:bg-layer-3": !isProjectBrief && !isSelected,
-          "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief && !isSelected,
-          "bg-layer-1 ring-1 ring-strong": isSelected,
-          "opacity-60": !itemLink,
+  const tintStyle = isProjectBrief
+    ? undefined
+    : { color: typeTint, backgroundColor: `color-mix(in srgb, ${typeTint} 14%, transparent)` };
+
+  // Shared hover-revealed selection checkbox; each layout positions its own.
+  const selectionCheckbox = (className: string) =>
+    page.id ? (
+      <button
+        type="button"
+        aria-label={isSelected ? "Deselect doc" : "Select doc"}
+        onClick={(e) => {
+          if (!page.id) return;
+          e.preventDefault();
+          e.stopPropagation();
+          onSelect(page.id, e.shiftKey);
+        }}
+        className={cn(
+          className,
+          isSelected || isSelectionActive
+            ? "opacity-100"
+            : "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+        )}
+      >
+        <Checkbox
+          checked={isSelected}
+          readOnly
+          tabIndex={-1}
+          className="pointer-events-none size-3.5 !outline-none"
+          iconClassName="size-3"
+        />
+      </button>
+    ) : null;
+
+  const previewSurface = (className?: string) => (
+    <div className={cn("min-h-0 overflow-hidden rounded-[10px] border border-subtle bg-surface-1", className)}>
+      <DocCardPreviewSurface page={page} workspaceSlug={workspaceSlug} />
+    </div>
+  );
+
+  // Same height as FolderCard/FolderSurface so folder and doc rows line up.
+  const cardShellClassName = cn("group t-press relative flex h-[156px] flex-col rounded-2xl transition-colors", {
+    "bg-layer-1 hover:bg-layer-3": !isProjectBrief && !isSelected,
+    "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief && !isSelected,
+    "bg-layer-1 ring-1 ring-strong": isSelected,
+    "cursor-grab active:cursor-grabbing": canDragDoc,
+    "opacity-50": isDraggingDoc,
+    "opacity-60": !itemLink,
+  });
+
+  const actionsMenu = (buttonClassName: string) =>
+    primaryProjectId && page.id ? (
+      <CustomMenu
+        ariaLabel="Page actions"
+        placement="bottom-end"
+        closeOnSelect
+        useCaptureForOutsideClick
+        customButton={
+          <span className={buttonClassName}>
+            <MoreHorizontal weight="Bold" className="size-4" />
+          </span>
         }
-      )}
-    >
-      {/* Selection checkbox — top-left, shown on hover or while a selection is active */}
-      {page.id && (
-        <button
-          type="button"
-          aria-label={isSelected ? "Deselect doc" : "Select doc"}
-          onClick={(e) => {
-            if (!page.id) return;
-            e.preventDefault();
-            e.stopPropagation();
-            onSelect(page.id, e.shiftKey);
-          }}
-          className={cn(
-            "absolute top-2 left-2 z-10 grid size-6 place-items-center rounded-lg bg-layer-2 transition-opacity hover:bg-layer-3",
-            {
-              "opacity-100": isSelected || isSelectionActive,
-              "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100": !isSelected && !isSelectionActive,
-            }
-          )}
-        >
-          <Checkbox
-            checked={isSelected}
-            readOnly
-            tabIndex={-1}
-            className="pointer-events-none size-3.5 !outline-none"
-            iconClassName="size-3"
-          />
-        </button>
-      )}
-      {/* Actions menu — top-right, on hover */}
-      {primaryProjectId && page.id && (
-        <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-          <CustomMenu
-            ariaLabel="Page actions"
-            placement="bottom-end"
-            closeOnSelect
-            useCaptureForOutsideClick
-            customButton={
-              <span className="shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary">
-                <MoreHorizontal weight="Bold" className="size-4" />
-              </span>
-            }
-          >
+      >
             <CustomMenu.MenuItem onClick={() => void handleCopyLink()}>
               <span className="flex items-center gap-2">
                 <DetailIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
@@ -1735,7 +2110,7 @@ function DocCard({
               <CustomMenu.SubMenu
                 trigger={
                   <span className="flex items-center gap-2">
-                    <FolderMiniGlyph className="h-4 w-5" />
+                    <SolarFolder className="size-4" />
                     Move to folder
                   </span>
                 }
@@ -1743,8 +2118,8 @@ function DocCard({
                 {page.parent && (
                   <CustomMenu.MenuItem onClick={() => void handleMoveToFolder(null)}>
                     <span className="flex items-center gap-2">
-                      <X className="size-4" />
-                      Remove from folder
+                      <SolarHome className="size-4" />
+                      Move to root
                     </span>
                   </CustomMenu.MenuItem>
                 )}
@@ -1755,7 +2130,7 @@ function DocCard({
                     onClick={() => void handleMoveToFolder(folder.id ?? null)}
                   >
                     <span className="flex min-w-0 items-center gap-2">
-                      <FolderMiniGlyph folder={folder} />
+                      <SolarFolder className="size-4 shrink-0 text-tertiary" />
                       <span className="truncate">{getPageName(folder.name)}</span>
                       {page.parent === folder.id && (
                         <span className="ml-auto shrink-0 text-10 text-tertiary">Current</span>
@@ -1788,41 +2163,107 @@ function DocCard({
                 </CustomMenu.MenuItem>
               </>
             )}
-          </CustomMenu>
-        </div>
-      )}
-      {/* Type tile — the doc's own logo, or a filled type glyph on a muted tint.
-          Briefs keep the brand accent; other types use their muted per-type hue. */}
-      <span
-        className={cn(
-          "grid size-9 place-items-center rounded-[10px]",
-          isProjectBrief && "bg-accent-primary/10 text-accent-primary"
-        )}
-        style={
-          isProjectBrief
-            ? undefined
-            : { color: typeTint, backgroundColor: `color-mix(in srgb, ${typeTint} 14%, transparent)` }
-        }
-      >
-        {page.logo_props?.in_use ? (
-          <Logo logo={page.logo_props} size={20} type="lucide" />
-        ) : (
-          <TypeIcon weight="Bold" className="size-5" />
-        )}
-      </span>
-      <div className="flex flex-col gap-0.5">
-        <h3
-          className={cn(
-            "line-clamp-2 text-13 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary",
-            { "text-accent-primary": isProjectBrief }
+      </CustomMenu>
+    ) : null;
+
+  // "Paper" meta reads like Craft's byline: project · detail · freshness.
+  const paperMeta = [
+    isProjectScoped ? undefined : primaryProject?.name,
+    detail,
+    updatedLabel ? `Updated ${updatedLabel}` : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const tileFooter = [
+    isProjectScoped ? undefined : primaryProject?.name,
+    updatedLabel ? `Edited ${updatedLabel}` : typeLabel,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const card =
+    cardStyle === "paper" ? (
+      // Option A — title block over an inset content sheet (Craft-style).
+      <div className={cn(cardShellClassName, "p-4 pb-3.5")}>
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+          {selectionCheckbox(
+            "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 transition-opacity hover:bg-layer-3"
           )}
-        >
-          {displayName}
-        </h3>
-        {metaText && <p className="truncate text-11 text-placeholder">{metaText}</p>}
+          <div className="opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+            {actionsMenu(
+              "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary"
+            )}
+          </div>
+        </div>
+        <div className="pr-14">
+          <div className="flex items-center gap-1.5">
+            {page.logo_props?.in_use ? (
+              <Logo logo={page.logo_props} size={14} type="lucide" />
+            ) : (
+              <TypeIcon
+                weight="Bold"
+                className={cn("size-3.5 shrink-0", { "text-accent-primary": isProjectBrief })}
+                style={isProjectBrief ? undefined : { color: typeTint }}
+              />
+            )}
+            <h3
+              className={cn(
+                "min-w-0 truncate text-14 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary",
+                { "text-accent-primary": isProjectBrief }
+              )}
+            >
+              {displayName}
+            </h3>
+          </div>
+          <p className="mt-1 truncate text-11 text-placeholder">{paperMeta || typeLabel}</p>
+        </div>
+        {previewSurface("mt-3 flex-1")}
       </div>
-    </div>
-  );
+    ) : (
+      // Option B — compact header, large content thumbnail, meta footer (Drive-style).
+      <div className={cn(cardShellClassName, "gap-2 p-2.5")}>
+        <div className="flex items-center gap-2 px-1 pt-0.5">
+          <span
+            className={cn(
+              "relative grid size-6 shrink-0 place-items-center rounded-[7px]",
+              isProjectBrief && "bg-accent-primary/10 text-accent-primary"
+            )}
+            style={tintStyle}
+          >
+            {/* The type glyph yields to the selection checkbox on hover, Drive-style. */}
+            <span
+              className={cn("grid place-items-center transition-opacity", {
+                "group-focus-within:opacity-0 group-hover:opacity-0": Boolean(page.id),
+                "opacity-0": isSelected || isSelectionActive,
+              })}
+            >
+              {page.logo_props?.in_use ? (
+                <Logo logo={page.logo_props} size={14} type="lucide" />
+              ) : (
+                <TypeIcon weight="Bold" className="size-3.5" />
+              )}
+            </span>
+            {selectionCheckbox("absolute inset-0 grid place-items-center rounded-[7px] transition-opacity")}
+          </span>
+          <h3
+            className={cn(
+              "min-w-0 flex-1 truncate text-13 font-medium text-secondary transition-colors group-hover:text-primary",
+              { "text-accent-primary": isProjectBrief }
+            )}
+          >
+            {displayName}
+          </h3>
+          {actionsMenu(
+            "grid size-6 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-2 hover:text-primary"
+          )}
+        </div>
+        {previewSurface("flex-1")}
+        <div className="flex h-5 items-center gap-1.5 px-1 text-11 text-placeholder">
+          {page.owned_by && <DocOwnerAvatar userId={page.owned_by} />}
+          <span className="truncate">{tileFooter}</span>
+        </div>
+      </div>
+    );
 
   const deleteModal = (
     <AlertModalCore
@@ -1841,27 +2282,30 @@ function DocCard({
   if (!itemLink)
     return (
       <>
-        {card}
+        <div ref={dragContainerRef}>{card}</div>
         {deleteModal}
       </>
     );
   return (
     <>
-      <Link
-        to={itemLink}
-        className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
-        onClick={(e) => {
-          if (!page.id) return;
-          // ⌘/Ctrl+click toggles; shift+click selects a range; once a selection is
-          // active, a plain click keeps toggling instead of opening.
-          if (e.metaKey || e.ctrlKey || e.shiftKey || isSelectionActive) {
-            e.preventDefault();
-            onSelect(page.id, e.shiftKey);
-          }
-        }}
-      >
-        {card}
-      </Link>
+      <div ref={dragContainerRef}>
+        <Link
+          to={itemLink}
+          draggable={false}
+          className="focus-visible:ring-accent-primary/40 block rounded-lg focus:outline-none focus-visible:ring-2"
+          onClick={(e) => {
+            if (!page.id) return;
+            // ⌘/Ctrl+click toggles; shift+click selects a range; once a selection is
+            // active, a plain click keeps toggling instead of opening.
+            if (e.metaKey || e.ctrlKey || e.shiftKey || isSelectionActive) {
+              e.preventDefault();
+              onSelect(page.id, e.shiftKey);
+            }
+          }}
+        >
+          {card}
+        </Link>
+      </div>
       {deleteModal}
     </>
   );

@@ -29,7 +29,9 @@ export const setValueIntoLocalStorage = (key: string, value: any) => {
 
 // TODO: Remove this once we migrate to the new hooks from plane/helpers
 const useLocalStorage = <T,>(key: string, initialValue: T) => {
-  const [storedValue, setStoredValue] = useState<T | null>(initialValue);
+  // Lazy-read so a persisted value survives remounts/reloads (the app is a
+  // pure SPA — no SSR hydration to mismatch against).
+  const [storedValue, setStoredValue] = useState<T | null>(() => getValueFromLocalStorage(key, initialValue));
 
   const setValue = useCallback(
     (value: T) => {
