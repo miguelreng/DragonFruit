@@ -179,7 +179,7 @@ const WIKI_READER_CSS = `
   border-right: 1px solid var(--line);
 }
 .df-wiki-reader .wiki-brand { min-width: 0; }
-.df-wiki-reader .wiki-brand strong { display: block; overflow: hidden; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 21px; font-weight: 400; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.df-wiki-reader .wiki-brand strong { display: block; overflow: hidden; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 21px; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 
 .df-wiki-reader .wiki-docnav { display: grid; gap: 4px; }
 .df-wiki-reader .wiki-nav-btn {
@@ -213,16 +213,16 @@ const WIKI_READER_CSS = `
 }
 
 .df-wiki-reader .published-doc { max-width: 820px; color: var(--muted); font-family: "Figtree Variable", "Figtree", ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
-.df-wiki-reader .published-doc h1 { margin: 34px 0 12px; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 30px !important; font-weight: 600; line-height: 1.12 !important; color: var(--ink); }
-.df-wiki-reader .published-doc h2 { margin: 40px 0 12px; padding-top: 22px; border-top: 1px solid var(--line); font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 26px !important; font-weight: 600; line-height: 1.15 !important; color: var(--ink); }
-.df-wiki-reader .published-doc h3 { margin: 26px 0 8px; font-family: "Figtree Variable", "Figtree", ui-sans-serif, system-ui, sans-serif; font-size: 15.5px !important; font-weight: 600; line-height: 1.5 !important; color: var(--ink); }
-.df-wiki-reader .published-doc p { margin: 0 0 12px; color: var(--muted); }
+.df-wiki-reader .published-doc h1 { margin: 0; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 30px !important; font-weight: 600; line-height: 1.12 !important; color: var(--ink); }
+.df-wiki-reader .published-doc h2 { margin: 26px 0 0; padding-top: 22px; padding-bottom: 6px; border-top: 1px solid var(--line); font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 26px !important; font-weight: 600; line-height: 1.15 !important; color: var(--ink); }
+.df-wiki-reader .published-doc h3 { margin: 0; font-family: "Figtree Variable", "Figtree", ui-sans-serif, system-ui, sans-serif; font-size: 15.5px !important; font-weight: 600; line-height: 1.5 !important; color: var(--ink); }
+.df-wiki-reader .published-doc p { margin: 0; color: var(--muted); }
 .df-wiki-reader .published-doc strong { color: var(--ink); }
 .df-wiki-reader .published-doc a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
-.df-wiki-reader .published-doc blockquote { margin: 0 0 14px; padding: 10px 16px; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--paper); font-style: normal; }
+.df-wiki-reader .published-doc blockquote { margin: 1.25rem 0; padding: 10px 16px; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--paper); font-style: normal; }
 .df-wiki-reader .published-doc blockquote p { margin: 0 0 4px; color: var(--muted); font-size: 13.5px; }
-.df-wiki-reader .published-doc ul, .df-wiki-reader .published-doc ol { margin: 0 0 14px; padding-left: 22px; color: var(--muted); }
-.df-wiki-reader .published-doc li { margin: 3px 0; }
+.df-wiki-reader .published-doc ul, .df-wiki-reader .published-doc ol { padding-left: 22px; color: var(--muted); }
+.df-wiki-reader .published-doc li { color: var(--muted); }
 .df-wiki-reader .published-doc li input[type="checkbox"] { accent-color: var(--accent); margin-right: 6px; }
 .df-wiki-reader .published-doc hr { margin: 30px 0; border: 0; border-top: 1px solid var(--line); }
 .df-wiki-reader .published-doc code { padding: 1px 5px; border-radius: 5px; background: var(--code-bg); color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86em; }
