@@ -44,6 +44,10 @@ Rules:
 - `Edit scope: selection` means change only the selected passage unless the user explicitly broadens the scope.
 - If "Intent: replace" is present, prefer replace proposals against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - Preserve the user's intent and write production-ready document prose.
+- To add vertical space between two blocks, emit an insert_after proposal targeting the block ABOVE the gap
+  with content_text exactly "[blank]" — it becomes one empty paragraph. For "fix/add spacing between
+  paragraphs" requests, emit one such [blank] proposal per gap and NEVER rewrite or duplicate the paragraphs
+  themselves.
 - If the user asks for a chart/graph/visualization of data, put a fenced block inside content_text:
   ```chart
   {"type": "bar", "labels": ["Jan", "Feb"], "series": [{"name": "Signups", "values": [120, 180]}]}
@@ -80,6 +84,10 @@ Rules:
 - If "Intent: replace" is present, prefer `op=replace` against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - If a "Selected text" section is present, the user is editing exactly that passage: find the provided block id whose text matches the selection and emit a single `op=replace` against it. Do not rewrite, re-order, or touch other blocks unless the request clearly asks you to.
 - For `op=delete`, emit only the header line (no body).
+- To add vertical space between two blocks, emit `op=insert_after` targeting the block ABOVE the gap with a
+  body that is exactly the single line `[blank]` — it becomes one empty paragraph. For "fix/add spacing
+  between paragraphs" requests, emit one such [blank] block per gap and NEVER rewrite or duplicate the
+  paragraphs themselves.
 - Write production-ready prose. Do not restate the user's prompt.
 - If the user asks for a chart/graph/visualization of data, emit inside a block's body a fenced chart:
   ```chart
@@ -169,6 +177,16 @@ def _chart_component_html(raw_json: str) -> str | None:
         return None
     payload = html.escape(json.dumps(spec), quote=True)
     return f'<chart-component chart="{payload}"></chart-component>'
+
+
+# Spacer convention: a proposal whose content is exactly "[blank]" (or
+# "[space]"/"[empty]") inserts ONE empty paragraph — the only way the model can
+# express "add vertical space here" (paragraphs_html drops blank segments).
+_BLANK_SPACER_RE = re.compile(r"^\s*\[(?:blank|space|empty)\]\s*$", re.IGNORECASE)
+
+
+def _is_blank_spacer(text: str) -> bool:
+    return bool(_BLANK_SPACER_RE.match(text or ""))
 
 
 def _plain_text_to_html(text: str) -> str:
@@ -432,6 +450,18 @@ def _normalise_doc_write_proposals(
             operation = "insert_after"
             target_block_id = ""
         content_text = str(proposal.get("content_text") or "").strip()
+        if operation == "insert_after" and target_block_id and _is_blank_spacer(content_text):
+            clean.append(
+                {
+                    "id": f"proposal-{index + 1}",
+                    "operation": operation,
+                    "target_block_id": target_block_id,
+                    "target_original_text": block_map.get(target_block_id, {}).get("text", ""),
+                    "content_text": "",
+                    "content_html": "<p></p>",
+                }
+            )
+            continue
         if operation != "delete" and not content_text:
             continue
         if mode == "create":
@@ -522,6 +552,10 @@ def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict)
 
     def _finalise(proposal: dict) -> dict:
         text = (proposal["content_text"] or "").strip()[:4_000]
+        if proposal["operation"] == "insert_after" and proposal["target_block_id"] and _is_blank_spacer(text):
+            proposal["content_text"] = ""
+            proposal["content_html"] = "<p></p>"
+            return proposal
         proposal["content_text"] = text
         proposal["content_html"] = _plain_text_to_html(text)
         return proposal
