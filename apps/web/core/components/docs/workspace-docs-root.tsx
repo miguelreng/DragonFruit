@@ -13,6 +13,7 @@ import {
   useState,
   type ComponentType,
   type CSSProperties,
+  type DragEvent as ReactDragEvent,
   type RefObject,
   type ReactNode,
 } from "react";
@@ -22,7 +23,7 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/eleme
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { sortBy } from "lodash-es";
 import { observer } from "mobx-react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import useSWR, { useSWRConfig } from "swr";
 import {
   Archive as Archive02Icon,
@@ -42,6 +43,8 @@ import {
   GridIconShim,
   Pencil,
   Search,
+  Settings,
+  Star,
   UploadCloud,
   Whiteboard,
   X,
@@ -49,7 +52,7 @@ import {
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
-import { PageIcon } from "@/components/icons/propel-shim";
+import { GlobeIcon, PageIcon } from "@/components/icons/propel-shim";
 import { ArchiveRestoreIcon } from "@/components/icons/lucide-shim";
 import { Folder as SolarFolder, Home as SolarHome } from "@solar-icons/react/ssr";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -75,6 +78,7 @@ import { FilterHeader, FilterOption, FiltersDropdown } from "@/components/issues
 import { PageLoader } from "@/components/pages/loaders/page-loader";
 import { PageSearchInput } from "@/components/pages/list/search-input";
 import { getBriefPageDisplayName, isBriefPage } from "@/components/project/brief/constants";
+import { useFavorite } from "@/hooks/store/use-favorite";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
@@ -83,9 +87,21 @@ import { usePlatformOS } from "@/hooks/use-platform-os";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { normalizeTags } from "@/helpers/tags";
 import { ProjectPageService } from "@/services/page/project-page.service";
+import { buildPublicPageUrl, getPublicPageSlug } from "@/helpers/page-public";
+import { WikiImportModal } from "./import/wiki-import-modal";
+import { WikiSettingsModal } from "./wiki-settings-modal";
+import { WikiSharePopover } from "./wiki-share-popover";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
+import { isMarkdownFile, useCreateMarkdownDocPage } from "./use-create-markdown-doc";
 import { isPdfFile, useCreatePdfPage } from "./use-create-pdf-page";
-import { DOC_CARD_TYPE_LABEL, DOC_CARD_TYPE_TINT, DocCardPreviewSurface, getDocPreviewIcon } from "./doc-card-preview";
+import {
+  DOC_CARD_STYLE_STORAGE_KEY,
+  DOC_CARD_TYPE_LABEL,
+  DOC_CARD_TYPE_TINT,
+  DocCardPreviewSurface,
+  getDocPreviewIcon,
+  type TDocCardStyle,
+} from "./doc-card-preview";
 
 type DocsIconComponent = ComponentType<{
   className?: string;
@@ -111,6 +127,7 @@ const DetailIcon = ({
 const pageService = new ProjectPageService();
 const DEFAULT_FOLDER_NAME = "Untitled";
 const DOCS_PAGE_DRAG_TYPE = "workspace-doc-page";
+const isFileDrag = (event: ReactDragEvent) => Array.from(event.dataTransfer?.types ?? []).includes("Files");
 
 type DocsPageDragData = {
   type: typeof DOCS_PAGE_DRAG_TYPE;
@@ -266,9 +283,9 @@ const pageActionErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 type ViewMode = "list" | "grid";
-/** Grid card treatment: "paper" = title over an inset content sheet (Craft-style);
- * "tile" = compact header + large content thumbnail + meta footer (Drive-style). */
-type DocCardStyle = "paper" | "tile";
+/** Grid card treatment (paper = Craft-style, tile = Drive-style) — shared with
+ * Home's Recent docs via doc-card-preview. */
+type DocCardStyle = TDocCardStyle;
 
 type Props = {
   workspaceSlug: string;
@@ -302,6 +319,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const { getProjectById, joinedProjectIds } = useProject();
   const { data: currentUser } = useUser();
   const { getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
+  const { addFavorite, removeFavoriteEntity, removeFavoriteFromStore, entityMap: favoriteEntityMap } = useFavorite();
   // Mirrors the API's delete rule (owner OR project admin; never a brief) so we
   // only ever offer a delete that will succeed. See ProjectPagePermission.
   const canDeleteDoc = useCallback(
@@ -332,9 +350,9 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     "grid"
   );
   const viewMode: ViewMode = storedViewMode ?? "grid";
-  // Shared across surfaces (docs, whiteboards, project tabs) so the pick sticks everywhere.
+  // Shared across surfaces (docs, whiteboards, project tabs, Home) so the pick sticks everywhere.
   const { storedValue: storedCardStyle, setValue: setCardStyle } = useLocalStorage<DocCardStyle>(
-    "workspace_docs_card_style",
+    DOC_CARD_STYLE_STORAGE_KEY,
     "paper"
   );
   const cardStyle: DocCardStyle = storedCardStyle ?? "paper";
@@ -415,7 +433,21 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     [foldersEnabled, pages, scopeProjectId]
   );
   const folderIdSet = useMemo(() => new Set(folders.map((f) => f.id)), [folders]);
-  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  // Folder drill-in lives in the URL (?folder=<pageId>) so folders can be
+  // deep-linked (favorites, shared links) and browser back exits the folder.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeFolderId = searchParams.get("folder");
+  const setActiveFolderId = useCallback(
+    (folderId: string | null) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (folderId) next.set("folder", folderId);
+        else next.delete("folder");
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
   const activeFolder = activeFolderId ? folders.find((f) => f.id === activeFolderId) : undefined;
   // Folder rename modal and delete confirm.
   const [folderNameModal, setFolderNameModal] = useState<{ folder: TPage | null } | null>(null);
@@ -426,10 +458,15 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const [isDeletingFolder, setIsDeletingFolder] = useState(false);
   const inlineFolderInputRef = useRef<HTMLInputElement>(null);
   const inlineFolderSaveInFlightRef = useRef(false);
+  const [wikiImportFiles, setWikiImportFiles] = useState<File[] | null>(null);
+  // Folder-card "Create wiki" / "Wiki settings": both open the wiki modal for
+  // the folder's EXISTING docs (publish toggle, link URL, doc order, accent) —
+  // creating a wiki never uploads new files.
+  const [wikiSettingsFolder, setWikiSettingsFolder] = useState<TPage | null>(null);
   useEffect(() => {
     // Deleted (or filtered-away) folder — fall back to the root list.
     if (activeFolderId && !isLoading && !folderIdSet.has(activeFolderId)) setActiveFolderId(null);
-  }, [activeFolderId, folderIdSet, isLoading]);
+  }, [activeFolderId, folderIdSet, isLoading, setActiveFolderId]);
 
   const isSearching = searchQuery.trim().length > 0;
   const showFolderUi = foldersEnabled && !showArchived;
@@ -540,8 +577,11 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         children.map((child) => pageService.update(workspaceSlug, projectId, child.id as string, { parent: null }))
       );
       // The API only deletes archived pages, so archive before removing.
+      // Archiving also deletes any favorite server-side — mirror that locally
+      // so the sidebar doesn't keep a dangling folder favorite.
       await pageService.archive(workspaceSlug, projectId, folder.id);
       await pageService.remove(workspaceSlug, projectId, folder.id);
+      if (favoriteEntityMap[folder.id]) removeFavoriteFromStore(folder.id);
       if (activeFolderId === folder.id) setActiveFolderId(null);
       setFolderToDelete(null);
       await mutatePages();
@@ -561,6 +601,46 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
       setIsDeletingFolder(false);
     }
   };
+
+  // ----- Folder favorites -----
+  // Folders are pages, so they ride the generic page-favorite plumbing; the
+  // entity_data.page_type snapshot is what makes the sidebar render a folder
+  // icon and deep-link back here (?folder=) instead of the page editor.
+  const isFolderFavorited = useCallback(
+    (folder: TPage) => Boolean(folder.id && favoriteEntityMap[folder.id]),
+    [favoriteEntityMap]
+  );
+  const handleToggleFolderFavorite = useCallback(
+    async (folder: TPage) => {
+      if (!folder.id) return;
+      const isFavorited = Boolean(favoriteEntityMap[folder.id]);
+      try {
+        if (isFavorited) await removeFavoriteEntity(workspaceSlug, folder.id);
+        else
+          await addFavorite(workspaceSlug, {
+            entity_type: "page",
+            entity_identifier: folder.id,
+            project_id: folder.project_ids?.[0] ?? null,
+            entity_data: { name: getPageName(folder.name), page_type: "folder" },
+          });
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Success!",
+          message: isFavorited ? "Folder removed from favorites." : "Folder added to favorites.",
+        });
+      } catch (error) {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Error!",
+          message: pageActionErrorMessage(
+            error,
+            isFavorited ? "Folder could not be removed from favorites." : "Folder could not be added to favorites."
+          ),
+        });
+      }
+    },
+    [addFavorite, favoriteEntityMap, removeFavoriteEntity, workspaceSlug]
+  );
 
   const handleDocDropIntoFolder = useCallback(
     async (dragData: DocsPageDragData, folder: TPage) => {
@@ -640,53 +720,68 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     await mutatePages();
   };
 
-  // Drag-and-drop PDF upload. Only where PDFs are actually listed and there is a
-  // project to attach the asset to (matches the New button's Upload PDF rule).
+  // Drag-and-drop file import (PDF → pdf page, Markdown → converted doc).
+  // Only where those types are actually listed and there is a project to
+  // attach the page to (matches the New button's Upload file rule).
   const { createPdfPage, isUploading: isUploadingPdf } = useCreatePdfPage(workspaceSlug);
+  const { createMarkdownDocPage, isConverting: isConvertingMarkdown } = useCreateMarkdownDocPage(workspaceSlug);
+  const isImportingFiles = isUploadingPdf || isConvertingMarkdown;
   const canDropPdf = !!scopeProjectId && activePageTypes.includes("pdf");
+  const canDropMarkdown = !!scopeProjectId && activePageTypes.includes("doc");
+  const canDropFiles = canDropPdf || canDropMarkdown;
+  const dropFileTypeLabel =
+    canDropPdf && canDropMarkdown ? "PDF or Markdown files" : canDropPdf ? "PDF files" : "Markdown files";
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const dragDepth = useRef(0);
 
-  const isFileDrag = (event: React.DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes("Files");
-  const handleFileDragEnter = (event: React.DragEvent) => {
-    if (!canDropPdf || !isFileDrag(event)) return;
+  const handleFileDragEnter = (event: ReactDragEvent) => {
+    if (!canDropFiles || !isFileDrag(event)) return;
     event.preventDefault();
     dragDepth.current += 1;
     setIsDraggingFiles(true);
   };
-  const handleFileDragOver = (event: React.DragEvent) => {
-    if (!canDropPdf || !isFileDrag(event)) return;
+  const handleFileDragOver = (event: ReactDragEvent) => {
+    if (!canDropFiles || !isFileDrag(event)) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
   };
-  const handleFileDragLeave = (event: React.DragEvent) => {
-    if (!canDropPdf || !isFileDrag(event)) return;
+  const handleFileDragLeave = (event: ReactDragEvent) => {
+    if (!canDropFiles || !isFileDrag(event)) return;
     dragDepth.current = Math.max(0, dragDepth.current - 1);
     if (dragDepth.current === 0) setIsDraggingFiles(false);
   };
-  const handleFileDrop = async (event: React.DragEvent) => {
-    if (!canDropPdf || !scopeProjectId || !isFileDrag(event)) return;
+  const handleFileDrop = async (event: ReactDragEvent) => {
+    if (!canDropFiles || !scopeProjectId || !isFileDrag(event)) return;
     event.preventDefault();
     dragDepth.current = 0;
     setIsDraggingFiles(false);
     const files = Array.from(event.dataTransfer?.files ?? []);
     if (files.length === 0) return;
-    const pdfs = files.filter(isPdfFile);
-    if (pdfs.length === 0) {
-      setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message: "Only PDF files can be added here." });
+    const markdownFiles = files.filter(isMarkdownFile);
+    if (canDropMarkdown && !activeFolder && !showArchived && markdownFiles.length > 1) {
+      setWikiImportFiles(files);
       return;
     }
-    let created = 0;
-    for (const file of pdfs) {
-      // Sequential so we don't fire N presign/upload chains at once.
-      const page = await createPdfPage(scopeProjectId, file, activeFolder?.id);
-      if (page) created += 1;
+    const importable = files.filter(
+      (file) => (canDropPdf && isPdfFile(file)) || (canDropMarkdown && isMarkdownFile(file))
+    );
+    if (importable.length === 0) {
+      setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message: `Only ${dropFileTypeLabel} can be added here.` });
+      return;
     }
+    // Sequential so we don't fire N presign/upload chains at once.
+    const created = await importable.reduce<Promise<number>>(async (createdCountPromise, file) => {
+      const createdCount = await createdCountPromise;
+      const page = isMarkdownFile(file)
+        ? await createMarkdownDocPage(scopeProjectId, file, activeFolder?.id)
+        : await createPdfPage(scopeProjectId, file, activeFolder?.id);
+      return page ? createdCount + 1 : createdCount;
+    }, Promise.resolve(0));
     if (created > 0) {
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Success!",
-        message: created === 1 ? "PDF added." : `${created} PDFs added.`,
+        message: created === 1 ? "File added." : `${created} files added.`,
       });
       await refreshPages();
     }
@@ -831,11 +926,20 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
             New folder
           </Button>
         )}
+        {activeFolder && (
+          <WikiSharePopover
+            workspaceSlug={workspaceSlug}
+            folder={activeFolder}
+            onOpenSettings={() => setWikiSettingsFolder(activeFolder)}
+            onChanged={refreshPages}
+          />
+        )}
         <WorkspaceCreateDocButton
           workspaceSlug={workspaceSlug}
           defaultType={pageType}
           lockedProjectId={scopeProjectId}
           parentFolderId={scopeProjectId ? activeFolder?.id : undefined}
+          onUploadComplete={refreshPages}
         />
       </Header.RightItem>
     </Header>
@@ -864,14 +968,14 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         onDragLeave={handleFileDragLeave}
         onDrop={handleFileDrop}
       >
-        {canDropPdf && (isDraggingFiles || isUploadingPdf) && (
+        {canDropFiles && (isDraggingFiles || isImportingFiles) && (
           <div className="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-xl border-2 border-dashed border-accent-strong bg-surface-1/85 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-2 text-center">
               <UploadCloud className="size-8 text-accent-primary" />
               <p className="text-14 font-medium text-primary">
-                {isUploadingPdf ? "Uploading PDF…" : "Drop PDF files to add them"}
+                {isImportingFiles ? "Adding files…" : `Drop ${dropFileTypeLabel} to add them`}
               </p>
-              {!isUploadingPdf && <p className="text-12 text-tertiary">They'll be added to this project's docs.</p>}
+              {!isImportingFiles && <p className="text-12 text-tertiary">They'll be added to this project's docs.</p>}
             </div>
           </div>
         )}
@@ -923,8 +1027,17 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                     scopeProjectId ? undefined : (getProjectById(folder.project_ids?.[0] ?? "")?.name ?? undefined)
                   }
                   canDelete={canDeleteDoc(folder)}
+                  isFavorite={isFolderFavorited(folder)}
+                  onToggleFavorite={() => void handleToggleFolderFavorite(folder)}
                   onOpen={() => folder.id && setActiveFolderId(folder.id)}
                   onRename={() => setFolderNameModal({ folder })}
+                  isWikiPublished={folder.access === EPageAccess.PUBLIC}
+                  onWikiSettings={() => setWikiSettingsFolder(folder)}
+                  onCopyWikiLink={() => {
+                    void copyUrlToClipboard(buildPublicPageUrl(workspaceSlug, getPublicPageSlug(folder))).then(() =>
+                      setToast({ type: TOAST_TYPE.SUCCESS, title: "Wiki link copied" })
+                    );
+                  }}
                   onDelete={() => setFolderToDelete(folder)}
                   onDropDoc={handleDocDropIntoFolder}
                 />
@@ -936,6 +1049,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   pagesKey={pagesKey}
                   workspaceSlug={workspaceSlug}
                   getProjectById={getProjectById}
+                  joinedProjectIds={joinedProjectIds ?? []}
                   canModify={canDeleteDoc(page)}
                   isProjectScoped={Boolean(scopeProjectId)}
                   isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
@@ -965,8 +1079,17 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 folder={folder}
                 count={folder.id ? (folderDocCounts.get(folder.id) ?? 0) : 0}
                 canDelete={canDeleteDoc(folder)}
+                isFavorite={isFolderFavorited(folder)}
+                onToggleFavorite={() => void handleToggleFolderFavorite(folder)}
                 onOpen={() => folder.id && setActiveFolderId(folder.id)}
                 onRename={() => setFolderNameModal({ folder })}
+                isWikiPublished={folder.access === EPageAccess.PUBLIC}
+                onWikiSettings={() => setWikiSettingsFolder(folder)}
+                onCopyWikiLink={() => {
+                  void copyUrlToClipboard(buildPublicPageUrl(workspaceSlug, getPublicPageSlug(folder))).then(() =>
+                    setToast({ type: TOAST_TYPE.SUCCESS, title: "Wiki link copied" })
+                  );
+                }}
                 onDelete={() => setFolderToDelete(folder)}
                 onDropDoc={handleDocDropIntoFolder}
               />
@@ -1003,6 +1126,28 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           onClose={() => setFolderNameModal(null)}
           onSubmit={handleFolderNameSubmit}
         />
+        {scopeProjectId && wikiImportFiles && (
+          <WikiImportModal
+            workspaceSlug={workspaceSlug}
+            projectId={scopeProjectId}
+            isOpen={wikiImportFiles !== null}
+            files={wikiImportFiles}
+            onClose={() => setWikiImportFiles(null)}
+            onImported={refreshPages}
+          />
+        )}
+        {wikiSettingsFolder && (
+          <WikiSettingsModal
+            workspaceSlug={workspaceSlug}
+            folder={wikiSettingsFolder}
+            docs={(pages ?? []).filter(
+              (p) => p.parent === wikiSettingsFolder.id && (p.page_type ?? "doc") === "doc" && !p.archived_at
+            )}
+            isOpen
+            onClose={() => setWikiSettingsFolder(null)}
+            onSaved={refreshPages}
+          />
+        )}
         <AlertModalCore
           isOpen={folderToDelete !== null}
           handleClose={() => {
@@ -1158,14 +1303,97 @@ function FolderNameModal({ isOpen, isRename, initialName, onClose, onSubmit }: F
   );
 }
 
+type CreateWikiFromDocsModalProps = {
+  isOpen: boolean;
+  initialName: string;
+  selectedCount: number;
+  skippedCount: number;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (name: string) => Promise<void>;
+};
+
+function CreateWikiFromDocsModal({
+  isOpen,
+  initialName,
+  selectedCount,
+  skippedCount,
+  isSubmitting,
+  onClose,
+  onSubmit,
+}: CreateWikiFromDocsModalProps) {
+  const [name, setName] = useState(initialName);
+  const selectedLabel = selectedCount === 1 ? "doc" : "docs";
+  const skippedLabel = skippedCount === 1 ? "doc" : "docs";
+
+  useEffect(() => {
+    if (isOpen) setName(initialName);
+  }, [isOpen, initialName]);
+
+  const handleSubmit = async () => {
+    const trimmed = name.trim();
+    if (!trimmed || isSubmitting) return;
+    await onSubmit(trimmed);
+  };
+
+  return (
+    <ModalCore isOpen={isOpen} handleClose={onClose} position={EModalPosition.TOP} width={EModalWidth.SM}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSubmit();
+        }}
+        className="p-5"
+      >
+        <h3 className="text-16 font-medium text-primary">Create wiki</h3>
+        <p className="mt-1 text-12 text-secondary">
+          {selectedCount} {selectedLabel} will move into a new wiki folder.
+          {skippedCount > 0 ? ` ${skippedCount} selected ${skippedLabel} will be skipped.` : ""}
+        </p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Wiki name"
+          disabled={isSubmitting}
+          className="mt-3 w-full appearance-none rounded-lg border-0 bg-transparent px-0 py-2 text-13 text-primary outline-none placeholder:text-placeholder focus:border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none disabled:opacity-60"
+        />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" size="lg" type="button" onClick={onClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button variant="primary" size="lg" type="submit" loading={isSubmitting} disabled={!name.trim()}>
+            Create wiki
+          </Button>
+        </div>
+      </form>
+    </ModalCore>
+  );
+}
+
 type FolderActionsMenuProps = {
   canDelete: boolean;
+  isFavorite: boolean;
+  /** Wiki = this folder published; flips the item between create and settings. */
+  isWikiPublished: boolean;
+  onToggleFavorite: () => void;
   onRename: () => void;
+  onWikiSettings: () => void;
+  onCopyWikiLink: () => void;
   onDelete: () => void;
   buttonClassName?: string;
 };
 
-function FolderActionsMenu({ canDelete, onRename, onDelete, buttonClassName }: FolderActionsMenuProps) {
+function FolderActionsMenu({
+  canDelete,
+  isFavorite,
+  isWikiPublished,
+  onToggleFavorite,
+  onRename,
+  onWikiSettings,
+  onCopyWikiLink,
+  onDelete,
+  buttonClassName,
+}: FolderActionsMenuProps) {
   return (
     <CustomMenu
       ariaLabel="Folder actions"
@@ -1183,12 +1411,32 @@ function FolderActionsMenu({ canDelete, onRename, onDelete, buttonClassName }: F
         </span>
       }
     >
+      <CustomMenu.MenuItem onClick={onToggleFavorite}>
+        <span className="flex items-center gap-2">
+          <Star weight={isFavorite ? "Bold" : undefined} className={cn("size-4", { "text-amber-500": isFavorite })} />
+          {isFavorite ? "Remove from favorites" : "Add to favorites"}
+        </span>
+      </CustomMenu.MenuItem>
       <CustomMenu.MenuItem onClick={onRename}>
         <span className="flex items-center gap-2">
           <Pencil className="size-4" />
           Rename
         </span>
       </CustomMenu.MenuItem>
+      <CustomMenu.MenuItem onClick={onWikiSettings}>
+        <span className="flex items-center gap-2">
+          {isWikiPublished ? <Settings className="size-4" /> : <FolderPlus className="size-4" />}
+          {isWikiPublished ? "Wiki settings" : "Create wiki"}
+        </span>
+      </CustomMenu.MenuItem>
+      {isWikiPublished && (
+        <CustomMenu.MenuItem onClick={onCopyWikiLink}>
+          <span className="flex items-center gap-2">
+            <Copy01Icon className="size-4" />
+            Copy wiki link
+          </span>
+        </CustomMenu.MenuItem>
+      )}
       {canDelete && (
         <CustomMenu.MenuItem onClick={onDelete} className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500">
           <span className="flex items-center gap-2">
@@ -1207,8 +1455,13 @@ type FolderCardProps = {
   /** Shown on the workspace-wide gallery where the project isn't implied. */
   projectName?: string;
   canDelete: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   onOpen: () => void;
   onRename: () => void;
+  isWikiPublished: boolean;
+  onWikiSettings: () => void;
+  onCopyWikiLink: () => void;
   onDelete: () => void;
   onDropDoc: (dragData: DocsPageDragData, folder: TPage) => void | Promise<void>;
 };
@@ -1448,7 +1701,21 @@ function FolderDraftListItem(props: FolderDraftProps) {
   );
 }
 
-function FolderCard({ folder, count, projectName, canDelete, onOpen, onRename, onDelete, onDropDoc }: FolderCardProps) {
+function FolderCard({
+  folder,
+  count,
+  projectName,
+  canDelete,
+  isFavorite,
+  onToggleFavorite,
+  onOpen,
+  onRename,
+  isWikiPublished,
+  onWikiSettings,
+  onCopyWikiLink,
+  onDelete,
+  onDropDoc,
+}: FolderCardProps) {
   const metaText = [projectName, `${count} ${count === 1 ? "doc" : "docs"}`].filter(Boolean).join(" · ");
   const folderName = getPageName(folder.name);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -1466,7 +1733,14 @@ function FolderCard({ folder, count, projectName, canDelete, onOpen, onRename, o
           <h3 className="line-clamp-2 text-13 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary">
             {folderName}
           </h3>
-          <p className="truncate text-11 text-placeholder">{isDropTargetActive ? "Drop to move here" : metaText}</p>
+          <p className="flex min-w-0 items-center gap-1 text-11 text-placeholder">
+            <span className="truncate">{isDropTargetActive ? "Drop to move here" : metaText}</span>
+            {isWikiPublished && !isDropTargetActive && (
+              <span className="flex shrink-0 items-center gap-1">
+                · <GlobeIcon className="size-3" /> Published
+              </span>
+            )}
+          </p>
         </FolderSurface>
       </button>
       {isDropTargetActive && (
@@ -1478,7 +1752,16 @@ function FolderCard({ folder, count, projectName, canDelete, onOpen, onRename, o
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <FolderActionsMenu canDelete={canDelete} onRename={onRename} onDelete={onDelete} />
+        <FolderActionsMenu
+          canDelete={canDelete}
+          isFavorite={isFavorite}
+          onToggleFavorite={onToggleFavorite}
+          onRename={onRename}
+          isWikiPublished={isWikiPublished}
+          onWikiSettings={onWikiSettings}
+          onCopyWikiLink={onCopyWikiLink}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );
@@ -1488,13 +1771,31 @@ type FolderListItemProps = {
   folder: TPage;
   count: number;
   canDelete: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   onOpen: () => void;
   onRename: () => void;
+  isWikiPublished: boolean;
+  onWikiSettings: () => void;
+  onCopyWikiLink: () => void;
   onDelete: () => void;
   onDropDoc: (dragData: DocsPageDragData, folder: TPage) => void | Promise<void>;
 };
 
-function FolderListItem({ folder, count, canDelete, onOpen, onRename, onDelete, onDropDoc }: FolderListItemProps) {
+function FolderListItem({
+  folder,
+  count,
+  canDelete,
+  isFavorite,
+  onToggleFavorite,
+  onOpen,
+  onRename,
+  isWikiPublished,
+  onWikiSettings,
+  onCopyWikiLink,
+  onDelete,
+  onDropDoc,
+}: FolderListItemProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatformOS();
   const [isDropTargetActive, setIsDropTargetActive] = useState(false);
@@ -1517,10 +1818,24 @@ function FolderListItem({ folder, count, canDelete, onOpen, onRename, onDelete, 
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <span className="text-11">
+          <span className="flex items-center gap-1 text-11">
             {isDropTargetActive ? "Drop to move here" : `${count} ${count === 1 ? "doc" : "docs"}`}
+            {isWikiPublished && !isDropTargetActive && (
+              <span className="flex shrink-0 items-center gap-1">
+                · <GlobeIcon className="size-3" /> Published
+              </span>
+            )}
           </span>
-          <FolderActionsMenu canDelete={canDelete} onRename={onRename} onDelete={onDelete} />
+          <FolderActionsMenu
+            canDelete={canDelete}
+            isFavorite={isFavorite}
+            onToggleFavorite={onToggleFavorite}
+            onRename={onRename}
+            isWikiPublished={isWikiPublished}
+            onWikiSettings={onWikiSettings}
+            onCopyWikiLink={onCopyWikiLink}
+            onDelete={onDelete}
+          />
         </div>
       }
       isMobile={isMobile}
@@ -1809,6 +2124,7 @@ type DocCardProps = {
   pagesKey: string;
   workspaceSlug: string;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
+  joinedProjectIds: string[];
   /** Whether the current user can archive/delete this doc (owner or project admin). */
   canModify: boolean;
   /** When viewing a single project's docs, the project name is redundant — hide it. */
@@ -1826,6 +2142,7 @@ function DocCard({
   pagesKey,
   workspaceSlug,
   getProjectById,
+  joinedProjectIds,
   canModify,
   isProjectScoped,
   isSelected,
@@ -1917,6 +2234,18 @@ function DocCard({
   // Folders live in a single project, so only offer ones the doc shares.
   const eligibleFolders = folders.filter((f) => primaryProjectId && (f.project_ids ?? []).includes(primaryProjectId));
   const showFolderMenu = !isProjectBrief && (eligibleFolders.length > 0 || Boolean(page.parent));
+  const moveTargetProjects = useMemo(
+    () =>
+      sortBy(
+        (joinedProjectIds ?? [])
+          .map((id) => getProjectById(id))
+          .filter((project): project is NonNullable<typeof project> => Boolean(project))
+          .filter((project) => project.id !== primaryProjectId),
+        [(project) => project.name.toLowerCase()]
+      ),
+    [getProjectById, joinedProjectIds, primaryProjectId]
+  );
+  const showProjectMoveMenu = !isProjectBrief && moveTargetProjects.length > 0;
 
   const handleMoveToFolder = async (folderId: string | null) => {
     if (!primaryProjectId || !page.id) return;
@@ -1927,6 +2256,26 @@ function DocCard({
         type: TOAST_TYPE.SUCCESS,
         title: "Success!",
         message: folderId ? "Doc moved to folder." : "Doc removed from folder.",
+      });
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: pageActionErrorMessage(error, "Doc could not be moved. Please try again later."),
+      });
+    }
+  };
+
+  const handleMoveToProject = async (targetProjectId: string) => {
+    if (!primaryProjectId || !page.id || targetProjectId === primaryProjectId) return;
+    const targetProject = getProjectById(targetProjectId);
+    try {
+      await pageService.move(workspaceSlug, primaryProjectId, page.id, targetProjectId);
+      await refreshPages();
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: targetProject ? `Doc moved to ${targetProject.name}.` : "Doc moved to project.",
       });
     } catch (error) {
       setToast({
@@ -2094,75 +2443,94 @@ function DocCard({
           </span>
         }
       >
-            <CustomMenu.MenuItem onClick={() => void handleCopyLink()}>
+        <CustomMenu.MenuItem onClick={() => void handleCopyLink()}>
+          <span className="flex items-center gap-2">
+            <DetailIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+            Copy link
+          </span>
+        </CustomMenu.MenuItem>
+        <CustomMenu.MenuItem onClick={() => void handleDuplicate()}>
+          <span className="flex items-center gap-2">
+            <DetailIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+            Duplicate
+          </span>
+        </CustomMenu.MenuItem>
+        {showFolderMenu && (
+          <CustomMenu.SubMenu
+            trigger={
               <span className="flex items-center gap-2">
-                <DetailIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-                Copy link
+                <SolarFolder className="size-4" />
+                Move to folder
               </span>
-            </CustomMenu.MenuItem>
-            <CustomMenu.MenuItem onClick={() => void handleDuplicate()}>
-              <span className="flex items-center gap-2">
-                <DetailIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-                Duplicate
-              </span>
-            </CustomMenu.MenuItem>
-            {showFolderMenu && (
-              <CustomMenu.SubMenu
-                trigger={
-                  <span className="flex items-center gap-2">
-                    <SolarFolder className="size-4" />
-                    Move to folder
-                  </span>
-                }
+            }
+          >
+            {page.parent && (
+              <CustomMenu.MenuItem onClick={() => void handleMoveToFolder(null)}>
+                <span className="flex items-center gap-2">
+                  <SolarHome className="size-4" />
+                  Move to root
+                </span>
+              </CustomMenu.MenuItem>
+            )}
+            {eligibleFolders.map((folder) => (
+              <CustomMenu.MenuItem
+                key={folder.id}
+                disabled={page.parent === folder.id}
+                onClick={() => void handleMoveToFolder(folder.id ?? null)}
               >
-                {page.parent && (
-                  <CustomMenu.MenuItem onClick={() => void handleMoveToFolder(null)}>
-                    <span className="flex items-center gap-2">
-                      <SolarHome className="size-4" />
-                      Move to root
-                    </span>
-                  </CustomMenu.MenuItem>
+                <span className="flex min-w-0 items-center gap-2">
+                  <SolarFolder className="size-4 shrink-0 text-tertiary" />
+                  <span className="truncate">{getPageName(folder.name)}</span>
+                  {page.parent === folder.id && <span className="ml-auto shrink-0 text-10 text-tertiary">Current</span>}
+                </span>
+              </CustomMenu.MenuItem>
+            ))}
+          </CustomMenu.SubMenu>
+        )}
+        {showProjectMoveMenu && (
+          <CustomMenu.SubMenu
+            trigger={
+              <span className="flex items-center gap-2">
+                <ArrowRightLeft className="size-4" />
+                Move to project
+              </span>
+            }
+          >
+            {moveTargetProjects.map((project) => (
+              <CustomMenu.MenuItem key={project.id} onClick={() => void handleMoveToProject(project.id)}>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="grid h-4 w-4 shrink-0 place-items-center">
+                    <Logo logo={project.logo_props} size={12} />
+                  </span>
+                  <span className="truncate">{project.name}</span>
+                </span>
+              </CustomMenu.MenuItem>
+            ))}
+          </CustomMenu.SubMenu>
+        )}
+        {!isProjectBrief && canModify && (
+          <>
+            <CustomMenu.MenuItem onClick={() => void handleArchive()}>
+              <span className="flex items-center gap-2">
+                {page.archived_at ? (
+                  <ArchiveRestoreIcon className="size-4" />
+                ) : (
+                  <DetailIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
                 )}
-                {eligibleFolders.map((folder) => (
-                  <CustomMenu.MenuItem
-                    key={folder.id}
-                    disabled={page.parent === folder.id}
-                    onClick={() => void handleMoveToFolder(folder.id ?? null)}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <SolarFolder className="size-4 shrink-0 text-tertiary" />
-                      <span className="truncate">{getPageName(folder.name)}</span>
-                      {page.parent === folder.id && (
-                        <span className="ml-auto shrink-0 text-10 text-tertiary">Current</span>
-                      )}
-                    </span>
-                  </CustomMenu.MenuItem>
-                ))}
-              </CustomMenu.SubMenu>
-            )}
-            {!isProjectBrief && canModify && (
-              <>
-                <CustomMenu.MenuItem onClick={() => void handleArchive()}>
-                  <span className="flex items-center gap-2">
-                    {page.archived_at ? (
-                      <ArchiveRestoreIcon className="size-4" />
-                    ) : (
-                      <DetailIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-                    )}
-                    {page.archived_at ? "Restore" : "Archive"}
-                  </span>
-                </CustomMenu.MenuItem>
-                <CustomMenu.MenuItem
-                  onClick={() => void handleDelete()}
-                  className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
-                >
-                  <span className="flex items-center gap-2">
-                    <DetailIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-                    Delete
-                  </span>
-                </CustomMenu.MenuItem>
-              </>
-            )}
+                {page.archived_at ? "Restore" : "Archive"}
+              </span>
+            </CustomMenu.MenuItem>
+            <CustomMenu.MenuItem
+              onClick={() => void handleDelete()}
+              className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
+            >
+              <span className="flex items-center gap-2">
+                <DetailIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                Delete
+              </span>
+            </CustomMenu.MenuItem>
+          </>
+        )}
       </CustomMenu>
     ) : null;
 
@@ -2185,27 +2553,33 @@ function DocCard({
     cardStyle === "paper" ? (
       // Option A — title block over an inset content sheet (Craft-style).
       <div className={cn(cardShellClassName, "p-4 pb-3.5")}>
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-          {selectionCheckbox(
-            "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 transition-opacity hover:bg-layer-3"
+        <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+          {actionsMenu(
+            "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary"
           )}
-          <div className="opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-            {actionsMenu(
-              "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary"
-            )}
-          </div>
         </div>
-        <div className="pr-14">
+        <div className="pr-8">
           <div className="flex items-center gap-1.5">
-            {page.logo_props?.in_use ? (
-              <Logo logo={page.logo_props} size={14} type="lucide" />
-            ) : (
-              <TypeIcon
-                weight="Bold"
-                className={cn("size-3.5 shrink-0", { "text-accent-primary": isProjectBrief })}
-                style={isProjectBrief ? undefined : { color: typeTint }}
-              />
-            )}
+            {/* Click/select lives in the type glyph slot, so selected cards do not need extra top-right chrome. */}
+            <span className="relative grid size-3.5 shrink-0 place-items-center">
+              <span
+                className={cn("grid place-items-center transition-opacity", {
+                  "group-focus-within:opacity-0 group-hover:opacity-0": Boolean(page.id),
+                  "opacity-0": isSelected || isSelectionActive,
+                })}
+              >
+                {page.logo_props?.in_use ? (
+                  <Logo logo={page.logo_props} size={14} type="lucide" />
+                ) : (
+                  <TypeIcon
+                    weight="Bold"
+                    className={cn("size-3.5", { "text-accent-primary": isProjectBrief })}
+                    style={isProjectBrief ? undefined : { color: typeTint }}
+                  />
+                )}
+              </span>
+              {selectionCheckbox("absolute inset-0 grid place-items-center transition-opacity")}
+            </span>
             <h3
               className={cn(
                 "min-w-0 truncate text-14 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary",
@@ -2230,7 +2604,7 @@ function DocCard({
             )}
             style={tintStyle}
           >
-            {/* The type glyph yields to the selection checkbox on hover, Drive-style. */}
+            {/* Click/select lives in the type glyph slot, so selected cards do not need extra top-right chrome. */}
             <span
               className={cn("grid place-items-center transition-opacity", {
                 "group-focus-within:opacity-0 group-hover:opacity-0": Boolean(page.id),
@@ -2340,7 +2714,7 @@ function DocSelectionCheckbox({ pageId, isSelected, isSelectionActive, onSelect 
   );
 }
 
-type BulkOperation = "delete" | "duplicate" | "move" | "folder";
+type BulkOperation = "delete" | "duplicate" | "move" | "folder" | "wiki";
 
 type DocsBulkActionBarProps = {
   selectedPages: TPage[];
@@ -2380,6 +2754,7 @@ function DocsBulkActionBar({
   const [operation, setOperation] = useState<BulkOperation | null>(null);
   const [projectSearch, setProjectSearch] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isWikiModalOpen, setIsWikiModalOpen] = useState(false);
   // Flip on after mount so the bar rises into place (t-panel-slide) instead of
   // popping in the moment a selection is made.
   const [mounted, setMounted] = useState(false);
@@ -2405,7 +2780,18 @@ function DocsBulkActionBar({
     () => actionPages.filter((page) => !page.isProjectBrief && canDeleteDoc(page.page)),
     [actionPages, canDeleteDoc]
   );
+  const wikiPages = useMemo(
+    () => actionPages.filter(({ page, isProjectBrief }) => !isProjectBrief && (page.page_type ?? "doc") === "doc"),
+    [actionPages]
+  );
+  const wikiProjectIds = useMemo(() => Array.from(new Set(wikiPages.map(({ projectId }) => projectId))), [wikiPages]);
   const skippedFromDelete = actionPages.length - deletablePages.length;
+  const skippedFromWiki = actionPages.length - wikiPages.length;
+  const defaultWikiName = useMemo(() => {
+    const projectId = wikiProjectIds.length === 1 ? wikiProjectIds[0] : undefined;
+    const projectName = projectId ? getProjectById(projectId)?.name : undefined;
+    return projectName ? `${projectName} wiki` : "New wiki";
+  }, [getProjectById, wikiProjectIds]);
   const moveTargetProjects = useMemo(() => {
     const q = projectSearch.trim().toLowerCase();
     return sortBy(
@@ -2532,6 +2918,13 @@ function DocsBulkActionBar({
 
   // `folder: null` clears the selection's folder membership.
   const anySelectedInFolder = movablePages.some(({ page }) => Boolean(page.parent));
+  const bulkActionButtonClassName = cn(
+    getButtonStyling("secondary", "lg"),
+    "min-w-max shrink-0 gap-1.5 px-2.5 leading-none whitespace-nowrap"
+  );
+  const bulkActionDangerButtonClassName = "min-w-max shrink-0 gap-1.5 px-2.5 leading-none whitespace-nowrap";
+  const bulkActionLabelClassName = "whitespace-nowrap leading-none";
+
   const handleBulkMoveToFolder = async (folder: TPage | null) => {
     if (isBusy) return;
     // A folder lives in one project — only docs sharing it can move in.
@@ -2567,6 +2960,75 @@ function DocsBulkActionBar({
     );
   };
 
+  const handleOpenCreateWiki = () => {
+    if (isBusy) return;
+    if (wikiPages.length < 2) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "Select more docs",
+        message: "Select at least two regular docs to create a wiki.",
+      });
+      return;
+    }
+    if (wikiProjectIds.length !== 1) {
+      setToast({
+        type: TOAST_TYPE.WARNING,
+        title: "One project only",
+        message: "A wiki lives inside one project. Select docs from the same project.",
+      });
+      return;
+    }
+    setIsWikiModalOpen(true);
+  };
+
+  const handleCreateWikiFromDocs = async (name: string) => {
+    if (isBusy || wikiProjectIds.length !== 1 || wikiPages.length < 2) return;
+    const projectId = wikiProjectIds[0];
+    if (!projectId) return;
+    setOperation("wiki");
+    try {
+      const folder = await pageService.create(workspaceSlug, projectId, {
+        access: EPageAccess.PRIVATE,
+        page_type: "folder",
+        name,
+      });
+      if (!folder?.id) throw new Error("Wiki folder could not be created.");
+      const folderId = folder.id;
+
+      const results = await Promise.allSettled(
+        wikiPages.map(({ pageId }) => pageService.update(workspaceSlug, projectId, pageId, { parent: folderId }))
+      );
+      const failedCount = results.filter(
+        (result): result is PromiseRejectedResult => result.status === "rejected"
+      ).length;
+      await onRefresh().catch(() => undefined);
+      setIsWikiModalOpen(false);
+
+      if (failedCount === 0) {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Wiki created",
+          message: `${wikiPages.length} ${docLabel(wikiPages.length)} moved into ${name}.${skippedDocsMessage(skippedFromWiki)}`,
+        });
+        onClear();
+      } else {
+        setToast({
+          type: TOAST_TYPE.WARNING,
+          title: "Wiki partially created",
+          message: `${wikiPages.length - failedCount} moved, ${failedCount} failed.${skippedDocsMessage(skippedFromWiki)}`,
+        });
+      }
+    } catch (error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: pageActionErrorMessage(error, "Wiki could not be created. Please try again later."),
+      });
+    } finally {
+      setOperation(null);
+    }
+  };
+
   return (
     <>
       <AlertModalCore
@@ -2582,6 +3044,17 @@ function DocsBulkActionBar({
           skippedFromDelete > 0 ? " Docs you can't delete will be skipped." : ""
         }`}
       />
+      <CreateWikiFromDocsModal
+        isOpen={isWikiModalOpen}
+        initialName={defaultWikiName}
+        selectedCount={wikiPages.length}
+        skippedCount={skippedFromWiki}
+        isSubmitting={operation === "wiki"}
+        onClose={() => {
+          if (operation !== "wiki") setIsWikiModalOpen(false);
+        }}
+        onSubmit={handleCreateWikiFromDocs}
+      />
       <div
         role="toolbar"
         aria-label={`${count} docs selected`}
@@ -2596,9 +3069,27 @@ function DocsBulkActionBar({
             <span className="text-tertiary">{docLabel(count)} selected</span>
           </span>
           <div className="bg-strong h-4 w-px" aria-hidden />
-          <Button variant="ghost" size="lg" onClick={onClear} disabled={isBusy} aria-label="Clear selection">
-            <X className="size-3.5" />
-            <span>Clear</span>
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={onClear}
+            disabled={isBusy}
+            aria-label="Clear selection"
+            className="shrink-0"
+          >
+            <X className="size-3.5 shrink-0" />
+            <span className={bulkActionLabelClassName}>Clear</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={handleOpenCreateWiki}
+            disabled={isBusy}
+            aria-label="Create wiki"
+            className={bulkActionButtonClassName}
+          >
+            <FolderPlus className="size-3.5 shrink-0" />
+            <span className={bulkActionLabelClassName}>{operation === "wiki" ? "Creating..." : "Create wiki"}</span>
           </Button>
           {(folders.length > 0 || anySelectedInFolder) && (
             <CustomMenu
@@ -2606,15 +3097,14 @@ function DocsBulkActionBar({
               placement="top-start"
               maxHeight="lg"
               disabled={isBusy || movablePages.length === 0}
-              customButtonClassName={cn(
-                "inline-flex h-7 items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-2 text-11 font-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active",
-                { "cursor-not-allowed opacity-60": isBusy || movablePages.length === 0 }
-              )}
+              customButtonClassName={bulkActionButtonClassName}
               customButton={
                 <>
-                  <FolderMiniGlyph className="h-3.5 w-[18px]" />
-                  <span>{operation === "folder" ? "Moving..." : "Add to folder"}</span>
-                  <ChevronDown className="size-3" />
+                  <SolarFolder className="size-3.5 shrink-0" />
+                  <span className={bulkActionLabelClassName}>
+                    {operation === "folder" ? "Moving..." : "Add to folder"}
+                  </span>
+                  <ChevronDown className="size-3 shrink-0" />
                 </>
               }
               optionsClassName="w-64"
@@ -2634,7 +3124,7 @@ function DocsBulkActionBar({
                   onClick={() => void handleBulkMoveToFolder(folder)}
                 >
                   <span className="flex min-w-0 items-center gap-2">
-                    <FolderMiniGlyph folder={folder} />
+                    <SolarFolder className="size-4 shrink-0 text-tertiary" />
                     <span className="truncate">{getPageName(folder.name)}</span>
                   </span>
                 </CustomMenu.MenuItem>
@@ -2647,15 +3137,14 @@ function DocsBulkActionBar({
             maxHeight="lg"
             closeOnSelect={false}
             disabled={isBusy || movablePages.length === 0}
-            customButtonClassName={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-lg border border-strong bg-layer-2 px-2 text-11 font-medium text-secondary shadow-raised-100 hover:bg-layer-2-hover active:bg-layer-2-active",
-              { "cursor-not-allowed opacity-60": isBusy || movablePages.length === 0 }
-            )}
+            customButtonClassName={bulkActionButtonClassName}
             customButton={
               <>
-                <ArrowRightLeft className="size-3.5" />
-                <span>{operation === "move" ? "Moving..." : "Move to project"}</span>
-                <ChevronDown className="size-3" />
+                <ArrowRightLeft className="size-3.5 shrink-0" />
+                <span className={bulkActionLabelClassName}>
+                  {operation === "move" ? "Moving..." : "Move to project"}
+                </span>
+                <ChevronDown className="size-3 shrink-0" />
               </>
             }
             optionsClassName="w-64"
@@ -2701,9 +3190,18 @@ function DocsBulkActionBar({
               </CustomMenu.MenuItem>
             )}
           </CustomMenu>
-          <Button variant="secondary" size="lg" onClick={handleBulkDuplicate} disabled={isBusy} aria-label="Duplicate">
-            <DetailIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-            <span>{operation === "duplicate" ? "Duplicating..." : "Duplicate"}</span>
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={handleBulkDuplicate}
+            disabled={isBusy}
+            aria-label="Duplicate"
+            className={bulkActionButtonClassName}
+          >
+            <DetailIcon icon={Copy01Icon} className="size-3.5 shrink-0" color="currentColor" strokeWidth={1.5} />
+            <span className={bulkActionLabelClassName}>
+              {operation === "duplicate" ? "Duplicating..." : "Duplicate"}
+            </span>
           </Button>
           <Button
             variant="error-outline"
@@ -2711,9 +3209,10 @@ function DocsBulkActionBar({
             onClick={handleBulkDelete}
             disabled={isBusy || deletablePages.length === 0}
             aria-label="Delete"
+            className={bulkActionDangerButtonClassName}
           >
-            <DetailIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-            <span>{operation === "delete" ? "Deleting..." : "Delete"}</span>
+            <DetailIcon icon={Delete02Icon} className="size-3.5 shrink-0" color="currentColor" strokeWidth={1.5} />
+            <span className={bulkActionLabelClassName}>{operation === "delete" ? "Deleting..." : "Delete"}</span>
           </Button>
         </div>
       </div>

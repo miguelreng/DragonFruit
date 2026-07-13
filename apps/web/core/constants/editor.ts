@@ -211,7 +211,7 @@ export const EDITOR_FONT_STYLES: {
 }[] = [
   {
     key: "font-default",
-    label: "Default (Figtree + Newsreader)",
+    label: "Default (Figtree + Sorts Mill Goudy)",
     icon: SansSerifIcon,
   },
   {
@@ -220,8 +220,9 @@ export const EDITOR_FONT_STYLES: {
     icon: SansSerifIcon,
   },
   {
+    // Key is persisted on existing docs; the face behind it is Sorts Mill Goudy.
     key: "font-newsreader",
-    label: "Newsreader",
+    label: "Sorts Mill Goudy",
     icon: SerifIcon,
   },
   {

@@ -22,8 +22,9 @@ import {
   Whiteboard,
 } from "@/components/icons/lucide-shim";
 import { DocumentText } from "@solar-icons/react/ssr";
+import { Logo } from "@plane/propel/emoji-icon-picker";
 import type { TPage, TPageType } from "@plane/types";
-import { cn, getEditorAssetInlineSrc } from "@plane/utils";
+import { cn, getEditorAssetInlineSrc, getPageName } from "@plane/utils";
 import {
   SHEET_DEFAULT_COL_WIDTH,
   cellId,
@@ -56,6 +57,11 @@ export const DOC_CARD_TYPE_LABEL: Record<string, string> = {
   whiteboard: "Whiteboard",
   pdf: "PDF",
 };
+
+/** Grid card treatment shared by the docs gallery and Home's Recent docs:
+ * "paper" = title over an inset content sheet; "tile" = header + thumbnail + footer. */
+export type TDocCardStyle = "paper" | "tile";
+export const DOC_CARD_STYLE_STORAGE_KEY = "workspace_docs_card_style";
 
 // ---------------------------------------------------------------------------
 // content_preview payload types (mirrors WorkspacePageListSerializer)
@@ -669,6 +675,80 @@ export function DocCardPreviewSurface({
   return (
     <div className={cn("relative h-full w-full overflow-hidden", className)}>
       {content}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Presentational card
+// ---------------------------------------------------------------------------
+
+type DocPreviewCardProps = {
+  page: TPage;
+  workspaceSlug: string;
+  style: TDocCardStyle;
+  /** Meta line under the title (paper style). Falls back to the type label. */
+  meta?: string;
+  /** Footer line under the thumbnail (tile style). Falls back to the type label. */
+  footer?: string;
+};
+
+/** Non-interactive rendition of the docs-gallery preview card — same look,
+ * no selection/menu/drag chrome — for surfaces like Home's Recent docs.
+ * Wrap it in a Link; keep its layout in sync with DocCard in
+ * workspace-docs-root.tsx when tweaking either. */
+export function DocPreviewCard({ page, workspaceSlug, style, meta, footer }: DocPreviewCardProps) {
+  const pageType = page.page_type ?? "doc";
+  const TypeIcon = getDocPreviewIcon(pageType);
+  const typeTint = DOC_CARD_TYPE_TINT[pageType] ?? DOC_CARD_TYPE_TINT.doc;
+  const typeLabel = DOC_CARD_TYPE_LABEL[pageType] ?? DOC_CARD_TYPE_LABEL.doc;
+  const shellClassName =
+    "group t-press relative flex h-[156px] flex-col rounded-2xl bg-layer-1 transition-colors hover:bg-layer-3";
+  const previewSurface = (className?: string) => (
+    <div className={cn("min-h-0 overflow-hidden rounded-[10px] border border-subtle bg-surface-1", className)}>
+      <DocCardPreviewSurface page={page} workspaceSlug={workspaceSlug} />
+    </div>
+  );
+
+  if (style === "paper")
+    return (
+      <div className={cn(shellClassName, "p-4 pb-3.5")}>
+        <div className="flex items-center gap-1.5">
+          {page.logo_props?.in_use ? (
+            <Logo logo={page.logo_props} size={14} type="lucide" />
+          ) : (
+            <TypeIcon weight="Bold" className="size-3.5 shrink-0" style={{ color: typeTint }} />
+          )}
+          <h3 className="min-w-0 truncate text-14 leading-snug font-semibold text-secondary transition-colors group-hover:text-primary">
+            {getPageName(page.name)}
+          </h3>
+        </div>
+        <p className="mt-1 truncate text-11 text-placeholder">{meta || typeLabel}</p>
+        {previewSurface("mt-3 flex-1")}
+      </div>
+    );
+
+  return (
+    <div className={cn(shellClassName, "gap-2 p-2.5")}>
+      <div className="flex items-center gap-2 px-1 pt-0.5">
+        <span
+          className="grid size-6 shrink-0 place-items-center rounded-[7px]"
+          style={{ color: typeTint, backgroundColor: `color-mix(in srgb, ${typeTint} 14%, transparent)` }}
+        >
+          {page.logo_props?.in_use ? (
+            <Logo logo={page.logo_props} size={14} type="lucide" />
+          ) : (
+            <TypeIcon weight="Bold" className="size-3.5" />
+          )}
+        </span>
+        <h3 className="min-w-0 flex-1 truncate text-13 font-medium text-secondary transition-colors group-hover:text-primary">
+          {getPageName(page.name)}
+        </h3>
+      </div>
+      {previewSurface("flex-1")}
+      <div className="flex h-5 items-center px-1 text-11 text-placeholder">
+        <span className="truncate">{footer || typeLabel}</span>
+      </div>
     </div>
   );
 }

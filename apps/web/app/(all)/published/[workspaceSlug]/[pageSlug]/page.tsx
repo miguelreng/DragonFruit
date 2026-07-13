@@ -18,6 +18,7 @@ import {
   PublicDocWikiHoverCard,
   transformPublicDocMentions,
 } from "@/components/pages/published/public-doc-content";
+import { PublishedWikiView } from "@/components/pages/published/published-wiki-view";
 import { normalizeDocFontStyle } from "@/helpers/doc-font";
 import type { Route } from "./+types/page";
 
@@ -73,6 +74,11 @@ function PublishedPage({ params }: Route.ComponentProps) {
         </div>
       </PublicPageShell>
     );
+  }
+
+  // Published wiki folders get the full-viewport reader instead of the doc shell.
+  if (data.page_type === "folder") {
+    return <PublishedWikiView data={data} />;
   }
 
   const authorHandle = formatPublicAuthorHandle(data.owned_by?.display_name);

@@ -8,6 +8,17 @@ import { API_BASE_URL } from "@plane/constants";
 import type { TPageType } from "@plane/types";
 import { APIService } from "@/services/api.service";
 
+export type TPublicWikiDoc = {
+  id: string;
+  name: string;
+  description_html: string;
+  mentions?: {
+    users?: Record<string, string>;
+    issues?: Record<string, string>;
+  };
+  updated_at: string;
+};
+
 export type TPublicPageResponse = {
   id: string;
   view_props?: Record<string, unknown>;
@@ -30,6 +41,10 @@ export type TPublicPageResponse = {
   };
   updated_at: string;
   public_slug: string | null;
+  /** Present only for published wiki folders: child docs in reader order. */
+  wiki_docs?: TPublicWikiDoc[] | null;
+  /** True when an unpublished wiki is served to a signed-in workspace member. */
+  is_preview?: boolean;
 };
 
 export type TPublicDocEmbed = {

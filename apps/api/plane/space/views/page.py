@@ -168,26 +168,81 @@ def _resolve_public_embed(ref):
     return _unavailable_embed(ref)
 
 
+def _public_wiki_docs(folder):
+    """Child docs of a published wiki folder, in reader order.
+
+    Publishing the folder is the explicit act that exposes its docs, so every
+    unarchived doc child is included unless the owner hid it in Wiki settings
+    (view_props.wiki.hidden). view_props.wiki.order (list of page ids) wins;
+    docs not listed there keep creation order after the ordered ones.
+    """
+    children = list(
+        Page.objects.filter(
+            workspace_id=folder.workspace_id,
+            parent_id=folder.id,
+            page_type=Page.PAGE_TYPE_DOC,
+            archived_at__isnull=True,
+        ).order_by("created_at")
+    )
+    view_props = folder.view_props if isinstance(folder.view_props, dict) else {}
+    wiki_props = view_props.get("wiki") if isinstance(view_props.get("wiki"), dict) else {}
+    hidden = {str(page_id) for page_id in (wiki_props.get("hidden") or []) if page_id}
+    children = [page for page in children if str(page.id) not in hidden]
+    order = [str(page_id) for page_id in (wiki_props.get("order") or []) if page_id]
+    rank = {page_id: index for index, page_id in enumerate(order)}
+    children.sort(key=lambda page: (rank.get(str(page.id), len(order)),))
+
+    return [
+        {
+            "id": str(page.id),
+            "name": page.name,
+            "description_html": page.description_html,
+            "mentions": _public_page_mentions(page),
+            "updated_at": page.updated_at,
+        }
+        for page in children
+    ]
+
+
+def _page_by_public_slug(workspace_slug, page_slug, **extra_filters):
+    return (
+        Page.objects.filter(
+            workspace__slug=workspace_slug,
+            archived_at__isnull=True,
+            **extra_filters,
+        )
+        .select_related("owned_by")
+        .annotate(id_slug=Cast(F("id"), output_field=TextField()))
+        .filter(
+            Q(view_props__public_slug=page_slug)
+            | Q(view_props__public_slug__isnull=True, id_slug=page_slug)
+            | Q(view_props__public_slug="", id_slug=page_slug)
+        )
+        .prefetch_related("projects")
+        .first()
+    )
+
+
 class PublicPageBySlugEndpoint(BaseAPIView):
     permission_classes = [AllowAny]
 
     def get(self, request, workspace_slug, page_slug):
-        page = (
-            Page.objects.filter(
-                workspace__slug=workspace_slug,
-                access=Page.PUBLIC_ACCESS,
-                archived_at__isnull=True,
-            )
-            .select_related("owned_by")
-            .annotate(id_slug=Cast(F("id"), output_field=TextField()))
-            .filter(
-                Q(view_props__public_slug=page_slug)
-                | Q(view_props__public_slug__isnull=True, id_slug=page_slug)
-                | Q(view_props__public_slug="", id_slug=page_slug)
-            )
-            .prefetch_related("projects")
-            .first()
-        )
+        page = _page_by_public_slug(workspace_slug, page_slug, access=Page.PUBLIC_ACCESS)
+        is_preview = False
+
+        # Owner preview: an UNPUBLISHED wiki folder still renders for signed-in
+        # workspace members so they can see the reader before publishing. Only
+        # folders — private doc publishing semantics stay untouched.
+        if not page and request.user and request.user.is_authenticated:
+            candidate = _page_by_public_slug(workspace_slug, page_slug, page_type=Page.PAGE_TYPE_FOLDER)
+            if (
+                candidate
+                and WorkspaceMember.objects.filter(
+                    workspace_id=candidate.workspace_id, member=request.user, is_active=True
+                ).exists()
+            ):
+                page = candidate
+                is_preview = True
 
         if not page:
             return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -196,6 +251,8 @@ class PublicPageBySlugEndpoint(BaseAPIView):
 
         return Response(
             {
+                "is_preview": is_preview,
+                "wiki_docs": _public_wiki_docs(page) if page.page_type == Page.PAGE_TYPE_FOLDER else None,
                 "id": str(page.id),
                 "workspace_slug": workspace_slug,
                 "project_id": str(project.id) if project else None,

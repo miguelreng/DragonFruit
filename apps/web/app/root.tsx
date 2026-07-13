@@ -57,7 +57,7 @@ export const links: LinksFunction = () => [
   },
   {
     rel: "preload",
-    href: "/fonts/Newsreader-Variable.ttf",
+    href: "/fonts/SortsMillGoudy-Regular.ttf",
     as: "font",
     type: "font/ttf",
     crossOrigin: "anonymous",
