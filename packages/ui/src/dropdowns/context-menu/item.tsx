@@ -32,7 +32,10 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
 
   const contextMenuContext = useContext(ContextMenuContext);
   const hasNestedItems = item.nestedMenuItems && item.nestedMenuItems.length > 0;
-  const renderedNestedItems = item.nestedMenuItems?.filter((nestedItem) => nestedItem.shouldRender !== false) || [];
+  const renderedNestedItems = React.useMemo(
+    () => item.nestedMenuItems?.filter((nestedItem) => nestedItem.shouldRender !== false) || [],
+    [item.nestedMenuItems]
+  );
 
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement: "right-start",
@@ -76,11 +79,11 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
     e.stopPropagation();
 
     if (hasNestedItems) {
-      // Toggle nested menu
+      // Clicking a submenu trigger should make the submenu stable, not collapse it if hover already opened it.
       if (!isNestedOpen && contextMenuContext) {
         contextMenuContext.closeAllSubmenus();
       }
-      setIsNestedOpen(!isNestedOpen);
+      setIsNestedOpen(true);
     } else {
       // Execute action for regular items
       item.action();
@@ -100,17 +103,20 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
     }
   };
 
-  const handleNestedItemClick = (nestedItem: TContextMenuItem, e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const handleNestedItemClick = React.useCallback(
+    (nestedItem: TContextMenuItem, e?: React.MouseEvent) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
 
-    nestedItem.action();
-    if (nestedItem.closeOnClick !== false) {
-      handleClose(); // Close the entire context menu
-    }
-  };
+      nestedItem.action();
+      if (nestedItem.closeOnClick !== false) {
+        handleClose(); // Close the entire context menu
+      }
+    },
+    [handleClose]
+  );
 
   // Handle keyboard navigation for nested items
   React.useEffect(() => {
@@ -148,7 +154,7 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
         menuElement.removeEventListener("keydown", handleKeyDown);
       };
     }
-  }, [isNestedOpen, activeNestedIndex, renderedNestedItems, hasNestedItems, closeNestedMenu]);
+  }, [isNestedOpen, activeNestedIndex, renderedNestedItems, hasNestedItems, closeNestedMenu, handleNestedItemClick]);
 
   if (item.shouldRender === false) return null;
 
@@ -160,7 +166,7 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
         className={cn(
           "flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-13 text-secondary select-none",
           {
-            "bg-layer-transparent-hover": isActive,
+            "bg-layer-transparent-hover text-primary": isActive || isNestedOpen,
             "text-placeholder": item.disabled,
           },
           item.className
@@ -194,52 +200,61 @@ export function ContextMenuItem(props: ContextMenuItemProps) {
         <Portal container={contextMenuContext?.portalContainer}>
           <div
             ref={setPopperElement}
-            style={styles.popper}
+            style={{
+              ...styles.popper,
+              visibility: attributes.popper?.["data-popper-placement"] ? "visible" : "hidden",
+            }}
             {...attributes.popper}
-            className="fixed z-[35] min-w-[12rem] overflow-hidden rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-2.5 text-13"
+            className="fixed z-[35]"
             data-context-submenu="true"
           >
-            <div ref={nestedMenuRef} className="vertical-scrollbar scrollbar-sm max-h-72 overflow-y-scroll">
-              {renderedNestedItems.map((nestedItem, index) => (
-                <button
-                  key={nestedItem.key}
-                  type="button"
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-13 text-secondary select-none",
-                    {
-                      "bg-layer-transparent-hover": index === activeNestedIndex,
-                      "text-placeholder": nestedItem.disabled,
-                    },
-                    nestedItem.className
-                  )}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleNestedItemClick(nestedItem, e);
-                  }}
-                  onMouseEnter={() => setActiveNestedIndex(index)}
-                  disabled={nestedItem.disabled}
-                  data-context-submenu="true"
-                >
-                  {nestedItem.customContent ?? (
-                    <>
-                      {nestedItem.icon && <nestedItem.icon className={cn("h-3 w-3", nestedItem.iconClassName)} />}
-                      <div>
-                        <h5>{nestedItem.title}</h5>
-                        {nestedItem.description && (
-                          <p
-                            className={cn("whitespace-pre-line text-tertiary", {
-                              "text-placeholder": nestedItem.disabled,
-                            })}
-                          >
-                            {nestedItem.description}
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </button>
-              ))}
+            <div
+              className="t-dropdown is-open min-w-[12rem] overflow-hidden rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-2.5 text-13 shadow-raised-200"
+              data-context-submenu="true"
+              data-popper-placement={attributes.popper?.["data-popper-placement"]}
+            >
+              <div ref={nestedMenuRef} className="vertical-scrollbar scrollbar-sm max-h-72 overflow-y-scroll">
+                {renderedNestedItems.map((nestedItem, index) => (
+                  <button
+                    key={nestedItem.key}
+                    type="button"
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-13 text-secondary select-none",
+                      {
+                        "bg-layer-transparent-hover": index === activeNestedIndex,
+                        "text-placeholder": nestedItem.disabled,
+                      },
+                      nestedItem.className
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleNestedItemClick(nestedItem, e);
+                    }}
+                    onMouseEnter={() => setActiveNestedIndex(index)}
+                    disabled={nestedItem.disabled}
+                    data-context-submenu="true"
+                  >
+                    {nestedItem.customContent ?? (
+                      <>
+                        {nestedItem.icon && <nestedItem.icon className={cn("h-3 w-3", nestedItem.iconClassName)} />}
+                        <div>
+                          <h5>{nestedItem.title}</h5>
+                          {nestedItem.description && (
+                            <p
+                              className={cn("whitespace-pre-line text-tertiary", {
+                                "text-placeholder": nestedItem.disabled,
+                              })}
+                            >
+                              {nestedItem.description}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </Portal>

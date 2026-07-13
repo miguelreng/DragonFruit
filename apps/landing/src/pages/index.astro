@@ -20,12 +20,78 @@ const problemCards = [
   {
     number: "02",
     title: "AI starts from a blank prompt.",
-    body: "Generic chats can be useful, but they do not know the project, the source material, or what the team already decided.",
+    body: "Generic chats can be useful, but they don't know the project, the source material, or what the team already decided.",
   },
   {
     number: "03",
     title: "Project work turns into project archaeology.",
     body: "Before anyone can ship, someone has to reconstruct the plan, rewrite the brief, and guess what still matters.",
+  },
+];
+
+const featureCards = [
+  {
+    meta: "Tasks",
+    title: "Tasks without the machinery.",
+    body: "States, owners, due dates, and per-project custom fields. No sprints, no story points, no setup tax.",
+    isNew: false,
+  },
+  {
+    meta: "Docs",
+    title: "Docs that stay organized.",
+    body: "A calm collaborative editor with folders, templates, and doc-to-doc mentions that keep context linked.",
+    isNew: false,
+  },
+  {
+    meta: "Sheets",
+    title: "Spreadsheets, next to the work.",
+    body: "Real sheets with formulas and tabs, living beside your docs — and Atlas can build or update them from a prompt.",
+    isNew: true,
+  },
+  {
+    meta: "Workflows",
+    title: "Automations you can draw.",
+    body: "Sketch trigger → condition → action flows on a canvas and let Atlas run the routine parts.",
+    isNew: true,
+  },
+  {
+    meta: "Capture",
+    title: "Capture from anywhere.",
+    body: "Clip AI conversations and research into the workspace with the Chrome extension, or drop in raw meeting notes.",
+    isNew: false,
+  },
+  {
+    meta: "Integrations",
+    title: "Atlas, connected.",
+    body: "Plug in your tools with MCP connectors so Atlas can reach the systems your work already lives in.",
+    isNew: false,
+  },
+];
+
+const switchSources = [
+  {
+    tool: "From Trello",
+    mappings: [
+      ["Boards", "Projects"],
+      ["Cards", "Tasks"],
+      ["Labels", "Labels"],
+    ],
+  },
+  {
+    tool: "From Asana",
+    mappings: [
+      ["Projects", "Projects"],
+      ["Sections", "States"],
+      ["Assignees", "Owners"],
+    ],
+  },
+  {
+    tool: "From Notion",
+    mappings: [
+      ["Databases", "Task lists"],
+      ["Pages", "Docs"],
+      ["Tags", "Labels"],
+    ],
   },
 ];
 
@@ -42,7 +108,7 @@ const solutionCards = [
   },
   {
     meta: "Triage",
-    title: "See what is stuck before the meeting.",
+    title: "See what's stuck before the meeting.",
     body: "Atlas can surface missing owners, unresolved questions, stale docs, and risky next steps while the project is still movable.",
   },
   {
@@ -55,7 +121,11 @@ const solutionCards = [
 const faqs = [
   {
     question: "What is DragonFruit?",
-    answer: "An open-source tasks and docs workspace with one built-in AI teammate, Atlas.",
+    answer: "An open-source workspace for tasks, docs, and sheets, with one built-in AI teammate, Atlas.",
+  },
+  {
+    question: "What are Sheets?",
+    answer: "Lightweight spreadsheets that live alongside your docs — formulas, multiple tabs, no separate app. Atlas can create or update a sheet from a prompt.",
   },
   {
     question: "Is Atlas included in the free Cloud plan?",
@@ -63,7 +133,7 @@ const faqs = [
   },
   {
     question: "Can I self-host it?",
-    answer: "Yes. DragonFruit is AGPL open source, so self-hosting is part of the trust model and funnel.",
+    answer: "Yes. DragonFruit is AGPL open source. Run it on your own infrastructure, bring your own model key, and keep full control of your data.",
   },
   {
     question: "How does AI pricing work?",
@@ -73,19 +143,19 @@ const faqs = [
 ---
 
 <BaseLayout
-  title="DragonFruit — Tasks, docs, and one AI teammate"
-  description="DragonFruit is an open-source tasks and docs workspace with Atlas, one AI teammate for creators, technical teams, and creative studios."
+  title="DragonFruit — Tasks, docs, sheets, and one AI teammate"
+  description="DragonFruit is an open-source workspace for tasks, docs, and sheets with Atlas, one AI teammate who organizes, drafts, and triages — and asks before anything risky."
   bodyClass="home-page"
 >
   <main class="landing-main">
     <section class="landing-hero" aria-labelledby="hero-title">
       <SiteHeader />
       <div class="landing-hero-copy">
-        <p class="meta">Open-source tasks + docs with Atlas</p>
-        <h1 id="hero-title">Your project manager that actually knows the project.</h1>
+        <p class="meta">Atlas™ drafts. You approve.</p>
+        <h1 id="hero-title">Where ideas become work.</h1>
         <p>
-          DragonFruit keeps tasks, docs, notes, and decisions in one calm place. Atlas turns messy project context into
-          drafts, next steps, and clean handoffs, then asks before anything risky changes.
+          DragonFruit™ is the calm workspace — tasks, docs, and sheets — where Atlas, your AI teammate, turns raw
+          notes into drafts, plans, and shipped tasks.
         </p>
         <div class="landing-actions">
           <a class="primary-action" href="https://app.dragonfruit.sh">Start free</a>
@@ -94,6 +164,7 @@ const faqs = [
         <div class="landing-proof" aria-label="DragonFruit principles">
           <span>Tasks</span>
           <span>Docs</span>
+          <span>Sheets</span>
           <span>Atlas</span>
           <span>BYOK</span>
           <span>AGPL</span>
@@ -112,6 +183,7 @@ const faqs = [
             <span class="product-sidebar-title">DragonFruit</span>
             <span class="product-sidebar-item is-active">Launch room</span>
             <span class="product-sidebar-item">Docs</span>
+            <span class="product-sidebar-item">Sheets</span>
             <span class="product-sidebar-item">Tasks</span>
             <span class="product-sidebar-item">Atlas</span>
           </div>
@@ -190,7 +262,7 @@ const faqs = [
     <section class="reference-proof" aria-labelledby="proof-title">
       <div class="reference-proof-heading">
         <p class="meta">Built for the work between thinking and shipping</p>
-        <h2 id="proof-title">One workspace for creators, people in tech, creative teams, and self-host builders.</h2>
+        <h2 id="proof-title">One workspace for creators, tech teams, creative studios, and self-host builders.</h2>
       </div>
       <div class="proof-strip" aria-label="DragonFruit audiences">
         {proofItems.map(([label, body]) => (
@@ -205,7 +277,7 @@ const faqs = [
     <section class="landing-section problem-section" aria-labelledby="problem-title">
       <div class="landing-section-heading is-centered">
         <p class="meta">The problem</p>
-        <h2 id="problem-title">The project loop is broken.</h2>
+        <h2 id="problem-title">The gap between idea and work is where momentum dies.</h2>
         <p>
           Most tools separate the thing you know from the thing you need to do next. That leaves everyone rebuilding
           context instead of moving the work forward.
@@ -226,10 +298,10 @@ const faqs = [
     <section class="landing-section solution-section" id="product" aria-labelledby="solution-title">
       <div class="landing-section-heading is-centered">
         <p class="meta">Atlas</p>
-        <h2 id="solution-title">Use thoughtful AI to make the first draft.</h2>
+        <h2 id="solution-title">Hand off the busywork. Keep the credit.</h2>
         <p>
-          Atlas reads the project around it, then helps create the useful first version: the brief, the plan, the task
-          list, or the decision summary.
+          Give Atlas the raw idea. He reads the project around it and drafts the useful first version: the brief, the
+          plan, the task list, or the decision summary.
         </p>
       </div>
 
@@ -242,6 +314,60 @@ const faqs = [
           </article>
         ))}
       </div>
+    </section>
+
+    <section class="landing-section feature-section" id="features" aria-labelledby="features-title">
+      <div class="landing-section-heading is-centered">
+        <p class="meta">What's inside</p>
+        <h2 id="features-title">A full workspace, kept deliberately small.</h2>
+        <p>
+          Six sharp tools instead of forty modules. Everything lives in one place, so everything is context Atlas can
+          work with.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        {featureCards.map((feature) => (
+          <article class="feature-card">
+            {feature.isNew && <span class="feature-new">New</span>}
+            <span class="feature-meta">{feature.meta}</span>
+            <h3>{feature.title}</h3>
+            <p>{feature.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="landing-section switch-section" id="switch" aria-labelledby="switch-title">
+      <div class="landing-section-heading is-centered">
+        <p class="meta">Switching</p>
+        <h2 id="switch-title">Bring your current setup with you.</h2>
+        <p>
+          Export from the tool you're leaving and land it here in an afternoon. Boards, projects, and pages arrive as
+          native tasks and docs — nothing to rebuild by hand.
+        </p>
+      </div>
+
+      <div class="switch-strip" aria-label="Supported migrations">
+        {switchSources.map((source) => (
+          <article>
+            <strong>{source.tool}</strong>
+            <ul>
+              {source.mappings.map(([from, to]) => (
+                <li>
+                  {from}
+                  <span>→ {to}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+
+      <p class="switch-note">
+        One-time import instead of a fragile two-way sync — your old tool stays untouched while you settle in. Once
+        everything lands, Atlas triages the pile: owners, states, duplicates, and the real next steps.
+      </p>
     </section>
 
     <section class="landing-section" aria-labelledby="pricing-title">

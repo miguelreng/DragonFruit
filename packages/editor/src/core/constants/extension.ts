@@ -49,6 +49,7 @@ export enum CORE_EXTENSIONS {
   UTILITY = "utility",
   WORK_ITEM_EMBED = "issue-embed-component",
   DOC_EMBED = "doc-embed-component",
+  CHART = "chart-component",
   EMOJI = "emoji",
   UNIQUE_ID = "uniqueID",
   BLOCK_COMMENT = "blockComment",
@@ -79,4 +80,5 @@ export const BLOCK_NODE_TYPES = [
   CORE_EXTENSIONS.CALLOUT,
   CORE_EXTENSIONS.WORK_ITEM_EMBED,
   CORE_EXTENSIONS.DOC_EMBED,
+  CORE_EXTENSIONS.CHART,
 ];

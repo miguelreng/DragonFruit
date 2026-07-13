@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "react-router";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUserProfile } from "@/hooks/store/user";
@@ -44,11 +44,7 @@ function ProfileSettingsRedirect() {
     }
   }, [currentWorkspace, workspaces, userProfile, tab, router]);
 
-  return (
-    <div className="grid size-full place-items-center px-4">
-      <LogoSpinner />
-    </div>
-  );
+  return <AppLoadingScreen />;
 }
 
 export default observer(ProfileSettingsRedirect);

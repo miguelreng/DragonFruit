@@ -4,7 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+/* eslint-disable react/no-array-index-key, unicorn/consistent-function-scoping, jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-autofocus, oxc/no-map-spread */
+
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { debounce } from "lodash-es";
 import { cn } from "@plane/utils";
@@ -15,6 +17,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Bold,
+  ChartNoAxesColumn,
   Check,
   ChevronDown,
   Copy,
@@ -71,6 +74,9 @@ import {
   serializeSelected,
   rangeToTSV,
   writeMatrix,
+  chartDataFromRange,
+  rangeRef,
+  SHEET_CHART_TYPES,
   SHEET_DEFAULT_COL_WIDTH,
   SHEET_MAX_COL_WIDTH,
   SHEET_MAX_COLS,
@@ -86,9 +92,12 @@ import {
   type TColumnSelect,
   type TNumberFormatOption,
   type TSelectOption,
+  type TSheetChart,
+  type TSheetChartType,
   type TSheetGrid,
   type TSheetSnapshot,
 } from "./sheet-utils";
+import type { TChartSpec } from "@/components/chart/spec";
 
 type Props = {
   page: TPageInstance;
@@ -149,6 +158,25 @@ const normRect = (r1: number, c1: number, r2: number, c2: number): Rect => ({
 });
 const inRect = (rect: Rect | null, r: number, c: number): boolean =>
   !!rect && r >= rect.r1 && r <= rect.r2 && c >= rect.c1 && c <= rect.c2;
+
+// Charts pull in recharts — lazy so sheets without charts don't pay for it.
+const LazyChartSpecView = lazy(() =>
+  import("@/components/chart/spec-view").then((module) => ({ default: module.ChartSpecView }))
+);
+
+/** Compose the renderer spec for a sheet chart from its live range data. */
+const sheetChartSpec = (grid: TSheetGrid, chart: TSheetChart): TChartSpec | null => {
+  const data = chartDataFromRange(grid, chart.range);
+  if (!data) return null;
+  return {
+    version: 1,
+    type: chart.type,
+    ...(chart.title ? { title: chart.title } : {}),
+    labels: data.labels,
+    series: data.series,
+    ...(chart.options ? { options: chart.options } : {}),
+  };
+};
 
 export const SheetEditor = observer(function SheetEditor({ page, handlers, isEditable }: Props) {
   const [snapshot, setSnapshot] = useState<TSheetSnapshot>(() => getInitialSnapshot(page.description_json));
@@ -302,21 +330,77 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     [commitGrid]
   );
 
+  // ---- Floating charts ----
+  const insertChart = useCallback(() => {
+    if (!isEditable) return;
+    const focusedCell = focused ? parseCellId(focused) : null;
+    const rect =
+      selection ??
+      (focusedCell ? { r1: focusedCell.row, c1: focusedCell.col, r2: focusedCell.row, c2: focusedCell.col } : null);
+    if (!rect) return;
+    const range = rangeRef(normRect(rect.r1, rect.c1, rect.r2, rect.c2));
+    commitGrid((grid) => {
+      const existing = grid.charts ?? [];
+      // Cascade new cards so stacked inserts stay individually grabbable.
+      const offset = (existing.length % 5) * 32;
+      const chart: TSheetChart = {
+        id: `chart-${Date.now()}`,
+        type: "bar",
+        range,
+        x: SHEET_ROWNUM_WIDTH + 24 + offset,
+        y: 24 + offset,
+        w: 460,
+        h: 300,
+      };
+      return { ...grid, charts: [...existing, chart] };
+    });
+  }, [isEditable, focused, selection, commitGrid]);
+
+  const updateChart = useCallback(
+    (id: string, patch: Partial<TSheetChart>) => {
+      commitGrid((grid) => ({
+        ...grid,
+        charts: (grid.charts ?? []).map((chart) => (chart.id === id ? { ...chart, ...patch } : chart)),
+      }));
+    },
+    [commitGrid]
+  );
+
+  const deleteChart = useCallback(
+    (id: string) => {
+      commitGrid((grid) => ({ ...grid, charts: (grid.charts ?? []).filter((chart) => chart.id !== id) }));
+    },
+    [commitGrid]
+  );
+
+  // Current selection as an A1 range — lets chart cards re-bind to it.
+  const selectionRangeRef = useMemo(
+    () => (selection ? rangeRef(normRect(selection.r1, selection.c1, selection.r2, selection.c2)) : null),
+    [selection]
+  );
+
   // Format the active selection (or the focused cell), bounded to real cells so
   // selecting a whole column doesn't write formats onto empty filler cells.
   const applyFormat = useCallback(
     (partial: Partial<TCellFormat>) => {
       if (!isEditable) return;
-      const rect = selection ?? (focused ? (() => { const p = parseCellId(focused); return p ? { r1: p.row, c1: p.col, r2: p.row, c2: p.col } : null; })() : null);
+      const rect =
+        selection ??
+        (focused
+          ? (() => {
+              const p = parseCellId(focused);
+              return p ? { r1: p.row, c1: p.col, r2: p.row, c2: p.col } : null;
+            })()
+          : null);
       if (!rect) return;
       commitGrid((grid) => {
-        const formats = { ...(grid.formats ?? {}) };
+        const formats = { ...grid.formats };
         const rMax = Math.min(rect.r2, grid.rows - 1);
         const cMax = Math.min(rect.c2, grid.cols - 1);
         for (let r = rect.r1; r <= rMax; r++) {
           for (let c = rect.c1; c <= cMax; c++) {
             const id = cellId(r, c);
-            const next: TCellFormat = { ...(formats[id] ?? {}), ...partial };
+            const next: TCellFormat = { ...formats[id], ...partial };
             if (isEmptyFormat(next)) delete formats[id];
             else formats[id] = next;
           }
@@ -330,15 +414,29 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const applyBordersToSelection = useCallback(
     (position: TBorderPosition, style: { color: string; width: number; style: TCellBorderStyle }) => {
       if (!isEditable) return;
-      const rect = selection ?? (focused ? (() => { const p = parseCellId(focused); return p ? { r1: p.row, c1: p.col, r2: p.row, c2: p.col } : null; })() : null);
+      const rect =
+        selection ??
+        (focused
+          ? (() => {
+              const p = parseCellId(focused);
+              return p ? { r1: p.row, c1: p.col, r2: p.row, c2: p.col } : null;
+            })()
+          : null);
       if (!rect) return;
       commitGrid((grid) =>
-        applyBorders(grid, rect.r1, rect.c1, Math.min(rect.r2, grid.rows - 1), Math.min(rect.c2, grid.cols - 1), position, style)
+        applyBorders(
+          grid,
+          rect.r1,
+          rect.c1,
+          Math.min(rect.r2, grid.rows - 1),
+          Math.min(rect.c2, grid.cols - 1),
+          position,
+          style
+        )
       );
     },
     [commitGrid, focused, isEditable, selection]
   );
-
 
   // Column drag-resize.
   const startResize = useCallback(
@@ -350,7 +448,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       const startWidth = colWidth(active, col);
       const onMove = (e: MouseEvent) => {
         const width = Math.min(Math.max(startWidth + (e.clientX - startX), SHEET_MIN_COL_WIDTH), SHEET_MAX_COL_WIDTH);
-        commitGrid((grid) => ({ ...grid, colWidths: { ...(grid.colWidths ?? {}), [col]: width } }));
+        commitGrid((grid) => ({ ...grid, colWidths: { ...grid.colWidths, [col]: width } }));
       };
       const onUp = () => {
         window.removeEventListener("mousemove", onMove);
@@ -421,8 +519,11 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
         const text = formatDisplayValue(computeCell(cellId(r, col), active.cells), fmt);
         max = Math.max(max, ctx.measureText(text).width);
       }
-      const width = max > 0 ? Math.min(Math.max(Math.ceil(max) + 24, SHEET_MIN_COL_WIDTH), SHEET_MAX_COL_WIDTH) : SHEET_DEFAULT_COL_WIDTH;
-      commitGrid((grid) => ({ ...grid, colWidths: { ...(grid.colWidths ?? {}), [col]: width } }));
+      const width =
+        max > 0
+          ? Math.min(Math.max(Math.ceil(max) + 24, SHEET_MIN_COL_WIDTH), SHEET_MAX_COL_WIDTH)
+          : SHEET_DEFAULT_COL_WIDTH;
+      commitGrid((grid) => ({ ...grid, colWidths: { ...grid.colWidths, [col]: width } }));
     },
     [active, commitGrid, isEditable]
   );
@@ -437,7 +538,11 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const addSheet = () => {
     if (!isEditable) return;
     const id = `sheet-${Date.now()}`;
-    commit((prev) => ({ ...prev, sheets: [...prev.sheets, createGrid(id, `Sheet ${prev.sheets.length + 1}`)], activeId: id }));
+    commit((prev) => ({
+      ...prev,
+      sheets: [...prev.sheets, createGrid(id, `Sheet ${prev.sheets.length + 1}`)],
+      activeId: id,
+    }));
     setFocused(null);
     setSelection(null);
   };
@@ -480,9 +585,25 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   // `over` is the insertion slot (0..sheets.length): the dragged tab lands
   // *before* the tab at `over`, or after the last tab when `over === length`.
   const tabBarRef = useRef<HTMLDivElement>(null);
-  const tabDragRef = useRef<{ from: number; over: number; startX: number; moved: boolean; offsetX: number; offsetY: number; width: number; height: number } | null>(null);
+  const tabDragRef = useRef<{
+    from: number;
+    over: number;
+    startX: number;
+    moved: boolean;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const didDragTabRef = useRef(false);
-  const [tabDrag, setTabDrag] = useState<{ from: number; over: number; x: number; y: number; width: number; height: number } | null>(null);
+  const [tabDrag, setTabDrag] = useState<{
+    from: number;
+    over: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
   // Convert an insertion slot to the post-removal index moveSheet expects.
   const tabDropDest = (from: number, over: number) => (over > from ? over - 1 : over);
   const startTabDrag = (event: React.MouseEvent, from: number) => {
@@ -550,7 +671,8 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   };
   const renameSheet = (id: string, name: string) => {
     const trimmed = name.trim();
-    if (trimmed) commit((prev) => ({ ...prev, sheets: prev.sheets.map((s) => (s.id === id ? { ...s, name: trimmed } : s)) }));
+    if (trimmed)
+      commit((prev) => ({ ...prev, sheets: prev.sheets.map((s) => (s.id === id ? { ...s, name: trimmed } : s)) }));
   };
 
   // Measure the scroll viewport to fill it with fixed-height rows / columns.
@@ -559,7 +681,11 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     const el = wrapRef.current;
     if (!el) return;
     const measure = () =>
-      setViewport((v) => ({ width: el.clientWidth, height: el.clientHeight, maxWidth: Math.max(v.maxWidth, el.clientWidth) }));
+      setViewport((v) => ({
+        width: el.clientWidth,
+        height: el.clientHeight,
+        maxWidth: Math.max(v.maxWidth, el.clientWidth),
+      }));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -612,7 +738,11 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const mentionItems =
     suggestKind === "mention" && mentionQuery !== null
       ? members
-          .filter((m) => memberLabel(m).toLowerCase().includes(mentionQuery) || (m.email ?? "").toLowerCase().includes(mentionQuery))
+          .filter(
+            (m) =>
+              memberLabel(m).toLowerCase().includes(mentionQuery) ||
+              (m.email ?? "").toLowerCase().includes(mentionQuery)
+          )
           .slice(0, 6)
       : [];
   const suggestCount = suggestKind === "formula" ? formulaItems.length : mentionItems.length;
@@ -741,7 +871,10 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       const cur =
         selectionActiveRef.current ??
         (selection
-          ? { row: selection.r1 === row ? selection.r2 : selection.r1, col: selection.c1 === col ? selection.c2 : selection.c1 }
+          ? {
+              row: selection.r1 === row ? selection.r2 : selection.r1,
+              col: selection.c1 === col ? selection.c2 : selection.c1,
+            }
           : { row, col });
       const nr = Math.max(0, Math.min(cur.row + dr, renderRows - 1));
       const nc = Math.max(0, Math.min(cur.col + dc, renderCols - 1));
@@ -790,7 +923,12 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const renderSuggestions = (anchorClass: string) => {
     if (suggestKind === "formula" && formulaItems.length > 0) {
       return (
-        <div className={cn("absolute z-30 mt-px max-h-56 w-52 overflow-auto rounded-md border border-subtle bg-surface-1 py-1 text-left shadow-lg", anchorClass)}>
+        <div
+          className={cn(
+            "shadow-lg absolute z-30 mt-px max-h-56 w-52 overflow-auto rounded-md border border-subtle bg-surface-1 py-1 text-left",
+            anchorClass
+          )}
+        >
           {formulaItems.map((fn, i) => (
             <button
               key={fn}
@@ -799,7 +937,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                 e.preventDefault();
                 acceptFormula(fn);
               }}
-              className={cn("block w-full px-3 py-1 text-left font-mono text-12", {
+              className={cn("font-mono block w-full px-3 py-1 text-left text-12", {
                 "bg-layer-2 text-primary": i === activeSuggest,
                 "text-secondary hover:bg-layer-1": i !== activeSuggest,
               })}
@@ -812,7 +950,12 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     }
     if (suggestKind === "mention" && mentionItems.length > 0) {
       return (
-        <div className={cn("absolute z-30 mt-px max-h-60 w-64 overflow-auto rounded-md border border-subtle bg-surface-1 py-1 text-left shadow-lg", anchorClass)}>
+        <div
+          className={cn(
+            "shadow-lg absolute z-30 mt-px max-h-60 w-64 overflow-auto rounded-md border border-subtle bg-surface-1 py-1 text-left",
+            anchorClass
+          )}
+        >
           {mentionItems.map((m, i) => (
             <button
               key={m.id}
@@ -882,7 +1025,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   };
   const setColumnFilter = (col: number, filter: TColumnFilter | null) => {
     commitGrid((grid) => {
-      const filters = { ...(grid.filters ?? {}) };
+      const filters = { ...grid.filters };
       if (!filter || (!(filter.hidden?.length ?? 0) && !filter.query?.trim())) delete filters[col];
       else filters[col] = filter;
       return { ...grid, filters };
@@ -890,7 +1033,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   };
   const setColumnSelect = (col: number, config: TColumnSelect | null) => {
     commitGrid((grid) => {
-      const selects = { ...(grid.selects ?? {}) };
+      const selects = { ...grid.selects };
       if (!config || config.options.length === 0) delete selects[col];
       else selects[col] = config;
       return { ...grid, selects };
@@ -998,29 +1141,77 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const menuItems: { label: string; icon: React.ReactNode; run: () => void }[] =
     menu?.kind === "col"
       ? [
-          { label: "Insert column left", icon: <Plus className={menuIcon} />, run: () => commitGrid((g) => insertColumn(g, menu.index)) },
-          { label: "Insert column right", icon: <Plus className={menuIcon} />, run: () => commitGrid((g) => insertColumn(g, menu.index + 1)) },
-          { label: "Delete column", icon: <Trash className={menuIcon} />, run: () => commitGrid((g) => deleteColumn(g, menu.index)) },
-          { label: "Clear column", icon: <Eraser className={menuIcon} />, run: () => commitGrid((g) => clearColumn(g, menu.index)) },
+          {
+            label: "Insert column left",
+            icon: <Plus className={menuIcon} />,
+            run: () => commitGrid((g) => insertColumn(g, menu.index)),
+          },
+          {
+            label: "Insert column right",
+            icon: <Plus className={menuIcon} />,
+            run: () => commitGrid((g) => insertColumn(g, menu.index + 1)),
+          },
+          {
+            label: "Delete column",
+            icon: <Trash className={menuIcon} />,
+            run: () => commitGrid((g) => deleteColumn(g, menu.index)),
+          },
+          {
+            label: "Clear column",
+            icon: <Eraser className={menuIcon} />,
+            run: () => commitGrid((g) => clearColumn(g, menu.index)),
+          },
           {
             label: active.selects?.[menu.index] ? "Edit dropdown…" : "Dropdown…",
             icon: <ChevronDown className={menuIcon} />,
             run: () => setSelectConfig({ col: menu.index, x: menu.x, y: menu.y }),
           },
           ...(active.selects?.[menu.index]
-            ? [{ label: "Remove dropdown", icon: <X className={menuIcon} />, run: () => setColumnSelect(menu.index, null) }]
+            ? [
+                {
+                  label: "Remove dropdown",
+                  icon: <X className={menuIcon} />,
+                  run: () => setColumnSelect(menu.index, null),
+                },
+              ]
             : []),
-          { label: `Freeze up to column ${columnLabel(menu.index)}`, icon: <Pin className={menuIcon} />, run: () => commitGrid((g) => ({ ...g, frozenCols: menu.index + 1 })) },
+          {
+            label: `Freeze up to column ${columnLabel(menu.index)}`,
+            icon: <Pin className={menuIcon} />,
+            run: () => commitGrid((g) => ({ ...g, frozenCols: menu.index + 1 })),
+          },
           ...(frozen > 0
-            ? [{ label: "Unfreeze columns", icon: <PinOff className={menuIcon} />, run: () => commitGrid((g) => ({ ...g, frozenCols: 0 })) }]
+            ? [
+                {
+                  label: "Unfreeze columns",
+                  icon: <PinOff className={menuIcon} />,
+                  run: () => commitGrid((g) => ({ ...g, frozenCols: 0 })),
+                },
+              ]
             : []),
         ]
       : menu?.kind === "row"
         ? [
-            { label: "Insert row above", icon: <Plus className={menuIcon} />, run: () => commitGrid((g) => insertRow(g, menu.index)) },
-            { label: "Insert row below", icon: <Plus className={menuIcon} />, run: () => commitGrid((g) => insertRow(g, menu.index + 1)) },
-            { label: "Delete row", icon: <Trash className={menuIcon} />, run: () => commitGrid((g) => deleteRow(g, menu.index)) },
-            { label: "Clear row", icon: <Eraser className={menuIcon} />, run: () => commitGrid((g) => clearRow(g, menu.index)) },
+            {
+              label: "Insert row above",
+              icon: <Plus className={menuIcon} />,
+              run: () => commitGrid((g) => insertRow(g, menu.index)),
+            },
+            {
+              label: "Insert row below",
+              icon: <Plus className={menuIcon} />,
+              run: () => commitGrid((g) => insertRow(g, menu.index + 1)),
+            },
+            {
+              label: "Delete row",
+              icon: <Trash className={menuIcon} />,
+              run: () => commitGrid((g) => deleteRow(g, menu.index)),
+            },
+            {
+              label: "Clear row",
+              icon: <Eraser className={menuIcon} />,
+              run: () => commitGrid((g) => clearRow(g, menu.index)),
+            },
           ]
         : [];
 
@@ -1046,25 +1237,60 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
           <ToolbarButton title="Bold" disabled={!focused} active={!!focusedFormat?.bold} onClick={() => toggle("bold")}>
             <Bold className="size-4" />
           </ToolbarButton>
-          <ToolbarButton title="Italic" disabled={!focused} active={!!focusedFormat?.italic} onClick={() => toggle("italic")}>
+          <ToolbarButton
+            title="Italic"
+            disabled={!focused}
+            active={!!focusedFormat?.italic}
+            onClick={() => toggle("italic")}
+          >
             <Italic className="size-4" />
           </ToolbarButton>
-          <ToolbarButton title="Strikethrough" disabled={!focused} active={!!focusedFormat?.strike} onClick={() => toggle("strike")}>
+          <ToolbarButton
+            title="Strikethrough"
+            disabled={!focused}
+            active={!!focusedFormat?.strike}
+            onClick={() => toggle("strike")}
+          >
             <Strikethrough className="size-4" />
           </ToolbarButton>
-          <ColorMenu title="Text color" disabled={!focused} value={focusedFormat?.color} onSelect={(color) => applyFormat({ color })} icon={<Type className="size-4" />} />
-          <ColorMenu title="Fill color" disabled={!focused} value={focusedFormat?.fill} palette={FILL_PALETTE} onSelect={(fill) => applyFormat({ fill })} icon={<PaintBucket className="size-4" />} />
+          <ColorMenu
+            title="Text color"
+            disabled={!focused}
+            value={focusedFormat?.color}
+            onSelect={(color) => applyFormat({ color })}
+            icon={<Type className="size-4" />}
+          />
+          <ColorMenu
+            title="Fill color"
+            disabled={!focused}
+            value={focusedFormat?.fill}
+            palette={FILL_PALETTE}
+            onSelect={(fill) => applyFormat({ fill })}
+            icon={<PaintBucket className="size-4" />}
+          />
           <Separator />
           <NumberFormatMenu
             disabled={!focused}
             numberFormat={focusedFormat?.numberFormat}
             currency={focusedFormat?.currency}
-            onSelect={(opt) => applyFormat({ numberFormat: opt.numberFormat, currency: opt.currency, decimals: undefined })}
+            onSelect={(opt) =>
+              applyFormat({ numberFormat: opt.numberFormat, currency: opt.currency, decimals: undefined })
+            }
           />
-          <ToolbarButton title="Format as currency" disabled={!focused} active={focusedFormat?.numberFormat === "currency"} onClick={() => setNumberFormat("currency")}>
+          <ToolbarButton
+            title="Format as currency"
+            disabled={!focused}
+            active={focusedFormat?.numberFormat === "currency"}
+            onClick={() => setNumberFormat("currency")}
+          >
             <DollarSign className="size-4" />
           </ToolbarButton>
-          <ToolbarButton title="Format as percent" disabled={!focused} active={focusedFormat?.numberFormat === "percent"} onClick={() => setNumberFormat("percent")}>
+          <ToolbarButton
+            title="Format as percent"
+            disabled={!focused}
+            active={focusedFormat?.numberFormat === "percent"}
+            onClick={() => setNumberFormat("percent")}
+          >
             <span className="text-13 font-medium">%</span>
           </ToolbarButton>
           <ToolbarButton title="Decrease decimal places" disabled={!focused} onClick={() => bumpDecimals(-1)}>
@@ -1074,29 +1300,48 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
             <span className="text-11 font-medium tracking-tight">.00</span>
           </ToolbarButton>
           <Separator />
-          <AlignMenu disabled={!focused} value={focusedFormat?.align ?? "left"} onSelect={(a) => applyFormat({ align: a })} />
-          <WrapMenu disabled={!focused} value={focusedFormat?.wrap ?? "overflow"} onSelect={(w) => applyFormat({ wrap: w })} />
+          <AlignMenu
+            disabled={!focused}
+            value={focusedFormat?.align ?? "left"}
+            onSelect={(a) => applyFormat({ align: a })}
+          />
+          <WrapMenu
+            disabled={!focused}
+            value={focusedFormat?.wrap ?? "overflow"}
+            onSelect={(w) => applyFormat({ wrap: w })}
+          />
           <BordersMenu disabled={!focused} onApply={applyBordersToSelection} />
           <Separator />
-          <ToolbarButton title={active.filterEnabled ? "Remove filter" : "Create filter"} active={!!active.filterEnabled} onClick={toggleFilters}>
+          <ToolbarButton
+            title={active.filterEnabled ? "Remove filter" : "Create filter"}
+            active={!!active.filterEnabled}
+            onClick={toggleFilters}
+          >
             <ListFilter className="size-4" />
+          </ToolbarButton>
+          <Separator />
+          <ToolbarButton title="Insert chart from selection" disabled={!selection && !focused} onClick={insertChart}>
+            <ChartNoAxesColumn className="size-4" />
           </ToolbarButton>
         </div>
       )}
 
       {/* Formula bar. */}
       <div className="relative flex flex-shrink-0 items-center gap-2 border-b border-subtle px-4 py-2">
-        <span className="grid h-6 min-w-9 shrink-0 place-items-center rounded-md bg-layer-1 px-1.5 font-mono text-11 text-tertiary">
+        <span className="font-mono grid h-6 min-w-9 shrink-0 place-items-center rounded-md bg-layer-1 px-1.5 text-11 text-tertiary">
           {focused ?? "—"}
         </span>
-        <span className="shrink-0 select-none border-l border-subtle pl-2 font-serif text-13 italic text-tertiary" aria-hidden>
+        <span
+          className="shrink-0 border-l border-subtle pl-2 font-serif text-13 text-tertiary italic select-none"
+          aria-hidden
+        >
           fx
         </span>
         <div className="relative min-w-0 flex-1">
           {editingFormula && (
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden whitespace-pre px-1 font-mono text-12 text-primary"
+              className="font-mono pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden px-1 text-12 whitespace-pre text-primary"
               style={{ transform: `translateX(${-editScroll}px)` }}
             >
               {renderFormulaText(focusedRaw)}
@@ -1126,7 +1371,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
             aria-label="Formula bar"
             style={{ caretColor: editingFormula ? "var(--txt-primary)" : undefined }}
             className={cn(
-              "relative z-[1] h-6 w-full bg-transparent px-1 font-mono text-12 text-primary outline-none placeholder:text-placeholder read-only:cursor-default",
+              "font-mono relative z-[1] h-6 w-full bg-transparent px-1 text-12 text-primary outline-none placeholder:text-placeholder read-only:cursor-default",
               { "text-transparent": editingFormula }
             )}
           />
@@ -1136,336 +1381,398 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
 
       {/* Grid + fixed add-column strip on the right. */}
       <div className="flex min-h-0 flex-1">
-        <div ref={wrapRef} onCopy={handleCopy} onCut={handleCut} onPaste={handlePaste} className="min-h-0 flex-1 overflow-auto">
-        <table className="select-none border-collapse text-12" style={{ tableLayout: "fixed", width: totalWidth }}>
-          <colgroup>
-            <col style={{ width: SHEET_ROWNUM_WIDTH }} />
-            {cols.map((c) => (
-              <col key={c} style={{ width: colWidth(active, c) }} />
-            ))}
-          </colgroup>
-          <thead>
-            <tr>
-              <th className="sticky left-0 top-0 z-20 h-7 border border-subtle bg-layer-1" />
-              {cols.map((c) => {
-                const colSelected = selection && selection.c1 <= c && c <= selection.c2 && selection.r2 - selection.r1 >= renderRows - 2;
-                const isFrozen = c < frozen;
-                const thStyle: React.CSSProperties = {};
-                if (isFrozen) {
-                  thStyle.left = colLeft[c];
-                  thStyle.zIndex = 20;
-                }
-                if (c === frozen - 1) thStyle.boxShadow = "inset -2px 0 0 0 rgba(0,0,0,0.22)";
-                const isDragging = colDrag?.from === c;
-                const isDropOver = colDrag && colDrag.over === c && colDrag.from !== c;
-                if (isDropOver) {
-                  // Drop indicator: pink bar on the side the column will land.
-                  thStyle.boxShadow = `inset ${colDrag.from < c ? "-3px" : "3px"} 0 0 0 ${SEL_BORDER}`;
-                }
-                return (
-                  <th
-                    key={c}
-                    data-col={c}
-                    onClick={() => {
-                      if (didDragColRef.current) {
-                        didDragColRef.current = false;
-                        return;
-                      }
-                      selectColumn(c);
-                    }}
-                    onMouseDown={(e) => startColDrag(e, c)}
-                    onContextMenu={(e) => openMenu(e, "col", c)}
-                    style={Object.keys(thStyle).length ? thStyle : undefined}
-                    className={cn(
-                      "sticky top-0 z-10 h-7 cursor-grab border border-subtle bg-layer-1 text-center font-normal text-tertiary hover:bg-layer-2",
-                      { "bg-accent-primary/15 text-primary": colSelected, "opacity-50": isDragging }
-                    )}
-                  >
-                    <span className="pointer-events-none block truncate px-2">{columnLabel(c)}</span>
-                    {active.filterEnabled && (
-                      <button
-                        type="button"
-                        title="Filter column"
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setFilterMenu((m) => (m?.col === c ? null : { col: c, x: rect.left, y: rect.bottom }));
-                        }}
-                        className={cn(
-                          "absolute left-0.5 top-1/2 z-10 grid size-4 -translate-y-1/2 place-items-center rounded hover:bg-layer-3",
-                          isColumnFiltered(active.filters?.[c]) ? "text-accent-primary" : "text-tertiary"
-                        )}
-                      >
-                        <ListFilter className="size-3" />
-                      </button>
-                    )}
-                    {isEditable && (
-                      <span
-                        onMouseDown={(e) => startResize(e, c)}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          autoFitColumn(c);
-                        }}
-                        title="Drag to resize · double-click to fit"
-                        className="absolute -right-1 top-0 z-10 h-full w-2 cursor-col-resize hover:bg-accent-primary/40"
-                      />
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {rows
-              .filter((r) => r >= active.rows || rowPassesFilters(active, r))
-              .map((r) => {
-              const rowSelected = selection && selection.r1 <= r && r <= selection.r2 && selection.c2 - selection.c1 >= renderCols - 2;
-              return (
-                <tr key={r}>
-                  <td
-                    onClick={() => selectRow(r)}
-                    onContextMenu={(e) => openMenu(e, "row", r)}
-                    className={cn(
-                      "sticky left-0 z-10 h-7 cursor-pointer border border-subtle bg-layer-1 text-center text-tertiary hover:bg-layer-2",
-                      { "bg-accent-primary/15 text-primary": rowSelected }
-                    )}
-                  >
-                    {r + 1}
-                  </td>
-                  {cols.map((c) => {
-                    const id = cellId(r, c);
-                    const isFocused = focused === id;
-                    const fmt = active.formats?.[id];
-                    const colSelect = active.selects?.[c];
-                    // Row 0 of a dropdown column is its header/label — keep it a normal
-                    // (editable, formattable) text cell; only data rows render as pills.
-                    const pillCell = !!colSelect && r > 0;
-                    const display = isFocused
-                      ? (active.cells[id] ?? "")
-                      : formatDisplayValue(computeCell(id, active.cells), fmt);
-                    // A non-editing cell whose value is a URL renders as a link chip.
-                    const cellLink = !isFocused && !pillCell ? parseCellUrl(display) : null;
-                    const wrapMode = fmt?.wrap;
-                    // "wrap"/"clip" render via an in-flow div (which sizes the row);
-                    // the input is then overlaid for editing. Default is input-only.
-                    const layered = wrapMode === "wrap" || wrapMode === "clip";
-                    const textStyle: React.CSSProperties = {
-                      fontWeight: fmt?.bold ? 600 : undefined,
-                      fontStyle: fmt?.italic ? "italic" : undefined,
-                      textDecoration: fmt?.strike ? "line-through" : undefined,
-                      // Fills use light tints, so keep text dark (readable in every theme).
-                      color: fmt?.color || (fmt?.fill ? "#1c1e26" : undefined),
-                      textAlign: fmt?.align,
-                    };
-                    const selected = !!selection && inRect(selection, r, c);
-                    const inFill = inRect(fillPreview, r, c);
-                    const fref = editingFormula
-                      ? formulaRefs.find((rf) => r >= rf.r1 && r <= rf.r2 && c >= rf.c1 && c <= rf.c2)
-                      : undefined;
-                    const isFrozen = c < frozen;
-                    const tdStyle: React.CSSProperties = {};
-                    if (fmt?.fill) tdStyle.backgroundColor = fmt.fill;
-                    if (isFrozen) {
-                      tdStyle.position = "sticky";
-                      tdStyle.left = colLeft[c];
-                      tdStyle.zIndex = 5;
-                    }
-                    if (c === frozen - 1) tdStyle.boxShadow = "inset -2px 0 0 0 rgba(0,0,0,0.22)";
-                    return (
-                      <td
-                        key={c}
-                        onMouseEnter={() => onCellEnter(r, c)}
-                        style={Object.keys(tdStyle).length ? tdStyle : undefined}
-                        className={cn("group relative border border-subtle p-0", layered ? "min-h-7 align-top" : "h-7", {
-                          "bg-canvas": isFrozen && !fmt?.fill,
-                        })}
-                      >
-                        {pillCell ? (
-                          <button
-                            type="button"
-                            id={`sheet-cell-${id}`}
-                            onClick={(e) => {
-                              if (!isEditable) return;
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setFocused(id);
-                              setSelection({ r1: r, c1: c, r2: r, c2: c });
-                              setPickCell((p) => (p?.id === id ? null : { id, col: c, x: rect.left, y: rect.bottom }));
-                            }}
-                            className="relative z-0 flex h-full w-full items-center gap-1 overflow-hidden px-1.5 text-left"
-                          >
-                            {parseSelected(active.cells[id] ?? "").map((v) => {
-                              const opt = colSelect.options.find((o) => o.value === v);
-                              return (
-                                <span
-                                  key={v}
-                                  className="shrink-0 rounded-full px-1.5 py-0.5 text-11 text-[#1c1e26]"
-                                  style={{ backgroundColor: opt?.color ?? "#e5e7eb" }}
-                                >
-                                  {v}
-                                </span>
-                              );
-                            })}
-                          </button>
-                        ) : (
-                          <>
-                        {layered && (
-                          <div
-                            aria-hidden
-                            style={textStyle}
-                            className={cn("px-2 py-1 text-12 text-primary", wrapMode === "wrap" ? "whitespace-pre-wrap break-words" : "truncate", {
-                              invisible: isFocused,
-                            })}
-                          >
-                            {display || " "}
-                          </div>
-                        )}
-                        {isFocused && editingFormula && (
-                          <div
-                            aria-hidden
-                            className="pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden whitespace-pre px-2 font-mono text-12 text-primary"
-                            style={{ transform: `translateX(${-editScroll}px)` }}
-                          >
-                            {renderFormulaText(display)}
-                          </div>
-                        )}
-                        <input
-                          id={`sheet-cell-${id}`}
-                          type="text"
-                          value={display}
-                          readOnly={!isEditable}
-                          onMouseDown={(e) => {
-                            // While editing a formula, clicking another cell inserts its
-                            // reference instead of moving focus.
-                            if (formulaEditing && formulaEditing.id !== id) {
-                              e.preventDefault();
-                              insertRef(id);
-                              return;
-                            }
-                            if (e.shiftKey && focused) {
-                              // Extend the selection from the anchor to this cell.
-                              e.preventDefault();
-                              const a = parseCellId(focused);
-                              if (a) setSelection(normRect(a.row, a.col, r, c));
-                              selectionActiveRef.current = { row: r, col: c };
-                            }
+        <div
+          ref={wrapRef}
+          onCopy={handleCopy}
+          onCut={handleCut}
+          onPaste={handlePaste}
+          className="relative min-h-0 flex-1 overflow-auto"
+        >
+          <table className="border-collapse text-12 select-none" style={{ tableLayout: "fixed", width: totalWidth }}>
+            <colgroup>
+              <col style={{ width: SHEET_ROWNUM_WIDTH }} />
+              {cols.map((c) => (
+                <col key={c} style={{ width: colWidth(active, c) }} />
+              ))}
+            </colgroup>
+            <thead>
+              <tr>
+                <th className="sticky top-0 left-0 z-20 h-7 border border-subtle bg-layer-1" />
+                {cols.map((c) => {
+                  const colSelected =
+                    selection &&
+                    selection.c1 <= c &&
+                    c <= selection.c2 &&
+                    selection.r2 - selection.r1 >= renderRows - 2;
+                  const isFrozen = c < frozen;
+                  const thStyle: React.CSSProperties = {};
+                  if (isFrozen) {
+                    thStyle.left = colLeft[c];
+                    thStyle.zIndex = 20;
+                  }
+                  if (c === frozen - 1) thStyle.boxShadow = "inset -2px 0 0 0 rgba(0,0,0,0.22)";
+                  const isDragging = colDrag?.from === c;
+                  const isDropOver = colDrag && colDrag.over === c && colDrag.from !== c;
+                  if (isDropOver) {
+                    // Drop indicator: pink bar on the side the column will land.
+                    thStyle.boxShadow = `inset ${colDrag.from < c ? "-3px" : "3px"} 0 0 0 ${SEL_BORDER}`;
+                  }
+                  return (
+                    <th
+                      key={c}
+                      data-col={c}
+                      onClick={() => {
+                        if (didDragColRef.current) {
+                          didDragColRef.current = false;
+                          return;
+                        }
+                        selectColumn(c);
+                      }}
+                      onMouseDown={(e) => startColDrag(e, c)}
+                      onContextMenu={(e) => openMenu(e, "col", c)}
+                      style={Object.keys(thStyle).length ? thStyle : undefined}
+                      className={cn(
+                        "font-normal sticky top-0 z-10 h-7 cursor-grab border border-subtle bg-layer-1 text-center text-tertiary hover:bg-layer-2",
+                        { "bg-accent-primary/15 text-primary": colSelected, "opacity-50": isDragging }
+                      )}
+                    >
+                      <span className="pointer-events-none block truncate px-2">{columnLabel(c)}</span>
+                      {active.filterEnabled && (
+                        <button
+                          type="button"
+                          title="Filter column"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setFilterMenu((m) => (m?.col === c ? null : { col: c, x: rect.left, y: rect.bottom }));
                           }}
-                          onFocus={() => {
-                            setFocused(id);
-                            setSelection({ r1: r, c1: c, r2: r, c2: c });
-                            selectionActiveRef.current = null;
-                            setShowSuggest(false);
-                            setEditScroll(0);
-                            editOriginalRef.current = active.cells[id] ?? "";
-                            typingRef.current = false;
-                            setFormulaEditing((active.cells[id] ?? "").startsWith("=") ? { id, source: "cell" } : null);
-                          }}
-                          onBlur={() =>
-                            window.setTimeout(() => {
-                              setShowSuggest(false);
-                              setFormulaEditing(null);
-                            }, 120)
-                          }
-                          onChange={(e) => onCellInput(id, e.target.value)}
-                          onKeyDown={(e) => handleCellKeyDown(e, r, c)}
-                          onScroll={(e) => setEditScroll(e.currentTarget.scrollLeft)}
-                          style={{ ...textStyle, caretColor: isFocused && editingFormula ? "var(--txt-primary)" : undefined }}
                           className={cn(
-                            "z-0 w-full bg-transparent px-2 text-12 text-primary outline-none",
-                            layered ? "absolute inset-0 h-full" : "relative h-full",
-                            isFocused ? "cursor-text" : "cursor-default",
-                            {
-                              "font-mono": isFocused && display.startsWith("="),
-                              // Hide the input's own text so the colored overlay shows (caret stays visible).
-                              "text-transparent": isFocused && editingFormula,
-                              "text-transparent caret-transparent": (layered && !isFocused) || !!cellLink,
-                            }
+                            "absolute top-1/2 left-0.5 z-10 grid size-4 -translate-y-1/2 place-items-center rounded hover:bg-layer-3",
+                            isColumnFiltered(active.filters?.[c]) ? "text-accent-primary" : "text-tertiary"
                           )}
+                        >
+                          <ListFilter className="size-3" />
+                        </button>
+                      )}
+                      {isEditable && (
+                        <span
+                          onMouseDown={(e) => startResize(e, c)}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            autoFitColumn(c);
+                          }}
+                          title="Drag to resize · double-click to fit"
+                          className="absolute top-0 -right-1 z-10 h-full w-2 cursor-col-resize hover:bg-accent-primary/40"
                         />
-                        {cellLink && (
-                          <>
-                            {/* Display-only chip (clicks fall through to the input so the
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {rows
+                .filter((r) => r >= active.rows || rowPassesFilters(active, r))
+                .map((r) => {
+                  const rowSelected =
+                    selection &&
+                    selection.r1 <= r &&
+                    r <= selection.r2 &&
+                    selection.c2 - selection.c1 >= renderCols - 2;
+                  return (
+                    <tr key={r}>
+                      <td
+                        onClick={() => selectRow(r)}
+                        onContextMenu={(e) => openMenu(e, "row", r)}
+                        className={cn(
+                          "sticky left-0 z-10 h-7 cursor-pointer border border-subtle bg-layer-1 text-center text-tertiary hover:bg-layer-2",
+                          { "bg-accent-primary/15 text-primary": rowSelected }
+                        )}
+                      >
+                        {r + 1}
+                      </td>
+                      {cols.map((c) => {
+                        const id = cellId(r, c);
+                        const isFocused = focused === id;
+                        const fmt = active.formats?.[id];
+                        const colSelect = active.selects?.[c];
+                        // Row 0 of a dropdown column is its header/label — keep it a normal
+                        // (editable, formattable) text cell; only data rows render as pills.
+                        const pillCell = !!colSelect && r > 0;
+                        const display = isFocused
+                          ? (active.cells[id] ?? "")
+                          : formatDisplayValue(computeCell(id, active.cells), fmt);
+                        // A non-editing cell whose value is a URL renders as a link chip.
+                        const cellLink = !isFocused && !pillCell ? parseCellUrl(display) : null;
+                        const wrapMode = fmt?.wrap;
+                        // "wrap"/"clip" render via an in-flow div (which sizes the row);
+                        // the input is then overlaid for editing. Default is input-only.
+                        const layered = wrapMode === "wrap" || wrapMode === "clip";
+                        const textStyle: React.CSSProperties = {
+                          fontWeight: fmt?.bold ? 600 : undefined,
+                          fontStyle: fmt?.italic ? "italic" : undefined,
+                          textDecoration: fmt?.strike ? "line-through" : undefined,
+                          // Fills use light tints, so keep text dark (readable in every theme).
+                          color: fmt?.color || (fmt?.fill ? "#1c1e26" : undefined),
+                          textAlign: fmt?.align,
+                        };
+                        const selected = !!selection && inRect(selection, r, c);
+                        const inFill = inRect(fillPreview, r, c);
+                        const fref = editingFormula
+                          ? formulaRefs.find((rf) => r >= rf.r1 && r <= rf.r2 && c >= rf.c1 && c <= rf.c2)
+                          : undefined;
+                        const isFrozen = c < frozen;
+                        const tdStyle: React.CSSProperties = {};
+                        if (fmt?.fill) tdStyle.backgroundColor = fmt.fill;
+                        if (isFrozen) {
+                          tdStyle.position = "sticky";
+                          tdStyle.left = colLeft[c];
+                          tdStyle.zIndex = 5;
+                        }
+                        if (c === frozen - 1) tdStyle.boxShadow = "inset -2px 0 0 0 rgba(0,0,0,0.22)";
+                        return (
+                          <td
+                            key={c}
+                            onMouseEnter={() => onCellEnter(r, c)}
+                            style={Object.keys(tdStyle).length ? tdStyle : undefined}
+                            className={cn(
+                              "group relative border border-subtle p-0",
+                              layered ? "min-h-7 align-top" : "h-7",
+                              {
+                                "bg-canvas": isFrozen && !fmt?.fill,
+                              }
+                            )}
+                          >
+                            {pillCell ? (
+                              <button
+                                type="button"
+                                id={`sheet-cell-${id}`}
+                                onClick={(e) => {
+                                  if (!isEditable) return;
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setFocused(id);
+                                  setSelection({ r1: r, c1: c, r2: r, c2: c });
+                                  setPickCell((p) =>
+                                    p?.id === id ? null : { id, col: c, x: rect.left, y: rect.bottom }
+                                  );
+                                }}
+                                className="relative z-0 flex h-full w-full items-center gap-1 overflow-hidden px-1.5 text-left"
+                              >
+                                {parseSelected(active.cells[id] ?? "").map((v) => {
+                                  const opt = colSelect.options.find((o) => o.value === v);
+                                  return (
+                                    <span
+                                      key={v}
+                                      className="shrink-0 rounded-full px-1.5 py-0.5 text-11 text-[#1c1e26]"
+                                      style={{ backgroundColor: opt?.color ?? "#e5e7eb" }}
+                                    >
+                                      {v}
+                                    </span>
+                                  );
+                                })}
+                              </button>
+                            ) : (
+                              <>
+                                {layered && (
+                                  <div
+                                    aria-hidden
+                                    style={textStyle}
+                                    className={cn(
+                                      "px-2 py-1 text-12 text-primary",
+                                      wrapMode === "wrap" ? "break-words whitespace-pre-wrap" : "truncate",
+                                      {
+                                        invisible: isFocused,
+                                      }
+                                    )}
+                                  >
+                                    {display || " "}
+                                  </div>
+                                )}
+                                {isFocused && editingFormula && (
+                                  <div
+                                    aria-hidden
+                                    className="font-mono pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden px-2 text-12 whitespace-pre text-primary"
+                                    style={{ transform: `translateX(${-editScroll}px)` }}
+                                  >
+                                    {renderFormulaText(display)}
+                                  </div>
+                                )}
+                                <input
+                                  id={`sheet-cell-${id}`}
+                                  type="text"
+                                  value={display}
+                                  readOnly={!isEditable}
+                                  onMouseDown={(e) => {
+                                    // While editing a formula, clicking another cell inserts its
+                                    // reference instead of moving focus.
+                                    if (formulaEditing && formulaEditing.id !== id) {
+                                      e.preventDefault();
+                                      insertRef(id);
+                                      return;
+                                    }
+                                    if (e.shiftKey && focused) {
+                                      // Extend the selection from the anchor to this cell.
+                                      e.preventDefault();
+                                      const a = parseCellId(focused);
+                                      if (a) setSelection(normRect(a.row, a.col, r, c));
+                                      selectionActiveRef.current = { row: r, col: c };
+                                    }
+                                  }}
+                                  onFocus={() => {
+                                    setFocused(id);
+                                    setSelection({ r1: r, c1: c, r2: r, c2: c });
+                                    selectionActiveRef.current = null;
+                                    setShowSuggest(false);
+                                    setEditScroll(0);
+                                    editOriginalRef.current = active.cells[id] ?? "";
+                                    typingRef.current = false;
+                                    setFormulaEditing(
+                                      (active.cells[id] ?? "").startsWith("=") ? { id, source: "cell" } : null
+                                    );
+                                  }}
+                                  onBlur={() =>
+                                    window.setTimeout(() => {
+                                      setShowSuggest(false);
+                                      setFormulaEditing(null);
+                                    }, 120)
+                                  }
+                                  onChange={(e) => onCellInput(id, e.target.value)}
+                                  onKeyDown={(e) => handleCellKeyDown(e, r, c)}
+                                  onScroll={(e) => setEditScroll(e.currentTarget.scrollLeft)}
+                                  style={{
+                                    ...textStyle,
+                                    caretColor: isFocused && editingFormula ? "var(--txt-primary)" : undefined,
+                                  }}
+                                  className={cn(
+                                    "z-0 w-full bg-transparent px-2 text-12 text-primary outline-none",
+                                    layered ? "absolute inset-0 h-full" : "relative h-full",
+                                    isFocused ? "cursor-text" : "cursor-default",
+                                    {
+                                      "font-mono": isFocused && display.startsWith("="),
+                                      // Hide the input's own text so the colored overlay shows (caret stays visible).
+                                      "text-transparent": isFocused && editingFormula,
+                                      "text-transparent caret-transparent": (layered && !isFocused) || !!cellLink,
+                                    }
+                                  )}
+                                />
+                                {cellLink && (
+                                  <>
+                                    {/* Display-only chip (clicks fall through to the input so the
                                 cell still selects / edits); an open button appears on hover. */}
-                            <span
-                              aria-hidden
-                              style={{ justifyContent: fmt?.align === "center" ? "center" : fmt?.align === "right" ? "flex-end" : "flex-start" }}
-                              className="pointer-events-none absolute inset-0 z-[1] flex items-center gap-1.5 overflow-hidden pl-2 pr-6"
-                            >
-                              <img
-                                src={faviconUrl(cellLink.host)}
-                                alt=""
-                                className="size-3.5 shrink-0 rounded-sm"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
+                                    <span
+                                      aria-hidden
+                                      style={{
+                                        justifyContent:
+                                          fmt?.align === "center"
+                                            ? "center"
+                                            : fmt?.align === "right"
+                                              ? "flex-end"
+                                              : "flex-start",
+                                      }}
+                                      className="pointer-events-none absolute inset-0 z-[1] flex items-center gap-1.5 overflow-hidden pr-6 pl-2"
+                                    >
+                                      <img
+                                        src={faviconUrl(cellLink.host)}
+                                        alt=""
+                                        className="size-3.5 shrink-0 rounded-sm"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = "none";
+                                        }}
+                                      />
+                                      <span className="decoration-accent-primary/40 truncate text-12 text-accent-primary underline underline-offset-2">
+                                        {cellLink.host}
+                                      </span>
+                                    </span>
+                                    <a
+                                      href={cellLink.href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={`Open ${cellLink.href}`}
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="absolute top-1/2 right-0.5 z-[4] grid size-5 -translate-y-1/2 place-items-center rounded text-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-layer-2 hover:text-primary focus:opacity-100"
+                                    >
+                                      <ExternalLink className="size-3.5" />
+                                    </a>
+                                  </>
+                                )}
+                              </>
+                            )}
+                            {fmt?.border && (
+                              <span
+                                aria-hidden
+                                className="pointer-events-none absolute -inset-px z-[1]"
+                                style={{
+                                  borderTop: fmt.border.top
+                                    ? `${fmt.border.width}px ${fmt.border.style} ${fmt.border.color}`
+                                    : undefined,
+                                  borderRight: fmt.border.right
+                                    ? `${fmt.border.width}px ${fmt.border.style} ${fmt.border.color}`
+                                    : undefined,
+                                  borderBottom: fmt.border.bottom
+                                    ? `${fmt.border.width}px ${fmt.border.style} ${fmt.border.color}`
+                                    : undefined,
+                                  borderLeft: fmt.border.left
+                                    ? `${fmt.border.width}px ${fmt.border.style} ${fmt.border.color}`
+                                    : undefined,
                                 }}
                               />
-                              <span className="truncate text-12 text-accent-primary underline decoration-accent-primary/40 underline-offset-2">
-                                {cellLink.host}
-                              </span>
-                            </span>
-                            <a
-                              href={cellLink.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={`Open ${cellLink.href}`}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute right-0.5 top-1/2 z-[4] grid size-5 -translate-y-1/2 place-items-center rounded text-tertiary opacity-0 transition-opacity hover:bg-layer-2 hover:text-primary focus:opacity-100 group-hover:opacity-100"
-                            >
-                              <ExternalLink className="size-3.5" />
-                            </a>
-                          </>
-                        )}
-                          </>
-                        )}
-                        {fmt?.border && (
-                          <span
-                            aria-hidden
-                            className="pointer-events-none absolute -inset-px z-[1]"
-                            style={{
-                              borderTop: fmt.border.top ? `${fmt.border.width}px ${fmt.border.style} ${fmt.border.color}` : undefined,
-                              borderRight: fmt.border.right ? `${fmt.border.width}px ${fmt.border.style} ${fmt.border.color}` : undefined,
-                              borderBottom: fmt.border.bottom ? `${fmt.border.width}px ${fmt.border.style} ${fmt.border.color}` : undefined,
-                              borderLeft: fmt.border.left ? `${fmt.border.width}px ${fmt.border.style} ${fmt.border.color}` : undefined,
-                            }}
-                          />
-                        )}
-                        {selected && selection && (
-                          // -inset-px so the pink border covers the cell's own gray border.
-                          <span
-                            className="pointer-events-none absolute -inset-px z-[2]"
-                            style={{
-                              backgroundColor: isFocused ? undefined : "rgba(236,72,153,0.1)",
-                              boxShadow: selectionBorder(selection, r, c),
-                            }}
-                          />
-                        )}
-                        {inFill && !selected && <span className="pointer-events-none absolute inset-0 z-[2] bg-accent-primary/20" />}
-                        {fref && (
-                          <span
-                            className="pointer-events-none absolute -inset-px z-[3]"
-                            style={{
-                              backgroundColor: `${fref.color}1a`,
-                              boxShadow: rectBorder({ r1: fref.r1, c1: fref.c1, r2: fref.r2, c2: fref.c2 }, r, c, fref.color),
-                            }}
-                          />
-                        )}
-                        {isEditable && selection && r === selection.r2 && c === selection.c2 && (
-                          <span
-                            onMouseDown={startFill}
-                            title="Drag to fill"
-                            className="absolute -bottom-[3px] -right-[3px] z-10 size-[7px] cursor-crosshair rounded-[1px] border border-[var(--bg-surface-1)] bg-accent-primary"
-                          />
-                        )}
-                        {isFocused && !barFocused && renderSuggestions("left-0 top-full")}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                            )}
+                            {selected && selection && (
+                              // -inset-px so the pink border covers the cell's own gray border.
+                              <span
+                                className="pointer-events-none absolute -inset-px z-[2]"
+                                style={{
+                                  backgroundColor: isFocused ? undefined : "rgba(236,72,153,0.1)",
+                                  boxShadow: selectionBorder(selection, r, c),
+                                }}
+                              />
+                            )}
+                            {inFill && !selected && (
+                              <span className="pointer-events-none absolute inset-0 z-[2] bg-accent-primary/20" />
+                            )}
+                            {fref && (
+                              <span
+                                className="pointer-events-none absolute -inset-px z-[3]"
+                                style={{
+                                  backgroundColor: `${fref.color}1a`,
+                                  boxShadow: rectBorder(
+                                    { r1: fref.r1, c1: fref.c1, r2: fref.r2, c2: fref.c2 },
+                                    r,
+                                    c,
+                                    fref.color
+                                  ),
+                                }}
+                              />
+                            )}
+                            {isEditable && selection && r === selection.r2 && c === selection.c2 && (
+                              <span
+                                onMouseDown={startFill}
+                                title="Drag to fill"
+                                className="absolute -right-[3px] -bottom-[3px] z-10 size-[7px] cursor-crosshair rounded-[1px] border border-[var(--bg-surface-1)] bg-accent-primary"
+                              />
+                            )}
+                            {isFocused && !barFocused && renderSuggestions("left-0 top-full")}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+          {(active.charts ?? []).map((chart) => (
+            <SheetChartCard
+              key={chart.id}
+              chart={chart}
+              grid={active}
+              isEditable={isEditable}
+              selectionRange={selectionRangeRef}
+              onUpdate={(patch) => updateChart(chart.id, patch)}
+              onDelete={() => deleteChart(chart.id)}
+            />
+          ))}
         </div>
         {isEditable && (
           <button
@@ -1485,7 +1792,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
           type="button"
           onClick={addRow}
           title="Add row"
-          className="flex h-7 flex-shrink-0 items-center gap-1.5 border-b border-t border-subtle bg-surface-1 pl-3 text-11 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+          className="flex h-7 flex-shrink-0 items-center gap-1.5 border-t border-b border-subtle bg-surface-1 pl-3 text-11 text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
         >
           <Plus className="size-3.5" />
           <span>Add row</span>
@@ -1493,7 +1800,10 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       )}
 
       {/* Sheet tabs. */}
-      <div ref={tabBarRef} className="flex flex-shrink-0 items-center gap-1 overflow-x-auto border-t border-subtle bg-surface-1 px-2 py-1.5">
+      <div
+        ref={tabBarRef}
+        className="flex flex-shrink-0 items-center gap-1 overflow-x-auto border-t border-subtle bg-surface-1 px-2 py-1.5"
+      >
         {snapshot.sheets.map((sheet, sheetIndex) => {
           const isActive = sheet.id === snapshot.activeId;
           const isRenaming = renaming?.id === sheet.id;
@@ -1503,7 +1813,10 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
           const dropNoop = !tabDrag || tabDropDest(tabDrag.from, tabDrag.over) === tabDrag.from;
           const showLineBefore = !!tabDrag && !dropNoop && tabDrag.over === sheetIndex;
           const showLineAfter =
-            !!tabDrag && !dropNoop && tabDrag.over === snapshot.sheets.length && sheetIndex === snapshot.sheets.length - 1;
+            !!tabDrag &&
+            !dropNoop &&
+            tabDrag.over === snapshot.sheets.length &&
+            sheetIndex === snapshot.sheets.length - 1;
           return (
             <div
               key={sheet.id}
@@ -1518,10 +1831,13 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                 setTabMenu({ x: e.clientX, y: e.clientY, index: sheetIndex });
               }}
               className={cn(
-                "group relative flex flex-shrink-0 select-none items-center gap-1 rounded-md border px-2 py-1 text-12 transition-colors",
+                "group relative flex flex-shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-12 transition-colors select-none",
                 tabDrag ? "cursor-grabbing" : "cursor-grab",
                 sheet.color
-                  ? cn("text-[#1c1e26]", isActive ? "border-strong font-medium" : "border-transparent hover:border-subtle")
+                  ? cn(
+                      "text-[#1c1e26]",
+                      isActive ? "border-strong font-medium" : "border-transparent hover:border-subtle"
+                    )
                   : isActive
                     ? "border-subtle bg-layer-2 font-medium text-primary"
                     : "border-transparent text-tertiary hover:bg-layer-1 hover:text-primary",
@@ -1586,9 +1902,16 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       {/* Right-click context menu for row / column headers. */}
       {menu && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null); }} />
           <div
-            className="fixed z-50 min-w-44 rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg"
+            className="fixed inset-0 z-40"
+            onClick={() => setMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu(null);
+            }}
+          />
+          <div
+            className="shadow-lg fixed z-50 min-w-44 rounded-lg border border-subtle bg-surface-1 py-1"
             style={{ top: menu.y, left: menu.x }}
           >
             {menuItems.map((item) => (
@@ -1612,7 +1935,14 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       {/* Right-click context menu for sheet tabs. */}
       {tabMenu && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setTabMenu(null)} onContextMenu={(e) => { e.preventDefault(); setTabMenu(null); }} />
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setTabMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setTabMenu(null);
+            }}
+          />
           <div
             // The tab bar sits at the bottom of the viewport, so a menu opening
             // downward gets clipped. Measure it and flip up / clamp into view.
@@ -1622,13 +1952,11 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
               const r = el.getBoundingClientRect();
               const left = Math.max(pad, Math.min(tabMenu.x, window.innerWidth - r.width - pad));
               const top =
-                tabMenu.y + r.height > window.innerHeight - pad
-                  ? Math.max(pad, tabMenu.y - r.height)
-                  : tabMenu.y;
+                tabMenu.y + r.height > window.innerHeight - pad ? Math.max(pad, tabMenu.y - r.height) : tabMenu.y;
               el.style.left = `${left}px`;
               el.style.top = `${top}px`;
             }}
-            className="fixed z-50 min-w-44 rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg"
+            className="shadow-lg fixed z-50 min-w-44 rounded-lg border border-subtle bg-surface-1 py-1"
             style={{ top: tabMenu.y, left: tabMenu.x }}
           >
             {(() => {
@@ -1652,11 +1980,24 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
               const sep = <div className="my-1 border-t border-subtle" />;
               return (
                 <>
-                  {item(<Copy className={menuIcon} />, "Duplicate", run(() => duplicateSheet(idx)))}
-                  {item(<Pencil className={menuIcon} />, "Rename", run(() => setRenaming({ id: snapshot.sheets[idx].id, value: snapshot.sheets[idx].name })))}
-                  {item(<Trash className={menuIcon} />, "Delete", run(() => deleteSheet(snapshot.sheets[idx].id)), snapshot.sheets.length <= 1)}
+                  {item(
+                    <Copy className={menuIcon} />,
+                    "Duplicate",
+                    run(() => duplicateSheet(idx))
+                  )}
+                  {item(
+                    <Pencil className={menuIcon} />,
+                    "Rename",
+                    run(() => setRenaming({ id: snapshot.sheets[idx].id, value: snapshot.sheets[idx].name }))
+                  )}
+                  {item(
+                    <Trash className={menuIcon} />,
+                    "Delete",
+                    run(() => deleteSheet(snapshot.sheets[idx].id)),
+                    snapshot.sheets.length <= 1
+                  )}
                   {sep}
-                  <div className="px-3 pb-1 pt-0.5 text-11 text-tertiary">Tab color</div>
+                  <div className="px-3 pt-0.5 pb-1 text-11 text-tertiary">Tab color</div>
                   <div className="grid grid-cols-6 gap-1.5 px-3 pb-2">
                     {FILL_PALETTE.map((c) => (
                       <button
@@ -1664,9 +2005,12 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                         type="button"
                         title={c}
                         onClick={run(() => setSheetColor(idx, c))}
-                        className={cn("grid size-5 place-items-center rounded-full border border-subtle transition-transform hover:scale-110", {
-                          "ring-1 ring-primary ring-offset-1": snapshot.sheets[idx].color === c,
-                        })}
+                        className={cn(
+                          "grid size-5 place-items-center rounded-full border border-subtle transition-transform hover:scale-110",
+                          {
+                            "ring-primary ring-1 ring-offset-1": snapshot.sheets[idx].color === c,
+                          }
+                        )}
                         style={{ backgroundColor: c }}
                       >
                         {snapshot.sheets[idx].color === c && <Check className="size-3 text-primary" />}
@@ -1682,8 +2026,18 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                     </button>
                   </div>
                   {sep}
-                  {item(<ArrowLeft className={menuIcon} />, "Move left", run(() => moveSheet(idx, idx - 1)), idx === 0)}
-                  {item(<ArrowRight className={menuIcon} />, "Move right", run(() => moveSheet(idx, idx + 1)), idx === last)}
+                  {item(
+                    <ArrowLeft className={menuIcon} />,
+                    "Move left",
+                    run(() => moveSheet(idx, idx - 1)),
+                    idx === 0
+                  )}
+                  {item(
+                    <ArrowRight className={menuIcon} />,
+                    "Move right",
+                    run(() => moveSheet(idx, idx + 1)),
+                    idx === last
+                  )}
                 </>
               );
             })()}
@@ -1736,8 +2090,14 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       {tabDrag && snapshot.sheets[tabDrag.from] && (
         <div
           aria-hidden
-          className="pointer-events-none fixed z-[60] flex items-center gap-1 rounded-md border border-subtle bg-surface-1 px-2 py-1 text-12 font-medium text-primary shadow-lg"
-          style={{ left: tabDrag.x, top: tabDrag.y, width: tabDrag.width, height: tabDrag.height, transform: "rotate(-2deg)" }}
+          className="shadow-lg pointer-events-none fixed z-[60] flex items-center gap-1 rounded-md border border-subtle bg-surface-1 px-2 py-1 text-12 font-medium text-primary"
+          style={{
+            left: tabDrag.x,
+            top: tabDrag.y,
+            width: tabDrag.width,
+            height: tabDrag.height,
+            transform: "rotate(-2deg)",
+          }}
         >
           <span className="truncate">{snapshot.sheets[tabDrag.from].name}</span>
         </div>
@@ -1746,7 +2106,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   );
 });
 
-const Separator = () => <span className="mx-1 h-5 w-px flex-shrink-0 bg-subtle" />;
+const Separator = () => <span className="bg-subtle mx-1 h-5 w-px flex-shrink-0" />;
 
 type FilterMenuProps = {
   x: number;
@@ -1770,7 +2130,7 @@ function FilterMenu({ x, y, values, filter, onChange }: FilterMenuProps) {
 
   return (
     <div
-      className="fixed z-50 flex max-h-80 w-60 flex-col rounded-lg border border-subtle bg-surface-1 p-2 shadow-lg"
+      className="shadow-lg fixed z-50 flex max-h-80 w-60 flex-col rounded-lg border border-subtle bg-surface-1 p-2"
       style={{ top: y + 2, left: x }}
     >
       <input
@@ -1791,11 +2151,20 @@ function FilterMenu({ x, y, values, filter, onChange }: FilterMenuProps) {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {shown.length === 0 ? (
-          <p className="px-2 py-2 text-11 italic text-placeholder">No values</p>
+          <p className="px-2 py-2 text-11 text-placeholder italic">No values</p>
         ) : (
           shown.map((v) => (
-            <label key={v} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-12 text-primary hover:bg-layer-1">
-              <input type="checkbox" checked={!hidden.has(v)} onChange={() => toggle(v)} className="size-3.5" style={{ accentColor: "#ec4899" }} />
+            <label
+              key={v}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-12 text-primary hover:bg-layer-1"
+            >
+              <input
+                type="checkbox"
+                checked={!hidden.has(v)}
+                onChange={() => toggle(v)}
+                className="size-3.5"
+                style={{ accentColor: "#ec4899" }}
+              />
               <span className="truncate">{v === "" ? "(blank)" : v}</span>
             </label>
           ))
@@ -1876,7 +2245,7 @@ function AlignMenu({ disabled, value, onSelect }: AlignMenuProps) {
         <ChevronDown className="size-3" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 flex gap-0.5 rounded-lg border border-subtle bg-surface-1 p-1 shadow-lg">
+        <div className="shadow-lg absolute top-full left-0 z-30 mt-1 flex gap-0.5 rounded-lg border border-subtle bg-surface-1 p-1">
           {ALIGN_OPTIONS.map((o) => (
             <button
               key={o.key}
@@ -1886,9 +2255,12 @@ function AlignMenu({ disabled, value, onSelect }: AlignMenuProps) {
                 onSelect(o.key);
                 setOpen(false);
               }}
-              className={cn("grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary", {
-                "bg-layer-2 text-primary": value === o.key,
-              })}
+              className={cn(
+                "grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary",
+                {
+                  "bg-layer-2 text-primary": value === o.key,
+                }
+              )}
             >
               <o.Icon className="size-4" />
             </button>
@@ -1900,7 +2272,16 @@ function AlignMenu({ disabled, value, onSelect }: AlignMenuProps) {
 }
 
 const WrapGlyph = () => (
-  <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg
+    viewBox="0 0 16 16"
+    className="size-4"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
     <path d="M2 3.5h12" />
     <path d="M2 8h9.5a2.5 2.5 0 0 1 0 5H8.5" />
     <path d="M10.5 11l-2 2 2 2" />
@@ -1950,7 +2331,7 @@ function WrapMenu({ disabled, value, onSelect }: WrapMenuProps) {
         <ChevronDown className="size-3" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-36 rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
+        <div className="shadow-lg absolute top-full left-0 z-30 mt-1 w-36 rounded-lg border border-subtle bg-surface-1 py-1">
           {WRAP_OPTIONS.map((o) => (
             <button
               key={o.key}
@@ -1959,7 +2340,10 @@ function WrapMenu({ disabled, value, onSelect }: WrapMenuProps) {
                 onSelect(o.key);
                 setOpen(false);
               }}
-              className={cn("block w-full px-3 py-1.5 text-left text-12 hover:bg-layer-1", value === o.key ? "text-primary" : "text-secondary")}
+              className={cn(
+                "block w-full px-3 py-1.5 text-left text-12 hover:bg-layer-1",
+                value === o.key ? "text-primary" : "text-secondary"
+              )}
             >
               {o.label}
             </button>
@@ -1988,7 +2372,10 @@ function SelectConfigMenu({ x, y, config, onChange }: SelectConfigMenuProps) {
   };
 
   return (
-    <div className="fixed z-50 w-64 rounded-lg border border-subtle bg-surface-1 p-2 shadow-lg" style={{ top: y + 2, left: x }}>
+    <div
+      className="shadow-lg fixed z-50 w-64 rounded-lg border border-subtle bg-surface-1 p-2"
+      style={{ top: y + 2, left: x }}
+    >
       <div className="mb-1 px-1 text-11 font-medium text-tertiary">Dropdown options</div>
       <div className="max-h-56 space-y-1 overflow-y-auto">
         {options.map((o, i) => (
@@ -1999,7 +2386,10 @@ function SelectConfigMenu({ x, y, config, onChange }: SelectConfigMenuProps) {
               onClick={() => {
                 const idx = FILL_PALETTE.indexOf(o.color);
                 const color = FILL_PALETTE[(idx + 1) % FILL_PALETTE.length];
-                commit(options.map((op, j) => (j === i ? { ...op, color } : op)), multi);
+                commit(
+                  options.map((op, j) => (j === i ? { ...op, color } : op)),
+                  multi
+                );
               }}
               className="size-5 shrink-0 rounded-full border border-subtle"
               style={{ backgroundColor: o.color }}
@@ -2008,13 +2398,23 @@ function SelectConfigMenu({ x, y, config, onChange }: SelectConfigMenuProps) {
               type="text"
               value={o.value}
               placeholder="Option"
-              onChange={(e) => commit(options.map((op, j) => (j === i ? { ...op, value: e.target.value } : op)), multi)}
+              onChange={(e) =>
+                commit(
+                  options.map((op, j) => (j === i ? { ...op, value: e.target.value } : op)),
+                  multi
+                )
+              }
               className="h-7 min-w-0 flex-1 rounded-md border border-subtle bg-canvas px-2 text-12 text-primary outline-none focus:border-strong"
             />
             <button
               type="button"
               title="Remove"
-              onClick={() => commit(options.filter((_, j) => j !== i), multi)}
+              onClick={() =>
+                commit(
+                  options.filter((_, j) => j !== i),
+                  multi
+                )
+              }
               className="grid size-5 shrink-0 place-items-center rounded text-tertiary hover:bg-layer-1 hover:text-primary"
             >
               <X className="size-3.5" />
@@ -2024,13 +2424,21 @@ function SelectConfigMenu({ x, y, config, onChange }: SelectConfigMenuProps) {
       </div>
       <button
         type="button"
-        onClick={() => commit([...options, { value: "", color: FILL_PALETTE[options.length % FILL_PALETTE.length] }], multi)}
+        onClick={() =>
+          commit([...options, { value: "", color: FILL_PALETTE[options.length % FILL_PALETTE.length] }], multi)
+        }
         className="mt-1.5 flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-12 text-tertiary hover:bg-layer-1 hover:text-primary"
       >
         <Plus className="size-3.5" /> Add option
       </button>
       <label className="mt-1 flex cursor-pointer items-center gap-2 border-t border-subtle px-2 pt-2 text-12 text-primary">
-        <input type="checkbox" checked={multi} onChange={(e) => commit(options, e.target.checked)} className="size-3.5" style={{ accentColor: "#ec4899" }} />
+        <input
+          type="checkbox"
+          checked={multi}
+          onChange={(e) => commit(options, e.target.checked)}
+          className="size-3.5"
+          style={{ accentColor: "#ec4899" }}
+        />
         Allow multiple
       </label>
     </div>
@@ -2047,9 +2455,12 @@ type PillPickerProps = {
 
 function PillPicker({ x, y, options, selected, onToggle }: PillPickerProps) {
   return (
-    <div className="fixed z-50 max-h-64 w-52 overflow-y-auto rounded-lg border border-subtle bg-surface-1 p-1 shadow-lg" style={{ top: y + 2, left: x }}>
+    <div
+      className="shadow-lg fixed z-50 max-h-64 w-52 overflow-y-auto rounded-lg border border-subtle bg-surface-1 p-1"
+      style={{ top: y + 2, left: x }}
+    >
       {options.length === 0 ? (
-        <p className="px-2 py-2 text-11 italic text-placeholder">No options</p>
+        <p className="px-2 py-2 text-11 text-placeholder italic">No options</p>
       ) : (
         options.map((o) => {
           const on = selected.includes(o.value);
@@ -2060,10 +2471,18 @@ function PillPicker({ x, y, options, selected, onToggle }: PillPickerProps) {
               onClick={() => onToggle(o.value)}
               className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left hover:bg-layer-1"
             >
-              <span className={cn("grid size-4 shrink-0 place-items-center rounded border", on ? "border-accent-primary text-accent-primary" : "border-subtle text-transparent")}>
+              <span
+                className={cn(
+                  "grid size-4 shrink-0 place-items-center rounded border",
+                  on ? "border-accent-primary text-accent-primary" : "border-subtle text-transparent"
+                )}
+              >
                 {on && <Check className="size-3" />}
               </span>
-              <span className="shrink-0 rounded-full px-1.5 py-0.5 text-11 text-[#1c1e26]" style={{ backgroundColor: o.color }}>
+              <span
+                className="shrink-0 rounded-full px-1.5 py-0.5 text-11 text-[#1c1e26]"
+                style={{ backgroundColor: o.color }}
+              >
                 {o.value}
               </span>
             </button>
@@ -2110,7 +2529,7 @@ function NumberFormatMenu({ disabled, numberFormat, currency, onSelect }: Number
         123
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 max-h-[60vh] w-64 overflow-auto rounded-lg border border-subtle bg-surface-1 py-1 shadow-lg">
+        <div className="shadow-lg absolute top-full left-0 z-30 mt-1 max-h-[60vh] w-64 overflow-auto rounded-lg border border-subtle bg-surface-1 py-1">
           {NUMBER_FORMAT_GROUPS.map((group, gi) => (
             <div key={gi} className={cn({ "border-t border-subtle": gi > 0 })}>
               {group.map((f) => {
@@ -2180,7 +2599,7 @@ function ColorMenu({ title, disabled, value, icon, palette = PALETTE, onSelect }
         <span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: value || "transparent" }} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-max rounded-lg border border-subtle bg-surface-1 p-2 shadow-lg">
+        <div className="shadow-lg absolute top-full left-0 z-30 mt-1 w-max rounded-lg border border-subtle bg-surface-1 p-2">
           <div className="grid grid-cols-5 gap-1">
             {palette.map((c) => (
               <button
@@ -2192,7 +2611,7 @@ function ColorMenu({ title, disabled, value, icon, palette = PALETTE, onSelect }
                   setOpen(false);
                 }}
                 className={cn("size-5 rounded-md border border-subtle transition-transform hover:scale-110", {
-                  "ring-1 ring-accent-primary ring-offset-1": value === c,
+                  "ring-accent-primary ring-1 ring-offset-1": value === c,
                 })}
                 style={{ backgroundColor: c }}
               />
@@ -2312,7 +2731,7 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
         <span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: color }} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-max rounded-lg border border-subtle bg-surface-1 p-2 shadow-lg">
+        <div className="shadow-lg absolute top-full left-0 z-30 mt-1 w-max rounded-lg border border-subtle bg-surface-1 p-2">
           <div className="grid grid-cols-4 gap-1">
             {positions.map((p) => (
               <button
@@ -2335,7 +2754,9 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
                 type="button"
                 title={`${w}px`}
                 onClick={() => update({ width: w })}
-                className={cn("flex h-6 w-7 items-center justify-center rounded-md hover:bg-layer-1", { "bg-layer-2 ring-1 ring-accent-primary": width === w })}
+                className={cn("flex h-6 w-7 items-center justify-center rounded-md hover:bg-layer-1", {
+                  "ring-accent-primary bg-layer-2 ring-1": width === w,
+                })}
               >
                 <span className="w-4 rounded-full" style={{ height: w, backgroundColor: "var(--txt-primary)" }} />
               </button>
@@ -2344,9 +2765,14 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
               type="button"
               title="Dashed"
               onClick={() => update({ style: style === "dashed" ? "solid" : "dashed" })}
-              className={cn("ml-0.5 flex h-6 w-7 items-center justify-center rounded-md hover:bg-layer-1", { "bg-layer-2 ring-1 ring-accent-primary": style === "dashed" })}
+              className={cn("ml-0.5 flex h-6 w-7 items-center justify-center rounded-md hover:bg-layer-1", {
+                "ring-accent-primary bg-layer-2 ring-1": style === "dashed",
+              })}
             >
-              <span className="w-4 border-t border-dashed" style={{ borderTopWidth: 1.5, borderColor: "var(--txt-primary)" }} />
+              <span
+                className="w-4 border-t border-dashed"
+                style={{ borderTopWidth: 1.5, borderColor: "var(--txt-primary)" }}
+              />
             </button>
           </div>
 
@@ -2359,7 +2785,7 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
                   title={c}
                   onClick={() => update({ color: c })}
                   className={cn("size-4 rounded border border-subtle transition-transform hover:scale-110", {
-                    "ring-1 ring-accent-primary ring-offset-1": color === c,
+                    "ring-accent-primary ring-1 ring-offset-1": color === c,
                   })}
                   style={{ backgroundColor: c }}
                 />
@@ -2375,6 +2801,178 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
               <span>Custom color…</span>
             </label>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A chart card floating over the grid, absolutely positioned inside the
+ * scroll container so it moves with the cells it charts. Drag by the header,
+ * resize from the corner — geometry is committed once on pointer-up so a
+ * whole gesture is a single undo step; in-flight geometry lives in local
+ * state only.
+ */
+function SheetChartCard(props: {
+  chart: TSheetChart;
+  grid: TSheetGrid;
+  isEditable: boolean;
+  selectionRange: string | null;
+  onUpdate: (patch: Partial<TSheetChart>) => void;
+  onDelete: () => void;
+}) {
+  const { chart, grid, isEditable, selectionRange, onUpdate, onDelete } = props;
+  const [live, setLive] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const liveRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+  const gestureRef = useRef<{
+    mode: "move" | "resize";
+    pointerId: number;
+    startX: number;
+    startY: number;
+    base: { x: number; y: number; w: number; h: number };
+  } | null>(null);
+
+  const spec = useMemo(() => sheetChartSpec(grid, chart), [grid, chart]);
+
+  const x = live?.x ?? chart.x;
+  const y = live?.y ?? chart.y;
+  const w = live?.w ?? chart.w;
+  const h = live?.h ?? chart.h;
+
+  const applyLive = (next: { x: number; y: number; w: number; h: number }) => {
+    liveRef.current = next;
+    setLive(next);
+  };
+
+  const beginGesture = (event: React.PointerEvent, mode: "move" | "resize") => {
+    if (!isEditable) return;
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    gestureRef.current = {
+      mode,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      base: { x: chart.x, y: chart.y, w: chart.w, h: chart.h },
+    };
+  };
+
+  const moveGesture = (event: React.PointerEvent) => {
+    const gesture = gestureRef.current;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    const dx = event.clientX - gesture.startX;
+    const dy = event.clientY - gesture.startY;
+    if (gesture.mode === "move") {
+      applyLive({
+        x: Math.max(0, gesture.base.x + dx),
+        y: Math.max(0, gesture.base.y + dy),
+        w: gesture.base.w,
+        h: gesture.base.h,
+      });
+    } else {
+      applyLive({
+        x: gesture.base.x,
+        y: gesture.base.y,
+        w: Math.max(260, gesture.base.w + dx),
+        h: Math.max(180, gesture.base.h + dy),
+      });
+    }
+  };
+
+  const endGesture = () => {
+    if (!gestureRef.current) return;
+    gestureRef.current = null;
+    if (liveRef.current) onUpdate(liveRef.current);
+    liveRef.current = null;
+    setLive(null);
+  };
+
+  return (
+    <div
+      // Cards keep a surface (they must occlude the gridlines beneath) but go
+      // borderless — the shadow alone defines the edge.
+      className="group/sheetchart absolute z-[5] flex flex-col overflow-hidden rounded-lg bg-surface-1 shadow-raised-100"
+      style={{ left: x, top: y, width: w, height: h }}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <div
+        className={cn(
+          "flex h-7 flex-shrink-0 items-center gap-1.5 px-2",
+          isEditable && "cursor-grab active:cursor-grabbing"
+        )}
+        onPointerDown={(event) => beginGesture(event, "move")}
+        onPointerMove={moveGesture}
+        onPointerUp={endGesture}
+        onPointerCancel={endGesture}
+      >
+        <span className="font-mono rounded bg-layer-1 px-1 text-10 text-tertiary">{chart.range}</span>
+        {chart.title && <span className="truncate text-11 font-medium text-secondary">{chart.title}</span>}
+        <span className="flex-1" />
+        {isEditable && (
+          <div
+            className="hidden items-center gap-0.5 group-hover/sheetchart:flex"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            {SHEET_CHART_TYPES.map((type: TSheetChartType) => (
+              <button
+                key={type}
+                type="button"
+                className={cn(
+                  "rounded px-1 py-0.5 text-10 capitalize transition-colors",
+                  chart.type === type ? "bg-layer-2 font-medium text-primary" : "text-tertiary hover:text-primary"
+                )}
+                onClick={() => onUpdate({ type })}
+              >
+                {type}
+              </button>
+            ))}
+            {selectionRange && selectionRange !== chart.range && (
+              <button
+                type="button"
+                title={`Chart the selected cells (${selectionRange})`}
+                className="font-mono rounded px-1 py-0.5 text-10 whitespace-nowrap text-tertiary hover:text-primary"
+                onClick={() => onUpdate({ range: selectionRange })}
+              >
+                Use {selectionRange}
+              </button>
+            )}
+            <button
+              type="button"
+              title="Delete chart"
+              className="rounded p-0.5 text-tertiary transition-colors hover:text-danger-primary"
+              onClick={onDelete}
+            >
+              <Trash className="size-3" />
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="min-h-0 flex-1 p-2">
+        {spec ? (
+          <Suspense fallback={<div className="size-full animate-pulse rounded bg-layer-1" />}>
+            <LazyChartSpecView spec={spec} height={h - 28 - 16} />
+          </Suspense>
+        ) : (
+          <div className="flex size-full flex-col items-center justify-center gap-1 text-tertiary">
+            <ChartNoAxesColumn className="size-4" />
+            <span className="text-11">No numeric data in {chart.range}</span>
+          </div>
+        )}
+      </div>
+      {isEditable && (
+        <div
+          title="Resize chart"
+          className="absolute right-0 bottom-0 grid size-3.5 cursor-nwse-resize place-items-end p-0.5"
+          onPointerDown={(event) => beginGesture(event, "resize")}
+          onPointerMove={moveGesture}
+          onPointerUp={endGesture}
+          onPointerCancel={endGesture}
+        >
+          <svg viewBox="0 0 8 8" className="size-2.5 text-tertiary">
+            <path d="M7 1L1 7M7 4.5L4.5 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
         </div>
       )}
     </div>

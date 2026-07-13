@@ -8,7 +8,7 @@ import { observer } from "mobx-react";
 import useSWR from "swr";
 
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { OnboardingRoot } from "@/components/onboarding";
 // constants
 import { USER_WORKSPACES_LIST } from "@/constants/fetch-keys";
@@ -44,21 +44,21 @@ function OnboardingPage() {
     }
   );
 
+  const showLoader = !user || invitationsLoader;
+
   return (
     <AuthenticationWrapper pageType={EPageTypes.ONBOARDING}>
-      <div className="relative flex size-full overflow-hidden rounded-lg bg-canvas transition-all duration-300 ease-in-out">
-        <div className="size-full flex-grow overflow-hidden p-2 transition-all duration-300 ease-in-out">
-          <div className="shadow-md relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1">
-            {user && !invitationsLoader ? (
+      {showLoader ? (
+        <AppLoadingScreen />
+      ) : (
+        <div className="relative flex size-full overflow-hidden rounded-lg bg-canvas transition-all duration-300 ease-in-out">
+          <div className="size-full flex-grow overflow-hidden p-2 transition-all duration-300 ease-in-out">
+            <div className="shadow-md relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1">
               <OnboardingRoot invitations={invitations ?? []} />
-            ) : (
-              <div className="grid h-full w-full place-items-center">
-                <LogoSpinner />
-              </div>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </AuthenticationWrapper>
   );
 }

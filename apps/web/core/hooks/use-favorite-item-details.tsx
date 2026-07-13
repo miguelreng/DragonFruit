@@ -89,10 +89,13 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
         : getFavoriteItemIcon("project", currentProjectDetails?.logo_props || favoriteItemLogoProps);
       break;
     }
-    case "page":
+    case "page": {
+      // Docs folders read as folders, not documents (see generateFavoriteItemLink).
+      const isDocsFolder = favorite.entity_data?.page_type === "folder";
       itemTitle = getPageName(pageDetail?.name ?? favoriteItemName);
-      itemIcon = getFavoriteItemIcon("page", pageDetail?.logo_props ?? favoriteItemLogoProps);
+      itemIcon = getFavoriteItemIcon(isDocsFolder ? "folder" : "page", pageDetail?.logo_props ?? favoriteItemLogoProps);
       break;
+    }
     case "view":
       itemTitle = viewDetails?.name ?? favoriteItemName;
       // For saved Views the layout (kanban / list / gantt / etc.) reads more

@@ -7,6 +7,7 @@
 import {
   ALargeSmall,
   CaseSensitive,
+  ChartNoAxesColumn,
   CheckSquare,
   Code2,
   Heading1,
@@ -585,6 +586,29 @@ export const getSlashCommandFilteredSections =
                     },
                   }),
               });
+            },
+          });
+        }
+        if (embedConfig?.chart?.widgetCallback) {
+          workItems.push({
+            commandKey: "external-embed",
+            key: "insert-chart",
+            title: "Chart",
+            description: "Insert a data chart",
+            searchTerms: ["chart", "graph", "bar", "line", "area", "pie", "donut", "data", "visualization"],
+            icon: <ChartNoAxesColumn className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                  type: CORE_EXTENSIONS.CHART,
+                  attrs: {
+                    chart: embedConfig.chart?.defaultChart,
+                  },
+                })
+                .run();
             },
           });
         }

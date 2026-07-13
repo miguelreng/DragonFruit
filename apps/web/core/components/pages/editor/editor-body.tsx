@@ -180,6 +180,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     whiteboardEmbedProps,
     stickyEmbedProps,
     taskViewEmbedProps,
+    chartEmbedProps,
     renderPicker: renderDocEmbedPicker,
   } = useDocEmbed({
     projectId,
@@ -191,8 +192,9 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
       whiteboard: whiteboardEmbedProps,
       sticky: stickyEmbedProps,
       taskView: taskViewEmbedProps,
+      chart: chartEmbedProps,
     }),
-    [issueEmbedProps, stickyEmbedProps, taskViewEmbedProps, whiteboardEmbedProps]
+    [chartEmbedProps, issueEmbedProps, stickyEmbedProps, taskViewEmbedProps, whiteboardEmbedProps]
   );
   // block-level comments — a single floating popover handles both
   // "create a new thread" and "view + reply to an existing thread".
@@ -597,7 +599,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             <div className={blockWidthClassName}>
               {chromeless ? (
                 headerLabel ? (
-                  <h1 className="text-13 pt-4 pb-3 font-medium break-words text-primary">{headerLabel}</h1>
+                  <h1 className="pt-4 pb-3 text-13 font-medium break-words text-primary">{headerLabel}</h1>
                 ) : null
               ) : (
                 <PageEditorHeaderRoot page={page} projectId={projectId} />

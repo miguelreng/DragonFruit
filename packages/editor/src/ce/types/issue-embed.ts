@@ -10,6 +10,7 @@ export type TEmbedConfig = {
   sticky?: TDocEmbedConfig<"sticky">;
   taskView?: TDocEmbedConfig<"task_view">;
   googleDrive?: TDocEmbedConfig<"google_drive">;
+  chart?: TChartEmbedConfig;
 };
 
 export type TReadOnlyEmbedConfig = TEmbedConfig;
@@ -63,6 +64,22 @@ export type TIssueEmbedConfig = {
   projectId?: string;
   // Creates a work item from a title in the doc's project. Resolves null on failure.
   onConvertToTask?: (params: { title: string; description?: string }) => Promise<TWorkItemEmbedInsertAttrs | null>;
+};
+
+/**
+ * Chart blocks carry their data inline (no entity id): the `chart` payload is
+ * an opaque JSON spec owned by the host app — the editor only persists it on
+ * the node and hands it to the widget callback to render/edit.
+ */
+export type TChartEmbedConfig = {
+  widgetCallback: (args: {
+    chart: unknown;
+    isEditable: boolean;
+    updateChart: (chart: unknown) => void;
+    deleteChart: () => void;
+  }) => React.ReactNode;
+  /** starter spec inserted by the `/chart` slash command */
+  defaultChart?: unknown;
 };
 
 export type TDocEmbedConfig<T extends TDocEmbedType = TDocEmbedType> = {

@@ -43,12 +43,7 @@ const PopoverContent = memo(function PopoverContent({
   return (
     <PopoverPortal container={containerRef?.current}>
       <PopoverPositioner side={finalSide} sideOffset={sideOffset} align={finalAlign} className={positionerClassName}>
-        <BasePopover.Popup
-          data-slot="popover-content"
-          className={cn("t-dropdown is-open", className)}
-          data-origin="top-left"
-          {...props}
-        >
+        <BasePopover.Popup data-slot="popover-content" className={cn("t-dropdown is-open", className)} {...props}>
           {children}
         </BasePopover.Popup>
       </PopoverPositioner>

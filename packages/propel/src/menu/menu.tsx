@@ -35,9 +35,7 @@ function SubMenu(props: TSubMenuProps) {
       </BaseMenu.SubmenuTrigger>
       <BaseMenu.Portal>
         <BaseMenu.Positioner className={""} alignOffset={-4} sideOffset={-4}>
-          <BaseMenu.Popup className={cn("t-dropdown is-open", className)} data-origin="top-left">
-            {children}{" "}
-          </BaseMenu.Popup>
+          <BaseMenu.Popup className={cn("t-dropdown is-open", className)}>{children} </BaseMenu.Popup>
         </BaseMenu.Positioner>
       </BaseMenu.Portal>
     </BaseMenu.SubmenuRoot>
@@ -203,7 +201,6 @@ function Menu(props: TMenuProps) {
               optionsClassName
             )}
             data-main-menu="true"
-            data-origin="top-left"
           >
             <MenuContext.Provider value={menuContextValue}>{children}</MenuContext.Provider>
           </BaseMenu.Popup>

@@ -11,6 +11,7 @@ export * from "./code";
 export * from "./code-inline";
 export * from "./custom-link";
 export * from "./custom-list-keymap";
+export * from "./chart";
 export * from "./doc-embed";
 export * from "./image";
 export * from "./mentions";

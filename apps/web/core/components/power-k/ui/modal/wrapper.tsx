@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Command } from "cmdk";
 import { observer } from "mobx-react";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog } from "@headlessui/react";
 // hooks
 import { usePowerK } from "@/hooks/store/use-power-k";
 import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
@@ -107,95 +107,65 @@ export const ProjectsAppPowerKModalWrapper = observer(function ProjectsAppPowerK
 
   // Reset state when modal closes
   useEffect(() => {
-    let resetTimer: ReturnType<typeof setTimeout> | undefined;
+    if (isOpen) return;
 
-    if (!isOpen) {
-      resetTimer = setTimeout(() => {
-        setSearchTerm("");
-        setActivePage(null);
-        context.setActiveCommand(null);
-        context.setShouldShowContextBasedActions(true);
-      }, 200);
-    }
-
-    return () => {
-      if (resetTimer) clearTimeout(resetTimer);
-    };
+    setSearchTerm("");
+    setActivePage(null);
+    context.setActiveCommand(null);
+    context.setShouldShowContextBasedActions(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  if (!isOpen) return null;
+
   return (
-    <Transition.Root show={isOpen} as={React.Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        {/* Backdrop */}
-        <Transition.Child
-          as={React.Fragment}
-          enter="transition-opacity duration-[var(--motion-control-dur)] ease-[var(--motion-standard-ease)]"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="transition-opacity duration-[var(--motion-fast-dur)] ease-[var(--motion-control-ease)]"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-backdrop" />
-        </Transition.Child>
-        {/* Modal Container */}
-        <div className="fixed inset-0 z-30 overflow-y-auto">
-          <div className="flex items-center justify-center p-4 sm:p-6 md:p-20">
-            <Transition.Child
-              as={React.Fragment}
-              enter=""
-              enterFrom=""
-              enterTo="is-open"
-              leave=""
-              leaveFrom="is-open"
-              leaveTo="is-closing"
+    <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <div className="fixed inset-0 bg-backdrop" />
+      <div className="fixed inset-0 z-30 overflow-y-auto">
+        <div className="flex items-center justify-center p-4 sm:p-6 md:p-20">
+          <Dialog.Panel
+            data-theme={surfaceTheme}
+            className="divide-opacity-10 relative flex w-full max-w-2xl flex-col items-center justify-center divide-y divide-subtle-1 rounded-[18px] border-[0.5px] border-strong bg-surface-1 text-primary shadow-raised-200"
+          >
+            <Command
+              filter={(i18nValue: string, search: string) => {
+                if (i18nValue === "no-results") return 1;
+                if (i18nValue.toLowerCase().includes(search.toLowerCase())) return 1;
+                return 0;
+              }}
+              shouldFilter={searchTerm.length > 0}
+              onKeyDown={handleKeyDown}
+              className="w-full"
             >
-              <Dialog.Panel
-                data-theme={surfaceTheme}
-                className="divide-opacity-10 t-modal relative flex w-full max-w-2xl transform flex-col items-center justify-center divide-y divide-subtle-1 rounded-[18px] border-[0.5px] border-strong bg-surface-1 text-primary shadow-raised-200"
-              >
-                <Command
-                  filter={(i18nValue: string, search: string) => {
-                    if (i18nValue === "no-results") return 1;
-                    if (i18nValue.toLowerCase().includes(search.toLowerCase())) return 1;
-                    return 0;
-                  }}
-                  shouldFilter={searchTerm.length > 0}
-                  onKeyDown={handleKeyDown}
-                  className="w-full"
-                >
-                  <PowerKModalHeader
-                    activePage={activePage}
-                    context={context}
-                    onSearchChange={setSearchTerm}
-                    searchTerm={searchTerm}
-                  />
-                  <Command.List className="vertical-scrollbar scrollbar-sm max-h-96 overflow-scroll outline-none">
-                    <CommandsListComponent
-                      activePage={activePage}
-                      context={context}
-                      handleCommandSelect={handleCommandSelect}
-                      handlePageDataSelection={handlePageDataSelection}
-                      isWorkspaceLevel={isWorkspaceLevel}
-                      searchTerm={searchTerm}
-                      setSearchTerm={setSearchTerm}
-                    />
-                  </Command.List>
-                  {/* Footer hints */}
-                  {!hideFooter && (
-                    <PowerKModalFooter
-                      isWorkspaceLevel={isWorkspaceLevel}
-                      projectId={context.params.projectId?.toString()}
-                      onWorkspaceLevelChange={setIsWorkspaceLevel}
-                    />
-                  )}
-                </Command>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
+              <PowerKModalHeader
+                activePage={activePage}
+                context={context}
+                onSearchChange={setSearchTerm}
+                searchTerm={searchTerm}
+              />
+              <Command.List className="vertical-scrollbar scrollbar-sm max-h-96 overflow-scroll outline-none">
+                <CommandsListComponent
+                  activePage={activePage}
+                  context={context}
+                  handleCommandSelect={handleCommandSelect}
+                  handlePageDataSelection={handlePageDataSelection}
+                  isWorkspaceLevel={isWorkspaceLevel}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                />
+              </Command.List>
+              {/* Footer hints */}
+              {!hideFooter && (
+                <PowerKModalFooter
+                  isWorkspaceLevel={isWorkspaceLevel}
+                  projectId={context.params.projectId?.toString()}
+                  onWorkspaceLevelChange={setIsWorkspaceLevel}
+                />
+              )}
+            </Command>
+          </Dialog.Panel>
         </div>
-      </Dialog>
-    </Transition.Root>
+      </div>
+    </Dialog>
   );
 });

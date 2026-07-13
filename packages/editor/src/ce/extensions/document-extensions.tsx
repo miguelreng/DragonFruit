@@ -6,7 +6,7 @@
 
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import type { AnyExtension } from "@tiptap/core";
-import { DocEmbedExtension, SlashCommands, WorkItemEmbedExtension } from "@/extensions";
+import { ChartExtension, DocEmbedExtension, SlashCommands, WorkItemEmbedExtension } from "@/extensions";
 // types
 import type { IEditorProps, TUserDetails } from "@/types";
 
@@ -54,6 +54,14 @@ const extensionRegistry: TDocumentEditorAdditionalExtensionsRegistry[] = [
           task_view: embedConfig?.taskView,
           google_drive: embedConfig?.googleDrive,
         },
+      }),
+  },
+  {
+    isEnabled: ({ embedConfig }) => Boolean(embedConfig?.chart?.widgetCallback),
+    getExtension: ({ embedConfig }) =>
+      ChartExtension({
+        // Guarded by isEnabled — the chart config is guaranteed defined here.
+        config: embedConfig!.chart!,
       }),
   },
 ];

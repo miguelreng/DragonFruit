@@ -161,7 +161,11 @@
     pointer-events: none;
     outline: none;
     z-index: 9;
-    transition: all 0.2s ease;
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease,
+      color 200ms ease,
+      opacity 200ms ease;
 
     &:hover {
       background-color: var(--background-color-layer-1-hover);

@@ -18,7 +18,9 @@ class PageFavoriteLiteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Page
-        fields = ["id", "name", "logo_props", "project_id"]
+        # `page_type` lets the client render docs-folder favorites (a folder
+        # never opens in an editor — it deep-links the Docs gallery instead).
+        fields = ["id", "name", "logo_props", "page_type", "project_id"]
 
     def get_project_id(self, obj):
         project = obj.projects.first()  # This gets the first project related to the Page

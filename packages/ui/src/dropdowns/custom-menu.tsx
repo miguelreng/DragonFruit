@@ -337,6 +337,7 @@ function SubMenu(props: ICustomSubMenuProps) {
   const [referenceElement, setReferenceElement] = React.useState<HTMLSpanElement | null>(null);
   const [popperElement, setPopperElement] = React.useState<HTMLDivElement | null>(null);
   const submenuRef = React.useRef<HTMLDivElement | null>(null);
+  const closeTimerRef = React.useRef<number | null>(null);
 
   const menuContext = React.useContext(MenuContext);
 
@@ -347,7 +348,7 @@ function SubMenu(props: ICustomSubMenuProps) {
       {
         name: "offset",
         options: {
-          offset: [0, 4],
+          offset: [0, 2],
         },
       },
       {
@@ -365,11 +366,38 @@ function SubMenu(props: ICustomSubMenuProps) {
     ],
   });
 
-  const closeSubmenu = React.useCallback(() => {
-    setIsOpen(false);
+  const cancelScheduledClose = React.useCallback(() => {
+    if (!closeTimerRef.current) return;
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
   }, []);
 
+  const closeSubmenu = React.useCallback(() => {
+    cancelScheduledClose();
+    setIsOpen(false);
+  }, [cancelScheduledClose]);
+
+  const openSubmenu = React.useCallback(() => {
+    if (disabled) return;
+    cancelScheduledClose();
+    if (!isOpen) {
+      menuContext?.closeAllSubmenus();
+      setIsOpen(true);
+    }
+  }, [cancelScheduledClose, disabled, isOpen, menuContext]);
+
+  const scheduleClose = React.useCallback(() => {
+    if (disabled) return;
+    cancelScheduledClose();
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsOpen(false);
+      closeTimerRef.current = null;
+    }, 120);
+  }, [cancelScheduledClose, disabled]);
+
   const subMenuContextValue = React.useMemo(() => ({ closeSubmenu }), [closeSubmenu]);
+
+  React.useEffect(() => cancelScheduledClose, [cancelScheduledClose]);
 
   // Register this submenu with the main menu context
   React.useEffect(() => {
@@ -378,20 +406,10 @@ function SubMenu(props: ICustomSubMenuProps) {
     }
   }, [menuContext, closeSubmenu]);
 
-  const toggleSubmenu = () => {
-    if (!disabled) {
-      // Close other submenus when opening this one
-      if (!isOpen && menuContext) {
-        menuContext.closeAllSubmenus();
-      }
-      setIsOpen(!isOpen);
-    }
-  };
-
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleSubmenu();
+    openSubmenu();
   };
 
   // Close submenu when clicking on other menu items
@@ -421,15 +439,23 @@ function SubMenu(props: ICustomSubMenuProps) {
               className={cn(
                 "flex w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-left text-secondary select-none",
                 {
-                  "bg-layer-transparent-hover": active && !disabled,
+                  "bg-layer-transparent-hover text-primary": (active || isOpen) && !disabled,
                   "text-placeholder": disabled,
                   "cursor-not-allowed": disabled,
                 }
               )}
+              aria-expanded={isOpen}
+              aria-haspopup="menu"
               onClick={handleClick}
+              onMouseEnter={openSubmenu}
+              onMouseLeave={scheduleClose}
             >
               <span className="flex-1">{trigger}</span>
-              <ChevronRightIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              <ChevronRightIcon
+                className={cn("h-3.5 w-3.5 flex-shrink-0 transition-transform duration-150", {
+                  "translate-x-0.5": isOpen,
+                })}
+              />
             </div>
           )}
         </Menu.Item>
@@ -439,15 +465,15 @@ function SubMenu(props: ICustomSubMenuProps) {
         <Portal>
           <div
             ref={setPopperElement}
-            style={styles.popper}
+            style={{
+              ...styles.popper,
+              visibility: attributes.popper?.["data-popper-placement"] ? "visible" : "hidden",
+            }}
             {...attributes.popper}
-            className={cn(
-              "t-dropdown is-open fixed z-30 min-w-[12rem] overflow-hidden rounded-lg border border-subtle bg-surface-1 p-1 text-13 shadow-raised-200",
-              contentClassName
-            )}
-            data-origin="top-left"
+            className="fixed z-30"
             data-prevent-outside-click="true"
             onMouseEnter={() => {
+              cancelScheduledClose();
               // Notify parent menu that we're hovering over submenu
               const mainMenuElement = document.querySelector('[data-main-menu="true"]');
               if (mainMenuElement) {
@@ -456,6 +482,7 @@ function SubMenu(props: ICustomSubMenuProps) {
               }
             }}
             onMouseLeave={() => {
+              scheduleClose();
               // Notify parent menu that we're leaving submenu
               const mainMenuElement = document.querySelector('[data-main-menu="true"]');
               if (mainMenuElement) {
@@ -464,7 +491,15 @@ function SubMenu(props: ICustomSubMenuProps) {
               }
             }}
           >
-            <SubMenuContext.Provider value={subMenuContextValue}>{children}</SubMenuContext.Provider>
+            <div
+              className={cn(
+                "t-dropdown is-open min-w-[12rem] overflow-hidden rounded-lg border border-subtle bg-surface-1 p-1 text-13 shadow-raised-200",
+                contentClassName
+              )}
+              data-popper-placement={attributes.popper?.["data-popper-placement"]}
+            >
+              <SubMenuContext.Provider value={subMenuContextValue}>{children}</SubMenuContext.Provider>
+            </div>
           </div>
         </Portal>
       )}

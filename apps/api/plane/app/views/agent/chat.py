@@ -219,12 +219,40 @@ for this project", "crea el brief de mi proyecto", "update the project brief"), 
 page (the "Brief" tab); writing it as a normal document creates a duplicate the Brief tab won't show.
 Only if the user explicitly asks you to create a task, call `create_task`.
 Only if the user explicitly asks you to create a sticky/note, call `create_sticky`.
+If the user asks to chart/graph/visualize data that lives in a spreadsheet page, call `add_sheet_chart`
+(bound to the cell range) instead of emitting a ```chart fence — the sheet chart stays live as cells
+change. Fenced charts are for data that is not in a spreadsheet.
 For factual questions about real-world entities, history, science, or definitions, call `lookup_wikipedia`
 to ground your answer and cite the returned URL — prefer it over stating facts from memory.
 If the user asks you to "brief me on X", "give me a brief on X", or wants a researched background document
 on a topic, call `create_wikipedia_brief` — it researches the topic on Wikipedia and creates a sourced doc.
 In document Sources sections, use real URLs returned by `lookup_wikipedia`, never invented ones.
 Do not reveal private chain-of-thought; only share a brief rationale if it helps the user.
+""".strip()
+
+
+_CHART_SPEC_SYSTEM_PROMPT = """
+When the user asks for a chart, graph, or visualization — or when numbers you are presenting would
+clearly read better as one — embed a chart directly in your reply as a fenced code block whose
+language tag is `chart`, containing ONLY a JSON object:
+
+```chart
+{"type": "bar", "title": "Signups by month", "labels": ["Jan", "Feb", "Mar"],
+ "series": [{"name": "Signups", "values": [120, 180, 240]}]}
+```
+
+Chart JSON rules:
+- `type`: one of "bar", "line", "area", "pie", "donut".
+- `labels`: the category names (x-axis ticks, or slice names for pie/donut).
+- `series`: 1-6 objects, each {"name": string, "values": [numbers]} with values aligned to `labels`.
+  Pie/donut charts read only the first series.
+- Optional `options`: {"stacked": true|false, "legend": true|false, "xLabel": "...", "yLabel": "..."}.
+- Do not set colors — the app themes charts automatically.
+- Chart only real data: numbers from this conversation, `search_workspace` results, spreadsheet
+  contents, or web research. Never invent values; if the data isn't available, say what's missing
+  instead of charting.
+- Keep charts readable: at most ~20 labels; prefer rounding over long decimals.
+- Write normal prose around the block, and never emit chart JSON outside a ```chart fence.
 """.strip()
 
 
@@ -1542,6 +1570,115 @@ def _make_set_cells_tool(*, workspace: Workspace, user, project_id: str | None) 
     )
 
 
+_SHEET_CHART_TYPES = ("bar", "line", "area", "pie", "donut")
+_SHEET_RANGE_RE = re.compile(r"^[A-Za-z]+\d+(?::[A-Za-z]+\d+)?$")
+
+
+def _make_add_sheet_chart_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
+    """Add a floating chart card to a spreadsheet, bound to a cell range.
+
+    The chart definition lands in the sheet snapshot's `charts` list; the web
+    grid derives labels/series live from the range (first column = labels,
+    remaining columns = series, headers-then-rows like update_sheet writes).
+    """
+
+    def _handler(args: dict) -> str:
+        hint = args.get("project") or args.get("project_id")
+        project = _resolve_agent_project(workspace=workspace, project_id=project_id, hint=hint)
+        if project is None:
+            if hint:
+                return f"tool_error: no active project matching '{str(hint).strip()}' in this workspace"
+            return (
+                "tool_error: no project is currently open. Ask the user which project the spreadsheet "
+                "is in, then pass its name as `project`."
+            )
+
+        page, err = _find_project_sheet_page(
+            workspace=workspace, project=project, wanted=str(args.get("sheet") or "").strip()
+        )
+        if page is None:
+            return err
+
+        chart_range = str(args.get("range") or "").strip().upper()
+        if not _SHEET_RANGE_RE.match(chart_range):
+            return "tool_error: `range` must be an A1-style range like 'A1:C10'"
+
+        chart_type = str(args.get("type") or "bar").strip().lower()
+        if chart_type not in _SHEET_CHART_TYPES:
+            return f"tool_error: `type` must be one of {', '.join(_SHEET_CHART_TYPES)}"
+
+        title = str(args.get("title") or "").strip()[:160]
+
+        dj, sheets, grid, active_id = _load_active_sheet_grid(page)
+        charts = list(grid.get("charts")) if isinstance(grid.get("charts"), list) else []
+        offset = (len(charts) % 5) * 32
+        chart = {
+            "id": f"chart-{uuid4().hex[:8]}",
+            "type": chart_type,
+            "range": chart_range,
+            # Mirrors the web's insert-chart defaults: cascade cards so they
+            # stay individually grabbable (48 = row-number gutter width).
+            "x": 48 + 24 + offset,
+            "y": 24 + offset,
+            "w": 460,
+            "h": 300,
+        }
+        if title:
+            chart["title"] = title
+        if args.get("stacked") is True:
+            chart["options"] = {"stacked": True}
+        charts.append(chart)
+        grid["charts"] = charts
+
+        dj["sheet_snapshot"] = {"sheets": sheets, "activeId": active_id or grid["id"]}
+        page.description_json = dj
+        page.description_binary = None
+        page.save()
+
+        label = title or f"{chart_type} chart"
+        return (
+            f"ok: added {label} over {chart_range} to spreadsheet '{page.name}' "
+            f"(id={page.id}, url=/{workspace.slug}/projects/{project.id}/pages/{page.id})"
+        )
+
+    return LLMTool(
+        name="add_sheet_chart",
+        description=(
+            "Add a chart to an existing spreadsheet page, bound to a cell range so it stays live as the "
+            "cells change. Use when the user asks to chart, graph, or visualize spreadsheet data. The "
+            "range's first column provides the category labels and each remaining column is a series; "
+            "when the first row holds text headers they become the series names. If the project has "
+            "more than one spreadsheet, pass its title as `sheet`."
+        ),
+        parameters_schema={
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "string",
+                    "description": "Optional project name, identifier, or id. Omit to use the currently open project.",
+                },
+                "sheet": {
+                    "type": "string",
+                    "description": "Title of the spreadsheet. Required only if the project has multiple spreadsheets.",
+                },
+                "range": {
+                    "type": "string",
+                    "description": "A1-style range to chart, e.g. 'A1:C10'. Include the header row when there is one.",
+                },
+                "type": {
+                    "type": "string",
+                    "enum": list(_SHEET_CHART_TYPES),
+                    "description": "Chart type (default bar).",
+                },
+                "title": {"type": "string", "description": "Optional chart title."},
+                "stacked": {"type": "boolean", "description": "Stack multi-series bar/area charts."},
+            },
+            "required": ["range"],
+        },
+        handler=_handler,
+    )
+
+
 def _make_web_search_tool() -> LLMTool:
     def _handler(args: dict) -> str:
         try:
@@ -2515,7 +2652,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
             system = atlas_persona + "\n\nConversation so far:\n" + "\n".join(transcript_lines)
         else:
             system = atlas_persona
-        system = f"{system}\n\n{_CHAT_INTENT_SYSTEM_PROMPT}"
+        system = f"{system}\n\n{_CHAT_INTENT_SYSTEM_PROMPT}\n\n{_CHART_SPEC_SYSTEM_PROMPT}"
         if fact_check_mode:
             system = (
                 f"{system}\n\n"
@@ -2661,6 +2798,11 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     project_id=project_id,
                 ),
                 _make_set_cells_tool(
+                    workspace=session.workspace,
+                    user=request.user,
+                    project_id=project_id,
+                ),
+                _make_add_sheet_chart_tool(
                     workspace=session.workspace,
                     user=request.user,
                     project_id=project_id,

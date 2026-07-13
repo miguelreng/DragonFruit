@@ -116,7 +116,7 @@
   /* font styles */
   &.font-default {
     --font-style: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --font-style-display: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+    --font-style-display: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
     --font-style-display-sans:
       "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
@@ -126,10 +126,11 @@
     --font-style-display-sans:
       "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
+  /* Class name is a persisted editor font key — keep it, the face behind it is Sorts Mill Goudy now. */
   &.font-newsreader {
-    --font-style: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
-    --font-style-display: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
-    --font-style-display-sans: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+    --font-style: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+    --font-style-display: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+    --font-style-display-sans: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
   }
   &.font-inter {
     --font-style: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -142,7 +143,7 @@
     --font-style: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   &.serif {
-    --font-style: "Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+    --font-style: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
   }
   &.monospace {
     --font-style: monospace;
@@ -247,7 +248,10 @@
     .document-editor-loader {
       max-width: var(--editor-content-width);
       margin: 0 auto;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition:
+        max-width 200ms cubic-bezier(0.23, 1, 0.32, 1),
+        padding-inline-start 200ms cubic-bezier(0.23, 1, 0.32, 1),
+        padding-inline-end 200ms cubic-bezier(0.23, 1, 0.32, 1);
     }
 
     .editor-container.document-editor .ProseMirror {
@@ -255,7 +259,10 @@
         max-width: var(--editor-content-width);
         margin-left: auto !important;
         margin-right: auto !important;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+          max-width 200ms cubic-bezier(0.23, 1, 0.32, 1),
+          padding-inline-start 200ms cubic-bezier(0.23, 1, 0.32, 1),
+          padding-inline-end 200ms cubic-bezier(0.23, 1, 0.32, 1);
       }
 
       & > .editor-full-width-block {
@@ -264,6 +271,18 @@
         padding-inline-end: var(--wide-content-margin);
       }
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #page-content-container .frame-renderer .editor-container.page-title-editor .ProseMirror,
+  #page-content-container .frame-renderer .document-editor-loader,
+  #page-content-container
+    .frame-renderer
+    .editor-container.document-editor
+    .ProseMirror
+    > *:not(.editor-full-width-block) {
+    transition: none;
   }
 }
 

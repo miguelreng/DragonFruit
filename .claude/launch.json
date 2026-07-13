@@ -8,6 +8,33 @@
       "port": 3000
     },
     {
+      "name": "web-local-api (folders verify)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && VITE_DEV_API_PROXY_TARGET=http://127.0.0.1:8000 pnpm exec react-router dev --port 3005"
+      ],
+      "port": 3005
+    },
+    {
+      "name": "web-local-api-alt (charts verify)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && VITE_DEV_API_PROXY_TARGET=http://127.0.0.1:8000 pnpm exec react-router dev --port 3006"
+      ],
+      "port": 3006
+    },
+    {
+      "name": "web-local-api-3007 (link preview verify)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && VITE_DEV_API_PROXY_TARGET=http://127.0.0.1:8001 pnpm exec react-router dev --port 3007"
+      ],
+      "port": 3007
+    },
+    {
       "name": "landing (Astro marketing site)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter=landing", "dev"],

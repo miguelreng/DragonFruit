@@ -19,6 +19,7 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
     group: "Write & format",
     items: [
       { keys: "/", label: "Open the command menu — headings, lists, tables, images, callouts, quotes, code" },
+      { keys: "/chart", label: "Insert a data chart — bar, line, area, pie, or donut; Atlas can chart into docs too" },
       { keys: "Select text", label: "Bubble menu: bold, italic, color, alignment, links" },
       { keys: "Icon · Cover", label: "Give the doc an icon and a cover image" },
       { keys: "Drag ⋮⋮", label: "Reorder blocks — to-do items get a grab handle on hover, even in stickies" },

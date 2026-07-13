@@ -9,11 +9,12 @@ import Link from "next/link";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { DocumentText } from "@solar-icons/react/ssr";
 import type { TPage, TPageType } from "@plane/types";
 import { calculateTimeAgo, getPageName } from "@plane/utils";
-import { FileText, GridIconShim } from "@/components/icons/lucide-shim";
+import { DOC_CARD_STYLE_STORAGE_KEY, DocPreviewCard, type TDocCardStyle } from "@/components/docs/doc-card-preview";
 import { isBriefPage } from "@/components/project/brief/constants";
+import { useProject } from "@/hooks/store/use-project";
+import useLocalStorage from "@/hooks/use-local-storage";
 import { ProjectPageService } from "@/services/page/project-page.service";
 
 // Matches the inspo's four-up "study plan" row.
@@ -22,41 +23,28 @@ const RECENT_PAGE_TYPES: TPageType[] = ["doc", "pdf", "sheet"];
 const RECENT_PAGE_TYPES_KEY = RECENT_PAGE_TYPES.join("_");
 const pageService = new ProjectPageService();
 
-const RecentDocTile = observer(function RecentDocTile({ doc, slug }: { doc: TPage; slug: string }) {
+const RecentDocTile = observer(function RecentDocTile({
+  doc,
+  slug,
+  cardStyle,
+}: {
+  doc: TPage;
+  slug: string;
+  cardStyle: TDocCardStyle;
+}) {
+  const { getProjectById } = useProject();
   const projectId = doc.project_ids?.[0];
   const docLink = projectId ? `/${slug}/projects/${projectId}/pages/${doc.id}/` : `/${slug}/pages/${doc.id}`;
-  const pageType = doc.page_type ?? "doc";
+  const metaText = [
+    projectId ? getProjectById(projectId)?.name : undefined,
+    doc.updated_at ? `Updated ${calculateTimeAgo(doc.updated_at)}` : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <Link
-      href={docLink}
-      className="group flex min-w-0 flex-1 flex-col gap-3 px-4 first:pl-2 last:pr-2"
-      title={getPageName(doc.name)}
-    >
-      {pageType === "sheet" ? (
-        <GridIconShim
-          weight="BoldDuotone"
-          className="size-14 text-placeholder transition-colors group-hover:text-tertiary"
-        />
-      ) : pageType === "pdf" ? (
-        <FileText
-          weight="BoldDuotone"
-          className="size-14 text-placeholder transition-colors group-hover:text-tertiary"
-        />
-      ) : (
-        <DocumentText
-          weight="BoldDuotone"
-          className="size-14 text-placeholder transition-colors group-hover:text-tertiary"
-        />
-      )}
-      <div className="min-w-0">
-        <p className="truncate text-13 font-medium text-secondary transition-colors group-hover:text-primary">
-          {getPageName(doc.name)}
-        </p>
-        {doc.updated_at && (
-          <p className="mt-0.5 truncate text-11 text-placeholder">Updated {calculateTimeAgo(doc.updated_at)}</p>
-        )}
-      </div>
+    <Link href={docLink} className="block min-w-0" title={getPageName(doc.name)}>
+      <DocPreviewCard page={doc} workspaceSlug={slug} style={cardStyle} meta={metaText} footer={metaText} />
     </Link>
   );
 });
@@ -64,6 +52,9 @@ const RecentDocTile = observer(function RecentDocTile({ doc, slug }: { doc: TPag
 export const RecentDocsSection = observer(function RecentDocsSection() {
   const { workspaceSlug } = useParams();
   const slug = workspaceSlug?.toString();
+  // Follows the docs gallery's paper/tile pick so both surfaces match.
+  const { storedValue: storedCardStyle } = useLocalStorage<TDocCardStyle>(DOC_CARD_STYLE_STORAGE_KEY, "paper");
+  const cardStyle: TDocCardStyle = storedCardStyle ?? "paper";
 
   // Reuses the same SWR key/fetcher as the Docs page so the list is warm there.
   const { data: pages, isLoading } = useSWR(
@@ -96,8 +87,8 @@ export const RecentDocsSection = observer(function RecentDocsSection() {
           No docs, PDFs, or sheets yet. Create one to see it here.
         </div>
       ) : (
-        <div className="flex divide-x divide-subtle">
-          {slug && docs.map((doc) => <RecentDocTile key={doc.id} doc={doc} slug={slug} />)}
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {slug && docs.map((doc) => <RecentDocTile key={doc.id} doc={doc} slug={slug} cardStyle={cardStyle} />)}
         </div>
       )}
     </section>

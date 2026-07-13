@@ -6,12 +6,15 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import type {
+  TChartEmbedConfig,
   TDocEmbedConfig,
   TDocEmbedInsertAttrs,
   TDocEmbedPickerMode,
   TDocEmbedPickerRequest,
   TDocEmbedType,
 } from "@plane/editor";
+import { DEFAULT_CHART_SPEC } from "@/components/chart/spec";
+import { DocChartEmbed } from "@/components/editor/embeds/chart/chart-embed";
 import { DocEmbedCard, DocEmbedPicker } from "@/components/editor/embeds/doc-embed";
 
 type Props = {
@@ -99,6 +102,16 @@ export const useDocEmbed = ({ projectId, workspaceSlug }: Props) => {
     [onPickerRequest, projectId, workspaceSlug]
   );
 
+  const chartEmbedProps: TChartEmbedConfig = useMemo(
+    () => ({
+      widgetCallback: ({ chart, isEditable, updateChart, deleteChart }) => (
+        <DocChartEmbed chart={chart} isEditable={isEditable} updateChart={updateChart} deleteChart={deleteChart} />
+      ),
+      defaultChart: DEFAULT_CHART_SPEC,
+    }),
+    []
+  );
+
   const renderPicker = useCallback(
     () =>
       activePicker ? (
@@ -120,6 +133,7 @@ export const useDocEmbed = ({ projectId, workspaceSlug }: Props) => {
     stickyEmbedProps,
     taskViewEmbedProps,
     googleDriveEmbedProps,
+    chartEmbedProps,
     renderPicker,
   };
 };

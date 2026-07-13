@@ -37,6 +37,29 @@ export type TSheetGrid = {
   filters?: Record<number, TColumnFilter>;
   /** per-column dropdown/"pill" config keyed by 0-based column index */
   selects?: Record<number, TColumnSelect>;
+  /** floating chart cards anchored over the grid, each fed by a cell range */
+  charts?: TSheetChart[];
+};
+
+export const SHEET_CHART_TYPES = ["bar", "line", "area", "pie", "donut"] as const;
+export type TSheetChartType = (typeof SHEET_CHART_TYPES)[number];
+
+/**
+ * A chart card floating over the grid. `range` is the A1-style rectangle the
+ * chart reads (first column = labels, remaining columns = series), so the
+ * chart stays live as cells change. Geometry is in px relative to the grid
+ * content, meaning cards scroll with the cells they describe.
+ */
+export type TSheetChart = {
+  id: string;
+  type: TSheetChartType;
+  title?: string;
+  range: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  options?: { stacked?: boolean; legend?: boolean };
 };
 
 /** A column filter: hide specific displayed values and/or a "contains" query. */
@@ -215,8 +238,7 @@ export const createGrid = (id: string, name: string): TSheetGrid => ({
 });
 
 /** Resolve a column's width, falling back to the default. */
-export const colWidth = (grid: TSheetGrid, col: number): number =>
-  grid.colWidths?.[col] ?? SHEET_DEFAULT_COL_WIDTH;
+export const colWidth = (grid: TSheetGrid, col: number): number => grid.colWidths?.[col] ?? SHEET_DEFAULT_COL_WIDTH;
 
 /** 0 → "A", 25 → "Z", 26 → "AA". */
 export const columnLabel = (index: number): string => {
@@ -282,7 +304,9 @@ const parseGrid = (raw: Record<string, unknown>, id: string, name: string): TShe
     for (const [key, value] of Object.entries(raw.filters)) {
       const idx = Number(key);
       if (Number.isInteger(idx) && isRecord(value)) {
-        const hidden = Array.isArray(value.hidden) ? value.hidden.filter((v): v is string => typeof v === "string") : undefined;
+        const hidden = Array.isArray(value.hidden)
+          ? value.hidden.filter((v): v is string => typeof v === "string")
+          : undefined;
         const query = typeof value.query === "string" ? value.query : undefined;
         filters[idx] = { hidden, query };
       }
@@ -301,6 +325,32 @@ const parseGrid = (raw: Record<string, unknown>, id: string, name: string): TShe
       }
     }
   }
+  const charts: TSheetChart[] = [];
+  if (Array.isArray(raw.charts)) {
+    for (const value of raw.charts) {
+      if (!isRecord(value)) continue;
+      const range = typeof value.range === "string" ? value.range.trim() : "";
+      if (!range) continue;
+      const type = SHEET_CHART_TYPES.includes(value.type as TSheetChartType) ? (value.type as TSheetChartType) : "bar";
+      const options = isRecord(value.options)
+        ? {
+            ...(value.options.stacked === true ? { stacked: true } : {}),
+            ...(typeof value.options.legend === "boolean" ? { legend: value.options.legend } : {}),
+          }
+        : undefined;
+      charts.push({
+        id: typeof value.id === "string" && value.id ? value.id : `chart-${charts.length + 1}`,
+        type,
+        title: typeof value.title === "string" && value.title.trim() ? value.title.trim() : undefined,
+        range,
+        x: typeof value.x === "number" ? value.x : SHEET_ROWNUM_WIDTH + 16,
+        y: typeof value.y === "number" ? value.y : 16,
+        w: typeof value.w === "number" ? Math.max(240, value.w) : 460,
+        h: typeof value.h === "number" ? Math.max(160, value.h) : 300,
+        ...(options && Object.keys(options).length > 0 ? { options } : {}),
+      });
+    }
+  }
   return {
     id,
     name,
@@ -314,6 +364,7 @@ const parseGrid = (raw: Record<string, unknown>, id: string, name: string): TShe
     filterEnabled: raw.filterEnabled === true,
     filters,
     selects,
+    ...(charts.length > 0 ? { charts } : {}),
   };
 };
 
@@ -328,13 +379,11 @@ export const getInitialSnapshot = (descriptionJson: unknown): TSheetSnapshot => 
 
   // New multi-sheet shape.
   if (Array.isArray(snapshot.sheets) && snapshot.sheets.length > 0) {
-    const sheets = snapshot.sheets
-      .filter(isRecord)
-      .map((raw, i) => {
-        const id = typeof raw.id === "string" && raw.id ? raw.id : `sheet-${i + 1}`;
-        const name = typeof raw.name === "string" && raw.name ? raw.name : `Sheet ${i + 1}`;
-        return parseGrid(raw, id, name);
-      });
+    const sheets = snapshot.sheets.filter(isRecord).map((raw, i) => {
+      const id = typeof raw.id === "string" && raw.id ? raw.id : `sheet-${i + 1}`;
+      const name = typeof raw.name === "string" && raw.name ? raw.name : `Sheet ${i + 1}`;
+      return parseGrid(raw, id, name);
+    });
     const activeId =
       typeof snapshot.activeId === "string" && sheets.some((s) => s.id === snapshot.activeId)
         ? snapshot.activeId
@@ -427,7 +476,10 @@ export const formatDisplayValue = (value: string, format: TCellFormat | undefine
 
 type CellMap<T> = Record<string, T>;
 
-const remapByPosition = <T>(map: CellMap<T> | undefined, move: (p: { row: number; col: number }) => { row: number; col: number } | null): CellMap<T> => {
+const remapByPosition = <T>(
+  map: CellMap<T> | undefined,
+  move: (p: { row: number; col: number }) => { row: number; col: number } | null
+): CellMap<T> => {
   const out: CellMap<T> = {};
   for (const [id, value] of Object.entries(map ?? {})) {
     const p = parseCellId(id);
@@ -440,7 +492,10 @@ const remapByPosition = <T>(map: CellMap<T> | undefined, move: (p: { row: number
   return out;
 };
 
-const remapColWidths = (widths: Record<number, number> | undefined, move: (c: number) => number | null): Record<number, number> => {
+const remapColWidths = (
+  widths: Record<number, number> | undefined,
+  move: (c: number) => number | null
+): Record<number, number> => {
   const out: Record<number, number> = {};
   for (const [key, value] of Object.entries(widths ?? {})) {
     const c = move(Number(key));
@@ -460,8 +515,12 @@ export const insertColumn = (grid: TSheetGrid, at: number): TSheetGrid => ({
 export const deleteColumn = (grid: TSheetGrid, at: number): TSheetGrid => ({
   ...grid,
   cols: Math.max(grid.cols - 1, 1),
-  cells: remapByPosition(grid.cells, (p) => (p.col === at ? null : { row: p.row, col: p.col > at ? p.col - 1 : p.col })),
-  formats: remapByPosition(grid.formats, (p) => (p.col === at ? null : { row: p.row, col: p.col > at ? p.col - 1 : p.col })),
+  cells: remapByPosition(grid.cells, (p) =>
+    p.col === at ? null : { row: p.row, col: p.col > at ? p.col - 1 : p.col }
+  ),
+  formats: remapByPosition(grid.formats, (p) =>
+    p.col === at ? null : { row: p.row, col: p.col > at ? p.col - 1 : p.col }
+  ),
   colWidths: remapColWidths(grid.colWidths, (c) => (c === at ? null : c > at ? c - 1 : c)),
 });
 
@@ -504,8 +563,12 @@ export const insertRow = (grid: TSheetGrid, at: number): TSheetGrid => ({
 export const deleteRow = (grid: TSheetGrid, at: number): TSheetGrid => ({
   ...grid,
   rows: Math.max(grid.rows - 1, 1),
-  cells: remapByPosition(grid.cells, (p) => (p.row === at ? null : { row: p.row > at ? p.row - 1 : p.row, col: p.col })),
-  formats: remapByPosition(grid.formats, (p) => (p.row === at ? null : { row: p.row > at ? p.row - 1 : p.row, col: p.col })),
+  cells: remapByPosition(grid.cells, (p) =>
+    p.row === at ? null : { row: p.row > at ? p.row - 1 : p.row, col: p.col }
+  ),
+  formats: remapByPosition(grid.formats, (p) =>
+    p.row === at ? null : { row: p.row > at ? p.row - 1 : p.row, col: p.col }
+  ),
 });
 
 export const clearRow = (grid: TSheetGrid, at: number): TSheetGrid => ({
@@ -526,7 +589,7 @@ export const fillRange = (
   const src = grid.cells[srcId];
   const srcFmt = grid.formats?.[srcId];
   const cells = { ...grid.cells };
-  const formats = { ...(grid.formats ?? {}) };
+  const formats = { ...grid.formats };
   for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
     for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
       const id = cellId(r, c);
@@ -588,7 +651,7 @@ export const writeMatrix = (grid: TSheetGrid, r0: number, c0: number, matrix: st
 /** Clear values + formats in a rectangular range. */
 export const clearRect = (grid: TSheetGrid, r1: number, c1: number, r2: number, c2: number): TSheetGrid => {
   const cells = { ...grid.cells };
-  const formats = { ...(grid.formats ?? {}) };
+  const formats = { ...grid.formats };
   for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
     for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
       const id = cellId(r, c);
@@ -621,7 +684,7 @@ export const applyBorders = (
   const rMax = Math.max(r1, r2);
   const cMin = Math.min(c1, c2);
   const cMax = Math.max(c1, c2);
-  const formats = { ...(grid.formats ?? {}) };
+  const formats = { ...grid.formats };
   for (let r = rMin; r <= rMax; r++) {
     for (let c = cMin; c <= cMax; c++) {
       const id = cellId(r, c);
@@ -638,15 +701,34 @@ export const applyBorders = (
       // adds sides, so picking a new color in the menu updates live.
       if (position === "restyle") {
         if (hasBorder(prev?.border)) {
-          formats[id] = { ...prev, border: { ...prev!.border!, color: style.color, width: style.width, style: style.style } };
+          formats[id] = {
+            ...prev,
+            border: { ...prev!.border!, color: style.color, width: style.width, style: style.style },
+          };
         }
         continue;
       }
       const sides = {
-        top: position === "all" || position === "top" || (position === "outer" && r === rMin) || (position === "inner" && r > rMin),
-        bottom: position === "all" || position === "bottom" || (position === "outer" && r === rMax) || (position === "inner" && r < rMax),
-        left: position === "all" || position === "left" || (position === "outer" && c === cMin) || (position === "inner" && c > cMin),
-        right: position === "all" || position === "right" || (position === "outer" && c === cMax) || (position === "inner" && c < cMax),
+        top:
+          position === "all" ||
+          position === "top" ||
+          (position === "outer" && r === rMin) ||
+          (position === "inner" && r > rMin),
+        bottom:
+          position === "all" ||
+          position === "bottom" ||
+          (position === "outer" && r === rMax) ||
+          (position === "inner" && r < rMax),
+        left:
+          position === "all" ||
+          position === "left" ||
+          (position === "outer" && c === cMin) ||
+          (position === "inner" && c > cMin),
+        right:
+          position === "all" ||
+          position === "right" ||
+          (position === "outer" && c === cMax) ||
+          (position === "inner" && c < cMax),
       };
       const base = prev?.border;
       const border: TCellBorder = {
@@ -818,7 +900,7 @@ export const columnDistinctValues = (grid: TSheetGrid, col: number): string[] =>
       out.push(v);
     }
   }
-  return out.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  return out.toSorted((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 };
 
 /** Whether a column has an active filter. */
@@ -888,4 +970,108 @@ const evaluateFormula = (expr: string, cells: Record<string, string>, visiting: 
   } catch {
     return "#ERROR";
   }
+};
+
+// ------------------------------------------------------------------ //
+// Chart ranges                                                        //
+// ------------------------------------------------------------------ //
+
+export type TCellRect = { r1: number; c1: number; r2: number; c2: number };
+
+/** Parse an A1-style range ("A1:C10", or a single cell "B2") into a normalized rect. */
+export const parseRange = (range: string): TCellRect | null => {
+  const [first, second] = (range ?? "").trim().toUpperCase().split(":");
+  const a = parseCellId((first ?? "").trim());
+  const b = second ? parseCellId(second.trim()) : a;
+  if (!a || !b) return null;
+  return {
+    r1: Math.min(a.row, b.row),
+    c1: Math.min(a.col, b.col),
+    r2: Math.max(a.row, b.row),
+    c2: Math.max(a.col, b.col),
+  };
+};
+
+/** Normalized rect → "A1:C10". */
+export const rangeRef = (rect: TCellRect): string => `${cellId(rect.r1, rect.c1)}:${cellId(rect.r2, rect.c2)}`;
+
+const CHART_MAX_LABELS = 48;
+const CHART_MAX_SERIES = 6;
+
+/** Evaluated cell → finite number, tolerating currency symbols and thousands separators. */
+const chartCellNumber = (grid: TSheetGrid, row: number, col: number): number | null => {
+  const raw = computeCell(cellId(row, col), grid.cells).trim();
+  if (raw === "" || raw.startsWith("#")) return null;
+  const numeric = Number(raw.replace(/[$€£¥%,\s]/g, ""));
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const chartCellText = (grid: TSheetGrid, row: number, col: number): string =>
+  computeCell(cellId(row, col), grid.cells).trim();
+
+/**
+ * Derive chart-ready data from a rectangular range.
+ *
+ * Multi-column ranges: the first column holds category labels and every other
+ * column is a series. When none of the value cells in the first row are
+ * numeric, that row is read as series names instead of data — the same
+ * headers-then-rows convention Atlas's sheet tools write. Single-column
+ * ranges become one series labeled by sheet row number.
+ */
+export const chartDataFromRange = (
+  grid: TSheetGrid,
+  range: string
+): { labels: string[]; series: { name: string; values: number[] }[] } | null => {
+  const rect = parseRange(range);
+  if (!rect) return null;
+  const r1 = Math.max(0, rect.r1);
+  const c1 = Math.max(0, rect.c1);
+  const r2 = Math.min(rect.r2, grid.rows - 1);
+  const c2 = Math.min(rect.c2, grid.cols - 1);
+  if (r2 < r1 || c2 < c1) return null;
+
+  if (c1 === c2) {
+    const headerText = chartCellText(grid, r1, c1);
+    const hasHeader = r2 > r1 && headerText !== "" && chartCellNumber(grid, r1, c1) === null;
+    const labels: string[] = [];
+    const values: number[] = [];
+    for (let row = r1 + (hasHeader ? 1 : 0); row <= r2 && labels.length < CHART_MAX_LABELS; row++) {
+      const value = chartCellNumber(grid, row, c1);
+      if (value === null) continue;
+      labels.push(String(row + 1));
+      values.push(value);
+    }
+    if (labels.length === 0) return null;
+    return { labels, series: [{ name: hasHeader ? headerText : columnLabel(c1), values }] };
+  }
+
+  const valueCols: number[] = [];
+  for (let col = c1 + 1; col <= c2 && valueCols.length < CHART_MAX_SERIES; col++) valueCols.push(col);
+
+  // Header row: no value cell in the first row parses as a number, and at
+  // least one of them has text.
+  const firstRowNumbers = valueCols.map((col) => chartCellNumber(grid, r1, col));
+  const firstRowTexts = valueCols.map((col) => chartCellText(grid, r1, col));
+  const hasHeader =
+    r2 > r1 && firstRowNumbers.every((value) => value === null) && firstRowTexts.some((text) => text !== "");
+
+  const names = valueCols.map((col, index) =>
+    hasHeader && firstRowTexts[index] !== "" ? firstRowTexts[index] : columnLabel(col)
+  );
+
+  const labels: string[] = [];
+  const rowsValues: number[][] = [];
+  for (let row = r1 + (hasHeader ? 1 : 0); row <= r2 && labels.length < CHART_MAX_LABELS; row++) {
+    const label = chartCellText(grid, row, c1);
+    const values = valueCols.map((col) => chartCellNumber(grid, row, col));
+    if (label === "" && values.every((value) => value === null)) continue;
+    labels.push(label || String(row + 1));
+    rowsValues.push(values.map((value) => value ?? 0));
+  }
+  if (labels.length === 0) return null;
+
+  return {
+    labels,
+    series: names.map((name, index) => ({ name, values: rowsValues.map((row) => row[index] ?? 0) })),
+  };
 };

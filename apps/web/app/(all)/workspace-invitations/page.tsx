@@ -10,7 +10,7 @@ import useSWR from "swr";
 import { Boxes, Share2, Star, User2 } from "@/components/icons/lucide-shim";
 import { CheckIcon, CloseIcon } from "@/components/icons/propel-shim";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { EmptySpace, EmptySpaceItem } from "@/components/ui/empty-space";
 // constants
 import { WORKSPACE_INVITATION } from "@/constants/fetch-keys";
@@ -120,9 +120,7 @@ function WorkspaceInvitationPage() {
             </EmptySpace>
           )
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <LogoSpinner />
-          </div>
+          <AppLoadingScreen />
         )}
       </div>
     </AuthenticationWrapper>

@@ -32,6 +32,13 @@ export type IFavorite = {
      * Loose-typed string so consumers don't need EIssueLayoutTypes.
      */
     view_layout?: string;
+    /**
+     * Page sub-type for entity_type "page" favorites, echoed by the API's
+     * PageFavoriteLiteSerializer (and written by the client on create).
+     * Docs folders ("folder") link to the Docs gallery instead of the page
+     * editor and render a folder icon.
+     */
+    page_type?: string;
   };
   is_folder: boolean;
   sort_order: number;

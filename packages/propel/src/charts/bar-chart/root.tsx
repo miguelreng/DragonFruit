@@ -42,6 +42,7 @@ export const BarChart = React.memo(function BarChart<K extends string, T extends
     customTicks,
     showTooltip = true,
     customTooltipContent,
+    isAnimationActive = true,
   } = props;
   // states
   const [activeBar, setActiveBar] = useState<string | null>(null);
@@ -104,6 +105,7 @@ export const BarChart = React.memo(function BarChart<K extends string, T extends
           key={bar.key}
           dataKey={bar.key}
           stackId={bar.stackId}
+          isAnimationActive={isAnimationActive}
           opacity={!!activeLegend && activeLegend !== bar.key ? 0.1 : 1}
           shape={(shapeProps: any) => {
             const shapeVariant = barShapeVariants[bar.shapeVariant ?? "bar"];
@@ -116,7 +118,7 @@ export const BarChart = React.memo(function BarChart<K extends string, T extends
           fill={getBarColor(data, bar.key)}
         />
       )),
-    [activeLegend, stackKeys, bars, getBarColor, data]
+    [activeLegend, stackKeys, bars, getBarColor, data, isAnimationActive]
   );
 
   return (
@@ -136,9 +138,9 @@ export const BarChart = React.memo(function BarChart<K extends string, T extends
           <CartesianGrid stroke="var(--border-color-subtle)" vertical={false} />
           <XAxis
             dataKey={xAxis.key}
-            tick={(props) => {
+            tick={(tickProps) => {
               const TickComponent = customTicks?.x || CustomXAxisTick;
-              return <TickComponent {...props} />;
+              return <TickComponent {...tickProps} />;
             }}
             tickLine={false}
             axisLine={false}
@@ -161,9 +163,9 @@ export const BarChart = React.memo(function BarChart<K extends string, T extends
               dx: yAxis.dx ?? -16,
               className: AXIS_LABEL_CLASSNAME,
             }}
-            tick={(props) => {
+            tick={(tickProps) => {
               const TickComponent = customTicks?.y || CustomYAxisTick;
-              return <TickComponent {...props} />;
+              return <TickComponent {...tickProps} />;
             }}
             tickCount={tickCount.y}
             allowDecimals={!!yAxis.allowDecimals}

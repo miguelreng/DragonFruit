@@ -41,6 +41,7 @@ export const LineChart = React.memo(function LineChart<K extends string, T exten
     legend,
     showTooltip = true,
     customTooltipContent,
+    isAnimationActive = true,
   } = props;
   // states
   const [activeLine, setActiveLine] = useState<string | null>(null);
@@ -67,6 +68,7 @@ export const LineChart = React.memo(function LineChart<K extends string, T exten
         <Line
           key={line.key}
           dataKey={line.key}
+          isAnimationActive={isAnimationActive}
           type={line.smoothCurves ? "monotone" : "linear"}
           className="[&_path]:transition-opacity [&_path]:duration-200"
           opacity={!!activeLegend && activeLegend !== line.key ? 0.1 : 1}
@@ -89,7 +91,7 @@ export const LineChart = React.memo(function LineChart<K extends string, T exten
           onMouseLeave={() => setActiveLine(null)}
         />
       )),
-    [activeLegend, lines]
+    [activeLegend, lines, isAnimationActive]
   );
 
   return (
@@ -107,9 +109,9 @@ export const LineChart = React.memo(function LineChart<K extends string, T exten
           <CartesianGrid stroke="var(--border-color-subtle)" vertical={false} />
           <XAxis
             dataKey={xAxis.key}
-            tick={(props) => {
+            tick={(tickProps) => {
               const TickComponent = customTicks?.x || CustomXAxisTick;
-              return <TickComponent {...props} />;
+              return <TickComponent {...tickProps} />;
             }}
             tickLine={false}
             axisLine={false}
@@ -136,9 +138,9 @@ export const LineChart = React.memo(function LineChart<K extends string, T exten
                 className: AXIS_LABEL_CLASSNAME,
               }
             }
-            tick={(props) => {
+            tick={(tickProps) => {
               const TickComponent = customTicks?.y || CustomYAxisTick;
-              return <TickComponent {...props} />;
+              return <TickComponent {...tickProps} />;
             }}
             tickCount={tickCount.y}
             allowDecimals={!!yAxis.allowDecimals}

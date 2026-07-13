@@ -12,7 +12,7 @@ import { PROFILE_SETTINGS_TABS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type { TProfileSettingsTabs } from "@plane/types";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { PageHead } from "@/components/core/page-title";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 import { PROFILE_SETTINGS_PAGES_MAP } from "@/components/settings/profile/content/pages";
@@ -31,12 +31,7 @@ function AccountSettingsPage() {
   // derived values
   const isAValidTab = PROFILE_SETTINGS_TABS.includes(profileTabId as TProfileSettingsTabs);
 
-  if (!currentUser || !isAValidTab)
-    return (
-      <div className="grid size-full place-items-center px-4">
-        <LogoSpinner />
-      </div>
-    );
+  if (!currentUser || !isAValidTab) return <AppLoadingScreen />;
 
   const PageComponent = PROFILE_SETTINGS_PAGES_MAP[profileTabId as TProfileSettingsTabs];
 

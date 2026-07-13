@@ -4,7 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  Suspense,
+  createContext,
+  lazy,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import hljs from "highlight.js/lib/core";
 // Hand-picked language set for chat — see the editor's lowlight-languages
 // for the editor's larger curated set. Chat replies usually skew JS/TS/
@@ -61,8 +73,10 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore, CustomMenu, Spinner, ToggleSwitch } from "@plane/ui";
 import { calculateTimeAgo, cn } from "@plane/utils";
 // components
+import { parseChartSpec } from "@/components/chart/spec";
 import {
   AlertCircle,
+  ChartNoAxesColumn,
   CheckCircle,
   Dialog,
   Eraser,
@@ -587,7 +601,7 @@ function ChatView(props: {
           </button>
           {sessionId && (
             <>
-              <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-subtle" />
+              <span aria-hidden="true" className="bg-subtle mx-0.5 h-4 w-px" />
               <CustomMenu
                 placement="bottom-end"
                 customButtonClassName="outline-none"
@@ -846,10 +860,19 @@ function HistoryView(props: {
   dismissible: boolean;
   onBack: (() => void) | undefined;
 }) {
-  const { sessions, activeId, onPickSession, onStartSession, onDeleteSession, onClose, onCollapse, onBack, dismissible } =
-    props;
+  const {
+    sessions,
+    activeId,
+    onPickSession,
+    onStartSession,
+    onDeleteSession,
+    onClose,
+    onCollapse,
+    onBack,
+    dismissible,
+  } = props;
   // Most recent first.
-  const sortedSessions = [...sessions].sort(
+  const sortedSessions = [...sessions].toSorted(
     (a, b) => new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime()
   );
 
@@ -869,17 +892,9 @@ function HistoryView(props: {
           </button>
         )}
         {onCollapse && (
-          <IconButton
-            variant="tertiary"
-            size="sm"
-            icon={PanelRight}
-            onClick={onCollapse}
-            aria-label="Collapse Atlas"
-          />
+          <IconButton variant="tertiary" size="sm" icon={PanelRight} onClick={onCollapse} aria-label="Collapse Atlas" />
         )}
-        {dismissible && (
-          <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />
-        )}
+        {dismissible && <IconButton variant="tertiary" size="sm" icon={X} onClick={onClose} aria-label="Close" />}
       </header>
 
       <div className="border-b border-subtle px-3 py-2">
@@ -1020,7 +1035,9 @@ const AI_MODES: { id: TAtlasAiMode; label: string }[] = [
 function inferAiMode(text: string): TAtlasAiMode {
   const t = text.toLowerCase();
   if (/\b(summari[sz]e|summary|tl;?dr|recap|condense|resum\w*)\b/.test(t)) return "summarize";
-  if (/\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step|agenda|break\s+(?:this|it)?\s*down|organi[sz]e)\b/.test(t))
+  if (
+    /\b(plan|outline|roadmap|checklist|step[-\s]?by[-\s]?step|agenda|break\s+(?:this|it)?\s*down|organi[sz]e)\b/.test(t)
+  )
     return "plan";
   if (
     /\b(write|draft|compose|re-?write|rewrite|edit|revise|expand|continue|create|generate|make|build|prepare|produce|put\s+together|crea\w*|escrib\w*|red[aá]ct\w*|genera\w*|haz\w*|prepar\w*)\b/.test(
@@ -1407,7 +1424,7 @@ function ChatThread(props: {
   const selectedDocMention = docMentionResults[docMentionIndex] ?? docMentionResults[0];
   const isDocMentionPickerOpen = Boolean(
     docMentionMatch &&
-      (isSearchingDocs || docMentionResults.length > 0 || docMentionError || docMentionMatch.query.trim())
+    (isSearchingDocs || docMentionResults.length > 0 || docMentionError || docMentionMatch.query.trim())
   );
 
   const handleSend = useCallback(async () => {
@@ -1688,7 +1705,9 @@ function ChatThread(props: {
       onSentRefreshSessions();
     } catch (err) {
       const msg =
-        err instanceof Error ? err.message : (err as { error?: string } | undefined)?.error ?? "Couldn't send message.";
+        err instanceof Error
+          ? err.message
+          : ((err as { error?: string } | undefined)?.error ?? "Couldn't send message.");
       setToast({ type: TOAST_TYPE.ERROR, title: "Send failed", message: msg });
       await mutate();
     } finally {
@@ -1742,7 +1761,10 @@ function ChatThread(props: {
   }, [pageId, projectId]);
 
   return (
-    <>
+    // Charts rendered deep inside message markdown offer "insert into doc" —
+    // the context carries the open doc's editor ref down without threading it
+    // through every message component.
+    <ChatActiveEditorContext.Provider value={activePageEditorRef}>
       <div ref={scrollRef} className="vertical-scrollbar scrollbar-sm flex-1 overflow-y-auto px-4 py-5">
         {isEmpty && (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
@@ -1823,7 +1845,7 @@ function ChatThread(props: {
           className="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-surface-1 to-transparent"
         />
         {isDraggingFiles && (
-          <div className="pointer-events-none absolute inset-1 z-20 flex items-center justify-center gap-2 rounded-xl border border-dashed border-accent-primary bg-surface-1/90 text-13 font-medium text-accent-primary backdrop-blur-sm">
+          <div className="border-accent-primary pointer-events-none absolute inset-1 z-20 flex items-center justify-center gap-2 rounded-xl border border-dashed bg-surface-1/90 text-13 font-medium text-accent-primary backdrop-blur-sm">
             <Paperclip className="size-4" />
             Drop files to attach
           </div>
@@ -1890,7 +1912,7 @@ function ChatThread(props: {
                   in right now. The ✕ (revealed on hover) detaches the doc for
                   this visit; opening another doc re-attaches automatically. */}
               <span
-                className="group/doc-pill flex h-6 min-w-0 max-w-full items-center gap-1.5 rounded-full border border-subtle bg-layer-1 pl-2 pr-1.5 text-[11px] font-medium text-secondary"
+                className="group/doc-pill flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-subtle bg-layer-1 pr-1.5 pl-2 text-[11px] font-medium text-secondary"
                 title={`Atlas is using "${activeDocTitle}" as context`}
               >
                 <FileText className="size-3 shrink-0 text-tertiary" />
@@ -1898,7 +1920,7 @@ function ChatThread(props: {
                 <button
                   type="button"
                   onClick={onDismissDocContext}
-                  className="grid size-4 shrink-0 place-items-center rounded-full text-tertiary opacity-0 transition-opacity hover:bg-layer-2 hover:text-primary focus-visible:opacity-100 group-hover/doc-pill:opacity-100"
+                  className="grid size-4 shrink-0 place-items-center rounded-full text-tertiary opacity-0 transition-opacity group-hover/doc-pill:opacity-100 hover:bg-layer-2 hover:text-primary focus-visible:opacity-100"
                   aria-label={`Remove "${activeDocTitle}" from context`}
                 >
                   <X className="size-3" />
@@ -2075,7 +2097,7 @@ function ChatThread(props: {
           />
         </div>
       </div>
-    </>
+    </ChatActiveEditorContext.Provider>
   );
 }
 
@@ -2128,8 +2150,14 @@ function editorHtmlFromBlock(block: Block): string {
       return `<ol>${block.items.map((item) => `<li><p>${inlineMarkdownToHtml(item)}</p></li>`).join("")}</ol>`;
     case "quote":
       return `<blockquote>${inlineMarkdownToHtml(block.text)}</blockquote>`;
-    case "code":
+    case "code": {
+      // ```chart fences become chart blocks in the doc; other fences stay code.
+      if (block.lang === "chart") {
+        const spec = parseChartSpec(block.content);
+        if (spec) return chartComponentHtml(spec);
+      }
       return `<pre><code>${escapeHtml(block.content)}</code></pre>`;
+    }
     case "table":
       return [
         "<table><tbody>",
@@ -2204,11 +2232,7 @@ function PendingAttachmentChip({ file, onRemove }: { file: File; onRemove: () =>
   );
 }
 
-const MessageRow = memo(function MessageRow({
-  message,
-}: {
-  message: TAgentChatMessage;
-}) {
+const MessageRow = memo(function MessageRow({ message }: { message: TAgentChatMessage }) {
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -2231,7 +2255,7 @@ const MessageRow = memo(function MessageRow({
             </ul>
           )}
           {visibleContent && (
-            <div className="rounded-2xl rounded-br-md bg-layer-1 px-3.5 py-2 text-13 whitespace-pre-wrap break-words text-primary">
+            <div className="rounded-2xl rounded-br-md bg-layer-1 px-3.5 py-2 text-13 break-words whitespace-pre-wrap text-primary">
               {visibleContent}
             </div>
           )}
@@ -2251,7 +2275,7 @@ const MessageRow = memo(function MessageRow({
           // break-words) rather than scroll, so a long URL or quota id can't
           // push the drawer sideways. bg-danger-subtle + text-danger-primary
           // is the codebase's standard soft-error pairing.
-          <pre className="my-0.5 max-w-full whitespace-pre-wrap break-words rounded bg-danger-subtle p-2 font-mono text-12 text-danger-primary">
+          <pre className="font-mono my-0.5 max-w-full rounded bg-danger-subtle p-2 text-12 break-words whitespace-pre-wrap text-danger-primary">
             {message.error_message}
           </pre>
         ) : message.content ? (
@@ -2342,7 +2366,7 @@ type Block =
   | { kind: "ul"; items: string[] }
   | { kind: "ol"; items: string[] }
   | { kind: "quote"; text: string }
-  | { kind: "code"; content: string; lang: string }
+  | { kind: "code"; content: string; lang: string; closed: boolean }
   | { kind: "table"; headers: string[]; rows: string[][]; aligns: TableAlign[] }
   | { kind: "hr" };
 
@@ -2387,8 +2411,11 @@ function parseMarkdownBlocks(src: string): Block[] {
         collected.push(lines[i]!);
         i++;
       }
-      if (i < lines.length) i++; // skip closing fence
-      blocks.push({ kind: "code", content: collected.join("\n"), lang });
+      // `closed` distinguishes a finished fence from one still streaming in —
+      // chart blocks render a placeholder until their fence closes.
+      const closed = i < lines.length;
+      if (closed) i++; // skip closing fence
+      blocks.push({ kind: "code", content: collected.join("\n"), lang, closed });
       continue;
     }
 
@@ -2554,6 +2581,9 @@ function renderBlock(block: Block, key: number, footnotes: Footnote[]): React.Re
         </blockquote>
       );
     case "code":
+      // ```chart fences carry a JSON chart spec (see @/components/chart/spec)
+      // that renders as an inline chart instead of code.
+      if (block.lang === "chart") return <ChatChartBlock key={key} content={block.content} closed={block.closed} />;
       return <CodeBlock key={key} content={block.content} lang={block.lang} />;
     case "table": {
       // Precompute per-cell metadata so the JSX below uses content-
@@ -2627,6 +2657,68 @@ function renderBlock(block: Block, key: number, footnotes: Footnote[]): React.Re
  * no path for arbitrary user content to ride through as live HTML.
  * Falls back to plaintext when the language is unknown or unregistered.
  */
+// Lazy so recharts stays out of the drawer's chunk until a chart appears.
+const LazyChartSpecView = lazy(() =>
+  import("@/components/chart/spec-view").then((module) => ({ default: module.ChartSpecView }))
+);
+
+function ChartStreamingSkeleton() {
+  return (
+    <div className="my-2 flex h-40 w-full animate-pulse flex-col items-center justify-center gap-1.5 rounded-lg border border-subtle bg-layer-1">
+      <ChartNoAxesColumn className="size-5 text-tertiary" />
+      <span className="text-12 text-tertiary">Building chart…</span>
+    </div>
+  );
+}
+
+/**
+ * The open doc's editor ref, provided by ChatView so charts inside message
+ * markdown can offer one-click insertion. Null when no doc is open.
+ */
+const ChatActiveEditorContext = createContext<EditorRefApi | null>(null);
+
+/**
+ * A ```chart fence in an assistant reply. While the fence is still open the
+ * JSON is mid-stream, so parse failures show a skeleton; once the fence is
+ * closed, unparseable content is real model error — surface it as code so
+ * it's debuggable instead of a placeholder that never resolves.
+ */
+function ChatChartBlock({ content, closed }: { content: string; closed: boolean }) {
+  const activeEditorRef = useContext(ChatActiveEditorContext);
+  const spec = useMemo(() => parseChartSpec(content), [content]);
+  if (!spec) {
+    if (closed) return <CodeBlock content={content} lang="json" />;
+    return <ChartStreamingSkeleton />;
+  }
+  const insertIntoDoc = () => {
+    if (!activeEditorRef) return;
+    activeEditorRef.setEditorValueAtCursorPosition(chartComponentHtml(spec));
+    setToast({ type: TOAST_TYPE.SUCCESS, title: "Chart added", message: "Inserted the chart into the open doc." });
+  };
+  return (
+    <div className="group/chart relative my-2 w-full">
+      {activeEditorRef && (
+        <button
+          type="button"
+          className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-md border border-subtle bg-surface-1 px-1.5 py-0.5 text-11 text-secondary opacity-0 shadow-raised-100 transition-opacity group-hover/chart:opacity-100 hover:text-primary"
+          onClick={insertIntoDoc}
+        >
+          <FileText className="size-3" />
+          Insert into doc
+        </button>
+      )}
+      <Suspense fallback={<ChartStreamingSkeleton />}>
+        <LazyChartSpecView spec={spec} height={224} />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Serialize a chart spec as the editor's `<chart-component>` block HTML. */
+function chartComponentHtml(spec: unknown): string {
+  return `<chart-component chart="${escapeHtml(JSON.stringify(spec))}"></chart-component>`;
+}
+
 function CodeBlock({ content, lang }: { content: string; lang: string }) {
   const langKey = (lang || "").toLowerCase();
   const isRegistered = langKey && hljs.getLanguage(langKey);

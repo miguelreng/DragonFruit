@@ -994,7 +994,7 @@
     "Noto Color Emoji";
   --font-code:
     "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-serif: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
 
   /* ---------- Font weight ---------- */
   --font-weight-*: initial;

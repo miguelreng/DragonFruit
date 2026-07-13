@@ -89,7 +89,7 @@
 .editor-container.dragonfruit .ProseMirror h2.editor-heading-block,
 .editor-container.dragonfruit .ProseMirror h3.editor-heading-block {
   font-family: var(--font-style-display);
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   letter-spacing: 0;
 }
 

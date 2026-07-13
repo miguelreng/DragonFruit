@@ -19,7 +19,7 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
 // assets
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { CursorBuddyDocToastListener } from "@/components/agent/cursor-buddy-doc-toast-listener";
 // constants
 import {
@@ -172,13 +172,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
     isWorkspaceRefreshLoading ||
     isWorkspaceRefreshValidating
   ) {
-    return (
-      <div className="grid h-full place-items-center rounded-lg border border-subtle p-4">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <LogoSpinner />
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   // if workspaces are there and we are trying to access the workspace that we are not part of then show the existing workspaces

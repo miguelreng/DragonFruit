@@ -11,6 +11,7 @@ ProseMirror JSON traversal helpers (_document_blocks_from_json,
 _text_from_pm_node) that feed them.
 """
 
+import html
 import json
 import re
 
@@ -39,7 +40,13 @@ Rules:
 - For update mode, use replace/delete only when you are changing a provided block; use insert_after for new context.
 - If "Intent: replace" is present, prefer replace proposals against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - Preserve the user's intent and write production-ready document prose.
-- Do not include markdown fences, commentary, or any keys outside the JSON object.
+- If the user asks for a chart/graph/visualization of data, put a fenced block inside content_text:
+  ```chart
+  {"type": "bar", "labels": ["Jan", "Feb"], "series": [{"name": "Signups", "values": [120, 180]}]}
+  ```
+  with type one of bar|line|area|pie|donut and only real numbers from the request, the document, or
+  provided reference material. Give the chart its own proposal.
+- Other than chart fences, do not include markdown fences, commentary, or any keys outside the JSON object.
 - When "Cited reference material" is provided in the user prompt, ground factual statements in it
   and include a cited Source line (e.g. "Source: <url>") where appropriate; do not invent sources.
 """.strip()
@@ -66,6 +73,12 @@ Rules:
 - If a "Selected text" section is present, the user is editing exactly that passage: find the provided block id whose text matches the selection and emit a single `op=replace` against it. Do not rewrite, re-order, or touch other blocks unless the request clearly asks you to.
 - For `op=delete`, emit only the header line (no body).
 - Write production-ready prose. Do not restate the user's prompt.
+- If the user asks for a chart/graph/visualization of data, emit inside a block's body a fenced chart:
+  ```chart
+  {"type": "bar", "labels": ["Jan", "Feb"], "series": [{"name": "Signups", "values": [120, 180]}]}
+  ```
+  with type one of bar|line|area|pie|donut, an optional "title", and only real numbers from the
+  request, the document, or provided reference material. Give the chart its own @@ATLAS block.
 - Never write the literal text "@@ATLAS" inside body content.
 - When "Cited reference material" is provided in the user prompt, ground factual statements in it
   and include a cited Source line (e.g. "Source: <url>") where appropriate; do not invent sources.
@@ -78,8 +91,52 @@ def _doc_write_event(event: str, **payload):
     return json.dumps({"event": event, **payload}, cls=DjangoJSONEncoder, separators=(",", ":")) + "\n"
 
 
+# A completed ```chart fence inside a proposal body. Only closed fences match,
+# so partially-streamed charts stay plain text until the closing fence arrives.
+_CHART_FENCE_RE = re.compile(r"```chart[ \t]*\n(.*?)\n[ \t]*```", re.DOTALL)
+
+_CHART_SPEC_TYPES = {"bar", "line", "area", "pie", "donut"}
+
+
+def _chart_component_html(raw_json: str) -> str | None:
+    """`<chart-component chart="{…}">` for a valid chart spec, else None.
+
+    Mirrors the web app's chart-block serialization (parseChartSpec does the
+    deep validation client-side when rendering); this only gates on the shape
+    being plausibly a chart so malformed model output stays visible as text.
+    """
+    try:
+        spec = json.loads(raw_json)
+    except ValueError:
+        return None
+    if not isinstance(spec, dict):
+        return None
+    if str(spec.get("type") or "").strip().lower() not in _CHART_SPEC_TYPES:
+        return None
+    if not isinstance(spec.get("labels"), list) or not isinstance(spec.get("series"), list):
+        return None
+    payload = html.escape(json.dumps(spec), quote=True)
+    return f'<chart-component chart="{payload}"></chart-component>'
+
+
 def _plain_text_to_html(text: str) -> str:
-    return paragraphs_html(text)
+    parts: list[str] = []
+    last = 0
+    for match in _CHART_FENCE_RE.finditer(text or ""):
+        chart_html = _chart_component_html(match.group(1))
+        if chart_html is None:
+            continue
+        before = (text or "")[last : match.start()]
+        if before.strip():
+            parts.append(paragraphs_html(before))
+        parts.append(chart_html)
+        last = match.end()
+    if not parts:
+        return paragraphs_html(text)
+    tail = (text or "")[last:]
+    if tail.strip():
+        parts.append(paragraphs_html(tail))
+    return "".join(parts)
 
 
 def _document_blocks_from_json(document_json) -> list[dict]:

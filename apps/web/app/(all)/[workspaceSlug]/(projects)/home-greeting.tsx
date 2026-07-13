@@ -25,7 +25,7 @@ export function HomeGreeting({ user }: Props) {
     <header className="flex flex-col items-start gap-3">
       <img src={dragonMark} alt="" aria-hidden className="h-12 w-auto" />
       <div className="min-w-0">
-        <h1 className="font-serif text-22 font-normal text-primary">Welcome back, {name}</h1>
+        <h1 className="text-22 font-serif font-semibold text-primary">Welcome back, {name}</h1>
         <p className="mt-1 text-13 text-tertiary">
           {weekDay}, {date}
         </p>

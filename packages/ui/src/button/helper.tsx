@@ -29,10 +29,10 @@ export interface IButtonStyling {
 }
 
 enum buttonSizeStyling {
-  sm = `t-resize t-colors px-2.5 py-1 font-medium text-11 rounded-lg flex items-center gap-1.5 whitespace-nowrap justify-center`,
-  md = `t-resize t-colors px-3 py-1 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap justify-center`,
-  lg = `t-resize t-colors px-4 py-1.5 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap justify-center`,
-  xl = `t-resize t-colors px-4 py-2.5 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap justify-center`,
+  sm = `t-colors px-2.5 py-1 font-medium text-11 rounded-lg flex items-center gap-1.5 whitespace-nowrap justify-center`,
+  md = `t-colors px-3 py-1 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap justify-center`,
+  lg = `t-colors px-4 py-1.5 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap justify-center`,
+  xl = `t-colors px-4 py-2.5 font-medium text-13 rounded-lg flex items-center gap-1.5 whitespace-nowrap justify-center`,
 }
 
 enum buttonIconStyling {

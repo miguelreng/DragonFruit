@@ -34,6 +34,12 @@ export type TBaseChartProps<K extends string, T extends string> = {
   margin?: TChartMargin;
   showTooltip?: boolean;
   customTooltipContent?: (props: { active?: boolean; label: string; payload: any }) => React.ReactNode;
+  /**
+   * Mount/update animation (default true). Disable for charts that must
+   * render fully without requestAnimationFrame — e.g. embedded webviews or
+   * throttled background tabs, where the tween can freeze on its first frame.
+   */
+  isAnimationActive?: boolean;
 };
 
 // Props specific to charts with X and Y axes
@@ -156,7 +162,7 @@ export type TCellItem<T extends string> = {
 
 export type TPieChartProps<K extends string, T extends string> = Pick<
   TBaseChartProps<K, T>,
-  "className" | "data" | "showTooltip" | "legend" | "margin"
+  "className" | "data" | "showTooltip" | "legend" | "margin" | "isAnimationActive"
 > & {
   dataKey: T;
   cells: TCellItem<T>[];

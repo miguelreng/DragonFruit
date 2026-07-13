@@ -16,7 +16,7 @@ import { EFileAssetType } from "@plane/types";
 // plane utils
 import { cn } from "@plane/utils";
 // components
-import { LogoSpinner } from "@/components/common/logo-spinner";
+import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { PageHead } from "@/components/core/page-title";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import type { TPageRootConfig, TPageRootHandlers } from "@/components/pages/editor/page-root";
@@ -79,20 +79,20 @@ function PageDetailsPage({ params }: Route.ComponentProps) {
   const pageRootHandlers: TPageRootHandlers = useMemo(
     () => ({
       create: createPage,
-      fetchAllVersions: async (pageId) =>
-        await projectPageVersionService.fetchAllVersions(workspaceSlug, projectId, pageId),
+      fetchAllVersions: async (targetPageId) =>
+        await projectPageVersionService.fetchAllVersions(workspaceSlug, projectId, targetPageId),
       fetchDescriptionBinary: async () => {
         if (!id) return;
         return await projectPageService.fetchDescriptionBinary(workspaceSlug, projectId, id);
       },
       fetchEntity: fetchEntityCallback,
-      fetchVersionDetails: async (pageId, versionId) =>
-        await projectPageVersionService.fetchVersionById(workspaceSlug, projectId, pageId, versionId),
-      restoreVersion: async (pageId, versionId) =>
-        await projectPageVersionService.restoreVersion(workspaceSlug, projectId, pageId, versionId),
-      getRedirectionLink: (pageId) => {
-        if (pageId) {
-          return `/${workspaceSlug}/projects/${projectId}/pages/${pageId}`;
+      fetchVersionDetails: async (targetPageId, versionId) =>
+        await projectPageVersionService.fetchVersionById(workspaceSlug, projectId, targetPageId, versionId),
+      restoreVersion: async (targetPageId, versionId) =>
+        await projectPageVersionService.restoreVersion(workspaceSlug, projectId, targetPageId, versionId),
+      getRedirectionLink: (targetPageId) => {
+        if (targetPageId) {
+          return `/${workspaceSlug}/projects/${projectId}/pages/${targetPageId}`;
         } else {
           return `/${workspaceSlug}/projects/${projectId}/pages`;
         }
@@ -151,12 +151,7 @@ function PageDetailsPage({ params }: Route.ComponentProps) {
     }
   }, [page?.deleted_at, page?.id, router, pageRootHandlers]);
 
-  if ((!page || !id) && !pageDetailsError)
-    return (
-      <div className="grid size-full place-items-center">
-        <LogoSpinner />
-      </div>
-    );
+  if ((!page || !id) && !pageDetailsError) return <AppLoadingScreen />;
 
   if (pageDetailsError || !canCurrentUserAccessPage)
     return (

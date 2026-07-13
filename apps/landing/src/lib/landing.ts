@@ -32,7 +32,7 @@ export const audienceCards = [
     stat: "Notes to plans",
   },
   {
-    title: "People in tech",
+    title: "Tech teams",
     body: "Keep specs, bugs, decisions, customer notes, and triage in one workspace instead of sending everything through another chat sidebar.",
     stat: "Specs to tasks",
   },
