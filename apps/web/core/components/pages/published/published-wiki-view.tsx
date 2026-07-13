@@ -150,7 +150,7 @@ const WIKI_READER_CSS = `
   min-height: 100vh;
   background: var(--canvas);
   color: var(--ink);
-  font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Figtree Variable", "Figtree", ui-sans-serif, system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.6;
 }
@@ -187,7 +187,7 @@ const WIKI_READER_CSS = `
   padding: 8px 10px;
   border: 1px solid transparent; border-radius: 8px;
   background: none; color: var(--muted);
-  font: 600 13px/1.3 "Figtree", ui-sans-serif, sans-serif;
+  font: 600 13px/1.3 "Figtree Variable", "Figtree", ui-sans-serif, sans-serif;
   text-align: left; cursor: pointer;
 }
 .df-wiki-reader .wiki-nav-btn:hover { color: var(--ink); border-color: var(--line); }
@@ -196,7 +196,7 @@ const WIKI_READER_CSS = `
 
 .df-wiki-reader .wiki-toc { display: grid; gap: 2px; padding-top: 14px; border-top: 1px solid var(--line); }
 .df-wiki-reader .wiki-toc-label { margin-bottom: 6px; color: var(--quiet); font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 13px; font-weight: 600; letter-spacing: normal; }
-.df-wiki-reader .wiki-toc button { padding: 3px 10px; border: 0; border-radius: 6px; background: none; color: var(--muted); font: 400 12px/1.5 "Figtree", ui-sans-serif, sans-serif; text-align: left; cursor: pointer; }
+.df-wiki-reader .wiki-toc button { padding: 3px 10px; border: 0; border-radius: 6px; background: none; color: var(--muted); font: 400 12px/1.5 "Figtree Variable", "Figtree", ui-sans-serif, sans-serif; text-align: left; cursor: pointer; }
 .df-wiki-reader .wiki-toc button:hover { color: var(--ink); background: var(--paper); }
 
 .df-wiki-reader main { min-width: 0; padding: clamp(24px, 4vw, 56px) clamp(20px, 5vw, 72px) 90px; }
@@ -204,11 +204,18 @@ const WIKI_READER_CSS = `
 .df-wiki-reader .wiki-doc-title { margin: 6px 0 18px; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: clamp(30px, 4.2vw, 42px); font-weight: 600; line-height: 1.1; text-wrap: balance; }
 .df-wiki-reader .wiki-empty { color: var(--muted); }
 
-/* Doc body: retint the shared published-doc prose to the reader palette. */
-.df-wiki-reader .published-doc { max-width: 820px; color: var(--muted); font-family: "Figtree", ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
-.df-wiki-reader .published-doc h1 { margin: 34px 0 12px; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 30px; font-weight: 600; line-height: 1.12; color: var(--ink); }
-.df-wiki-reader .published-doc h2 { margin: 40px 0 12px; padding-top: 22px; border-top: 1px solid var(--line); font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 26px; font-weight: 600; line-height: 1.15; color: var(--ink); }
-.df-wiki-reader .published-doc h3 { margin: 26px 0 8px; font-size: 15.5px; font-weight: 600; color: var(--ink); }
+/* Doc body: retint the shared published-doc prose to the reader palette.
+   The shared .published-doc sheet pins heading weight/sizes with !important
+   (:where() keeps its specificity at 0,1,0), so the reader's overrides carry
+   !important at higher specificity to win. */
+.df-wiki-reader .published-doc :where(h1, h2, h3, .editor-heading-block:is(h1, h2, h3)) {
+  font-weight: 600 !important;
+}
+
+.df-wiki-reader .published-doc { max-width: 820px; color: var(--muted); font-family: "Figtree Variable", "Figtree", ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+.df-wiki-reader .published-doc h1 { margin: 34px 0 12px; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 30px !important; font-weight: 600; line-height: 1.12 !important; color: var(--ink); }
+.df-wiki-reader .published-doc h2 { margin: 40px 0 12px; padding-top: 22px; border-top: 1px solid var(--line); font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 26px !important; font-weight: 600; line-height: 1.15 !important; color: var(--ink); }
+.df-wiki-reader .published-doc h3 { margin: 26px 0 8px; font-family: "Figtree Variable", "Figtree", ui-sans-serif, system-ui, sans-serif; font-size: 15.5px !important; font-weight: 600; line-height: 1.5 !important; color: var(--ink); }
 .df-wiki-reader .published-doc p { margin: 0 0 12px; color: var(--muted); }
 .df-wiki-reader .published-doc strong { color: var(--ink); }
 .df-wiki-reader .published-doc a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
@@ -246,7 +253,7 @@ const WIKI_READER_CSS = `
     padding: 6px 11px;
     border: 1px solid var(--line); border-radius: 999px;
     background: var(--paper); color: var(--muted);
-    font: 600 12px "Figtree", ui-sans-serif, sans-serif; cursor: pointer;
+    font: 600 12px "Figtree Variable", "Figtree", ui-sans-serif, sans-serif; cursor: pointer;
     white-space: nowrap;
   }
   .df-wiki-reader .wiki-pill.active { border-color: var(--line-strong); color: var(--ink); }
