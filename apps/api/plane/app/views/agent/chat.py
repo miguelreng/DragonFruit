@@ -75,6 +75,7 @@ from .doc_write import (
     _normalise_doc_write_proposals,
     _stream_doc_write_events,
     build_find_replace_proposals,
+    infer_doc_write_scope,
     parse_find_replace,
 )
 
@@ -2287,6 +2288,11 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
         selection_text = str(request.data.get("selection_text") or "")[:8_000]
         context_note = str(request.data.get("context_note") or "").strip()[:12_000]
         blocks = _document_blocks_from_json(request.data.get("document_json"))
+        edit_scope = infer_doc_write_scope(content, selection_text)
+        # An editor selection can survive after focus moves into the composer.
+        # Never let that residual selection narrow an explicit whole-document
+        # request such as "fix spacing in all the document".
+        effective_selection_text = "" if edit_scope == "entire_document" else selection_text
         agent = session.agent
 
         def stream():
@@ -2366,7 +2372,8 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 # silently returning zero edits.
 
             block_context = "\n".join(
-                f"- id: {block['id']}\n  type: {block['type']}\n  text: {block['text']}" for block in blocks
+                f"- block: {index}/{len(blocks)}\n  id: {block['id']}\n  type: {block['type']}\n  text: {block['text']}"
+                for index, block in enumerate(blocks, start=1)
             )
 
             # Phase C: pre-fetch Wikipedia grounding for definitional requests so
@@ -2380,9 +2387,10 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 for part in [
                     f"Mode: {mode}",
                     f"Intent: {intent}",
+                    f"Edit scope: {edit_scope}",
                     f"User request:\n{content}",
                     reference_material if reference_material else "",
-                    f"Selected text:\n{selection_text}" if selection_text else "",
+                    f"Selected text:\n{effective_selection_text}" if effective_selection_text else "",
                     (
                         "Private Atlas context (do not quote this block unless the user asks):\n"
                         f"{context_note}\n\n"
@@ -2390,7 +2398,11 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                     )
                     if context_note
                     else "",
-                    f"Document blocks with stable ids:\n{block_context}" if block_context else "",
+                    (
+                        f"Document blocks with stable ids (total: {len(blocks)}):\n{block_context}"
+                        if block_context
+                        else ""
+                    ),
                     f"Document markdown:\n{document_markdown}" if document_markdown else "",
                 ]
                 if part

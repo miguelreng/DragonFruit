@@ -38,6 +38,10 @@ Rules:
 - Create one proposal per paragraph or logical block.
 - For create mode, use only insert_after proposals and leave target_block_id empty.
 - For update mode, use replace/delete only when you are changing a provided block; use insert_after for new context.
+- `Edit scope: entire_document` is authoritative and overrides any cursor or selected-text context. Inspect every
+  provided block from first to last, apply the request consistently to every applicable block, and do not stop
+  after a representative sample. Leave blocks that already satisfy the request untouched.
+- `Edit scope: selection` means change only the selected passage unless the user explicitly broadens the scope.
 - If "Intent: replace" is present, prefer replace proposals against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - Preserve the user's intent and write production-ready document prose.
 - If the user asks for a chart/graph/visualization of data, put a fenced block inside content_text:
@@ -69,6 +73,10 @@ Rules:
 - One @@ATLAS block per paragraph, heading, or short list.
 - create mode: use only `op=insert_after` and leave target empty.
 - update mode: use `op=replace` or `op=delete` only against a provided block id; use `op=insert_after` with an empty target for brand-new content.
+- `Edit scope: entire_document` is authoritative and overrides any cursor or selected-text context. Inspect every
+  provided block from first to last, apply the request consistently to every applicable block, and do not stop
+  after a representative sample. Leave blocks that already satisfy the request untouched.
+- `Edit scope: selection` means change only the selected passage unless the user explicitly broadens the scope.
 - If "Intent: replace" is present, prefer `op=replace` against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - If a "Selected text" section is present, the user is editing exactly that passage: find the provided block id whose text matches the selection and emit a single `op=replace` against it. Do not rewrite, re-order, or touch other blocks unless the request clearly asks you to.
 - For `op=delete`, emit only the header line (no body).
@@ -85,6 +93,50 @@ Rules:
 """.strip()
 
 _DOC_WRITE_STREAM_MARKER = "@@ATLAS"
+
+
+# Page-scoped editing often retains a browser selection after focus moves to
+# the Atlas composer. Explicit whole-document language must win over that stale
+# selection, otherwise the selected-text rule narrows a clearly global request
+# to one passage. These patterns intentionally describe scope, not edit type.
+_ENTIRE_DOCUMENT_SCOPE_PATTERNS = (
+    # English: "all the document", "the entire page", "throughout my doc".
+    re.compile(r"\b(?:all|every)\s+(?:of\s+)?(?:the\s+|this\s+|my\s+)?(?:document|doc|page)\b", re.IGNORECASE),
+    re.compile(r"\b(?:the\s+|this\s+|my\s+)?(?:entire|whole|full)\s+(?:document|doc|page|thing)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:throughout|across)\s+(?:the\s+|this\s+|my\s+)?(?:(?:entire|whole|full)\s+)?(?:document|doc|page)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\b(?:document|doc|page)[ -]wide\b", re.IGNORECASE),
+    re.compile(r"\beverywhere(?:\s+(?:in|on)\s+(?:the\s+|this\s+|my\s+)?(?:document|doc|page))?\b", re.IGNORECASE),
+    # A request for every repeated structural block is also document-wide.
+    re.compile(
+        r"\b(?:all|every)\s+(?:the\s+)?(?:paragraphs?|headings?|sections?|titles?|lists?|tables?|blocks?)\b",
+        re.IGNORECASE,
+    ),
+    # Spanish: "todo el documento", "la página completa", "todos los títulos".
+    re.compile(r"\b(?:todo|toda)\s+(?:el\s+|la\s+|este\s+|esta\s+|mi\s+)?(?:documento|doc|p[aá]gina)\b", re.IGNORECASE),
+    re.compile(r"\b(?:el\s+|la\s+|este\s+|esta\s+|mi\s+)?(?:documento|doc|p[aá]gina)\s+complet[oa]\b", re.IGNORECASE),
+    re.compile(r"\b(?:en\s+)?todas\s+partes\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:todos|todas)\s+(?:los\s+|las\s+)?(?:p[aá]rrafos?|encabezados?|secciones?|t[ií]tulos?|listas?|tablas?|bloques?)\b",
+        re.IGNORECASE,
+    ),
+)
+
+
+def infer_doc_write_scope(prompt: str, selection_text: str = "") -> str:
+    """Return the authoritative scope for a page edit request.
+
+    Explicit document-wide language always wins. Otherwise an actual selection
+    is the target; without one, Atlas is editing the open document generally.
+    """
+    text = (prompt or "").strip()
+    if any(pattern.search(text) for pattern in _ENTIRE_DOCUMENT_SCOPE_PATTERNS):
+        return "entire_document"
+    if (selection_text or "").strip():
+        return "selection"
+    return "document"
 
 
 def _doc_write_event(event: str, **payload):
@@ -230,7 +282,7 @@ def _strip_leading_filler(value: str) -> str:
     """
     for prefix in _FIND_REPLACE_FILLER_PREFIXES:
         if value.lower().startswith(prefix):
-            return value[len(prefix):].strip()
+            return value[len(prefix) :].strip()
     return value
 
 
@@ -297,9 +349,7 @@ def parse_find_replace(prompt: str) -> tuple[str, str] | None:
         # term, so `the word "rengi"` reduces to `rengi` (filler -> `"rengi"` ->
         # quote strip -> `rengi`), not `"rengi"`.
         search = _strip_optional_quotes(_strip_leading_filler(_strip_optional_quotes(match.group("search"))))
-        replacement = _strip_optional_quotes(
-            _strip_leading_filler(_strip_optional_quotes(match.group("replacement")))
-        )
+        replacement = _strip_optional_quotes(_strip_leading_filler(_strip_optional_quotes(match.group("replacement"))))
         # Both terms must be non-empty. We allow the replacement to be empty only
         # if it was explicitly quoted (an intentional deletion); a bare empty
         # replacement means the phrasing didn't parse cleanly.
@@ -359,7 +409,9 @@ def build_find_replace_proposals(blocks: list[dict], search: str, replacement: s
     return proposals
 
 
-def _normalise_doc_write_proposals(raw, *, mode: str, intent: str, blocks: list[dict], fallback_text: str) -> list[dict]:
+def _normalise_doc_write_proposals(
+    raw, *, mode: str, intent: str, blocks: list[dict], fallback_text: str
+) -> list[dict]:
     block_map = {block["id"]: block for block in blocks}
     first_block_id = blocks[0]["id"] if blocks else ""
     proposals = raw.get("proposals") if isinstance(raw, dict) else None
