@@ -232,7 +232,6 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
               >
                 {wikiName.trim() || getPageName(folder.name)}
               </p>
-              <p className="text-10 font-semibold tracking-widest text-tertiary uppercase">Wiki</p>
               <div className="mt-3 flex flex-col gap-1.5 border-t border-subtle pt-3">
                 {visibleDocs.slice(0, 3).map((doc) => (
                   <p key={doc.id} className="flex items-center gap-1.5 truncate text-11 text-secondary">

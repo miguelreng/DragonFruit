@@ -101,7 +101,6 @@ export function PublishedWikiView({ data }: Props) {
         <aside>
           <div className="wiki-brand">
             <strong>{data.name || "Wiki"}</strong>
-            <span>Wiki</span>
           </div>
           <nav className="wiki-docnav" aria-label="Documents">
             {navButtons("wiki-nav-btn")}
@@ -179,9 +178,8 @@ const WIKI_READER_CSS = `
   padding: 26px 20px 30px;
   border-right: 1px solid var(--line);
 }
-.df-wiki-reader .wiki-brand { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.df-wiki-reader .wiki-brand strong { overflow: hidden; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 21px; font-weight: 400; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
-.df-wiki-reader .wiki-brand span { flex: none; color: var(--quiet); font-size: 11px; font-weight: 650; letter-spacing: 0.07em; text-transform: uppercase; }
+.df-wiki-reader .wiki-brand { min-width: 0; }
+.df-wiki-reader .wiki-brand strong { display: block; overflow: hidden; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 21px; font-weight: 400; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 
 .df-wiki-reader .wiki-docnav { display: grid; gap: 4px; }
 .df-wiki-reader .wiki-nav-btn {
