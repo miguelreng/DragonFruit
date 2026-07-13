@@ -17,7 +17,7 @@ import re
 
 from django.core.serializers.json import DjangoJSONEncoder
 
-from plane.utils.html_builders import paragraphs_html
+from plane.utils.html_builders import markdown_lite_html, paragraphs_html
 
 
 _DOC_WRITE_SYSTEM_PROMPT = """
@@ -29,7 +29,7 @@ Return JSON only, with this shape:
     {
       "operation": "insert_after" | "replace" | "delete",
       "target_block_id": "exact block id from the provided block list, or empty for new insertions",
-      "content_text": "one paragraph, heading, or short list worth of proposed document text"
+      "content_text": "one paragraph, heading, or short list worth of proposed document text (Markdown subset allowed)"
     }
   ]
 }
@@ -44,6 +44,14 @@ Rules:
 - `Edit scope: selection` means change only the selected passage unless the user explicitly broadens the scope.
 - If "Intent: replace" is present, prefer replace proposals against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
 - Preserve the user's intent and write production-ready document prose.
+- content_text supports EXACTLY this Markdown subset (anything else stays literal text):
+  # / ## / ### headings · **bold** · *italic* · ~~strikethrough~~ · `code` · [text](https://url) ·
+  - bullets · 1. numbered · - [ ] / - [x] checklist items · > quote · ``` fenced code · --- divider.
+  Lists are flat (no nesting).
+- For formatting-only requests (make X a heading, bold Y, turn lines into a list/checklist, quote a passage,
+  add dividers), emit op=replace against each named block re-writing its SAME words with the desired Markdown
+  formatting — change the formatting, never the wording. A replaced block keeps only the formatting you write,
+  so limit replaces to the blocks the request actually names.
 - To add vertical space between two blocks, emit an insert_after proposal targeting the block ABOVE the gap
   with content_text exactly "[blank]" — it becomes one empty paragraph. For "fix/add spacing between
   paragraphs" requests, emit one such [blank] proposal per gap and NEVER rewrite or duplicate the paragraphs
@@ -89,6 +97,14 @@ Rules:
   between paragraphs" requests, emit one such [blank] block per gap and NEVER rewrite or duplicate the
   paragraphs themselves.
 - Write production-ready prose. Do not restate the user's prompt.
+- Body text supports EXACTLY this Markdown subset (anything else stays literal text):
+  # / ## / ### headings · **bold** · *italic* · ~~strikethrough~~ · `code` · [text](https://url) ·
+  - bullets · 1. numbered · - [ ] / - [x] checklist items · > quote · ``` fenced code · --- divider.
+  Lists are flat (no nesting).
+- For formatting-only requests (make X a heading, bold Y, turn lines into a list/checklist, quote a passage,
+  add dividers), emit `op=replace` against each named block re-writing its SAME words with the desired
+  Markdown formatting — change the formatting, never the wording. A replaced block keeps only the formatting
+  you write, so limit replaces to the blocks the request actually names.
 - If the user asks for a chart/graph/visualization of data, emit inside a block's body a fenced chart:
   ```chart
   {"type": "bar", "labels": ["Jan", "Feb"], "series": [{"name": "Signups", "values": [120, 180]}]}
@@ -198,14 +214,14 @@ def _plain_text_to_html(text: str) -> str:
             continue
         before = (text or "")[last : match.start()]
         if before.strip():
-            parts.append(paragraphs_html(before))
+            parts.append(markdown_lite_html(before))
         parts.append(chart_html)
         last = match.end()
     if not parts:
-        return paragraphs_html(text)
+        return markdown_lite_html(text)
     tail = (text or "")[last:]
     if tail.strip():
-        parts.append(paragraphs_html(tail))
+        parts.append(markdown_lite_html(tail))
     return "".join(parts)
 
 

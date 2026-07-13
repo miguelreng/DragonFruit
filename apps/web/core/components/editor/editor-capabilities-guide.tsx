@@ -51,6 +51,11 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
         label:
           "Atlas edits arrive as proposals — accept or reject each in the margin, tick several, or Accept all / Reject all from the bar",
       },
+      {
+        keys: "\u201cformat this\u201d",
+        label:
+          "Ask Atlas for cosmetic edits — spacing between paragraphs, headings, bold/italic, bullet or numbered lists, checklists, quotes, dividers, links, code",
+      },
       { keys: "brief me on X", label: "Atlas researches the topic on Wikipedia and creates a sourced doc" },
       { keys: "✓ in chat", label: "Fact-check mode — every claim gets a Wikipedia citation" },
     ],
