@@ -195,20 +195,20 @@ const WIKI_READER_CSS = `
 .df-wiki-reader .wiki-nav-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .df-wiki-reader .wiki-toc { display: grid; gap: 2px; padding-top: 14px; border-top: 1px solid var(--line); }
-.df-wiki-reader .wiki-toc-label { margin-bottom: 6px; color: var(--quiet); font-size: 10px; font-weight: 750; letter-spacing: 0.09em; text-transform: uppercase; }
+.df-wiki-reader .wiki-toc-label { margin-bottom: 6px; color: var(--quiet); font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 13px; font-weight: 600; letter-spacing: normal; }
 .df-wiki-reader .wiki-toc button { padding: 3px 10px; border: 0; border-radius: 6px; background: none; color: var(--muted); font: 400 12px/1.5 "Figtree", ui-sans-serif, sans-serif; text-align: left; cursor: pointer; }
 .df-wiki-reader .wiki-toc button:hover { color: var(--ink); background: var(--paper); }
 
 .df-wiki-reader main { min-width: 0; padding: clamp(24px, 4vw, 56px) clamp(20px, 5vw, 72px) 90px; }
 .df-wiki-reader .wiki-doc { width: min(100%, 820px); }
-.df-wiki-reader .wiki-doc-title { margin: 6px 0 18px; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: clamp(30px, 4.2vw, 42px); font-weight: 400; line-height: 1.1; text-wrap: balance; }
+.df-wiki-reader .wiki-doc-title { margin: 6px 0 18px; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: clamp(30px, 4.2vw, 42px); font-weight: 600; line-height: 1.1; text-wrap: balance; }
 .df-wiki-reader .wiki-empty { color: var(--muted); }
 
 /* Doc body: retint the shared published-doc prose to the reader palette. */
-.df-wiki-reader .published-doc { max-width: 820px; color: var(--muted); font-size: 15px; line-height: 1.6; }
-.df-wiki-reader .published-doc h1 { margin: 34px 0 12px; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 30px; font-weight: 400; line-height: 1.12; color: var(--ink); }
-.df-wiki-reader .published-doc h2 { margin: 40px 0 12px; padding-top: 22px; border-top: 1px solid var(--line); font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 26px; font-weight: 400; line-height: 1.15; color: var(--ink); }
-.df-wiki-reader .published-doc h3 { margin: 26px 0 8px; font-size: 15.5px; font-weight: 700; color: var(--ink); }
+.df-wiki-reader .published-doc { max-width: 820px; color: var(--muted); font-family: "Figtree", ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
+.df-wiki-reader .published-doc h1 { margin: 34px 0 12px; font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 30px; font-weight: 600; line-height: 1.12; color: var(--ink); }
+.df-wiki-reader .published-doc h2 { margin: 40px 0 12px; padding-top: 22px; border-top: 1px solid var(--line); font-family: "Sorts Mill Goudy", Georgia, serif; font-size: 26px; font-weight: 600; line-height: 1.15; color: var(--ink); }
+.df-wiki-reader .published-doc h3 { margin: 26px 0 8px; font-size: 15.5px; font-weight: 600; color: var(--ink); }
 .df-wiki-reader .published-doc p { margin: 0 0 12px; color: var(--muted); }
 .df-wiki-reader .published-doc strong { color: var(--ink); }
 .df-wiki-reader .published-doc a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
