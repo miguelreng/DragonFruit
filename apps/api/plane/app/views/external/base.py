@@ -105,11 +105,46 @@ class GeminiProvider(LLMProvider):
     default_model = "gemini-2.5-flash"
 
 
+class OpenRouterProvider(LLMProvider):
+    name = "OpenRouter"
+    # OpenRouter exposes a dynamic, vendor-prefixed catalog, so we accept free-form
+    # model IDs here instead of trying to keep a static list in sync.
+    models = []
+    default_model = "openai/gpt-5.4-mini"
+
+
 SUPPORTED_PROVIDERS = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
     "gemini": GeminiProvider,
+    "openrouter": OpenRouterProvider,
 }
+
+
+OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
+
+
+def _resolve_litellm_model(provider_key: str, model: str) -> str:
+    provider = (provider_key or "").strip().lower()
+    model_slug = (model or "").strip()
+
+    if not provider or not model_slug:
+        return model_slug
+
+    if provider == "openrouter":
+        if model_slug.startswith("openrouter/"):
+            return model_slug
+        return f"openrouter/{model_slug}"
+
+    if provider == "gemini":
+        if model_slug.startswith("gemini/"):
+            return model_slug
+        return f"gemini/{model_slug}"
+
+    if "/" not in model_slug:
+        return f"{provider}/{model_slug}"
+
+    return model_slug
 
 
 def get_llm_config(workspace=None) -> Tuple[str | None, str | None, str | None]:
@@ -168,8 +203,12 @@ def get_llm_config(workspace=None) -> Tuple[str | None, str | None, str | None]:
     if not model:
         model = provider.default_model
 
-    # Validate model is supported by provider
-    if model not in provider.models:
+    if not model:
+        log_exception(ValueError(f"Missing model for provider: {provider.name}"))
+        return None, None, None
+
+    # Validate model is supported by providers with a fixed allow-list.
+    if provider.models and model not in provider.models:
         log_exception(
             ValueError(
                 f"Model {model} not supported by {provider.name}. Supported models: {', '.join(provider.models)}"
@@ -235,7 +274,7 @@ def call_llm_chat(
             import litellm  # local import — heavy module, only load when used
 
             completion = litellm.completion(
-                model=f"gemini/{model}",
+                model=_resolve_litellm_model("gemini", model),
                 api_key=api_key,
                 messages=(
                     ([{"role": "system", "content": system}] if system else [])
@@ -246,6 +285,23 @@ def call_llm_chat(
             )
             text = completion.choices[0].message.content
             return (text, None) if text else (None, "Gemini returned no text content.")
+
+        if provider_lower == "openrouter":
+            import litellm  # local import — heavy module, only load when used
+
+            completion = litellm.completion(
+                model=_resolve_litellm_model("openrouter", model),
+                api_key=api_key,
+                api_base=OPENROUTER_API_BASE,
+                messages=(
+                    ([{"role": "system", "content": system}] if system else [])
+                    + [{"role": "user", "content": user}]
+                ),
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            text = completion.choices[0].message.content
+            return (text, None) if text else (None, "OpenRouter returned no text content.")
 
         return None, f"Unsupported provider: {provider}"
     except Exception as e:
@@ -599,18 +655,19 @@ class WorkspaceLLMConfigEndpoint(BaseAPIView):
         provider = (request.data.get("llm_provider") or "").strip().lower()
         model = (request.data.get("llm_model") or "").strip()
         api_key = request.data.get("llm_api_key")
+        provider_cls = SUPPORTED_PROVIDERS.get(provider) if provider else None
 
         if provider and provider not in SUPPORTED_PROVIDERS:
             return Response(
                 {"error": f"Unsupported provider: {provider}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if provider and model and model not in SUPPORTED_PROVIDERS[provider].models:
+        if provider and model and provider_cls and provider_cls.models and model not in provider_cls.models:
             return Response(
                 {
                     "error": (
-                        f"Model {model} not supported by {SUPPORTED_PROVIDERS[provider].name}. "
-                        f"Supported: {', '.join(SUPPORTED_PROVIDERS[provider].models)}"
+                        f"Model {model} not supported by {provider_cls.name}. "
+                        f"Supported: {', '.join(provider_cls.models)}"
                     )
                 },
                 status=status.HTTP_400_BAD_REQUEST,

@@ -35,6 +35,24 @@ logger = logging.getLogger(__name__)
 OPENAI_COMPATIBLE_PROVIDER_PREFIXES = {"hermes", "openclaw"}
 
 
+def _resolve_litellm_model(provider_key: str, model_slug: str) -> str:
+    provider = (provider_key or "").strip().lower()
+    model = (model_slug or "").strip()
+
+    if not provider or not model:
+        return model
+
+    if provider == "openrouter":
+        if model.startswith("openrouter/"):
+            return model
+        return f"openrouter/{model}"
+
+    if "/" not in model:
+        return f"{provider}/{model}"
+
+    return model
+
+
 class LLMConfigError(ValueError):
     """Raised when an agent is missing credentials needed to make a call.
 
@@ -131,9 +149,7 @@ class LLMProvider:
         api_key, model, provider = get_llm_config(workspace=agent.workspace)
         if api_key and model:
             provider_key = (provider or "").strip().lower()
-            model_slug = model.strip()
-            if provider_key and "/" not in model_slug:
-                model_slug = f"{provider_key}/{model_slug}"
+            model_slug = _resolve_litellm_model(provider_key, model.strip())
 
             return cls(
                 model=model_slug,

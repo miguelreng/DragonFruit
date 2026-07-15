@@ -46,6 +46,7 @@ const SELECT_CLASSNAME =
   "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary min-w-[220px]";
 const INPUT_CLASSNAME =
   "rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary placeholder:text-placeholder min-w-[220px]";
+const EMPTY_WORKSPACE_LLM_PROVIDERS: Record<string, TWorkspaceLLMProvider> = {};
 
 const agentErrorTitle = (err: unknown, t: (key: string) => string) =>
   (err as { error?: string } | undefined)?.error ?? t("workspace_settings.settings.agents.update_error");
@@ -181,10 +182,11 @@ function AISettingsPage() {
     setLoading(true);
     try {
       const res = await aiService.getWorkspaceLLMConfig(workspaceSlug);
+      const providerConfig = res.llm_provider ? res.providers?.[res.llm_provider] : undefined;
       setConfig(res);
       setForm({
         provider: res.llm_provider || "",
-        model: res.llm_model || "",
+        model: res.llm_model || providerConfig?.default_model || "",
         apiKey: "",
       });
     } catch {
@@ -198,10 +200,23 @@ function AISettingsPage() {
     void loadConfig();
   }, [loadConfig]);
 
-  const providers = config?.providers ?? {};
+  const providers = config?.providers ?? EMPTY_WORKSPACE_LLM_PROVIDERS;
   const selectedProvider: TWorkspaceLLMProvider | undefined = form.provider ? providers[form.provider] : undefined;
+  const isFreeformModelProvider = Boolean(selectedProvider && selectedProvider.models.length === 0);
 
   const availableModels = useMemo(() => selectedProvider?.models ?? [], [selectedProvider]);
+
+  const handleProviderChange = useCallback(
+    (nextProviderKey: string) => {
+      const nextProvider = nextProviderKey ? providers[nextProviderKey] : undefined;
+      setForm((prev) => ({
+        ...prev,
+        provider: nextProviderKey,
+        model: nextProvider?.default_model || "",
+      }));
+    },
+    [providers]
+  );
 
   const canSubmit = useMemo(
     () => Boolean(form.provider && form.model && (form.apiKey || config?.has_workspace_override) && !saving),
@@ -318,7 +333,7 @@ function AISettingsPage() {
                 control={
                   <select
                     value={form.provider}
-                    onChange={(e) => setForm((prev) => ({ ...prev, provider: e.target.value, model: "" }))}
+                    onChange={(e) => handleProviderChange(e.target.value)}
                     disabled={!canEdit || saving}
                     className={SELECT_CLASSNAME}
                   >
@@ -334,21 +349,38 @@ function AISettingsPage() {
               <SettingsBoxedControlItem
                 className="rounded-none border-0 border-b border-subtle"
                 title={t("workspace_settings.settings.ai.model_label")}
+                description={
+                  isFreeformModelProvider && selectedProvider?.name === "OpenRouter"
+                    ? "Use a vendor-prefixed OpenRouter model id like openai/gpt-5.4-mini or google/gemini-3.1-flash-lite."
+                    : undefined
+                }
                 control={
-                  <select
-                    value={form.model}
-                    onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
-                    disabled={!canEdit || !selectedProvider || saving}
-                    className={SELECT_CLASSNAME}
-                  >
-                    <option value="">—</option>
-                    {availableModels.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                        {selectedProvider?.default_model === m ? "  (default)" : ""}
-                      </option>
-                    ))}
-                  </select>
+                  isFreeformModelProvider ? (
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      value={form.model}
+                      onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
+                      placeholder={selectedProvider?.default_model || "openai/gpt-5.4-mini"}
+                      disabled={!canEdit || !selectedProvider || saving}
+                      className={INPUT_CLASSNAME}
+                    />
+                  ) : (
+                    <select
+                      value={form.model}
+                      onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
+                      disabled={!canEdit || !selectedProvider || saving}
+                      className={SELECT_CLASSNAME}
+                    >
+                      <option value="">—</option>
+                      {availableModels.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                          {selectedProvider?.default_model === m ? "  (default)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  )
                 }
               />
               <SettingsBoxedControlItem
