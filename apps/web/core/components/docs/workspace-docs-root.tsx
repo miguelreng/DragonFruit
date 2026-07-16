@@ -2421,7 +2421,7 @@ function DocCard({
   );
 
   // Same height as FolderCard/FolderSurface so folder and doc rows line up.
-  const cardShellClassName = cn("group t-press relative flex h-[156px] flex-col rounded-2xl transition-colors", {
+  const cardShellClassName = cn("group relative flex h-[156px] flex-col rounded-2xl transition-colors", {
     "bg-layer-1 hover:bg-layer-3": !isProjectBrief && !isSelected,
     "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief && !isSelected,
     "bg-layer-1 ring-1 ring-strong": isSelected,
@@ -2534,6 +2534,28 @@ function DocCard({
       </CustomMenu>
     ) : null;
 
+  // Keep the menu outside the card link. A nested button inside an anchor is
+  // invalid interactive markup and lets link/drag handling compete with the
+  // menu trigger. Stopping pointer-down propagation also prevents a menu press
+  // from starting the card's drag gesture before the click can open the menu.
+  const actionsMenuOverlay =
+    primaryProjectId && page.id ? (
+      <div
+        className={cn("absolute z-20", {
+          "top-2 right-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100":
+            cardStyle === "paper",
+          "top-3 right-3": cardStyle === "tile",
+        })}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        {actionsMenu(
+          cardStyle === "paper"
+            ? "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary"
+            : "grid size-6 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-2 hover:text-primary"
+        )}
+      </div>
+    ) : null;
+
   // "Paper" meta reads like Craft's byline: project · detail · freshness.
   const paperMeta = [
     isProjectScoped ? undefined : primaryProject?.name,
@@ -2553,11 +2575,6 @@ function DocCard({
     cardStyle === "paper" ? (
       // Option A — title block over an inset content sheet (Craft-style).
       <div className={cn(cardShellClassName, "p-4 pb-3.5")}>
-        <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-          {actionsMenu(
-            "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary"
-          )}
-        </div>
         <div className="pr-8">
           <div className="flex items-center gap-1.5">
             {/* Click/select lives in the type glyph slot, so selected cards do not need extra top-right chrome. */}
@@ -2596,7 +2613,7 @@ function DocCard({
     ) : (
       // Option B — compact header, large content thumbnail, meta footer (Drive-style).
       <div className={cn(cardShellClassName, "gap-2 p-2.5")}>
-        <div className="flex items-center gap-2 px-1 pt-0.5">
+        <div className="flex items-center gap-2 px-1 pt-0.5 pr-8">
           <span
             className={cn(
               "relative grid size-6 shrink-0 place-items-center rounded-[7px]",
@@ -2627,9 +2644,6 @@ function DocCard({
           >
             {displayName}
           </h3>
-          {actionsMenu(
-            "grid size-6 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-2 hover:text-primary"
-          )}
         </div>
         {previewSurface("flex-1")}
         <div className="flex h-5 items-center gap-1.5 px-1 text-11 text-placeholder">
@@ -2656,13 +2670,16 @@ function DocCard({
   if (!itemLink)
     return (
       <>
-        <div ref={dragContainerRef}>{card}</div>
+        <div ref={dragContainerRef} className="group relative">
+          {card}
+          {actionsMenuOverlay}
+        </div>
         {deleteModal}
       </>
     );
   return (
     <>
-      <div ref={dragContainerRef}>
+      <div ref={dragContainerRef} className="group relative">
         <Link
           to={itemLink}
           draggable={false}
@@ -2679,6 +2696,7 @@ function DocCard({
         >
           {card}
         </Link>
+        {actionsMenuOverlay}
       </div>
       {deleteModal}
     </>

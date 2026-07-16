@@ -47,6 +47,7 @@ from plane.db.models import (
     ProjectPage,
     Project,
     UserRecentVisit,
+    WorkspaceMember,
 )
 from plane.utils.error_codes import ERROR_CODES
 
@@ -80,6 +81,34 @@ def should_trigger_landing_deploy_on_publish(page, workspace_slug, project_id, n
         and page.page_type == Page.PAGE_TYPE_DOC
         and workspace_slug == essays_workspace_slug
         and str(project_id) == essays_project_id
+    )
+
+
+def can_administer_project_page(user, workspace_slug, project_id, page):
+    """Return whether a user may archive, restore, or delete a project page."""
+    if page.owned_by_id == user.id:
+        return True
+
+    project_role = (
+        ProjectMember.objects.filter(
+            workspace__slug=workspace_slug,
+            project_id=project_id,
+            member=user,
+            is_active=True,
+        )
+        .values_list("role", flat=True)
+        .first()
+    )
+    if project_role == ROLE.ADMIN.value:
+        return True
+    return (
+        project_role is not None
+        and WorkspaceMember.objects.filter(
+            workspace__slug=workspace_slug,
+            member=user,
+            role=ROLE.ADMIN.value,
+            is_active=True,
+        ).exists()
     )
 
 
@@ -392,13 +421,8 @@ class PageViewSet(BaseViewSet):
             project_pages__deleted_at__isnull=True,
         )
 
-        # only the owner or admin can archive the page
-        if (
-            ProjectMember.objects.filter(
-                project_id=project_id, member=request.user, is_active=True, role__lte=15
-            ).exists()
-            and request.user.id != page.owned_by_id
-        ):
+        # only the owner or an inherited project admin can archive the page
+        if not can_administer_project_page(request.user, slug, project_id, page):
             return Response(
                 {"error": "Only the owner or admin can archive the page"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -423,13 +447,8 @@ class PageViewSet(BaseViewSet):
             project_pages__deleted_at__isnull=True,
         )
 
-        # only the owner or admin can un archive the page
-        if (
-            ProjectMember.objects.filter(
-                project_id=project_id, member=request.user, is_active=True, role__lte=15
-            ).exists()
-            and request.user.id != page.owned_by_id
-        ):
+        # only the owner or an inherited project admin can unarchive the page
+        if not can_administer_project_page(request.user, slug, project_id, page):
             return Response(
                 {"error": "Only the owner or admin can un archive the page"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -458,15 +477,7 @@ class PageViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if page.owned_by_id != request.user.id and (
-            not ProjectMember.objects.filter(
-                workspace__slug=slug,
-                member=request.user,
-                role=20,
-                project_id=project_id,
-                is_active=True,
-            ).exists()
-        ):
+        if not can_administer_project_page(request.user, slug, project_id, page):
             return Response(
                 {"error": "Only admin or owner can delete the page"},
                 status=status.HTTP_403_FORBIDDEN,

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-from plane.db.models import ProjectMember, Page
+from plane.db.models import Page, ProjectMember, WorkspaceMember
 from plane.app.permissions import ROLE
 
 
@@ -75,6 +75,15 @@ class ProjectPagePermission(BasePermission):
         role = self._check_project_member_access(request, slug, project_id)
         if not role:
             return False, None
+        # Keep this duplicate permission module aligned with the app
+        # implementation: workspace admins inherit joined-project admin access.
+        if WorkspaceMember.objects.filter(
+            member=request.user,
+            workspace__slug=slug,
+            role=ADMIN,
+            is_active=True,
+        ).exists():
+            return True, ADMIN
         return True, role
 
     def _has_private_page_action_access(self, request, slug, page, project_id):

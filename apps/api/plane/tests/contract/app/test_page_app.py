@@ -4,9 +4,10 @@
 
 import pytest
 from unittest.mock import patch
+from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage
+from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage, WorkspaceMember
 
 
 def mock_presigned_post(file_type="application/pdf"):
@@ -193,6 +194,69 @@ class TestPageFolderAPI:
         assert delete_response.status_code == status.HTTP_204_NO_CONTENT
 
         assert Page.objects.filter(pk=doc_id, parent__isnull=True).exists()
+
+
+@pytest.mark.contract
+class TestPageDeletePermissionsAPI:
+    """Delete permissions match the web app's inherited workspace-admin role."""
+
+    @pytest.mark.django_db
+    def test_workspace_admin_can_delete_page_as_project_member(
+        self, session_client, workspace, create_user, create_bot_user
+    ):
+        project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
+        # The workspace fixture makes create_user a workspace admin. Their raw
+        # project role is deliberately MEMBER to cover the permission mismatch.
+        ProjectMember.objects.create(
+            project=project,
+            workspace=workspace,
+            member=create_user,
+            role=15,
+            is_active=True,
+        )
+        page = Page.objects.create(
+            name="Agent-owned doc",
+            workspace=workspace,
+            owned_by=create_bot_user,
+            access=Page.PUBLIC_ACCESS,
+        )
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+
+        archive_response = session_client.post(
+            f"/api/workspaces/{workspace.slug}/projects/{project.id}/pages/{page.id}/archive/"
+        )
+        response = session_client.delete(f"/api/workspaces/{workspace.slug}/projects/{project.id}/pages/{page.id}/")
+
+        assert archive_response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Page.objects.filter(id=page.id).exists()
+
+    @pytest.mark.django_db
+    def test_non_admin_project_member_cannot_delete_another_owners_page(
+        self, session_client, workspace, create_user, create_bot_user
+    ):
+        WorkspaceMember.objects.filter(workspace=workspace, member=create_user).update(role=15)
+        project = Project.objects.create(name="Pages Project", identifier="PP", workspace=workspace)
+        ProjectMember.objects.create(
+            project=project,
+            workspace=workspace,
+            member=create_user,
+            role=15,
+            is_active=True,
+        )
+        page = Page.objects.create(
+            name="Protected doc",
+            workspace=workspace,
+            owned_by=create_bot_user,
+            access=Page.PUBLIC_ACCESS,
+            archived_at=timezone.now(),
+        )
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+
+        response = session_client.delete(f"/api/workspaces/{workspace.slug}/projects/{project.id}/pages/{page.id}/")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Page.objects.filter(id=page.id).exists()
 
 
 @pytest.mark.contract
