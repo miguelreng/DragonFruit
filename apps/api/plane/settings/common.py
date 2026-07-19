@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 
 # Third party imports
 import dj_database_url
+from kombu import Queue
 
 # Django imports
 from django.core.management.utils import get_random_secret_key
@@ -343,8 +344,44 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 
+# Keep the historical ``celery`` queue as the default so existing messages are
+# drained after an upgrade. Transactional email and request logging use
+# dedicated queues so a logging backlog cannot delay user-facing email.
+CELERY_TASK_DEFAULT_QUEUE = "celery"
+CELERY_TASK_QUEUES = (
+    Queue("celery"),
+    Queue("emails"),
+    Queue("logs"),
+)
+CELERY_TASK_ROUTES = {
+    "plane.bgtasks.logger_task.process_logs": {"queue": "logs"},
+    "plane.bgtasks.email_notification_task.send_email_notification": {"queue": "emails"},
+    "plane.bgtasks.forgot_password_task.forgot_password": {"queue": "emails"},
+    "plane.bgtasks.magic_link_code_task.magic_link": {"queue": "emails"},
+    "plane.bgtasks.project_add_user_email_task.project_add_user_email": {"queue": "emails"},
+    "plane.bgtasks.project_invitation_task.project_invitation": {"queue": "emails"},
+    "plane.bgtasks.user_activation_email_task.user_activation_email": {"queue": "emails"},
+    "plane.bgtasks.user_deactivation_email_task.user_deactivation_email": {"queue": "emails"},
+    "plane.bgtasks.user_email_update_task.send_email_update_confirmation": {"queue": "emails"},
+    "plane.bgtasks.user_email_update_task.send_email_update_magic_code": {"queue": "emails"},
+    "plane.bgtasks.webhook_task.send_webhook_deactivation_email": {"queue": "emails"},
+    "plane.bgtasks.workspace_invitation_task.workspace_invitation": {"queue": "emails"},
+}
+
 
 CELERY_IMPORTS = (
+    # request logging
+    "plane.bgtasks.logger_task",
+    # transactional email
+    "plane.bgtasks.forgot_password_task",
+    "plane.bgtasks.magic_link_code_task",
+    "plane.bgtasks.project_add_user_email_task",
+    "plane.bgtasks.project_invitation_task",
+    "plane.bgtasks.user_activation_email_task",
+    "plane.bgtasks.user_deactivation_email_task",
+    "plane.bgtasks.user_email_update_task",
+    "plane.bgtasks.webhook_task",
+    "plane.bgtasks.workspace_invitation_task",
     # scheduled tasks
     "plane.bgtasks.issue_automation_task",
     "plane.bgtasks.exporter_expired_task",
