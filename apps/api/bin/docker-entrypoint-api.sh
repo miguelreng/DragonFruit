@@ -28,10 +28,17 @@ python manage.py wait_for_db || {
 }
 log "✓ wait_for_db"
 
-# Migrations are intentionally NOT auto-run here. In single-container
-# Coolify deploys the migration runner is *this same* container, and a
-# fresh boot can race against itself. Run `python manage.py migrate`
-# once from the Terminal (or a one-off job) before first boot.
+# Coolify runs the API as a single service, so there is no separate migrator
+# container to release a `wait_for_migrations` gate. Apply migrations in this
+# process before Gunicorn starts instead. A migration failure is fatal: serving
+# new application code against an older schema only turns the boot error into
+# runtime 500s on affected endpoints.
+log "→ migrate (required)"
+python manage.py migrate --noinput || {
+  log "✗ migrate failed — exiting so the API cannot serve against a stale schema"
+  exit 1
+}
+log "✓ migrate"
 
 # Machine signature for instance registration
 HOSTNAME=$(hostname 2>/dev/null || echo "unknown")
