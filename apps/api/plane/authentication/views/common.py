@@ -28,7 +28,6 @@ from plane.authentication.utils.host import base_host
 from plane.authentication.utils.native_handoff import (
     create_native_api_token,
     is_native_callback,
-    native_handoff_response,
 )
 
 
@@ -54,7 +53,13 @@ class NativeLoginStartEndpoint(APIView):
                     {"api_token": token, "callback": f"{callback}{separator}api_token={quote(token)}"},
                     status=status.HTTP_200_OK,
                 )
-            return native_handoff_response(f"{callback}{separator}api_token={quote(token)}")
+            # ASWebAuthenticationSession completes when it observes a navigation
+            # to the registered callback scheme. A server redirect is reliable on
+            # iOS, while a custom-scheme navigation triggered from page JavaScript
+            # can remain blocked inside the Safari authentication sheet.
+            response = HttpResponse(status=status.HTTP_302_FOUND)
+            response["Location"] = f"{callback}{separator}api_token={quote(token)}"
+            return response
 
         app_host = base_host(request=request, is_app=True).rstrip("/")
         native_login_path = f"/auth/native/start/?{urlencode({'callback': callback})}"

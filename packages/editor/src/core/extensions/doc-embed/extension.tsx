@@ -35,6 +35,7 @@ export function DocEmbedExtension(props: Props) {
               config,
               embedType,
               attrs,
+              isEditable: nodeViewProps.editor.isEditable,
             })}
           </NodeViewWrapper>
         );
@@ -47,10 +48,12 @@ function renderDocEmbedWidget({
   config,
   embedType,
   attrs,
+  isEditable,
 }: {
   config: Props["configs"][TDocEmbedType] | undefined;
   embedType: TDocEmbedType | undefined;
   attrs: TDocEmbedAttributes;
+  isEditable: boolean;
 }) {
   if (!embedType || !config?.widgetCallback) {
     return (
@@ -69,6 +72,7 @@ function renderDocEmbedWidget({
       workspaceSlug: attrs[EDocEmbedAttributeNames.WORKSPACE_IDENTIFIER],
       title: attrs[EDocEmbedAttributeNames.TITLE],
       snapshot: attrs[EDocEmbedAttributeNames.SNAPSHOT],
+      isEditable,
     });
   }
   if (embedType === "sticky") {
@@ -80,6 +84,7 @@ function renderDocEmbedWidget({
       workspaceSlug: attrs[EDocEmbedAttributeNames.WORKSPACE_IDENTIFIER],
       title: attrs[EDocEmbedAttributeNames.TITLE],
       snapshot: attrs[EDocEmbedAttributeNames.SNAPSHOT],
+      isEditable,
     });
   }
   if (embedType === "google_drive") {
@@ -91,6 +96,7 @@ function renderDocEmbedWidget({
       workspaceSlug: attrs[EDocEmbedAttributeNames.WORKSPACE_IDENTIFIER],
       title: attrs[EDocEmbedAttributeNames.TITLE],
       snapshot: attrs[EDocEmbedAttributeNames.SNAPSHOT],
+      isEditable,
     });
   }
   const typedConfig = config as TDocEmbedConfig<"task_view">;
@@ -101,5 +107,6 @@ function renderDocEmbedWidget({
     workspaceSlug: attrs[EDocEmbedAttributeNames.WORKSPACE_IDENTIFIER],
     title: attrs[EDocEmbedAttributeNames.TITLE],
     snapshot: attrs[EDocEmbedAttributeNames.SNAPSHOT],
+    isEditable,
   });
 }

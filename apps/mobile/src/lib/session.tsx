@@ -24,7 +24,17 @@ import { clearToken, getToken, setToken } from "./secure-store";
 // native, needed for web redirect targets).
 WebBrowser.maybeCompleteAuthSession();
 
-type SignInResult = { ok: true } | { ok: false; reason: "cancelled" | "no-token" | "error"; message?: string };
+type SignInResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      reason: "cancelled" | "no-token" | "timeout" | "error";
+      message?: string;
+    };
+
+const AUTH_TIMEOUT_MS = 90_000;
 
 type SessionValue = {
   isLoading: boolean;
@@ -71,8 +81,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (): Promise<SignInResult> => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const result = await WebBrowser.openAuthSessionAsync(NATIVE_LOGIN_START_URL, AUTH_CALLBACK_URL);
+      const authSession = WebBrowser.openAuthSessionAsync(NATIVE_LOGIN_START_URL, AUTH_CALLBACK_URL).then((result) => ({
+        kind: "result" as const,
+        result,
+      }));
+      const timedOut = new Promise<{ kind: "timeout" }>((resolve) => {
+        timeout = setTimeout(() => resolve({ kind: "timeout" }), AUTH_TIMEOUT_MS);
+      });
+      const outcome = await Promise.race([authSession, timedOut]);
+      if (outcome.kind === "timeout") {
+        WebBrowser.dismissAuthSession();
+        return { ok: false, reason: "timeout" };
+      }
+      const { result } = outcome;
       if (result.type !== "success" || !result.url) {
         return { ok: false, reason: "cancelled" };
       }
@@ -88,6 +111,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       // A token that won't authenticate is as good as no token.
       if (isAuthError(error)) await clearToken();
       return { ok: false, reason: "error", message: error instanceof Error ? error.message : undefined };
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
   }, []);
 

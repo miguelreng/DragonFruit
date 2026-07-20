@@ -73,9 +73,9 @@ export const getProjectFeatureNavigation = (
     sortOrder: 5,
   },
   {
-    i18n_key: "sidebar.pages",
+    i18n_key: "sidebar.docs",
     key: EProjectFeatureKey.PAGES,
-    name: "Pages",
+    name: "Docs",
     href: `/${workspaceSlug}/projects/${projectId}/pages`,
     ...createSolarSidebarIconPair(Document),
     access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],

@@ -6,4 +6,5 @@
 
 export * from "./active-doc-page";
 export * from "./agent-chat-drawer";
+export * from "./composer-focus";
 export * from "./reply-context";

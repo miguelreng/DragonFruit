@@ -5,6 +5,7 @@
  */
 
 import React, { Fragment, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Placement } from "@popperjs/core";
 import { usePopper } from "react-popper";
 // headless ui
@@ -39,9 +40,15 @@ export function FiltersDropdown(props: Props) {
 
   const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | HTMLDivElement | null>(null);
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
+  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    setPortalElement(document.body);
+  }, []);
 
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement: placement ?? "auto",
+    strategy: "fixed",
   });
 
   return (
@@ -50,7 +57,11 @@ export function FiltersDropdown(props: Props) {
         <>
           <Popover.Button as={React.Fragment}>
             {menuButton ? (
-              <button type="button" ref={setReferenceElement}>
+              <button
+                type="button"
+                ref={setReferenceElement}
+                className="rounded-lg outline-none focus-visible:ring-1 focus-visible:ring-[var(--bg-accent-primary)]"
+              >
                 {menuButton}
               </button>
             ) : (
@@ -88,30 +99,36 @@ export function FiltersDropdown(props: Props) {
               </div>
             )}
           </Popover.Button>
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-200"
-            enterFrom="opacity-0 translate-y-1"
-            enterTo="opacity-100 translate-y-0"
-            leave="transition ease-out duration-150"
-            leaveFrom="opacity-100 translate-y-0"
-            leaveTo="opacity-0 translate-y-1"
-          >
-            {/** translate-y-0 is a hack to create new stacking context. Required for safari  */}
-            <Popover.Panel className="fixed z-10 translate-y-0">
-              <div
-                className="t-dropdown is-open my-1 overflow-hidden rounded-lg border border-subtle bg-surface-1 shadow-raised-100"
-                data-origin="top-left"
-                ref={setPopperElement}
-                style={styles.popper}
-                {...attributes.popper}
+          {portalElement &&
+            createPortal(
+              <Transition
+                as={Fragment}
+                enter="transition-[opacity,translate] ease-out duration-200"
+                enterFrom="opacity-0 translate-y-1"
+                enterTo="opacity-100 translate-y-0"
+                leave="transition-[opacity,translate] ease-out duration-150"
+                leaveFrom="opacity-100 translate-y-0"
+                leaveTo="opacity-0 translate-y-1"
               >
-                <div className="flex max-h-[30rem] w-[18.75rem] flex-col overflow-hidden lg:max-h-[37.5rem]">
-                  {children}
-                </div>
-              </div>
-            </Popover.Panel>
-          </Transition>
+                {/** Keep the panel outside header stacking contexts so page content cannot cover it. */}
+                <Popover.Panel
+                  className="fixed z-50 translate-y-0"
+                  ref={setPopperElement}
+                  style={styles.popper}
+                  {...attributes.popper}
+                >
+                  <div
+                    className="t-dropdown is-open my-1 overflow-hidden rounded-lg border border-subtle bg-surface-1 shadow-raised-100"
+                    data-popper-placement={attributes.popper?.["data-popper-placement"]}
+                  >
+                    <div className="flex max-h-[30rem] w-[18.75rem] flex-col overflow-hidden lg:max-h-[37.5rem]">
+                      {children}
+                    </div>
+                  </div>
+                </Popover.Panel>
+              </Transition>,
+              portalElement
+            )}
         </>
       )}
     </Popover>

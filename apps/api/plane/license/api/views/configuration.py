@@ -14,6 +14,7 @@ from smtplib import (
 # Django imports
 from django.core.mail import BadHeaderError, EmailMultiAlternatives, get_connection
 from django.db.models import Q, Case, When, Value
+from django.template.loader import render_to_string
 
 # Third party imports
 from rest_framework import status
@@ -27,6 +28,7 @@ from plane.license.api.serializers import InstanceConfigurationSerializer
 from plane.license.utils.encryption import encrypt_data
 from plane.utils.cache import cache_response, invalidate_cache
 from plane.license.utils.instance_value import get_email_configuration
+from plane.utils.email import generate_plain_text_from_html
 
 
 class InstanceConfigurationEndpoint(BaseAPIView):
@@ -114,17 +116,19 @@ class EmailCredentialCheckEndpoint(BaseAPIView):
             use_ssl=EMAIL_USE_SSL == "1",
         )
         # Prepare email details
-        subject = "Email Notification from Plane"
-        message = "This is a sample email notification sent from Plane application."
+        subject = "DragonFruit email configuration test"
+        html_content = render_to_string("emails/test_email.html")
+        text_content = generate_plain_text_from_html(html_content)
         # Send the email
         try:
             msg = EmailMultiAlternatives(
                 subject=subject,
-                body=message,
+                body=text_content,
                 from_email=EMAIL_FROM,
                 to=[receiver_email],
                 connection=connection,
             )
+            msg.attach_alternative(html_content, "text/html")
             msg.send(fail_silently=False)
             return Response({"message": "Email successfully sent."}, status=status.HTTP_200_OK)
         except BadHeaderError:

@@ -6,13 +6,6 @@
 
 import * as React from "react";
 import { Toast as BaseToast } from "@base-ui-components/react/toast";
-import {
-  DangerCircle as AlertCircle,
-  DangerTriangle as AlertTriangle,
-  CheckCircle as BadgeCheck,
-  InfoCircle as InfoIcon,
-} from "@solar-icons/react/ssr";
-import { CloseIcon } from "../icons/actions/close-icon";
 // spinner
 import { CircularBarSpinner } from "../spinners/circular-bar-spinner";
 import { cn } from "../utils/classname";
@@ -69,7 +62,35 @@ const DEFAULT_TOAST_TIMEOUT = 4000;
 
 const toastManager = BaseToast.createToastManager();
 
+// Hover pauses auto-dismiss; the timer-resume nudges below must not break
+// that, so they stand down while the pointer is on a toast.
+const isAnyToastHovered = () =>
+  Array.from(document.querySelectorAll(".t-toast")).some((el) => el.matches(":hover"));
+
+// Base UI's viewport pauses auto-dismiss timers on window blur but never
+// resumes them on a plain window refocus: its capture-phase focus handler
+// early-returns when event.target === window, so windowFocusedRef stays false
+// and every timer stays paused — after one cmd-tab away and back, current AND
+// future toasts sit open forever. A body-targeted focus event passes that
+// handler's target filter, so re-dispatching one drives Base UI's own resume
+// path (resumeTimers + windowFocusedRef repair).
+const nudgeBaseUiTimerResume = () => {
+  if (isAnyToastHovered()) return;
+  document.body.dispatchEvent(new FocusEvent("focus"));
+};
+
 export function Toast(props: ToastProps) {
+  React.useEffect(() => {
+    const handleWindowFocus = (event: FocusEvent) => {
+      // Element-targeted focus events don't bubble to window listeners, so
+      // this only sees true window refocus — exactly the case Base UI drops.
+      if (event.target !== window) return;
+      nudgeBaseUiTimerResume();
+    };
+    window.addEventListener("focus", handleWindowFocus);
+    return () => window.removeEventListener("focus", handleWindowFocus);
+  }, []);
+
   return (
     <BaseToast.Provider toastManager={toastManager} timeout={props.timeout ?? DEFAULT_TOAST_TIMEOUT}>
       <BaseToast.Portal>
@@ -81,71 +102,80 @@ export function Toast(props: ToastProps) {
   );
 }
 
-// Filled, type-colored "badge" glyphs — the main signal in the action-pill
-// style. Fill is driven off the semantic background tokens so each badge stays
-// correct in both light and dark; the glyph itself knocks out white.
+// Semantic toast glyphs ported verbatim from the Atlas mac app's
+// AtlasToastSemanticIcon (Lucide badge-check / circle-alert / triangle-alert /
+// info) so the web toast matches the desktop app. Same rendering contract as
+// the mac: the shape is filled with the semantic background token and the glyph
+// knocks out white (stroke), keeping each badge correct in light and dark.
+function ToastSemanticIcon({ fill, children }: { fill: string; children: React.ReactNode }) {
+  return (
+    <svg
+      width={22}
+      height={22}
+      viewBox="0 0 24 24"
+      fill={fill}
+      stroke="white"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {children}
+    </svg>
+  );
+}
+
+// The main signal in the action-pill style.
 const TOAST_DATA = {
   [TOAST_TYPE.SUCCESS]: {
     icon: (
-      <BadgeCheck
-        width={22}
-        height={22}
-        strokeWidth={2}
-        className="text-white"
-        style={{ fill: "var(--bg-success-primary)" }}
-      />
+      <ToastSemanticIcon fill="var(--bg-success-primary)">
+        <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+        <path d="m9 12 2 2 4-4" />
+      </ToastSemanticIcon>
     ),
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.CURSOR_BUDDY_SUCCESS]: {
     icon: (
-      <BadgeCheck
-        width={22}
-        height={22}
-        strokeWidth={2}
-        className="text-white"
-        style={{ fill: "var(--bg-success-primary)" }}
-      />
+      <ToastSemanticIcon fill="var(--bg-success-primary)">
+        <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
+        <path d="m9 12 2 2 4-4" />
+      </ToastSemanticIcon>
     ),
     backgroundColorClassName: "!bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.ERROR]: {
     icon: (
-      <AlertCircle
-        width={22}
-        height={22}
-        strokeWidth={2}
-        className="text-white"
-        style={{ fill: "var(--bg-danger-primary)" }}
-      />
+      <ToastSemanticIcon fill="var(--bg-danger-primary)">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 8v4" />
+        <path d="M12 16h.01" />
+      </ToastSemanticIcon>
     ),
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.WARNING]: {
     icon: (
-      <AlertTriangle
-        width={22}
-        height={22}
-        strokeWidth={2}
-        className="text-white"
-        style={{ fill: "var(--bg-warning-primary)" }}
-      />
+      <ToastSemanticIcon fill="var(--bg-warning-primary)">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+      </ToastSemanticIcon>
     ),
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
   },
   [TOAST_TYPE.INFO]: {
     icon: (
-      <InfoIcon
-        width={22}
-        height={22}
-        strokeWidth={2}
-        className="text-white"
-        style={{ fill: "var(--bg-accent-primary)" }}
-      />
+      <ToastSemanticIcon fill="var(--bg-accent-primary)">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4" />
+        <path d="M12 8h.01" />
+      </ToastSemanticIcon>
     ),
     backgroundColorClassName: "bg-surface-1",
     borderColorClassName: "border-subtle",
@@ -162,6 +192,31 @@ const TOAST_DATA = {
   },
 };
 
+// Corner-floating close button mirroring the mac app's toast close
+// (ToastCloseButton): a 22px bordered circle straddling the toast's top-left
+// corner, -9px from the visual corner on both axes (-10 compensates for the
+// toast's 1px border shifting the absolute-positioning origin).
+const TOAST_CLOSE_BUTTON = cn(
+  "absolute -top-2.5 -left-2.5 flex h-[22px] w-[22px] items-center justify-center",
+  "rounded-full border border-strong bg-surface-1 text-icon-secondary shadow-raised-300"
+);
+
+// Bare ✕ matching the mac app's `.cancel` glyph — propel's CloseIcon is
+// Solar's circled variant, which would double-ring inside the bordered circle.
+function ToastCloseGlyph() {
+  return (
+    <svg width={9} height={9} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M18 6L6 18m12 0L6 6"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // Toast actions render as a quiet "pill" by default. We only target direct
 // <a>/<button> children, so simple link/button actions pick up the pill look
 // automatically while richer custom action components style themselves.
@@ -173,6 +228,21 @@ const TOAST_ACTION_WRAPPER = cn(
 
 function ToastList() {
   const { toasts } = BaseToast.useToastManager();
+  const hasToasts = toasts.length > 0;
+
+  // A toast added while windowFocusedRef is stale-false starts pre-paused even
+  // though the window is focused (the ref only heals on a qualifying focus
+  // event, which may never come). Nudge Base UI's resume path once its
+  // viewport effect has attached the focus listeners — this effect runs before
+  // the viewport's (child before parent), so defer past the effect flush.
+  React.useEffect(() => {
+    if (!hasToasts) return undefined;
+    const timerId = setTimeout(() => {
+      if (document.hasFocus()) nudgeBaseUiTimerResume();
+    }, 0);
+    return () => clearTimeout(timerId);
+  }, [hasToasts]);
+
   return toasts.map((toast) => <ToastRender key={toast.id} id={toast.id} toast={toast} />);
 }
 
@@ -229,7 +299,7 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
         e.preventDefault();
       }}
     >
-      <div className="flex w-full items-center gap-3 p-3.5 pr-9">
+      <div className="flex w-full items-center gap-3 p-3.5">
         <div className="flex-shrink-0">{data.icon}</div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <BaseToast.Title className="text-body-sm-semibold text-primary">
@@ -245,8 +315,14 @@ function ToastRender({ id, toast }: { id: React.Key; toast: BaseToast.Root.Toast
           <div className={TOAST_ACTION_WRAPPER}>{toastData.actionItems}</div>
         )}
       </div>
-      <BaseToast.Close className="absolute top-2.5 right-2.5 cursor-pointer text-icon-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:text-icon-secondary">
-        <CloseIcon strokeWidth={1.5} width={14} height={14} />
+      <BaseToast.Close
+        className={cn(
+          TOAST_CLOSE_BUTTON,
+          "scale-[0.6] cursor-pointer opacity-0 transition-[opacity,transform,color] duration-200 ease-out",
+          "group-hover:scale-100 group-hover:opacity-100 hover:text-icon-primary"
+        )}
+      >
+        <ToastCloseGlyph />
       </BaseToast.Close>
     </BaseToast.Root>
   );
@@ -275,7 +351,7 @@ export function ToastStatic({ type, title, message, actionItems, theme = "light"
           data.borderColorClassName
         )}
       >
-        <div className="flex w-full items-center gap-3 p-3.5 pr-9">
+        <div className="flex w-full items-center gap-3 p-3.5">
           <div className="flex-shrink-0">{data.icon}</div>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="text-body-sm-semibold text-primary">
@@ -287,8 +363,8 @@ export function ToastStatic({ type, title, message, actionItems, theme = "light"
           </div>
           {type !== TOAST_TYPE.LOADING && actionItems && <div className={TOAST_ACTION_WRAPPER}>{actionItems}</div>}
         </div>
-        <div className="absolute top-2.5 right-2.5 cursor-default text-icon-tertiary">
-          <CloseIcon strokeWidth={1.5} width={14} height={14} />
+        <div className={cn(TOAST_CLOSE_BUTTON, "cursor-default")}>
+          <ToastCloseGlyph />
         </div>
       </div>
     </div>

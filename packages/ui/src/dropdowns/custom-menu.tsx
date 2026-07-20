@@ -96,6 +96,11 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
   const submenuClosersRef = React.useRef<Set<() => void>>(new Set());
 
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
+    // Menu.Items renders `position: fixed`, so the popper must use the fixed
+    // strategy too — otherwise its overflow/flip math (computed for absolute)
+    // diverges from where the browser paints, and menus on cards low in a
+    // scrolled list get positioned off-screen and never open. Mirrors SubMenu.
+    strategy: "fixed",
     placement: placement ?? "auto",
   });
 
@@ -203,30 +208,30 @@ function CustomMenu(props: ICustomMenuDropdownProps) {
     <Menu.Items
       data-prevent-outside-click={!!portalElement}
       className={cn(
-        "fixed z-30 translate-y-0",
+        "fixed z-30 isolate",
         menuItemsClassName
-      )} /** translate-y-0 is a hack to create new stacking context. Required for safari  */
+      )} /** isolate creates a stacking context (needed for Safari) WITHOUT becoming a containing block for the position:fixed popper inside — `translate-y-0` (a transform) did the latter and pinned the menu to this box instead of the viewport, so menus on scrolled/low cards rendered off-screen. */
       static
     >
-      <div
-        data-theme={panelDataTheme}
-        className={cn(
-          "t-dropdown my-1 min-w-[12rem] overflow-y-scroll rounded-lg border border-subtle bg-surface-1 p-1 text-13 whitespace-nowrap shadow-raised-200 focus:outline-none",
-          isOpen && "is-open",
-          isClosing && "is-closing",
-          {
-            "max-h-60": maxHeight === "lg",
-            "max-h-48": maxHeight === "md",
-            "max-h-36": maxHeight === "rg",
-            "max-h-28": maxHeight === "sm",
-          },
-          optionsClassName
-        )}
-        ref={setPopperElement}
-        style={styles.popper}
-        {...attributes.popper}
-      >
-        <MenuContext.Provider value={menuContextValue}>{children}</MenuContext.Provider>
+      <div ref={setPopperElement} style={styles.popper} {...attributes.popper}>
+        <div
+          data-theme={panelDataTheme}
+          data-popper-placement={attributes.popper?.["data-popper-placement"]}
+          className={cn(
+            "t-dropdown my-1 min-w-[12rem] overflow-y-scroll rounded-lg border border-subtle bg-surface-1 p-1 text-13 whitespace-nowrap shadow-raised-200 focus:outline-none",
+            isOpen && "is-open",
+            isClosing && "is-closing",
+            {
+              "max-h-60": maxHeight === "lg",
+              "max-h-48": maxHeight === "md",
+              "max-h-36": maxHeight === "rg",
+              "max-h-28": maxHeight === "sm",
+            },
+            optionsClassName
+          )}
+        >
+          <MenuContext.Provider value={menuContextValue}>{children}</MenuContext.Provider>
+        </div>
       </div>
     </Menu.Items>
   );

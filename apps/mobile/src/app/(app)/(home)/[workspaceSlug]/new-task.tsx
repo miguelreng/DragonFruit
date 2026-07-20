@@ -25,6 +25,7 @@ import {
   type WorkspaceMember,
 } from "@/lib/api";
 import { PRIORITY_COLOR, PRIORITY_LABEL } from "@/lib/format";
+import { commitHaptic } from "@/lib/haptics";
 import { useSession } from "@/lib/session";
 import { colors, font, radius, spacing } from "@/lib/theme";
 
@@ -88,9 +89,7 @@ export default function NewTaskScreen() {
     const opts = members.map((m) => ({
       id: m.member.id,
       label:
-        m.member.id === user?.id
-          ? "Me"
-          : m.member.display_name || m.member.first_name || m.member.email || "Member",
+        m.member.id === user?.id ? "Me" : m.member.display_name || m.member.first_name || m.member.email || "Member",
     }));
     // Make sure "Me" is offered and sits first even if the members call failed.
     if (user && !opts.some((o) => o.id === user.id)) opts.unshift({ id: user.id, label: "Me" });
@@ -109,6 +108,7 @@ export default function NewTaskScreen() {
         priority,
         assignee_ids: assigneeId ? [assigneeId] : [],
       });
+      commitHaptic();
       // Replace so Back returns to where the user started, not this form.
       router.replace({
         pathname: "/[workspaceSlug]/issue/[issueId]",
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     fontSize: font.size.xl,
     lineHeight: 28,
     color: colors.ink,
-    fontFamily: "Newsreader_600SemiBold",
+    fontFamily: "Figtree_600SemiBold",
   },
   card: {
     borderRadius: radius.lg,

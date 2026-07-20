@@ -6,12 +6,14 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dragonfruit",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "sh.dragonfruit.mobile",
       "supportsTablet": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "Allow DragonFruit to listen while you record a command or meeting note.",
+        "NSSpeechRecognitionUsageDescription": "Allow DragonFruit to turn your speech into text."
       }
     },
     "android": {
@@ -21,7 +23,7 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": true
     },
     "web": {
       "output": "static",
@@ -30,14 +32,20 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      "expo-font",
+      "expo-image",
       "expo-background-task",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow DragonFruit to listen while you record a command or meeting note.",
+          "speechRecognitionPermission": "Allow DragonFruit to turn your speech into text."
+        }
+      ],
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/dragon-mark-white.png",
-          "imageWidth": 180,
-          "resizeMode": "contain",
-          "backgroundColor": "#AA0276"
+          "backgroundColor": "#F4F5F5"
         }
       ]
     ],

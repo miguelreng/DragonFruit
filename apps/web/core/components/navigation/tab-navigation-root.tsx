@@ -6,7 +6,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { useParams, useLocation, Link, useNavigate } from "react-router";
+import { useParams, useLocation, Link } from "react-router";
 import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { TabNavigationList, TabNavigationItem } from "@plane/propel/tab-navigation";
@@ -24,7 +24,6 @@ import { ProjectActionsMenu } from "./project-actions-menu";
 import { ProjectHeader } from "./project-header";
 import { TabNavigationOverflowMenu } from "./tab-navigation-overflow-menu";
 import { FolderTabIndicator } from "./folder-tab-indicator";
-import { DEFAULT_TAB_KEY } from "./tab-navigation-utils";
 import { TabNavigationVisibleItem } from "./tab-navigation-visible-item";
 import { useActiveTab } from "./use-active-tab";
 import { useProjectActions } from "./use-project-actions";
@@ -53,7 +52,6 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
   const { workItem: workItemIdentifierFromRoute } = useParams();
   const location = useLocation();
   const pathname = location.pathname;
-  const navigate = useNavigate();
   const { t } = useTranslation();
 
   // Store hooks
@@ -110,6 +108,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
   // Filter and sort navigation items
   const allNavigationItems = navigationItems
     .filter((item) => item.shouldRender)
+    // oxlint-disable-next-line unicorn/no-array-sort -- navigation items are already copied by filter
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   // Split items into two categories:
@@ -125,23 +124,11 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
     isActive,
   });
 
-  // Redirect to default tab when navigating to project root
-  useEffect(() => {
-    const projectRootPath = `/${workspaceSlug}/projects/${projectId}`;
-    const isProjectRoot = pathname === projectRootPath || pathname === `${projectRootPath}/`;
-
-    if (isProjectRoot && allNavigationItems.length > 0) {
-      // Find the default tab in available items
-      const defaultTabItem = allNavigationItems.find((item) => item.key === tabPreferences.defaultTab);
-
-      // If default tab exists and is enabled, use it; otherwise fall back to work_items
-      const targetItem = defaultTabItem || allNavigationItems.find((item) => item.key === DEFAULT_TAB_KEY);
-
-      if (targetItem) {
-        navigate(targetItem.href, { replace: true });
-      }
-    }
-  }, [pathname, workspaceSlug, projectId, tabPreferences.defaultTab, allNavigationItems, navigate]);
+  // Separate ref collection for the actual rendered visible tab nodes. The
+  // invisible measurement copy (below) overwrites itemRefs with off-screen
+  // nodes that lack gap spacing, so indicator geometry must come from here
+  // instead to keep the folder shape centred on the real label.
+  const visibleItemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Folder-tab indicator: measure the active tab so the fused "folder" shape can
   // slide to it. Geometry is taken relative to the (un-clipped) outer container.
@@ -150,7 +137,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
 
   const measureIndicator = useCallback(() => {
     const outer = outerRef.current;
-    const node = activeItem ? itemRefs.current[allNavigationItems.indexOf(activeItem)] : null;
+    const node = activeItem ? visibleItemRefs.current[allNavigationItems.indexOf(activeItem)] : null;
     if (!outer || !activeItem || !node) {
       setIndicator((prev) => (prev === null ? prev : null));
       return;
@@ -165,7 +152,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
     setIndicator((prev) =>
       prev && prev.left === next.left && prev.width === next.width && prev.height === next.height ? prev : next
     );
-  }, [activeItem, allNavigationItems, itemRefs]);
+  }, [activeItem, allNavigationItems]);
 
   useLayoutEffect(() => {
     measureIndicator();
@@ -248,6 +235,7 @@ export const TabNavigationRoot = observer(function TabNavigationRoot(props: TTab
                   onHide={handleHideTab}
                   itemRef={(el) => {
                     itemRefs.current[originalIndex] = el;
+                    visibleItemRefs.current[originalIndex] = el;
                   }}
                 />
               );

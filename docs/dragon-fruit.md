@@ -255,14 +255,7 @@ Then, with a workspace + at least one project:
 
 ### Slice 3 (transcript-to-doc) — what to verify
 
-- **Setup for Claude**: in the api container env, set:
-  ```
-  LLM_PROVIDER=anthropic
-  LLM_API_KEY=sk-ant-...
-  LLM_MODEL=claude-sonnet-4-6   # or claude-opus-4-7, claude-haiku-4-5
-  ```
-  These are the same env vars Plane uses for its existing AI features. After the provider-routing fix, those flow through to the real Anthropic SDK.
-- **Setup for OpenAI**: `LLM_PROVIDER=openai`, `LLM_API_KEY=sk-...`, `LLM_MODEL=gpt-4o-mini` (or any from `OpenAIProvider.models`). Works the same way.
+- **Provider setup**: configure the provider, model, and BYOK key in Workspace Settings → Atlas. Instance-level LLM environment variables are intentionally unsupported.
 - In a page, type `/spec` → _Spec from transcript_ appears under **Work**.
 - Click it → modal opens with an optional context field and a transcript paste box.
 - Paste a few paragraphs of a real (or synthetic) meeting transcript, click **Generate spec**.
@@ -277,7 +270,7 @@ Then, with a workspace + at least one project:
 - **`/new work item` creates with title only.** Assignee, state, priority all default. If the user expects to set those inline, that's a Slice 2-ish enhancement, not part of 1.5.
 - **No "create new at top of search results" yet.** I shipped a separate `/new work item` slash item. The doc's `5.3` description says we wanted both create-from-search-empty _and_ a dedicated slash. The dedicated slash works; the in-search create is a follow-up.
 - **Picker is a centered modal, not truly inline-async-in-the-slash-menu.** The locked decision was the latter; the picker is pragmatic but gives the right end-user feel. Upgrading to in-slash async items requires editor-core surgery on the suggestion plugin — tracked as future work.
-- **Slice 3 LLM call is now provider-aware.** Plane's upstream `get_llm_response()` always hit OpenAI's URL regardless of `LLM_PROVIDER`. We introduced `call_llm_chat()` in [external/base.py](apps/api/plane/app/views/external/base.py) that actually routes to the correct SDK per provider (`anthropic.Anthropic` for Anthropic, `openai.OpenAI` for OpenAI). The legacy `get_llm_response()` now delegates to it, so the existing `GPTIntegrationEndpoint` and `WorkspaceGPTIntegrationEndpoint` benefit from the fix too. To use Claude end-to-end: set `LLM_PROVIDER=anthropic`, `LLM_API_KEY=<your Anthropic key>`, `LLM_MODEL=claude-sonnet-4-6` (or any value in `AnthropicProvider.models`). Gemini is still not server-side wired and returns a clean error message.
+- **Slice 3 LLM call is provider-aware.** `call_llm_chat()` in [external/base.py](apps/api/plane/app/views/external/base.py) routes to the configured workspace provider. The legacy `get_llm_response()` delegates to it, so `GPTIntegrationEndpoint` and `WorkspaceGPTIntegrationEndpoint` use the same workspace BYOK configuration.
 - **Slice 3 returns JSON-via-prompt, not JSON-mode.** We ask the model for strict JSON in the system prompt and parse defensively (a regex fallback if the model wraps it in fences). Models with `response_format: { type: "json_object" }` would be more reliable; gated on the broader provider-routing fix above.
 - **Slice 3 inserts at the cursor without confirmation.** The user sees the result land in the page. If they want to undo, they undo. No "preview before insert" step — that's a deliberate UX choice (you see it where it lands), but worth confirming.
 - **Promoted drafts use title + plain description.** Assignee, priority, due date all default. Slice 4 enhancement: pull assignee_hint / priority from the model's output when present.
@@ -312,10 +305,8 @@ What's deferred for the full v1:
 - Form: provider dropdown (OpenAI, Anthropic, Gemini) → model dropdown (filtered by provider, default highlighted) → API key field (password input).
 - Pressing **Save** PATCHes `/api/workspaces/{slug}/llm-config/` with `{ llm_provider, llm_model, llm_api_key }`. The API key is Fernet-encrypted at rest using `plane.license.utils.encryption.encrypt_data` (keyed off `SECRET_KEY`).
 - The form does **not** re-display the saved key; it shows a masked preview (`sk-a…XYZ`) under the input.
-- Pressing **Remove workspace override** clears all three fields, falling the workspace back to the instance-level `LLM_*` env vars.
-- Resolution order in `get_llm_config(workspace)`:
-  1. Workspace fields (if `workspace.llm_api_key` is set and decryptable)
-  2. Instance-level / `LLM_*` env vars
+- Pressing **Remove configuration** clears all three fields and disables Atlas for that workspace until a new key is saved.
+- `get_llm_config(workspace)` resolves only the workspace fields. There is no instance-owned fallback key.
 - All three external endpoints (`TranscriptToDocEndpoint`, `GPTIntegrationEndpoint`, `WorkspaceGPTIntegrationEndpoint`) now pass the workspace into `get_llm_config()`, so BYO keys apply to _every_ AI feature, not just the transcript flow.
 - Migration: [0122_workspace_llm_config.py](apps/api/plane/db/migrations/0122_workspace_llm_config.py). Three nullable fields on the `workspaces` table — `llm_provider`, `llm_model`, `llm_api_key`. Safe to roll forward on a populated DB.
 

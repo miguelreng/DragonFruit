@@ -38,6 +38,7 @@ export interface IWorkspace {
   total_projects?: number;
   role: number;
   timezone: string;
+  readonly has_llm_configured: boolean;
 }
 
 export interface IWorkspaceLite {

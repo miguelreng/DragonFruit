@@ -4,13 +4,11 @@
  * See the LICENSE file for details.
  */
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { observer } from "mobx-react";
 import { debounce } from "lodash-es";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import type { AppState, BinaryFiles, ExcalidrawInitialDataState } from "@excalidraw/excalidraw/types";
+import type { AppState, BinaryFiles, DataURL, ExcalidrawInitialDataState } from "@excalidraw/excalidraw/types";
 import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import { searchWikipedia } from "@plane/editor";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
 import type { TPageInstance } from "@/store/pages/base-page";
@@ -35,6 +33,118 @@ type Props = {
   isEditable: boolean;
 };
 
+const MAX_PERSISTED_IMAGE_DATA_URL_CHARS = 3_250_000;
+const MAX_PERSISTED_IMAGE_CHARS = 650_000;
+const MIN_PERSISTED_IMAGE_CHARS = 180_000;
+const MAX_PERSISTED_IMAGE_DIMENSION = 1_600;
+
+type TCompressedImageCacheEntry = {
+  sourceLength: number;
+  sourceStart: string;
+  sourceEnd: string;
+  dataURL: DataURL;
+};
+
+const compressedImageCache = new Map<string, TCompressedImageCacheEntry>();
+
+const loadImage = (dataURL: DataURL): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image), { once: true });
+    image.addEventListener("error", () => reject(new Error("Unable to decode whiteboard image")), { once: true });
+    image.src = dataURL;
+  });
+
+const compressImage = async (dataURL: DataURL, targetChars: number): Promise<DataURL> => {
+  const image = await loadImage(dataURL);
+  let maxDimension = MAX_PERSISTED_IMAGE_DIMENSION;
+  let quality = 0.82;
+  let smallestDataURL = dataURL;
+
+  for (let attempt = 0; attempt < 7; attempt += 1) {
+    const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+    const context = canvas.getContext("2d");
+    if (!context) return smallestDataURL;
+
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const candidate = canvas.toDataURL("image/webp", quality) as DataURL;
+    if (!candidate.startsWith("data:image/webp")) break;
+
+    if (candidate.length < smallestDataURL.length) smallestDataURL = candidate;
+    if (smallestDataURL.length <= targetChars) break;
+
+    maxDimension = Math.max(800, Math.round(maxDimension * 0.84));
+    quality = Math.max(0.58, quality - 0.05);
+  }
+
+  return smallestDataURL;
+};
+
+const compactBinaryFiles = async (files: BinaryFiles): Promise<BinaryFiles> => {
+  const entries = Object.entries(files);
+  const compressibleEntries = entries.filter(
+    ([, file]) => file.dataURL.startsWith("data:image/") && !file.dataURL.startsWith("data:image/svg+xml")
+  );
+  if (!compressibleEntries.length) return files;
+
+  const targetChars = Math.max(
+    MIN_PERSISTED_IMAGE_CHARS,
+    Math.min(MAX_PERSISTED_IMAGE_CHARS, Math.floor(MAX_PERSISTED_IMAGE_DATA_URL_CHARS / compressibleEntries.length))
+  );
+  const compactedFiles: BinaryFiles = { ...files };
+
+  await Promise.all(
+    compressibleEntries.map(async ([fileId, file]) => {
+      if (file.dataURL.length <= targetChars) return;
+
+      const sourceStart = file.dataURL.slice(0, 64);
+      const sourceEnd = file.dataURL.slice(-64);
+      const cached = compressedImageCache.get(fileId);
+      let dataURL: DataURL;
+
+      if (
+        cached?.sourceLength === file.dataURL.length &&
+        cached.sourceStart === sourceStart &&
+        cached.sourceEnd === sourceEnd
+      ) {
+        dataURL = cached.dataURL;
+      } else {
+        try {
+          dataURL = await compressImage(file.dataURL, targetChars);
+        } catch (error) {
+          console.warn("whiteboard image compression failed", error);
+          return;
+        }
+        compressedImageCache.set(fileId, {
+          sourceLength: file.dataURL.length,
+          sourceStart,
+          sourceEnd,
+          dataURL,
+        });
+      }
+
+      if (dataURL.length < file.dataURL.length) {
+        compactedFiles[fileId] = {
+          ...file,
+          dataURL,
+          mimeType: "image/webp",
+        };
+      }
+    })
+  );
+
+  return compactedFiles;
+};
+
+const getHttpStatus = (error: unknown): number | undefined => {
+  if (!isRecord(error) || !isRecord(error.response)) return undefined;
+  return typeof error.response.status === "number" ? error.response.status : undefined;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -50,37 +160,6 @@ const getInitialData = (descriptionJson: unknown): ExcalidrawInitialDataState | 
   };
 };
 
-const SKIPPED_WIKI_SECTIONS = new Set([
-  "references",
-  "external links",
-  "see also",
-  "notes",
-  "bibliography",
-  "further reading",
-  "sources",
-  "gallery",
-]);
-
-/** Top-level section titles of a Wikipedia article via the parse API (CORS-enabled with origin=*). */
-async function fetchWikipediaSections(title: string): Promise<string[]> {
-  const params = new URLSearchParams({
-    action: "parse",
-    page: title,
-    prop: "sections",
-    format: "json",
-    origin: "*",
-    redirects: "1",
-  });
-  const response = await fetch(`https://en.wikipedia.org/w/api.php?${params.toString()}`);
-  if (!response.ok) return [];
-  const data = (await response.json()) as { parse?: { sections?: { line?: string; toclevel?: number }[] } };
-  return (data.parse?.sections ?? [])
-    .filter((s) => s.toclevel === 1 && s.line && !SKIPPED_WIKI_SECTIONS.has(s.line.toLowerCase()))
-    .map((s) => (s.line ?? "").replace(/<[^>]*>/g, ""))
-    .filter(Boolean)
-    .slice(0, 10);
-}
-
 const getPersistableAppState = (appState: AppState): ExcalidrawInitialDataState["appState"] => ({
   viewBackgroundColor: appState.viewBackgroundColor,
   gridSize: appState.gridSize,
@@ -93,6 +172,9 @@ export const ExcalidrawEditor = observer(function ExcalidrawEditor({ page, handl
   const surfaceTheme = useTopBarTheme();
   const excalidrawTheme = surfaceTheme === "dark" ? "dark" : "light";
   const initialDataRef = useRef<ExcalidrawInitialDataState | null | undefined>(undefined);
+  const hasUserInteractedRef = useRef(false);
+  const isCanvasReadyRef = useRef(false);
+  const hasQueuedUserChangeRef = useRef(false);
 
   if (initialDataRef.current === undefined) {
     initialDataRef.current = getInitialData(page.description_json);
@@ -104,28 +186,44 @@ export const ExcalidrawEditor = observer(function ExcalidrawEditor({ page, handl
     page.setSyncingStatus("synced");
   }, [page]);
 
-  const persist = useMemo(
-    () =>
-      debounce((snapshot: TExcalidrawSnapshot) => {
+  const persist = useMemo(() => {
+    // Compression is asynchronous. Serialize saves so a slower, older
+    // snapshot can never arrive after a newer one and overwrite it.
+    let saveQueue = Promise.resolve();
+
+    return debounce((snapshot: TExcalidrawSnapshot) => {
+      saveQueue = saveQueue.then(async () => {
         page.setSyncingStatus("syncing");
         // Only send the JSON payload. Including doc binary/html fields would
         // route this through rich-text persistence paths whiteboards don't use.
-        handlers
-          .updateDescription({
-            description_json: { excalidraw_snapshot: snapshot },
-          })
-          .then(() => page.setSyncingStatus("synced"))
-          .catch((e) => {
-            console.error("whiteboard save failed", e);
-            page.setSyncingStatus("error");
+        try {
+          const compactedSnapshot = snapshot.files
+            ? { ...snapshot, files: await compactBinaryFiles(snapshot.files) }
+            : snapshot;
+          await handlers.updateDescription({
+            description_json: { excalidraw_snapshot: compactedSnapshot },
           });
-      }, 700),
-    [handlers, page]
-  );
+          page.setSyncingStatus("synced");
+        } catch (error) {
+          console.error("whiteboard save failed", error);
+          page.setSyncingStatus("error");
+          setToast({
+            type: TOAST_TYPE.ERROR,
+            title: getHttpStatus(error) === 413 ? "Whiteboard is too large to save" : "Couldn't save whiteboard",
+            message:
+              getHttpStatus(error) === 413
+                ? "Some images are still too large. Remove one large image and try again."
+                : "Your latest changes are still on this canvas. Try again before refreshing.",
+          });
+        }
+        return undefined;
+      });
+    }, 700);
+  }, [handlers, page]);
 
   useEffect(
     () => () => {
-      persist.flush();
+      if (hasQueuedUserChangeRef.current) persist.flush();
       persist.cancel();
     },
     [persist]
@@ -133,7 +231,12 @@ export const ExcalidrawEditor = observer(function ExcalidrawEditor({ page, handl
 
   const handleChange = useCallback(
     (elements: readonly OrderedExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
-      if (!isEditable) return;
+      // Excalidraw can emit an empty change while its initial scene is still
+      // mounting. Only persist after a real pointer/keyboard/paste/drop/wheel
+      // interaction; mount-only events cannot erase the stored snapshot.
+      if (!isEditable || !isCanvasReadyRef.current || !hasUserInteractedRef.current) return;
+
+      hasQueuedUserChangeRef.current = true;
       persist({
         elements,
         appState: getPersistableAppState(appState),
@@ -143,82 +246,25 @@ export const ExcalidrawEditor = observer(function ExcalidrawEditor({ page, handl
     [isEditable, persist]
   );
 
-  // Wikipedia mindmap: expand an article's section structure into connected
-  // nodes (central topic + one node per top-level section).
-  const excalidrawApiRef = useRef<ExcalidrawImperativeAPI | null>(null);
-  const [mindmapTopic, setMindmapTopic] = useState("");
-  const [isBuildingMindmap, setIsBuildingMindmap] = useState(false);
-
-  const buildWikiMindmap = useCallback(async () => {
-    const topic = mindmapTopic.trim();
-    const api = excalidrawApiRef.current;
-    if (!topic || !api || isBuildingMindmap) return;
-    setIsBuildingMindmap(true);
-    try {
-      const hits = await searchWikipedia(topic, { limit: 1 });
-      const articleTitle = hits[0]?.title;
-      if (!articleTitle) {
-        setToast({ type: TOAST_TYPE.ERROR, title: `No Wikipedia article found for “${topic}”` });
-        return;
-      }
-      const sections = await fetchWikipediaSections(articleTitle);
-      const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
-
-      const centerId = `wiki-center-${Date.now()}`;
-      const skeleton: Parameters<typeof convertToExcalidrawElements>[0] = [
-        {
-          type: "ellipse",
-          id: centerId,
-          x: 0,
-          y: 0,
-          width: 240,
-          height: 100,
-          backgroundColor: "#ffd3e8",
-          label: { text: articleTitle },
-        },
-      ];
-      const radius = Math.max(300, sections.length * 46);
-      sections.forEach((section, index) => {
-        const angle = (2 * Math.PI * index) / Math.max(sections.length, 1) - Math.PI / 2;
-        const nodeId = `${centerId}-node-${index}`;
-        skeleton.push({
-          type: "rectangle",
-          id: nodeId,
-          x: 120 + Math.cos(angle) * radius - 90,
-          y: 50 + Math.sin(angle) * radius - 30,
-          width: 180,
-          height: 60,
-          label: { text: section },
-        });
-        skeleton.push({
-          type: "arrow",
-          x: 120,
-          y: 50,
-          start: { id: centerId },
-          end: { id: nodeId },
-        });
-      });
-
-      const elements = convertToExcalidrawElements(skeleton);
-      api.updateScene({ elements: [...api.getSceneElements(), ...elements] });
-      api.scrollToContent(elements, { fitToViewport: true });
-      setMindmapTopic("");
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: `Mapped “${articleTitle}”`,
-        message: sections.length
-          ? `${sections.length} sections added.`
-          : "Article has no sections — added the topic node.",
-      });
-    } catch {
-      setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't build the mindmap" });
-    } finally {
-      setIsBuildingMindmap(false);
-    }
-  }, [isBuildingMindmap, mindmapTopic]);
-
   return (
-    <div className="flex h-full w-full flex-col">
+    <div
+      className="flex h-full w-full flex-col"
+      onPointerDownCapture={() => {
+        hasUserInteractedRef.current = true;
+      }}
+      onKeyDownCapture={() => {
+        hasUserInteractedRef.current = true;
+      }}
+      onPasteCapture={() => {
+        hasUserInteractedRef.current = true;
+      }}
+      onDropCapture={() => {
+        hasUserInteractedRef.current = true;
+      }}
+      onWheelCapture={() => {
+        hasUserInteractedRef.current = true;
+      }}
+    >
       {/* Editable title. A new whiteboard is created unnamed and the canvas has
           no title field of its own, so this bar is the one place to name (or
           rename) it. Persists via updateTitle's debounced reaction — the same
@@ -234,30 +280,6 @@ export const ExcalidrawEditor = observer(function ExcalidrawEditor({ page, handl
           aria-label="Whiteboard name"
           className="w-full min-w-0 flex-1 bg-transparent text-14 font-semibold text-primary outline-none placeholder:text-placeholder read-only:cursor-default"
         />
-        {isEditable && (
-          <div className="flex shrink-0 items-center gap-1.5">
-            <input
-              type="text"
-              value={mindmapTopic}
-              onChange={(e) => setMindmapTopic(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void buildWikiMindmap();
-              }}
-              placeholder="Wikipedia topic…"
-              aria-label="Wikipedia mindmap topic"
-              className="w-40 rounded-md border border-subtle bg-layer-1 px-2 py-1 text-12 text-primary outline-none placeholder:text-placeholder focus:border-strong"
-            />
-            <button
-              type="button"
-              onClick={() => void buildWikiMindmap()}
-              disabled={isBuildingMindmap || !mindmapTopic.trim()}
-              className="rounded-md border border-subtle px-2 py-1 text-12 font-medium text-secondary transition-colors hover:bg-layer-1 hover:text-primary disabled:opacity-50"
-              title="Expand a Wikipedia article's sections into a mindmap"
-            >
-              {isBuildingMindmap ? "Mapping…" : "Wiki map"}
-            </button>
-          </div>
-        )}
       </div>
       <div className="min-h-0 flex-1">
         <Suspense
@@ -268,8 +290,8 @@ export const ExcalidrawEditor = observer(function ExcalidrawEditor({ page, handl
           }
         >
           <ExcalidrawCanvas
-            excalidrawAPI={(api) => {
-              excalidrawApiRef.current = api;
+            excalidrawAPI={() => {
+              isCanvasReadyRef.current = true;
             }}
             initialData={initialDataRef.current}
             name={page.name || "Untitled whiteboard"}

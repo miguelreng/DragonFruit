@@ -82,11 +82,13 @@ export const AuthenticationWrapper = observer(function AuthenticationWrapper(pro
 
   const isFetchingUser = (isUserSWRLoading || isUserLoading) && !currentUser?.id;
   const isFetchingUserProfile = !!currentUser?.id && !currentUserProfile?.id;
+  const hasExplicitRedirect = !!nextPath && isValidURL(nextPath.toString());
   const isWaitingForRedirectData =
     pageType !== EPageTypes.AUTHENTICATED &&
     !!currentUser?.id &&
     !!currentUserProfile?.id &&
     isUserOnboard &&
+    !hasExplicitRedirect &&
     (isUserLoading || workspacesLoader);
   const showLoader = isFetchingUser || isFetchingUserProfile || isWaitingForRedirectData;
   if (showLoader) return <AppLoadingScreen />;

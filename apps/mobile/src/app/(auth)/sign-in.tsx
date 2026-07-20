@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,8 +19,10 @@ export default function SignInScreen() {
     if (!result.ok && result.reason !== "cancelled") {
       setError(
         result.reason === "no-token"
-          ? "We couldn't complete sign-in. Please try again."
-          : (result.message ?? "Something went wrong. Please try again.")
+          ? "Sign-in finished without a valid session. Please try again."
+          : result.reason === "timeout"
+            ? "Sign-in took too long. Check your connection, then try again."
+            : (result.message ?? "Something went wrong. Please try again.")
       );
     }
     setSubmitting(false);
@@ -64,8 +66,16 @@ export default function SignInScreen() {
           <Pressable
             onPress={onPress}
             disabled={submitting}
-            style={[styles.button, submitting && styles.buttonDisabled]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: submitting, busy: submitting }}
+            accessibilityLabel={submitting ? "Sign-in in progress" : "Sign in"}
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed,
+              submitting && styles.buttonDisabled,
+            ]}
           >
+            {submitting ? <ActivityIndicator size="small" color={colors.white} /> : null}
             <Text style={styles.buttonText}>{submitting ? "Opening sign-in…" : "Sign in"}</Text>
           </Pressable>
 
@@ -73,17 +83,11 @@ export default function SignInScreen() {
 
           <Text style={styles.legal}>
             By signing in, you agree to our{" "}
-            <Text
-              style={styles.legalLink}
-              onPress={() => Linking.openURL("https://dragonfruit.sh/legal/terms")}
-            >
+            <Text style={styles.legalLink} onPress={() => Linking.openURL("https://dragonfruit.sh/legal/terms")}>
               Terms of Service
             </Text>{" "}
             and{" "}
-            <Text
-              style={styles.legalLink}
-              onPress={() => Linking.openURL("https://dragonfruit.sh/legal/privacy")}
-            >
+            <Text style={styles.legalLink} onPress={() => Linking.openURL("https://dragonfruit.sh/legal/privacy")}>
               Privacy Policy
             </Text>
             .
@@ -160,7 +164,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
     borderRadius: 14,
     paddingVertical: 15,
+    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
+    justifyContent: "center",
     ...shadow.button,
   },
   buttonPressed: {

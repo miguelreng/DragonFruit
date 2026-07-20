@@ -163,10 +163,10 @@ export function NotificationContent({
 }) {
   const { data, triggered_by_details: triggeredBy } = notification;
   const cursorBuddyResource = data?.cursor_buddy;
-  const notificationField = data?.issue_activity.field;
-  const newValue = data?.issue_activity.new_value;
-  const oldValue = data?.issue_activity.old_value;
-  const verb = data?.issue_activity.verb;
+  const notificationField = data?.issue_activity?.field;
+  const newValue = data?.issue_activity?.new_value;
+  const oldValue = data?.issue_activity?.old_value;
+  const verb = data?.issue_activity?.verb;
 
   const fieldData: TNotificationFieldData = {
     field: notificationField,
@@ -180,6 +180,27 @@ export function NotificationContent({
       {triggeredBy?.is_bot ? triggeredBy.first_name : triggeredBy?.display_name}{" "}
     </span>
   );
+
+  // agent_run notifications carry no issue_activity — render from title + data.kind
+  if (notification.entity_name === "agent_run") {
+    const AGENT_RUN_ACTION_MAP: { [key: string]: string } = {
+      needs_input: "needs your input on",
+      completed: "finished working on",
+      failed: "ran into an error while working on",
+      cancelled: "was stopped while working on",
+    };
+    const action = AGENT_RUN_ACTION_MAP[data?.kind ?? ""] ?? "finished working on";
+    // title format: "{agent name} … on: {issue name}" — everything after the first ": " is the issue name
+    const issueName = notification.title?.split(": ").slice(1).join(": ");
+    return (
+      <>
+        {renderTriggerName()}
+        <span className="text-tertiary">{action} </span>
+        <span className="font-medium text-primary">{issueName || "a task"}</span>
+        {"."}
+      </>
+    );
+  }
 
   // Get content details from map
   const contentDetails = getNotificationContentDetails(fieldData, renderCommentBox);

@@ -285,10 +285,13 @@ class TestAgentAPI:
             ("update the project brief please", True),
             ("actualiza el brief del proyecto", True),
             ("crea el brief de mi proyecto", True),
+            ("create a brief", True),
+            ("crea un brief", True),
             # Topic briefs stay with create_wikipedia_brief, not the project brief.
             ("brief me on quantum computing", False),
             ("give me a brief on the French revolution", False),
             ("write a brief on cats", False),
+            ("create a brief about the launch", False),
             ("create a document about dogs", False),
         ],
     )
@@ -305,6 +308,10 @@ class TestAgentAPI:
             "Brief Oficial del Proyecto DragonFruit",
         )
         assert out == "<p>Intro.</p>"
+
+    def test_strip_duplicate_title_heading_removes_qualified_h3(self):
+        out = _strip_duplicate_title_heading("<h3>Launch Plan — Overview</h3><p>Ship in Q3.</p>", "Launch Plan")
+        assert out == "<p>Ship in Q3.</p>"
 
     @pytest.mark.parametrize(
         ("tool_mode", "expected"),

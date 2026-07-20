@@ -15,6 +15,7 @@ import { getPageName } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { PageAccessIcon } from "@/components/common/page-access-icon";
 import { SwitcherLabel } from "@/components/common/switcher-label";
+import { WorkspaceCreateDocButton } from "@/components/docs/workspace-create-doc-button";
 import { PageHeaderActions } from "@/components/pages/header/actions";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
@@ -36,13 +37,16 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
   const { workspaceSlug, pageId, projectId } = useParams();
   // store hooks
   const { loader } = useProject();
-  const { getPageById, getCurrentProjectPageIds } = usePageStore(storeType);
+  const { canCurrentUserCreatePage, getPageById, getCurrentProjectPageIds } = usePageStore(storeType);
   const page = usePage({
     pageId: pageId?.toString() ?? "",
     storeType,
   });
   // derived values
   const projectPageIds = getCurrentProjectPageIds(projectId?.toString());
+  const isWhiteboard = page?.page_type === "whiteboard";
+  const collectionLabel = isWhiteboard ? "Whiteboards" : "Docs";
+  const collectionPath = isWhiteboard ? "whiteboards" : "pages";
 
   const switcherOptions = projectPageIds
     .map((id) => {
@@ -76,7 +80,10 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
             <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
             <Breadcrumbs.Item
               component={
-                <BreadcrumbLink label="Docs" href={`/${workspaceSlug}/projects/${projectId}/pages/`} />
+                <BreadcrumbLink
+                  label={collectionLabel}
+                  href={`/${workspaceSlug}/projects/${projectId}/${collectionPath}/`}
+                />
               }
             />
 
@@ -98,9 +105,17 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
           </Breadcrumbs>
         </div>
       </Header.LeftItem>
-      <Header.RightItem>
+      <Header.RightItem className="items-center">
         <PageDetailsHeaderExtraActions page={page} storeType={storeType} />
         <PageHeaderActions page={page} storeType={storeType} />
+        {canCurrentUserCreatePage && workspaceSlug && projectId && (
+          <WorkspaceCreateDocButton
+            workspaceSlug={workspaceSlug.toString()}
+            lockedProjectId={projectId.toString()}
+            showUpload={false}
+            buttonVariant="secondary"
+          />
+        )}
       </Header.RightItem>
     </Header>
   );

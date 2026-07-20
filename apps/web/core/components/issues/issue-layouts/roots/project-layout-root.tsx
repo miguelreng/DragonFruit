@@ -61,9 +61,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
   const workItemFilters = projectId ? issuesFilter?.getIssueFilters(projectId) : undefined;
   const storedLayout = workItemFilters?.displayFilters?.layout;
   const activeLayout =
-    storedLayout === EIssueLayoutTypes.CALENDAR
-      ? EIssueLayoutTypes.SPREADSHEET
-      : (storedLayout ?? EIssueLayoutTypes.SPREADSHEET);
+    storedLayout === EIssueLayoutTypes.CALENDAR ? EIssueLayoutTypes.LIST : (storedLayout ?? EIssueLayoutTypes.LIST);
 
   useSWR(
     workspaceSlug && projectId ? `PROJECT_ISSUES_${workspaceSlug}_${projectId}` : null,
@@ -107,7 +105,7 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
     if (workItemFilters.displayFilters?.layout !== EIssueLayoutTypes.CALENDAR) return;
 
     issuesFilter?.updateFilters(workspaceSlug, projectId, EIssueFilterType.DISPLAY_FILTERS, {
-      layout: EIssueLayoutTypes.SPREADSHEET,
+      layout: EIssueLayoutTypes.LIST,
     });
   }, [workspaceSlug, projectId, searchParams, workItemFilters, issuesFilter]);
 

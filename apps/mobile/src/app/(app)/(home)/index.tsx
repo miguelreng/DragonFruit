@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LoadingScreen } from "@/components/loading-screen";
 import { getWorkspaces, type Workspace } from "@/lib/api";
+import { getLastWorkspaceSlug, setLastWorkspaceSlug } from "@/lib/secure-store";
 import { useApiList } from "@/lib/use-api-list";
 import { colors, font, spacing } from "@/lib/theme";
 
@@ -13,11 +15,28 @@ import { colors, font, spacing } from "@/lib/theme";
  */
 export default function IndexRoute() {
   const { data: workspaces, loading, error } = useApiList<Workspace>(getWorkspaces, []);
+  const [lastWorkspaceSlug, setLastWorkspace] = useState<string | null | undefined>(undefined);
 
-  if (loading) return <LoadingScreen />;
+  useEffect(() => {
+    let cancelled = false;
+    void getLastWorkspaceSlug().then((slug) => {
+      if (!cancelled) setLastWorkspace(slug);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  if (workspaces.length > 0) {
-    const ws = workspaces[0];
+  const selectedWorkspace = workspaces.find((workspace) => workspace.slug === lastWorkspaceSlug) ?? workspaces[0];
+
+  useEffect(() => {
+    if (selectedWorkspace) void setLastWorkspaceSlug(selectedWorkspace.slug);
+  }, [selectedWorkspace]);
+
+  if (loading || lastWorkspaceSlug === undefined) return <LoadingScreen />;
+
+  if (selectedWorkspace) {
+    const ws = selectedWorkspace;
     return <Redirect href={{ pathname: "/[workspaceSlug]", params: { workspaceSlug: ws.slug, name: ws.name } }} />;
   }
 
@@ -25,7 +44,9 @@ export default function IndexRoute() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.center}>
         <Text style={styles.title}>No workspaces yet</Text>
-        <Text style={styles.sub}>{error ?? "You're not a member of any workspace. Create one on the web to get started."}</Text>
+        <Text style={styles.sub}>
+          {error ?? "You're not a member of any workspace. Create one on the web to get started."}
+        </Text>
       </View>
     </SafeAreaView>
   );

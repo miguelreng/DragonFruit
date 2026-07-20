@@ -2,7 +2,7 @@
 
 // Logged on service-worker startup so you can confirm the running build in the
 // extension's DevTools console. Keep in sync with manifest.json "version".
-const EXTENSION_VERSION = "0.3.3";
+const EXTENSION_VERSION = "0.3.4";
 console.log(`DragonFruit Bookmarks extension v${EXTENSION_VERSION}`);
 
 const DEFAULT_API_URL = "https://api.dragonfruit.sh";
@@ -12,6 +12,7 @@ const MENU_SAVE_PAGE = "dragonfruit-save-page";
 const MENU_SAVE_LINK = "dragonfruit-save-link";
 const MENU_SAVE_IMAGE = "dragonfruit-save-image";
 const MENU_SAVE_CHAT = "dragonfruit-save-chat";
+const MENU_SAVE_DOC = "dragonfruit-save-doc";
 const MENU_SETTINGS = "dragonfruit-settings";
 
 // AI chat sites where the toolbar action captures the whole conversation into a
@@ -29,6 +30,38 @@ function isChatCaptureUrl(url) {
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
     return CHAT_CAPTURE_HOSTS.some((candidate) => host === candidate || host.endsWith(`.${candidate}`));
+  } catch {
+    return false;
+  }
+}
+
+// Document tools where the toolbar action captures the whole page into a
+// DragonFruit doc instead of saving a URL bookmark. Keep in sync with the
+// content_scripts matches in manifest.json and the adapters in src/capture/.
+const PAGE_CAPTURE_HOSTS = [
+  "app.notion.com",
+  "notion.so",
+  "notion.site",
+  "linear.app",
+  "asana.com",
+  "atlassian.net",
+  "clickup.com",
+];
+const PAGE_CAPTURE_MATCHES = [
+  "https://app.notion.com/*",
+  "https://www.notion.so/*",
+  "https://*.notion.so/*",
+  "https://*.notion.site/*",
+  "https://linear.app/*",
+  "https://app.asana.com/*",
+  "https://*.atlassian.net/*",
+  "https://app.clickup.com/*",
+];
+
+function isPageCaptureUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return PAGE_CAPTURE_HOSTS.some((candidate) => host === candidate || host.endsWith(`.${candidate}`));
   } catch {
     return false;
   }
@@ -83,6 +116,12 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Save conversation to DragonFruit",
     contexts: ["page"],
     documentUrlPatterns: CHAT_CAPTURE_MATCHES,
+  });
+  chrome.contextMenus.create({
+    id: MENU_SAVE_DOC,
+    title: "Save page as DragonFruit doc",
+    contexts: ["page"],
+    documentUrlPatterns: PAGE_CAPTURE_MATCHES,
   });
   chrome.contextMenus.create({
     id: MENU_SETTINGS,
@@ -145,6 +184,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message?.type === "MOVE_CAPTURED_CHAT") {
     void respond(moveCapturedChat(message.bookmark, message.toProjectId), sendResponse);
+    return true;
+  }
+  if (message?.type === "MOVE_CAPTURED_PAGE") {
+    void respond(moveCapturedPage(message.bookmark, message.toProjectId), sendResponse);
     return true;
   }
   return false;
@@ -342,6 +385,10 @@ async function handleContextMenu(info, tab) {
     await captureChatWithFeedback(tab);
     return;
   }
+  if (info.menuItemId === MENU_SAVE_DOC) {
+    await capturePageWithFeedback(tab);
+    return;
+  }
   if (info.menuItemId === MENU_SAVE_IMAGE && info.srcUrl) {
     await saveWithFeedback(tab, {
       savingText: "Saving image…",
@@ -391,8 +438,11 @@ async function runWithFeedback(
     }
     await showTabToast(tabId, loadingText, { state: "loading" });
     const result = await run();
+    // `successText` may be a function of the result so a caller can vary the
+    // message (e.g. "saved" vs "updated" depending on the API's `created` flag).
+    const successMessage = typeof successText === "function" ? successText(result) : successText;
     const picker = enableProjectPicker && result?.id ? await buildProjectPicker(result) : null;
-    await showTabToast(tabId, successText, {
+    await showTabToast(tabId, successMessage, {
       state: "success",
       actionUrl: typeof successActionUrl === "function" ? successActionUrl(result) : "",
       projects: picker?.projects ?? [],
@@ -515,7 +565,7 @@ async function moveCapturedChat(page, toProjectIdValue) {
   const pageId = stringValue(page?.id);
   const toProjectId = stringValue(toProjectIdValue);
   if (!workspaceSlug || !toProjectId || !pageId) throw new Error("Could not move the conversation.");
-  if (toProjectId === fromProjectId) return { ok: true, bookmark: page };
+  if (toProjectId === fromProjectId) return { ok: true, bookmark: page, actionUrl: chatPageActionUrl(page) };
 
   const conversation = capturedConversations.get(pageId);
   if (!conversation) {
@@ -543,7 +593,7 @@ async function moveCapturedChat(page, toProjectIdValue) {
   capturedConversations.delete(pageId);
   rememberCapturedConversation(moved?.id, conversation);
   await chrome.storage.sync.set({ projectId: toProjectId });
-  return { ok: true, bookmark: moved };
+  return { ok: true, bookmark: moved, actionUrl: chatPageActionUrl(moved) };
 }
 
 async function deleteCapturedChatPage(workspaceSlug, projectId, pageId) {
@@ -564,6 +614,132 @@ async function deleteCapturedChatPage(workspaceSlug, projectId, pageId) {
   }
 }
 
+// pageId -> captured page payload for docs saved this service-worker session, so
+// the success toast's project picker can re-home a doc (create it in the new
+// project, delete the old page). Bounded so it can't grow without limit.
+const capturedPages = new Map();
+function rememberCapturedPage(pageId, payload) {
+  if (!pageId || !payload) return;
+  capturedPages.set(pageId, payload);
+  while (capturedPages.size > MAX_REMEMBERED_CONVERSATIONS) {
+    capturedPages.delete(capturedPages.keys().next().value);
+  }
+}
+
+// Page capture: ask the page's content script for its content, then POST it to
+// the captured-pages endpoint. Reuses the shared auth gate + toast flow; the
+// success toast's "View" pill opens the created doc page.
+async function capturePageWithFeedback(tab) {
+  await runWithFeedback(tab, {
+    loadingText: "Capturing…",
+    // The ingest is idempotent on the source page id, so a re-capture refreshes
+    // the existing DF doc; `created === false` means we updated an older version.
+    successText: (page) => (page && page.created === false ? "Doc updated" : "Doc saved"),
+    run: () => captureAndSavePage(tab),
+    successActionUrl: chatPageActionUrl,
+    enableProjectPicker: true,
+    moveType: "MOVE_CAPTURED_PAGE",
+  });
+}
+
+async function captureAndSavePage(tab) {
+  let response;
+  try {
+    response = await chrome.tabs.sendMessage(tab.id, { type: "CAPTURE_PAGE" });
+  } catch {
+    throw new Error("Couldn't read this page. Reload it and try again.");
+  }
+  if (!response) throw new Error("Couldn't read this page. Reload it and try again.");
+  if (!response.ok) throw new Error(response.error || "No content found on this page.");
+  const page = await saveCapturedPage(response.page);
+  // Retain the payload so the toast's project picker can re-home the doc (the
+  // created page doesn't carry a re-postable html body).
+  rememberCapturedPage(page?.id, response.page);
+  return page;
+}
+
+async function saveCapturedPage(payload) {
+  const settings = await getSettings();
+  if (!settings.apiToken) {
+    throw new Error("Connect your DragonFruit account first.");
+  }
+  if (!settings.workspaceSlug || !settings.projectId) {
+    throw new Error("Choose a workspace and project in the extension popup first.");
+  }
+
+  const capturedPageUrl = (workspaceSlug, projectId) =>
+    `${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${projectId}/captured-pages/`;
+  const body = JSON.stringify(payload);
+  const requestInit = () => ({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authorizedHeaders(settings.apiToken),
+      "X-DragonFruit-Source": "chrome-extension",
+    },
+    body,
+  });
+
+  let workspaceSlug = settings.workspaceSlug;
+  let projectId = settings.projectId;
+  let response = await fetch(capturedPageUrl(workspaceSlug, projectId), requestInit());
+
+  if (response.status === 403) {
+    const recovered = await recoverWritableProject(settings);
+    if (recovered) {
+      workspaceSlug = recovered.workspaceSlug;
+      projectId = recovered.projectId;
+      response = await fetch(capturedPageUrl(workspaceSlug, projectId), requestInit());
+    }
+  }
+
+  if (!response.ok) throw new Error(await responseErrorMessage(response, "Capture failed"));
+  return response.json();
+}
+
+// Re-home a just-captured doc to another project (from the toast picker):
+// re-ingest the retained payload into the new project, then delete the original
+// page. Idempotency is per-project, so this creates a fresh page there.
+async function moveCapturedPage(page, toProjectIdValue) {
+  const settings = await getSettings();
+  if (!settings.apiToken) throw new Error("Connect your DragonFruit account first.");
+
+  const workspaceSlug = stringValue(page?.workspace_slug) || settings.workspaceSlug;
+  const fromProjectId = stringValue(page?.project_id);
+  const pageId = stringValue(page?.id);
+  const toProjectId = stringValue(toProjectIdValue);
+  if (!workspaceSlug || !toProjectId || !pageId) throw new Error("Could not move the page.");
+  if (toProjectId === fromProjectId) return { ok: true, bookmark: page, actionUrl: chatPageActionUrl(page) };
+
+  const payload = capturedPages.get(pageId);
+  if (!payload) {
+    throw new Error("This page can no longer be moved — re-capture it into the project you want.");
+  }
+
+  const response = await fetch(
+    `${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${toProjectId}/captured-pages/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authorizedHeaders(settings.apiToken),
+        "X-DragonFruit-Source": "chrome-extension",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  if (!response.ok) throw new Error(await responseErrorMessage(response, "Move failed"));
+  const moved = await response.json();
+
+  if (fromProjectId) {
+    await deleteCapturedChatPage(workspaceSlug, fromProjectId, pageId).catch(() => {});
+  }
+  capturedPages.delete(pageId);
+  rememberCapturedPage(moved?.id, payload);
+  await chrome.storage.sync.set({ projectId: toProjectId });
+  return { ok: true, bookmark: moved, actionUrl: chatPageActionUrl(moved) };
+}
+
 async function saveActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) return { ok: false, error: "No active tab URL." };
@@ -578,6 +754,13 @@ async function handleActionClick(tab) {
   // page rather than bookmarking the URL.
   if (isChatCaptureUrl(tab.url)) {
     await captureChatWithFeedback(tab);
+    return;
+  }
+
+  // On supported document tools the toolbar action captures the whole page
+  // into a doc rather than bookmarking the URL.
+  if (isPageCaptureUrl(tab.url)) {
+    await capturePageWithFeedback(tab);
     return;
   }
 
@@ -880,7 +1063,7 @@ async function moveBookmark(bookmark, toProjectIdValue) {
   const bookmarkId = stringValue(bookmark?.id);
   const toProjectId = stringValue(toProjectIdValue);
   if (!workspaceSlug || !toProjectId || !bookmarkId) throw new Error("Could not move the bookmark.");
-  if (toProjectId === fromProjectId) return { ok: true, bookmark };
+  if (toProjectId === fromProjectId) return { ok: true, bookmark, actionUrl: bookmarkActionUrl(bookmark) };
 
   const payload = {
     title: clampTitle(bookmark.title),
@@ -889,15 +1072,18 @@ async function moveBookmark(bookmark, toProjectIdValue) {
     tags: Array.isArray(bookmark.tags) ? bookmark.tags : [],
     metadata: bookmark.metadata && typeof bookmark.metadata === "object" ? bookmark.metadata : {},
   };
-  const response = await fetch(`${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${toProjectId}/bookmarks/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authorizedHeaders(settings.apiToken),
-      "X-DragonFruit-Source": "chrome-extension",
-    },
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    `${settings.appUrl}/api/workspaces/${workspaceSlug}/projects/${toProjectId}/bookmarks/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authorizedHeaders(settings.apiToken),
+        "X-DragonFruit-Source": "chrome-extension",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
   if (!response.ok) throw new Error(await bookmarkErrorMessage(response));
   const moved = await response.json();
 
@@ -905,7 +1091,11 @@ async function moveBookmark(bookmark, toProjectIdValue) {
     await deleteBookmark({ id: bookmarkId, project_id: fromProjectId, workspace_slug: workspaceSlug }).catch(() => {});
   }
   await chrome.storage.sync.set({ projectId: toProjectId });
-  return { ok: true, bookmark: moved };
+  return {
+    ok: true,
+    bookmark: moved,
+    actionUrl: bookmarkActionUrl({ workspace_slug: workspaceSlug, project_id: toProjectId }),
+  };
 }
 
 async function bookmarkErrorMessage(response) {
@@ -1033,16 +1223,16 @@ async function showTabToast(
         const toastToken = String(Date.now());
         // Filled, type-colored "badge" glyphs that knock out white — matching the
         // shared action toast (packages/propel/src/toast/toast.tsx): BadgeCheck for
-        // success, AlertCircle for error, the bar spinner for loading.
-        const iconMarkup = {
-          success: `
-            <svg class="status-icon badge-icon" viewBox="0 0 24 24" fill="var(--success)" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        // success, AlertCircle for error, the bar spinner for loading. All three
+        // are rendered and toggled via [data-state] so the toast can move between
+        // states in place — the project picker mirrors the meeting-notes flow
+        // (spinner while the move runs, then a success or error presentation).
+        const iconsMarkup = `
+            <svg class="status-icon badge-icon" data-icon="success" viewBox="0 0 24 24" fill="var(--success)" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path>
               <path d="m9 12 2 2 4-4" fill="none"></path>
             </svg>
-          `,
-          loading: `
-            <svg class="status-icon spinner-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="status-icon spinner-icon" data-icon="loading" viewBox="0 0 24 24" aria-hidden="true">
               <g>
                 <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.14"></rect>
                 <rect width="2" height="5" x="11" y="1" fill="currentColor" opacity="0.29" transform="rotate(30 12 12)"></rect>
@@ -1054,15 +1244,12 @@ async function showTabToast(
                 <animateTransform attributeName="transform" calcMode="discrete" dur="0.75s" repeatCount="indefinite" type="rotate" values="0 12 12;30 12 12;60 12 12;90 12 12;120 12 12;150 12 12;180 12 12;210 12 12;240 12 12;270 12 12;300 12 12;330 12 12;360 12 12"></animateTransform>
               </g>
             </svg>
-          `,
-          error: `
-            <svg class="status-icon badge-icon" viewBox="0 0 24 24" fill="var(--danger)" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg class="status-icon badge-icon" data-icon="error" viewBox="0 0 24 24" fill="var(--danger)" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" x2="12" y1="8" y2="12"></line>
               <line x1="12" x2="12.01" y1="16" y2="16"></line>
             </svg>
-          `,
-        }[normalizedState];
+        `;
 
         let host = document.getElementById(TOAST_ID);
         if (!host) {
@@ -1109,7 +1296,7 @@ async function showTabToast(
               right: 12px;
               top: 12px;
               z-index: 2147483647;
-              width: min(360px, calc(100vw - 32px));
+              width: min(448px, calc(100vw - 32px));
               color-scheme: light;
               pointer-events: none;
             }
@@ -1133,7 +1320,13 @@ async function showTabToast(
               position: relative;
               box-sizing: border-box;
               display: flex;
-              width: 100%;
+              /* Hug the content (like the mac island bubbles) so the title isn't
+                 squeezed into an ellipsis by the picker + View pill; long titles
+                 still cap out at the host width and ellipsize. */
+              width: fit-content;
+              min-width: min(280px, 100%);
+              max-width: 100%;
+              margin-left: auto;
               height: 68px;
               align-items: center;
               gap: 12px;
@@ -1155,9 +1348,15 @@ async function showTabToast(
               transform: translateY(0);
             }
             .status-icon {
+              display: none;
               flex: 0 0 auto;
               width: 22px;
               height: 22px;
+            }
+            .toast[data-state="success"] .status-icon[data-icon="success"],
+            .toast[data-state="loading"] .status-icon[data-icon="loading"],
+            .toast[data-state="error"] .status-icon[data-icon="error"] {
+              display: block;
             }
             .spinner-icon {
               color: var(--text-tertiary);
@@ -1189,6 +1388,9 @@ async function showTabToast(
               max-width: 100%;
               font: 400 13px/1.4 Figtree, ui-sans-serif, system-ui, sans-serif;
               letter-spacing: 0.13px;
+            }
+            .message:empty {
+              display: none;
             }
             .close {
               position: absolute;
@@ -1241,9 +1443,18 @@ async function showTabToast(
               border-color: var(--border-subtle-1);
               color: var(--text-primary);
             }
+            .action[hidden] {
+              display: none;
+            }
+            /* Meeting-notes-style move flow: while the move runs (and on failure)
+               the pill controls step aside for the spinner/error presentation. */
+            .toast[data-state="loading"] .project-picker,
+            .toast[data-state="error"] .project-picker {
+              display: none;
+            }
             .project-picker {
               flex: 0 0 auto;
-              max-width: 150px;
+              max-width: 132px;
               margin: 0;
               padding: 4px 8px;
               border: 1px solid var(--border-subtle);
@@ -1264,13 +1475,13 @@ async function showTabToast(
             }
           </style>
           <div class="toast" data-state="${normalizedState}" data-visible="false">
-            ${iconMarkup}
+            ${iconsMarkup}
             <div class="content">
               <p class="title"></p>
-              ${toastMessage ? `<p class="message"></p>` : ""}
+              <p class="message"></p>
             </div>
             ${hasPicker ? `<select class="project-picker" aria-label="Move to project"></select>` : ""}
-            ${hasAction ? `<button class="action" type="button">View</button>` : ""}
+            <button class="action" type="button"${hasAction ? "" : " hidden"}>View</button>
             <button class="close" type="button" aria-label="Dismiss">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12"></path>
@@ -1284,12 +1495,35 @@ async function showTabToast(
         const messageElement = root.querySelector(".message");
         const actionButton = root.querySelector(".action");
         const closeButton = root.querySelector(".close");
-        if (!toast || !titleElement) return;
+        if (!toast || !titleElement || !messageElement) return;
         titleElement.textContent = toastTitle;
-        if (messageElement) messageElement.textContent = toastMessage;
+        messageElement.textContent = toastMessage;
+        let activeActionUrl = toastActionUrl;
+
+        // Swap the toast between success/loading/error in place (icon, texts,
+        // View pill) — the picker's CSS visibility follows data-state.
+        const setPresentation = (state, title, message) => {
+          toast.dataset.state = state;
+          titleElement.textContent = title;
+          messageElement.textContent = message;
+          if (actionButton) actionButton.hidden = state !== "success" || !activeActionUrl;
+        };
+
+        // Auto-dismiss after a few seconds — long enough to read the message and
+        // click the "View" action pill. Mirrors the web app's toast timeout
+        // (packages/propel/src/toast/toast.tsx). Re-armed after a project move so
+        // the toast doesn't vanish mid-flight.
+        let dismissTimer = 0;
+        const armDismiss = () => {
+          window.clearTimeout(dismissTimer);
+          dismissTimer = window.setTimeout(() => {
+            if (host.dataset.toastToken !== toastToken) return;
+            toast.dataset.visible = "false";
+          }, 4000);
+        };
 
         actionButton?.addEventListener("click", () => {
-          window.open(toastActionUrl, "_blank", "noopener,noreferrer");
+          window.open(activeActionUrl, "_blank", "noopener,noreferrer");
           toast.dataset.visible = "false";
         });
 
@@ -1310,14 +1544,26 @@ async function showTabToast(
           projectPicker.addEventListener("change", () => {
             const toProjectId = projectPicker.value;
             const projectName = toastProjects.find((entry) => entry.id === toProjectId)?.name || "project";
+            const previousProjectId = (activeBookmark && activeBookmark.project_id) || "";
+            const moveMessageType = ["MOVE_CAPTURED_CHAT", "MOVE_CAPTURED_PAGE"].includes(toastMoveType)
+              ? toastMoveType
+              : "MOVE_BOOKMARK";
+            // Same flow as the meeting-notes project ask: pick a project, watch a
+            // spinner while it saves, then get a fresh saved/error presentation.
+            window.clearTimeout(dismissTimer);
             projectPicker.disabled = true;
-            const moveMessageType = toastMoveType === "MOVE_CAPTURED_CHAT" ? "MOVE_CAPTURED_CHAT" : "MOVE_BOOKMARK";
+            setPresentation("loading", `Saving to ${projectName}…`, "");
             chrome.runtime.sendMessage({ type: moveMessageType, bookmark: activeBookmark, toProjectId }, (response) => {
               projectPicker.disabled = false;
               if (response?.ok) {
-                titleElement.textContent = `Saved to ${projectName}`;
                 if (response.bookmark) activeBookmark = response.bookmark;
+                if (response.actionUrl) activeActionUrl = response.actionUrl;
+                setPresentation("success", `Saved to ${projectName}`, "");
+              } else {
+                projectPicker.value = previousProjectId;
+                setPresentation("error", "Error!", (response && response.error) || "Move failed. Please try again.");
               }
+              armDismiss();
             });
           });
         }
@@ -1325,16 +1571,7 @@ async function showTabToast(
         requestAnimationFrame(() => {
           toast.dataset.visible = "true";
         });
-        if (normalizedState === "loading") return;
-        // Auto-dismiss after a few seconds — long enough to read the message and
-        // click the "View" action pill. Mirrors the web app's toast timeout
-        // (packages/propel/src/toast/toast.tsx).
-        window.setTimeout(() => {
-          if (host.dataset.toastToken !== toastToken) return;
-          const latestToast = host.shadowRoot?.querySelector(".toast");
-          if (!latestToast) return;
-          latestToast.dataset.visible = "false";
-        }, 4000);
+        if (normalizedState !== "loading") armDismiss();
       },
     });
   } catch {

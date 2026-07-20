@@ -1,12 +1,13 @@
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
+import { MorphingInfinityLoader } from "@/components/morphing-infinity-loader";
 import { colors } from "@/lib/theme";
 
-/** Full-bleed spinner used while the session rehydrates or a route gates. */
+/** Full-bleed web-parity loader used while the session rehydrates or a route gates. */
 export function LoadingScreen() {
   return (
     <View style={styles.container}>
-      <ActivityIndicator color={colors.brand} />
+      <MorphingInfinityLoader />
     </View>
   );
 }

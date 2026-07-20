@@ -39,6 +39,10 @@ export const motion = {
   stack: {
     replace: "none",
     detail: "default",
-    modal: "fade",
+    modal: "slide_from_bottom",
+  },
+  tabs: {
+    duration: 300,
+    easing: [0, 0, 0.2, 1] as const,
   },
 } as const;

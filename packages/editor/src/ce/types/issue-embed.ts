@@ -90,6 +90,7 @@ export type TDocEmbedConfig<T extends TDocEmbedType = TDocEmbedType> = {
     workspaceSlug: string | undefined;
     title: string | undefined;
     snapshot: unknown;
+    isEditable: boolean;
   }) => React.ReactNode;
   onPickerRequest?: (request: TDocEmbedPickerRequest<T>) => void;
   workspaceSlug?: string;

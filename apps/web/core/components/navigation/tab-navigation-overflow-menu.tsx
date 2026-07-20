@@ -6,10 +6,10 @@
 
 import React from "react";
 import { Link } from "react-router";
-import { MoreHorizontal, Pin } from "@/components/icons/lucide-shim";
+import { Eye, Star } from "@solar-icons/react/ssr";
+import { MoreHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { SetAsDefaultIcon } from "@/components/icons/propel-shim";
 import { Menu } from "@plane/propel/menu";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
@@ -21,8 +21,8 @@ type Props = {
   overflowItems: TNavigationItem[];
   isActive: (item: TNavigationItem) => boolean;
   tabPreferences: TTabPreferences;
-  onToggleDefault: (tabKey: string) => void;
-  onShow: (tabKey: string) => void;
+  onToggleDefault: (tabKey: string) => Promise<void>;
+  onShow: (tabKey: string) => Promise<void>;
 };
 
 /**
@@ -36,11 +36,12 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
   return (
     <Menu
       ellipsis
+      ariaLabel="More project tabs"
       buttonClassName="!p-1.5"
       optionsClassName="min-w-[200px] space-y-1"
       customButton={
         <div className="flex items-center justify-center rounded-lg p-1 transition-colors hover:bg-layer-1">
-          <MoreHorizontal className="h-4 w-4 text-secondary" />
+          <MoreHorizontal className="h-4 w-4 text-secondary" weight="Bold" />
         </div>
       }
     >
@@ -64,20 +65,22 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
-                      onShow(item.key);
+                      void onShow(item.key);
                     }}
                     className="invisible rounded-lg p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary"
                     title="Show"
+                    aria-label={`Show ${t(item.i18n_key)} in the tab bar`}
                   >
-                    <Pin className="size-3" />
+                    <Eye className="size-3" weight="Linear" />
                   </button>
                 )}
                 <Tooltip tooltipContent={isDefault ? "Clear default" : "Set as default"}>
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
-                      onToggleDefault(item.key);
+                      void onToggleDefault(item.key);
                     }}
                     className={cn(
                       "invisible rounded-lg p-1 text-tertiary transition-colors group-hover/menu-item:visible hover:text-primary",
@@ -86,8 +89,13 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
                       }
                     )}
                     title={isDefault ? "Clear default" : "Set as default"}
+                    aria-label={
+                      isDefault
+                        ? `Clear ${t(item.i18n_key)} as the default tab`
+                        : `Set ${t(item.i18n_key)} as the default tab`
+                    }
                   >
-                    <SetAsDefaultIcon className="size-3" />
+                    <Star className="size-3" weight={isDefault ? "Bold" : "Linear"} />
                   </button>
                 </Tooltip>
               </div>

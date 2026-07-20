@@ -5,12 +5,12 @@
  */
 
 "use client";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import {
   Calendar,
@@ -27,12 +27,13 @@ import {
   Settings,
   Sidebar,
   Star,
+  Widget,
 } from "@solar-icons/react/ssr";
 import { ChevronRightIcon, CopyIcon, EditIcon, PlusIcon, TrashIcon } from "@/components/icons/propel-shim";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { CustomMenu, EModalPosition, EModalWidth, Input, Loader, ModalCore } from "@plane/ui";
+import { CustomMenu, EModalPosition, EModalWidth, Input, Loader, ModalCore, Sortable } from "@plane/ui";
 import { cn, copyTextToClipboard, generateWorkItemLink, getPageName } from "@plane/utils";
 import { orderBy } from "lodash-es";
 import { NotificationsBell } from "@/plane-web/components/navigations/notifications-bell";
@@ -45,6 +46,7 @@ import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useProject } from "@/hooks/store/use-project";
 import { useFavorite } from "@/hooks/store/use-favorite";
 import { useUserPermissions } from "@/hooks/store/user";
+import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // hooks
 import { useAppRailCategories, useAppRailPreferences } from "@/hooks/use-navigation-preferences";
 import { useTopBarTheme } from "@/hooks/use-top-bar-theme";
@@ -81,12 +83,21 @@ type TCompactRailItem = {
 };
 
 type TProjectRailItem = TCompactRailItem & {
-  briefHref: string;
   project: TPartialProject;
+};
+
+type TFavoriteRailItem = TCompactRailItem & {
+  favorite: IFavorite;
+};
+
+type TRailSortItem = {
+  id: string;
+  value: number | null | undefined;
 };
 
 const MAX_COMPACT_RAIL_ITEMS = 3;
 const MAX_RECENT_RAIL_ITEMS = 10;
+const RAIL_REORDER_STEP = 10000;
 const RAIL_INLINE_ICON_CLASS = "size-4 flex-shrink-0 text-current";
 const COMPRESSED_ICON_CLASS =
   "relative grid size-8 place-items-center rounded-lg text-tertiary t-press hover:bg-layer-transparent-hover hover:text-secondary dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white/90";
@@ -118,10 +129,27 @@ const isRouteMatch = (targetPath: string, pathname: string) => {
   return pathname === normalizedTargetPath || pathname.startsWith(`${normalizedTargetPath}/`);
 };
 
+// Docs-folder favorites all share the /docs route and are distinguished only by
+// the `folder` query param. isRouteMatch drops the query, so without this every
+// folder favorite would light up on the bare /docs gallery (and on each other).
+// Gate those on a matching folder param; all other favorites keep plain path
+// matching (e.g. project favorites intentionally ignore their `?layout=` param).
+const isFavoriteRouteMatch = (href: string, pathname: string, currentFolder: string | null) => {
+  const query = href.split("?")[1];
+  const folderParam = query ? new URLSearchParams(query).get("folder") : null;
+  if (folderParam) return isRouteMatch(href, pathname) && currentFolder === folderParam;
+  return isRouteMatch(href, pathname);
+};
+
 // The backend only records a recent visit when a project, work item, or page is
 // fetched — i.e. on project sub-routes (issues, pages, brief, …) and the
 // /browse work-item route. Anything else can't change Recents.
 const canPathnameRecordVisit = (pathname: string) => /^\/[^/]+\/(?:projects\/[^/]+\/|browse\/)/.test(pathname);
+
+const getProjectPageRoute = (pathname: string) => {
+  const match = pathname.match(/^\/[^/]+\/projects\/([^/]+)\/pages\/([^/]+)(?:\/|$)/);
+  return match ? { projectId: match[1], pageId: match[2] } : null;
+};
 
 const getFavoriteLayoutRailIcon = (layout: EIssueLayoutTypes | undefined) => {
   if (!layout) return null;
@@ -133,6 +161,24 @@ const getActiveRailIcon = (item: Pick<TCompactRailItem, "icon" | "activeIcon" | 
   item.isActive && item.activeIcon ? item.activeIcon : item.icon;
 
 const railIconSet = (icon: React.JSX.Element, activeIcon: React.JSX.Element) => ({ icon, activeIcon });
+
+const getRailItemKey = (item: { id: string }) => item.id;
+
+const getReorderedValue = (
+  orderedValues: Array<number | null | undefined>,
+  movedIndex: number,
+  direction: "ascending" | "descending"
+) => {
+  const previousValue = orderedValues[movedIndex - 1];
+  const nextValue = orderedValues[movedIndex + 1];
+
+  if (previousValue != null && nextValue != null) return (previousValue + nextValue) / 2;
+  if (previousValue != null)
+    return direction === "ascending" ? previousValue + RAIL_REORDER_STEP : previousValue - RAIL_REORDER_STEP;
+  if (nextValue != null)
+    return direction === "ascending" ? nextValue - RAIL_REORDER_STEP : nextValue + RAIL_REORDER_STEP;
+  return 0;
+};
 
 const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps | undefined) => {
   if (favorite.entity_type === "view") {
@@ -158,7 +204,7 @@ const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps |
       return railSolarIconSet(Folder);
     }
     case "page":
-      return railSolarIconSet(Document);
+      return favorite.entity_data?.page_type === "folder" ? railSolarIconSet(Folder) : railSolarIconSet(Document);
     case "cycle":
       return railSolarIconSet(Calendar);
     case "module":
@@ -180,11 +226,13 @@ const getRecentVisitRailIcon = (visit: TActivityEntityData) => {
     }
     case "page":
     case "workspace_page": {
-      const logoProps = (visit.entity_data as TPageEntityData | undefined)?.logo_props;
+      const page = visit.entity_data as TPageEntityData | undefined;
+      const logoProps = page?.logo_props;
       if (logoProps?.in_use) {
         const logo = <Logo logo={logoProps} size={RAIL_LOGO_ICON_SIZE} type="lucide" />;
         return railIconSet(logo, logo);
       }
+      if (page?.page_type === "sheet") return railSolarIconSet(Widget);
       return railSolarIconSet(Document);
     }
     case "issue":
@@ -228,6 +276,29 @@ const getRecentVisitLabel = (visit: TActivityEntityData) => {
   return visit.entity_data?.name ?? "";
 };
 
+const promoteRecentPageVisit = (
+  visits: TActivityEntityData[] | undefined,
+  page: TPageEntityData,
+  visitedAt: string
+): TActivityEntityData[] => {
+  const currentVisits = visits ?? [];
+  const existingVisit = currentVisits.find(
+    (visit) => visit.entity_name === "page" && visit.entity_identifier === page.id
+  );
+  const promotedVisit: TActivityEntityData = {
+    id: existingVisit?.id ?? `local-page-${page.id}`,
+    entity_name: "page",
+    entity_identifier: page.id,
+    entity_data: page,
+    visited_at: visitedAt,
+  };
+
+  return [
+    promotedVisit,
+    ...currentVisits.filter((visit) => !(visit.entity_name === "page" && visit.entity_identifier === page.id)),
+  ];
+};
+
 const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => void }) => {
   const { item, onActivate } = props;
 
@@ -254,8 +325,8 @@ const CompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => voi
   );
 };
 
-const ExpandedCompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => void }) => {
-  const { item, onActivate } = props;
+const ExpandedCompactRailLink = (props: { item: TCompactRailItem; onActivate?: () => void; isDraggable?: boolean }) => {
+  const { item, onActivate, isDraggable = false } = props;
 
   return (
     <AppSidebarTooltip tooltipContent={item.label}>
@@ -263,10 +334,15 @@ const ExpandedCompactRailLink = (props: { item: TCompactRailItem; onActivate?: (
         href={item.href}
         aria-label={item.label}
         onClick={onActivate}
-        className={cn(EXPANDED_ICON_CLASS, {
-          [EXPANDED_ICON_ACTIVE]: item.isActive,
-          [EXPANDED_ICON_INACTIVE]: !item.isActive,
-        })}
+        draggable={!isDraggable}
+        className={cn(
+          EXPANDED_ICON_CLASS,
+          {
+            [EXPANDED_ICON_ACTIVE]: item.isActive,
+            [EXPANDED_ICON_INACTIVE]: !item.isActive,
+          },
+          isDraggable && "cursor-grab active:cursor-grabbing"
+        )}
       >
         <span
           className={cn(EXPANDED_RAIL_ICON_CLASS, {
@@ -354,7 +430,7 @@ const CompactRailItemGroup = (props: {
     <div
       className={cn("flex flex-col", {
         "items-center gap-0.5": isCompact,
-        "items-start gap-0.5": !isCompact,
+        "w-full items-start gap-y-0.5": !isCompact,
       })}
     >
       {primaryItems.map((item) => (
@@ -431,7 +507,7 @@ const RailCategory = (props: {
     // apart from the next category. No top margin, so opening never shifts the
     // header or opens a gap with the category above it; collapsed categories stack
     // tightly together.
-    <div className={cn("flex w-full flex-col gap-1", { "mb-2": isOpen }, className)}>
+    <div className={cn("flex w-full flex-col gap-0.5", { "mb-2": isOpen }, className)}>
       <div className="group/category flex w-full items-center justify-between gap-1 rounded-lg pr-1 hover:bg-layer-transparent-hover dark:hover:bg-white/[0.08]">
         <AppSidebarTooltip tooltipContent={title}>
           <button
@@ -454,7 +530,7 @@ const RailCategory = (props: {
         </AppSidebarTooltip>
         {action}
       </div>
-      {isOpen && <div className="flex w-full flex-col gap-1">{children}</div>}
+      {isOpen && <div className="flex w-full flex-col gap-0.5">{children}</div>}
     </div>
   );
 };
@@ -584,17 +660,22 @@ const ProjectRailItem = (props: { item: TProjectRailItem; workspaceSlug: string 
         onClose={() => setIsRenameProjectModalOpen(false)}
         onSubmit={handleRenameProject}
       />
-      {/* A project row links straight to its Brief — no expandable tree. */}
+      {/* Enter through the project root so its saved default tab can resolve. */}
       <div
         className={cn(
-          "group/project flex w-full items-center gap-1 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover dark:text-white/75 dark:hover:bg-white/[0.08]",
+          "group/project flex w-full cursor-grab items-center gap-1 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover active:cursor-grabbing dark:text-white/75 dark:hover:bg-white/[0.08]",
           {
             [EXPANDED_ICON_ACTIVE]: item.isActive,
           }
         )}
       >
         <AppSidebarTooltip tooltipContent={item.label}>
-          <Link href={item.briefHref} aria-label={item.label} className="flex min-w-0 flex-1 items-center gap-1.5">
+          <Link
+            href={item.href}
+            aria-label={item.label}
+            draggable={false}
+            className="flex min-w-0 flex-1 items-center gap-1.5"
+          >
             <span
               className={cn(EXPANDED_RAIL_ICON_CLASS, {
                 [RAIL_ICON_ACTIVE]: item.isActive,
@@ -662,12 +743,96 @@ const ProjectRailItem = (props: { item: TProjectRailItem; workspaceSlug: string 
 
 const ProjectRailList = (props: { projects: TProjectRailItem[]; workspaceSlug: string }) => {
   const { projects, workspaceSlug } = props;
+  const { updateProjectView } = useProject();
+  const sortableProjects: TRailSortItem[] = projects.map((project) => ({
+    id: project.id,
+    value: project.project.sort_order,
+  }));
+
+  const handleReorder = useCallback(
+    (orderedProjects: TRailSortItem[], movedProject?: TRailSortItem) => {
+      if (!movedProject) return;
+      const previousIndex = projects.findIndex((project) => project.id === movedProject.id);
+      const movedIndex = orderedProjects.findIndex((project) => project.id === movedProject.id);
+      if (movedIndex < 0 || movedIndex === previousIndex) return;
+
+      const sortOrder = getReorderedValue(
+        orderedProjects.map((project) => project.value),
+        movedIndex,
+        "ascending"
+      );
+      void updateProjectView(workspaceSlug, movedProject.id, { sort_order: sortOrder }).catch(() => {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Couldn't reorder projects",
+          message: "The previous project order has been restored.",
+        });
+      });
+    },
+    [projects, updateProjectView, workspaceSlug]
+  );
+
+  return (
+    <div className="flex w-full flex-col items-start gap-y-0.5">
+      <Sortable
+        id={`app-rail-projects-${workspaceSlug}`}
+        data={sortableProjects}
+        keyExtractor={getRailItemKey}
+        onChange={handleReorder}
+        containerClassName="w-full"
+        render={(sortableProject) => {
+          const project = projects.find((item) => item.id === sortableProject.id);
+          return project ? <ProjectRailItem item={project} workspaceSlug={workspaceSlug} /> : null;
+        }}
+      />
+    </div>
+  );
+};
+
+const FavoriteRailList = (props: { favorites: TFavoriteRailItem[]; workspaceSlug: string }) => {
+  const { favorites, workspaceSlug } = props;
+  const { updateFavorite } = useFavorite();
+  const sortableFavorites: TRailSortItem[] = favorites.map((favorite) => ({
+    id: favorite.id,
+    value: favorite.favorite.sequence,
+  }));
+
+  const handleReorder = useCallback(
+    (orderedFavorites: TRailSortItem[], movedFavorite?: TRailSortItem) => {
+      if (!movedFavorite) return;
+      const previousIndex = favorites.findIndex((favorite) => favorite.id === movedFavorite.id);
+      const movedIndex = orderedFavorites.findIndex((favorite) => favorite.id === movedFavorite.id);
+      if (movedIndex < 0 || movedIndex === previousIndex) return;
+
+      const sequence = getReorderedValue(
+        orderedFavorites.map((favorite) => favorite.value),
+        movedIndex,
+        "descending"
+      );
+      void updateFavorite(workspaceSlug, movedFavorite.id, { sequence }).catch(() => {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "Couldn't reorder favorites",
+          message: "The previous favorites order has been restored.",
+        });
+      });
+    },
+    [favorites, updateFavorite, workspaceSlug]
+  );
 
   return (
     <div className="flex w-full flex-col gap-0.5">
-      {projects.map((project) => (
-        <ProjectRailItem key={project.id} item={project} workspaceSlug={workspaceSlug} />
-      ))}
+      <Sortable
+        id={`app-rail-favorites-${workspaceSlug}`}
+        data={sortableFavorites}
+        keyExtractor={getRailItemKey}
+        onChange={handleReorder}
+        containerClassName="w-full"
+        render={(sortableFavorite) => {
+          const favorite = favorites.find((item) => item.id === sortableFavorite.id);
+          return favorite ? <ExpandedCompactRailLink item={favorite} isDraggable /> : null;
+        }}
+      />
     </div>
   );
 };
@@ -839,6 +1004,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   // router
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentDocsFolder = searchParams.get("folder");
   const router = useRouter();
   // Positioned container for the sliding active-highlight pill (expanded rail).
   const mainNavRef = useRef<HTMLDivElement>(null);
@@ -849,6 +1016,7 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const { allowPermissions } = useUserPermissions();
   const { joinedProjectIds, getPartialProjectById } = useProject();
   const { groupedFavorites } = useFavorite();
+  const projectPageStore = usePageStore(EPageStoreType.PROJECT);
   const { t } = useTranslation();
   const surfaceTheme = useTopBarTheme();
   const { openCategories, toggleCategory } = useAppRailCategories();
@@ -859,6 +1027,17 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
   const showRailLabels = isRailExpanded;
   const railWidth = isMobile ? "100%" : isRailExpanded ? "14.5rem" : "3.25rem";
   const slug = workspaceSlug?.toString() ?? "";
+  const currentPageRoute = getProjectPageRoute(pathname);
+  const currentPageId = currentPageRoute?.pageId ?? "";
+  const currentProjectId = currentPageRoute?.projectId ?? "";
+  const currentPage = currentPageId ? projectPageStore.getPageById(currentPageId) : undefined;
+  const hasCurrentPage = !!currentPage;
+  const currentPageName = currentPage?.name ?? "";
+  const currentPageType = currentPage?.page_type;
+  const currentPageIsBrief = currentPage?.is_brief;
+  const currentPageLogoProps = currentPage?.logo_props;
+  const currentPageOwnerId = currentPage?.owned_by ?? "";
+  const currentPageLastSavedAt = currentPage?.lastSavedAt?.toISOString();
   // Subscribe (without a fetcher) to the shared favorites request kicked off by the
   // workspace wrapper, so the rail can show a skeleton while favorites load instead
   // of a placeholder item that looks like a real favorite.
@@ -879,6 +1058,34 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
       revalidateOnReconnect: false,
     }
   );
+  const promoteCurrentPage = useCallback(() => {
+    if (!currentPageId || !currentProjectId || !hasCurrentPage) return;
+
+    const pageEntityData: TPageEntityData = {
+      id: currentPageId,
+      name: currentPageName,
+      page_type: currentPageType,
+      is_brief: currentPageIsBrief,
+      logo_props: currentPageLogoProps ?? ({} as TLogoProps),
+      project_id: currentProjectId,
+      owned_by: currentPageOwnerId,
+    };
+    void mutateRecents(
+      (visits) => promoteRecentPageVisit(visits, pageEntityData, currentPageLastSavedAt ?? new Date().toISOString()),
+      { revalidate: false }
+    );
+  }, [
+    currentPageId,
+    currentPageIsBrief,
+    currentPageLastSavedAt,
+    currentPageLogoProps,
+    currentPageName,
+    currentPageOwnerId,
+    currentProjectId,
+    currentPageType,
+    hasCurrentPage,
+    mutateRecents,
+  ]);
   const canCreateIssue = allowPermissions(
     [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
     EUserPermissionsLevel.WORKSPACE
@@ -889,12 +1096,11 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
     .map((id) => getPartialProjectById(id))
     .filter((project): project is NonNullable<ReturnType<typeof getPartialProjectById>> => !!project)
     .map((project) => {
-      const briefHref = `/${slug}/projects/${project.id}/brief`;
+      const href = `/${slug}/projects/${project.id}`;
       const icon = <Logo logo={project.logo_props} size={RAIL_LOGO_ICON_SIZE} type="material" />;
       return {
         id: project.id,
-        href: briefHref,
-        briefHref,
+        href,
         project,
         label: project.name,
         icon,
@@ -917,9 +1123,10 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
       label: favorite.entity_data?.name || favorite.name,
       icon: iconSet.icon,
       activeIcon: iconSet.activeIcon,
-      isActive: isRouteMatch(href, pathname),
+      isActive: isFavoriteRouteMatch(href, pathname, currentDocsFolder),
+      favorite,
     };
-  });
+  }) satisfies TFavoriteRailItem[];
   const favoriteItemsForRail =
     favorites.length > 0
       ? favorites
@@ -976,21 +1183,25 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
       toggleCreateIssueModal(true);
     }
   };
+  // Make the open page visible immediately, and promote it again whenever a
+  // successful content save updates lastSavedAt. This keeps Recents responsive
+  // even while the server-side visit task is still queued.
+  useEffect(() => {
+    promoteCurrentPage();
+  }, [promoteCurrentPage]);
   // Refresh recents after in-app navigation to a route that can record a visit
   // (project sub-routes and /browse) so the section tracks the latest visits.
   // The backend records the visit asynchronously when the entity is fetched, so
-  // wait a beat before revalidating. The initial mount is skipped — the SWR
-  // fetch already returns the latest data.
-  const isInitialPathnameRef = useRef(true);
+  // wait a beat before revalidating. This must also run on the initial mount:
+  // the rail's first request can win the race against the page request that
+  // records the current visit, leaving the open page absent from Recents.
   useEffect(() => {
-    if (isInitialPathnameRef.current) {
-      isInitialPathnameRef.current = false;
-      return;
-    }
     if (!slug || !canPathnameRecordVisit(pathname)) return;
-    const timeout = setTimeout(() => void mutateRecents(), 1500);
+    const timeout = setTimeout(() => {
+      void mutateRecents().then(() => promoteCurrentPage());
+    }, 1500);
     return () => clearTimeout(timeout);
-  }, [pathname, slug, mutateRecents]);
+  }, [pathname, slug, mutateRecents, promoteCurrentPage]);
   const handleFavoriteNavigation = (href: string) => {
     router.push(href);
   };
@@ -1134,6 +1345,8 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               >
                 {isFavoritesLoading && favorites.length === 0 ? (
                   <RailItemsSkeleton isCompact={!isRailExpanded} />
+                ) : isRailExpanded && favorites.length > 0 ? (
+                  <FavoriteRailList favorites={favorites} workspaceSlug={slug} />
                 ) : (
                   <CompactRailItemGroup
                     primaryItems={favoriteItemsForRail.slice(0, MAX_COMPACT_RAIL_ITEMS)}

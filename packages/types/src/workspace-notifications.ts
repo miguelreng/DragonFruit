@@ -35,7 +35,7 @@ export type TNotificationData = {
     name: string;
     url: string;
   };
-  issue_activity: {
+  issue_activity?: {
     id: string | undefined;
     actor: string | undefined;
     field: string | undefined;
@@ -44,6 +44,11 @@ export type TNotificationData = {
     new_value: string | undefined;
     old_value: string | undefined;
   };
+  // agent_run notifications (entity_name "agent_run") carry a flat payload instead of issue_activity
+  run_id?: string;
+  issue_id?: string | null;
+  kind?: "needs_input" | "completed" | "failed" | "cancelled" | string;
+  message?: string;
 };
 
 export type TNotification = {

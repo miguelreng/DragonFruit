@@ -98,9 +98,9 @@
         "api_key_label": "API key",
         "api_key_placeholder": "Paste your provider API key",
         "current_key": "Current key:",
-        "no_override": "No workspace override. Using the instance settings.",
+        "no_override": "Atlas is not configured for this workspace.",
         "save": "Save",
-        "clear": "Remove workspace override",
+        "clear": "Remove configuration",
         "saved": "Saved",
         "save_error": "Couldn't save. Check the key and provider/model combination."
       },

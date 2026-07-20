@@ -179,6 +179,11 @@ export const coreRoutes: RouteConfigEntry[] = [
 
         // Project Detail
         layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/layout.tsx", [
+          // Project entry resolves the current user's saved default tab
+          route(
+            ":workspaceSlug/projects/:projectId",
+            "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/page.tsx"
+          ),
           // Project Issues List
           layout("./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/issues/(list)/layout.tsx", [
             route(

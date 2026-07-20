@@ -50,7 +50,7 @@ struct WorkspaceSummary: Codable, Identifiable {
     let name: String
 }
 
-struct ProjectSummary: Codable, Identifiable {
+struct ProjectSummary: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let identifier: String?
@@ -304,6 +304,7 @@ struct APIClient {
         workspaceSlug: String,
         meeting: MeetingInfo,
         notes: String,
+        projectId: String? = nil,
         micAudioURL: URL? = nil,
         systemAudioURL: URL? = nil
     ) async throws -> MeetingNotesDraftResponse {
@@ -315,7 +316,7 @@ struct APIClient {
         if let apiToken, !apiToken.isEmpty {
             request.setValue(apiToken, forHTTPHeaderField: "X-Api-Key")
         }
-        let fields = [
+        var fields = [
             "meeting_id": meeting.eventId,
             "meeting_title": meeting.title,
             "start": ISO8601DateFormatter().string(from: meeting.startAt),
@@ -326,6 +327,9 @@ struct APIClient {
             "calendar_id": meeting.calendarId ?? "",
             "notes": notes,
         ]
+        if let projectId, !projectId.isEmpty {
+            fields["project_id"] = projectId
+        }
         let files = [
             ("mic_audio", micAudioURL, "audio/wav"),
             ("system_audio", systemAudioURL, "audio/m4a"),

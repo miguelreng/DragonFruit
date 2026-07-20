@@ -32,6 +32,8 @@ starting, honor its STOP conditions, and update your row when done.
 | 024  | Clean editor motion primitives                                    | P1       | M      | —                     | DONE — editor checkbox, fade, table insert, and width transitions use explicit non-layout motion.                                                                                                                                                                                                                                                               |
 | 025  | Wiki publish visibility (success step, link access, unpublish)    | P1       | S–M    | 019 (built)           | DONE (shipped 5d46c5b757 + follow-ups) — in-modal success view w/ View wiki primary, Published markers, Share popover on the folder header (status/link/view/settings/unpublish), owner preview of unpublished wikis. Live on prod.                                                                                                                             |
 | 026  | Atlas doc-write cosmetic formatting (markdown-lite proposals)      | P1       | M      | spacer fix f7eee663c1 | DONE — proposals now speak a constrained Markdown subset rendered server-side (headings, bold/italic/strike, code, links, flat lists, checklists, quotes, dividers) + [blank] spacers; prompts teach formatting-only replaces. Deferred: tables, colors, alignment, images, mark-preserving replaces.                                                              |
+| 027  | Ship a private, per-user Momentum gamification system             | P2       | L      | —                     | TODO — idempotent XP ledger, levels, timezone-aware streaks, achievements, backfill, current-user API, and Home Momentum card. No leaderboard/redeemable rewards/mobile UI in V1.                                                                                                                                                                               |
+| 028  | Create a Doc or Task from a Sticky                                | P2       | S–M    | —                     | TODO — web Sticky toolbar action copies the freshest title/rich-text body into a new private Doc or Task, keeps the Sticky unchanged, filters eligible destination projects, and offers an Open action. No backend relation or destructive conversion in V1.                                                                                                   |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
@@ -50,6 +52,9 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED 
 - **003 benefits from 002** but doesn't strictly require it (it has its own unit
   tests). If both run, coordinate the HTML-helper moves to avoid conflicts.
 - 001, 004, 006 are independent.
+- **027 is independent** of the Atlas plans. It preserves the existing
+  `/activity-summary/` endpoint and replaces only the unused Home activity card
+  with the new private Momentum surface.
 
 ## Findings considered and rejected (do not re-audit)
 

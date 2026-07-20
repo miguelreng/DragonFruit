@@ -241,7 +241,7 @@ export function AppSidebar({ navigation }: SidebarProps) {
         <ItemRow icon={PlusSignIcon} label="New task" onPress={() => go("/[workspaceSlug]/new-task")} />
         <ItemRow icon={Home01Icon} label="Home" active={isHome} onPress={() => go("/[workspaceSlug]")} />
         <ItemRow icon={Search01Icon} label="Search" active={isSearch} onPress={() => go("/[workspaceSlug]/search")} />
-        <ItemRow icon={SparklesIcon} label="Ask Atlas" active={isAtlas} onPress={() => go("/[workspaceSlug]/atlas")} />
+        <ItemRow icon={SparklesIcon} label="Atlas" active={isAtlas} onPress={() => go("/[workspaceSlug]/atlas")} />
 
         <ItemRow icon={File02Icon} label="Docs" active={isDocs} onPress={() => go("/[workspaceSlug]/docs")} />
         <ItemRow
@@ -406,7 +406,13 @@ export function AppSidebar({ navigation }: SidebarProps) {
           style={({ pressed }) => pressed && styles.pressedDim}
         >
           <View style={styles.profileRow}>
-            <Avatar name={displayName} size={ICON_SIZE} circle color={colors.brand} imageUrl={user?.avatar_url} />
+            <Avatar
+              name={displayName}
+              size={ICON_SIZE}
+              circle
+              color={colors.brand}
+              imageUrl={user?.avatar_url || user?.avatar}
+            />
             <Text style={styles.profileText} numberOfLines={1}>
               Profile
             </Text>

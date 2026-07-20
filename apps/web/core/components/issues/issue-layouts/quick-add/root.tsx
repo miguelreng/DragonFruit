@@ -22,7 +22,7 @@ import { QuickAddIssueFormRoot } from "@/plane-web/components/issues/quick-add";
 import { CreateIssueToastActionItems } from "../../create-issue-toast-action-items";
 
 export type TQuickAddIssueForm = {
-  ref: React.RefObject<HTMLFormElement>;
+  formRef: React.RefObject<HTMLFormElement>;
   isOpen: boolean;
   projectDetail: IProject;
   hasError: boolean;

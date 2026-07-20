@@ -60,7 +60,7 @@ function ProjectCalendarPage({ params }: Route.ComponentProps) {
     if (!workspaceSlug || !projectId || !workItemFilters) return;
     const currentLayout = workItemFilters.displayFilters?.layout;
     if (currentLayout !== EIssueLayoutTypes.CALENDAR && previousTaskLayoutRef.current === null) {
-      previousTaskLayoutRef.current = currentLayout ?? EIssueLayoutTypes.SPREADSHEET;
+      previousTaskLayoutRef.current = currentLayout ?? EIssueLayoutTypes.LIST;
     }
     if (currentLayout === EIssueLayoutTypes.CALENDAR) return;
 

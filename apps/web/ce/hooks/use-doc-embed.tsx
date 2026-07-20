@@ -15,7 +15,7 @@ import type {
 } from "@plane/editor";
 import { DEFAULT_CHART_SPEC } from "@/components/chart/spec";
 import { DocChartEmbed } from "@/components/editor/embeds/chart/chart-embed";
-import { DocEmbedCard, DocEmbedPicker } from "@/components/editor/embeds/doc-embed";
+import { DocEmbedCard, DocEmbedPicker, WhiteboardEmbed } from "@/components/editor/embeds/doc-embed";
 
 type Props = {
   projectId?: string;
@@ -64,7 +64,16 @@ export const useDocEmbed = ({ projectId, workspaceSlug }: Props) => {
 
   const whiteboardEmbedProps: TDocEmbedConfig<"whiteboard"> = useMemo(
     () => ({
-      widgetCallback: makeWidgetCallback("whiteboard"),
+      // Whiteboards render as native inline canvases, not link cards.
+      widgetCallback: ({ entityId, projectId: embedProjectId, workspaceSlug: embedWorkspaceSlug, title, isEditable }) => (
+        <WhiteboardEmbed
+          entityId={entityId}
+          projectId={embedProjectId}
+          workspaceSlug={embedWorkspaceSlug}
+          title={title}
+          isEditable={isEditable}
+        />
+      ),
       onPickerRequest,
       workspaceSlug,
       projectId,

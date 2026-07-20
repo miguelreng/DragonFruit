@@ -1,8 +1,8 @@
 packages:
-- apps/*
-- packages/*
-- "!apps/api"
-- "!apps/proxy"
+  - apps/*
+  - packages/*
+  - "!apps/api"
+  - "!apps/proxy"
 
 catalog:
   "@astrojs/rss": 4.0.18
@@ -24,6 +24,7 @@ catalog:
   astro: 6.3.7
   axios: 1.15.2
   express: 4.22.0
+  expo-speech-recognition: 56.0.1
   i18next: 25.10.9
   i18next-icu: 2.4.3
   i18next-resources-to-backend: 1.2.1
@@ -44,4 +45,4 @@ catalog:
   vite: 7.3.2
 
 onlyBuiltDependencies:
-- turbo
+  - turbo

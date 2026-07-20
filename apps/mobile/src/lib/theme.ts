@@ -23,11 +23,11 @@ export const colors = {
   textPrimary: "#1d1f20", // txt-primary
   textSecondary: "#4e5355", // txt-secondary
   textTertiary: "#676c6f", // txt-tertiary
-  textPlaceholder: "#80868a", // txt-placeholder
+  textPlaceholder: "#676c6f", // accessible on the light canvas at small sizes
   ink: "#1d1f20",
   body: "#4e5355",
   muted: "#676c6f",
-  faint: "#80868a",
+  faint: "#676c6f",
 
   // Accent/brand tokens — primary accent is #e548a5; hover/active are derived
   // darker shades (~87% / ~75% lightness of the base).
@@ -40,7 +40,7 @@ export const colors = {
   brand: "#e548a5",
   brandBright: "#ff2cb5",
   brandSoft: "#ffe3f1",
-  brandText: "#e548a5",
+  brandText: "#aa0276",
 
   // Border tokens
   border: "#eaebeb", // border-subtle

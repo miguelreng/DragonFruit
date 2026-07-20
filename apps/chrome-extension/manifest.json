@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "DragonFruit",
-  "description": "Save pages, images, and tweets to DragonFruit bookmarks, and capture AI chats from Claude, ChatGPT, and Gemini. Open a new tab for a Renaissance masterpiece from museums worldwide.",
-  "version": "0.3.3",
+  "description": "Save pages, images, and tweets to DragonFruit bookmarks, and capture AI chats from Claude, ChatGPT, and Gemini. Open a new tab for a masterpiece from museums worldwide.",
+  "version": "0.3.4",
   "icons": {
     "16": "src/icons/icon-16.png",
     "32": "src/icons/icon-32.png",
@@ -38,6 +38,19 @@
         "https://gemini.google.com/*"
       ],
       "js": ["src/capture/extract.js", "src/capture/adapters.js", "src/capture/capture.js"]
+    },
+    {
+      "matches": [
+        "https://app.notion.com/*",
+        "https://www.notion.so/*",
+        "https://*.notion.so/*",
+        "https://*.notion.site/*",
+        "https://linear.app/*",
+        "https://app.asana.com/*",
+        "https://*.atlassian.net/*",
+        "https://app.clickup.com/*"
+      ],
+      "js": ["src/capture/extract.js", "src/capture/page-adapters.js", "src/capture/page-capture.js"]
     }
   ],
   "web_accessible_resources": [

@@ -19,6 +19,7 @@ class AgentSerializer(serializers.ModelSerializer):
     bot_user_id = serializers.UUIDField(source="bot_user.id", read_only=True)
     bot_user_email = serializers.EmailField(source="bot_user.email", read_only=True)
     has_api_key = serializers.SerializerMethodField()
+    has_effective_llm_config = serializers.SerializerMethodField()
     mcp_servers = serializers.SerializerMethodField()
 
     class Meta:
@@ -35,6 +36,7 @@ class AgentSerializer(serializers.ModelSerializer):
             "provider_model",
             "api_base_url",
             "has_api_key",
+            "has_effective_llm_config",
             "triggers",
             "tool_policies",
             "is_enabled",
@@ -56,6 +58,7 @@ class AgentSerializer(serializers.ModelSerializer):
             "avatar_url",
             "system_prompt",
             "has_api_key",
+            "has_effective_llm_config",
             "mcp_servers",
             "created_at",
             "updated_at",
@@ -64,6 +67,16 @@ class AgentSerializer(serializers.ModelSerializer):
     def get_has_api_key(self, obj: Agent) -> bool:
         return bool(obj.api_key_encrypted)
 
+    def get_has_effective_llm_config(self, obj: Agent) -> bool:
+        """Expose Atlas readiness without exposing any workspace or legacy key."""
+        from plane.llm.provider import LLMConfigError, LLMProvider
+
+        try:
+            LLMProvider.from_agent(obj)
+        except LLMConfigError:
+            return False
+        return True
+
     def get_mcp_servers(self, obj: Agent) -> list:
         """Public view of mcp_servers. Strips the ciphertext, exposes
         only `has_auth_header: bool` per entry. Never returns the raw
@@ -71,7 +84,7 @@ class AgentSerializer(serializers.ModelSerializer):
         responses (see BYOK rule).
         """
         out = []
-        for entry in (obj.mcp_servers or []):
+        for entry in obj.mcp_servers or []:
             if not isinstance(entry, dict):
                 continue
             out.append(
@@ -164,12 +177,53 @@ class AgentChatMessageSerializer(serializers.ModelSerializer):
         return user.avatar_url or ""
 
 
+# Titles clients stamp on brand-new sessions before any real content
+# ("Atlas Chat"/"Atlas Voice" come from the mac app). They read as noise in a
+# sessions list, so both the send-time auto-title backfill and `display_title`
+# treat them as "untitled".
+GENERIC_AGENT_CHAT_TITLES = {"", "new chat", "atlas chat", "atlas voice"}
+
+
+def generate_agent_chat_title(message_text: str) -> str:
+    """Shape a chat message into a session title.
+
+    Same heuristic as ChatGPT's auto-title: trim, collapse whitespace,
+    cap at ~50 chars on a word boundary. The user can rename later.
+    """
+    text = " ".join((message_text or "").split())
+    if len(text) <= 50:
+        return text or "New chat"
+    cut = text[:50]
+    # Back off to the last word boundary so we don't slice "thinking"
+    # into "think" mid-word.
+    space = cut.rfind(" ")
+    if space > 20:
+        cut = cut[:space]
+    return f"{cut}…"
+
+
 class AgentChatSessionSerializer(serializers.ModelSerializer):
     # Lightweight read fields the list endpoint and detail endpoint
     # both return. The detail endpoint adds `messages` on top via the
     # view, not here, so the list query stays cheap.
     agent_name = serializers.CharField(source="agent.name", read_only=True)
     agent_avatar_url = serializers.URLField(source="agent.avatar_url", read_only=True)
+    context_project_name = serializers.CharField(source="context_project.name", read_only=True)
+    context_page_name = serializers.CharField(source="context_page.name", read_only=True)
+    display_title = serializers.SerializerMethodField()
+
+    def get_display_title(self, obj: AgentChatSession) -> str:
+        """List-friendly name: the stored title unless it's a generic client
+        default, in which case fall through to a title derived from the first
+        user message (the list endpoint annotates `first_user_message`;
+        elsewhere the annotation is absent and the stored title stands)."""
+        title = (obj.title or "").strip()
+        if title.lower() not in GENERIC_AGENT_CHAT_TITLES:
+            return title
+        first_message = getattr(obj, "first_user_message", None)
+        if first_message:
+            return generate_agent_chat_title(first_message)
+        return title or "New chat"
 
     class Meta:
         model = AgentChatSession
@@ -183,6 +237,13 @@ class AgentChatSessionSerializer(serializers.ModelSerializer):
             "scope_type",
             "page",
             "title",
+            "display_title",
+            "context_project",
+            "context_project_name",
+            "context_page",
+            "context_page_name",
+            "context_updated_at",
+            "context_updated_by_surface",
             "created_at",
             "updated_at",
             "last_activity_at",
@@ -195,6 +256,12 @@ class AgentChatSessionSerializer(serializers.ModelSerializer):
             "agent_avatar_url",
             "scope_type",
             "page",
+            "context_project",
+            "context_project_name",
+            "context_page",
+            "context_page_name",
+            "context_updated_at",
+            "context_updated_by_surface",
             "created_at",
             "updated_at",
             "last_activity_at",

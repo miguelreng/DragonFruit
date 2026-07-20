@@ -8,17 +8,7 @@ import React, { useCallback, useMemo } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import {
-  Bookmark,
-  Calendar,
-  Checklist,
-  Document,
-  Eye,
-  FileText,
-  Inbox,
-  Layers,
-  RulerPen,
-} from "@solar-icons/react/ssr";
+import { Bookmark, Calendar, Checklist, Document, FileText, Inbox, RulerPen } from "@solar-icons/react/ssr";
 import { EUserPermissionsLevel, EUserPermissions } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type { EUserProjectRoles } from "@plane/types";
@@ -107,36 +97,6 @@ export const ProjectNavigation = observer(function ProjectNavigation(props: TPro
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
         shouldRender: true,
         sortOrder: 2,
-      },
-      {
-        i18n_key: "sidebar.cycles",
-        key: "cycles",
-        name: "Cycles",
-        href: `/${workspaceSlug}/projects/${projectId}/cycles`,
-        ...createSolarSidebarIconPair(Calendar),
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-        shouldRender: project?.cycle_view ?? false,
-        sortOrder: 3,
-      },
-      {
-        i18n_key: "sidebar.modules",
-        key: "modules",
-        name: "Modules",
-        href: `/${workspaceSlug}/projects/${projectId}/modules`,
-        ...createSolarSidebarIconPair(Layers),
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-        shouldRender: project?.module_view ?? false,
-        sortOrder: 4,
-      },
-      {
-        i18n_key: "sidebar.views",
-        key: "views",
-        name: "Views",
-        href: `/${workspaceSlug}/projects/${projectId}/views`,
-        ...createSolarSidebarIconPair(Eye),
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-        shouldRender: project?.issue_views_view ?? false,
-        sortOrder: 5,
       },
       {
         i18n_key: "sidebar.docs",

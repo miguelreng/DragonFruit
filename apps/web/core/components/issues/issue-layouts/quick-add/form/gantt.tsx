@@ -10,12 +10,12 @@ import { cn } from "@plane/utils";
 import type { TQuickAddIssueForm } from "../root";
 
 export const GanttQuickAddIssueForm = observer(function GanttQuickAddIssueForm(props: TQuickAddIssueForm) {
-  const { ref, projectDetail, hasError, register, onSubmit, isEpic } = props;
+  const { formRef, projectDetail, hasError, register, onSubmit, isEpic } = props;
   const { t } = useTranslation();
   return (
     <div className={cn("shadow-raised-200", hasError && "border border-danger-strong/20 bg-danger-subtle")}>
       <form
-        ref={ref}
+        ref={formRef}
         onSubmit={onSubmit}
         className="flex w-full items-center gap-x-3 border-[0.5px] border-subtle bg-surface-1 px-3"
       >

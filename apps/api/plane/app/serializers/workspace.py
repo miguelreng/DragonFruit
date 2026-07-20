@@ -43,6 +43,10 @@ class WorkSpaceSerializer(DynamicBaseSerializer):
     total_members = serializers.IntegerField(read_only=True)
     logo_url = serializers.CharField(read_only=True)
     role = serializers.IntegerField(read_only=True)
+    has_llm_configured = serializers.SerializerMethodField()
+
+    def get_has_llm_configured(self, obj):
+        return bool(obj.llm_api_key_encrypted)
 
     def validate_name(self, value):
         # Check if the name contains a URL
@@ -251,6 +255,7 @@ class PageRecentVisitSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
+            "page_type",
             "logo_props",
             "is_brief",
             "project_id",

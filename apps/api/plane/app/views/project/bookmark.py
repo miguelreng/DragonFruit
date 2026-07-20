@@ -186,7 +186,9 @@ class ProjectBookmarkViewSet(BaseViewSet):
             queryset = queryset.filter(tags__contains=[tag])
         if project_id:
             queryset = queryset.filter(project_id=project_id)
-        return queryset.order_by("-sort_order", "-created_at")
+        # Date added, newest first. sort_order is a per-project counter, so it
+        # interleaves meaninglessly on the workspace-level list.
+        return queryset.order_by("-created_at")
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="PROJECT")
     def list(self, request, slug, project_id):

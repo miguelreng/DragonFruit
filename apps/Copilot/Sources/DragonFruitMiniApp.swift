@@ -733,7 +733,11 @@ struct ToastCloseButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Close toast")
-        .opacity(isVisible || isHovered ? 1 : 0)
+        // Never 0: SwiftUI drops opacity-0 views from hit-testing (clicks and
+        // hover alike, judged on the model value — a still-fading button is
+        // already dead), so the hidden state keeps ε opacity for hover to
+        // revive it.
+        .opacity(isVisible || isHovered ? 1 : 0.001)
         .scaleEffect(isVisible || isHovered ? 1 : 0.6)
         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isVisible || isHovered)
         .onHover { isHovered = $0 }

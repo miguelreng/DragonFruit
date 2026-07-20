@@ -91,7 +91,7 @@ def auto_tag_bookmark_task(bookmark_id):
     """
     Ask the workspace's configured LLM for a few topical tags and store them as
     `metadata.suggested_tags` for the user to accept or dismiss. A no-op when no
-    LLM is configured (BYOK / instance key absent) — auto-tagging is opt-in.
+    workspace BYOK configuration is present — auto-tagging is opt-in.
     """
     try:
         bookmark = ProjectBookmark.objects.select_related("workspace").filter(pk=bookmark_id).first()

@@ -13,6 +13,7 @@ from plane.authentication.views.common import NativeLoginStartEndpoint
 
 
 NATIVE_CALLBACK = "https://mhheokgkmmgpgmjfhlggnckdafdgilcp.chromiumapp.org/auth/login-callback"
+MOBILE_CALLBACK = "dragonfruit://auth/callback"
 LOCMEM_CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 
@@ -70,3 +71,18 @@ class TestNativeLoginStartEndpoint:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["api_token"] == "native-token"
         assert response.data["callback"] == f"{NATIVE_CALLBACK}?api_token=native-token"
+
+    @override_settings(CACHES=LOCMEM_CACHES)
+    def test_browser_request_with_session_redirects_to_mobile_callback(
+        self, request_factory, monkeypatch
+    ):
+        monkeypatch.setattr("plane.authentication.views.common.create_native_api_token", lambda user: "native-token")
+
+        response = self.get_response(
+            request_factory,
+            {"callback": MOBILE_CALLBACK},
+            user=AuthenticatedNativeUser(),
+        )
+
+        assert response.status_code == status.HTTP_302_FOUND
+        assert response.headers["Location"] == f"{MOBILE_CALLBACK}?api_token=native-token"

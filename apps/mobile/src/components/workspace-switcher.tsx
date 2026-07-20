@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useReducedMotion } from "react-native-reanimated";
 import { CheckmarkCircle02Icon, PlusSignIcon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
@@ -50,6 +51,7 @@ export function WorkspaceSwitcher({
   onCreate?: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const reducedMotion = useReducedMotion();
   // Keep the sheet mounted through its exit animation, then unmount.
   const [rendered, setRendered] = useState(visible);
   const translateY = useAnimatedValue(SCREEN_HEIGHT);
@@ -57,6 +59,12 @@ export function WorkspaceSwitcher({
 
   const animateClose = useCallback(
     (after?: () => void) => {
+      if (reducedMotion) {
+        backdrop.setValue(0);
+        translateY.setValue(SCREEN_HEIGHT);
+        after?.();
+        return;
+      }
       Animated.parallel([
         Animated.timing(backdrop, {
           toValue: 0,
@@ -74,7 +82,7 @@ export function WorkspaceSwitcher({
         if (finished) after?.();
       });
     },
-    [backdrop, translateY]
+    [backdrop, reducedMotion, translateY]
   );
 
   useEffect(() => {
@@ -88,8 +96,9 @@ export function WorkspaceSwitcher({
     if (!rendered) return;
 
     if (visible) {
-      translateY.setValue(SCREEN_HEIGHT);
-      backdrop.setValue(0);
+      translateY.setValue(reducedMotion ? 0 : SCREEN_HEIGHT);
+      backdrop.setValue(reducedMotion ? 1 : 0);
+      if (reducedMotion) return;
       Animated.parallel([
         Animated.timing(backdrop, {
           toValue: 1,
@@ -102,7 +111,7 @@ export function WorkspaceSwitcher({
     } else if (rendered) {
       animateClose(() => setRendered(false));
     }
-  }, [animateClose, backdrop, rendered, translateY, visible]);
+  }, [animateClose, backdrop, reducedMotion, rendered, translateY, visible]);
 
   // Drag-to-dismiss: follow the finger downward, snap closed past the threshold
   // (or on a fast flick), otherwise spring back to rest.
@@ -116,19 +125,21 @@ export function WorkspaceSwitcher({
         onPanResponderRelease: (_e, g) => {
           if (g.dy > DRAG_CLOSE_DISTANCE || g.vy > DRAG_CLOSE_VELOCITY) {
             animateClose(onClose);
+          } else if (reducedMotion) {
+            translateY.setValue(0);
           } else {
             Animated.spring(translateY, { toValue: 0, ...motion.sheet.settleSpring, useNativeDriver: true }).start();
           }
         },
       }),
-    [animateClose, onClose, translateY]
+    [animateClose, onClose, reducedMotion, translateY]
   );
 
   if (!rendered) return null;
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={() => animateClose(onClose)} statusBarTranslucent>
-      <View style={styles.fill}>
+      <View style={styles.fill} accessibilityViewIsModal>
         <Animated.View style={[styles.backdrop, { opacity: backdrop }]}>
           <Pressable style={styles.fill} onPress={() => animateClose(onClose)} accessibilityLabel="Close" />
         </Animated.View>
@@ -158,7 +169,7 @@ export function WorkspaceSwitcher({
                   style={({ pressed }) => [styles.rowOuter, pressed && styles.rowPressed]}
                 >
                   <View style={[styles.row, active && styles.rowActive]}>
-                    <Avatar name={w.name} size={36} imageUrl={w.logo_url} />
+                    <Avatar name={w.name} size={36} imageUrl={w.logo_url || w.logo} />
                     <View style={styles.rowText}>
                       <Text style={[styles.name, active && styles.nameActive]} numberOfLines={1}>
                         {w.name}
@@ -213,7 +224,7 @@ const styles = StyleSheet.create({
     maxHeight: "82%",
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     paddingTop: spacing.xs,
     // Soft top shadow so the sheet reads as a raised surface.
     shadowColor: colors.ink,

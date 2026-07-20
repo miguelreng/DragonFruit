@@ -137,8 +137,7 @@ class Workspace(BaseModel):
     organization_size = models.CharField(max_length=20, blank=True, null=True)
     timezone = models.CharField(max_length=255, default="UTC", choices=TIMEZONE_CHOICES)
     background_color = models.CharField(max_length=255, default=get_random_color)
-    # BYO LLM configuration — when set, overrides the instance-level LLM_* env vars
-    # for AI features in this workspace. Per the project BYOK rule (see
+    # BYO LLM configuration for AI features in this workspace. Per the project BYOK rule (see
     # feedback_ai_byok.md), this credential MUST be Fernet-encrypted at rest and
     # MUST never appear in public API responses. The `_encrypted` suffix on the
     # column name makes the contract loud at every read/write site; the column

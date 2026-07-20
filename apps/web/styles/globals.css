@@ -370,6 +370,30 @@ body {
     -apple-system,
     sans-serif;
   background-color: var(--dragonfruit-calendar-surface);
+  /* Trap Schedule-X's internal z-indexes (the sticky week header is z-100)
+   * inside the calendar so header dropdowns (My calendars / New, z-30)
+   * always paint above the grid. */
+  isolation: isolate;
+  z-index: 0;
+}
+
+/* The app header is already an inline-size container. When Atlas or another
+ * side panel narrows the calendar, compact labels before the single-line
+ * toolbar can force the task toggle into the clipped space below the row. */
+@container (max-width: 1100px) {
+  .dragonfruit-calendar-toolbar .df-calendar-toolbar-controls {
+    gap: 0.25rem;
+  }
+
+  .dragonfruit-calendar-toolbar .df-calendar-task-label,
+  .dragonfruit-calendar-toolbar .df-calendar-timezone-label,
+  .dragonfruit-calendar-toolbar .df-calendar-menu-label {
+    display: none;
+  }
+
+  .dragonfruit-calendar-toolbar .df-calendar-toolbar-date {
+    width: 8rem;
+  }
 }
 
 /* Strip the default Schedule-X outer frame so the calendar sits flush with
@@ -385,15 +409,16 @@ body {
  * renders into a `.sx-react-calendar-wrapper` that's auto-sized by default,
  * which leaves dead space below the month grid. Forcing 100% through every
  * intermediate node lets the page's flex-1 wrapper drive the height. */
+/* NOTE: the week/day time grid is intentionally NOT in this list — it needs
+ * its natural 1600px height (--sx-week-grid-height) so the 24 hour rows have
+ * room and the view scrolls inside .sx__view-container. Forcing 100% squashes
+ * the grid and hides the hour axis entirely. */
 .dragonfruit-calendar > .sx-react-calendar-wrapper,
 .dragonfruit-calendar .sx__calendar,
 .dragonfruit-calendar .sx__calendar-wrapper,
 .dragonfruit-calendar .sx__view-container,
 .dragonfruit-calendar .sx__month-view,
-.dragonfruit-calendar .sx__month-grid,
-.dragonfruit-calendar .sx__week-view,
-.dragonfruit-calendar .sx__week-grid,
-.dragonfruit-calendar .sx__day-view {
+.dragonfruit-calendar .sx__month-grid {
   height: 100% !important;
   min-height: 0 !important;
 }
@@ -474,10 +499,27 @@ body {
   color: var(--text-color-tertiary) !important;
 }
 
+/* Month cell header: day name and date number on ONE line, matching the
+ * week/day date-axis headers. The theme stacks them (flex column) and
+ * uppercases the day name on the child element directly — undo both. */
+.dragonfruit-calendar .sx__month-grid-day__header {
+  flex-flow: row !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 4px;
+}
+.dragonfruit-calendar .sx__month-grid-day__header-day-name {
+  text-transform: none !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--text-color-tertiary) !important;
+}
+
 /* Today's date sits in a rounded pill. The global `border-radius: 0` reset
  * (below) would otherwise square it, so re-round the date container here. */
 .dragonfruit-calendar .sx__month-grid-day__header-date {
   border-radius: 9999px !important;
+  margin-bottom: 0 !important;
 }
 .dragonfruit-calendar .sx__month-grid-day__header-date.sx__is-today {
   background-color: var(--dragonfruit-calendar-accent) !important;
@@ -502,6 +544,75 @@ body {
   padding: 2px 6px !important;
 }
 
+/* Calendar events are movable without Schedule-X's premium DnD package.
+ * The drop target stays subtle so event content remains readable while the
+ * native drag preview communicates the object being moved. */
+.dragonfruit-calendar .sx__event.df-calendar-event-draggable {
+  cursor: grab;
+}
+
+.dragonfruit-calendar .sx__event.df-calendar-event-draggable:active,
+.dragonfruit-calendar .sx__event.df-calendar-event-dragging {
+  cursor: grabbing;
+}
+
+.dragonfruit-calendar .sx__event.df-calendar-event-dragging {
+  opacity: 0.45;
+}
+
+.dragonfruit-calendar .sx__event.df-calendar-event-saving {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.dragonfruit-calendar .df-calendar-drop-target {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--dragonfruit-calendar-accent) 72%, transparent) !important;
+  background-color: color-mix(in srgb, var(--dragonfruit-calendar-accent) 5%, transparent) !important;
+}
+
+.dragonfruit-calendar .df-calendar-drop-indicator {
+  pointer-events: none;
+  position: absolute;
+  z-index: 120;
+  height: 2px;
+  background-color: var(--dragonfruit-calendar-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dragonfruit-calendar-accent) 22%, transparent);
+  will-change: top, left, width;
+}
+
+.dragonfruit-calendar .df-calendar-drop-indicator-label {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+  border: 1px solid color-mix(in srgb, var(--dragonfruit-calendar-accent) 42%, var(--border-color-strong));
+  border-radius: 6px !important;
+  background-color: var(--background-color-surface-1);
+  box-shadow: var(--shadow-raised-100);
+  padding: 2px 6px;
+  color: var(--text-color-primary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.dragonfruit-calendar .df-calendar-drop-indicator-all-day {
+  height: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dragonfruit-calendar .df-calendar-drop-indicator-all-day .df-calendar-drop-indicator-label {
+  top: 4px;
+  transform: none;
+}
+
+.dragonfruit-calendar .sx__event.df-calendar-event-draggable:focus-visible {
+  outline: 2px solid var(--dragonfruit-calendar-accent) !important;
+  outline-offset: 1px;
+}
+
 /* Month event = soft tinted pill, a small leading color dot, neutral label.
  * The dot is `currentColor`, and the event element's text color is the calendar's
  * main color (onContainer is set to main in calendar-root.tsx) — so each dot
@@ -516,20 +627,6 @@ body {
    * half of that to balance the inset left vs right. Width is untouched, so
    * multi-day spans stay aligned. */
   margin-inline-start: 5px !important;
-}
-.dragonfruit-calendar .sx__month-grid-event::before {
-  content: "";
-  flex: 0 0 auto;
-  width: 6px;
-  height: 6px;
-  /* `.dragonfruit-calendar *` forces border-radius:0 !important, so the dot
-   * needs its own !important to stay a circle. */
-  border-radius: 9999px !important;
-  background-color: currentColor;
-}
-/* A bar continued from the previous week shouldn't restart with a dot. */
-.dragonfruit-calendar .sx__month-grid-event--overflow-left::before {
-  display: none;
 }
 .dragonfruit-calendar .sx__month-grid-event-title {
   color: var(--text-color-primary) !important;
@@ -554,6 +651,140 @@ body {
 .dragonfruit-calendar .sx__month-grid-event,
 .dragonfruit-calendar .sx__month-grid-event.is-event-new {
   animation: none !important;
+}
+
+/* ── Week / Day views ─────────────────────────────────────────────────────
+ * The date axis is a custom React component (WeekGridDateHeader in
+ * calendar-root.tsx): day name, date pill, per-day "N tasks · Nh" summary.
+ * Cells need auto height for the three-line header. */
+.dragonfruit-calendar .sx__week-grid__date {
+  height: auto !important;
+  padding: 2px 0 !important;
+}
+/* Re-round the date pill (the `.dragonfruit-calendar *` reset squares it).
+ * The today state gets the calendar accent as an inline background. */
+.dragonfruit-calendar .df-week-date-pill {
+  border-radius: 9999px !important;
+}
+/* Time-grid event cards: soft rounded pastel blocks (the calendar's container
+ * color is the tint), neutral title, muted time — like the month grid. */
+.dragonfruit-calendar .sx__time-grid-event {
+  border-radius: 6px !important;
+  padding: 6px 8px !important;
+  box-shadow: none !important;
+  /* Breathing room at the column edges: Schedule-X positions events with
+   * inline left/width, so real margins would overflow — transparent borders
+   * clipped out of the background inset the visible box instead. */
+  border-left: 2px solid transparent !important;
+  border-right: 2px solid transparent !important;
+  background-clip: padding-box !important;
+}
+/* Long titles wrap and clip, but the hour row keeps its space — a title must
+ * never push the time out of the box. The inner becomes a flex column: title
+ * shrinks (min-height: 0 + hidden overflow), time never does. Compact (short)
+ * events keep Schedule-X's own one-line layout: title ellipsized, time fixed —
+ * so no !important on white-space here, the compact nowrap must win. */
+.dragonfruit-calendar .sx__time-grid-event-inner {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Typography mirrors the month grid: 12px/500 primary titles, 500 tertiary
+ * times — so an event reads identically in every view. */
+.dragonfruit-calendar .sx__time-grid-event-title {
+  color: var(--text-color-primary) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  overflow-wrap: break-word;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.dragonfruit-calendar .sx__time-grid-event-time {
+  color: var(--text-color-tertiary) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  flex: 0 0 auto;
+}
+/* Short (compact) events render title + time on a single line — center that
+ * line vertically in the box instead of letting the padding push it down. */
+.dragonfruit-calendar .sx__time-grid-event:has(.sx__title-and-time-compact) {
+  padding: 0 8px !important;
+}
+.dragonfruit-calendar .sx__time-grid-event-inner:has(.sx__title-and-time-compact) {
+  justify-content: center;
+}
+/* No clock glyph in event boxes — the time text alone reads cleaner. */
+.dragonfruit-calendar .sx__time-grid-event-time svg,
+.dragonfruit-calendar .sx__date-grid-event svg {
+  display: none !important;
+}
+/* All-day bars in the week header row: compact fixed-height chips. */
+.dragonfruit-calendar .sx__date-grid-event {
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--text-color-primary) !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  padding: 0 6px !important;
+  line-height: 18px !important;
+}
+/* Multi-day chips ("Stay at …") get the same rounded-rectangle look as
+ * single-day chips: drop the protruding clip-path arrow notches Schedule-X
+ * adds when an event continues past the visible range, and the 10px margins
+ * that made room for them. */
+.dragonfruit-calendar .sx__date-grid-event--left-overflow,
+.dragonfruit-calendar .sx__date-grid-event--right-overflow {
+  display: none !important;
+}
+.dragonfruit-calendar .sx__date-grid-event:has(.sx__date-grid-event--left-overflow) {
+  margin-left: 0 !important;
+}
+.dragonfruit-calendar .sx__date-grid-event:has(.sx__date-grid-event--right-overflow) {
+  margin-right: 0 !important;
+}
+/* Cap the all-day section so a big stack of all-day events (holidays, stays,
+ * recurring chips…) can't shove the time grid off screen — the section keeps
+ * ~5 rows and scrolls for the rest. overflow-x stays hidden: multi-day spans
+ * overflow their DAY column, not this container, so nothing is clipped. */
+.dragonfruit-calendar .sx__date-grid {
+  max-height: 48px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+/* Hour labels on the time axis — quiet like the month day-name row. */
+.dragonfruit-calendar .sx__week-grid__hour-text {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--text-color-tertiary) !important;
+}
+/* Entrance for the day-events hover preview. Animates the independent `scale`
+ * property (not `transform`) so it can't fight the card's inline
+ * translateY(-100%) flip-above positioning. */
+@keyframes df-calendar-pop {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+.df-calendar-pop {
+  animation: df-calendar-pop 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Current-time indicator: accent line + dot. */
+.dragonfruit-calendar .sx__current-time-indicator,
+.dragonfruit-calendar .sx__current-time-indicator-full-week {
+  background-color: var(--dragonfruit-calendar-accent) !important;
+}
+.dragonfruit-calendar .sx__current-time-indicator::before {
+  background-color: var(--dragonfruit-calendar-accent) !important;
+  border-radius: 9999px !important;
 }
 
 /* Page-level reading modes */

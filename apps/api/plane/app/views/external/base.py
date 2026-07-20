@@ -149,42 +149,23 @@ def _resolve_litellm_model(provider_key: str, model: str) -> str:
 
 def get_llm_config(workspace=None) -> Tuple[str | None, str | None, str | None]:
     """
-    Helper to get LLM configuration values, returns:
+    Resolve the workspace-owned BYOK configuration, returning:
         - api_key, model, provider_key
 
-    Resolution order:
-    1. Workspace-level BYO key (`workspace.llm_*` fields), if a workspace is provided
-       and `llm_api_key_encrypted` is set. The API key is Fernet-encrypted at rest.
-    2. Instance-level settings / `LLM_*` env vars.
+    Atlas never falls back to an instance-owned key. Each workspace must explicitly
+    configure its provider, model, and encrypted API key in Settings -> Atlas.
     """
-    api_key: str | None = None
-    provider_key: str | None = None
-    model: str | None = None
+    if workspace is None or not workspace.llm_api_key_encrypted:
+        log_exception(ValueError("Missing workspace LLM configuration"))
+        return None, None, None
 
-    if workspace is not None and workspace.llm_api_key_encrypted:
-        decrypted = decrypt_data(workspace.llm_api_key_encrypted)
-        if decrypted:
-            api_key = decrypted
-            provider_key = (workspace.llm_provider or "openai").strip()
-            model = (workspace.llm_model or "").strip() or None
+    api_key = decrypt_data(workspace.llm_api_key_encrypted)
+    provider_key = (workspace.llm_provider or "openai").strip()
+    model = (workspace.llm_model or "").strip() or None
 
     if not api_key:
-        api_key, provider_key, model = get_configuration_value(
-            [
-                {
-                    "key": "LLM_API_KEY",
-                    "default": os.environ.get("LLM_API_KEY", None),
-                },
-                {
-                    "key": "LLM_PROVIDER",
-                    "default": os.environ.get("LLM_PROVIDER", "openai"),
-                },
-                {
-                    "key": "LLM_MODEL",
-                    "default": os.environ.get("LLM_MODEL", None),
-                },
-            ]
-        )
+        log_exception(ValueError("Workspace LLM API key decrypted to an empty value"))
+        return None, None, None
 
     if not provider_key:
         log_exception(ValueError("Missing LLM provider"))
@@ -277,8 +258,7 @@ def call_llm_chat(
                 model=_resolve_litellm_model("gemini", model),
                 api_key=api_key,
                 messages=(
-                    ([{"role": "system", "content": system}] if system else [])
-                    + [{"role": "user", "content": user}]
+                    ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
                 ),
                 temperature=temperature,
                 max_tokens=max_tokens,
@@ -294,8 +274,7 @@ def call_llm_chat(
                 api_key=api_key,
                 api_base=OPENROUTER_API_BASE,
                 messages=(
-                    ([{"role": "system", "content": system}] if system else [])
-                    + [{"role": "user", "content": user}]
+                    ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
                 ),
                 temperature=temperature,
                 max_tokens=max_tokens,
@@ -488,7 +467,7 @@ TRANSCRIPT_TO_DOC_SYSTEM_PROMPT = (
     "- body_markdown: 1-6 short bullet lines, each starting with '- '. No nested lists.\n"
     "- action_items: every commitment, follow-up, or 'someone will…'. Title <= 80 chars, imperative.\n"
     "- description: one sentence of context; empty string if none.\n"
-    "- If transcript is empty or unintelligible, return {\"sections\":[],\"action_items\":[]}.\n"
+    '- If transcript is empty or unintelligible, return {"sections":[],"action_items":[]}.\n'
 )
 
 
@@ -615,9 +594,7 @@ class WorkspaceLLMConfigEndpoint(BaseAPIView):
         workspace = Workspace.objects.filter(slug=slug).first()
         if workspace is None:
             return Response({"error": "Workspace not found"}, status=status.HTTP_404_NOT_FOUND)
-        decrypted = (
-            decrypt_data(workspace.llm_api_key_encrypted) if workspace.llm_api_key_encrypted else ""
-        )
+        decrypted = decrypt_data(workspace.llm_api_key_encrypted) if workspace.llm_api_key_encrypted else ""
         return Response(
             {
                 "llm_provider": workspace.llm_provider or "",
@@ -647,9 +624,7 @@ class WorkspaceLLMConfigEndpoint(BaseAPIView):
             workspace.llm_provider = None
             workspace.llm_model = None
             workspace.llm_api_key_encrypted = None
-            workspace.save(
-                update_fields=["llm_provider", "llm_model", "llm_api_key_encrypted"]
-            )
+            workspace.save(update_fields=["llm_provider", "llm_model", "llm_api_key_encrypted"])
             return Response({"status": "cleared"}, status=status.HTTP_200_OK)
 
         provider = (request.data.get("llm_provider") or "").strip().lower()
@@ -688,9 +663,7 @@ class WorkspaceLLMConfigEndpoint(BaseAPIView):
         if update_fields:
             workspace.save(update_fields=update_fields)
 
-        decrypted = (
-            decrypt_data(workspace.llm_api_key_encrypted) if workspace.llm_api_key_encrypted else ""
-        )
+        decrypted = decrypt_data(workspace.llm_api_key_encrypted) if workspace.llm_api_key_encrypted else ""
         return Response(
             {
                 "llm_provider": workspace.llm_provider or "",

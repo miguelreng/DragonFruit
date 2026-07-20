@@ -144,10 +144,9 @@ final class AtlasIslandOverlayController: ObservableObject {
     }
 
     private func showOverlay(for store: MeetingStore) {
+        // refreshPanel owns ordering the panel in/out — it also hides the
+        // island while a fullscreen app covers the screen.
         refreshPanel(for: store)
-        if let panel, !panel.isVisible {
-            panel.orderFrontRegardless()
-        }
         startTracking()
     }
 
@@ -163,7 +162,9 @@ final class AtlasIslandOverlayController: ObservableObject {
         if timer == nil {
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
                 Task { @MainActor [weak self] in
-                    guard let self, let store = self.store, let panel = self.panel, panel.isVisible else { return }
+                    // Keep refreshing even while the panel is hidden (e.g.
+                    // during a fullscreen video) so it can come back.
+                    guard let self, let store = self.store, self.panel != nil else { return }
                     self.refreshPanel(for: store)
                 }
             }
@@ -241,6 +242,70 @@ final class AtlasIslandOverlayController: ObservableObject {
             y: frame.maxY - size.height
         )
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
+
+        // Vanish while a fullscreen app owns this screen (video, Keynote, …) —
+        // the island floating over a movie defeats the point of fullscreen.
+        // The 1s refresh keeps polling, so the island returns as soon as the
+        // fullscreen Space ends or the mouse moves to a non-fullscreen screen.
+        if Self.hasFullscreenWindow(on: screen) {
+            if panel.isVisible { panel.orderOut(nil) }
+        } else if !panel.isVisible {
+            panel.orderFrontRegardless()
+        }
+    }
+
+    /// True when `screen` is showing a fullscreen Space (video player, YouTube
+    /// fullscreen, a presentation…). Two signals from the SAME app must agree,
+    /// because on notched screens a *maximized* window (below the menu bar)
+    /// occupies exactly the same rect as a *fullscreen* window (below the
+    /// notch), and the Menubar window stays in the on-screen list even while
+    /// fullscreen hides it:
+    ///  1. a normal-level window covers the frame minus the notch band, AND
+    ///  2. the same process owns a screen-wide strip just above the menu-bar
+    ///     level at the screen's top — AppKit's fullscreen menu-bar-reveal
+    ///     window (observed at layer 26), which only fullscreen Spaces create.
+    /// Bounds/layer/PID come from the window server without extra permissions
+    /// (only window *names* need Screen Recording, and the app is unsandboxed).
+    private static func hasFullscreenWindow(on screen: NSScreen?) -> Bool {
+        guard let screen,
+              let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID)
+                as? [[String: Any]]
+        else { return false }
+
+        // NSScreen is bottom-left-origin; CGWindowList bounds are top-left
+        // origin anchored at the primary screen's top-left corner.
+        let primaryMaxY = NSScreen.screens.first?.frame.maxY ?? 0
+        let screenTopY = primaryMaxY - screen.frame.maxY
+        let notchInset = screen.safeAreaInsets.top
+        let target = CGRect(
+            x: screen.frame.minX,
+            y: screenTopY + notchInset,
+            width: screen.frame.width,
+            height: screen.frame.height - notchInset
+        ).insetBy(dx: 1, dy: 1)
+
+        let ownPid = Int(ProcessInfo.processInfo.processIdentifier)
+        let menuBarLevel = Int(NSWindow.Level.mainMenu.rawValue)
+        var coveringPids: Set<Int> = []
+        var revealStripPids: Set<Int> = []
+
+        for window in windows {
+            guard let layer = window[kCGWindowLayer as String] as? Int,
+                  let pid = window[kCGWindowOwnerPID as String] as? Int, pid != ownPid,
+                  let boundsDict = window[kCGWindowBounds as String] as? [String: Any],
+                  let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary)
+            else { continue }
+            if layer == 0 {
+                if bounds.contains(target) { coveringPids.insert(pid) }
+            } else if layer > menuBarLevel, layer <= menuBarLevel + 4,
+                      abs(bounds.minY - screenTopY) <= 2,
+                      abs(bounds.minX - screen.frame.minX) <= 2,
+                      bounds.width >= screen.frame.width - 4,
+                      bounds.height <= 60 {
+                revealStripPids.insert(pid)
+            }
+        }
+        return !coveringPids.intersection(revealStripPids).isEmpty
     }
 
     private func makePanel(size: NSSize) -> NSPanel {
@@ -269,6 +334,7 @@ final class AtlasIslandOverlayController: ObservableObject {
 private enum IslandNotice: Equatable {
     case error
     case processing
+    case notesProjectPick(UUID)
     case meetingPrompt(String)
     case dictation
     case notesSaved(UUID)
@@ -343,8 +409,11 @@ struct AtlasIslandView: View {
 
     private var theme: CopilotThemeTokens { store.copilotTheme.tokens }
 
-    /// Same priority order the corner toasts used.
+    /// Same priority order the corner toasts used. The project ask outranks
+    /// everything — the save pipeline is blocked on the answer, so it must
+    /// never be masked (an error status would otherwise hide it for good).
     private var rawNotice: IslandNotice? {
+        if let ask = store.meetingNotesProjectRequest { return .notesProjectPick(ask.id) }
         if isErrorStatus(store.statusMessage) { return .error }
         if store.isVoiceActionProcessing || store.isAgentResponding || store.isSavingMeetingNotes {
             return .processing
@@ -612,6 +681,7 @@ struct AtlasIslandView: View {
         case .dictation: dictationBubble
         case .processing: processingBubble
         case .error: errorBubble
+        case .notesProjectPick: notesProjectPickBubble
         case .meetingPrompt: meetingPromptBubble
         case .notesSaved: notesSavedBubble
         case .agentResponse: agentResponseBubble
@@ -741,6 +811,49 @@ struct AtlasIslandView: View {
     private var meetingPromptTitle: String {
         let title = store.meetingStartPrompt?.title.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return title.isEmpty ? "Meeting" : title
+    }
+
+    /// Post-recording ask: which project should the notes doc live in? The
+    /// pipeline blocks on the answer; closing the bubble (✕) skips choosing
+    /// and lets the server file the notes under its default project.
+    @ViewBuilder
+    private var notesProjectPickBubble: some View {
+        if let request = store.meetingNotesProjectRequest {
+            noticeBubble(closeAction: { store.chooseMeetingNotesProject(nil) }) {
+                AtlasToastStatusIcon(kind: .info, theme: theme)
+                VStack(alignment: .leading, spacing: 1) {
+                    bubbleTitle("Save notes to which project?")
+                    bubbleBody(request.meetingTitle)
+                }
+                Menu {
+                    ForEach(request.projects) { project in
+                        Button(project.name) {
+                            store.chooseMeetingNotesProject(project)
+                        }
+                    }
+                } label: {
+                    Text("Choose project ▾")
+                        .font(.custom("Figtree", size: 12).weight(.medium))
+                        .foregroundStyle(Color.white.opacity(0.88))
+                        .fixedSize()
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.white.opacity(0.12))
+                        )
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                        )
+                        .contentShape(Capsule(style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .accessibilityLabel("Choose project for meeting notes")
+            }
+        }
     }
 
     private var agentResponseBubble: some View {

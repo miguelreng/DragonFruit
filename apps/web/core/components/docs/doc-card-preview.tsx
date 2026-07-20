@@ -703,7 +703,7 @@ export function DocPreviewCard({ page, workspaceSlug, style, meta, footer }: Doc
   const typeTint = DOC_CARD_TYPE_TINT[pageType] ?? DOC_CARD_TYPE_TINT.doc;
   const typeLabel = DOC_CARD_TYPE_LABEL[pageType] ?? DOC_CARD_TYPE_LABEL.doc;
   const shellClassName =
-    "group t-press relative flex h-[156px] flex-col rounded-2xl bg-layer-1 transition-colors hover:bg-layer-3";
+    "group t-press relative flex h-[176px] flex-col rounded-2xl bg-layer-1 transition-colors hover:bg-layer-3";
   const previewSurface = (className?: string) => (
     <div className={cn("min-h-0 overflow-hidden rounded-[10px] border border-subtle bg-surface-1", className)}>
       <DocCardPreviewSurface page={page} workspaceSlug={workspaceSlug} />

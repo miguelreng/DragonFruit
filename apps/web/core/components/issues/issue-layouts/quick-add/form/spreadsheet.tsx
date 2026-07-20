@@ -9,12 +9,12 @@ import { useTranslation } from "@plane/i18n";
 import type { TQuickAddIssueForm } from "../root";
 
 export const SpreadsheetQuickAddIssueForm = observer(function SpreadsheetQuickAddIssueForm(props: TQuickAddIssueForm) {
-  const { ref, register, onSubmit, isEpic } = props;
+  const { formRef, register, onSubmit, isEpic } = props;
   const { t } = useTranslation();
   return (
     // Inline editable cell (no floating box) so the row reads like a real grid
     // row, with the row's own borders defining it.
-    <form ref={ref} onSubmit={onSubmit} className="flex h-full w-full items-center px-page-x">
+    <form ref={formRef} onSubmit={onSubmit} className="flex h-full w-full items-center px-page-x">
       <input
         type="text"
         autoComplete="off"

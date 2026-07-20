@@ -7,7 +7,7 @@ from unittest.mock import patch
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage, WorkspaceMember
+from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage, UserFavorite, WorkspaceMember
 
 
 def mock_presigned_post(file_type="application/pdf"):
@@ -260,6 +260,30 @@ class TestPageDeletePermissionsAPI:
 
 
 @pytest.mark.contract
+class TestWorkspacePagesListAPI:
+    @pytest.mark.django_db
+    def test_project_ids_only_include_active_joined_projects(self, session_client, workspace, create_user):
+        joined_project = Project.objects.create(name="Joined", identifier="JND", workspace=workspace)
+        inaccessible_project = Project.objects.create(name="Inaccessible", identifier="INA", workspace=workspace)
+        ProjectMember.objects.create(
+            project=joined_project,
+            workspace=workspace,
+            member=create_user,
+            role=20,
+            is_active=True,
+        )
+        page = Page.objects.create(name="Shared doc", workspace=workspace, owned_by=create_user, access=0)
+        ProjectPage.objects.create(project=joined_project, page=page, workspace=workspace)
+        ProjectPage.objects.create(project=inaccessible_project, page=page, workspace=workspace)
+
+        response = session_client.get(f"/api/workspaces/{workspace.slug}/pages/")
+
+        assert response.status_code == status.HTTP_200_OK
+        response_page = next(item for item in response.data if str(item["id"]) == str(page.id))
+        assert response_page["project_ids"] == [joined_project.id]
+
+
+@pytest.mark.contract
 class TestWorkspacePagesContentPreviewAPI:
     """The workspace pages list ships per-type `content_preview` payloads the
     docs gallery renders as thumbnails (doc blocks / sheet window / whiteboard
@@ -344,6 +368,117 @@ class TestWorkspacePagesContentPreviewAPI:
 
         assert previews[str(pdf.id)] is None
         assert previews[str(empty.id)] is None
+
+
+@pytest.mark.contract
+class TestPageMoveAPI:
+    """Powers the docs card / bulk-bar "Move to project" action."""
+
+    def get_move_url(self, workspace_slug: str, project_id: str, page_id: str) -> str:
+        return f"/api/workspaces/{workspace_slug}/projects/{project_id}/pages/{page_id}/move/"
+
+    def make_projects(self, workspace, create_user, target_role=20):
+        source = Project.objects.create(name="Source", identifier="SRC", workspace=workspace)
+        target = Project.objects.create(name="Target", identifier="TGT", workspace=workspace)
+        ProjectMember.objects.create(project=source, workspace=workspace, member=create_user, role=20, is_active=True)
+        if target_role is not None:
+            ProjectMember.objects.create(
+                project=target, workspace=workspace, member=create_user, role=target_role, is_active=True
+            )
+        return source, target
+
+    def make_page(self, workspace, project, create_user, name, **kwargs):
+        page = Page.objects.create(name=name, workspace=workspace, owned_by=create_user, access=0, **kwargs)
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+        return page
+
+    @pytest.mark.django_db
+    def test_move_doc_detaches_folder_and_carries_favorite(self, session_client, workspace, create_user):
+        source, target = self.make_projects(workspace, create_user)
+        folder = self.make_page(workspace, source, create_user, "Research", page_type=Page.PAGE_TYPE_FOLDER)
+        doc = self.make_page(workspace, source, create_user, "Spec", parent=folder)
+        UserFavorite.objects.create(
+            entity_type="page", entity_identifier=doc.id, user=create_user, project=source, workspace=workspace
+        )
+
+        response = session_client.post(
+            self.get_move_url(workspace.slug, str(source.id), str(doc.id)),
+            {"new_project_id": str(target.id)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert list(ProjectPage.objects.filter(page=doc).values_list("project_id", flat=True)) == [target.id]
+        doc.refresh_from_db()
+        assert doc.parent_id is None  # the folder stayed in the source project
+        favorite = UserFavorite.objects.get(entity_type="page", entity_identifier=doc.id)
+        assert favorite.project_id == target.id
+        # The folder itself did not move.
+        assert ProjectPage.objects.filter(page=folder, project=source).exists()
+
+    @pytest.mark.django_db
+    def test_move_folder_carries_contents(self, session_client, workspace, create_user):
+        source, target = self.make_projects(workspace, create_user)
+        folder = self.make_page(workspace, source, create_user, "Research", page_type=Page.PAGE_TYPE_FOLDER)
+        doc_a = self.make_page(workspace, source, create_user, "Spec A", parent=folder)
+        doc_b = self.make_page(workspace, source, create_user, "Spec B", parent=folder)
+
+        response = session_client.post(
+            self.get_move_url(workspace.slug, str(source.id), str(folder.id)),
+            {"new_project_id": str(target.id)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        for page in [folder, doc_a, doc_b]:
+            assert list(ProjectPage.objects.filter(page=page).values_list("project_id", flat=True)) == [target.id]
+        # Contents stay filed under the folder.
+        doc_a.refresh_from_db()
+        doc_b.refresh_from_db()
+        assert doc_a.parent_id == folder.id and doc_b.parent_id == folder.id
+
+    @pytest.mark.django_db
+    def test_move_page_already_linked_to_target_drops_source_link(self, session_client, workspace, create_user):
+        source, target = self.make_projects(workspace, create_user)
+        doc = self.make_page(workspace, source, create_user, "Shared Spec")
+        ProjectPage.objects.create(project=target, page=doc, workspace=workspace)
+
+        response = session_client.post(
+            self.get_move_url(workspace.slug, str(source.id), str(doc.id)),
+            {"new_project_id": str(target.id)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert list(ProjectPage.objects.filter(page=doc).values_list("project_id", flat=True)) == [target.id]
+
+    @pytest.mark.django_db
+    def test_move_requires_target_membership(self, session_client, workspace, create_user):
+        source, target = self.make_projects(workspace, create_user, target_role=None)
+        doc = self.make_page(workspace, source, create_user, "Spec")
+
+        response = session_client.post(
+            self.get_move_url(workspace.slug, str(source.id), str(doc.id)),
+            {"new_project_id": str(target.id)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert ProjectPage.objects.filter(page=doc, project=source).exists()
+
+    @pytest.mark.django_db
+    def test_move_rejects_briefs(self, session_client, workspace, create_user):
+        source, target = self.make_projects(workspace, create_user)
+        brief = self.make_page(workspace, source, create_user, "Project Brief", is_brief=True)
+
+        response = session_client.post(
+            self.get_move_url(workspace.slug, str(source.id), str(brief.id)),
+            {"new_project_id": str(target.id)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert ProjectPage.objects.filter(page=brief, project=source).exists()
 
 
 @pytest.mark.contract

@@ -233,6 +233,25 @@ class AgentChatSession(BaseModel):
         null=True,
         blank=True,
     )
+    # Context is attached to the conversation rather than a browser tab so it
+    # can be resumed safely across web and mobile. These references are hints
+    # only; every read/tool call still performs its normal permission checks.
+    context_project = models.ForeignKey(
+        "db.Project",
+        on_delete=models.SET_NULL,
+        related_name="+",
+        null=True,
+        blank=True,
+    )
+    context_page = models.ForeignKey(
+        "db.Page",
+        on_delete=models.SET_NULL,
+        related_name="+",
+        null=True,
+        blank=True,
+    )
+    context_updated_at = models.DateTimeField(null=True, blank=True)
+    context_updated_by_surface = models.CharField(max_length=16, blank=True, default="")
     # Stamped each time a message is added so the "Recent chats" panel
     # can sort by activity instead of creation.
     last_activity_at = models.DateTimeField(auto_now=True)
@@ -292,9 +311,7 @@ class AgentMemory(BaseModel):
 class AgentAutomation(BaseModel):
     """Workspace automation rules that execute agents on triggers."""
 
-    TRIGGER_CHOICES = (
-        ("issue_created", "Issue created"),
-    )
+    TRIGGER_CHOICES = (("issue_created", "Issue created"),)
 
     workspace = models.ForeignKey(
         "db.Workspace",

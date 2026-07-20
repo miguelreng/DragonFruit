@@ -8,6 +8,7 @@ import { action, observable, makeObservable } from "mobx";
 
 const ATLAS_SIDEBAR_OPEN_KEY = "atlas_sidebar_open";
 const ATLAS_SIDEBAR_COLLAPSED_KEY = "atlas_sidebar_collapsed";
+const ATLAS_SIDEBAR_EXPANDED_KEY = "atlas_sidebar_expanded";
 
 /**
  * Atlas docks open by default. A fresh localStorage key (not the legacy
@@ -32,6 +33,16 @@ function readAtlasSidebarCollapsed(): boolean {
   return window.localStorage.getItem(ATLAS_SIDEBAR_COLLAPSED_KEY) === "true";
 }
 
+/**
+ * Desktop-only: whether the docked Atlas sidebar is expanded to full width
+ * (Claude-style focus chat — the page content closes). Independent of the
+ * collapsed rail — collapsing while expanded and reopening returns to full.
+ */
+function readAtlasSidebarExpanded(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(ATLAS_SIDEBAR_EXPANDED_KEY) === "true";
+}
+
 export interface IThemeStore {
   // observables
   isAnySidebarDropdownOpen: boolean | undefined;
@@ -47,6 +58,8 @@ export interface IThemeStore {
   agentChatOpen: boolean;
   /** Desktop-only: Atlas sidebar collapsed to a slim rail (vs. full panel). */
   atlasSidebarCollapsed: boolean;
+  /** Desktop-only: Atlas sidebar expanded to full width (content closed). */
+  atlasSidebarExpanded: boolean;
   // actions
   toggleAnySidebarDropdown: (open?: boolean) => void;
   toggleSidebar: (collapsed?: boolean) => void;
@@ -59,6 +72,7 @@ export interface IThemeStore {
   toggleProjectOverviewSidebar: (collapsed?: boolean) => void;
   toggleAgentChat: (open?: boolean) => void;
   toggleAtlasSidebar: (collapsed?: boolean) => void;
+  toggleAtlasSidebarExpanded: (expanded?: boolean) => void;
 }
 
 export class ThemeStore implements IThemeStore {
@@ -74,6 +88,7 @@ export class ThemeStore implements IThemeStore {
   projectOverviewSidebarCollapsed: boolean | undefined = undefined;
   agentChatOpen: boolean = readAtlasSidebarOpen();
   atlasSidebarCollapsed: boolean = readAtlasSidebarCollapsed();
+  atlasSidebarExpanded: boolean = readAtlasSidebarExpanded();
 
   constructor() {
     makeObservable(this, {
@@ -89,6 +104,7 @@ export class ThemeStore implements IThemeStore {
       projectOverviewSidebarCollapsed: observable.ref,
       agentChatOpen: observable.ref,
       atlasSidebarCollapsed: observable.ref,
+      atlasSidebarExpanded: observable.ref,
       // action
       toggleAnySidebarDropdown: action,
       toggleSidebar: action,
@@ -101,6 +117,7 @@ export class ThemeStore implements IThemeStore {
       toggleProjectOverviewSidebar: action,
       toggleAgentChat: action,
       toggleAtlasSidebar: action,
+      toggleAtlasSidebarExpanded: action,
     });
   }
 
@@ -225,5 +242,19 @@ export class ThemeStore implements IThemeStore {
       this.atlasSidebarCollapsed = collapsed;
     }
     localStorage.setItem(ATLAS_SIDEBAR_COLLAPSED_KEY, this.atlasSidebarCollapsed.toString());
+  };
+
+  /**
+   * Expand the docked Atlas sidebar to full width (or shrink it back to the
+   * default panel). The page content closes — same docked push as the rail
+   * toggle, taken all the way. Persists across reloads.
+   */
+  toggleAtlasSidebarExpanded = (expanded?: boolean) => {
+    if (expanded === undefined) {
+      this.atlasSidebarExpanded = !this.atlasSidebarExpanded;
+    } else {
+      this.atlasSidebarExpanded = expanded;
+    }
+    localStorage.setItem(ATLAS_SIDEBAR_EXPANDED_KEY, this.atlasSidebarExpanded.toString());
   };
 }

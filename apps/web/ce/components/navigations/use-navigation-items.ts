@@ -8,15 +8,7 @@ import { useMemo, useCallback } from "react";
 import { CalendarDays, FileText, Whiteboard, Star } from "@/components/icons/lucide-shim";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
-import {
-  CycleIcon,
-  IntakeIcon,
-  ModuleIcon,
-  PageIcon,
-  StickyNoteIcon,
-  ViewsIcon,
-  WorkItemsIcon,
-} from "@/components/icons/propel-shim";
+import { IntakeIcon, PageIcon, StickyNoteIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
 import type { EUserProjectRoles, IPartialProject } from "@plane/types";
 import type { TNavigationItem } from "@/components/navigation/tab-navigation-root";
 
@@ -72,39 +64,9 @@ export const useNavigationItems = ({
         sortOrder: 2,
       },
       {
-        i18n_key: "sidebar.cycles",
-        key: "cycles",
-        name: "Cycles",
-        href: `/${workspaceSlug}/projects/${projectId}/cycles`,
-        icon: CycleIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-        shouldRender: !!project?.cycle_view,
-        sortOrder: 3,
-      },
-      {
-        i18n_key: "sidebar.modules",
-        key: "modules",
-        name: "Modules",
-        href: `/${workspaceSlug}/projects/${projectId}/modules`,
-        icon: ModuleIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER],
-        shouldRender: !!project?.module_view,
-        sortOrder: 4,
-      },
-      {
-        i18n_key: "sidebar.views",
-        key: "views",
-        name: "Views",
-        href: `/${workspaceSlug}/projects/${projectId}/views`,
-        icon: ViewsIcon,
-        access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],
-        shouldRender: !!project?.issue_views_view,
-        sortOrder: 5,
-      },
-      {
-        i18n_key: "sidebar.pages",
+        i18n_key: "sidebar.docs",
         key: "pages",
-        name: "Pages",
+        name: "Docs",
         href: `/${workspaceSlug}/projects/${projectId}/pages`,
         icon: PageIcon,
         access: [EUserPermissions.ADMIN, EUserPermissions.MEMBER, EUserPermissions.GUEST],

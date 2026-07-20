@@ -15,13 +15,13 @@ type Props = {
 export function DropIndicator(props: Props) {
   const { isVisible, classNames = "" } = props;
 
+  if (!isVisible) return null;
+
   return (
     <div
       className={cn(
         `relative block h-[2px] w-full before:relative before:top-[-2px] before:left-0 before:block before:h-[6px] before:w-[6px] before:rounded-lg after:relative after:top-[-8px] after:left-[calc(100%-6px)] after:block after:h-[6px] after:w-[6px] after:rounded-lg`,
-        {
-          "bg-accent-primary before:bg-accent-primary after:bg-accent-primary": isVisible,
-        },
+        "bg-accent-primary before:bg-accent-primary after:bg-accent-primary",
         classNames
       )}
     />

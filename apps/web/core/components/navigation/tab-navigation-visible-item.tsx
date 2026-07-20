@@ -5,12 +5,11 @@
  */
 
 import { Link } from "react-router";
-import { PinOff } from "@/components/icons/lucide-shim";
+import { EyeClosed, Star } from "@solar-icons/react/ssr";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { cn } from "@plane/utils";
 import { ContextMenu } from "@plane/propel/context-menu";
-import { SetAsDefaultIcon } from "@/components/icons/propel-shim";
 import { TabNavigationItem } from "@plane/propel/tab-navigation";
 // local imports
 import type { TNavigationItem } from "./tab-navigation-root";
@@ -20,8 +19,8 @@ export type TTabNavigationVisibleItemProps = {
   item: TNavigationItem;
   isActive: boolean;
   tabPreferences: TTabPreferences;
-  onToggleDefault: (tabKey: string) => void;
-  onHide: (tabKey: string) => void;
+  onToggleDefault: (tabKey: string) => Promise<void>;
+  onHide: (tabKey: string) => Promise<void>;
   itemRef?: (el: HTMLDivElement | null) => void;
 };
 
@@ -58,21 +57,21 @@ export function TabNavigationVisibleItem({
               <ContextMenu.Item
                 onClick={(e) => {
                   e.stopPropagation();
-                  onToggleDefault(item.key);
+                  void onToggleDefault(item.key);
                 }}
                 className="flex cursor-pointer items-center gap-2 text-secondary transition-colors"
               >
-                <SetAsDefaultIcon className="size-3 shrink-0" />
+                <Star className="size-3 shrink-0" weight={isDefault ? "Bold" : "Linear"} />
                 <span className="text-11">{isDefault ? "Clear default" : "Set as default"}</span>
               </ContextMenu.Item>
               <ContextMenu.Item
                 onClick={(e) => {
                   e.stopPropagation();
-                  onHide(item.key);
+                  void onHide(item.key);
                 }}
                 className="flex cursor-pointer items-center gap-2 text-secondary transition-colors"
               >
-                <PinOff className="size-3 shrink-0" />
+                <EyeClosed className="size-3 shrink-0" weight="Linear" />
                 <span className="text-11">Hide in more menu</span>
               </ContextMenu.Item>
             </ContextMenu.Content>

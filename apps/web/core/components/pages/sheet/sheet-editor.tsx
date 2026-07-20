@@ -186,13 +186,13 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const redoRef = useRef<TSheetSnapshot[]>([]);
   // Value of the focused cell when editing began, so Esc can revert it.
   const editOriginalRef = useRef("");
-  // True once the user has typed into the focused cell — so ⌘A selects the cell's
-  // text rather than all cells.
-  const typingRef = useRef(false);
   // Moving corner of a keyboard (Shift+Arrow) selection; the focused cell anchors it.
   const selectionActiveRef = useRef<{ row: number; col: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState<string | null>(null);
+  // Cell in text-edit mode (entered via double-click, typing, or Enter). A focused
+  // cell that isn't being edited is merely "selected" — keys navigate the grid.
+  const [editingCell, setEditingCell] = useState<string | null>(null);
   const [selection, setSelection] = useState<Rect | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [menu, setMenu] = useState<ContextMenu | null>(null);
@@ -533,6 +533,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     if (id === snapshot.activeId) return;
     setFocused(null);
     setSelection(null);
+    stopEditing();
     commit((prev) => ({ ...prev, activeId: id }));
   };
   const addSheet = () => {
@@ -545,6 +546,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     }));
     setFocused(null);
     setSelection(null);
+    stopEditing();
   };
   const deleteSheet = (id: string) => {
     if (!isEditable) return;
@@ -554,6 +556,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       return { sheets, activeId: prev.activeId === id ? sheets[0].id : prev.activeId };
     });
     setFocused(null);
+    stopEditing();
   };
   const moveSheet = (from: number, to: number) => {
     if (from === to) return;
@@ -577,6 +580,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     });
     setFocused(null);
     setSelection(null);
+    stopEditing();
   };
   const setSheetColor = (index: number, color?: string) => {
     if (!isEditable) return;
@@ -711,8 +715,10 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const focusedRaw = focused ? (active.cells[focused] ?? "") : "";
 
   // Formula reference highlighting: color each cell reference and highlight the
-  // referenced cells in the grid, like a spreadsheet.
-  const editingFormula = !!focused && isEditable && focusedRaw.startsWith("=");
+  // referenced cells in the grid, like a spreadsheet. Only while the formula is
+  // actually being edited (in the cell or the fx bar) — not when merely selected.
+  const editingFormula =
+    !!focused && isEditable && focusedRaw.startsWith("=") && (editingCell === focused || barFocused);
   const formulaRefs = editingFormula ? parseFormulaRefs(focusedRaw) : [];
   const renderFormulaText = (raw: string) =>
     formulaSegments(raw, parseFormulaRefs(raw)).map((seg, i) => (
@@ -750,20 +756,50 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
 
   const refocusEnd = () =>
     requestAnimationFrame(() => {
-      const el = focused ? (document.getElementById(`sheet-cell-${focused}`) as HTMLInputElement | null) : null;
+      const el = barFocused
+        ? barInputRef.current
+        : focused
+          ? (document.getElementById(`sheet-cell-${focused}`) as HTMLInputElement | null)
+          : null;
       if (el) {
         el.focus();
         el.setSelectionRange(el.value.length, el.value.length);
       }
     });
   const onCellInput = (id: string, value: string, source: "cell" | "bar" = "cell") => {
-    typingRef.current = true;
     setCellValue(id, value);
     const hasFormula = value.startsWith("=") && formulaSuggestions(value).length > 0;
     const hasMention = !value.startsWith("=") && /@([^@\s]*)$/.test(value);
     setShowSuggest(hasFormula || hasMention);
     setSuggestIndex(0);
     setFormulaEditing(value.startsWith("=") ? { id, source } : null);
+  };
+
+  // Enter text-edit mode on a cell: "end" keeps the current value (caret at the
+  // end); "replace" starts over with `initial` (type-to-replace).
+  const startEditing = (id: string, mode: "end" | "replace", initial = "") => {
+    if (!isEditable) return;
+    const raw = active.cells[id] ?? "";
+    editOriginalRef.current = raw;
+    setEditingCell(id);
+    if (mode === "replace") {
+      onCellInput(id, initial);
+    } else {
+      setShowSuggest(false);
+      setFormulaEditing(raw.startsWith("=") ? { id, source: "cell" } : null);
+    }
+    // After the input re-renders with the raw value, focus it with the caret at the end.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`sheet-cell-${id}`) as HTMLInputElement | null;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
+  const stopEditing = () => {
+    setEditingCell(null);
+    setFormulaEditing(null);
+    setShowSuggest(false);
   };
 
   // Insert a clicked cell's reference into the formula being edited (replacing a
@@ -823,6 +859,9 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       return true;
     }
     if (event.key === "Enter" || event.key === "Tab") {
+      // Enter commits the formula being edited (Tab accepts the suggestion);
+      // mention suggestions accept on both.
+      if (event.key === "Enter" && suggestKind === "formula") return false;
       event.preventDefault();
       acceptActive();
       return true;
@@ -835,6 +874,8 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     return false;
   };
   const handleCellKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, row: number, col: number) => {
+    const id = cellId(row, col);
+    const isEditing = editingCell === id;
     if ((event.metaKey || event.ctrlKey) && !event.altKey) {
       const k = event.key.toLowerCase();
       if (k === "b") {
@@ -849,21 +890,21 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       }
       if (k === "a") {
         // While editing, let ⌘A select the cell's text; otherwise select all cells.
-        if (typingRef.current) return;
+        if (isEditing) return;
         event.preventDefault();
         setSelection({ r1: 0, c1: 0, r2: active.rows - 1, c2: active.cols - 1 });
         return;
       }
     }
     // Shift+Arrow extends a cell-range selection from the focused (anchor) cell.
-    // Skip once the user is actively typing so Shift+Arrow selects text instead.
+    // Skip while editing so Shift+Arrow selects text instead.
     const arrowDelta: Record<string, [number, number]> = {
       ArrowUp: [-1, 0],
       ArrowDown: [1, 0],
       ArrowLeft: [0, -1],
       ArrowRight: [0, 1],
     };
-    if (event.shiftKey && !typingRef.current && arrowDelta[event.key]) {
+    if (event.shiftKey && !isEditing && arrowDelta[event.key]) {
       event.preventDefault();
       const [dr, dc] = arrowDelta[event.key];
       // Active corner = last moved corner, else the selection corner opposite the
@@ -882,9 +923,9 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       setSelection(normRect(row, col, nr, nc));
       return;
     }
-    // Delete/Backspace over a multi-cell selection clears every selected cell
-    // (a single cell still edits its text natively).
+    // Delete/Backspace over a multi-cell selection clears every selected cell.
     if (
+      !isEditing &&
       (event.key === "Delete" || event.key === "Backspace") &&
       selection &&
       !(selection.r1 === selection.r2 && selection.c1 === selection.c2)
@@ -894,27 +935,62 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
       commitGrid((g) => clearRect(g, rect.r1, rect.c1, rect.r2, rect.c2));
       return;
     }
-    if (handleSuggestKeyDown(event)) return;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      const id = cellId(row, col);
-      const current = active.cells[id] ?? "";
-      if (current !== editOriginalRef.current) {
-        // Cancel the edit: revert to the value before editing; keep the cell selected.
-        setCellValue(id, editOriginalRef.current);
-        setFormulaEditing(null);
-        setShowSuggest(false);
-      } else {
-        // Already unchanged → deselect.
+    if (!isEditing) {
+      // Selected (not editing): keys navigate the grid / act on the cell.
+      if (arrowDelta[event.key] && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        const [dr, dc] = arrowDelta[event.key];
+        const nr = Math.max(0, Math.min(row + dr, renderRows - 1));
+        const nc = Math.max(0, Math.min(col + dc, renderCols - 1));
+        document.getElementById(`sheet-cell-${cellId(nr, nc)}`)?.focus();
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        startEditing(id, "end");
+        return;
+      }
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        if (isEditable) setCellValue(id, "");
+        return;
+      }
+      if (event.key === "Escape") {
+        // Esc on a selected cell → drop the selection entirely.
+        event.preventDefault();
         event.currentTarget.blur();
         setFocused(null);
         setSelection(null);
         setFormulaEditing(null);
+        return;
+      }
+      // Typing on a selected cell starts a fresh edit (type-to-replace). Dead keys
+      // (accents) begin an empty edit so the composed character lands in the input.
+      if (isEditable && !event.metaKey && !event.ctrlKey && (event.key.length === 1 || event.key === "Dead")) {
+        if (event.key.length === 1) {
+          event.preventDefault();
+          startEditing(id, "replace", event.key);
+        } else {
+          startEditing(id, "replace", "");
+        }
       }
       return;
     }
-    if (event.key === "Enter") {
+    if (handleSuggestKeyDown(event)) return;
+    if (event.key === "Escape") {
+      // Cancel the edit: restore the value from before editing, then deselect the cell.
       event.preventDefault();
+      if ((active.cells[id] ?? "") !== editOriginalRef.current) setCellValue(id, editOriginalRef.current);
+      stopEditing();
+      event.currentTarget.blur();
+      setFocused(null);
+      setSelection(null);
+      return;
+    }
+    if (event.key === "Enter") {
+      // Commit the edit (the value/formula is already written), then move down.
+      event.preventDefault();
+      stopEditing();
       document.getElementById(`sheet-cell-${cellId(row + 1, col)}`)?.focus();
     }
   };
@@ -1065,10 +1141,12 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const selectColumn = (c: number) => {
     setSelection(normRect(0, c, renderRows - 1, c));
     setFocused(cellId(0, c));
+    stopEditing();
   };
   const selectRow = (r: number) => {
     setSelection(normRect(r, 0, r, renderCols - 1));
     setFocused(cellId(r, 0));
+    stopEditing();
   };
   const openMenu = (e: React.MouseEvent, kind: "col" | "row", index: number) => {
     if (!isEditable) return;
@@ -1127,7 +1205,17 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   const handlePaste = (e: React.ClipboardEvent) => {
     if (!isEditable || !selection) return;
     const text = e.clipboardData.getData("text/plain");
-    if (!text || !/[\t\n]/.test(text)) return; // single value → let the input paste natively
+    if (!text) return;
+    if (!/[\t\n]/.test(text)) {
+      // Single value: native paste while editing; on a selected (read-only) cell,
+      // write the pasted text as the cell's value.
+      if (editingCell) return;
+      if (focused) {
+        e.preventDefault();
+        setCellValue(focused, text);
+      }
+      return;
+    }
     e.preventDefault();
     const matrix = parseClipboard(text);
     const { r1, c1 } = selection;
@@ -1352,7 +1440,14 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
             type="text"
             value={focusedRaw}
             onChange={(e) => focused && onCellInput(focused, e.target.value, "bar")}
-            onKeyDown={handleSuggestKeyDown}
+            onKeyDown={(e) => {
+              if (handleSuggestKeyDown(e)) return;
+              if (e.key === "Enter") {
+                // Commit the value/formula back to the sheet.
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
             onFocus={() => {
               setBarFocused(true);
               setEditScroll(0);
@@ -1495,16 +1590,19 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                       {cols.map((c) => {
                         const id = cellId(r, c);
                         const isFocused = focused === id;
+                        const isEditing = editingCell === id;
                         const fmt = active.formats?.[id];
                         const colSelect = active.selects?.[c];
                         // Row 0 of a dropdown column is its header/label — keep it a normal
                         // (editable, formattable) text cell; only data rows render as pills.
                         const pillCell = !!colSelect && r > 0;
-                        const display = isFocused
+                        // Selected-but-not-editing cells keep showing the computed value;
+                        // the raw text/formula only appears while actually editing.
+                        const display = isEditing
                           ? (active.cells[id] ?? "")
                           : formatDisplayValue(computeCell(id, active.cells), fmt);
                         // A non-editing cell whose value is a URL renders as a link chip.
-                        const cellLink = !isFocused && !pillCell ? parseCellUrl(display) : null;
+                        const cellLink = !isEditing && !pillCell ? parseCellUrl(display) : null;
                         const wrapMode = fmt?.wrap;
                         // "wrap"/"clip" render via an in-flow div (which sizes the row);
                         // the input is then overlaid for editing. Default is input-only.
@@ -1553,6 +1651,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                                   const rect = e.currentTarget.getBoundingClientRect();
                                   setFocused(id);
                                   setSelection({ r1: r, c1: c, r2: r, c2: c });
+                                  stopEditing();
                                   setPickCell((p) =>
                                     p?.id === id ? null : { id, col: c, x: rect.left, y: rect.bottom }
                                   );
@@ -1582,14 +1681,14 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                                       "px-2 py-1 text-12 text-primary",
                                       wrapMode === "wrap" ? "break-words whitespace-pre-wrap" : "truncate",
                                       {
-                                        invisible: isFocused,
+                                        invisible: isEditing,
                                       }
                                     )}
                                   >
                                     {display || " "}
                                   </div>
                                 )}
-                                {isFocused && editingFormula && (
+                                {isEditing && editingFormula && (
                                   <div
                                     aria-hidden
                                     className="font-mono pointer-events-none absolute inset-0 z-0 flex items-center overflow-hidden px-2 text-12 whitespace-pre text-primary"
@@ -1602,7 +1701,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                                   id={`sheet-cell-${id}`}
                                   type="text"
                                   value={display}
-                                  readOnly={!isEditable}
+                                  readOnly={!isEditable || !isEditing}
                                   onMouseDown={(e) => {
                                     // While editing a formula, clicking another cell inserts its
                                     // reference instead of moving focus.
@@ -1617,7 +1716,18 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                                       const a = parseCellId(focused);
                                       if (a) setSelection(normRect(a.row, a.col, r, c));
                                       selectionActiveRef.current = { row: r, col: c };
+                                      return;
                                     }
+                                    if (editingCell !== id) {
+                                      // First click only selects — no caret until a double-click
+                                      // (or typing) starts an edit.
+                                      e.preventDefault();
+                                      e.currentTarget.focus();
+                                    }
+                                  }}
+                                  onDoubleClick={() => {
+                                    if (!isEditable || editingCell === id) return;
+                                    startEditing(id, "end");
                                   }}
                                   onFocus={() => {
                                     setFocused(id);
@@ -1626,10 +1736,11 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                                     setShowSuggest(false);
                                     setEditScroll(0);
                                     editOriginalRef.current = active.cells[id] ?? "";
-                                    typingRef.current = false;
-                                    setFormulaEditing(
-                                      (active.cells[id] ?? "").startsWith("=") ? { id, source: "cell" } : null
-                                    );
+                                    if (editingCell !== id) {
+                                      // Focus landed on a new cell → plain selection, end any edit.
+                                      setEditingCell(null);
+                                      setFormulaEditing(null);
+                                    }
                                   }}
                                   onBlur={() =>
                                     window.setTimeout(() => {
@@ -1642,17 +1753,17 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                                   onScroll={(e) => setEditScroll(e.currentTarget.scrollLeft)}
                                   style={{
                                     ...textStyle,
-                                    caretColor: isFocused && editingFormula ? "var(--txt-primary)" : undefined,
+                                    caretColor: isEditing && editingFormula ? "var(--txt-primary)" : undefined,
                                   }}
                                   className={cn(
                                     "z-0 w-full bg-transparent px-2 text-12 text-primary outline-none",
                                     layered ? "absolute inset-0 h-full" : "relative h-full",
-                                    isFocused ? "cursor-text" : "cursor-default",
+                                    isEditing ? "cursor-text" : "cursor-default caret-transparent select-none",
                                     {
-                                      "font-mono": isFocused && display.startsWith("="),
+                                      "font-mono": isEditing && display.startsWith("="),
                                       // Hide the input's own text so the colored overlay shows (caret stays visible).
-                                      "text-transparent": isFocused && editingFormula,
-                                      "text-transparent caret-transparent": (layered && !isFocused) || !!cellLink,
+                                      "text-transparent": isEditing && editingFormula,
+                                      "text-transparent caret-transparent": (layered && !isEditing) || !!cellLink,
                                     }
                                   )}
                                 />
@@ -1753,7 +1864,7 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                                 className="absolute -right-[3px] -bottom-[3px] z-10 size-[7px] cursor-crosshair rounded-[1px] border border-[var(--bg-surface-1)] bg-accent-primary"
                               />
                             )}
-                            {isFocused && !barFocused && renderSuggestions("left-0 top-full")}
+                            {isEditing && !barFocused && renderSuggestions("left-0 top-full")}
                           </td>
                         );
                       })}

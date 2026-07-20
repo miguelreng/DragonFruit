@@ -48,6 +48,9 @@ type Props = {
   /** When set, the new doc is created inside this folder page. Only meaningful
    * together with `lockedProjectId` — a folder lives in a single project. */
   parentPageId?: string;
+  /** Skip the template gallery and use this modal only to choose the project
+   * for the new page. */
+  projectPickerOnlyType?: "whiteboard";
 };
 
 export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal({
@@ -56,6 +59,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
   onClose,
   lockedProjectId,
   parentPageId,
+  projectPickerOnlyType,
 }: Props) {
   const navigate = useNavigate();
   const { joinedProjectIds, getProjectById } = useProject();
@@ -110,7 +114,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
     if (isCreating) return;
     setSubmittingProjectId(projectId);
     const payload: Partial<TPage> = {
-      access: EPageAccess.PRIVATE,
+      access: pageType === "whiteboard" ? EPageAccess.PUBLIC : EPageAccess.PRIVATE,
       page_type: pageType,
       // Folders are project-scoped; only attach when creating in that project.
       ...(parentPageId && projectId === lockedProjectId ? { parent: parentPageId } : {}),
@@ -135,7 +139,8 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error!",
-        message: err?.error || "Doc could not be created. Please try again.",
+        message:
+          err?.error || `${pageType === "whiteboard" ? "Whiteboard" : "Doc"} could not be created. Please try again.`,
       });
       setSubmittingProjectId(null);
     }
@@ -156,7 +161,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
     setPending({ template, pageType });
   };
 
-  const showProjectStep = pending !== null && !lockedProjectId;
+  const showProjectStep = !lockedProjectId && (projectPickerOnlyType !== undefined || pending !== null);
   const visibleCategories = DOC_TEMPLATE_CATEGORIES.filter((c) => activeRail === "all" || c.key === activeRail);
 
   return (
@@ -164,7 +169,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
       <div className="flex h-[560px] max-h-[80vh] flex-col">
         <div className="flex shrink-0 items-center justify-between border-b border-subtle px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            {showProjectStep && (
+            {showProjectStep && projectPickerOnlyType === undefined && (
               <button
                 type="button"
                 onClick={() => setPending(null)}
@@ -209,7 +214,13 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
                     key={project.id}
                     type="button"
                     disabled={isCreating}
-                    onClick={() => void createDoc(project.id, pending?.template ?? null, pending?.pageType ?? "doc")}
+                    onClick={() =>
+                      void createDoc(
+                        project.id,
+                        pending?.template ?? null,
+                        projectPickerOnlyType ?? pending?.pageType ?? "doc"
+                      )
+                    }
                     className={cn(
                       "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-13 text-primary hover:bg-layer-1",
                       { "opacity-50": isCreating }
@@ -226,7 +237,9 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
                 ))
               ) : (
                 <p className="px-3 py-2 text-11 text-placeholder italic">
-                  {projectSearch.trim() ? "No matching projects" : "Join a project to create a doc"}
+                  {projectSearch.trim()
+                    ? "No matching projects"
+                    : `Join a project to create a ${projectPickerOnlyType === "whiteboard" ? "whiteboard" : "doc"}`}
                 </p>
               )}
             </div>
@@ -274,7 +287,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
                 {visibleCategories.map((cat) => (
                   <section key={cat.key}>
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="text-11 font-normal text-tertiary">{cat.label}</span>
+                      <span className="font-normal text-11 text-tertiary">{cat.label}</span>
                       <span className="h-0 flex-1 border-t border-subtle" />
                     </div>
                     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
@@ -309,7 +322,7 @@ function RailItem({ label, active, onClick, icon }: RailItemProps) {
       onClick={onClick}
       className={cn(
         "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-13 text-primary transition-colors hover:bg-layer-1",
-        { "bg-layer-1 font-normal": active }
+        { "font-normal bg-layer-1": active }
       )}
     >
       {icon}
@@ -338,7 +351,7 @@ function TemplateCard({ title, subtitle, icon, disabled, onClick }: TemplateCard
       )}
     >
       <span className="mb-2.5 grid size-8 place-items-center rounded-lg bg-layer-1">{icon}</span>
-      <span className="text-13 font-normal text-primary">{title}</span>
+      <span className="font-normal text-13 text-primary">{title}</span>
       <span className="mt-0.5 line-clamp-2 text-12 text-tertiary">{subtitle}</span>
     </button>
   );

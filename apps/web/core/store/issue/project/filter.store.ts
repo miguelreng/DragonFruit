@@ -139,7 +139,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
 
     const richFilters = _filters?.rich_filters;
     const displayFilters = this.computedDisplayFilters(_filters?.display_filters, {
-      layout: EIssueLayoutTypes.SPREADSHEET,
+      layout: EIssueLayoutTypes.LIST,
     });
     const displayProperties = this.computedDisplayProperties(_filters?.display_properties);
 

@@ -71,9 +71,14 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
   const moduleDetail = getModuleById(favoriteItemId ?? "");
   const currentProjectDetails = getProjectById(favorite.project_id ?? "");
 
+  // Resolve page_type from the store when the favorite snapshot is stale.
+  // Used by both the icon and the link to consistently treat wiki folders.
+  const resolvedFavoritePageType =
+    favoriteItemEntityType === "page" ? (favorite.entity_data?.page_type ?? pageDetail?.page_type) : undefined;
+
   let itemIcon;
   let itemTitle;
-  const itemLink = generateFavoriteItemLink(workspaceSlug.toString(), favorite);
+  const itemLink = generateFavoriteItemLink(workspaceSlug.toString(), favorite, resolvedFavoritePageType);
 
   switch (favoriteItemEntityType) {
     case "project": {
@@ -90,8 +95,7 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
       break;
     }
     case "page": {
-      // Docs folders read as folders, not documents (see generateFavoriteItemLink).
-      const isDocsFolder = favorite.entity_data?.page_type === "folder";
+      const isDocsFolder = resolvedFavoritePageType === "folder";
       itemTitle = getPageName(pageDetail?.name ?? favoriteItemName);
       itemIcon = getFavoriteItemIcon(isDocsFolder ? "folder" : "page", pageDetail?.logo_props ?? favoriteItemLogoProps);
       break;

@@ -16,11 +16,11 @@ import { EFileAssetType } from "@plane/types";
 // plane utils
 import { cn } from "@plane/utils";
 // components
-import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { PageHead } from "@/components/core/page-title";
 import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import type { TPageRootConfig, TPageRootHandlers } from "@/components/pages/editor/page-root";
 import { PageRoot } from "@/components/pages/editor/page-root";
+import { PageContentLoader } from "@/components/pages/loaders/page-content-loader";
 // hooks
 import { useEditorConfig } from "@/hooks/editor";
 import { useEditorAsset } from "@/hooks/store/use-editor-asset";
@@ -151,7 +151,7 @@ function PageDetailsPage({ params }: Route.ComponentProps) {
     }
   }, [page?.deleted_at, page?.id, router, pageRootHandlers]);
 
-  if ((!page || !id) && !pageDetailsError) return <AppLoadingScreen />;
+  if ((!page || !id) && !pageDetailsError) return <PageContentLoader className="mx-auto w-full max-w-[720px]" />;
 
   if (pageDetailsError || !canCurrentUserAccessPage)
     return (

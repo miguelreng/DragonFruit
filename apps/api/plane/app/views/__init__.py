@@ -195,10 +195,11 @@ from .page.base import (
     PageFavoriteViewSet,
     PagesDescriptionViewSet,
     PageDuplicateEndpoint,
+    PageMoveEndpoint,
     WorkspacePagesListEndpoint,
 )
 from .page.version import PageVersionEndpoint
-from .page.capture import CapturedChatIngestEndpoint
+from .page.capture import CapturedChatIngestEndpoint, CapturedPageIngestEndpoint
 from .page.comment import PageBlockCommentEndpoint, PageBlockCommentDetailEndpoint
 from .page.template import (
     PageTemplateListEndpoint,

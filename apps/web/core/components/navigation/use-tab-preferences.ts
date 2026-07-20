@@ -11,12 +11,14 @@ import { useUser } from "@/hooks/store/user";
 import { DEFAULT_TAB_KEY } from "./tab-navigation-utils";
 import type { TTabPreferences } from "./tab-navigation-utils";
 
+const EMPTY_HIDDEN_TABS: string[] = [];
+
 export type TTabPreferencesHook = {
   tabPreferences: TTabPreferences;
   isLoading: boolean;
-  handleToggleDefaultTab: (tabKey: string) => void;
-  handleHideTab: (tabKey: string) => void;
-  handleShowTab: (tabKey: string) => void;
+  handleToggleDefaultTab: (tabKey: string) => Promise<void>;
+  handleHideTab: (tabKey: string) => Promise<void>;
+  handleShowTab: (tabKey: string) => Promise<void>;
 };
 
 /**
@@ -41,7 +43,7 @@ export const useTabPreferences = (workspaceSlug: string, projectId: string): TTa
   // Get preferences from store
   const storePreferences = getProjectUserProperties(projectId);
   const defaultTab = storePreferences?.preferences?.navigation?.default_tab || DEFAULT_TAB_KEY;
-  const hideInMoreMenu = storePreferences?.preferences?.navigation?.hide_in_more_menu || [];
+  const hideInMoreMenu = storePreferences?.preferences?.navigation?.hide_in_more_menu || EMPTY_HIDDEN_TABS;
 
   // Convert store preferences to component format
   const tabPreferences: TTabPreferences = useMemo(() => {
@@ -51,7 +53,7 @@ export const useTabPreferences = (workspaceSlug: string, projectId: string): TTa
     };
   }, [defaultTab, hideInMoreMenu]);
 
-  const isLoading = !storePreferences && memberId !== null;
+  const isLoading = memberId === null || !storePreferences;
 
   /**
    * Update preferences via store
@@ -59,6 +61,7 @@ export const useTabPreferences = (workspaceSlug: string, projectId: string): TTa
   const updatePreferences = async (newPreferences: TTabPreferences) => {
     await updateProjectUserProperties(workspaceSlug, projectId, {
       preferences: {
+        ...storePreferences?.preferences,
         pages: storePreferences?.preferences?.pages || { block_display: false },
         navigation: {
           default_tab: newPreferences.defaultTab,
@@ -72,39 +75,44 @@ export const useTabPreferences = (workspaceSlug: string, projectId: string): TTa
    * Toggle default tab setting
    * If tab is already default, resets to work_items; otherwise sets as default
    */
-  const handleToggleDefaultTab = (tabKey: string) => {
+  const handleToggleDefaultTab = async (tabKey: string) => {
     const newDefaultTab = tabKey === tabPreferences.defaultTab ? DEFAULT_TAB_KEY : tabKey;
     const newPreferences = { ...tabPreferences, defaultTab: newDefaultTab };
-    updatePreferences(newPreferences)
-      .then(() => {
-        setToast({
-          type: TOAST_TYPE.SUCCESS,
-          title: "Success!",
-          message: "Default tab updated successfully.",
-        });
-        return;
-      })
-      .catch(() => {
-        setToast({
-          type: TOAST_TYPE.ERROR,
-          title: "Error!",
-          message: "Failed to update default tab. Please try again later.",
-        });
+    const updatePromise = updatePreferences(newPreferences);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Success!",
+      message: newDefaultTab === DEFAULT_TAB_KEY ? "Default tab cleared." : "Default tab updated.",
+    });
+    try {
+      await updatePromise;
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "Failed to update default tab. Please try again later.",
       });
+    }
   };
 
   /**
    * Hide a tab (moves to overflow menu with "Show" option)
    */
-  const handleHideTab = (tabKey: string) => {
+  const handleHideTab = async (tabKey: string) => {
+    if (tabPreferences.hiddenTabs.includes(tabKey)) return;
     const newPreferences = {
       ...tabPreferences,
       hiddenTabs: [...tabPreferences.hiddenTabs, tabKey],
     };
+    const updatePromise = updatePreferences(newPreferences);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Success!",
+      message: "Tab moved to the more menu.",
+    });
     try {
-      updatePreferences(newPreferences);
-    } catch (error) {
-      console.error("Error hiding tab:", error);
+      await updatePromise;
+    } catch {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error!",
@@ -116,19 +124,24 @@ export const useTabPreferences = (workspaceSlug: string, projectId: string): TTa
   /**
    * Show a previously hidden tab (returns to visible pool)
    */
-  const handleShowTab = (tabKey: string) => {
+  const handleShowTab = async (tabKey: string) => {
     const newPreferences = {
       ...tabPreferences,
       hiddenTabs: tabPreferences.hiddenTabs.filter((key) => key !== tabKey),
     };
+    const updatePromise = updatePreferences(newPreferences);
+    setToast({
+      type: TOAST_TYPE.SUCCESS,
+      title: "Success!",
+      message: "Tab restored to the tab bar.",
+    });
     try {
-      updatePreferences(newPreferences);
-    } catch (error) {
-      console.error("Error showing tab:", error);
+      await updatePromise;
+    } catch {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error!",
-        message: "Something went wrong. Please try again later.",
+        message: "Failed to show tab. Please try again later.",
       });
     }
   };

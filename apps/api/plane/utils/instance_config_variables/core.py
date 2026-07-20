@@ -195,34 +195,6 @@ smtp_config_variables = [
     },
 ]
 
-llm_config_variables = [
-    {
-        "key": "LLM_API_KEY",
-        "value": os.environ.get("LLM_API_KEY"),
-        "category": "AI",
-        "is_encrypted": True,
-    },
-    {
-        "key": "LLM_PROVIDER",
-        "value": os.environ.get("LLM_PROVIDER", "openai"),
-        "category": "AI",
-        "is_encrypted": False,
-    },
-    {
-        "key": "LLM_MODEL",
-        "value": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
-        "category": "AI",
-        "is_encrypted": False,
-    },
-    # Deprecated, use LLM_MODEL
-    {
-        "key": "GPT_ENGINE",
-        "value": os.environ.get("GPT_ENGINE", "gpt-3.5-turbo"),
-        "category": "AI",
-        "is_encrypted": False,
-    },
-]
-
 unsplash_config_variables = [
     {
         "key": "UNSPLASH_ACCESS_KEY",
@@ -240,6 +212,5 @@ core_config_variables = [
     *gitlab_config_variables,
     *gitea_config_variables,
     *smtp_config_variables,
-    *llm_config_variables,
     *unsplash_config_variables,
 ]

@@ -66,10 +66,13 @@ export const getFavoriteViewIcon = (layout?: EIssueLayoutTypes) => {
   );
 };
 
-export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavorite) => {
+export const generateFavoriteItemLink = (workspaceSlug: string, favorite: IFavorite, resolvedPageType?: string) => {
   // Docs folders are pages that never open in an editor — deep-link the Docs
   // gallery with the folder drilled in instead of the page route.
-  if (favorite.entity_type === "page" && favorite.entity_data?.page_type === "folder")
+  // resolvedPageType is a caller-supplied fallback for stale entity_data payloads
+  // that predate the page_type snapshot (older favorites may omit it).
+  const effectivePageType = resolvedPageType ?? favorite.entity_data?.page_type;
+  if (favorite.entity_type === "page" && effectivePageType === "folder")
     return `/${workspaceSlug}/docs/?folder=${favorite.entity_identifier}`;
 
   const entityLinkDetails = FAVORITE_ITEM_LINKS[favorite.entity_type];

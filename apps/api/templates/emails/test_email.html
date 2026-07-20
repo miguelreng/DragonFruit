@@ -1,6 +1,14 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
-<html>
-    <p>This is a test email sent to verify if email configuration is working as expected in your Plane instance.</p>
+{% extends "emails/base.html" %}
 
-<p>Regards,</br> Team Plane </p>
-</html>
+{% block title %}DragonFruit email configuration test{% endblock %}
+{% block preheader %}Your DragonFruit email configuration is working.{% endblock %}
+{% block cover_label %}Email configuration{% endblock %}
+
+{% block content %}
+  <h1 style="margin: 0 0 12px; color: #171316; font-size: 24px; line-height: 1.3;">
+    Email is connected
+  </h1>
+  <p style="margin: 0;">
+    This test confirms that your DragonFruit instance can send email successfully.
+  </p>
+{% endblock %}

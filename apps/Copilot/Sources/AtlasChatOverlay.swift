@@ -1,4 +1,5 @@
 import AppKit
+import Charts
 import Combine
 import CoreImage
 import CoreImage.CIFilterBuiltins
@@ -330,25 +331,9 @@ struct AtlasChatView: View {
         // Always fill the panel so the glass is the same size whether the chat
         // is empty or full (an empty page would otherwise collapse to content).
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Adaptive glass that reads on ANY background (white / black / text):
-        //  • the frosted material stays present everywhere (min 0.5 at the edge)
-        //    so it always tones down whatever is behind — only a subtle blend.
-        //  • a uniform surface tint floor guarantees a consistent, readable
-        //    backing tone independent of the desktop content behind it.
-        .background(
-            ZStack {
-                VisualEffectBlur(material: glassMaterial, leadingFade: 220, fadeMinAlpha: 0.5)
-                LinearGradient(
-                    stops: [
-                        .init(color: theme.surface.opacity(isDark ? 0.16 : 0.24), location: 0),
-                        .init(color: theme.surface.opacity(isDark ? 0.3 : 0.44), location: 0.32),
-                        .init(color: theme.surface.opacity(isDark ? 0.3 : 0.44), location: 1),
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            }
-        )
+        // Uniform behind-window glass across the entire panel — no tint gradient
+        // and no feathered edge; the frosted material alone is the backing.
+        .background(VisualEffectBlur(material: glassMaterial))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .compositingGroup()
         .shadow(color: theme.shadow.opacity(0.5), radius: 24, y: 12)
@@ -392,51 +377,82 @@ struct AtlasChatView: View {
     // MARK: Message list — px-4 py-5, gap-4
 
     private var transcript: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                if store.atlasChatMessages.isEmpty {
-                    emptyState
-                } else {
-                    LazyVStack(alignment: .leading, spacing: 16) {
-                        ForEach(store.atlasChatMessages) { message in
-                            AtlasChatBubble(message: message, theme: theme)
-                                .id(message.id)
+        Group {
+            if store.atlasChatMessages.isEmpty {
+                emptyState
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 16) {
+                            ForEach(store.atlasChatMessages) { message in
+                                AtlasChatBubble(message: message, theme: theme, isDark: isDark, appURL: store.appURL)
+                                    .id(message.id)
+                            }
+                            if store.isAtlasChatSending, store.atlasChatMessages.last?.text.isEmpty ?? false {
+                                thinkingRow.id("thinking")
+                            }
                         }
-                        if store.isAtlasChatSending, store.atlasChatMessages.last?.text.isEmpty ?? false {
-                            thinkingRow.id("thinking")
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .onChange(of: store.atlasChatMessages) { messages in
+                        guard let last = messages.last else { return }
+                        withAnimation(AtlasMotion.standard) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 20)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            .onChange(of: store.atlasChatMessages) { messages in
-                guard let last = messages.last else { return }
-                withAnimation(AtlasMotion.standard) {
-                    proxy.scrollTo(last.id, anchor: .bottom)
                 }
             }
         }
     }
 
-    // Empty state: atlas dragon mark + "How can Atlas help?" + subtitle, centered.
+    // Starter shortcuts, workspace scope — the mac panel has no open doc or
+    // project context, so it always shows the web drawer's workspace set.
+    private static let emptyStateSuggestions: [(icon: AtlasIconName, label: String)] = [
+        (.search, "What's happening in my workspace?"),
+        (.checkList, "Help me plan my week"),
+        (.file, "Draft a doc for me"),
+        (.lightbulb, "Brainstorm ideas"),
+    ]
+
+    // Empty state — mirrors the web drawer: centered dragon, "How can Atlas
+    // help?", explainer, and starter suggestions that prefill the composer.
     private var emptyState: some View {
         VStack(spacing: 12) {
-            // Logo solo — tinted to the primary text color so it reads on the
-            // glass in both light and dark, like the web dragon.
+            // Logo tinted to the primary text color so it reads on the glass
+            // in both light and dark, like the web dragon's dark:invert.
             if let dragon = BrandTheme.dragonGlyphTemplate {
                 Image(nsImage: dragon)
                     .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
-                    .frame(height: 44)
+                    .frame(height: 48)
                     .foregroundStyle(theme.textPrimary)
             }
+            VStack(spacing: 4) {
+                Text("How can Atlas help?")
+                    .font(.custom("Figtree", size: 14).weight(.medium))
+                    .foregroundStyle(theme.textPrimary)
+                Text("Ask a question, brainstorm, or paste in something you want rewritten. Tasks and pages are not auto-attached.")
+                    .font(.custom("Figtree", size: 12).weight(.regular))
+                    .foregroundStyle(theme.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(spacing: 0) {
+                ForEach(Self.emptyStateSuggestions, id: \.label) { suggestion in
+                    EmptyStateSuggestionButton(icon: suggestion.icon, label: suggestion.label, theme: theme) {
+                        draft = suggestion.label
+                        inputFocused = true
+                    }
+                }
+            }
+            .padding(.top, 4)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: 320)
         .padding(.horizontal, 24)
-        .padding(.top, 120)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // "Thinking…" with the morphing-infinity loader. text-secondary to stay
@@ -548,6 +564,7 @@ struct AtlasChatView: View {
             }
             .padding(.horizontal, 4)
             .padding(.top, 2)
+
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)
@@ -581,10 +598,10 @@ struct AtlasChatView: View {
 
 // MARK: - Composer submit behavior (Return sends · Shift+Return = newline)
 
-/// Return sends the message; Shift+Return inserts a line break in the composer.
-/// Uses `.onKeyPress` on macOS 14+ (which lets us distinguish the modifier and
-/// pass Shift+Return through to the field editor as a line break). On macOS 13
-/// we fall back to `.onSubmit`, which only fires on plain Return.
+/// Return sends the message; Shift+Return (and macOS-native Option+Return)
+/// inserts a line break in the composer. Uses `.onKeyPress` on macOS 14+ to
+/// distinguish the modifier. On macOS 13 we fall back to `.onSubmit`, which
+/// only fires on plain Return.
 private struct ComposerSubmitModifier: ViewModifier {
     let send: () -> Void
 
@@ -592,15 +609,33 @@ private struct ComposerSubmitModifier: ViewModifier {
         if #available(macOS 14.0, *) {
             content.onKeyPress { press in
                 guard press.key == .return else { return .ignored }
-                // Let Shift+Return fall through so the field editor inserts a
-                // line break instead of submitting.
-                if press.modifiers.contains(.shift) { return .ignored }
+                // Native ⌥↩ is already bound to a line break in the field
+                // editor — let it through untouched.
+                if press.modifiers.contains(.option) { return .ignored }
+                if press.modifiers.contains(.shift) {
+                    // .ignored would NOT produce a line break here: the field
+                    // editor maps Shift+Return to the same `insertNewline:`
+                    // (submit) path as plain Return, so the press would just
+                    // vanish. Insert the break ourselves — the same selector
+                    // ⌥↩ triggers — and the binding picks it up.
+                    guard let editor = activeFieldEditor else { return .ignored }
+                    editor.insertNewlineIgnoringFieldEditor(nil)
+                    return .handled
+                }
                 send()
                 return .handled
             }
         } else {
             content.onSubmit(send)
         }
+    }
+
+    /// The focused field editor (an `NSTextView`) hosting the composer text.
+    /// The chat panel is key while typing; the windows scan covers the
+    /// non-activating-panel case where `keyWindow` can be nil.
+    private var activeFieldEditor: NSTextView? {
+        if let editor = NSApp.keyWindow?.firstResponder as? NSTextView { return editor }
+        return NSApp.windows.lazy.compactMap { $0.firstResponder as? NSTextView }.first
     }
 }
 
@@ -749,6 +784,41 @@ private struct ComposerIconButton: View {
     }
 }
 
+// MARK: - Empty-state suggestion row (px-2 py-1.5 · rounded-md · icon + text-13)
+
+private struct EmptyStateSuggestionButton: View {
+    let icon: AtlasIconName
+    let label: String
+    let theme: CopilotThemeTokens
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                AtlasIcon(icon)
+                    .frame(width: 16, height: 16)
+                    .foregroundStyle(theme.textTertiary)
+                Text(label)
+                    .font(.custom("Figtree", size: 13).weight(.regular))
+                    .foregroundStyle(isHovered ? theme.textPrimary : theme.textSecondary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isHovered ? theme.surface2.opacity(0.9) : Color.clear)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .accessibilityLabel(label)
+    }
+}
+
 // MARK: - Composer toolbar pill label (h-6 · px-2 · text-13 font-medium text-secondary)
 
 private struct PillLabel: View {
@@ -778,10 +848,20 @@ private struct PillLabel: View {
 private struct AtlasChatBubble: View {
     let message: AtlasChatMessage
     let theme: CopilotThemeTokens
+    let isDark: Bool
+    let appURL: String
+    @State private var isHovered = false
+    @State private var hoveredBlocks = 0
+
+    // layer-1 reads nearly black on the dark glass — lift the user bubble a
+    // step lighter so it separates from the backdrop.
+    private var bubbleFill: Color {
+        isDark ? Color(red: 0.29, green: 0.285, blue: 0.28) : theme.layer1
+    }
 
     var body: some View {
         if message.role == .user {
-            // Right-aligned pill · bg-layer-1 · rounded-2xl + rounded-br-md · max-w-85%
+            // Right-aligned pill · rounded-2xl + rounded-br-md · max-w-85%
             HStack {
                 Spacer(minLength: 0)
                 Text(message.text)
@@ -792,7 +872,7 @@ private struct AtlasChatBubble: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(
-                        theme.layer1,
+                        bubbleFill,
                         in: UnevenRoundedRectangle(
                             topLeadingRadius: 16,
                             bottomLeadingRadius: 16,
@@ -808,11 +888,128 @@ private struct AtlasChatBubble: View {
             // An empty assistant bubble renders nothing — the "Thinking…" row
             // covers the in-flight state, so there's no "(empty reply)" filler.
             HStack {
-                AtlasMarkdownText(text: message.text, theme: theme)
+                AtlasMarkdownText(
+                    text: message.text,
+                    theme: theme,
+                    isDark: isDark,
+                    appURL: appURL,
+                    hoveredBlocks: $hoveredBlocks
+                )
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 0)
             }
+            // Hover-revealed copy chip at the reply's top-right (mirrors the
+            // web drawer's BlockActions pill). Hidden while a block-level chip
+            // is up so the two never stack on the first paragraph.
+            .overlay(alignment: .topTrailing) {
+                CopyChipButton(copyText: markdownPlainText(from: message.text), theme: theme, accessibility: "Copy reply")
+                    .opacity(isHovered && hoveredBlocks == 0 ? 1 : 0)
+            }
+            .onHover { hovering in
+                withAnimation(.easeOut(duration: 0.15)) { isHovered = hovering }
+            }
         }
+    }
+}
+
+// MARK: - Copy chip button (hover chip · copies the given text verbatim)
+
+private struct CopyChipButton: View {
+    let copyText: String
+    let theme: CopilotThemeTokens
+    var accessibility: String = "Copy text"
+    @State private var copied = false
+    @State private var isHovered = false
+    @State private var copyGeneration = 0
+
+    var body: some View {
+        Button(action: copy) {
+            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(copied || isHovered ? theme.textPrimary : theme.textSecondary)
+                .frame(width: 22, height: 22)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(theme.surface2.opacity(isHovered ? 1 : 0.9))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(theme.border, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibility)
+        .help("Copy text")
+        .onHover { isHovered = $0 }
+    }
+
+    private func copy() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(copyText, forType: .string)
+        copied = true
+        copyGeneration += 1
+        let generation = copyGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if generation == copyGeneration { copied = false }
+        }
+    }
+}
+
+/// Strip markdown down to the plain text the user actually sees — the mac
+/// port of the web drawer's `inlineMarkdownToPlainText`, plus heading/fence
+/// markers so it also serves whole-reply copies.
+private func markdownPlainText(from markdown: String) -> String {
+    var text = markdown
+    for (pattern, template) in [
+        ("(?m)^#{1,6}\\s+", ""),
+        ("(?m)^```.*$", ""),
+        ("`([^`]+)`", "$1"),
+        ("\\*\\*(.+?)\\*\\*", "$1"),
+        ("__(.+?)__", "$1"),
+        ("(^|[^*])\\*(?!\\s)(.+?)(?<!\\s)\\*", "$1$2"),
+        ("(^|[^_])_(?!\\s)(.+?)(?<!\\s)_", "$1$2"),
+        ("\\[([^\\]]+)\\]\\([^)]+\\)", "$1"),
+    ] {
+        text = text.replacingOccurrences(of: pattern, with: template, options: .regularExpression)
+    }
+    return text.trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+/// Wraps a rendered block and floats a copy chip at its top-right while the
+/// mouse is over it — the mac port of the web drawer's per-block BlockActions,
+/// so a rewritten paragraph or a code fence can be copied without taking the
+/// whole reply. Reports hover through `hoveredBlocks` so the reply-level chip
+/// can stand down while a block chip is up.
+private struct CopyableBlock<Content: View>: View {
+    let copyText: String
+    let theme: CopilotThemeTokens
+    @Binding var hoveredBlocks: Int
+    var insetChip: Bool = false
+    @ViewBuilder let content: () -> Content
+    @State private var isHovered = false
+
+    var body: some View {
+        content()
+            .overlay(alignment: .topTrailing) {
+                if isHovered {
+                    CopyChipButton(copyText: copyText, theme: theme)
+                        .padding(insetChip ? 6 : 0)
+                        .offset(y: insetChip ? 0 : -3)
+                        .transition(.opacity)
+                }
+            }
+            .onHover { hovering in
+                guard hovering != isHovered else { return }
+                withAnimation(.easeOut(duration: 0.12)) { isHovered = hovering }
+                hoveredBlocks += hovering ? 1 : -1
+            }
+            .onDisappear {
+                if isHovered {
+                    isHovered = false
+                    hoveredBlocks -= 1
+                }
+            }
     }
 }
 
@@ -824,15 +1021,23 @@ private struct AtlasChatBubble: View {
 private struct AtlasMarkdownText: View {
     let text: String
     let theme: CopilotThemeTokens
+    let isDark: Bool
+    let appURL: String
+    @Binding var hoveredBlocks: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        // spacing 9 (was 5) — replies were reading cramped; give blocks air.
+        VStack(alignment: .leading, spacing: 9) {
             ForEach(Array(Self.blocks(from: text).enumerated()), id: \.offset) { _, block in
                 row(for: block)
             }
         }
         .tint(theme.accent)
         .textSelection(.enabled)
+        .environment(\.openURL, OpenURLAction { url in
+            guard let resolvedURL = resolvedAtlasOutputURL(url, appURL: appURL) else { return .discarded }
+            return NSWorkspace.shared.open(resolvedURL) ? .handled : .discarded
+        })
     }
 
     @ViewBuilder
@@ -843,30 +1048,42 @@ private struct AtlasMarkdownText: View {
                 .font(.custom("Figtree", size: 14).weight(.semibold))
                 .foregroundStyle(theme.textPrimary)
         case let .paragraph(text):
-            inline(text)
-                .font(.custom("Figtree", size: 13).weight(.regular))
-                .foregroundStyle(theme.textPrimary)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-        case let .listItem(marker, text):
-            HStack(alignment: .top, spacing: 6) {
-                Text(marker)
-                    .font(.custom("Figtree", size: 13).weight(.regular))
-                    .foregroundStyle(theme.textTertiary)
+            CopyableBlock(copyText: markdownPlainText(from: text), theme: theme, hoveredBlocks: $hoveredBlocks) {
                 inline(text)
                     .font(.custom("Figtree", size: 13).weight(.regular))
                     .foregroundStyle(theme.textPrimary)
-                    .lineSpacing(2)
+                    .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-        case let .code(text):
-            Text(text)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(theme.textPrimary)
-                .padding(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(theme.surface2.opacity(0.7), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        case let .listItem(marker, text):
+            CopyableBlock(copyText: markdownPlainText(from: text), theme: theme, hoveredBlocks: $hoveredBlocks) {
+                HStack(alignment: .top, spacing: 6) {
+                    Text(marker)
+                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .foregroundStyle(theme.textTertiary)
+                    inline(text)
+                        .font(.custom("Figtree", size: 13).weight(.regular))
+                        .foregroundStyle(theme.textPrimary)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        case let .code(text, language, closed):
+            if language.lowercased() == "chart", let spec = AtlasChartSpec.parse(text) {
+                AtlasChartView(spec: spec, theme: theme, isDark: isDark)
+            } else if language.lowercased() == "chart", !closed {
+                AtlasChartStreamingPlaceholder(theme: theme)
+            } else {
+                CopyableBlock(copyText: text, theme: theme, hoveredBlocks: $hoveredBlocks, insetChip: true) {
+                    Text(text)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(theme.textPrimary)
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(theme.surface2.opacity(0.7), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+            }
         }
     }
 
@@ -886,12 +1103,13 @@ private struct AtlasMarkdownText: View {
         case heading(String)
         case paragraph(String)
         case listItem(String, String)
-        case code(String)
+        case code(String, language: String, closed: Bool)
     }
 
     private static func blocks(from text: String) -> [MDBlock] {
         var blocks: [MDBlock] = []
         var inFence = false
+        var fenceLanguage = ""
         var codeLines: [String] = []
 
         for rawLine in text.components(separatedBy: "\n") {
@@ -900,8 +1118,11 @@ private struct AtlasMarkdownText: View {
 
             if trimmed.hasPrefix("```") {
                 if inFence {
-                    blocks.append(.code(codeLines.joined(separator: "\n")))
+                    blocks.append(.code(codeLines.joined(separator: "\n"), language: fenceLanguage, closed: true))
                     codeLines.removeAll()
+                    fenceLanguage = ""
+                } else {
+                    fenceLanguage = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespacesAndNewlines)
                 }
                 inFence.toggle()
                 continue
@@ -923,11 +1144,498 @@ private struct AtlasMarkdownText: View {
                 blocks.append(.paragraph(trimmed))
             }
         }
-        if inFence, !codeLines.isEmpty {
-            blocks.append(.code(codeLines.joined(separator: "\n")))
+        if inFence {
+            blocks.append(.code(codeLines.joined(separator: "\n"), language: fenceLanguage, closed: false))
         }
         return blocks
     }
+}
+
+/// Resolve links emitted in Atlas replies. Workspace tools intentionally use
+/// app-relative paths so the same response works across environments; macOS
+/// needs a fully qualified URL before it can hand the link to a browser.
+private func resolvedAtlasOutputURL(_ url: URL, appURL: String) -> URL? {
+    if let scheme = url.scheme?.lowercased() {
+        guard ["http", "https", "mailto"].contains(scheme) else { return nil }
+        return url
+    }
+
+    let trimmedAppURL = appURL
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    guard var destination = URLComponents(string: trimmedAppURL),
+          let scheme = destination.scheme?.lowercased(),
+          ["http", "https"].contains(scheme),
+          destination.host != nil,
+          let relative = URLComponents(url: url, resolvingAgainstBaseURL: false)
+    else { return nil }
+
+    let path = relative.percentEncodedPath
+    destination.percentEncodedPath = path.hasPrefix("/") ? path : "/\(path)"
+    destination.percentEncodedQuery = relative.percentEncodedQuery
+    destination.percentEncodedFragment = relative.percentEncodedFragment
+    return destination.url
+}
+
+// MARK: - Portable Atlas charts
+
+/// Native counterpart of the web app's `TChartSpec`. The backend sends this
+/// JSON inside a `chart` fence, so both clients share one response contract.
+private struct AtlasChartSpec {
+    enum Kind: String {
+        case bar
+        case line
+        case area
+        case pie
+        case donut
+    }
+
+    struct Series {
+        let name: String
+        let values: [Double]
+        let colorHex: String?
+    }
+
+    struct Options {
+        let stacked: Bool
+        let legend: Bool?
+        let xLabel: String?
+        let yLabel: String?
+    }
+
+    let kind: Kind
+    let title: String?
+    let labels: [String]
+    let series: [Series]
+    let options: Options
+
+    /// Mirrors the web parser's defensive boundaries: malformed completed
+    /// output falls back to visible JSON instead of crashing the chat view.
+    static func parse(_ raw: String) -> AtlasChartSpec? {
+        guard let data = raw.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data),
+              let dictionary = object as? [String: Any],
+              let rawKind = cleanString(dictionary["type"], maxLength: 16)?.lowercased(),
+              let kind = Kind(rawValue: rawKind),
+              let rawLabels = dictionary["labels"] as? [Any]
+        else { return nil }
+
+        let labels = rawLabels.prefix(48).enumerated().map { index, rawLabel in
+            cleanString(rawLabel, maxLength: 80) ?? "Item \(index + 1)"
+        }
+        guard !labels.isEmpty, let rawSeries = dictionary["series"] as? [Any] else { return nil }
+
+        var series: [Series] = []
+        for rawEntry in rawSeries.prefix(6) {
+            guard let entry = rawEntry as? [String: Any],
+                  let rawValues = entry["values"] as? [Any]
+            else { continue }
+
+            let values = labels.indices.map { index -> Double in
+                guard index < rawValues.count else { return 0 }
+                let rawValue = rawValues[index]
+                if let number = rawValue as? NSNumber { return number.doubleValue }
+                if let string = rawValue as? String, let number = Double(string) { return number }
+                return 0
+            }
+            let name = cleanString(entry["name"], maxLength: 80) ?? "Series \(series.count + 1)"
+            let colorHex = cleanString(entry["color"], maxLength: 9).flatMap { atlasChartColor(hex: $0) == nil ? nil : $0 }
+            series.append(Series(name: name, values: values, colorHex: colorHex))
+        }
+        guard !series.isEmpty else { return nil }
+
+        let rawOptions = dictionary["options"] as? [String: Any]
+        let options = Options(
+            stacked: rawOptions?["stacked"] as? Bool ?? false,
+            legend: rawOptions?["legend"] as? Bool,
+            xLabel: cleanString(rawOptions?["xLabel"], maxLength: 60),
+            yLabel: cleanString(rawOptions?["yLabel"], maxLength: 60)
+        )
+        return AtlasChartSpec(
+            kind: kind,
+            title: cleanString(dictionary["title"], maxLength: 160),
+            labels: labels,
+            series: series,
+            options: options
+        )
+    }
+
+    private static func cleanString(_ value: Any?, maxLength: Int) -> String? {
+        let string: String
+        if let value = value as? String {
+            string = value
+        } else if let value = value as? NSNumber {
+            string = value.stringValue
+        } else {
+            return nil
+        }
+        let cleaned = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return nil }
+        return String(cleaned.prefix(maxLength))
+    }
+}
+
+private struct AtlasChartPoint: Identifiable {
+    let seriesIndex: Int
+    let labelIndex: Int
+    let seriesKey: String
+    let label: String
+    let value: Double
+
+    var id: String { "\(seriesIndex)-\(labelIndex)" }
+}
+
+private struct AtlasChartView: View {
+    let spec: AtlasChartSpec
+    let theme: CopilotThemeTokens
+    let isDark: Bool
+
+    private var palette: [Color] {
+        let base = isDark
+            ? ["#6B7CDE", "#8E9DE6", "#D45D9E", "#2EAF85", "#D4A246", "#29A7C1"]
+            : ["#6172E8", "#8B6EDB", "#E05F99", "#29A383", "#CB8A37", "#3AA7C1"]
+        return spec.series.indices.map { index in
+            if let override = spec.series[index].colorHex.flatMap(atlasChartColor) { return override }
+            return atlasChartColor(hex: base[index % base.count]) ?? theme.accent
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            if let title = spec.title {
+                Text(title)
+                    .font(.custom("Figtree", size: 13).weight(.semibold))
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(2)
+            }
+
+            switch spec.kind {
+            case .bar, .line, .area:
+                AtlasAxisChartView(spec: spec, colors: palette, theme: theme)
+            case .pie, .donut:
+                AtlasPieChartView(spec: spec, colors: palette, theme: theme)
+            }
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private struct AtlasAxisChartView: View {
+    let spec: AtlasChartSpec
+    let colors: [Color]
+    let theme: CopilotThemeTokens
+
+    private var points: [AtlasChartPoint] {
+        spec.series.enumerated().flatMap { seriesIndex, series in
+            spec.labels.indices.map { labelIndex in
+                AtlasChartPoint(
+                    seriesIndex: seriesIndex,
+                    labelIndex: labelIndex,
+                    seriesKey: "series-\(seriesIndex)",
+                    label: spec.labels[labelIndex],
+                    value: series.values[labelIndex]
+                )
+            }
+        }
+    }
+
+    private var seriesKeys: [String] { spec.series.indices.map { "series-\($0)" } }
+    private var plotWidth: CGFloat { max(300, CGFloat(spec.labels.count) * 52) }
+    private var showLegend: Bool { spec.options.legend ?? (spec.series.count > 1) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let yLabel = spec.options.yLabel {
+                Text(yLabel)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(theme.textSecondary)
+            }
+
+            ScrollView(.horizontal, showsIndicators: spec.labels.count > 6) {
+                Chart {
+                    switch spec.kind {
+                    case .bar:
+                        ForEach(points) { point in
+                            if spec.options.stacked {
+                                BarMark(
+                                    x: .value("Category", point.label),
+                                    y: .value("Value", point.value)
+                                )
+                                .foregroundStyle(by: .value("Series", point.seriesKey))
+                                .cornerRadius(4)
+                            } else {
+                                BarMark(
+                                    x: .value("Category", point.label),
+                                    y: .value("Value", point.value)
+                                )
+                                .foregroundStyle(by: .value("Series", point.seriesKey))
+                                .position(by: .value("Series", point.seriesKey))
+                                .cornerRadius(4)
+                            }
+                        }
+                    case .line:
+                        ForEach(points) { point in
+                            LineMark(
+                                x: .value("Category", point.label),
+                                y: .value("Value", point.value)
+                            )
+                            .foregroundStyle(by: .value("Series", point.seriesKey))
+                            .interpolationMethod(.catmullRom)
+                            if spec.labels.count <= 16 {
+                                PointMark(
+                                    x: .value("Category", point.label),
+                                    y: .value("Value", point.value)
+                                )
+                                .foregroundStyle(by: .value("Series", point.seriesKey))
+                            }
+                        }
+                    case .area:
+                        ForEach(points) { point in
+                            AreaMark(
+                                x: .value("Category", point.label),
+                                y: .value("Value", point.value)
+                            )
+                            .foregroundStyle(by: .value("Series", point.seriesKey))
+                            .opacity(0.2)
+                            .interpolationMethod(.catmullRom)
+                            LineMark(
+                                x: .value("Category", point.label),
+                                y: .value("Value", point.value)
+                            )
+                            .foregroundStyle(by: .value("Series", point.seriesKey))
+                            .interpolationMethod(.catmullRom)
+                        }
+                    case .pie, .donut:
+                        RuleMark(y: .value("Value", 0)).opacity(0)
+                    }
+                }
+                .chartForegroundStyleScale(domain: seriesKeys, range: colors)
+                .chartLegend(.hidden)
+                .chartYAxis {
+                    AxisMarks(position: .leading) {
+                        AxisGridLine().foregroundStyle(theme.borderStrong)
+                        AxisTick().foregroundStyle(theme.borderStrong)
+                        AxisValueLabel()
+                            .font(.custom("Figtree", size: 10).weight(.regular))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks {
+                        AxisValueLabel()
+                            .font(.custom("Figtree", size: 10).weight(.medium))
+                            .foregroundStyle(theme.textSecondary)
+                    }
+                }
+                .frame(width: plotWidth, height: 190)
+                .padding(.trailing, 4)
+            }
+
+            if let xLabel = spec.options.xLabel {
+                Text(xLabel)
+                    .font(.custom("Figtree", size: 11).weight(.medium))
+                    .foregroundStyle(theme.textSecondary)
+                    .frame(maxWidth: .infinity)
+            }
+            if showLegend {
+                AtlasChartLegend(
+                    entries: spec.series.enumerated().map { index, series in
+                        (label: series.name, value: nil, color: colors[index])
+                    },
+                    theme: theme
+                )
+            }
+        }
+    }
+}
+
+private struct AtlasPieSlice: Identifiable {
+    let index: Int
+    let label: String
+    let value: Double
+    let start: Double
+    let end: Double
+
+    var id: Int { index }
+}
+
+private struct AtlasPieChartView: View {
+    let spec: AtlasChartSpec
+    let colors: [Color]
+    let theme: CopilotThemeTokens
+
+    private var slices: [AtlasPieSlice] {
+        let values = spec.series[0].values.map { max(0, $0) }
+        let total = values.reduce(0, +)
+        guard total > 0 else { return [] }
+        var cursor = -90.0
+        return values.enumerated().map { index, value in
+            let sweep = value / total * 360
+            defer { cursor += sweep }
+            return AtlasPieSlice(index: index, label: spec.labels[index], value: value, start: cursor, end: cursor + sweep)
+        }
+    }
+
+    private var sliceColors: [Color] {
+        let fallback = [
+            "#6172E8", "#8B6EDB", "#E05F99", "#29A383", "#CB8A37", "#3AA7C1",
+            "#F1B24A", "#E84855", "#50C799", "#B35F9E",
+        ]
+        return spec.labels.indices.map { index in
+            atlasChartColor(hex: fallback[index % fallback.count]) ?? colors[index % colors.count]
+        }
+    }
+
+    var body: some View {
+        if slices.isEmpty {
+            Text("No chart data")
+                .font(.custom("Figtree", size: 12).weight(.regular))
+                .foregroundStyle(theme.textTertiary)
+                .frame(maxWidth: .infinity, minHeight: 120)
+        } else {
+            VStack(spacing: 10) {
+                ZStack {
+                    ForEach(slices) { slice in
+                        AtlasPieSliceShape(
+                            startAngle: .degrees(slice.start),
+                            endAngle: .degrees(slice.end),
+                            innerRadiusRatio: spec.kind == .donut ? 0.56 : 0
+                        )
+                        .fill(sliceColors[slice.index])
+                        .overlay {
+                            AtlasPieSliceShape(
+                                startAngle: .degrees(slice.start),
+                                endAngle: .degrees(slice.end),
+                                innerRadiusRatio: spec.kind == .donut ? 0.56 : 0
+                            )
+                            .stroke(theme.surface.opacity(0.75), lineWidth: 1.5)
+                        }
+                        .accessibilityLabel(slice.label)
+                        .accessibilityValue(atlasChartNumber(slice.value))
+                    }
+                }
+                .frame(width: 146, height: 146)
+
+                if spec.options.legend ?? true {
+                    AtlasChartLegend(
+                        entries: slices.map { slice in
+                            (label: slice.label, value: atlasChartNumber(slice.value), color: sliceColors[slice.index])
+                        },
+                        theme: theme
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+private struct AtlasPieSliceShape: Shape {
+    let startAngle: Angle
+    let endAngle: Angle
+    let innerRadiusRatio: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let outerRadius = min(rect.width, rect.height) / 2
+        let innerRadius = outerRadius * innerRadiusRatio
+        let start = CGPoint(
+            x: center.x + cos(startAngle.radians) * outerRadius,
+            y: center.y + sin(startAngle.radians) * outerRadius
+        )
+        var path = Path()
+        path.move(to: start)
+        path.addArc(center: center, radius: outerRadius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
+        if innerRadius > 0 {
+            let innerEnd = CGPoint(
+                x: center.x + cos(endAngle.radians) * innerRadius,
+                y: center.y + sin(endAngle.radians) * innerRadius
+            )
+            path.addLine(to: innerEnd)
+            path.addArc(center: center, radius: innerRadius, startAngle: endAngle, endAngle: startAngle, clockwise: true)
+        } else {
+            path.addLine(to: center)
+        }
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct AtlasChartLegend: View {
+    let entries: [(label: String, value: String?, color: Color)]
+    let theme: CopilotThemeTokens
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), alignment: .leading)], alignment: .leading, spacing: 5) {
+            ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(entry.color)
+                        .frame(width: 7, height: 7)
+                    Text(entry.label)
+                        .font(.custom("Figtree", size: 10).weight(.medium))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(1)
+                    if let value = entry.value {
+                        Text(value)
+                            .font(.custom("Figtree", size: 10).weight(.regular))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct AtlasChartStreamingPlaceholder: View {
+    let theme: CopilotThemeTokens
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(alignment: .bottom, spacing: 4) {
+                RoundedRectangle(cornerRadius: 2).frame(width: 7, height: 14)
+                RoundedRectangle(cornerRadius: 2).frame(width: 7, height: 24)
+                RoundedRectangle(cornerRadius: 2).frame(width: 7, height: 18)
+            }
+            .foregroundStyle(theme.textTertiary.opacity(0.65))
+            Text("Building chart…")
+                .font(.custom("Figtree", size: 12).weight(.regular))
+                .foregroundStyle(theme.textTertiary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 140)
+        .background(theme.surface2.opacity(0.5), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
+        )
+        .accessibilityLabel("Building chart")
+    }
+}
+
+private func atlasChartColor(hex: String) -> Color? {
+    var value = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard value.hasPrefix("#") else { return nil }
+    value.removeFirst()
+    if value.count == 3 {
+        value = value.map { "\($0)\($0)" }.joined()
+    }
+    guard value.count == 6 || value.count == 8,
+          let number = UInt64(value, radix: 16)
+    else { return nil }
+    let hasAlpha = value.count == 8
+    let red = Double((number >> (hasAlpha ? 24 : 16)) & 0xFF) / 255
+    let green = Double((number >> (hasAlpha ? 16 : 8)) & 0xFF) / 255
+    let blue = Double((number >> (hasAlpha ? 8 : 0)) & 0xFF) / 255
+    let alpha = hasAlpha ? Double(number & 0xFF) / 255 : 1
+    return Color(red: red, green: green, blue: blue, opacity: alpha)
+}
+
+private func atlasChartNumber(_ value: Double) -> String {
+    if value.rounded() == value { return String(format: "%.0f", value) }
+    return String(format: "%.2f", value)
+        .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
+        .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
 }
 
 /// Morphing-infinity loader (loading-ui.com/morphing-infinity): an SVG path

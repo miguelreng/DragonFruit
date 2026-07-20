@@ -20,6 +20,10 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
     items: [
       { keys: "/", label: "Open the command menu — headings, lists, tables, images, callouts, quotes, code" },
       { keys: "/chart", label: "Insert a data chart — bar, line, area, pie, or donut; Atlas can chart into docs too" },
+      {
+        keys: "/whiteboard",
+        label: "Embed a whiteboard as a live inline canvas — click to draw in place, edits save to the board",
+      },
       { keys: "Select text", label: "Bubble menu: bold, italic, color, alignment, links" },
       { keys: "Icon · Cover", label: "Give the doc an icon and a cover image" },
       { keys: "Drag ⋮⋮", label: "Reorder blocks — to-do items get a grab handle on hover, even in stickies" },
@@ -46,6 +50,10 @@ const EDITOR_CAPABILITIES: { group: string; items: { keys: string; label: string
       { keys: "Ask Atlas", label: "Bottom bar — Quick ask, Rewrite, Plan, or Summarize what you're writing" },
       { keys: "/agent", label: "Open the Ask-Atlas bar with the current block as context" },
       { keys: "Select → Reply", label: "Pin a passage to the Ask-Atlas bar and reply to it" },
+      {
+        keys: "Hover a reply",
+        label: "Copy an option from Atlas' chat reply, or replace the text selected in the doc with it",
+      },
       {
         keys: "✓ · ✕ proposals",
         label:

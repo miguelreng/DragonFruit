@@ -81,9 +81,9 @@ export const NotificationsBell = observer(function NotificationsBell(props: TNot
         <Popover.Button
           aria-label="Notifications"
           className={cn(
-            "text-tertiary outline-none transition-colors dark:text-white/65",
+            "text-tertiary transition-colors outline-none dark:text-white/65",
             isInline
-              ? "group relative flex w-fit max-w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover hover:text-primary dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              ? "group relative flex w-full cursor-pointer items-center justify-start gap-1.5 rounded-lg px-2 py-1 text-secondary hover:bg-layer-transparent-hover hover:text-primary dark:text-white/70 dark:hover:bg-white/[0.08] dark:hover:text-white"
               : "group flex flex-col items-center justify-center gap-0.5",
             isInline && isOpen && "bg-layer-transparent-active text-primary"
           )}

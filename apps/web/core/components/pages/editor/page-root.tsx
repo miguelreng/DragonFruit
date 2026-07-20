@@ -180,6 +180,12 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
   // intentionally disabled in this app, but the formatting toolbar remains.
   const shouldShowToolbar = page.page_type === "doc" && !chromeless;
   const shouldShowNavigationPane = false;
+  // Project/workspace page lists intentionally omit description_json because
+  // whiteboard images can make it very large. Wait for the detail request to
+  // hydrate structured pages before mounting their editors; otherwise their
+  // initial empty state can be autosaved over the real snapshot.
+  const isStructuredPageHydrating =
+    (page.page_type === "whiteboard" || page.page_type === "sheet") && page.description_json === undefined;
 
   return (
     <div className="relative flex size-full overflow-hidden transition-all duration-300 ease-in-out">
@@ -203,7 +209,9 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
         )}
         {showContentTooLargeBanner && <ContentLimitBanner className="px-page-x" />}
         <Suspense fallback={<EditorFallback />}>
-          {page.page_type === "whiteboard" ? (
+          {isStructuredPageHydrating ? (
+            <EditorFallback />
+          ) : page.page_type === "whiteboard" ? (
             <ExcalidrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
           ) : page.page_type === "sheet" ? (
             <SheetEditor page={page} handlers={handlers} isEditable={isContentEditable} />

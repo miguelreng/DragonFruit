@@ -37,7 +37,7 @@ function Draggable({ children, data, className }: Props) {
     const el = ref.current;
 
     if (el) {
-      combine(
+      return combine(
         draggable({
           element: el,
           onDragStart: () => setDragging(true), // NEW

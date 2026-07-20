@@ -118,12 +118,12 @@ pnpm install
 
 Then open:
 
-| App   | URL                   | What it is                           |
-| ----- | --------------------- | ------------------------------------ |
-| web   | http://127.0.0.1:3000 | the product (workspaces, projects)   |
-| admin | http://127.0.0.1:3001 | instance settings (SMTP, OAuth, LLM) |
-| space | http://127.0.0.1:3002 | public published pages               |
-| live  | http://127.0.0.1:3100 | HocusPocus realtime collab           |
+| App   | URL                   | What it is                         |
+| ----- | --------------------- | ---------------------------------- |
+| web   | http://127.0.0.1:3000 | the product (workspaces, projects) |
+| admin | http://127.0.0.1:3001 | instance settings (SMTP, OAuth)    |
+| space | http://127.0.0.1:3002 | public published pages             |
+| live  | http://127.0.0.1:3100 | HocusPocus realtime collab         |
 
 `dev.sh` also supports a few modes:
 

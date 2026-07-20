@@ -18,6 +18,13 @@ export type TAgentChatSession = {
   scope_type: "personal" | "page";
   page: string | null;
   title: string;
+  display_title: string;
+  context_project: string | null;
+  context_project_name: string | null;
+  context_page: string | null;
+  context_page_name: string | null;
+  context_updated_at: string | null;
+  context_updated_by_surface: "web" | "mobile" | "";
   created_at: string;
   updated_at: string;
   last_activity_at: string;
@@ -194,6 +201,22 @@ export class AgentChatService extends APIService {
       });
   }
 
+  async updateSessionContext(
+    workspaceSlug: string,
+    sessionId: string,
+    context: { projectId?: string; pageId?: string; surface: "web" }
+  ): Promise<TAgentChatSession> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/`, {
+      context_project_id: context.projectId ?? null,
+      context_page_id: context.pageId ?? null,
+      context_updated_by_surface: context.surface,
+    })
+      .then((res) => res?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async deleteSession(workspaceSlug: string, sessionId: string): Promise<void> {
     return this.delete(`/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/`)
       .then((res) => res?.data)
@@ -235,7 +258,9 @@ export class AgentChatService extends APIService {
     sessionId: string,
     content: string,
     attachments: TAgentChatAttachmentPayload[] | undefined,
-    context: { project_id?: string; tool_mode?: "auto" | "none"; context_note?: string; fact_check?: boolean } | undefined,
+    context:
+      | { project_id?: string; tool_mode?: "auto" | "none"; context_note?: string; fact_check?: boolean }
+      | undefined,
     handlers: {
       onStart?: (userMessage: TAgentChatMessage) => void;
       onDelta: (text: string) => void;

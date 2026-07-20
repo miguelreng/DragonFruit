@@ -29,7 +29,7 @@ export function MultipleSelectGroupAction(props: Props) {
     <Checkbox
       className={cn("size-3.5 !outline-none", className)}
       iconClassName="size-3"
-      onClick={() => selectionHelpers.handleGroupClick(groupID)}
+      onChange={() => selectionHelpers.handleGroupClick(groupID)}
       checked={groupSelectionStatus === "complete"}
       indeterminate={groupSelectionStatus === "partial"}
       disabled={disabled}

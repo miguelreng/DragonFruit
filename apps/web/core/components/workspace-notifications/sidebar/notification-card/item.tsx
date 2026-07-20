@@ -36,12 +36,13 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
   const [customSnoozeModal, setCustomSnoozeModal] = useState(false);
 
   // derived values
+  const isAgentRunNotification = notification?.entity_name === "agent_run";
   const projectId = notification?.project || undefined;
-  const issueId = notification?.data?.issue?.id || undefined;
+  const issueId = notification?.data?.issue?.id || (isAgentRunNotification ? notification?.data?.issue_id : undefined) || undefined;
   const cursorBuddyResource = notification?.data?.cursor_buddy;
   const workspace = getWorkspaceBySlug(workspaceSlug);
 
-  const notificationField = notification?.data?.issue_activity.field || undefined;
+  const notificationField = notification?.data?.issue_activity?.field || undefined;
   const notificationTriggeredBy = notification.triggered_by_details || undefined;
 
   const handleNotificationIssuePeekOverview = async () => {
@@ -82,7 +83,7 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
     !workspaceSlug ||
     !notificationId ||
     !notification?.id ||
-    !notificationField ||
+    (!notificationField && !isAgentRunNotification) ||
     !workspace?.id ||
     (!projectId && !cursorBuddyResource)
   )
@@ -142,6 +143,8 @@ export const NotificationItem = observer(function NotificationItem(props: TNotif
                 <>
                   {cursorBuddyResource.type} · {cursorBuddyResource.name}
                 </>
+              ) : isAgentRunNotification ? (
+                <>{notification?.data?.message || notification?.title}</>
               ) : (
                 <>
                   {notification?.data?.issue?.identifier}-{notification?.data?.issue?.sequence_id}&nbsp;

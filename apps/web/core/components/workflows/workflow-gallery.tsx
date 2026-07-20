@@ -38,7 +38,7 @@ export function WorkflowGallery({ workflows, loading, onOpen, onToggle }: Props)
     <div className="dragonfruit-gallery-container scroll-shadow vertical-scrollbar scrollbar-lg h-full w-full overflow-y-auto px-1 pb-5 [scrollbar-gutter:stable_both-edges]">
       <div className="dragonfruit-card-grid">
         {loading && workflows.length === 0
-          ? [0, 1, 2].map((i) => <div key={i} className="h-[156px] animate-pulse rounded-2xl bg-layer-1" />)
+          ? [0, 1, 2].map((i) => <div key={i} className="h-[176px] animate-pulse rounded-2xl bg-layer-1" />)
           : workflows.map((w) => <WorkflowCard key={w.id} workflow={w} onOpen={onOpen} onToggle={onToggle} />)}
       </div>
     </div>
@@ -67,7 +67,7 @@ function WorkflowCard({
       }}
       className="focus-visible:ring-accent-primary/40 block cursor-pointer rounded-lg focus:outline-none focus-visible:ring-2"
     >
-      <div className="group t-press relative flex h-[156px] flex-col justify-between rounded-2xl bg-layer-1 p-4 transition-colors hover:bg-layer-3">
+      <div className="group t-press relative flex h-[176px] flex-col justify-between rounded-2xl bg-layer-1 p-4 transition-colors hover:bg-layer-3">
         <div
           className="absolute top-3 right-3 z-10"
           onClick={(e) => e.stopPropagation()}

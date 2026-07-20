@@ -320,18 +320,41 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const { data: currentUser } = useUser();
   const { getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
   const { addFavorite, removeFavoriteEntity, removeFavoriteFromStore, entityMap: favoriteEntityMap } = useFavorite();
-  // Mirrors the API's delete rule (owner OR project admin; never a brief) so we
-  // only ever offer a delete that will succeed. See ProjectPagePermission.
-  const canDeleteDoc = useCallback(
+  const joinedProjectIdSet = useMemo(() => new Set(joinedProjectIds ?? []), [joinedProjectIds]);
+  const getPageProjectId = useCallback(
     (page: TPage) => {
-      if (isProjectBriefPage(page)) return false;
-      if (currentUser?.id && page.owned_by === currentUser.id) return true;
-      return (page.project_ids ?? []).some(
-        (projectId) => getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId) === EUserPermissions.ADMIN
+      const projectIds = page.project_ids ?? [];
+      if (scopeProjectId && projectIds.includes(scopeProjectId) && joinedProjectIdSet.has(scopeProjectId))
+        return scopeProjectId;
+      return projectIds.find((projectId) => joinedProjectIdSet.has(projectId));
+    },
+    [joinedProjectIdSet, scopeProjectId]
+  );
+  // Keep read-only navigation available while older API responses are still
+  // cached during a staggered web/API deploy. Mutations continue to use only
+  // the safe project selected above.
+  const getPageDisplayProjectId = useCallback(
+    (page: TPage) => getPageProjectId(page) ?? page.project_ids?.[0],
+    [getPageProjectId]
+  );
+  // Destructive page actions must use a linked project where the API will
+  // recognize the user as owner/admin. `project_ids` is not ordered and can
+  // include projects the user cannot access, so its first item is unsafe.
+  const getPageAdminProjectId = useCallback(
+    (page: TPage) => {
+      if (isProjectBriefPage(page)) return undefined;
+      if (currentUser?.id && page.owned_by === currentUser.id) return getPageProjectId(page);
+      return (page.project_ids ?? []).find(
+        (projectId) =>
+          joinedProjectIdSet.has(projectId) &&
+          getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId) === EUserPermissions.ADMIN
       );
     },
-    [currentUser?.id, getProjectRoleByWorkspaceSlugAndProjectId, workspaceSlug]
+    [currentUser?.id, getPageProjectId, getProjectRoleByWorkspaceSlugAndProjectId, joinedProjectIdSet, workspaceSlug]
   );
+  // Mirrors the API's delete rule (owner OR project admin; never a brief) and
+  // guarantees there is a valid linked project for the request.
+  const canDeleteDoc = useCallback((page: TPage) => Boolean(getPageAdminProjectId(page)), [getPageAdminProjectId]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<TPageType[]>([]);
@@ -399,7 +422,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const filteredPages = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return visiblePages.filter((p) => {
-      const primaryProjectId = p.project_ids?.[0];
+      const primaryProjectId = getPageDisplayProjectId(p);
       const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
       const displayName = getWorkspaceDocDisplayName(p, primaryProject?.name);
       if (q && !displayName.toLowerCase().includes(q) && !(p.name ?? "").toLowerCase().includes(q)) return false;
@@ -411,7 +434,15 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
       if (selectedAccess.length > 0 && !selectedAccess.includes(p.access ?? EPageAccess.PUBLIC)) return false;
       return true;
     });
-  }, [visiblePages, searchQuery, selectedProjectIds, selectedTypes, selectedAccess, getProjectById]);
+  }, [
+    visiblePages,
+    searchQuery,
+    selectedProjectIds,
+    selectedTypes,
+    selectedAccess,
+    getPageDisplayProjectId,
+    getProjectById,
+  ]);
 
   // ----- Folders (docs surface only) -----
   // A folder is a page with page_type "folder"; docs point their `parent` at
@@ -501,7 +532,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
 
   const handleFolderNameSubmit = async (name: string) => {
     const target = folderNameModal?.folder ?? null;
-    const projectId = target ? target.project_ids?.[0] : scopeProjectId;
+    const projectId = target ? getPageProjectId(target) : scopeProjectId;
     if (!projectId) return;
     if (target?.id) await pageService.update(workspaceSlug, projectId, target.id, { name });
     else await pageService.create(workspaceSlug, projectId, { name, page_type: "folder", access: EPageAccess.PRIVATE });
@@ -566,7 +597,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
 
   const confirmDeleteFolder = async () => {
     const folder = folderToDelete;
-    const projectId = folder?.project_ids?.[0];
+    const projectId = folder ? getPageAdminProjectId(folder) : undefined;
     if (!folder?.id || !projectId) return;
     setIsDeletingFolder(true);
     try {
@@ -620,7 +651,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           await addFavorite(workspaceSlug, {
             entity_type: "page",
             entity_identifier: folder.id,
-            project_id: folder.project_ids?.[0] ?? null,
+            project_id: getPageProjectId(folder) ?? null,
             entity_data: { name: getPageName(folder.name), page_type: "folder" },
           });
         setToast({
@@ -639,7 +670,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
         });
       }
     },
-    [addFavorite, favoriteEntityMap, removeFavoriteEntity, workspaceSlug]
+    [addFavorite, favoriteEntityMap, getPageProjectId, removeFavoriteEntity, workspaceSlug]
   );
 
   const handleDocDropIntoFolder = useCallback(
@@ -1024,7 +1055,9 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   folder={folder}
                   count={folder.id ? (folderDocCounts.get(folder.id) ?? 0) : 0}
                   projectName={
-                    scopeProjectId ? undefined : (getProjectById(folder.project_ids?.[0] ?? "")?.name ?? undefined)
+                    scopeProjectId
+                      ? undefined
+                      : (getProjectById(getPageDisplayProjectId(folder) ?? "")?.name ?? undefined)
                   }
                   canDelete={canDeleteDoc(folder)}
                   isFavorite={isFolderFavorited(folder)}
@@ -1048,6 +1081,8 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   page={page}
                   pagesKey={pagesKey}
                   workspaceSlug={workspaceSlug}
+                  projectId={getPageDisplayProjectId(page)}
+                  adminProjectId={getPageAdminProjectId(page)}
                   getProjectById={getProjectById}
                   joinedProjectIds={joinedProjectIds ?? []}
                   canModify={canDeleteDoc(page)}
@@ -1099,6 +1134,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 key={page.id}
                 page={page}
                 workspaceSlug={workspaceSlug}
+                projectId={getPageDisplayProjectId(page)}
                 getProjectById={getProjectById}
                 isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
                 isSelectionActive={isSelectionActive}
@@ -1114,6 +1150,8 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
             joinedProjectIds={joinedProjectIds ?? []}
             getProjectById={getProjectById}
             canDeleteDoc={canDeleteDoc}
+            getPageProjectId={getPageProjectId}
+            getPageAdminProjectId={getPageAdminProjectId}
             onClear={clearDocSelection}
             onRefresh={refreshPages}
             folders={showFolderUi ? folders : []}
@@ -1575,7 +1613,7 @@ function FolderSurface({
   const showPapers = paperLayoutKeys.length > 0;
 
   return (
-    <div className={cn("relative h-[156px] overflow-visible", className)}>
+    <div className={cn("relative h-[176px] overflow-visible", className)}>
       <div
         className="absolute top-0 left-5 h-10 w-[42%] rounded-t-[18px] rounded-br-[8px] bg-layer-1 transition-colors group-focus-within:bg-layer-3 group-hover:bg-layer-3"
         style={{
@@ -1670,7 +1708,7 @@ function FolderNameInput({ name, isSaving, inputRef, onChange, onCommit, onCance
 
 function FolderDraftCard(props: FolderDraftProps) {
   return (
-    <div className="group relative h-[156px]">
+    <div className="group relative h-[176px]">
       <FolderSurface folder={draftFolderVisualSeed} count={0}>
         <FolderNameInput {...props} />
         <p className="truncate text-11 text-placeholder">{props.isSaving ? "Saving..." : "0 docs"}</p>
@@ -1722,7 +1760,7 @@ function FolderCard({
   const [isDropTargetActive, setIsDropTargetActive] = useState(false);
   useFolderDocDropTarget({ elementRef: dropRef, folder, onDropDoc, setIsDropTargetActive });
   return (
-    <div ref={dropRef} className="group relative block h-[156px] rounded-2xl">
+    <div ref={dropRef} className="group relative block h-[176px] rounded-2xl">
       <button
         type="button"
         aria-label={`Open folder ${folderName}`}
@@ -1969,6 +2007,7 @@ const getWorkspaceDocDisplayName = (page: TPage, projectName: string | undefined
 type DocListItemProps = {
   page: TPage;
   workspaceSlug: string;
+  projectId: string | undefined;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
   isSelected: boolean;
   isSelectionActive: boolean;
@@ -1978,6 +2017,7 @@ type DocListItemProps = {
 function DocListItem({
   page,
   workspaceSlug,
+  projectId,
   getProjectById,
   isSelected,
   isSelectionActive,
@@ -1986,7 +2026,7 @@ function DocListItem({
   const parentRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatformOS();
   const projectIds = page.project_ids ?? [];
-  const primaryProjectId = projectIds[0];
+  const primaryProjectId = projectId;
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
   const isProjectBrief = isProjectBriefPage(page);
   const pageType = page.page_type ?? "doc";
@@ -2123,6 +2163,8 @@ type DocCardProps = {
   page: TPage;
   pagesKey: string;
   workspaceSlug: string;
+  projectId: string | undefined;
+  adminProjectId: string | undefined;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
   joinedProjectIds: string[];
   /** Whether the current user can archive/delete this doc (owner or project admin). */
@@ -2141,6 +2183,8 @@ function DocCard({
   page,
   pagesKey,
   workspaceSlug,
+  projectId,
+  adminProjectId,
   getProjectById,
   joinedProjectIds,
   canModify,
@@ -2152,8 +2196,7 @@ function DocCard({
   cardStyle,
 }: DocCardProps) {
   const { mutate } = useSWRConfig();
-  const projectIds = page.project_ids ?? [];
-  const primaryProjectId = projectIds[0];
+  const primaryProjectId = projectId;
   const primaryProject = primaryProjectId ? getProjectById(primaryProjectId) : undefined;
   const isProjectBrief = isProjectBriefPage(page);
   const pageType = page.page_type ?? "doc";
@@ -2306,7 +2349,7 @@ function DocCard({
   };
 
   const handleArchive = async () => {
-    if (!primaryProjectId || !page.id) return;
+    if (!adminProjectId || !page.id) return;
     if (isProjectBrief) {
       setToast({
         type: TOAST_TYPE.WARNING,
@@ -2317,14 +2360,14 @@ function DocCard({
     }
     try {
       if (page.archived_at) {
-        await pageService.restore(workspaceSlug, primaryProjectId, page.id);
+        await pageService.restore(workspaceSlug, adminProjectId, page.id);
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: "Success!",
           message: "Page restored successfully.",
         });
       } else {
-        await pageService.archive(workspaceSlug, primaryProjectId, page.id);
+        await pageService.archive(workspaceSlug, adminProjectId, page.id);
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: "Success!",
@@ -2344,7 +2387,7 @@ function DocCard({
   };
 
   const handleDelete = () => {
-    if (!primaryProjectId || !page.id) return;
+    if (!adminProjectId || !page.id) return;
     if (isProjectBrief) {
       setToast({
         type: TOAST_TYPE.WARNING,
@@ -2357,11 +2400,11 @@ function DocCard({
   };
 
   const confirmDelete = async () => {
-    if (!primaryProjectId || !page.id) return;
+    if (!adminProjectId || !page.id) return;
     setIsDeleting(true);
     try {
-      if (!page.archived_at) await pageService.archive(workspaceSlug, primaryProjectId, page.id);
-      await pageService.remove(workspaceSlug, primaryProjectId, page.id);
+      if (!page.archived_at) await pageService.archive(workspaceSlug, adminProjectId, page.id);
+      await pageService.remove(workspaceSlug, adminProjectId, page.id);
       await refreshPages();
       setIsDeleteModalOpen(false);
       setToast({
@@ -2421,7 +2464,7 @@ function DocCard({
   );
 
   // Same height as FolderCard/FolderSurface so folder and doc rows line up.
-  const cardShellClassName = cn("group relative flex h-[156px] flex-col rounded-2xl transition-colors", {
+  const cardShellClassName = cn("group relative flex h-[176px] flex-col rounded-2xl transition-colors", {
     "bg-layer-1 hover:bg-layer-3": !isProjectBrief && !isSelected,
     "bg-accent-primary/5 hover:bg-accent-primary/10": isProjectBrief && !isSelected,
     "bg-layer-1 ring-1 ring-strong": isSelected,
@@ -2740,6 +2783,8 @@ type DocsBulkActionBarProps = {
   joinedProjectIds: string[];
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
   canDeleteDoc: (page: TPage) => boolean;
+  getPageProjectId: (page: TPage) => string | undefined;
+  getPageAdminProjectId: (page: TPage) => string | undefined;
   onClear: () => void;
   onRefresh: () => Promise<void>;
   /** Folders the selected docs could be moved into (docs surface only). */
@@ -2750,8 +2795,11 @@ type BulkActionPage = {
   page: TPage;
   pageId: string;
   projectId: string;
+  adminProjectId: string | undefined;
   isProjectBrief: boolean;
 };
+
+type DeletableBulkActionPage = BulkActionPage & { adminProjectId: string };
 
 const docLabel = (value: number) => (value === 1 ? "doc" : "docs");
 const skippedBriefMessage = (value: number) =>
@@ -2765,6 +2813,8 @@ function DocsBulkActionBar({
   joinedProjectIds,
   getProjectById,
   canDeleteDoc,
+  getPageProjectId,
+  getPageAdminProjectId,
   onClear,
   onRefresh,
   folders = [],
@@ -2784,18 +2834,28 @@ function DocsBulkActionBar({
       selectedPages
         .map((page): BulkActionPage | undefined => {
           const pageId = page.id;
-          const projectId = page.project_ids?.[0];
+          const projectId = getPageProjectId(page);
           if (!pageId || !projectId) return undefined;
-          return { page, pageId, projectId, isProjectBrief: isProjectBriefPage(page) };
+          return {
+            page,
+            pageId,
+            projectId,
+            adminProjectId: getPageAdminProjectId(page),
+            isProjectBrief: isProjectBriefPage(page),
+          };
         })
         .filter((page): page is BulkActionPage => Boolean(page)),
-    [selectedPages]
+    [getPageAdminProjectId, getPageProjectId, selectedPages]
   );
   const movablePages = useMemo(() => actionPages.filter((page) => !page.isProjectBrief), [actionPages]);
   // Deletable = not a brief AND the user can delete it (owner or project admin),
   // so the bulk count and the modal only ever reflect docs that will succeed.
   const deletablePages = useMemo(
-    () => actionPages.filter((page) => !page.isProjectBrief && canDeleteDoc(page.page)),
+    () =>
+      actionPages.filter(
+        (page): page is DeletableBulkActionPage =>
+          !page.isProjectBrief && canDeleteDoc(page.page) && Boolean(page.adminProjectId)
+      ),
     [actionPages, canDeleteDoc]
   );
   const wikiPages = useMemo(
@@ -2821,10 +2881,10 @@ function DocsBulkActionBar({
     );
   }, [getProjectById, joinedProjectIds, projectSearch]);
 
-  const finishBulkOperation = async (
+  const finishBulkOperation = async <T extends BulkActionPage>(
     currentOperation: BulkOperation,
-    pagesToProcess: BulkActionPage[],
-    processPage: (page: BulkActionPage) => Promise<unknown>,
+    pagesToProcess: T[],
+    processPage: (page: T) => Promise<unknown>,
     successMessage: (processedCount: number) => string,
     errorMessage: (failedCount: number, processedCount: number) => string
   ) => {
@@ -2880,9 +2940,9 @@ function DocsBulkActionBar({
     await finishBulkOperation(
       "delete",
       deletablePages,
-      async ({ page, pageId, projectId }) => {
-        if (!page.archived_at) await pageService.archive(workspaceSlug, projectId, pageId);
-        await pageService.remove(workspaceSlug, projectId, pageId);
+      async ({ page, pageId, adminProjectId }) => {
+        if (!page.archived_at) await pageService.archive(workspaceSlug, adminProjectId, pageId);
+        await pageService.remove(workspaceSlug, adminProjectId, pageId);
       },
       (processedCount) =>
         `${processedCount} ${docLabel(processedCount)} deleted.${skippedDocsMessage(skippedFromDelete)}`,

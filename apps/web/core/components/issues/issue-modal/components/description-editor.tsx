@@ -24,7 +24,6 @@ import { RichTextEditor } from "@/components/editor/rich-text";
 // helpers
 // hooks
 import { useEditorAsset } from "@/hooks/store/use-editor-asset";
-import { useInstance } from "@/hooks/store/use-instance";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import useKeypress from "@/hooks/use-keypress";
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -79,8 +78,9 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
   const [iAmFeelingLucky, setIAmFeelingLucky] = useState(false);
   // store hooks
   const { getWorkspaceBySlug } = useWorkspace();
-  const workspaceId = getWorkspaceBySlug(workspaceSlug?.toString())?.id ?? "";
-  const { config } = useInstance();
+  const workspace = getWorkspaceBySlug(workspaceSlug?.toString());
+  const workspaceId = workspace?.id ?? "";
+  const hasLLMConfigured = workspace?.has_llm_configured ?? false;
   const { uploadEditorAsset, duplicateEditorAsset } = useEditorAsset();
   // platform
   const { isMobile } = usePlatformOS();
@@ -244,7 +244,7 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
             )}
           />
           <div className="border-0.5 z-10 flex items-center justify-end gap-2 p-3">
-            {issueName && issueName.trim() !== "" && config?.has_llm_configured && (
+            {issueName && issueName.trim() !== "" && hasLLMConfigured && (
               <button
                 type="button"
                 className={`flex items-center gap-1 rounded-lg bg-surface-2 px-1.5 py-1 text-caption-sm-regular hover:bg-layer-1 ${
@@ -263,7 +263,7 @@ export const IssueDescriptionEditor = observer(function IssueDescriptionEditor(p
                 )}
               </button>
             )}
-            {config?.has_llm_configured && projectId && (
+            {hasLLMConfigured && projectId && (
               <GptAssistantPopover
                 isOpen={gptAssistantModal}
                 handleClose={() => {

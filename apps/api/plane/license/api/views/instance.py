@@ -62,7 +62,6 @@ class InstanceEndpoint(BaseAPIView):
             POSTHOG_API_KEY,
             POSTHOG_HOST,
             UNSPLASH_ACCESS_KEY,
-            LLM_API_KEY,
         ) = get_configuration_value(
             [
                 {
@@ -118,10 +117,6 @@ class InstanceEndpoint(BaseAPIView):
                     "key": "UNSPLASH_ACCESS_KEY",
                     "default": os.environ.get("UNSPLASH_ACCESS_KEY", ""),
                 },
-                {
-                    "key": "LLM_API_KEY",
-                    "default": os.environ.get("LLM_API_KEY", ""),
-                },
             ]
         )
 
@@ -148,9 +143,6 @@ class InstanceEndpoint(BaseAPIView):
 
         # Unsplash
         data["has_unsplash_configured"] = bool(UNSPLASH_ACCESS_KEY)
-
-        # Open AI settings
-        data["has_llm_configured"] = bool(LLM_API_KEY)
 
         # File size settings
         data["file_size_limit"] = float(os.environ.get("FILE_SIZE_LIMIT", 5242880))

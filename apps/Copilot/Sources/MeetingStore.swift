@@ -125,6 +125,15 @@ struct MeetingNotesSavedNotice: Identifiable, Equatable {
     let url: URL?
 }
 
+/// Asks the user which project the just-recorded meeting notes belong to.
+/// Shown as an island bubble while the transcription runs; the save waits on
+/// the answer (nil choice = the server's default project).
+struct MeetingNotesProjectRequest: Identifiable, Equatable {
+    let id = UUID()
+    let meetingTitle: String
+    let projects: [ProjectSummary]
+}
+
 struct VoiceCursorContext {
     var selectedText: String?
     var focusedSelectedText: String?
@@ -620,6 +629,17 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
     /// Set when meeting notes finish saving; the notch island shows it as a
     /// success bubble with a View button.
     @Published var lastMeetingNotesSavedNotice: MeetingNotesSavedNotice?
+    /// Non-nil while the post-recording "save notes to which project?" ask is
+    /// showing. The stop-and-save pipeline blocks on the answer.
+    @Published var meetingNotesProjectRequest: MeetingNotesProjectRequest?
+    private enum MeetingNotesProjectAsk {
+        case idle
+        case asking
+        case resolved(ProjectSummary?)
+    }
+    private var meetingNotesProjectAsk: MeetingNotesProjectAsk = .idle
+    private var meetingNotesProjectContinuation: CheckedContinuation<ProjectSummary?, Never>?
+    private var meetingNotesProjectFetchTask: Task<Void, Never>?
     @Published var lastAgentTextResponse = ""
     @Published var isAgentResponding = false
     @Published var isVoiceActionProcessing = false
@@ -1234,6 +1254,61 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     func dismissMeetingStartPrompt() {
         meetingStartPrompt = nil
+    }
+
+    // MARK: Meeting-notes project ask
+
+    /// UI answer to the "save notes to which project?" bubble. nil means the
+    /// user skipped choosing (closed the bubble) — the server then files the
+    /// notes under its default project, matching the pre-picker behavior.
+    func chooseMeetingNotesProject(_ project: ProjectSummary?) {
+        guard case .asking = meetingNotesProjectAsk else { return }
+        meetingNotesProjectRequest = nil
+        meetingNotesProjectAsk = .resolved(project)
+        meetingNotesProjectContinuation?.resume(returning: project)
+        meetingNotesProjectContinuation = nil
+    }
+
+    /// Kicks off the ask as soon as recording stops so the bubble is up while
+    /// Whisper transcribes. With zero or one project there is nothing to ask,
+    /// so the choice resolves immediately and no bubble appears.
+    private func beginMeetingNotesProjectAsk(meetingTitle: String) {
+        meetingNotesProjectAsk = .asking
+        meetingNotesProjectFetchTask = Task { [weak self] in
+            guard let self else { return }
+            let projects = ((try? await self.makeClient().listProjects(workspaceSlug: self.selectedWorkspaceSlug)) ?? [])
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            guard case .asking = self.meetingNotesProjectAsk, !Task.isCancelled else { return }
+            if projects.count <= 1 {
+                self.chooseMeetingNotesProject(projects.first)
+            } else {
+                self.meetingNotesProjectRequest = MeetingNotesProjectRequest(
+                    meetingTitle: meetingTitle,
+                    projects: projects
+                )
+            }
+        }
+    }
+
+    private func awaitMeetingNotesProjectChoice() async -> ProjectSummary? {
+        switch meetingNotesProjectAsk {
+        case .resolved(let project): return project
+        case .idle: return nil
+        case .asking:
+            return await withCheckedContinuation { meetingNotesProjectContinuation = $0 }
+        }
+    }
+
+    /// Tears down the ask on every exit from the save pipeline (and when a new
+    /// recording starts). Resumes a still-armed continuation with nil so the
+    /// awaiting save can never hang.
+    private func clearMeetingNotesProjectAsk() {
+        meetingNotesProjectFetchTask?.cancel()
+        meetingNotesProjectFetchTask = nil
+        meetingNotesProjectRequest = nil
+        meetingNotesProjectContinuation?.resume(returning: nil)
+        meetingNotesProjectContinuation = nil
+        meetingNotesProjectAsk = .idle
     }
 
     func openJoinLink() {
@@ -2612,6 +2687,9 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             statusMessage = "Sign in first to record meeting notes."
             return
         }
+        // A still-unanswered project ask from the previous recording would sit
+        // under the new session; resolve it (default project) and move on.
+        clearMeetingNotesProjectAsk()
         guard googleConnected, meeting.id != "empty" else {
             statusMessage = "Connect Google Calendar and choose a meeting first."
             return
@@ -2729,6 +2807,11 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
         isMeetingRecording = false
         meetingState = "Saving"
 
+        // Ask for the destination project up front so the user can answer
+        // while Whisper transcribes; the save below waits on the choice.
+        beginMeetingNotesProjectAsk(meetingTitle: (recordingMeeting ?? meeting).title)
+        defer { clearMeetingNotesProjectAsk() }
+
         let systemAudioURL = meetingSystemAudioURL
         let micAudioURL = meetingMicAudioURL
         // Both captured files exist only long enough to transcribe locally —
@@ -2813,10 +2896,12 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
                 return
             }
             let targetMeeting = recordingMeeting ?? meeting
+            let chosenProject = await awaitMeetingNotesProjectChoice()
             let draft = try await client.createMeetingNotesDraft(
                 workspaceSlug: workspace.slug,
                 meeting: targetMeeting,
                 notes: transcript,
+                projectId: chosenProject?.id,
                 micAudioURL: nil,
                 systemAudioURL: nil
             )
@@ -2824,9 +2909,10 @@ final class MeetingStore: NSObject, ObservableObject, ASWebAuthenticationPresent
             lastSavedMeetingTitle = targetMeeting.title
             Self.logger.info("Meeting notes draft created (hasURL=\(draft.url != nil, privacy: .public), calendar=\(draft.calendar_attached == true, privacy: .public))")
             meetingState = "Notes ready"
+            let destination = chosenProject.map { "\($0.name) docs" } ?? "Docs"
             statusMessage = (draft.calendar_attached == true)
-                ? "Meeting notes saved to Docs and attached to your event."
-                : "Meeting notes saved to Docs."
+                ? "Meeting notes saved to \(destination) and attached to your event."
+                : "Meeting notes saved to \(destination)."
             if micSideHadSpeech && !systemSideHadSpeech {
                 if meetingSystemAudioPeak < 0.01 {
                     // The tap delivered pure digital silence — a permission or

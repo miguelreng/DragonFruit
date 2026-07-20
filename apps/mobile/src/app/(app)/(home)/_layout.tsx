@@ -17,9 +17,10 @@ import { motion } from "@/lib/motion";
 export default function HomeStackLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, animation: motion.stack.replace }}>
-      {/* Ask Atlas peeks in from the home right edge as an in-place slide-over
-          (see `AtlasPeek`), so it isn't a stack screen — only the sidebar's
-          top-level `atlas` destination is. */}
+      {/* Ask Atlas is a full-screen chat pushed over the hub — from the tab-bar
+          launcher (a slide-in you can swipe back from) and from the sidebar. It
+          slides like a detail screen so entering the chat reads as a step in. */}
+      <Stack.Screen name="[workspaceSlug]/atlas" options={{ animation: motion.stack.detail }} />
       <Stack.Screen name="[workspaceSlug]/project/[projectId]" options={{ animation: motion.stack.detail }} />
       <Stack.Screen name="[workspaceSlug]/issue/[issueId]" options={{ animation: motion.stack.detail }} />
       <Stack.Screen name="[workspaceSlug]/doc/[pageId]" options={{ animation: motion.stack.detail }} />

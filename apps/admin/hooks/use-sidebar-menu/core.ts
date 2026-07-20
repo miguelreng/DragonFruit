@@ -4,13 +4,13 @@
  * See the LICENSE file for details.
  */
 
-import { Gallery as Image, Cpu as BrainCog, SettingsMinimalistic as Cog, Letter as Mail } from "@solar-icons/react/ssr";
+import { Gallery as Image, SettingsMinimalistic as Cog, Letter as Mail } from "@solar-icons/react/ssr";
 // plane imports
 import { LockIcon, WorkspaceIcon } from "@plane/propel/icons";
 // types
 import type { TSidebarMenuItem } from "./types";
 
-export type TCoreSidebarMenuKey = "general" | "email" | "workspace" | "authentication" | "ai" | "image";
+export type TCoreSidebarMenuKey = "general" | "email" | "workspace" | "authentication" | "image";
 
 export const coreSidebarMenuLinks: Record<TCoreSidebarMenuKey, TSidebarMenuItem> = {
   general: {
@@ -36,12 +36,6 @@ export const coreSidebarMenuLinks: Record<TCoreSidebarMenuKey, TSidebarMenuItem>
     name: "Authentication",
     description: "Configure authentication modes.",
     href: `/authentication/`,
-  },
-  ai: {
-    Icon: BrainCog,
-    name: "Artificial intelligence",
-    description: "Configure your OpenAI creds.",
-    href: `/ai/`,
   },
   image: {
     Icon: Image,

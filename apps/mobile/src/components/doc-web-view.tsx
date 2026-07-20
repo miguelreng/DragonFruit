@@ -1,4 +1,4 @@
-import { Image, Linking } from "react-native";
+import { ActivityIndicator, Image, Linking, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { colors } from "@/lib/theme";
@@ -12,30 +12,28 @@ const newsreaderRegularUri = Image.resolveAssetSource(require("../../assets/font
 const newsreaderSemiBoldUri = Image.resolveAssetSource(require("../../assets/fonts/Newsreader-SemiBold.ttf")).uri;
 const newsreaderItalicUri = Image.resolveAssetSource(require("../../assets/fonts/Newsreader-Italic.ttf")).uri;
 
-// Font stacks mirroring the web editor's variables.css. We bundle Figtree and
-// Newsreader; Inter is NOT self-hosted on web either — it's declared first in
-// the stack and falls back to the system sans — so we mirror that exact stack
-// for faithful parity rather than shipping an Inter binary mobile-only.
+// Font stacks mirroring the web editor's variables.css. Mobile bundles the
+// same Figtree and Newsreader families used by the app.
 const FIGTREE = `"Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
 const NEWSREADER = `"Newsreader", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif`;
-const INTER = `"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
 
 /** The four doc font choices a page can carry in `view_props.font_style`. */
-export type DocFontStyle = "font-default" | "font-figtree" | "font-newsreader" | "font-inter";
+export type DocFontStyle = "font-default" | "font-figtree" | "font-newsreader";
 
 // body = --font-style, display = h1–h3 + blockquote (--font-style-display),
 // displaySans = h4–h6 (--font-style-display-sans). See packages/editor variables.css.
 const FONT_STYLE_FAMILIES: Record<DocFontStyle, { body: string; display: string; displaySans: string }> = {
-  "font-default": { body: FIGTREE, display: NEWSREADER, displaySans: FIGTREE },
+  // The mobile reader follows the web app's sans reading surface by default.
+  // Serif remains available when a page explicitly opts into font-newsreader.
+  "font-default": { body: FIGTREE, display: FIGTREE, displaySans: FIGTREE },
   "font-figtree": { body: FIGTREE, display: FIGTREE, displaySans: FIGTREE },
   "font-newsreader": { body: NEWSREADER, display: NEWSREADER, displaySans: NEWSREADER },
-  "font-inter": { body: INTER, display: INTER, displaySans: INTER },
 };
 
 const LEGACY_FONT_STYLE: Record<string, DocFontStyle> = {
   "sans-serif": "font-default",
   serif: "font-newsreader",
-  monospace: "font-inter",
+  monospace: "font-figtree",
 };
 
 /** Resolve the stored `view_props.font_style` to a known style, defaulting to "font-default". */
@@ -60,7 +58,7 @@ function buildDocument(html: string, fontStyle: DocFontStyle): string {
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
   <style>
     @font-face { font-family: "Figtree"; src: url("${figtreeRegularUri}") format("truetype"); font-weight: 400; font-style: normal; }
     @font-face { font-family: "Figtree"; src: url("${figtreeMediumUri}") format("truetype"); font-weight: 500; font-style: normal; }
@@ -74,14 +72,14 @@ function buildDocument(html: string, fontStyle: DocFontStyle): string {
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 16px 18px 56px;
+      padding: 28px 18px 88px;
       font: 16px/1.6 ${body};
       color: ${colors.ink};
       -webkit-text-size-adjust: 100%;
       word-wrap: break-word;
     }
     h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin: 1.2em 0 .4em; }
-    /* h1–h3 use the display family (Newsreader serif by default), h4–h6 the sans, matching the web editor. */
+    /* Headings follow the selected display family; the default reader surface is sans. */
     h1, h2, h3 { font-family: ${display}; font-weight: 500; letter-spacing: 0; }
     h4, h5, h6 { font-family: ${displaySans}; font-weight: 600; }
     h1 { font-size: 1.6em; } h2 { font-size: 1.35em; } h3 { font-size: 1.15em; }
@@ -109,6 +107,18 @@ export function DocWebView({ html, fontStyle }: { html: string; fontStyle?: stri
       originWhitelist={["*"]}
       source={{ html: buildDocument(html, normalizeDocFontStyle(fontStyle)) }}
       style={{ flex: 1, backgroundColor: "transparent" }}
+      startInLoadingState
+      renderLoading={() => (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.brand} />
+          <Text style={styles.loadingText}>Preparing document…</Text>
+        </View>
+      )}
+      renderError={() => (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>The document could not be displayed. Go back and try again.</Text>
+        </View>
+      )}
       // Read-only: open real links in the system browser instead of navigating
       // inside the reader. The initial in-memory document load is allowed.
       onShouldStartLoadWithRequest={(request) => {
@@ -121,3 +131,23 @@ export function DocWebView({ html, fontStyle }: { html: string; fontStyle?: stri
     />
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingHorizontal: 32,
+    backgroundColor: colors.canvas,
+  },
+  loadingText: { color: colors.muted, fontFamily: "Figtree_500Medium", fontSize: 13 },
+  errorText: {
+    color: colors.muted,
+    fontFamily: "Figtree_400Regular",
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+  },
+});

@@ -1,12 +1,12 @@
 // @ts-nocheck
 
-// Renaissance "art of the moment" new tab. Pulls public-domain Renaissance
-// paintings from across the world's museums via Wikidata (movement = Renaissance,
-// English-Wikipedia-documented) with images from Wikimedia Commons — no API key,
-// CORS-open. Each piece carries the museum that holds it, the genre/medium/size,
-// and its Wikipedia article (clean title + a short "about" blurb on hover). A
-// small seed of famous works ships in the extension so the first paint is
-// instant; the full cross-museum pool loads in the background, cached for a week.
+// "Art of the moment" new tab. Pulls paintings of every period, movement, and
+// genre from museums around the world via Wikidata, with images from Wikimedia
+// Commons — no API key, CORS-open. Each piece carries the museum that holds it,
+// the genre/medium/size, and its English Wikipedia article (clean title + a short
+// "about" blurb on hover). A small seed of famous works ships in the extension
+// so the first paint is instant; the full cross-museum pool loads in the
+// background, cached for a week.
 
 // --- Seed (bundled for instant first paint + offline resilience) ----------
 const SEED = [
@@ -40,27 +40,28 @@ const SEED = [
 const SPARQL_ENDPOINT = "https://query.wikidata.org/sparql";
 const COMMONS_FILEPATH = "https://commons.wikimedia.org/wiki/Special:FilePath/";
 const WIKIPEDIA = "https://en.wikipedia.org";
-const ERA_MAX = 1620; // Drop occasional post-Renaissance outliers from the movement set.
 
-// Paintings whose movement is Renaissance (or a sub-movement), with an image AND
-// an English Wikipedia article (guarantees a clean title + a real story), ordered
-// by notability, one row each (deduped + concatenated in SPARQL).
-const POOL_QUERY = `SELECT ?item (SAMPLE(?l) AS ?title) (SAMPLE(?c) AS ?artist) (SAMPLE(YEAR(?i)) AS ?year) (SAMPLE(?img) AS ?image) (SAMPLE(?col) AS ?museum) (GROUP_CONCAT(DISTINCT ?mat; separator=", ") AS ?medium) (GROUP_CONCAT(DISTINCT ?gen; separator=", ") AS ?genre) (SAMPLE(?h) AS ?height) (SAMPLE(?w) AS ?width) (SAMPLE(?art) AS ?article) (SAMPLE(?s) AS ?sl) WHERE {
-  ?item wdt:P135/wdt:P279* wd:Q4692 ; wdt:P31 wd:Q3305213 ; wdt:P18 ?img ; wikibase:sitelinks ?s .
-  ?item rdfs:label ?l . FILTER(LANG(?l) = "en")
-  ?art schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
-  OPTIONAL { ?item wdt:P170 ?cr. ?cr rdfs:label ?c. FILTER(LANG(?c) = "en") }
-  OPTIONAL { ?item wdt:P571 ?i. }
-  OPTIONAL { ?item wdt:P195 ?co. ?co rdfs:label ?col. FILTER(LANG(?col) = "en") }
-  OPTIONAL { ?item wdt:P186 ?ma. ?ma rdfs:label ?mat. FILTER(LANG(?mat) = "en") }
-  OPTIONAL { ?item wdt:P136 ?ge. ?ge rdfs:label ?gen. FILTER(LANG(?gen) = "en") }
-  OPTIONAL { ?item wdt:P2048 ?h. } OPTIONAL { ?item wdt:P2049 ?w. }
-} GROUP BY ?item ORDER BY DESC(?sl) LIMIT 300`;
+// Every Wikidata item classified as a painting, regardless of period, movement,
+// or genre, with a Commons image and an English Wikipedia article. The flat
+// query deliberately avoids an expensive global sort/aggregation; duplicate
+// metadata rows are deduplicated while normalizing the response.
+const POOL_QUERY = `SELECT ?item ?title ?artist (YEAR(?inception) AS ?year) ?image ?museum ?medium ?genre ?height ?width ?article WHERE {
+  ?item wdt:P31 wd:Q3305213 ; wdt:P18 ?image .
+  ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
+  ?item rdfs:label ?title . FILTER(LANG(?title) = "en")
+  OPTIONAL { ?item wdt:P170 ?creator. ?creator rdfs:label ?artist. FILTER(LANG(?artist) = "en") }
+  OPTIONAL { ?item wdt:P571 ?inception. }
+  OPTIONAL { ?item wdt:P195 ?collection. ?collection rdfs:label ?museum. FILTER(LANG(?museum) = "en") }
+  OPTIONAL { ?item wdt:P186 ?material. ?material rdfs:label ?medium. FILTER(LANG(?medium) = "en") }
+  OPTIONAL { ?item wdt:P136 ?paintingGenre. ?paintingGenre rdfs:label ?genre. FILTER(LANG(?genre) = "en") }
+  OPTIONAL { ?item wdt:P2048 ?height. }
+  OPTIONAL { ?item wdt:P2049 ?width. }
+} LIMIT 800`;
 
-const POOL_KEY = "renaissancePool";
-const SCHEMA_KEY = "renaissanceSchema";
+const POOL_KEY = "artworkPool";
+const SCHEMA_KEY = "artworkSchema";
 // Bump when the cached artwork shape changes so older caches are wiped on load.
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 1;
 const POOL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // Refresh the cross-museum pool weekly.
 const MAX_POOL_STORE = 400;
 
@@ -114,7 +115,7 @@ async function init() {
   try {
     await migrateStorage();
     const cached = await loadPool();
-    pool = cached ? cached.items : SEED.filter(inEra);
+    pool = cached ? cached.items : SEED;
     queue = shuffle(pool);
     await next();
     if (!cached || cached.stale) void refreshPool();
@@ -129,6 +130,8 @@ async function migrateStorage() {
   if (stored[SCHEMA_KEY] === SCHEMA_VERSION) return;
   await chrome.storage.local.remove([
     POOL_KEY,
+    "renaissancePool",
+    "renaissanceSchema",
     "renaissanceArtIds",
     "renaissanceArtBuffer",
     "atlasInterpCache",
@@ -210,7 +213,7 @@ async function render(art) {
 
   backdrop.style.backgroundImage = `url("${imageUrl(art, 600)}")`;
   image.src = imageUrl(art, sharpWidth());
-  image.alt = art.title || "Renaissance painting";
+  image.alt = art.title || "Painting";
 
   updateCaption(art);
 
@@ -337,7 +340,7 @@ async function fetchPool() {
   const artworks = [];
   for (const row of rows) {
     const art = normalizeRow(row);
-    if (art && inEra(art) && !seen.has(art.id)) {
+    if (art && !seen.has(art.id)) {
       seen.add(art.id);
       artworks.push(art);
     }
@@ -364,11 +367,6 @@ function normalizeRow(row) {
     height: clean(value("height")),
     width: clean(value("width")),
   };
-}
-
-function inEra(art) {
-  const year = Number.parseInt(art?.date, 10);
-  return !Number.isFinite(year) || year <= ERA_MAX;
 }
 
 // --- Storage -------------------------------------------------------------

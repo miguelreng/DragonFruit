@@ -104,10 +104,11 @@ def create_project_and_member(workspace: Workspace, bot_user: User) -> Dict[int,
             name=workspace.name,  # Use workspace name
             identifier=project_identifier,
             created_by_id=bot_user.id,
-            # Enable all views in seed data
-            cycle_view=True,
-            module_view=True,
-            issue_views_view=True,
+            # DragonFruit's focused project surface is Brief + Tasks + Calendar
+            # + Docs. Keep the legacy Plane planning features disabled.
+            cycle_view=False,
+            module_view=False,
+            issue_views_view=False,
         )
         project.save(created_by_id=bot_user.id, disable_auto_set_user=True)
 
@@ -363,10 +364,13 @@ def create_pages(workspace: Workspace, project_map: Dict[int, uuid.UUID], bot_us
             is_global=False,
             access=page_seed.get("access", Page.PUBLIC_ACCESS),
             name=page_seed.get("name"),
+            page_type=page_seed.get("page_type", Page.PAGE_TYPE_DOC),
+            is_brief=page_seed.get("is_brief", False),
             description_json=page_seed.get("description_json", {}),
             description_html=page_seed.get("description_html", "<p></p>"),
             description_binary=page_seed.get("description_binary", None),
             description_stripped=page_seed.get("description_stripped", None),
+            logo_props=page_seed.get("logo_props", {}),
             created_by_id=bot_user.id,
             updated_by_id=bot_user.id,
             owned_by_id=bot_user.id,
@@ -521,12 +525,12 @@ def workspace_seed(workspace_id: uuid.UUID) -> None:
         # Create a bot user for creating all the workspace data
         bot_user = User.objects.create(
             username=f"bot_user_{workspace.id}",
-            display_name="Plane",
-            first_name="Plane",
+            display_name="DragonFruit",
+            first_name="DragonFruit",
             last_name="",
             is_bot=True,
             bot_type=BotTypeEnum.WORKSPACE_SEED,
-            email=f"bot_user_{workspace.id}@plane.so",
+            email=f"bot_user_{workspace.id}@dragonfruit.local",
             password=make_password(uuid.uuid4().hex),
             is_password_autoset=True,
         )

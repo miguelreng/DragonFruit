@@ -23,7 +23,8 @@
     "check:types": "turbo run check:types",
     "prepare": "husky",
     "test": "cd apps/api && python -m pytest plane/tests/ -q",
-    "test:api": "cd apps/api && python -m pytest plane/tests/ -q"
+    "test:api": "cd apps/api && python -m pytest plane/tests/ -q",
+    "lint": "expo lint"
   },
   "devDependencies": {
     "husky": "9.1.7",

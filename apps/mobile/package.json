@@ -11,28 +11,37 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint"
   },
+  "expo": {
+    "install": {
+      "exclude": ["typescript"]
+    }
+  },
   "dependencies": {
     "@bacons/apple-targets": "^4.0.7",
     "@expo-google-fonts/newsreader": "^0.4.1",
-    "@expo/ui": "~56.0.15",
+    "@expo/ui": "~56.0.22",
     "@react-navigation/native": "7.2.5",
     "@solar-icons/react-native": "^1.1.1",
-    "expo": "~56.0.8",
-    "expo-background-task": "~56.0.16",
-    "expo-constants": "~56.0.16",
+    "expo": "~56.0.16",
+    "expo-background-task": "~56.0.22",
+    "expo-constants": "~56.0.21",
     "expo-device": "~56.0.4",
-    "expo-font": "~56.0.5",
+    "expo-document-picker": "~56.0.4",
+    "expo-file-system": "56.0.8",
+    "expo-font": "~56.0.7",
     "expo-glass-effect": "~56.0.4",
-    "expo-image": "~56.0.9",
+    "expo-haptics": "~56.0.3",
+    "expo-image": "~56.0.11",
     "expo-linear-gradient": "~56.0.4",
-    "expo-linking": "~56.0.13",
-    "expo-router": "~56.2.8",
+    "expo-linking": "~56.0.15",
+    "expo-router": "~56.2.15",
     "expo-secure-store": "~56.0.4",
-    "expo-splash-screen": "~56.0.10",
+    "expo-speech-recognition": "catalog:",
+    "expo-splash-screen": "~56.0.13",
     "expo-status-bar": "~56.0.4",
-    "expo-symbols": "~56.0.5",
+    "expo-symbols": "~56.0.6",
     "expo-system-ui": "~56.0.5",
-    "expo-task-manager": "~56.0.16",
+    "expo-task-manager": "~56.0.22",
     "expo-web-browser": "~56.0.5",
     "nativewind": "^4.2.4",
     "react": "19.2.3",
@@ -43,7 +52,7 @@
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
-    "react-native-svg": "^15.15.5",
+    "react-native-svg": "^15.15.4",
     "react-native-web": "~0.21.0",
     "react-native-webview": "13.16.1",
     "react-native-worklets": "0.8.3"
@@ -54,6 +63,6 @@
     "eslint": "^9.39.4",
     "eslint-config-expo": "~56.0.4",
     "tailwindcss": "^3.4.17",
-    "typescript": "~6.0.3"
+    "typescript": "catalog:"
   }
 }

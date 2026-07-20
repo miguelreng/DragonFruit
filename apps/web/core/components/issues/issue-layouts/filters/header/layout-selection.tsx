@@ -26,6 +26,10 @@ export function LayoutSelection(props: Props) {
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
   const activeLayout = selectedLayout ?? layouts[0] ?? EIssueLayoutTypes.LIST;
+  const orderedLayouts = layouts.flatMap((layoutKey) => {
+    const layout = ISSUE_LAYOUTS.find((item) => item.key === layoutKey);
+    return layout ? [layout] : [];
+  });
   const handleOnChange = (layoutKey: EIssueLayoutTypes) => {
     if (activeLayout !== layoutKey) {
       onChange(layoutKey);
@@ -34,7 +38,7 @@ export function LayoutSelection(props: Props) {
 
   return (
     <div className="flex items-center gap-1 rounded-lg bg-layer-3 p-1">
-      {ISSUE_LAYOUTS.filter((l) => layouts.includes(l.key)).map((layout) => {
+      {orderedLayouts.map((layout) => {
         const isActive = activeLayout === layout.key;
 
         return (

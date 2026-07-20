@@ -107,13 +107,13 @@ export const WorkspaceImageUploadModal = observer(function WorkspaceImageUploadM
 
   return (
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.CENTER} width={EModalWidth.XL}>
-      <div className="space-y-5 px-5 py-8 sm:p-6">
-        <h3 className="text-16 leading-6 font-normal text-primary">Upload image</h3>
+      <div className="vertical-scrollbar scrollbar-sm max-h-[calc(100dvh-2rem)] space-y-5 overflow-y-auto px-5 py-8 sm:p-6">
+        <h3 className="font-normal text-16 leading-6 text-primary">Upload image</h3>
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-3">
             <div
               {...getRootProps()}
-              className={`relative grid h-80 w-80 cursor-pointer place-items-center rounded-lg p-12 text-center focus:ring-2 focus:ring-accent-strong focus:ring-offset-2 focus:outline-none ${
+              className={`relative grid size-[min(20rem,45dvh,calc(100vw-4rem))] cursor-pointer place-items-center rounded-lg p-[min(3rem,5dvh)] text-center focus:ring-2 focus:ring-accent-strong focus:ring-offset-2 focus:outline-none ${
                 (image === null && isDragActive) || !value
                   ? "border-2 border-dashed border-subtle hover:bg-surface-2"
                   : ""
@@ -129,14 +129,14 @@ export const WorkspaceImageUploadModal = observer(function WorkspaceImageUploadM
                   </button>
                   <img
                     src={image ? URL.createObjectURL(image) : value ? getFileURL(value) : ""}
-                    alt="image"
+                    alt="Workspace logo preview"
                     className="absolute top-0 left-0 h-full w-full rounded-lg object-cover"
                   />
                 </>
               ) : (
                 <div>
-                  <UserCirclePropertyIcon className="mx-auto h-16 w-16 text-secondary" />
-                  <span className="mt-2 block text-13 font-medium text-secondary">
+                  <UserCirclePropertyIcon className="mx-auto size-[min(4rem,14dvh)] text-secondary" />
+                  <span className="mt-2 block text-13 leading-5 font-medium text-secondary">
                     {isDragActive ? "Drop image here to upload" : "Drag & drop image here"}
                   </span>
                 </div>

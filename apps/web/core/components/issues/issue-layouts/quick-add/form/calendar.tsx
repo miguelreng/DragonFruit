@@ -8,7 +8,7 @@ import { observer } from "mobx-react";
 import type { TQuickAddIssueForm } from "../root";
 
 export const CalendarQuickAddIssueForm = observer(function CalendarQuickAddIssueForm(props: TQuickAddIssueForm) {
-  const { ref, isOpen, projectDetail, register, onSubmit, isEpic } = props;
+  const { formRef, isOpen, projectDetail, register, onSubmit, isEpic } = props;
 
   return (
     <div
@@ -17,7 +17,7 @@ export const CalendarQuickAddIssueForm = observer(function CalendarQuickAddIssue
       }`}
     >
       <form
-        ref={ref}
+        ref={formRef}
         onSubmit={onSubmit}
         className="z-50 flex w-full items-center gap-x-2 rounded-lg border-subtle bg-surface-1 px-2 transition-opacity md:border-[0.5px] md:shadow-raised-100"
       >

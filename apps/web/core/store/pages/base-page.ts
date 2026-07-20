@@ -20,6 +20,7 @@ export type TBasePage = TPage & {
   // observables
   isSubmitting: TNameDescriptionLoader;
   isSyncingWithServer: "syncing" | "synced" | "error";
+  lastSavedAt: Date | undefined;
   // computed
   asJSON: TPage | undefined;
   isCurrentUserOwner: boolean;
@@ -84,6 +85,8 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
   // loaders
   isSubmitting: TNameDescriptionLoader = "saved";
   isSyncingWithServer: "syncing" | "synced" | "error" = "syncing";
+  // When this session last saved the page's content (undefined until a save happens).
+  lastSavedAt: Date | undefined = undefined;
   // page properties
   id: string | undefined;
   name: string | undefined;
@@ -186,6 +189,7 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
       updated_at: observable.ref,
       deleted_at: observable.ref,
       isSyncingWithServer: observable.ref,
+      lastSavedAt: observable.ref,
       // helpers
       oldName: observable.ref,
       setIsSubmitting: action,
@@ -336,15 +340,23 @@ export class BasePage extends ExtendedBasePage implements TBasePage {
    */
   updateDescription = async (document: TDocumentPayload) => {
     const currentDescription = this.description_html;
+    const currentDescriptionJson = this.description_json;
+    const updatesDescriptionHtml = "description_html" in document;
+    const updatesDescriptionJson = "description_json" in document;
     runInAction(() => {
-      this.description_html = document.description_html;
+      if (updatesDescriptionHtml) this.description_html = document.description_html;
+      if (updatesDescriptionJson) this.description_json = document.description_json;
     });
 
     try {
       await this.services.updateDescription(document);
+      runInAction(() => {
+        this.lastSavedAt = new Date();
+      });
     } catch (error) {
       runInAction(() => {
-        this.description_html = currentDescription;
+        if (updatesDescriptionHtml) this.description_html = currentDescription;
+        if (updatesDescriptionJson) this.description_json = currentDescriptionJson;
       });
       throw error;
     }

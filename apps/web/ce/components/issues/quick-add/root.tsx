@@ -79,7 +79,7 @@ export const QuickAddIssueFormRoot = observer(function QuickAddIssueFormRoot(pro
 
   return (
     <CurrentLayoutQuickAddIssueForm
-      ref={ref}
+      formRef={ref}
       isOpen={isOpen}
       projectDetail={projectDetail}
       hasError={hasError}

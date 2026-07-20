@@ -62,7 +62,7 @@ class NotificationViewSet(BaseViewSet, BasePaginator):
 
         notifications = (
             Notification.objects.filter(workspace__slug=slug, receiver_id=request.user.id)
-            .filter(Q(entity_name="issue") | Q(entity_name="cursor_buddy_file"))
+            .filter(Q(entity_name="issue") | Q(entity_name="cursor_buddy_file") | Q(entity_name="agent_run"))
             .annotate(is_inbox_issue=Exists(intake_issue))
             .annotate(is_intake_issue=Exists(intake_issue))
             .annotate(
@@ -198,6 +198,10 @@ class UnreadNotificationEndpoint(BaseAPIView):
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def get(self, request, slug):
+        # Only count entity types the notification list can render, so the
+        # unread badge never disagrees with the list (see NotificationViewSet.list)
+        listable_entities = Q(entity_name="issue") | Q(entity_name="cursor_buddy_file") | Q(entity_name="agent_run")
+
         # Watching Issues Count
         unread_notifications_count = (
             Notification.objects.filter(
@@ -207,18 +211,23 @@ class UnreadNotificationEndpoint(BaseAPIView):
                 archived_at__isnull=True,
                 snoozed_till__isnull=True,
             )
+            .filter(listable_entities)
             .exclude(sender__icontains="mentioned")
             .count()
         )
 
-        mention_notifications_count = Notification.objects.filter(
-            workspace__slug=slug,
-            receiver_id=request.user.id,
-            read_at__isnull=True,
-            archived_at__isnull=True,
-            snoozed_till__isnull=True,
-            sender__icontains="mentioned",
-        ).count()
+        mention_notifications_count = (
+            Notification.objects.filter(
+                workspace__slug=slug,
+                receiver_id=request.user.id,
+                read_at__isnull=True,
+                archived_at__isnull=True,
+                snoozed_till__isnull=True,
+                sender__icontains="mentioned",
+            )
+            .filter(listable_entities)
+            .count()
+        )
 
         return Response(
             {

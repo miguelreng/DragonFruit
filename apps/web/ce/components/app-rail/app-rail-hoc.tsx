@@ -31,11 +31,11 @@ export function withDockItems<P extends WithDockItemsProps>(WrappedComponent: Re
     const railItemKeys: Array<keyof typeof WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS> = [
       "home",
       "your-work",
-      "docs",
-      "bookmarks",
-      "stickies",
-      "whiteboards",
       "calendar",
+      "docs",
+      "whiteboards",
+      "stickies",
+      "bookmarks",
     ];
 
     const railItems = railItemKeys.map((key) => {

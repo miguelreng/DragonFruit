@@ -33,14 +33,17 @@ from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import StreamingHttpResponse
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers.agent import (
+    GENERIC_AGENT_CHAT_TITLES,
     AgentChatMessageSerializer,
     AgentChatSessionSerializer,
+    generate_agent_chat_title,
 )
 from plane.app.views.agent.base import _BOT_WORKSPACE_ROLE, _build_bot_user
 from plane.db.models import (
@@ -102,7 +105,12 @@ _MAX_IMAGE_BYTES = 2_500_000
 # read them natively). Same raw cap as images: 2.5MB → ~3.4MB base64, which
 # stays under Django's body limit alongside the rest of the payload.
 _MAX_PDF_BYTES = 2_500_000
-_MAX_TEXT_EXCERPT_CHARS = 50_000       # cap CSV / plaintext at ~50KB
+_MAX_TEXT_EXCERPT_CHARS = 50_000  # cap CSV / plaintext at ~50KB
+# Voice-note metadata cap. This is a duration marker, not a media upload — no
+# raw audio/base64 is ever accepted or persisted — so the cap only guards
+# against a bogus/huge number, not payload size. 4 hours is a generous ceiling
+# for a single dictated turn.
+_MAX_VOICE_DURATION_SECONDS = 4 * 60 * 60
 _IMAGE_MIME_PREFIXES = ("image/png", "image/jpeg", "image/gif", "image/webp")
 _TEXT_MIME_TYPES = {"text/csv", "text/plain", "application/csv"}
 _FETCH_URL_MAX_BYTES = 120_000
@@ -203,6 +211,15 @@ For document-creation requests:
 - include a final "Sources" section with credible source names and URLs when the topic relies on factual claims
 - after the tool succeeds, reply with a short confirmation and a link to the created document
 
+If the user asks to create or plan a Gantt chart/timeline, do not create a document by default. First decide what
+they mean:
+- A project schedule with work items, owners, start/due dates, or dependencies belongs in project tasks and the
+  project's Timeline/Gantt layout. If that is clearly what they want, create the requested tasks with `create_task`.
+- A spreadsheet-style planning grid with rows, columns, dates, or formulas belongs in a spreadsheet; use
+  `create_sheet` with clear Task, Start, End, Owner, and Status columns.
+- If the request is ambiguous, ask one focused question before creating anything: "Should I create project tasks
+  for a Timeline/Gantt view, or a spreadsheet Gantt plan?" Offer those two options instead of guessing.
+
 If the user asks a question, asks for retrieval ("get/find/show/list/fetch X from Y"), asks for clarification,
 brainstorming, analysis, or a normal chat answer, respond normally.
 If the user asks about information in their files, docs, tasks, notes, stickies, workspace, or project,
@@ -214,8 +231,8 @@ If the user asks to use an external app or service through Composio:
   the auth link to the user and wait for them to finish connecting
 - call `composio_execute_tool` only after the user has explicitly approved the exact external action and arguments
 Do not invent Composio tool slugs or auth URLs.
-If the user asks you to create, write, fill in, or update THE project's brief (e.g. "create the brief
-for this project", "crea el brief de mi proyecto", "update the project brief"), call
+If the user asks you to create, write, fill in, or update THE project's brief (including a bare "create a brief"
+with no topic; e.g. "create the brief for this project", "crea el brief de mi proyecto", "update the project brief"), call
 `update_project_brief` — NOT `create_document`. The brief is the project's single canonical context
 page (the "Brief" tab); writing it as a normal document creates a duplicate the Brief tab won't show.
 Only if the user explicitly asks you to create a task, call `create_task`.
@@ -334,20 +351,41 @@ def _normalise_attachments(raw_attachments) -> list:
     return out
 
 
+def _normalise_voice_marker(input_mode, voice_duration_seconds) -> dict | None:
+    """Build the small persisted marker for a voice-dictated message.
+
+    Returns `{"kind": "voice", "duration_seconds": int}` when the turn was
+    recorded as a voice note, else `None`. There is no raw audio to carry —
+    the transcript already rode in as `content` — so this is metadata only,
+    used by the client to render a "Voice note · mm:ss" header on the bubble.
+    Duration is validated as a positive number and capped so a malformed
+    client can't stash an absurd value.
+    """
+    if str(input_mode or "").strip().lower() != "voice":
+        return None
+    try:
+        duration = int(round(float(voice_duration_seconds)))
+    except (TypeError, ValueError):
+        duration = 0
+    duration = max(0, min(duration, _MAX_VOICE_DURATION_SECONDS))
+    return {"kind": "voice", "duration_seconds": duration}
+
+
 def _build_user_prompt(text: str, attachments: list):
     """Convert the persisted attachments into the multimodal content
     payload LiteLLM forwards to the provider. Returns either the bare
     text (string — fast path, no attachments) or a list of OpenAI-style
     content blocks.
     """
-    if not attachments:
+    prompt_attachments = [att for att in attachments if att.get("kind") != "voice"]
+    if not prompt_attachments:
         return text
 
     blocks: list[dict] = []
     if text:
         blocks.append({"type": "text", "text": text})
 
-    for att in attachments:
+    for att in prompt_attachments:
         kind = att.get("kind") or _classify_attachment(att.get("mime_type") or "")
         name = att.get("name") or "file"
         if kind == "image" and att.get("data_url"):
@@ -390,30 +428,29 @@ def _build_user_prompt(text: str, attachments: list):
     return blocks
 
 
-def _generate_title(message_text: str) -> str:
-    """Shape the user's first message into a session title.
-
-    Same heuristic as ChatGPT's auto-title: trim, collapse whitespace,
-    cap at ~50 chars on a word boundary. The user can rename later.
-    """
-    text = " ".join((message_text or "").split())
-    if len(text) <= 50:
-        return text or "New chat"
-    cut = text[:50]
-    # Back off to the last word boundary so we don't slice "thinking"
-    # into "think" mid-word.
-    space = cut.rfind(" ")
-    if space > 20:
-        cut = cut[:space]
-    return f"{cut}…"
-
-
 def _looks_like_document_request(text: str) -> bool:
     return bool(_DOCUMENT_CREATION_RE.search(text or ""))
 
 
 def _looks_like_brief_request(text: str) -> bool:
-    return bool(_PROJECT_BRIEF_REQUEST_RE.search(text or ""))
+    content = text or ""
+    if _PROJECT_BRIEF_REQUEST_RE.search(content):
+        return True
+
+    # Treat a bare "create/write the brief" as the project's Brief page. A
+    # topic-qualified request ("create a brief about X" / "brief me on X")
+    # remains a researched document request instead.
+    return bool(
+        re.search(
+            r"\b(?:create|write|draft|make|generate|prepare|update|edit|"
+            r"crea(?:r)?|escrib(?:e|ir)|redacta(?:r)?|genera(?:r)?|prepara(?:r)?|"
+            r"actualiza(?:r)?|edita(?:r)?)\b\s+"
+            r"(?:the\s+|a\s+|an\s+|un\s+|una\s+|el\s+|la\s+)?brief\b"
+            r"(?!\s+(?:on|about|of|sobre|acerca\s+de)\b)",
+            content,
+            re.IGNORECASE,
+        )
+    )
 
 
 def _should_use_agent_tools(tool_mode: str | None) -> bool:
@@ -502,6 +539,38 @@ def _get_accessible_doc_page(*, workspace: Workspace, user, page_id: str | None,
 
     project_page = base_query.select_related("page").first()
     return project_page.page if project_page is not None else None
+
+
+def _get_accessible_context_project(*, workspace: Workspace, user, project_id: str | None) -> Project | None:
+    if not project_id:
+        return None
+    return (
+        Project.objects.filter(
+            id=project_id,
+            workspace=workspace,
+            archived_at__isnull=True,
+            project_projectmember__member=user,
+            project_projectmember__is_active=True,
+        )
+        .distinct()
+        .first()
+    )
+
+
+def _persisted_chat_context(session: AgentChatSession) -> str:
+    lines = []
+    if session.context_project_id:
+        lines.append(
+            f"This conversation is scoped to the project '{session.context_project.name}' "
+            f"(project id: {session.context_project_id})."
+        )
+    if session.context_page_id:
+        lines.append(
+            f"The attached document is '{session.context_page.name or 'Untitled'}' "
+            f"(document id: {session.context_page_id}). Use the workspace search tool to retrieve "
+            "relevant passages before answering questions about it."
+        )
+    return "\n".join(lines)
 
 
 def _normalise_document_subject(text: str) -> str:
@@ -632,7 +701,9 @@ def _fallback_research_results(query: str, *, limit: int = 5) -> list[dict]:
 
 def _format_research_results(results: list[dict]) -> str:
     if not results:
-        return "(No web search results were available. Say that sources could not be fetched instead of inventing URLs.)"
+        return (
+            "(No web search results were available. Say that sources could not be fetched instead of inventing URLs.)"
+        )
     return "\n".join(f"- {item['title']}: {item['url']}" for item in results)
 
 
@@ -659,7 +730,9 @@ def _format_workspace_hits(hits: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _search_workspace_content(*, workspace: Workspace, user, project_id: str | None, query: str, limit: int) -> list[dict]:
+def _search_workspace_content(
+    *, workspace: Workspace, user, project_id: str | None, query: str, limit: int
+) -> list[dict]:
     query = " ".join((query or "").split())
     limit = min(max(limit, 1), 10)
     hits: list[dict] = []
@@ -755,9 +828,13 @@ def _strip_duplicate_title_heading(document_html: str, title: str) -> str:
             continue
         first_tag = node
         break
-    if first_tag is None or first_tag.name not in {"h1", "h2"}:
+    if first_tag is None or first_tag.name not in {"h1", "h2", "h3"}:
         return document_html
-    if _normalize_heading_text(first_tag.get_text()) != normalized_title:
+    normalized_heading = _normalize_heading_text(first_tag.get_text())
+    # Models sometimes add a short qualifier after the title (for example
+    # "Launch plan — overview"). Treat that as the duplicated page heading
+    # too, but only when the title is a complete token prefix.
+    if normalized_heading != normalized_title and not normalized_heading.startswith(f"{normalized_title} "):
         return document_html
     first_tag.extract()
     remaining = str(soup).strip()
@@ -770,11 +847,7 @@ def _coerce_document_html(raw_html: str) -> str:
     if not document_html:
         document_html = "<p></p>"
     elif "<" not in document_html or ">" not in document_html:
-        paragraphs = [
-            f"<p>{html.escape(part.strip())}</p>"
-            for part in document_html.split("\n\n")
-            if part.strip()
-        ]
+        paragraphs = [f"<p>{html.escape(part.strip())}</p>" for part in document_html.split("\n\n") if part.strip()]
         document_html = "".join(paragraphs) or "<p></p>"
 
     is_valid, _error_message, sanitized_html = validate_html_content(document_html)
@@ -1031,10 +1104,7 @@ def _make_update_project_brief_tool(*, workspace: Workspace, user, project_id: s
             ).save(created_by_id=user.id)
             action = "created"
 
-        return (
-            f"ok: {action} the project brief "
-            f"(id={page.id}, url=/{workspace.slug}/projects/{project.id}/brief)"
-        )
+        return f"ok: {action} the project brief (id={page.id}, url=/{workspace.slug}/projects/{project.id}/brief)"
 
     return LLMTool(
         name="update_project_brief",
@@ -1125,7 +1195,7 @@ def _sheet_cells_from_matrix(matrix: list[list], row_offset: int = 0) -> dict:
 
 
 def _parse_sheet_cell_id(ref) -> tuple[int, int] | None:
-    """"B3" -> (row 2, col 1); None when the ref isn't a valid A1-style id."""
+    """ "B3" -> (row 2, col 1); None when the ref isn't a valid A1-style id."""
     m = re.match(r"^([A-Za-z]{1,3})([0-9]+)$", str(ref or "").strip())
     if not m:
         return None
@@ -1393,8 +1463,7 @@ def _make_update_sheet_tool(*, workspace: Workspace, user, project_id: str | Non
                 "sheet": {
                     "type": "string",
                     "description": (
-                        "Title of the spreadsheet to edit. Required only if the project has multiple "
-                        "spreadsheets."
+                        "Title of the spreadsheet to edit. Required only if the project has multiple spreadsheets."
                     ),
                 },
                 "mode": {
@@ -1411,8 +1480,7 @@ def _make_update_sheet_tool(*, workspace: Workspace, user, project_id: str | Non
                     "type": "array",
                     "items": {"type": "array", "items": {"type": ["string", "number", "boolean", "null"]}},
                     "description": (
-                        "New spreadsheet data as a list of rows; each row is a list of cell values or "
-                        "formulas."
+                        "New spreadsheet data as a list of rows; each row is a list of cell values or formulas."
                     ),
                 },
             },
@@ -1524,8 +1592,7 @@ def _make_set_cells_tool(*, workspace: Workspace, user, project_id: str | None) 
                 "sheet": {
                     "type": "string",
                     "description": (
-                        "Title of the spreadsheet to edit. Required only if the project has multiple "
-                        "spreadsheets."
+                        "Title of the spreadsheet to edit. Required only if the project has multiple spreadsheets."
                     ),
                 },
                 "cells": {
@@ -1686,9 +1753,7 @@ def _make_web_search_tool() -> LLMTool:
             limit = int(args.get("limit") or 5)
         except (TypeError, ValueError):
             limit = 5
-        return _format_research_results(
-            _search_web(str(args.get("query") or ""), limit=min(max(limit, 1), 5))
-        )
+        return _format_research_results(_search_web(str(args.get("query") or ""), limit=min(max(limit, 1), 5)))
 
     return LLMTool(
         name="web_search",
@@ -1936,7 +2001,7 @@ def _make_wikipedia_lookup_tool() -> LLMTool:
 
 
 def _make_wikipedia_brief_tool(*, workspace: Workspace, user, project_id: str | None) -> LLMTool:
-    """"Brief me on X" — research a topic on Wikipedia and create a sourced doc."""
+    """ "Brief me on X" — research a topic on Wikipedia and create a sourced doc."""
     create_tool = _make_create_document_tool(workspace=workspace, user=user, project_id=project_id)
 
     def _handler(args: dict) -> str:
@@ -2120,7 +2185,16 @@ class AgentChatSessionEndpoint(BaseAPIView):
                 scope_type="personal",
                 deleted_at__isnull=True,
             )
-        sessions = sessions.select_related("agent", "page").order_by("-last_activity_at")
+        first_user_message = (
+            AgentChatMessage.objects.filter(session_id=OuterRef("pk"), role="user")
+            .order_by("created_at")
+            .values("content")[:1]
+        )
+        sessions = (
+            sessions.select_related("agent", "page", "context_project", "context_page")
+            .annotate(first_user_message=Subquery(first_user_message))
+            .order_by("-last_activity_at")
+        )
         return Response(
             {"sessions": AgentChatSessionSerializer(sessions, many=True).data},
             status=status.HTTP_200_OK,
@@ -2186,7 +2260,7 @@ class AgentChatSessionDetailEndpoint(BaseAPIView):
                 workspace__slug=slug,
                 deleted_at__isnull=True,
             )
-            .select_related("agent", "workspace", "page")
+            .select_related("agent", "workspace", "page", "context_project", "context_page")
             .first()
         )
         if session is None:
@@ -2206,11 +2280,7 @@ class AgentChatSessionDetailEndpoint(BaseAPIView):
         session = self._get(request, slug, session_id)
         if session is None:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
-        messages = list(
-            session.messages.filter(deleted_at__isnull=True)
-            .select_related("user")
-            .order_by("created_at")
-        )
+        messages = list(session.messages.filter(deleted_at__isnull=True).select_related("user").order_by("created_at"))
         return Response(
             {
                 "session": AgentChatSessionSerializer(session).data,
@@ -2225,13 +2295,56 @@ class AgentChatSessionDetailEndpoint(BaseAPIView):
         if session is None:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
         if session.scope_type == "page" and session.user_id != request.user.id:
-            return Response({"error": "Only the chat creator can rename this doc chat"}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "Only the chat creator can rename this doc chat"}, status=status.HTTP_403_FORBIDDEN
+            )
         if "title" in request.data:
             new_title = (request.data.get("title") or "").strip()
             if not new_title:
                 return Response({"error": "title cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
             session.title = new_title[:200]
             session.save(update_fields=["title", "updated_at"])
+        context_fields_present = "context_project_id" in request.data or "context_page_id" in request.data
+        if context_fields_present:
+            surface = str(request.data.get("context_updated_by_surface") or "").strip().lower()
+            if surface not in {"web", "mobile"}:
+                return Response(
+                    {"error": "context_updated_by_surface must be web or mobile"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            project_id = str(request.data.get("context_project_id") or "").strip() or None
+            project = _get_accessible_context_project(
+                workspace=session.workspace,
+                user=request.user,
+                project_id=project_id,
+            )
+            if project_id and project is None:
+                return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            page_id = str(request.data.get("context_page_id") or "").strip() or None
+            page = _get_accessible_doc_page(
+                workspace=session.workspace,
+                user=request.user,
+                page_id=page_id,
+                project_id=str(project.id) if project else None,
+            )
+            if page_id and page is None:
+                return Response({"error": "Document not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            session.context_project = project
+            session.context_page = page
+            session.context_updated_at = timezone.now()
+            session.context_updated_by_surface = surface
+            session.save(
+                update_fields=[
+                    "context_project",
+                    "context_page",
+                    "context_updated_at",
+                    "context_updated_by_surface",
+                    "updated_at",
+                ]
+            )
         return Response(AgentChatSessionSerializer(session).data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
@@ -2240,7 +2353,9 @@ class AgentChatSessionDetailEndpoint(BaseAPIView):
         if session is None:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
         if session.scope_type == "page" and session.user_id != request.user.id:
-            return Response({"error": "Only the chat creator can delete this doc chat"}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "Only the chat creator can delete this doc chat"}, status=status.HTTP_403_FORBIDDEN
+            )
         session.delete(soft=True)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -2268,7 +2383,7 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 workspace__slug=slug,
                 deleted_at__isnull=True,
             )
-            .select_related("agent", "workspace", "page")
+            .select_related("agent", "workspace", "page", "context_project", "context_page")
             .first()
         )
         if session is None:
@@ -2516,8 +2631,10 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             content=content,
             attachments=[],
         )
-        if (session.title in ("", "New chat")) and session.messages.filter(role="user").count() == 1:
-            session.title = _generate_title(content)
+        if (session.title or "").strip().lower() in GENERIC_AGENT_CHAT_TITLES and session.messages.filter(
+            role="user"
+        ).count() == 1:
+            session.title = generate_agent_chat_title(content)
             session.save(update_fields=["title", "updated_at"])
 
         response = StreamingHttpResponse(stream(), content_type="application/x-ndjson")
@@ -2547,6 +2664,9 @@ class AgentChatMessageEndpoint(BaseAPIView):
     def post(self, request, slug, session_id):
         content = (request.data.get("content") or "").strip()
         raw_attachments = request.data.get("attachments") or []
+        voice_marker = _normalise_voice_marker(
+            request.data.get("input_mode"), request.data.get("voice_duration_seconds")
+        )
         project_id = (request.data.get("project_id") or "").strip() or None
         context_note = str(request.data.get("context_note") or "").strip()[:12_000]
         force_document_tool = _coerce_bool(request.data.get("force_document_tool"))
@@ -2564,7 +2684,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
                 workspace__slug=slug,
                 deleted_at__isnull=True,
             )
-            .select_related("agent", "workspace", "page")
+            .select_related("agent", "workspace", "page", "context_project", "context_page")
             .first()
         )
         if session is None:
@@ -2581,10 +2701,19 @@ class AgentChatMessageEndpoint(BaseAPIView):
         elif session.user_id != request.user.id:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        if not project_id and session.context_project_id:
+            project_id = str(session.context_project_id)
+
+        persisted_context = _persisted_chat_context(session)
+        if persisted_context:
+            context_note = "\n".join([persisted_context, context_note] if context_note else [persisted_context])
+
         # Normalise + cap incoming attachments here so the model row
         # never holds something pathological. See `_normalise_attachments`
         # for the shape we persist.
         attachments = _normalise_attachments(raw_attachments)
+        if voice_marker is not None:
+            attachments = [*attachments, voice_marker]
 
         # Append user turn first so it's persisted even if the LLM call
         # throws or the server gets killed mid-call. A floating "user
@@ -2600,8 +2729,10 @@ class AgentChatMessageEndpoint(BaseAPIView):
 
         # First message in the thread? Backfill the auto-generated title
         # so the sessions list is readable without the user renaming.
-        if (session.title in ("", "New chat")) and session.messages.filter(role="user").count() == 1:
-            session.title = _generate_title(content)
+        if (session.title or "").strip().lower() in GENERIC_AGENT_CHAT_TITLES and session.messages.filter(
+            role="user"
+        ).count() == 1:
+            session.title = generate_agent_chat_title(content)
             session.save(update_fields=["title", "updated_at"])
 
         agent = session.agent
@@ -2626,9 +2757,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         # otherwise spawn a duplicate normal doc if the model calls the brief tool).
         is_brief_request = use_agent_tools and _looks_like_brief_request(content)
         is_document_request = (
-            use_agent_tools
-            and not is_brief_request
-            and (force_document_tool or _looks_like_document_request(content))
+            use_agent_tools and not is_brief_request and (force_document_tool or _looks_like_document_request(content))
         )
         document_subject = _normalise_document_subject(content) if is_document_request else ""
         document_title = _title_from_subject(document_subject) if document_subject else ""
@@ -2639,9 +2768,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
         # model has multi-turn context. Cap at the last 30 turns to keep
         # the prompt bounded — sessions can grow unboundedly otherwise.
         history = list(
-            session.messages.filter(deleted_at__isnull=True)
-            .order_by("created_at")
-            .values("role", "content")
+            session.messages.filter(deleted_at__isnull=True).order_by("created_at").values("role", "content")
         )
         history_trimmed = history[-30:]
 
@@ -2997,7 +3124,9 @@ class AgentChatMessageEndpoint(BaseAPIView):
         assistant_content = (
             _tool_call_confirmation(fallback_tool_call)
             if fallback_tool_call is not None
-            else successful_document_confirmation or (result.final_text or "").strip() or _fallback_tool_confirmation(result)
+            else successful_document_confirmation
+            or (result.final_text or "").strip()
+            or _fallback_tool_confirmation(result)
         )
         cost = estimate_cost_usd(
             agent.provider_model or "",

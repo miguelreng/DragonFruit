@@ -6,6 +6,7 @@
 
 import type { TLogoProps } from "./common";
 import type { TIssuePriorities } from "./issues";
+import type { TPageType } from "./page";
 
 export type TRecentActivityFilterKeys = "all item" | "issue" | "page" | "project" | "workspace_page";
 export type THomeWidgetKeys = "quick_links" | "recents" | "my_stickies" | "quick_tutorial" | "new_at_plane";
@@ -17,6 +18,7 @@ export type THomeWidgetProps = {
 export type TPageEntityData = {
   id: string;
   name: string;
+  page_type?: TPageType;
   is_brief?: boolean;
   logo_props: TLogoProps;
   project_id?: string;

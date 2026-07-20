@@ -7,3 +7,4 @@
 export * from "./card";
 export * from "./picker";
 export * from "./types";
+export * from "./whiteboard-embed";

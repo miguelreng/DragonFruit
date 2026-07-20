@@ -1,21 +1,17 @@
 import type React from "react";
-import { router, useNavigation } from "expo-router";
+import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DrawerActions } from "@react-navigation/native";
-import { ArrowLeft01Icon, SidebarLeftIcon } from "@/lib/icons";
+import { ArrowLeft01Icon } from "@/lib/icons";
 
 import { AppIcon } from "@/components/app-icon";
 import { PressableScale } from "@/components/pressable-scale";
 import { colors, font, radius, spacing } from "@/lib/theme";
 
 /**
- * Header for workspace screens. Top-level views sit at the root of the stack
- * (the sidebar `replace`s between them), so they get a menu button that opens
- * the sidebar; screens pushed on top (details, new task) get a back arrow. We
- * read the stack index off the navigation object — `getState()` is scoped to
- * this stack and never throws, unlike `useNavigationState` which can fault when
- * the screen renders outside an active navigator (e.g. during a drawer reveal).
+ * Header for secondary workspace screens. The focused mobile shell no longer
+ * has a drawer, so every secondary route leads back to its caller or to the
+ * workspace hub when opened directly from a deep link.
  */
 export function ScreenHeader({
   title,
@@ -26,16 +22,10 @@ export function ScreenHeader({
   right?: React.ReactNode;
   onClose?: () => void;
 }) {
-  const navigation = useNavigation();
-  // A supplied `onClose` (e.g. the Atlas peek dismissing itself) takes the
-  // leading slot with a back arrow; otherwise pushed screens go back and
-  // top-level screens toggle the sidebar.
-  const isPushed = (navigation.getState()?.index ?? 0) > 0;
-  const showBack = onClose != null || isPushed;
   const onLeading = () => {
     if (onClose) onClose();
-    else if (isPushed) router.back();
-    else navigation.dispatch(DrawerActions.toggleDrawer());
+    else if (router.canGoBack()) router.back();
+    else router.replace("/");
   };
 
   return (
@@ -44,11 +34,13 @@ export function ScreenHeader({
         <PressableScale
           onPress={onLeading}
           hitSlop={8}
-          style={({ pressed }) => [styles.backBtn, pressed && styles.pressedDim]}
+          style={({ pressed }) => pressed && styles.pressedDim}
           accessibilityRole="button"
-          accessibilityLabel={showBack ? "Go back" : "Open menu"}
+          accessibilityLabel="Go back"
         >
-          <AppIcon icon={showBack ? ArrowLeft01Icon : SidebarLeftIcon} size={18} color={colors.ink} strokeWidth={1.9} />
+          <View style={styles.backBtn}>
+            <AppIcon icon={ArrowLeft01Icon} size={18} color={colors.ink} strokeWidth={1.9} />
+          </View>
         </PressableScale>
         <View style={styles.titleWrap}>
           <Text style={styles.title} numberOfLines={1}>
@@ -78,8 +70,10 @@ const styles = StyleSheet.create({
     width: 32,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: radius.sm,
-    backgroundColor: colors.layer1Hover,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
   },
   pressedDim: { opacity: 0.6 },
   titleWrap: { flex: 1 },

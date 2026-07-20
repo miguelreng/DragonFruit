@@ -20,6 +20,7 @@ import { PageOptionsDropdown } from "../editor/toolbar";
 import { PageArchivedBadge } from "./archived-badge";
 import { PageCopyLinkControl } from "./copy-link-control";
 import { PageFavoriteControl } from "./favorite-control";
+import { PageLastSaved } from "./last-saved";
 import { PageOfflineBadge } from "./offline-badge";
 import { PageTagsControl } from "./tags-control";
 
@@ -33,6 +34,7 @@ export const PageHeaderActions = observer(function PageHeaderActions(props: Prop
 
   return (
     <div className="flex items-center gap-1">
+      <PageLastSaved page={page} />
       <PageArchivedBadge page={page} />
       <PageOfflineBadge page={page} />
       <PageLockControl page={page} />

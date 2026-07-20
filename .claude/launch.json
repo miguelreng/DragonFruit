@@ -26,6 +26,15 @@
       "port": 3006
     },
     {
+      "name": "web-local-api-3008 (atlas full mode verify)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && VITE_DEV_API_PROXY_TARGET=http://127.0.0.1:8000 pnpm exec react-router dev --port 3008"
+      ],
+      "port": 3008
+    },
+    {
       "name": "web-local-api-3007 (link preview verify)",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
@@ -69,6 +78,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd /tmp/ntpreview && python3 -m http.server 8743"],
       "port": 8743
+    },
+    {
+      "name": "propel-storybook (component gallery)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd packages/propel && COREPACK_INTEGRITY_KEYS=0 pnpm storybook --no-open"],
+      "port": 6006
     }
   ]
 }

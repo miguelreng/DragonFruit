@@ -8,7 +8,7 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { TableMap } from "@tiptap/pm/tables";
 import type { Editor } from "@tiptap/react";
 import { v4 as generateUuid } from "uuid";
-import { CheckSquare, MoveHorizontal } from "@plane/icons";
+import { CheckSquare, Expand, MoveHorizontal } from "@plane/icons";
 // constants
 import { CORE_EXTENSIONS } from "@/constants/extension";
 // plane editor types
@@ -30,7 +30,7 @@ const findSelectedTable = (editor: Editor): { tableNode: ProseMirrorNode | null;
   return { tableNode: null, tablePos: -1 };
 };
 
-const setTableToFullWidth = (editor: Editor): void => {
+const distributeTableColumns = (editor: Editor, getTargetWidth: (tablePos: number) => number | null): void => {
   try {
     const { state, view } = editor;
 
@@ -38,19 +38,12 @@ const setTableToFullWidth = (editor: Editor): void => {
     const { tableNode, tablePos } = findSelectedTable(editor);
     if (!tableNode) return;
 
-    // Get content width from CSS variable
-    const editorContainer = view.dom.closest(".editor-container");
-    if (!editorContainer) return;
-
-    const contentWidthVar = getComputedStyle(editorContainer).getPropertyValue("--editor-content-width").trim();
-    if (!contentWidthVar) return;
-
-    const contentWidth = parseInt(contentWidthVar);
-    if (isNaN(contentWidth) || contentWidth <= 0) return;
+    const targetWidth = getTargetWidth(tablePos);
+    if (!targetWidth || isNaN(targetWidth) || targetWidth <= 0) return;
 
     // Calculate equal width for each column
     const map = TableMap.get(tableNode);
-    const equalWidth = Math.floor(contentWidth / map.width);
+    const equalWidth = Math.floor(targetWidth / map.width);
 
     // Update all cell widths
     const tr = state.tr;
@@ -81,9 +74,32 @@ const setTableToFullWidth = (editor: Editor): void => {
 
     view.dispatch(tr);
   } catch (error) {
-    console.error("Error setting table to full width:", error);
+    console.error("Error distributing table columns:", error);
   }
 };
+
+const setTableToFullWidth = (editor: Editor): void =>
+  distributeTableColumns(editor, () => {
+    // Get content width from CSS variable
+    const editorContainer = editor.view.dom.closest(".editor-container");
+    if (!editorContainer) return null;
+
+    const contentWidthVar = getComputedStyle(editorContainer).getPropertyValue("--editor-content-width").trim();
+    if (!contentWidthVar) return null;
+
+    return parseInt(contentWidthVar);
+  });
+
+const setTableToPageWidth = (editor: Editor): void =>
+  distributeTableColumns(editor, (tablePos) => {
+    // The table wrapper is an editor-full-width-block whose padding aligns the
+    // table with the content column; the inner width is the full page width
+    const wrapper = editor.view.nodeDOM(tablePos);
+    if (!(wrapper instanceof HTMLElement)) return null;
+
+    const wrapperStyles = getComputedStyle(wrapper);
+    return wrapper.clientWidth - parseFloat(wrapperStyles.paddingLeft) - parseFloat(wrapperStyles.paddingRight);
+  });
 
 const turnSelectedBlockIntoTask = (editor: Editor, embedConfig: TEmbedConfig) => {
   const issueConfig = embedConfig.issue;
@@ -177,6 +193,13 @@ export const getNodeOptions = (editor: Editor, embedConfig?: TEmbedConfig): Bloc
     label: "Fit to width",
     isDisabled: !editor.isActive(CORE_EXTENSIONS.TABLE),
     onClick: () => setTableToFullWidth(editor),
+  },
+  {
+    icon: Expand,
+    key: "table-page-width",
+    label: "Full width",
+    isDisabled: !editor.isActive(CORE_EXTENSIONS.TABLE),
+    onClick: () => setTableToPageWidth(editor),
   },
   {
     icon: CheckSquare,

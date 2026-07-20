@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 
 import { APP_HOST } from "@/lib/config";
 import { avatarColor, colors } from "@/lib/theme";
@@ -13,8 +14,14 @@ import { avatarColor, colors } from "@/lib/theme";
  */
 function resolveImageUrl(url?: string | null): string | null {
   if (!url) return null;
-  if (/^https?:\/\//i.test(url)) return url;
-  return `${APP_HOST}/${url.replace(/^\/+/, "")}`;
+
+  // The web profile settings generate DiceBear avatars as SVGs. iOS's native
+  // image loader (used by expo-image) cannot decode those SVG responses, so
+  // request the equivalent PNG representation on mobile instead.
+  const nativeUrl = url.replace(/^(https?:\/\/api\.dicebear\.com\/[^/]+\/[^/]+)\/svg(?=\?|$)/i, "$1/png");
+
+  if (/^https?:\/\//i.test(nativeUrl)) return nativeUrl;
+  return `${APP_HOST}/${nativeUrl.replace(/^\/+/, "")}`;
 }
 
 /**
@@ -36,16 +43,18 @@ export function Avatar({
   color?: string;
   imageUrl?: string | null;
 }) {
-  const [failed, setFailed] = useState(false);
   const radius = circle ? size / 2 : Math.round(size * 0.3);
   const resolved = resolveImageUrl(imageUrl);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
-  if (resolved && !failed) {
+  if (resolved && resolved !== failedUrl) {
     return (
       <Image
         source={{ uri: resolved }}
-        onError={() => setFailed(true)}
-        resizeMode="cover"
+        onError={() => setFailedUrl(resolved)}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={120}
         style={{ width: size, height: size, borderRadius: radius, backgroundColor: colors.layer1 }}
       />
     );

@@ -350,12 +350,9 @@ body {
   position: fixed;
   top: 50%;
   left: 50%;
-  width: 30px;
-  height: 30px;
-  margin: -15px 0 0 -15px;
-  border: 2px solid rgba(255, 255, 255, 0.18);
-  border-top-color: var(--accent);
-  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  transform: translate(-50%, -50%);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--motion-fast) var(--ease-standard);
@@ -363,7 +360,17 @@ body {
 
 .spinner[data-visible="true"] {
   opacity: 1;
-  animation: spin 1s linear infinite;
+}
+
+.logo-spinner {
+  display: block;
+  width: 56px;
+  height: 56px;
+  color: #ffffff;
+}
+
+.logo-spinner-static {
+  display: none;
 }
 
 .error {
@@ -414,8 +421,15 @@ body {
     transform: none;
   }
 
-  .shuffle[data-loading="true"] svg,
-  .spinner[data-visible="true"] {
+  .shuffle[data-loading="true"] svg {
     animation: none;
+  }
+
+  .logo-spinner-morph {
+    display: none;
+  }
+
+  .logo-spinner-static {
+    display: block;
   }
 }

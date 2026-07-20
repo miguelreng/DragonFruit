@@ -10,7 +10,7 @@ from datetime import datetime
 from django.core.serializers.json import DjangoJSONEncoder
 
 # Django imports
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import (
     Exists,
     OuterRef,
@@ -735,14 +735,107 @@ class PageDuplicateEndpoint(BaseAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class PageMoveEndpoint(BaseAPIView):
+    """Move a page from one project to another within the workspace.
+
+    Repoints the page's ProjectPage link for the source project at the target
+    project. Nested sub-pages (folder contents, doc sub-pages) move along with
+    it; the page is detached from its old parent since folders live in a
+    single project. Favorites and recent visits follow so their
+    project-scoped URLs keep resolving.
+    """
+
+    permission_classes = [ProjectPagePermission]
+
+    def post(self, request, slug, project_id, page_id):
+        new_project_id = request.data.get("new_project_id")
+        if not new_project_id:
+            return Response({"error": "new_project_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if str(new_project_id) == str(project_id):
+            return Response(
+                {"error": "The page is already in this project"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        page = Page.objects.get(
+            pk=page_id,
+            workspace__slug=slug,
+            projects__id=project_id,
+            project_pages__deleted_at__isnull=True,
+        )
+
+        # Briefs are bound to their project — moving one would orphan it.
+        if page.is_brief or (page.page_type == Page.PAGE_TYPE_DOC and (page.name or "").strip() == "Project Brief"):
+            return Response({"error": "Project briefs can't be moved"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Private pages move only with their owner (mirrors duplicate).
+        if page.access == Page.PRIVATE_ACCESS and page.owned_by_id != request.user.id:
+            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+        if not Project.objects.filter(pk=new_project_id, workspace__slug=slug, archived_at__isnull=True).exists():
+            return Response({"error": "Target project not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Moving creates content in the target project — guests can't do that.
+        if not ProjectMember.objects.filter(
+            project_id=new_project_id,
+            member=request.user,
+            is_active=True,
+            role__gte=ROLE.MEMBER.value,
+        ).exists():
+            return Response(
+                {"error": "You must be a member of the target project to move pages into it"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # The page plus every nested sub-page that lives in the source project.
+        page_ids = [page.id]
+        frontier = [page.id]
+        while frontier:
+            frontier = list(
+                Page.objects.filter(parent_id__in=frontier, projects__id=project_id)
+                .exclude(id__in=page_ids)
+                .values_list("id", flat=True)
+            )
+            page_ids.extend(frontier)
+
+        with transaction.atomic():
+            # Pages already linked to the target keep that link; their source
+            # link is dropped instead of repointed (unique project+page).
+            already_linked = list(
+                ProjectPage.objects.filter(page_id__in=page_ids, project_id=new_project_id).values_list(
+                    "page_id", flat=True
+                )
+            )
+            if already_linked:
+                ProjectPage.objects.filter(page_id__in=already_linked, project_id=project_id).delete()
+            ProjectPage.objects.filter(page_id__in=page_ids, project_id=project_id).update(
+                project_id=new_project_id, updated_by=request.user
+            )
+
+            # The old parent (folder or doc) stays behind — detach.
+            if page.parent_id:
+                page.parent = None
+                page.save(update_fields=["parent"])
+
+            UserFavorite.objects.filter(
+                entity_type="page", entity_identifier__in=page_ids, project_id=project_id
+            ).update(project_id=new_project_id)
+            UserRecentVisit.objects.filter(
+                entity_name="page", entity_identifier__in=page_ids, project_id=project_id
+            ).update(project_id=new_project_id)
+
+        return Response(status=status.HTTP_200_OK)
+
+
 class WorkspacePagesListEndpoint(BaseAPIView):
     """List every page across the workspace that the user can access.
 
     Returns pages where the user is an active member of at least one of the
     page's projects, the project is not archived, and the page is either
-    public or owned by the user. Annotates `project_ids` so the frontend can
-    filter by project without an extra round trip. Pages inside a folder
-    (parent set) are included — the docs UI groups them client-side.
+    public or owned by the user. Annotates `project_ids` with only active,
+    joined projects so frontend actions never target an inaccessible link.
+    Pages inside a folder (parent set) are included — the docs UI groups them
+    client-side.
 
     Accepts `?page_type=<doc|whiteboard|pdf>` to scope to a single type;
     folder pages are always included alongside so the list can be grouped.
@@ -768,7 +861,15 @@ class WorkspacePagesListEndpoint(BaseAPIView):
         pages = (
             qs.annotate(
                 project_ids=Coalesce(
-                    ArrayAgg("projects__id", distinct=True, filter=~Q(projects__id=True)),
+                    ArrayAgg(
+                        "projects__id",
+                        distinct=True,
+                        filter=Q(
+                            projects__project_projectmember__member=request.user,
+                            projects__project_projectmember__is_active=True,
+                            projects__archived_at__isnull=True,
+                        ),
+                    ),
                     Value([], output_field=ArrayField(UUIDField())),
                 )
             )

@@ -33,6 +33,7 @@ export function ScrollFade({
   bottom = true,
   topHeight = 32,
   bottomHeight = 120,
+  padContent = true,
   style,
 }: {
   children: React.ReactNode;
@@ -40,18 +41,19 @@ export function ScrollFade({
   bottom?: boolean;
   topHeight?: number;
   bottomHeight?: number;
+  /** Disable for internally scrolling children such as WebView. */
+  padContent?: boolean;
   style?: ViewStyle;
 }) {
   // Pad the scroll content so resting items sit clear of the fades; only ever
   // grow existing padding so each page keeps its own intended spacing.
   let child = children;
-  if (React.isValidElement(children)) {
+  if (padContent && React.isValidElement(children)) {
     const childEl = children as React.ReactElement<any>;
     const base = StyleSheet.flatten(childEl.props.contentContainerStyle) ?? {};
     const padded: ViewStyle = { ...base };
     if (top) padded.paddingTop = Math.max(Number(base.paddingTop ?? base.paddingVertical ?? 0), topHeight);
-    if (bottom)
-      padded.paddingBottom = Math.max(Number(base.paddingBottom ?? base.paddingVertical ?? 0), bottomHeight);
+    if (bottom) padded.paddingBottom = Math.max(Number(base.paddingBottom ?? base.paddingVertical ?? 0), bottomHeight);
     child = React.cloneElement(childEl, { contentContainerStyle: padded });
   }
 

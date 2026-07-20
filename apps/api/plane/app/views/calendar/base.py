@@ -21,10 +21,11 @@ import os
 import tempfile
 from datetime import datetime, timedelta, timezone
 from string import Template
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import requests
 from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
@@ -489,6 +490,75 @@ class CalendarAccountEventsEndpoint(BaseAPIView):
         event["calendar_id"] = calendar_id
         return Response({"event": event}, status=status.HTTP_201_CREATED)
 
+    def patch(self, request, account_id):
+        """Update an existing Google Calendar event's schedule and editable details."""
+        try:
+            account = UserCalendarAccount.objects.get(id=account_id, user=request.user, is_active=True)
+        except UserCalendarAccount.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        event_id = str(request.data.get("event_id") or "").strip()
+        if not event_id:
+            return Response({"error": "event_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        calendar_id = request.data.get("calendar_id") or account.primary_calendar_id or "primary"
+        all_day = bool(request.data.get("all_day"))
+        start_raw = request.data.get("start")
+        end_raw = request.data.get("end") or start_raw
+        time_zone = request.data.get("time_zone")
+        if not start_raw:
+            return Response({"error": "start is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if all_day:
+            try:
+                start_date = datetime.fromisoformat(str(start_raw)[:10]).date()
+                end_date = datetime.fromisoformat(str(end_raw)[:10]).date()
+            except ValueError:
+                return Response({"error": "start/end must be YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST)
+            if end_date < start_date:
+                end_date = start_date
+            start_payload = {"date": start_date.isoformat()}
+            # The frontend uses an inclusive end date; Google requires exclusive.
+            end_payload = {"date": (end_date + timedelta(days=1)).isoformat()}
+        else:
+            start_payload = {"dateTime": str(start_raw)}
+            end_payload = {"dateTime": str(end_raw)}
+            if time_zone:
+                start_payload["timeZone"] = str(time_zone)
+                end_payload["timeZone"] = str(time_zone)
+
+        event_payload = {"start": start_payload, "end": end_payload}
+        if "title" in request.data:
+            title = str(request.data.get("title") or "").strip()
+            if not title:
+                return Response({"error": "title is required"}, status=status.HTTP_400_BAD_REQUEST)
+            event_payload["summary"] = title
+        if "description" in request.data:
+            event_payload["description"] = str(request.data.get("description") or "")
+        if "location" in request.data:
+            event_payload["location"] = str(request.data.get("location") or "")
+
+        resp = _google_api_request(
+            account=account,
+            method="PATCH",
+            url=_google_calendar_url(calendar_id, f"events/{quote(event_id, safe='')}"),
+            json=event_payload,
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return Response(
+                {
+                    "error": "Failed to update event",
+                    "status": resp.status_code,
+                    "details": _details_from_response(resp),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        event = _event_to_dict(resp.json())
+        event["calendar_id"] = calendar_id
+        return Response({"event": event}, status=status.HTTP_200_OK)
+
 
 class UpcomingCalendarMeetingsEndpoint(BaseAPIView):
     """Fetch the current user's next Google Calendar meetings across accounts."""
@@ -721,16 +791,33 @@ class MeetingNotesDraftEndpoint(BaseAPIView):
                 target_page.description_binary = None
                 target_page.description_json = {}
 
-        project = (
-            Project.objects.filter(
-                workspace=workspace,
-                archived_at__isnull=True,
-                project_projectmember__member=request.user,
-                project_projectmember__is_active=True,
+        # The mac app asks which project the notes belong to when the user
+        # stops recording; honor that choice when it's a project the user can
+        # actually use, otherwise fall back to the oldest-membership default.
+        requested_project_id = str(request.data.get("project_id") or "").strip()
+        project = None
+        if requested_project_id:
+            try:
+                project = Project.objects.filter(
+                    id=requested_project_id,
+                    workspace=workspace,
+                    archived_at__isnull=True,
+                    project_projectmember__member=request.user,
+                    project_projectmember__is_active=True,
+                ).first()
+            except (ValueError, DjangoValidationError):
+                project = None
+        if not project:
+            project = (
+                Project.objects.filter(
+                    workspace=workspace,
+                    archived_at__isnull=True,
+                    project_projectmember__member=request.user,
+                    project_projectmember__is_active=True,
+                )
+                .order_by("created_at")
+                .first()
             )
-            .order_by("created_at")
-            .first()
-        )
         if not project:
             return Response({"error": "No project available for meeting notes"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1300,6 +1387,13 @@ def _event_to_dict(e: dict) -> dict:
     end = e.get("end", {})
     is_all_day = "date" in start and "dateTime" not in start
     attendees = e.get("attendees") or []
+    meeting_link = e.get("hangoutLink", "")
+    if not meeting_link:
+        entry_points = (e.get("conferenceData") or {}).get("entryPoints") or []
+        meeting_link = next(
+            (entry.get("uri", "") for entry in entry_points if entry.get("entryPointType") == "video"),
+            "",
+        )
     return {
         "id": e.get("id"),
         "title": e.get("summary") or "(no title)",
@@ -1309,7 +1403,7 @@ def _event_to_dict(e: dict) -> dict:
         "end": end.get("dateTime") or end.get("date"),
         "all_day": is_all_day,
         "html_link": e.get("htmlLink", ""),
-        "hangout_link": e.get("hangoutLink", ""),
+        "hangout_link": meeting_link,
         "status": e.get("status", ""),
         "attendee_count": len(attendees),
         "has_other_attendees": any(not a.get("self") for a in attendees),

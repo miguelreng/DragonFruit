@@ -33,6 +33,8 @@ type Props = {
    * inside it. Requires `lockedProjectId` (folders are project-scoped). */
   parentFolderId?: string;
   onUploadComplete?: () => Promise<void> | void;
+  showUpload?: boolean;
+  buttonVariant?: "primary" | "secondary";
 };
 
 export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButton({
@@ -41,6 +43,8 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
   lockedProjectId,
   parentFolderId,
   onUploadComplete,
+  showUpload = true,
+  buttonVariant = "primary",
 }: Props) {
   const navigate = useNavigate();
   const { createPdfPage, isUploading } = useCreatePdfPage(workspaceSlug);
@@ -56,7 +60,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
   const label = isWhiteboard ? "New whiteboard" : "New doc";
   // Uploads need a project to attach the page to (and PDFs their asset), so
   // they are only offered inside a project-scoped Docs tab (not whiteboards).
-  const canUploadFile = !isWhiteboard && !!lockedProjectId;
+  const canUploadFile = showUpload && !isWhiteboard && !!lockedProjectId;
   const isUploadBusy = isUploading || isConverting;
   const busy = submitting || isUploadBusy;
   const directoryInputProps = { webkitdirectory: "", directory: "" };
@@ -150,8 +154,11 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
 
   const handleClick = () => {
     if (isWhiteboard) {
-      // Whiteboards only ever render inside a project-scoped tab.
-      if (lockedProjectId) void createWhiteboard(lockedProjectId);
+      if (lockedProjectId) {
+        void createWhiteboard(lockedProjectId);
+      } else {
+        setGalleryOpen(true);
+      }
       return;
     }
     setGalleryOpen(true);
@@ -195,7 +202,7 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
           </CustomMenu.MenuItem>
         </CustomMenu>
       )}
-      <Button variant="primary" size="lg" loading={busy} onClick={handleClick}>
+      <Button variant={buttonVariant} size="lg" loading={busy} onClick={handleClick}>
         {busy ? "Adding" : label}
       </Button>
       {canUploadFile && (
@@ -231,13 +238,14 @@ export const WorkspaceCreateDocButton = observer(function WorkspaceCreateDocButt
           }}
         />
       )}
-      {!isWhiteboard && (
+      {(!isWhiteboard || !lockedProjectId) && (
         <DocTemplateGalleryModal
           workspaceSlug={workspaceSlug}
           isOpen={galleryOpen}
           onClose={() => setGalleryOpen(false)}
           lockedProjectId={lockedProjectId}
           parentPageId={parentFolderId}
+          projectPickerOnlyType={isWhiteboard ? "whiteboard" : undefined}
         />
       )}
     </>

@@ -26,6 +26,7 @@ export type TCalendarEvent = {
   end: string;
   all_day: boolean;
   html_link: string;
+  hangout_link: string;
   status: string;
   calendar_id?: string;
 };
@@ -106,6 +107,23 @@ export class CalendarService extends APIService {
     }
   ): Promise<{ event: TCalendarEvent }> {
     return this.post(`/api/users/me/calendar-accounts/${accountId}/events/`, payload).then((r) => r?.data);
+  }
+
+  async updateEvent(
+    accountId: string,
+    payload: {
+      event_id: string;
+      calendar_id?: string;
+      all_day: boolean;
+      start: string;
+      end: string;
+      time_zone?: string;
+      title?: string;
+      description?: string;
+      location?: string;
+    }
+  ): Promise<{ event: TCalendarEvent }> {
+    return this.patch(`/api/users/me/calendar-accounts/${accountId}/events/`, payload).then((r) => r?.data);
   }
 
   async syncTasksToGoogle(

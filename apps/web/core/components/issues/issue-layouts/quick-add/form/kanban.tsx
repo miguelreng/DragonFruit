@@ -9,11 +9,11 @@ import { useTranslation } from "@plane/i18n";
 import type { TQuickAddIssueForm } from "../root";
 
 export const KanbanQuickAddIssueForm = observer(function KanbanQuickAddIssueForm(props: TQuickAddIssueForm) {
-  const { ref, register, onSubmit, isEpic } = props;
+  const { formRef, register, onSubmit, isEpic } = props;
   const { t } = useTranslation();
   return (
     <div className="m-1 overflow-hidden rounded-lg bg-white shadow-raised-100">
-      <form ref={ref} onSubmit={onSubmit} className="flex w-full items-center gap-x-3 p-3">
+      <form ref={formRef} onSubmit={onSubmit} className="flex w-full items-center gap-x-3 p-3">
         <input
           autoComplete="off"
           placeholder={isEpic ? t("epic.title.label") : t("issue.title.label")}

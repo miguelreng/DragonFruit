@@ -30,8 +30,8 @@ type Props = {
   showLayoutSelection?: boolean;
 };
 const PROJECT_TASK_LAYOUTS = [
-  EIssueLayoutTypes.SPREADSHEET,
   EIssueLayoutTypes.LIST,
+  EIssueLayoutTypes.SPREADSHEET,
   EIssueLayoutTypes.KANBAN,
   EIssueLayoutTypes.GANTT,
 ];
@@ -53,7 +53,7 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
     issuesFilter: { issueFilters, updateFilters },
   } = useIssues(storeType);
   // derived values
-  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.SPREADSHEET;
+  const activeLayout = issueFilters?.displayFilters?.layout ?? EIssueLayoutTypes.LIST;
   const layoutForDisplayFilters = displayFiltersLayout ?? activeLayout;
   const layoutDisplayFiltersOptions = ISSUE_STORE_TO_FILTERS_MAP[storeType]?.layoutOptions[layoutForDisplayFilters];
 

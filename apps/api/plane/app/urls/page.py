@@ -11,6 +11,7 @@ from plane.app.views import (
     PagesDescriptionViewSet,
     PageVersionEndpoint,
     PageDuplicateEndpoint,
+    PageMoveEndpoint,
     PageBlockCommentEndpoint,
     PageBlockCommentDetailEndpoint,
     PageSaveAsTemplateEndpoint,
@@ -19,6 +20,7 @@ from plane.app.views import (
     PageTemplateListEndpoint,
     WorkspacePagesListEndpoint,
     CapturedChatIngestEndpoint,
+    CapturedPageIngestEndpoint,
 )
 
 urlpatterns = [
@@ -42,6 +44,12 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/captured-chats/",
         CapturedChatIngestEndpoint.as_view(),
         name="project-captured-chats",
+    ),
+    # Ingest a whole page (Notion, etc.) scraped by the extension as a doc page.
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/captured-pages/",
+        CapturedPageIngestEndpoint.as_view(),
+        name="project-captured-pages",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/",
@@ -91,6 +99,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/duplicate/",
         PageDuplicateEndpoint.as_view(),
         name="page-duplicate",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/move/",
+        PageMoveEndpoint.as_view(),
+        name="page-move",
     ),
     # Block-level comments on a page (Dragon Fruit)
     path(
