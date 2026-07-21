@@ -23,19 +23,29 @@ export class FileUploadService extends APIService {
   /**
    * Uploads a file to the specified signed URL
    * @param {string} url - The URL to upload the file to
-   * @param {FormData} data - The form data to upload
+   * @param {FormData | File} data - Form data for POST policy uploads, or the raw file for presigned PUT uploads
    * @returns {Promise<void>} Promise resolving to void
    * @throws {Error} If the request fails
    */
-  async uploadFile(url: string, data: FormData): Promise<void> {
+  async uploadFile(url: string, data: FormData | File): Promise<void> {
     this.cancelSource = axios.CancelToken.source();
-    return this.post(url, data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      cancelToken: this.cancelSource.token,
-      withCredentials: false,
-    })
+    const isPresignedPut = !(data instanceof FormData);
+    const request = isPresignedPut
+      ? this.put(url, data, {
+          headers: {
+            "Content-Type": data.type || "application/octet-stream",
+          },
+          cancelToken: this.cancelSource.token,
+          withCredentials: false,
+        })
+      : this.post(url, data, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          cancelToken: this.cancelSource.token,
+          withCredentials: false,
+        });
+    return request
       .then((response) => response?.data)
       .catch((error) => {
         if (axios.isCancel(error)) {

@@ -25,15 +25,10 @@ export type TFileSignedURLResponse = {
   asset_url: string;
   upload_data: {
     url: string;
-    fields: {
-      "Content-Type": string;
-      key: string;
-      "x-amz-algorithm": string;
-      "x-amz-credential": string;
-      "x-amz-date": string;
-      policy: string;
-      "x-amz-signature": string;
-    };
+    // POST policy fields, or just Content-Type when method is PUT
+    fields: Record<string, string>;
+    // Absent on older API responses; those are POST policy uploads
+    method?: "POST" | "PUT";
   };
 };
 

@@ -53,11 +53,17 @@ const validateFilename = (filename: string): string | null => {
  * @description from the provided signed URL response, generate a payload to be used to upload the file
  * @param {TFileSignedURLResponse} signedURLResponse
  * @param {File} file
- * @returns {FormData} file upload request payload
+ * @returns {FormData | File} form data for POST policy uploads, or the raw file for presigned PUT uploads
  */
-export const generateFileUploadPayload = (signedURLResponse: TFileSignedURLResponse, file: File): FormData => {
+export const generateFileUploadPayload = (signedURLResponse: TFileSignedURLResponse, file: File): FormData | File => {
+  const { fields, method } = signedURLResponse.upload_data;
+  if (method === "PUT") {
+    const contentType = fields["Content-Type"] || file.type;
+    // Re-wrap so the upload sends the server-validated content type
+    return contentType && contentType !== file.type ? new File([file], file.name, { type: contentType }) : file;
+  }
   const formData = new FormData();
-  Object.entries(signedURLResponse.upload_data.fields).forEach(([key, value]) => formData.append(key, value));
+  Object.entries(fields).forEach(([key, value]) => formData.append(key, value));
   formData.append("file", file);
   return formData;
 };

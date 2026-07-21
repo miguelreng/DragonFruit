@@ -18,18 +18,29 @@ export class FileUploadService extends APIService {
 
   async uploadFile(
     url: string,
-    data: FormData,
+    data: FormData | File,
     uploadProgressHandler?: AxiosRequestConfig["onUploadProgress"]
   ): Promise<void> {
     this.cancelSource = axios.CancelToken.source();
-    return this.post(url, data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      cancelToken: this.cancelSource.token,
-      withCredentials: false,
-      onUploadProgress: uploadProgressHandler,
-    })
+    const isPresignedPut = !(data instanceof FormData);
+    const request = isPresignedPut
+      ? this.put(url, data, {
+          headers: {
+            "Content-Type": data.type || "application/octet-stream",
+          },
+          cancelToken: this.cancelSource.token,
+          withCredentials: false,
+          onUploadProgress: uploadProgressHandler,
+        })
+      : this.post(url, data, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          cancelToken: this.cancelSource.token,
+          withCredentials: false,
+          onUploadProgress: uploadProgressHandler,
+        });
+    return request
       .then((response) => response?.data)
       .catch((error) => {
         if (axios.isCancel(error)) {

@@ -63,40 +63,36 @@ class S3Storage(S3Boto3Storage):
             )
 
     def generate_presigned_post(self, object_name, file_type, file_size, expiration=None):
-        """Generate a presigned URL to upload an S3 object"""
+        """Generate presigned upload data for an S3 object.
+
+        Uses a presigned PUT URL instead of an S3 POST policy — Cloudflare R2
+        returns 501 NotImplemented for the PostObject API. Content-Type is kept
+        out of the signature so it travels as a plain header; clients read it
+        from `fields` and send it with the PUT.
+        """
         if expiration is None:
             expiration = self.signed_url_expiration
-        fields = {"Content-Type": file_type}
 
-        conditions = [
-            {"bucket": self.aws_storage_bucket_name},
-            ["content-length-range", 1, file_size],
-            {"Content-Type": file_type},
-        ]
-
-        # Add condition for the object name (key)
-        if object_name.startswith("${filename}"):
-            conditions.append(["starts-with", "$key", object_name[: -len("${filename}")]])
-        else:
-            fields["key"] = object_name
-            conditions.append({"key": object_name})
-
-        # Generate the presigned POST URL
         try:
-            # Generate a presigned URL for the S3 object
-            response = self.s3_client.generate_presigned_post(
-                Bucket=self.aws_storage_bucket_name,
-                Key=object_name,
-                Fields=fields,
-                Conditions=conditions,
+            url = self.s3_client.generate_presigned_url(
+                "put_object",
+                Params={
+                    "Bucket": self.aws_storage_bucket_name,
+                    "Key": object_name,
+                },
                 ExpiresIn=expiration,
+                HttpMethod="PUT",
             )
         # Handle errors
         except ClientError as e:
-            print(f"Error generating presigned POST URL: {e}")
+            log_exception(e)
             return None
 
-        return response
+        return {
+            "url": url,
+            "fields": {"Content-Type": file_type},
+            "method": "PUT",
+        }
 
     def _get_content_disposition(self, disposition, filename=None):
         """Helper method to generate Content-Disposition header value"""
