@@ -29,7 +29,9 @@ export type TDocumentTypes = "project_page";
 export type HocusPocusServerContext = {
   projectId: string | null;
   cookie: string;
+  connectionMode: "document" | "presence";
   documentType: TDocumentTypes;
+  pageId: string | null;
   workspaceSlug: string | null;
   userId: string;
 };

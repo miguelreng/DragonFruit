@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { LIVE_BASE_PATH, LIVE_BASE_URL } from "@plane/constants";
 import { CollaborativeDocumentEditorWithRef } from "@plane/editor";
 import type {
   CollaborationState,
@@ -24,7 +23,7 @@ import { IconButton } from "@plane/propel/icon-button";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TSearchEntityRequestPayload, TSearchResponse, TWebhookConnectionQueryParams } from "@plane/types";
 import { ERowVariant, Row } from "@plane/ui";
-import { cn, generateRandomColor, hslToHex } from "@plane/utils";
+import { cn, generateRandomColor, getFileURL, hslToHex } from "@plane/utils";
 import { Minimize2 } from "@/components/icons/lucide-shim";
 // components
 import {
@@ -41,6 +40,7 @@ import { useProject } from "@/hooks/store/use-project";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser } from "@/hooks/store/user";
 import { normalizeDocFontStyle } from "@/helpers/doc-font";
+import { buildLiveCollaborationUrl } from "@/helpers/live-collaboration";
 import { usePageFilters } from "@/hooks/use-page-filters";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
 import { useDocEmbed } from "@/plane-web/hooks/use-doc-embed";
@@ -90,25 +90,6 @@ type Props = {
   chromeless?: boolean;
   headerLabel?: string;
   editorPlaceholder?: string;
-};
-
-const DEFAULT_LIVE_BASE_PATH = "/live";
-
-const getLiveServerBaseUrl = () => {
-  const configuredUrl = LIVE_BASE_URL?.trim();
-  if (configuredUrl) return configuredUrl;
-
-  const currentUrl = new URL(window.location.origin);
-  if (currentUrl.hostname.startsWith("app.")) {
-    currentUrl.hostname = `live.${currentUrl.hostname.slice(4)}`;
-  }
-
-  return currentUrl.toString();
-};
-
-const getLiveCollaborationPath = () => {
-  const basePath = (LIVE_BASE_PATH?.trim() || DEFAULT_LIVE_BASE_PATH).replace(/\/+$/, "");
-  return `${basePath}/collaboration`;
 };
 
 export const PageEditorBody = observer(function PageEditorBody(props: Props) {
@@ -498,28 +479,8 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
   );
 
   const realtimeConfig: TRealtimeConfig | undefined = useMemo(() => {
-    // Construct the WebSocket Collaboration URL
-    try {
-      const WS_LIVE_URL = new URL(getLiveServerBaseUrl());
-      const isSecureEnvironment = window.location.protocol === "https:";
-      WS_LIVE_URL.protocol = isSecureEnvironment ? "wss" : "ws";
-      WS_LIVE_URL.pathname = getLiveCollaborationPath();
-
-      // Append query parameters to the URL
-      Object.entries(webhookConnectionParams)
-        .filter(([_, value]) => value !== undefined && value !== null)
-        .forEach(([key, value]) => {
-          WS_LIVE_URL.searchParams.set(key, String(value));
-        });
-
-      // Construct realtime config
-      return {
-        url: WS_LIVE_URL.toString(),
-      };
-    } catch (error) {
-      console.error("Error creating realtime config", error);
-      return undefined;
-    }
+    const url = buildLiveCollaborationUrl(webhookConnectionParams);
+    return url ? { url } : undefined;
   }, [webhookConnectionParams]);
 
   const userConfig = useMemo(
@@ -529,6 +490,15 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
       color: hslToHex(generateRandomColor(currentUser?.id ?? "")),
     }),
     [currentUser?.display_name, currentUser?.id]
+  );
+
+  const resolvePresenceUser = useCallback(
+    (userId: string) => {
+      const member = getUserDetails(userId);
+      if (!member) return null;
+      return { id: member.id, name: member.display_name, avatarUrl: getFileURL(member.avatar_url ?? "") };
+    },
+    [getUserDetails]
   );
 
   const blockWidthClassName = cn(
@@ -639,6 +609,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             realtimeConfig={realtimeConfig}
             serverHandler={serverHandler}
             user={userConfig}
+            resolvePresenceUser={resolvePresenceUser}
             disabledExtensions={documentEditorExtensions.disabled}
             flaggedExtensions={documentEditorExtensions.flagged}
             aiHandler={{

@@ -396,6 +396,19 @@ export const getInitialSnapshot = (descriptionJson: unknown): TSheetSnapshot => 
   return { sheets: [grid], activeId: grid.id };
 };
 
+/** Parse a persisted sheet snapshot without silently replacing malformed data. */
+export const parseSheetSnapshot = (descriptionJson: unknown): TSheetSnapshot | null => {
+  if (!isRecord(descriptionJson) || !isRecord(descriptionJson.sheet_snapshot)) return null;
+  const raw = descriptionJson.sheet_snapshot;
+  if (Array.isArray(raw.sheets)) {
+    if (raw.sheets.length === 0 || !raw.sheets.some(isRecord)) return null;
+  } else if (!("rows" in raw || "cols" in raw || "cells" in raw)) {
+    return null;
+  }
+  const parsed = getInitialSnapshot(descriptionJson);
+  return parsed.sheets.length > 0 ? parsed : null;
+};
+
 /** Whether a cell format carries any visible styling (used to prune empties). */
 export const isEmptyFormat = (f: TCellFormat | undefined): boolean =>
   !f ||

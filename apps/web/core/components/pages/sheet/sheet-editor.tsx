@@ -9,7 +9,10 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { debounce } from "lodash-es";
-import { cn } from "@plane/utils";
+import { CollaborationProvider, RealtimePresenceLayer, useCollaboration, useRealtimePresence } from "@plane/editor";
+import type { TUserDetails, TPresenceParticipant } from "@plane/editor";
+import type { TPageVersion, TWebhookConnectionQueryParams } from "@plane/types";
+import { cn, generateRandomColor, getFileURL, hslToHex } from "@plane/utils";
 import {
   AlignCenter,
   AlignLeft,
@@ -25,6 +28,7 @@ import {
   Eraser,
   ExternalLink,
   Italic,
+  History,
   ListFilter,
   PaintBucket,
   Pencil,
@@ -37,8 +41,12 @@ import {
   X,
 } from "@/components/icons/lucide-shim";
 import { useMember } from "@/hooks/store/use-member";
+import { useUser } from "@/hooks/store/user";
+import { buildLiveCollaborationUrl } from "@/helpers/live-collaboration";
 import type { TPageInstance } from "@/store/pages/base-page";
 import type { TPageRootHandlers } from "../editor/page-root";
+import { PageVersionHistoryModal } from "../version/history-modal";
+import type { EPageStoreType } from "@/plane-web/hooks/store";
 import {
   applyBorders,
   applySuggestion,
@@ -71,6 +79,7 @@ import {
   parseCellId,
   parseClipboard,
   parseSelected,
+  parseSheetSnapshot,
   serializeSelected,
   rangeToTSV,
   writeMatrix,
@@ -103,6 +112,8 @@ type Props = {
   page: TPageInstance;
   handlers: TPageRootHandlers;
   isEditable: boolean;
+  storeType: EPageStoreType;
+  webhookConnectionParams: TWebhookConnectionQueryParams;
 };
 
 type Rect = { r1: number; c1: number; r2: number; c2: number };
@@ -178,7 +189,14 @@ const sheetChartSpec = (grid: TSheetGrid, chart: TSheetChart): TChartSpec | null
   };
 };
 
-export const SheetEditor = observer(function SheetEditor({ page, handlers, isEditable }: Props) {
+type TSheetEditorContentProps = Omit<Props, "webhookConnectionParams">;
+
+const SheetEditorContent = observer(function SheetEditorContent({
+  page,
+  handlers,
+  isEditable,
+  storeType,
+}: TSheetEditorContentProps) {
   const [snapshot, setSnapshot] = useState<TSheetSnapshot>(() => getInitialSnapshot(page.description_json));
   // Kept in sync with `snapshot` for synchronous reads in commit/undo/redo.
   const snapshotRef = useRef(snapshot);
@@ -216,13 +234,53 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
   // Set while a formula is actively being typed — enables click-to-insert of a
   // clicked cell's reference into the formula (like a spreadsheet).
   const [formulaEditing, setFormulaEditing] = useState<{ id: string; source: "cell" | "bar" } | null>(null);
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const barInputRef = useRef<HTMLInputElement | null>(null);
 
   const fillRef = useRef<{ srcId: string; srcR: number; srcC: number; r: number; c: number } | null>(null);
 
   const active: TSheetGrid = snapshot.sheets.find((s) => s.id === snapshot.activeId) ?? snapshot.sheets[0];
 
+  const { provider } = useCollaboration();
+  const { data: currentUser } = useUser();
   const { getMemberIds, getUserDetails } = useMember();
+  const presenceUser = useMemo<TUserDetails>(
+    () => ({
+      id: currentUser?.id ?? "",
+      name: currentUser?.display_name ?? "",
+      color: hslToHex(generateRandomColor(currentUser?.id ?? "")),
+    }),
+    [currentUser?.display_name, currentUser?.id]
+  );
+  const presenceSelection = useMemo(() => {
+    if (selection) return selection;
+    const cell = focused ? parseCellId(focused) : null;
+    return cell ? { r1: cell.row, c1: cell.col, r2: cell.row, c2: cell.col } : undefined;
+  }, [focused, selection]);
+  const resolvePresenceUser = useCallback(
+    (userId: string) => {
+      const member = getUserDetails(userId);
+      if (!member) return null;
+      return { id: member.id, name: member.display_name, avatarUrl: getFileURL(member.avatar_url ?? "") };
+    },
+    [getUserDetails]
+  );
+  const presenceParticipants = useRealtimePresence({
+    containerRef: rootRef,
+    provider,
+    resolveUser: resolvePresenceUser,
+    selection: presenceSelection,
+    sheetId: active.id,
+    surface: "sheet",
+    user: presenceUser,
+  });
+  const remoteSelections = useMemo(
+    () =>
+      presenceParticipants.filter(
+        (participant) => !participant.isCurrentUser && participant.sheetId === active.id && participant.selection
+      ),
+    [active.id, presenceParticipants]
+  );
 
   useEffect(() => {
     page.setSyncingStatus("synced");
@@ -283,6 +341,33 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
     setSnapshot(next);
     persist(next);
   }, [persist]);
+
+  const restoreVersion = useCallback(
+    async (version: TPageVersion) => {
+      const restored = parseSheetSnapshot(version.description_json);
+      if (!restored) throw new Error("Invalid sheet snapshot");
+
+      persist.cancel();
+      undoRef.current.push(snapshotRef.current);
+      redoRef.current = [];
+      snapshotRef.current = restored;
+      setSnapshot(restored);
+      setFocused(null);
+      setEditingCell(null);
+      setSelection(null);
+      setMenu(null);
+      setTabMenu(null);
+      setFilterMenu(null);
+      setSelectConfig(null);
+      setPickCell(null);
+      setShowSuggest(false);
+      setFormulaEditing(null);
+      page.setSyncingStatus("syncing");
+      await handlers.updateDescription({ description_json: { sheet_snapshot: restored } });
+      page.setSyncingStatus("synced");
+    },
+    [handlers, page, persist]
+  );
 
   // ⌘Z / Ctrl+Z undo, ⌘⇧Z / Ctrl+Y redo — active while focus is within the sheet.
   useEffect(() => {
@@ -1304,7 +1389,8 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
         : [];
 
   return (
-    <div ref={rootRef} className="flex h-full w-full flex-col bg-surface-1">
+    <div ref={rootRef} className="relative flex h-full w-full flex-col bg-surface-1">
+      <RealtimePresenceLayer participants={presenceParticipants} avatarsClassName="right-12" />
       {/* Title. */}
       <div className="flex flex-shrink-0 items-center border-b border-subtle px-4 py-2.5">
         <input
@@ -1317,6 +1403,15 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
           aria-label="Sheet name"
           className="w-full min-w-0 flex-1 bg-transparent text-14 font-semibold text-primary outline-none placeholder:text-placeholder read-only:cursor-default"
         />
+        <button
+          type="button"
+          onClick={() => setIsVersionHistoryOpen(true)}
+          className="ml-2 grid size-7 flex-shrink-0 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+          aria-label="Version history"
+          title="Version history"
+        >
+          <History className="size-4" />
+        </button>
       </div>
 
       {/* Formatting toolbar. */}
@@ -1840,6 +1935,21 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
                                 }}
                               />
                             )}
+                            {remoteSelections.map((participant: TPresenceParticipant) => {
+                              const remoteSelection = participant.selection;
+                              if (!remoteSelection || !inRect(remoteSelection, r, c)) return null;
+                              return (
+                                <span
+                                  key={`remote-selection-${participant.id}`}
+                                  className="pointer-events-none absolute -inset-px z-[2]"
+                                  style={{
+                                    backgroundColor: `${participant.color}18`,
+                                    boxShadow: rectBorder(remoteSelection, r, c, participant.color),
+                                  }}
+                                  title={participant.name}
+                                />
+                              );
+                            })}
                             {inFill && !selected && (
                               <span className="pointer-events-none absolute inset-0 z-[2] bg-accent-primary/20" />
                             )}
@@ -2213,7 +2323,54 @@ export const SheetEditor = observer(function SheetEditor({ page, handlers, isEdi
           <span className="truncate">{snapshot.sheets[tabDrag.from].name}</span>
         </div>
       )}
+      <PageVersionHistoryModal
+        handleClose={() => setIsVersionHistoryOpen(false)}
+        isOpen={isVersionHistoryOpen}
+        onRestoreVersion={restoreVersion}
+        page={page}
+        storeType={storeType}
+      />
     </div>
+  );
+});
+
+export const SheetEditor = observer(function SheetEditor(props: Props) {
+  const { page, webhookConnectionParams } = props;
+  const { data: currentUser } = useUser();
+  const presenceUrl = useMemo(
+    () =>
+      buildLiveCollaborationUrl({
+        ...webhookConnectionParams,
+        connectionMode: "presence",
+        pageId: page.id,
+      }) ?? "ws://127.0.0.1/__presence_unavailable__",
+    [page.id, webhookConnectionParams]
+  );
+  const token = useMemo(
+    () =>
+      JSON.stringify({
+        id: currentUser?.id ?? "",
+        name: currentUser?.display_name ?? "",
+        color: hslToHex(generateRandomColor(currentUser?.id ?? "")),
+      }),
+    [currentUser?.display_name, currentUser?.id]
+  );
+
+  return (
+    <CollaborationProvider
+      docId={`presence:${page.id}`}
+      serverUrl={presenceUrl}
+      authToken={token}
+      mode="presence"
+      fallback={<div className="size-full bg-surface-1" />}
+    >
+      <SheetEditorContent
+        page={props.page}
+        handlers={props.handlers}
+        isEditable={props.isEditable}
+        storeType={props.storeType}
+      />
+    </CollaborationProvider>
   );
 });
 

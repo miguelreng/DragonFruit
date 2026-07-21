@@ -16,6 +16,7 @@ import { DocumentEditor } from "@/components/editor/document/editor";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { usePageFilters } from "@/hooks/use-page-filters";
+import { SheetVersionPreview } from "./sheet-version-preview";
 // plane web hooks
 import type { EPageStoreType } from "@/plane-web/hooks/store";
 
@@ -84,6 +85,10 @@ export const PagesVersionEditor = observer(function PagesVersionEditor(props: TV
         </Loader>
       </div>
     );
+
+  if (versionDetails.page_type === "sheet" || "sheet_snapshot" in (versionDetails.description_json ?? {})) {
+    return <SheetVersionPreview version={versionDetails} />;
+  }
 
   const description = isJSONContentEmpty(versionDetails?.description_json as JSONContent)
     ? versionDetails?.description_html

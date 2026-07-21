@@ -24,6 +24,15 @@ export * from "@/helpers/yjs-utils";
 export * from "@/helpers/wikipedia-client";
 export * from "@/helpers/wiki-glossary";
 export * from "@/helpers/wiki-citations";
+export { CollaborationProvider, useCollaboration } from "@/contexts/collaboration-context";
+export { RealtimePresence, RealtimePresenceLayer } from "@/components/presence/realtime-presence";
+export { useRealtimePresence } from "@/hooks/use-realtime-presence";
+export type {
+  TPresenceMember,
+  TPresenceParticipant,
+  TPresenceSelection,
+  TPresenceSurface,
+} from "@/hooks/use-realtime-presence";
 
 export { CORE_EXTENSIONS } from "@/constants/extension";
 export { ADDITIONAL_EXTENSIONS } from "@/plane-editor/constants/extensions";

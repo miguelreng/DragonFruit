@@ -23,7 +23,7 @@ type Props = {
   editorComponent: React.FC<TVersionEditorProps>;
   fetchVersionDetails: (pageId: string, versionId: string) => Promise<TPageVersion | undefined>;
   handleClose: () => void;
-  handleRestore: (descriptionHTML: string) => Promise<void>;
+  handleRestore: (version: TPageVersion) => Promise<void>;
   pageFontStyle: TVersionEditorProps["fontStyle"];
   pageId: string;
   restoreEnabled: boolean;
@@ -58,7 +58,11 @@ export const PageVersionsMainContent = observer(function PageVersionsMainContent
   const handleRestoreVersion = async () => {
     if (!restoreEnabled) return;
     setIsRestoring(true);
-    await handleRestore(versionDetails?.description_html ?? "<p></p>")
+    if (!versionDetails) {
+      setIsRestoring(false);
+      return;
+    }
+    await handleRestore(versionDetails)
       .then(() => {
         setToast({
           type: TOAST_TYPE.SUCCESS,

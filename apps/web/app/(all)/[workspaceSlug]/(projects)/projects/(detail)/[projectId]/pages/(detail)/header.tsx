@@ -15,8 +15,7 @@ import { getPageName } from "@plane/utils";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { PageAccessIcon } from "@/components/common/page-access-icon";
 import { SwitcherLabel } from "@/components/common/switcher-label";
-import { WorkspaceCreateDocButton } from "@/components/docs/workspace-create-doc-button";
-import { PageHeaderActions } from "@/components/pages/header/actions";
+import { PageHeaderActions, PageHeaderMetadata } from "@/components/pages/header/actions";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
 import { useAppRouter } from "@/hooks/use-app-router";
@@ -37,7 +36,7 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
   const { workspaceSlug, pageId, projectId } = useParams();
   // store hooks
   const { loader } = useProject();
-  const { canCurrentUserCreatePage, getPageById, getCurrentProjectPageIds } = usePageStore(storeType);
+  const { getPageById, getCurrentProjectPageIds } = usePageStore(storeType);
   const page = usePage({
     pageId: pageId?.toString() ?? "",
     storeType,
@@ -74,8 +73,8 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
 
   return (
     <Header>
-      <Header.LeftItem>
-        <div>
+      <Header.LeftItem className="min-w-0 flex-nowrap gap-2">
+        <div className="min-w-0 overflow-hidden">
           <Breadcrumbs isLoading={loader === "init-loader"}>
             <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
             <Breadcrumbs.Item
@@ -104,18 +103,11 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
             />
           </Breadcrumbs>
         </div>
+        <PageHeaderMetadata page={page} />
       </Header.LeftItem>
-      <Header.RightItem className="items-center">
+      <Header.RightItem className="shrink-0 items-center">
         <PageDetailsHeaderExtraActions page={page} storeType={storeType} />
         <PageHeaderActions page={page} storeType={storeType} />
-        {canCurrentUserCreatePage && workspaceSlug && projectId && (
-          <WorkspaceCreateDocButton
-            workspaceSlug={workspaceSlug.toString()}
-            lockedProjectId={projectId.toString()}
-            showUpload={false}
-            buttonVariant="secondary"
-          />
-        )}
       </Header.RightItem>
     </Header>
   );

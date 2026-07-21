@@ -5,8 +5,6 @@
  */
 
 import { observer } from "mobx-react";
-// components
-import { EditorCapabilitiesGuide } from "@/components/editor/editor-capabilities-guide";
 // plane web components
 import { PageLockControl } from "@/plane-web/components/pages/header/lock-control";
 import { PageMoveControl } from "@/plane-web/components/pages/header/move-control";
@@ -34,19 +32,25 @@ export const PageHeaderActions = observer(function PageHeaderActions(props: Prop
 
   return (
     <div className="flex items-center gap-1">
-      <PageLastSaved page={page} />
-      <PageArchivedBadge page={page} />
-      <PageOfflineBadge page={page} />
       <PageLockControl page={page} />
-      {/* The guide documents the rich-text editor — skip it on whiteboards/PDFs
-          (same condition page-root.tsx uses for shouldShowToolbar). */}
-      {page.page_type === "doc" && <EditorCapabilitiesGuide />}
       <PageMoveControl page={page} />
-      <PageCopyLinkControl page={page} />
+      <div className="ml-1 flex items-center gap-1 border-l border-subtle-1 pl-2">
+        <PageCopyLinkControl page={page} />
+        <PageShareControl page={page} storeType={storeType} />
+        <PageOptionsDropdown page={page} storeType={storeType} />
+      </div>
+    </div>
+  );
+});
+
+export const PageHeaderMetadata = observer(function PageHeaderMetadata({ page }: Pick<Props, "page">) {
+  return (
+    <div className="hidden shrink-0 items-center gap-1 lg:flex">
       <PageFavoriteControl page={page} />
       <PageTagsControl page={page} />
-      <PageShareControl page={page} storeType={storeType} />
-      <PageOptionsDropdown page={page} storeType={storeType} />
+      <PageArchivedBadge page={page} />
+      <PageOfflineBadge page={page} />
+      <PageLastSaved page={page} />
     </div>
   );
 });

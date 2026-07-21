@@ -7,11 +7,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { observer } from "mobx-react";
 
-import { LinkIcon, CheckIcon } from "@/components/icons/propel-shim";
+import { Share2 } from "@/components/icons/lucide-shim";
+import { CheckIcon } from "@/components/icons/propel-shim";
 // plane imports
-import { Tooltip } from "@plane/propel/tooltip";
-import { IconButton } from "@plane/propel/icon-button";
-import { cn } from "@plane/utils";
+import { Button } from "@plane/propel/button";
 // hooks
 import { usePageOperations } from "@/hooks/use-page-operations";
 // store
@@ -57,15 +56,15 @@ export const PageCopyLinkControl = observer(function PageCopyLinkControl({ page 
   }, [pageOperations]);
 
   return (
-    <Tooltip tooltipContent={isCopied ? "Copied!" : "Copy link"} position="bottom">
-      <IconButton
-        variant="ghost"
-        size="lg"
-        icon={isCopied ? CheckIcon : LinkIcon}
-        onClick={handleCopy}
-        aria-label={isCopied ? "Copied link" : "Copy link"}
-        className={cn(isCopied && "text-success-primary")}
-      />
-    </Tooltip>
+    <Button
+      variant="secondary"
+      size="lg"
+      onClick={handleCopy}
+      aria-label={isCopied ? "Copied link" : "Share doc"}
+      className="px-2.5"
+    >
+      {isCopied ? <CheckIcon className="size-4 text-success-primary" /> : <Share2 className="size-4" />}
+      <span className="hidden sm:inline">{isCopied ? "Copied" : "Share"}</span>
+    </Button>
   );
 });

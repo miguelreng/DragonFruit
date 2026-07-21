@@ -12,6 +12,7 @@ import type { EditorRefApi } from "@plane/editor";
 import type { TSticky } from "@plane/types";
 import { cn, isCommentEmpty } from "@plane/utils";
 import { StickyEditor } from "@/components/editor/sticky-editor";
+import type { TStickyTargetSnapshot } from "@/components/stickies/create-from-sticky";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 
 // const StickyEditor = dynamic(() => import("../../editor/sticky-editor").then((mod) => mod.StickyEditor), {
@@ -26,10 +27,20 @@ type TProps = {
   showToolbar?: boolean;
   handleChange: (data: Partial<TSticky>) => Promise<void>;
   handleDelete: () => void;
+  handleCreateFromSticky: (snapshot: TStickyTargetSnapshot) => void;
 };
 
 export function StickyInput(props: TProps) {
-  const { stickyData, workspaceSlug, handleUpdate, stickyId, handleDelete, handleChange, showToolbar } = props;
+  const {
+    stickyData,
+    workspaceSlug,
+    handleUpdate,
+    stickyId,
+    handleDelete,
+    handleChange,
+    handleCreateFromSticky,
+    showToolbar,
+  } = props;
   // refs
   const editorRef = useRef<EditorRefApi>(null);
   const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -41,7 +52,7 @@ export function StickyInput(props: TProps) {
   const workspaceId = getWorkspaceBySlug(workspaceSlug)?.id?.toString() ?? "";
   const isStickiesPage = pathname?.includes("stickies");
   // form info
-  const { handleSubmit, reset, control } = useForm<TSticky>({
+  const { handleSubmit, reset, control, getValues } = useForm<TSticky>({
     defaultValues: {
       name: stickyData?.name ?? "",
       description_html: stickyData?.description_html,
@@ -137,6 +148,14 @@ export function StickyInput(props: TProps) {
             parentClassName="border-none p-0"
             handleDelete={handleDelete}
             handleColorChange={handleChange}
+            stickyId={stickyId}
+            onCreateFromSticky={() => {
+              const currentValues = getValues();
+              handleCreateFromSticky({
+                name: currentValues.name ?? "",
+                description_html: currentValues.description_html ?? "<p></p>",
+              });
+            }}
             ref={editorRef}
           />
         )}

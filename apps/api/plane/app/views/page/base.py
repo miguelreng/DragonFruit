@@ -637,11 +637,19 @@ class PagesDescriptionViewSet(BaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Store the old description_html before saving (needed for both tasks)
+        # Store the previous body before saving so the version task can compare
+        # the canonical representation for every supported page type.
         old_description_html = page.description_html
 
         # Serialize the existing instance
-        existing_instance = json.dumps({"description_html": old_description_html}, cls=DjangoJSONEncoder)
+        existing_instance = json.dumps(
+            {
+                "page_type": page.page_type,
+                "description_html": old_description_html,
+                "description_json": page.description_json,
+            },
+            cls=DjangoJSONEncoder,
+        )
 
         # Use serializer for validation and update
         serializer = PageBinaryUpdateSerializer(page, data=request.data, partial=True)
@@ -657,11 +665,12 @@ class PagesDescriptionViewSet(BaseViewSet):
                 )
 
             # Run background tasks
-            track_page_version.delay(
-                page_id=page_id,
-                existing_instance=existing_instance,
-                user_id=request.user.id,
-            )
+            if any(key in request.data for key in ("description_html", "description_json", "description_binary")):
+                track_page_version.delay(
+                    page_id=page_id,
+                    existing_instance=existing_instance,
+                    user_id=request.user.id,
+                )
             return Response({"message": "Updated successfully"})
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

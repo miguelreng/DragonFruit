@@ -40,6 +40,8 @@ interface StickyEditorWrapperProps extends Omit<
   parentClassName?: string;
   handleColorChange: (data: Partial<TSticky>) => Promise<void>;
   handleDelete: () => void;
+  stickyId?: string;
+  onCreateFromSticky?: () => void;
 }
 
 function isMutableRefObject<T>(forwardedRef: React.ForwardedRef<T>): forwardedRef is React.MutableRefObject<T | null> {
@@ -57,6 +59,8 @@ export const StickyEditor = React.forwardRef(function StickyEditor(
     projectId,
     handleDelete,
     handleColorChange,
+    stickyId,
+    onCreateFromSticky,
     showToolbarInitially = true,
     showToolbar = true,
     parentClassName = "",
@@ -126,6 +130,8 @@ export const StickyEditor = React.forwardRef(function StickyEditor(
             handleDelete={handleDelete}
             handleColorChange={handleColorChange}
             editorRef={editorRef}
+            stickyId={stickyId}
+            onCreateFromSticky={onCreateFromSticky}
           />
         </div>
       )}

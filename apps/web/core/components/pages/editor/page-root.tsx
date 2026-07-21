@@ -161,11 +161,10 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
   });
 
   const handleRestoreVersion = useCallback(
-    async (descriptionHTML: string) => {
-      editorRef.current?.clearEditor();
-      editorRef.current?.setEditorValue(descriptionHTML);
+    async (version: TPageVersion) => {
+      editorRef.current?.replaceProviderDocumentFromHTML(version.description_html ?? "<p></p>", page.name);
     },
-    [editorRef]
+    [editorRef, page.name]
   );
 
   // reset editor ref on unmount
@@ -214,7 +213,13 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
           ) : page.page_type === "whiteboard" ? (
             <ExcalidrawEditor page={page} handlers={handlers} isEditable={isContentEditable} />
           ) : page.page_type === "sheet" ? (
-            <SheetEditor page={page} handlers={handlers} isEditable={isContentEditable} />
+            <SheetEditor
+              page={page}
+              handlers={handlers}
+              isEditable={isContentEditable}
+              storeType={storeType}
+              webhookConnectionParams={webhookConnectionParams}
+            />
           ) : page.page_type === "pdf" ? (
             <PdfPageViewer page={page} projectId={projectId} workspaceSlug={workspaceSlug} />
           ) : (

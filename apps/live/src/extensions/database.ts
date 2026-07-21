@@ -24,6 +24,8 @@ import { broadcastError } from "@/utils/broadcast-error";
 import { forceCloseDocumentAcrossServers } from "./force-close-handler";
 
 const fetchDocument = async ({ context, documentName: pageId, instance }: FetchPayloadWithContext) => {
+  if (context.connectionMode === "presence") return new Uint8Array();
+
   try {
     const service = getPageService(context.documentType, context);
     // fetch details
@@ -75,6 +77,8 @@ const storeDocument = async ({
   documentName: pageId,
   instance,
 }: StorePayloadWithContext) => {
+  if (context.connectionMode === "presence") return;
+
   try {
     const service = getPageService(context.documentType, context);
     // convert binary data to all formats

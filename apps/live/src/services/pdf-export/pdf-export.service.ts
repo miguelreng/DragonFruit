@@ -318,7 +318,9 @@ export const exportToPdf = (
       workspaceSlug,
       projectId: projectId || null,
       cookie: input.cookie,
+      connectionMode: "document",
       documentType,
+      pageId,
       userId: "",
     });
 

@@ -11,6 +11,7 @@ import useSWR from "swr";
 import { XIcon } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
+import type { TPageVersion } from "@plane/types";
 import { Avatar, EModalPosition, EModalWidth, Loader, ModalCore } from "@plane/ui";
 import { cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
 // hooks
@@ -32,6 +33,7 @@ type Props = {
   isOpen: boolean;
   page: TPageInstance;
   storeType: EPageStoreType;
+  onRestoreVersion?: (version: TPageVersion) => Promise<void>;
 };
 
 type VersionHistoryItemProps = {
@@ -76,7 +78,7 @@ const VersionHistoryItem = observer(function VersionHistoryItem(props: VersionHi
 });
 
 export const PageVersionHistoryModal = observer(function PageVersionHistoryModal(props: Props) {
-  const { handleClose, isOpen, page, storeType } = props;
+  const { handleClose, isOpen, onRestoreVersion, page, storeType } = props;
   const { workspaceSlug, projectId, pageId } = useParams<{
     workspaceSlug: string;
     projectId: string;
@@ -113,9 +115,9 @@ export const PageVersionHistoryModal = observer(function PageVersionHistoryModal
     [selectedVersionId, versionsList]
   );
 
-  const handleRestore = async (descriptionHTML: string) => {
-    page.editor.editorRef?.clearEditor();
-    page.editor.editorRef?.setEditorValue(descriptionHTML);
+  const handleRestore = async (version: TPageVersion) => {
+    if (onRestoreVersion) return onRestoreVersion(version);
+    page.editor.editorRef?.replaceProviderDocumentFromHTML(version.description_html ?? "<p></p>", page.name);
   };
 
   if (!isOpen) return null;
@@ -125,7 +127,7 @@ export const PageVersionHistoryModal = observer(function PageVersionHistoryModal
       <div className="flex max-h-[85vh] min-h-[68vh] flex-col overflow-hidden" data-prevent-outside-click>
         <div className="flex items-center justify-between gap-3 border-b border-subtle px-5 py-4">
           <div>
-            <h3 className="text-14 font-normal text-primary">
+            <h3 className="font-normal text-14 text-primary">
               {t("page_navigation_pane.tabs.info.version_history.label")}
             </h3>
           </div>
@@ -196,7 +198,7 @@ export const PageVersionHistoryModal = observer(function PageVersionHistoryModal
             ) : (
               <div className="grid h-full place-items-center px-6 py-10 text-center">
                 <div className="max-w-sm">
-                  <h4 className="text-14 font-normal text-primary">Select a version</h4>
+                  <h4 className="font-normal text-14 text-primary">Select a version</h4>
                   <p className="mt-2 text-12 text-tertiary">
                     Pick any saved version on the left to preview it in the editor.
                   </p>

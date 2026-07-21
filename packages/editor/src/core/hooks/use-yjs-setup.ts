@@ -25,6 +25,7 @@ type UseYjsSetupArgs = {
   docId: string;
   serverUrl: string;
   authToken: string;
+  mode?: "document" | "presence";
   onStateChange?: (state: CollaborationState) => void;
   options?: {
     maxConnectionAttempts?: number;
@@ -33,7 +34,7 @@ type UseYjsSetupArgs = {
 
 const DEFAULT_MAX_RETRIES = 3;
 
-export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseYjsSetupArgs) => {
+export const useYjsSetup = ({ docId, serverUrl, authToken, mode = "document", onStateChange }: UseYjsSetupArgs) => {
   // Current collaboration stage
   const [stage, setStage] = useState<CollabStage>({ kind: "initial" });
 
@@ -281,6 +282,12 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
   useEffect(() => {
     if (!yjsSession) return;
 
+    if (mode === "presence") {
+      setIsCacheReady(true);
+      setHasCachedContent(false);
+      return;
+    }
+
     const idbPersistence = new IndexeddbPersistence(docId, yjsSession.provider.document);
 
     const onIdbSynced = () => {
@@ -300,11 +307,11 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         console.error(`Error destroying local provider:`, error);
       }
     };
-  }, [docId, yjsSession]);
+  }, [docId, mode, yjsSession]);
 
   // Observe Y.Doc content changes to update hasCachedContent (catches fallback scenario)
   useEffect(() => {
-    if (!yjsSession || !isCacheReady) return;
+    if (!yjsSession || !isCacheReady || mode === "presence") return;
 
     const fragment = yjsSession.ydoc.getXmlFragment("default");
     let lastHasContent = false;
@@ -332,7 +339,7 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
         console.error("Error unobserving fragment:", error);
       }
     };
-  }, [yjsSession, isCacheReady]);
+  }, [yjsSession, isCacheReady, mode]);
 
   // Notify state changes callback (use ref to avoid dependency on handler)
   const stateChangeCallbackRef = useRef(onStateChange);
@@ -356,7 +363,8 @@ export const useYjsSetup = ({ docId, serverUrl, authToken, onStateChange }: UseY
   // Derived values for convenience
   const isServerSynced = stage.kind === "synced";
   const isServerDisconnected = stage.kind === "disconnected";
-  const isDocReady = isServerSynced || isServerDisconnected || (isCacheReady && hasCachedContent);
+  const isDocReady =
+    mode === "presence" || isServerSynced || isServerDisconnected || (isCacheReady && hasCachedContent);
 
   const signalForcedClose = useCallback((value: boolean) => {
     forcedCloseSignalRef.current = value;

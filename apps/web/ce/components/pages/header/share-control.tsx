@@ -9,6 +9,7 @@ import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { EPageAccess } from "@plane/constants";
 import { useOutsideClickDetector } from "@plane/hooks";
+import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { copyTextToClipboard } from "@plane/utils";
 import {
@@ -269,15 +270,16 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
           )}
         </div>
       )}
-      <button
-        type="button"
+      <Button
+        variant="primary"
+        size="lg"
         onClick={() => void handlePublish()}
-        disabled={isPublishing}
-        className="flex h-7 items-center gap-1.5 rounded-lg border border-subtle-1 bg-surface-1 px-2.5 text-12 font-medium text-secondary transition-colors hover:bg-layer-2 disabled:cursor-wait disabled:opacity-70"
+        loading={isPublishing}
+        className="px-2.5"
       >
         {isPublishing ? <HeroArrowPathIcon className="size-4 animate-spin" /> : <HeroGlobeAltIcon className="size-4" />}
         {page.access === EPageAccess.PUBLIC ? "Published" : "Publish"}
-      </button>
+      </Button>
     </div>
   );
 });

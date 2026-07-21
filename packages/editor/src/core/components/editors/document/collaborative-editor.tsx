@@ -4,11 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 // plane imports
 import { cn } from "@plane/utils";
 // components
 import { PageRenderer } from "@/components/editors";
+import { RealtimePresence } from "@/components/presence/realtime-presence";
 // constants
 import { DEFAULT_DISPLAY_CONFIG } from "@/constants/config";
 // contexts
@@ -51,6 +52,7 @@ function CollaborativeDocumentEditorInner(props: ICollaborativeDocumentEditorPro
     placeholder,
     tabIndex,
     user,
+    resolvePresenceUser,
     extendedDocumentEditorProps,
     titleRef,
     updatePageProperties,
@@ -59,6 +61,7 @@ function CollaborativeDocumentEditorInner(props: ICollaborativeDocumentEditorPro
 
   // Get non-null provider from context
   const { provider, state, actions } = useCollaboration();
+  const presenceContainerRef = useRef<HTMLDivElement>(null);
 
   // Editor initialization with guaranteed non-null provider
   const { editor, titleEditor } = useCollaborativeEditor({
@@ -110,8 +113,9 @@ function CollaborativeDocumentEditorInner(props: ICollaborativeDocumentEditorPro
   return (
     <>
       <div
+        ref={presenceContainerRef}
         className={cn(
-          "transition-opacity duration-200",
+          "relative transition-opacity duration-200",
           showContentSkeleton && !isLoading && "pointer-events-none opacity-0"
         )}
       >
@@ -134,6 +138,13 @@ function CollaborativeDocumentEditorInner(props: ICollaborativeDocumentEditorPro
           tabIndex={tabIndex}
           provider={provider}
           state={state}
+        />
+        <RealtimePresence
+          containerRef={presenceContainerRef}
+          provider={provider}
+          resolveUser={resolvePresenceUser}
+          surface="document"
+          user={user}
         />
       </div>
     </>

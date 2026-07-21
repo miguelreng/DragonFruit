@@ -15,8 +15,10 @@ import { EFileAssetType } from "@plane/types";
 import { setActiveDocPageId } from "@/components/agent-chat/active-doc-page";
 import { LogoSpinner } from "@/components/common/logo-spinner";
 import { EditorCapabilitiesGuide } from "@/components/editor/editor-capabilities-guide";
+import { History } from "@/components/icons/lucide-shim";
 import type { TPageRootConfig, TPageRootHandlers } from "@/components/pages/editor/page-root";
 import { PageRoot } from "@/components/pages/editor/page-root";
+import { PageVersionHistoryModal } from "@/components/pages/version/history-modal";
 // plane web components
 import { PageShareControl } from "@/plane-web/components/pages/header/share-control";
 // hooks
@@ -142,21 +144,22 @@ const BriefPageActions = observer(function BriefPageActions(props: { page: TPage
   const itemClass = "flex w-full items-center gap-2 text-13";
   const canPublish = page.canCurrentUserChangeAccess && !page.archived_at;
   const canLock = page.canCurrentUserLockPage;
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
 
   return (
-    <div className="z-20 flex flex-shrink-0 items-center justify-between gap-2 px-page-x pt-5 pb-5">
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="truncate text-13 font-medium text-primary">{title}</span>
-        <span className="hidden shrink-0 items-center gap-1 rounded-md border border-subtle bg-surface-1 px-2 py-0.5 text-11 font-medium text-secondary sm:inline-flex">
-          Atlas reads this
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        {/* The Brief renders PageRoot chromeless (no PageHeaderActions), so mount
+    <>
+      <div className="z-20 flex flex-shrink-0 items-center justify-between gap-2 px-page-x pt-5 pb-5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-13 font-medium text-primary">{title}</span>
+          <span className="hidden shrink-0 items-center gap-1 rounded-md border border-subtle bg-surface-1 px-2 py-0.5 text-11 font-medium text-secondary sm:inline-flex">
+            Atlas reads this
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {/* The Brief renders PageRoot chromeless (no PageHeaderActions), so mount
             the editor guide here — styled like the other floating controls. */}
-        <EditorCapabilitiesGuide buttonClassName="size-7 border border-subtle bg-surface-1" />
-        {canPublish && <PageShareControl page={page} storeType={storeType} />}
-        {canLock && (
+          <EditorCapabilitiesGuide buttonClassName="size-7 border border-subtle bg-surface-1" />
+          {canPublish && <PageShareControl page={page} storeType={storeType} />}
           <CustomMenu
             placement="bottom-end"
             ariaLabel="Brief options"
@@ -164,20 +167,34 @@ const BriefPageActions = observer(function BriefPageActions(props: { page: TPage
             customButtonClassName="grid size-7 place-items-center rounded-lg border border-subtle bg-surface-1 text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
             customButton={<EllipsisHorizontalIcon className="size-4" />}
           >
-            <CustomMenu.MenuItem onClick={() => pageOperations.toggleLock()} className="rounded-md">
+            <CustomMenu.MenuItem onClick={() => setIsVersionHistoryOpen(true)} className="rounded-md">
               <span className={itemClass}>
-                {isLocked ? (
-                  <LockOpenIcon className="size-4 flex-shrink-0" />
-                ) : (
-                  <LockClosedIcon className="size-4 flex-shrink-0" />
-                )}
-                {isLocked ? "Unlock" : "Lock"}
+                <History className="size-4 flex-shrink-0" />
+                Version history
               </span>
             </CustomMenu.MenuItem>
+            {canLock && (
+              <CustomMenu.MenuItem onClick={() => pageOperations.toggleLock()} className="rounded-md">
+                <span className={itemClass}>
+                  {isLocked ? (
+                    <LockOpenIcon className="size-4 flex-shrink-0" />
+                  ) : (
+                    <LockClosedIcon className="size-4 flex-shrink-0" />
+                  )}
+                  {isLocked ? "Unlock" : "Lock"}
+                </span>
+              </CustomMenu.MenuItem>
+            )}
           </CustomMenu>
-        )}
+        </div>
       </div>
-    </div>
+      <PageVersionHistoryModal
+        handleClose={() => setIsVersionHistoryOpen(false)}
+        isOpen={isVersionHistoryOpen}
+        page={page}
+        storeType={storeType}
+      />
+    </>
   );
 });
 

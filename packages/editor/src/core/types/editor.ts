@@ -218,6 +218,7 @@ export type ICollaborativeDocumentEditorProps = Omit<IEditorProps, "initialValue
   realtimeConfig: TRealtimeConfig;
   serverHandler?: TServerHandler;
   user: TUserDetails;
+  resolvePresenceUser?: (userId: string) => { avatarUrl?: string; id: string; name: string } | null | undefined;
   extendedDocumentEditorProps?: ICollaborativeDocumentEditorPropsExtended;
   updatePageProperties?: <T extends keyof EventToPayloadMap>(
     pageIds: string | string[],

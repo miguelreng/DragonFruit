@@ -243,11 +243,7 @@ def _capture_page_public_doc_state_before_save(sender, instance, **kwargs):
         return
 
     try:
-        previous = (
-            Page.objects.only("page_type", "access", "archived_at", "deleted_at")
-            .filter(pk=instance.pk)
-            .first()
-        )
+        previous = Page.objects.only("page_type", "access", "archived_at", "deleted_at").filter(pk=instance.pk).first()
         instance._was_public_doc_page_for_landing = bool(previous and _is_public_doc_page(previous))
     except Exception:  # noqa: BLE001
         logger.exception("failed to capture prior page visibility for landing redeploy page_id=%s", instance.pk)
@@ -266,14 +262,8 @@ def _capture_page_public_doc_state_before_save_for_essay_illustration(sender, in
         return
 
     try:
-        previous = (
-            Page.objects.only("page_type", "access", "archived_at", "deleted_at")
-            .filter(pk=instance.pk)
-            .first()
-        )
-        instance._was_public_doc_page_for_essay_illustration = bool(
-            previous and _is_public_doc_page(previous)
-        )
+        previous = Page.objects.only("page_type", "access", "archived_at", "deleted_at").filter(pk=instance.pk).first()
+        instance._was_public_doc_page_for_essay_illustration = bool(previous and _is_public_doc_page(previous))
     except Exception:  # noqa: BLE001
         logger.exception(
             "failed to capture prior public page state for essay illustration page_id=%s",
@@ -462,8 +452,22 @@ class ProjectPage(BaseModel):
 
 
 class PageVersion(BaseModel):
+    PAGE_TYPE_DOC = "doc"
+    PAGE_TYPE_WHITEBOARD = "whiteboard"
+    PAGE_TYPE_PDF = "pdf"
+    PAGE_TYPE_SHEET = "sheet"
+    PAGE_TYPE_FOLDER = "folder"
+    PAGE_TYPE_CHOICES = (
+        (PAGE_TYPE_DOC, "Doc"),
+        (PAGE_TYPE_WHITEBOARD, "Whiteboard"),
+        (PAGE_TYPE_PDF, "PDF"),
+        (PAGE_TYPE_SHEET, "Sheet"),
+        (PAGE_TYPE_FOLDER, "Folder"),
+    )
+
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="page_versions")
     page = models.ForeignKey("db.Page", on_delete=models.CASCADE, related_name="page_versions")
+    page_type = models.CharField(max_length=16, choices=PAGE_TYPE_CHOICES, default=PAGE_TYPE_DOC)
     last_saved_at = models.DateTimeField(default=timezone.now)
     owned_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="page_versions")
     description_binary = models.BinaryField(null=True)

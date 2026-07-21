@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import type { EditorRefApi } from "@plane/editor";
 // ui
 import { useOutsideClickDetector } from "@plane/hooks";
-import { Palette } from "@/components/icons/lucide-shim";
+import { FileOutput, Palette } from "@/components/icons/lucide-shim";
 import { TrashIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TSticky } from "@plane/types";
@@ -25,12 +25,14 @@ type Props = {
   editorRef: EditorRefApi | null;
   handleColorChange: (data: Partial<TSticky>) => Promise<void>;
   handleDelete: () => void;
+  stickyId?: string;
+  onCreateFromSticky?: () => void;
 };
 
 const toolbarItems = TOOLBAR_ITEMS.sticky;
 
 export function StickyEditorToolbar(props: Props) {
-  const { executeCommand, editorRef, handleColorChange, handleDelete } = props;
+  const { executeCommand, editorRef, handleColorChange, handleDelete, stickyId, onCreateFromSticky } = props;
 
   // State to manage active states of toolbar items
   const [activeStates, setActiveStates] = useState<Record<string, boolean>>({});
@@ -117,18 +119,38 @@ export function StickyEditorToolbar(props: Props) {
           </div>
         </div>
       </div>
-      {/* delete action */}
-      <Tooltip
-        tooltipContent={
-          <p className="flex flex-col gap-1 text-center text-11">
-            <span className="font-medium">Delete</span>
-          </p>
-        }
-      >
-        <button type="button" onClick={handleDelete} className="my-auto text-primary/50">
-          <TrashIcon className="size-4" />
-        </button>
-      </Tooltip>
+      <div className="my-auto flex items-center gap-4">
+        {stickyId && onCreateFromSticky && (
+          <Tooltip
+            tooltipContent={
+              <p className="flex flex-col gap-1 text-center text-11">
+                <span className="font-medium">Create from sticky</span>
+              </p>
+            }
+          >
+            <button
+              type="button"
+              onClick={onCreateFromSticky}
+              aria-label="Create from sticky"
+              className="text-primary/50"
+            >
+              <FileOutput className="size-4" />
+            </button>
+          </Tooltip>
+        )}
+        {/* delete action */}
+        <Tooltip
+          tooltipContent={
+            <p className="flex flex-col gap-1 text-center text-11">
+              <span className="font-medium">Delete</span>
+            </p>
+          }
+        >
+          <button type="button" onClick={handleDelete} className="text-primary/50">
+            <TrashIcon className="size-4" />
+          </button>
+        </Tooltip>
+      </div>
     </div>
   );
 }

@@ -33,7 +33,9 @@ starting, honor its STOP conditions, and update your row when done.
 | 025  | Wiki publish visibility (success step, link access, unpublish)    | P1       | S–M    | 019 (built)           | DONE (shipped 5d46c5b757 + follow-ups) — in-modal success view w/ View wiki primary, Published markers, Share popover on the folder header (status/link/view/settings/unpublish), owner preview of unpublished wikis. Live on prod.                                                                                                                             |
 | 026  | Atlas doc-write cosmetic formatting (markdown-lite proposals)      | P1       | M      | spacer fix f7eee663c1 | DONE — proposals now speak a constrained Markdown subset rendered server-side (headings, bold/italic/strike, code, links, flat lists, checklists, quotes, dividers) + [blank] spacers; prompts teach formatting-only replaces. Deferred: tables, colors, alignment, images, mark-preserving replaces.                                                              |
 | 027  | Ship a private, per-user Momentum gamification system             | P2       | L      | —                     | TODO — idempotent XP ledger, levels, timezone-aware streaks, achievements, backfill, current-user API, and Home Momentum card. No leaderboard/redeemable rewards/mobile UI in V1.                                                                                                                                                                               |
-| 028  | Create a Doc or Task from a Sticky                                | P2       | S–M    | —                     | TODO — web Sticky toolbar action copies the freshest title/rich-text body into a new private Doc or Task, keeps the Sticky unchanged, filters eligible destination projects, and offers an Open action. No backend relation or destructive conversion in V1.                                                                                                   |
+| 028  | Create a Doc or Task from a Sticky                                | P2       | S–M    | —                     | DONE — web Sticky toolbar action creates private Docs or default-state Tasks from a fresh click-time snapshot, with eligible-project filtering, recoverable errors, and Open toast actions. Unit tests, focused lint, and production build pass; runtime smoke is blocked by local API DNS.                                                                        |
+| 029  | Show live collaborator avatars, pointers, and selections          | P1       | M      | —                     | TODO — reuse Doc/Brief Hocuspocus awareness; add an authorized presence-only Sheet channel. Sheet content remains on its current REST snapshot model.                                                                                                                                                                                                            |
+| 030  | Make version history reliable in Docs, Briefs, and Sheets          | P1       | M–L    | —                     | TODO — repair page-type-aware capture, native Doc/Sheet previews, shared entry points, and non-destructive restore. Retains 20 coalesced content versions; not an audit log.                                                                                                                                                                                        |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
@@ -55,6 +57,11 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED 
 - **027 is independent** of the Atlas plans. It preserves the existing
   `/activity-summary/` endpoint and replaces only the unused Home activity card
   with the new private Momentum surface.
+- **029 is independent** of the earlier plans. It reuses the existing
+  Hocuspocus/Redis stack for ephemeral presence. Its Sheet work intentionally
+  does not migrate `description_json.sheet_snapshot` to Yjs.
+- **030 is independent of 029**. Version history stores bounded content
+  snapshots and must never persist presence or mouse data. Either can ship first.
 
 ## Findings considered and rejected (do not re-audit)
 

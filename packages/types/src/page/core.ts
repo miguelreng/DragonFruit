@@ -125,6 +125,7 @@ export type TPageVersion = {
   last_saved_at: string;
   owned_by: string;
   page: string;
+  page_type: TPageType;
   updated_at: string;
   updated_by: string;
   workspace: string;

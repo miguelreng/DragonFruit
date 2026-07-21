@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
+import { Check } from "@/components/icons/lucide-shim";
 import { calculateTimeAgoShort } from "@plane/utils";
 import type { TPageInstance } from "@/store/pages/base-page";
 
@@ -27,10 +28,14 @@ export const PageLastSaved = observer(function PageLastSaved({ page }: Props) {
   const savedAt = page.lastSavedAt ?? page.updated_at;
   if (!savedAt) return null;
   const justNow = Date.now() - new Date(savedAt).getTime() < 60_000;
-  const label = justNow ? "Last saved just now" : `Last saved ${calculateTimeAgoShort(savedAt)} ago`;
+  const label = justNow ? "Saved" : `Saved ${calculateTimeAgoShort(savedAt)} ago`;
   return (
-    <span className="hidden shrink-0 whitespace-nowrap px-1 text-11 text-tertiary sm:block" title={label}>
-      {label}
+    <span
+      className="inline-flex shrink-0 items-center gap-1 px-1 text-11 whitespace-nowrap text-tertiary"
+      title={label}
+    >
+      <Check className="size-3" aria-hidden="true" />
+      <span>{label}</span>
     </span>
   );
 });

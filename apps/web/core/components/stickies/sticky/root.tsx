@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useMemo, useState, type Ref } from "react";
+import { useCallback, useEffect, useMemo, useState, type Ref } from "react";
 import { debounce } from "lodash-es";
 import { observer } from "mobx-react";
 import { Minimize2 } from "@/components/icons/lucide-shim";
@@ -12,6 +12,7 @@ import { Minimize2 } from "@/components/icons/lucide-shim";
 import type { TSticky } from "@plane/types";
 // plane utils
 import { cn } from "@plane/utils";
+import { CreateFromStickyModal, type TStickyTargetSnapshot } from "@/components/stickies/create-from-sticky";
 // hooks
 import { useSticky } from "@/hooks/use-stickies";
 // components
@@ -46,6 +47,7 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
   // const pathName = usePathname();
   // states
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [createFromStickySnapshot, setCreateFromStickySnapshot] = useState<TStickyTargetSnapshot | null>(null);
   // store hooks
   const { stickies } = useSticky();
   // sticky operations
@@ -82,8 +84,27 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
     [handleChange]
   );
 
+  useEffect(
+    () => () => {
+      debouncedFormSave.cancel();
+    },
+    [debouncedFormSave]
+  );
+
+  const handleCreateFromSticky = useCallback(
+    (snapshot: TStickyTargetSnapshot) => {
+      const pendingSave = debouncedFormSave.flush();
+      if (pendingSave) {
+        void pendingSave.catch((error) => console.error("Failed to flush sticky before creating a target", error));
+      }
+      setCreateFromStickySnapshot(snapshot);
+    },
+    [debouncedFormSave]
+  );
+
   const handleDelete = async () => {
     if (!stickyId) return;
+    setCreateFromStickySnapshot(null);
     onClose?.();
     stickyOperations.remove(stickyId);
   };
@@ -95,6 +116,16 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
         handleSubmit={handleDelete}
         handleClose={() => setIsDeleteModalOpen(false)}
       />
+      {stickyId && createFromStickySnapshot && (
+        <CreateFromStickyModal
+          isOpen
+          onClose={() => setCreateFromStickySnapshot(null)}
+          workspaceSlug={workspaceSlug}
+          stickyId={stickyId}
+          snapshot={createFromStickySnapshot}
+          stickyProjectId={stickyData.project}
+        />
+      )}
       <div
         className={cn(
           "group/sticky shadow-sm hover:shadow-md relative flex h-fit w-full flex-col overflow-y-scroll rounded-lg ring-1 ring-black/5 transition-[box-shadow,filter] duration-200 ease-out",
@@ -127,7 +158,11 @@ export const StickyNote = observer(function StickyNote(props: TProps) {
               debouncedFormSave(payload);
             }}
             stickyId={stickyId}
-            handleDelete={() => setIsDeleteModalOpen(true)}
+            handleDelete={() => {
+              setCreateFromStickySnapshot(null);
+              setIsDeleteModalOpen(true);
+            }}
+            handleCreateFromSticky={handleCreateFromSticky}
             handleChange={handleChange}
             showToolbar={showToolbar}
           />

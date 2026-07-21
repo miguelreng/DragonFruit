@@ -102,6 +102,9 @@ catalogs:
     tsx:
       specifier: 4.20.6
       version: 4.20.6
+    vitest:
+      specifier: 4.0.15
+      version: 4.0.15
 
 overrides:
   tailwindcss: 4.1.17
@@ -978,6 +981,9 @@ importers:
       vite-tsconfig-paths:
         specifier: ^5.1.4
         version: 5.1.4(typescript@5.8.3)(vite@7.3.2(@types/node@22.12.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.3))
+      vitest:
+        specifier: 'catalog:'
+        version: 4.0.15(@opentelemetry/api@1.9.0)(@types/node@22.12.0)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.3)
 
   packages/codemods:
     devDependencies:
@@ -1090,6 +1096,9 @@ importers:
       '@tiptap/extension-collaboration':
         specifier: ^2.22.3
         version: 2.26.1(@tiptap/core@2.26.3(@tiptap/pm@2.26.1))(@tiptap/pm@2.26.1)(y-prosemirror@1.3.7(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27))
+      '@tiptap/extension-collaboration-cursor':
+        specifier: ^2.22.3
+        version: 2.26.2(@tiptap/core@2.26.3(@tiptap/pm@2.26.1))(y-prosemirror@1.3.7(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27))
       '@tiptap/extension-document':
         specifier: ^2.22.3
         version: 2.26.1(@tiptap/core@2.26.3(@tiptap/pm@2.26.1))
@@ -5472,6 +5481,12 @@ packages:
     resolution: {integrity: sha512-xnKJvzlAp75dheyaK5tLKAksHf9PtSr8a7OuPjf2IXS5K+QMtnwxx7KAHHijmecfWjLR0wyu9AvT/FWFfKi5LQ==}
     peerDependencies:
       '@tiptap/core': ^2.7.0
+
+  '@tiptap/extension-collaboration-cursor@2.26.2':
+    resolution: {integrity: sha512-FdRb27mZ5Kr18hN6cbfBj1e9F0DOoHB1Gv3IYeic+g4h1C9BjDVMN0+JRBQc+4lamNA8TsHO0oKWRwaPe4sSlA==}
+    peerDependencies:
+      '@tiptap/core': ^2.7.0
+      y-prosemirror: ^1.2.11
 
   '@tiptap/extension-collaboration@2.26.1':
     resolution: {integrity: sha512-ozCrGW5IAzi/18Ngdi0v/Q175D7J3ZGoTffDDyPxnTK/oksfROajoe+ZIEgoDGXPeI/I7TTlTONuqQ6LZT5r7Q==}
@@ -16907,6 +16922,11 @@ snapshots:
   '@tiptap/extension-code@2.26.2(@tiptap/core@2.26.3(@tiptap/pm@2.26.1))':
     dependencies:
       '@tiptap/core': 2.26.3(@tiptap/pm@2.26.1)
+
+  '@tiptap/extension-collaboration-cursor@2.26.2(@tiptap/core@2.26.3(@tiptap/pm@2.26.1))(y-prosemirror@1.3.7(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27))':
+    dependencies:
+      '@tiptap/core': 2.26.3(@tiptap/pm@2.26.1)
+      y-prosemirror: 1.3.7(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)
 
   '@tiptap/extension-collaboration@2.26.1(@tiptap/core@2.26.3(@tiptap/pm@2.26.1))(@tiptap/pm@2.26.1)(y-prosemirror@1.3.7(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.0)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27))':
     dependencies:

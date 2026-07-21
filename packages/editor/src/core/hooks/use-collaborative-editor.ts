@@ -7,6 +7,7 @@
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import type { Extensions } from "@tiptap/core";
 import { Collaboration } from "@tiptap/extension-collaboration";
+import { CollaborationCursor } from "@tiptap/extension-collaboration-cursor";
 // react
 import type React from "react";
 import { useEffect, useMemo } from "react";
@@ -81,6 +82,10 @@ export const useCollaborativeEditor = (props: UseCollaborativeEditorArgs) => {
       Collaboration.configure({
         document: provider.document,
         field: "default",
+      }),
+      CollaborationCursor.configure({
+        provider,
+        user,
       }),
       ...extensions,
       ...DocumentEditorAdditionalExtensions({
