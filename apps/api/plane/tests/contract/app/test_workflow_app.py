@@ -35,4 +35,4 @@ class TestWorkflowAPI:
         run = WorkflowRun.objects.get(id=response.data["run_id"])
         assert run.workflow_id == workflow.id
         assert run.issue_id == issue.id
-        mock_run_workflow.assert_called_once_with(str(run.id))
+        mock_run_workflow.assert_called_once_with(str(run.id), allow_disabled=True)

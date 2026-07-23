@@ -282,9 +282,9 @@ function AISettingsPage() {
       <PageHead title={pageTitle} />
       <div className={cn("flex w-full flex-col gap-y-7", { "opacity-60": !canEdit })}>
         {/* Atlas — the one workspace companion. Identity & personality are
-            fixed in code; only on/off and triggers are tunable here. Automations
-            now live on the top-level Workflows page. The model + BYOK key it runs
-            on are configured below. */}
+            fixed in code; direct assignment/mention triggers are tunable here.
+            Unattended automation lives only on the top-level Workflows page.
+            The model + BYOK key it runs on are configured below. */}
         <div className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-0.5">

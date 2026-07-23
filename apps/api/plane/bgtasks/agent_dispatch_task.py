@@ -42,6 +42,7 @@ from plane.db.models import (
     AgentMemory,
     AgentRun,
     Issue,
+    IssueAssignee,
     IssueAttachment,
     IssueComment,
     IssueLabel,
@@ -115,10 +116,10 @@ _DOC_READ_MAX_CHARS = 12000
 def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> None:
     """Run a single agent dispatch for an issue.
 
-    Idempotency: the upstream signal fires on `IssueAssignee created=True`
-    only, and IssueAssignee has a partial-unique constraint, so duplicate
-    dispatches for the same assignment are not expected. We don't add an
-    extra dedup guard here.
+    The worker revalidates consent because queue state can outlive the UI state
+    that created it. Direct dispatch is limited to an active Atlas assignment
+    or an enabled @-mention trigger. Task-created automation runs through the
+    Workflow engine instead.
     """
     try:
         agent = Agent.objects.select_related("workspace", "bot_user").get(
@@ -136,6 +137,39 @@ def dispatch_agent_event(agent_id: str, issue_id: str, trigger_event: str) -> No
         issue = Issue.objects.select_related("project", "workspace", "state").get(pk=issue_id)
     except Issue.DoesNotExist:
         logger.warning("agent_dispatch: issue %s not found, skipping", issue_id)
+        return
+
+    if issue.workspace_id != agent.workspace_id:
+        logger.warning(
+            "agent_dispatch: workspace mismatch for agent=%s issue=%s, skipping",
+            agent_id,
+            issue_id,
+        )
+        return
+
+    triggers = agent.triggers or {}
+    if trigger_event == "assigned":
+        is_assigned = IssueAssignee.objects.filter(
+            issue_id=issue.id,
+            assignee_id=agent.bot_user_id,
+            deleted_at__isnull=True,
+        ).exists()
+        if not triggers.get("assigned", True) or not is_assigned:
+            logger.info(
+                "agent_dispatch: assignment consent no longer active for agent=%s issue=%s",
+                agent_id,
+                issue_id,
+            )
+            return
+    elif trigger_event == "mentioned":
+        if not triggers.get("mentioned", True):
+            logger.info("agent_dispatch: mention trigger disabled for agent=%s", agent_id)
+            return
+    else:
+        logger.info(
+            "agent_dispatch: direct trigger %s is not a consented Atlas invocation; skipping",
+            trigger_event,
+        )
         return
 
     run_agent_on_issue(agent, issue, trigger_event)
@@ -1811,7 +1845,7 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
         logger.warning("agent_dispatch (page): agent %s not found", agent_id)
         return
 
-    if not agent.is_enabled:
+    if not agent.is_enabled or trigger_event != "mentioned" or not (agent.triggers or {}).get("mentioned", True):
         return
 
     page_comment = (
@@ -1821,6 +1855,13 @@ def dispatch_agent_for_page_comment(agent_id: str, page_comment_id: str, trigger
     )
     if page_comment is None:
         logger.warning("agent_dispatch (page): comment %s not found", page_comment_id)
+        return
+    if page_comment.workspace_id != agent.workspace_id:
+        logger.warning(
+            "agent_dispatch (page): workspace mismatch for agent=%s comment=%s",
+            agent_id,
+            page_comment_id,
+        )
         return
 
     run = AgentRun.objects.create(

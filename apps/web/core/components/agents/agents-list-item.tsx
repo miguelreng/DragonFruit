@@ -27,15 +27,10 @@ interface IAgentsListItemProps {
   onUpdateTrigger: (id: string, key: TAgentTriggerKey, next: boolean) => Promise<void>;
 }
 
-// Owner-facing copy for each trigger. The keys match `TAgent["triggers"]`
-// (issue_created / assigned / mentioned / state_change / comment). Order is the order the
-// triggers render in.
+// Owner-facing copy for direct Atlas invocations. Task-created automation is
+// configured only through Workflows, so it must not appear as a second,
+// easy-to-miss consent surface here.
 const TRIGGER_LABELS: Array<{ key: TAgentTriggerKey; title: string; description: string }> = [
-  {
-    key: "issue_created",
-    title: "When a task is created",
-    description: "Auto-triage new tasks with a first-pass plan and next actions.",
-  },
   {
     key: "assigned",
     title: "When assigned to a task",

@@ -40,9 +40,10 @@ def _default_triggers() -> dict:
     On by default are the two *explicit* signals — being added as an
     assignee and being @-mentioned by name. Both require the human to
     intentionally invoke the agent, so auto-responding doesn't surprise
-    anyone. State changes and "every comment on a task I'm assigned to"
-    are passive/noisy and stay opt-in to avoid runaway calls in chatty
-    workspaces.
+    anyone. Task-created automation belongs exclusively to Workflows; the
+    legacy flag remains false for API compatibility. State changes and
+    "every comment on a task I'm assigned to" are passive/noisy and stay
+    opt-in to avoid runaway calls in chatty workspaces.
     """
     return {
         "issue_created": False,
@@ -558,7 +559,12 @@ def _dispatch_agent_on_assignee_added(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender="db.Issue")
 def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
-    """Trigger opted-in agents when a new task is created."""
+    """Trigger enabled workflows when a human creates a task.
+
+    A task-created event must never dispatch Atlas directly. Direct Atlas
+    consent comes from assignment or @-mention; unattended task-created work
+    is owned by the separately enable-able Workflow graph.
+    """
     if not created:
         return
 
@@ -568,7 +574,6 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
         return
 
     issue_id = instance.id
-    workspace_id = instance.workspace_id
 
     def _enqueue_dispatches():
         from .issue import Issue
@@ -581,52 +586,12 @@ def _dispatch_agent_on_issue_created(sender, instance, created, **kwargs):
             logger.exception("agent issue_created fetch failed for issue=%s", issue_id)
             return
 
-        try:
-            agents = list(
-                Agent.objects.filter(
-                    workspace_id=workspace_id,
-                    is_enabled=True,
-                    deleted_at__isnull=True,
-                )
-            )
-        except Exception:
-            # Never block issue creation if agent persistence is out of sync
-            # (e.g. migrations not applied yet).
-            logger.exception(
-                "agent bootstrap query failed for issue=%s workspace=%s",
-                issue_id,
-                workspace_id,
-            )
-            return
-
-        try:
-            from plane.bgtasks.agent_dispatch_task import dispatch_agent_event
-        except Exception:
-            logger.exception("agent dispatch task import failed for issue=%s", issue_id)
-            return
-
-        dispatched_agent_ids = set()
-        for agent in agents:
-            if not (agent.triggers or {}).get("issue_created", False):
-                continue
-            try:
-                dispatch_agent_event.delay(str(agent.id), str(issue.id), "issue_created")
-                dispatched_agent_ids.add(str(agent.id))
-            except Exception:  # noqa: BLE001
-                logger.exception(
-                    "agent dispatch enqueue failed for agent=%s issue=%s (issue_created)",
-                    agent.id,
-                    issue.id,
-                )
-
-        # Workflows (graph engine) replace AgentAutomation dispatch. The walker
-        # evaluates each graph's own condition node, so here we match only the
-        # trigger. Skip workflows whose companion agent already ran via an
-        # agent-level trigger, mirroring the old automation dedup.
+        # The workflow walker evaluates each graph's own condition node, so
+        # here we match only the trigger and enabled state.
         try:
             from plane.bgtasks.workflow_task import enqueue_workflows_for_issue
 
-            enqueue_workflows_for_issue(issue, "issue_created", skip_agent_ids=dispatched_agent_ids)
+            enqueue_workflows_for_issue(issue, "issue_created")
         except Exception:  # noqa: BLE001
             logger.exception("workflow dispatch failed for issue=%s", issue.id)
 

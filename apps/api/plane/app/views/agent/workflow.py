@@ -253,7 +253,9 @@ class WorkflowTestRunEndpoint(BaseAPIView):
         run = WorkflowRun.objects.create(workflow=workflow, trigger_event=event, issue=issue, status="pending")
         from plane.bgtasks.workflow_task import run_workflow
 
-        run_workflow.delay(str(run.id))
+        # Testing is an explicit invocation, so a draft workflow is allowed to
+        # execute. Event-driven queue entries never set this override.
+        run_workflow.delay(str(run.id), allow_disabled=True)
         return Response(
             {"queued": True, "workflow_id": str(workflow.id), "run_id": str(run.id)},
             status=status.HTTP_200_OK,

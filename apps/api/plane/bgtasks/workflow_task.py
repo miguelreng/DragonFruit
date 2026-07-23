@@ -126,8 +126,13 @@ def _filters_match_issue(filters: dict, issue) -> bool:
 
 
 @shared_task(name="plane.bgtasks.workflow_task.run_workflow")
-def run_workflow(workflow_run_id: str) -> None:
-    """Walk a workflow graph for one WorkflowRun."""
+def run_workflow(workflow_run_id: str, allow_disabled: bool = False) -> None:
+    """Walk a workflow graph for one WorkflowRun.
+
+    Event-driven runs re-check the workflow's enabled state at execution time,
+    closing the queue race where a workflow is switched off after it enqueues.
+    Draft workflows may still be run deliberately through the Test endpoint.
+    """
     from plane.db.models import Issue, WorkflowEdge, WorkflowNode, WorkflowNodeRun, WorkflowRun
 
     try:
@@ -145,6 +150,10 @@ def run_workflow(workflow_run_id: str) -> None:
 
     workflow = run.workflow
     issue = run.issue
+    if not workflow.is_enabled and not allow_disabled:
+        _finish_run(run, "cancelled", error="workflow was disabled before execution")
+        return
+
     run.status = "running"
     run.started_at = datetime.now(timezone.utc)
     run.save(update_fields=["status", "started_at", "updated_at"])
