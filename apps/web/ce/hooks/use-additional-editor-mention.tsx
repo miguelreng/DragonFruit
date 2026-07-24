@@ -16,6 +16,7 @@ import { FileText } from "@/components/icons/lucide-shim";
 import type { TSearchEntities, TSearchResponse } from "@plane/types";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useProject } from "@/hooks/store/use-project";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // local components
 import { WikipediaLogo } from "@/plane-web/components/editor/embeds/mentions/wikipedia-logo";
@@ -45,10 +46,11 @@ export type TAdditionalParseEditorContentReturnType =
   | undefined;
 
 export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArgs) => {
-  const { workspaceSlug } = useParams();
+  const { workspaceSlug, projectId } = useParams();
   const {
     issue: { getIssueById },
   } = useIssueDetail();
+  const { getProjectById } = useProject();
   const { getPageById } = usePageStore(EPageStoreType.PROJECT);
 
   // Build the extra (non-user) sections for the @-mention dropdown. Work items
@@ -69,18 +71,27 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
       }
       const pages = response?.page ?? [];
       if (pages.length > 0) {
-        const items: TMentionSuggestion[] = pages.map((page) => ({
-          icon: <FileText className="size-3.5 flex-shrink-0 text-tertiary" />,
-          id: page.id,
-          entity_identifier: page.id,
-          entity_name: "page",
-          title: page.name || "Untitled",
-        }));
+        const currentProjectId = projectId?.toString();
+        const items: TMentionSuggestion[] = pages.map((page) => {
+          // The backend serializes `projects__id` as one uuid per row even
+          // though the type declares an array — handle both shapes.
+          const pageProjectId = Array.isArray(page.projects__id) ? page.projects__id[0] : page.projects__id;
+          const isOtherProject = !!pageProjectId && !!currentProjectId && pageProjectId !== currentProjectId;
+          return {
+            icon: <FileText className="size-3.5 flex-shrink-0 text-tertiary" />,
+            id: page.id,
+            entity_identifier: page.id,
+            entity_name: "page",
+            title: page.name || "Untitled",
+            // Disambiguate docs coming from other projects.
+            subTitle: isOtherProject ? getProjectById(pageProjectId)?.name : undefined,
+          };
+        });
         sections.push({ key: "pages", title: "Docs", items });
       }
       return { sections };
     },
-    []
+    [getProjectById, projectId]
   );
 
   // Resolve a non-user mention to display text + a link, used when exporting the

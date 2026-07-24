@@ -502,14 +502,26 @@ class SearchEndpoint(BaseAPIView):
                         for field in fields:
                             q |= Q(**{f"{field}__icontains": query})
 
-                    pages = (
+                    # Match the canonical page visibility rule (see
+                    # page/base.py): a user can reach a page if they own
+                    # it or it is public. The old `access=0` filter hid
+                    # the user's own private docs from the @-picker.
+                    access_q = Q(owned_by=self.request.user) | Q(access=0)
+                    page_values = (
+                        "name",
+                        "id",
+                        "logo_props",
+                        "page_type",
+                        "projects__id",
+                        "workspace__slug",
+                    )
+                    # Docs are mentionable across projects: current-project
+                    # docs rank first, then docs from the user's other
+                    # projects fill the remaining slots.
+                    pages = list(
                         Page.objects.filter(
                             q,
-                            # Match the canonical page visibility rule (see
-                            # page/base.py): a user can reach a page if they own
-                            # it or it is public. The old `access=0` filter hid
-                            # the user's own private docs from the @-picker.
-                            Q(owned_by=self.request.user) | Q(access=0),
+                            access_q,
                             projects__project_projectmember__member=self.request.user,
                             projects__project_projectmember__is_active=True,
                             projects__id=project_id,
@@ -517,16 +529,25 @@ class SearchEndpoint(BaseAPIView):
                         )
                         .order_by("-created_at")
                         .distinct()
-                        .values(
-                            "name",
-                            "id",
-                            "logo_props",
-                            "page_type",
-                            "projects__id",
-                            "workspace__slug",
-                        )[:count]
+                        .values(*page_values)[:count]
                     )
-                    response_data["page"] = list(pages)
+                    if len(pages) < count:
+                        other_pages = (
+                            Page.objects.filter(
+                                q,
+                                access_q,
+                                projects__project_projectmember__member=self.request.user,
+                                projects__project_projectmember__is_active=True,
+                                projects__archived_at__isnull=True,
+                                workspace__slug=slug,
+                            )
+                            .exclude(projects__id=project_id)
+                            .order_by("-created_at")
+                            .distinct()
+                            .values(*page_values)[: count - len(pages)]
+                        )
+                        pages += list(other_pages)
+                    response_data["page"] = pages
             return Response(response_data, status=status.HTTP_200_OK)
 
         else:

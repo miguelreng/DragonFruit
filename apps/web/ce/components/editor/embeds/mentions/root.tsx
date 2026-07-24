@@ -13,12 +13,17 @@ import { fetchWikipediaSummary } from "@plane/editor";
 import type { TCallbackMentionComponentProps, TWikipediaSummary } from "@plane/editor";
 import { Logo } from "@plane/propel/emoji-icon-picker";
 import { Popover } from "@plane/propel/popover";
+import type { TPage } from "@plane/types";
 import { cn } from "@plane/utils";
 // components
 import { PageIcon } from "@/components/icons/propel-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
+// services
+import { ProjectPageService } from "@/services/page";
+
+const projectPageService = new ProjectPageService();
 
 export type TEditorMentionComponentProps = TCallbackMentionComponentProps;
 
@@ -75,12 +80,28 @@ const EditorWorkItemMention = observer(function EditorWorkItemMention(props: { i
   );
 });
 
+// Workspace docs list, shared by every page mention on screen so resolving
+// N mentions costs one request per workspace instead of one per mention.
+const workspacePagesCache = new Map<string, Promise<TPage[]>>();
+const fetchWorkspacePagesOnce = (workspaceSlug: string): Promise<TPage[]> => {
+  let promise = workspacePagesCache.get(workspaceSlug);
+  if (!promise) {
+    promise = projectPageService.fetchWorkspacePages(workspaceSlug);
+    workspacePagesCache.set(workspaceSlug, promise);
+    // Drop failed fetches so a transient error doesn't poison the cache.
+    promise.catch(() => workspacePagesCache.delete(workspaceSlug));
+  }
+  return promise;
+};
+
 /**
  * EditorPageMention — renders an inline link to another doc/page.
  *
- * The @-search is project-scoped, so a mentioned page belongs to the doc's
- * current project; we resolve its title from the project page store (lazily
- * fetching it if it isn't cached yet, e.g. after a reload) and link to it.
+ * The @-search is workspace-wide for docs, so the mentioned page can live in
+ * any project the user is a member of. We resolve its title from the project
+ * page store when cached, otherwise from the workspace docs list (shared
+ * cache), falling back to a current-project detail fetch for docs created
+ * after the list was cached.
  */
 const EditorPageMention = observer(function EditorPageMention(props: { pageId: string }) {
   const { pageId } = props;
@@ -89,13 +110,32 @@ const EditorPageMention = observer(function EditorPageMention(props: { pageId: s
   const pid = projectId?.toString();
   // store hooks
   const { getPageById, fetchPageDetails } = usePageStore(EPageStoreType.PROJECT);
+  // resolved from the workspace docs list when the store doesn't have the page
+  const [resolvedPage, setResolvedPage] = useState<TPage | undefined>(undefined);
   // derived values
-  const page = getPageById(pageId);
+  const page = getPageById(pageId) ?? resolvedPage;
 
-  // Resolve the page if it isn't already in the store (e.g. after reload).
+  // Resolve the page if it isn't already in the store (e.g. after reload or
+  // when it belongs to another project).
   useEffect(() => {
-    if (!ws || !pid || !pageId || page) return;
-    void fetchPageDetails(ws, pid, pageId, { trackVisit: false }).catch(() => {});
+    if (!ws || !pageId || page) return;
+    let cancelled = false;
+    void fetchWorkspacePagesOnce(ws)
+      .then((pages) => {
+        const match = pages.find((p) => p.id === pageId);
+        if (match) {
+          if (!cancelled) setResolvedPage(match);
+          return undefined;
+        }
+        // Not in the (possibly stale) list — try the current project directly,
+        // which covers same-project docs created after the list was cached.
+        if (!pid) return undefined;
+        return fetchPageDetails(ws, pid, pageId, { trackVisit: false });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [ws, pid, pageId, page, fetchPageDetails]);
 
   const label = page?.name || "Untitled";
