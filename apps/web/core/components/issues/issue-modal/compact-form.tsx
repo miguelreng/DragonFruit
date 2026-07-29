@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -14,7 +14,7 @@ import { Button } from "@plane/propel/button";
 import { CloseIcon } from "@/components/icons/propel-shim";
 import type { TIssue } from "@plane/types";
 import { TextArea } from "@plane/ui";
-import { renderFormattedPayloadDate } from "@plane/utils";
+import { getUpdateFormDataForReset, renderFormattedPayloadDate } from "@plane/utils";
 import { DateDropdown } from "@/components/dropdowns/date";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 import { PriorityDropdown } from "@/components/dropdowns/priority";
@@ -22,6 +22,8 @@ import { ProjectDropdown } from "@/components/dropdowns/project/dropdown";
 import { StateDropdown } from "@/components/dropdowns/state/dropdown";
 import { IssueLabelSelect } from "@/components/issues/select";
 import { useIssueModal } from "@/hooks/context/use-issue-modal";
+import { useProjectState } from "@/hooks/store/use-project-state";
+import { resolveCompactIssueStateId } from "./compact-form.utils";
 
 export type CompactIssueFormProps = {
   data?: Partial<TIssue>;
@@ -36,8 +38,10 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
   const { t } = useTranslation();
   const { workspaceSlug } = useParams();
   const { allowedProjectIds } = useIssueModal();
+  const { getProjectDefaultStateId, getStateById } = useProjectState();
 
   const titleRef = useRef<HTMLInputElement | null>(null);
+  const previousProjectIdRef = useRef<string | null | undefined>(defaultProjectId);
   const [showDescription, setShowDescription] = useState(false);
 
   const methods = useForm<TIssue>({
@@ -46,18 +50,44 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
   });
   const {
     control,
+    getValues,
     handleSubmit,
+    reset,
+    setValue,
     watch,
     formState: { isSubmitting, errors },
   } = methods;
 
   const projectId = watch("project_id");
+  const defaultStateId = getProjectDefaultStateId(projectId);
+
+  useEffect(() => {
+    const previousProjectId = previousProjectIdRef.current;
+    previousProjectIdRef.current = projectId;
+
+    if (!projectId || previousProjectId === projectId) return;
+    reset(getUpdateFormDataForReset(projectId, getValues()));
+  }, [getValues, projectId, reset]);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    const selectedState = getStateById(getValues("state_id"));
+    const stateId = resolveCompactIssueStateId(projectId, selectedState, defaultStateId);
+    if (getValues("state_id") !== (stateId ?? "")) setValue("state_id", stateId ?? "", { shouldValidate: true });
+  }, [defaultStateId, getStateById, getValues, projectId, setValue]);
 
   const onValid = async (formData: TIssue) => {
     const descriptionText = formData.description_html ?? "";
+    const stateId = resolveCompactIssueStateId(
+      formData.project_id,
+      getStateById(formData.state_id),
+      getProjectDefaultStateId(formData.project_id)
+    );
     const payload: Partial<TIssue> = {
       ...formData,
       description_html: descriptionText.trim() ? `<p>${descriptionText.replace(/\n/g, "<br/>")}</p>` : "<p></p>",
+      state_id: stateId,
     };
     await onSubmit(payload);
   };
@@ -111,6 +141,7 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
                 value={value ?? ""}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={t("task_name")}
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus the primary field when the create dialog opens
                 autoFocus
                 className="text-base w-full border-0 bg-transparent px-0 font-medium text-primary placeholder:text-placeholder focus:outline-none"
               />
@@ -130,6 +161,7 @@ export const CompactIssueForm = observer(function CompactIssueForm(props: Compac
                   onChange={onChange}
                   placeholder={t("add_description")}
                   className="!h-20 w-full text-13"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- focus the description after the user opens it
                   autoFocus
                 />
               )}
