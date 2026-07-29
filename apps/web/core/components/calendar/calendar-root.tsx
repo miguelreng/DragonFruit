@@ -57,6 +57,7 @@ import {
   type TGoogleCalendar,
 } from "@/services/calendar.service";
 import { IssueService } from "@/services/issue/issue.service";
+import { getScheduleXPayloadDate } from "./calendar-date.utils";
 
 const calendarService = new CalendarService();
 const issueService = new IssueService();
@@ -804,9 +805,14 @@ export function CalendarRoot() {
         calendars: calendarsConfig,
         plugins: [eventsService, calendarControls, currentTimePlugin, scrollController],
         callbacks: {
-          onClickDate: (date) => openQuickAddRef.current(typeof date === "string" ? date.slice(0, 10) : ""),
-          onClickDateTime: (dateTime) =>
-            openQuickAddRef.current(typeof dateTime === "string" ? dateTime.slice(0, 10) : ""),
+          onClickDate: (date) => {
+            const payloadDate = getScheduleXPayloadDate(date);
+            if (payloadDate) openQuickAddRef.current(payloadDate);
+          },
+          onClickDateTime: (dateTime) => {
+            const payloadDate = getScheduleXPayloadDate(dateTime);
+            if (payloadDate) openQuickAddRef.current(payloadDate);
+          },
           onEventClick: (event) => {
             if (Date.now() < suppressEventClickUntilRef.current) return;
             openCalendarItemRef.current((event as unknown as { _dragonfruit?: TDragonfruitEventMeta })._dragonfruit);
