@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 import pytest
+from io import BytesIO
 from unittest.mock import patch
 from django.utils import timezone
 from rest_framework import status
@@ -599,6 +600,41 @@ class TestPageAssetAPI:
             disposition="inline",
             filename="inline.pdf",
         )
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.asset.pdf.S3Storage")
+    def test_project_pdf_content_streams_through_authenticated_api(
+        self, mock_s3_storage, session_client, workspace, create_user
+    ):
+        project = Project.objects.create(name="Docs", identifier="DOC", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20)
+        page = Page.objects.create(name="PDF", workspace=workspace, owned_by=create_user, page_type=Page.PAGE_TYPE_PDF)
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+        asset = FileAsset.objects.create(
+            attributes={"name": "inline.pdf", "type": "application/pdf", "size": 8},
+            asset=f"{workspace.id}/inline.pdf",
+            size=8,
+            workspace=workspace,
+            project=project,
+            page=page,
+            entity_type=FileAsset.EntityTypeContext.PAGE_DESCRIPTION,
+            is_uploaded=True,
+            created_by=create_user,
+        )
+        body = BytesIO(b"%PDF-1.7")
+        body.iter_chunks = lambda chunk_size: iter([body.read(chunk_size)])
+        mock_s3_storage.return_value.s3_client.get_object.return_value = {
+            "Body": body,
+            "ContentLength": 8,
+        }
+
+        response = session_client.get(
+            f"/api/assets/v2/workspaces/{workspace.slug}/projects/{project.id}/{asset.id}/pdf-content/"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["Content-Type"] == "application/pdf"
+        assert b"".join(response.streaming_content) == b"%PDF-1.7"
 
 
 @pytest.mark.contract

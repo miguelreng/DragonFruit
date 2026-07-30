@@ -20,6 +20,7 @@ from plane.app.views import (
     DuplicateAssetEndpoint,
     WorkspaceAssetDownloadEndpoint,
     ProjectAssetDownloadEndpoint,
+    ProjectPdfAssetContentEndpoint,
 )
 
 
@@ -85,6 +86,11 @@ urlpatterns = [
         "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:pk>/",
         ProjectAssetEndpoint.as_view(),
         name="bulk-asset-update",
+    ),
+    path(
+        "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:pk>/pdf-content/",
+        ProjectPdfAssetContentEndpoint.as_view(),
+        name="project-pdf-asset-content",
     ),
     path(
         "assets/v2/workspaces/<str:slug>/projects/<uuid:project_id>/<uuid:entity_id>/bulk/",

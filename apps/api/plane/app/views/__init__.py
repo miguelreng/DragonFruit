@@ -129,6 +129,7 @@ from .asset.v2 import (
     WorkspaceAssetDownloadEndpoint,
     ProjectAssetDownloadEndpoint,
 )
+from .asset.pdf import ProjectPdfAssetContentEndpoint
 from .issue.base import (
     IssueListEndpoint,
     IssueViewSet,

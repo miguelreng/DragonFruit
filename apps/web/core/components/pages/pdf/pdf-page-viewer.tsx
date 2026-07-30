@@ -23,7 +23,7 @@ import {
 import { PageEditorHeaderRoot } from "@/components/pages/editor/header";
 import { PageEditorTitle } from "@/components/pages/editor/title";
 import type { TPageInstance } from "@/store/pages/base-page";
-import { cn, getEditorAssetInlineSrc } from "@plane/utils";
+import { cn, getEditorAssetInlineSrc, getEditorAssetPdfContentSrc } from "@plane/utils";
 import { clampPdfScale, getPdfFitWidthScale, PDF_MAX_SCALE, PDF_MIN_SCALE, PDF_SCALE_STEP } from "./pdf-viewer-utils";
 
 type Props = {
@@ -84,6 +84,10 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
     pdf && assetProjectId
       ? getEditorAssetInlineSrc({ assetId: pdf.assetId, projectId: assetProjectId, workspaceSlug })
       : undefined;
+  const contentSrc =
+    pdf && assetProjectId
+      ? getEditorAssetPdfContentSrc({ assetId: pdf.assetId, projectId: assetProjectId, workspaceSlug })
+      : undefined;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -96,7 +100,7 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
   const [renderedScale, setRenderedScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [loadProgress, setLoadProgress] = useState<number | null>(null);
-  const [isDocumentLoading, setIsDocumentLoading] = useState(Boolean(inlineSrc));
+  const [isDocumentLoading, setIsDocumentLoading] = useState(Boolean(contentSrc));
   const [isPageRendering, setIsPageRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -114,7 +118,7 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
     const resizeObserver = new ResizeObserver(updateWidth);
     resizeObserver.observe(viewer);
     return () => resizeObserver.disconnect();
-  }, [inlineSrc]);
+  }, [contentSrc]);
 
   useEffect(() => {
     let loadingTask: PDFDocumentLoadingTask | undefined;
@@ -125,15 +129,20 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
     setPageNumber(1);
     setError(null);
     setLoadProgress(null);
-    setIsDocumentLoading(Boolean(inlineSrc));
+    setIsDocumentLoading(Boolean(contentSrc));
 
-    if (!inlineSrc) return;
+    if (!contentSrc) return;
 
     const loadDocument = async () => {
       try {
         const pdfjs = await import("pdfjs-dist");
         pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-        loadingTask = pdfjs.getDocument({ url: inlineSrc, withCredentials: true });
+        loadingTask = pdfjs.getDocument({
+          url: contentSrc,
+          withCredentials: true,
+          disableRange: true,
+          disableStream: true,
+        });
         loadingTask.onProgress = ({ loaded, total }: OnProgressParameters) => {
           if (!cancelled && total > 0) setLoadProgress(Math.round((loaded / total) * 100));
         };
@@ -159,7 +168,7 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
       cancelled = true;
       void loadingTask?.destroy();
     };
-  }, [inlineSrc, reloadKey]);
+  }, [contentSrc, reloadKey]);
 
   useEffect(() => {
     let renderTask: RenderTask | undefined;
@@ -233,7 +242,7 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
     setReloadKey((current) => current + 1);
   };
 
-  const unavailable = !inlineSrc;
+  const unavailable = !contentSrc;
   const showEmptyState = unavailable || error;
 
   return (

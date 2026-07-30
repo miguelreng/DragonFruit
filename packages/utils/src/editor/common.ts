@@ -58,6 +58,15 @@ export const getEditorAssetInlineSrc = (args: TEditorSrcArgs): string | undefine
   return url;
 };
 
+/**
+ * @description generate an authenticated PDF byte-stream source using assetId
+ */
+export const getEditorAssetPdfContentSrc = (args: TEditorSrcArgs): string | undefined => {
+  const { assetId, projectId, workspaceSlug } = args;
+  if (!projectId) return undefined;
+  return getFileURL(`/api/assets/v2/workspaces/${workspaceSlug}/projects/${projectId}/${assetId}/pdf-content/`);
+};
+
 export const getTextContent = (jsx: React.ReactNode | null | undefined): string => {
   if (!jsx) return "";
 
