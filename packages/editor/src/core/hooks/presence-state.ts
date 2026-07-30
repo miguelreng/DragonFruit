@@ -16,7 +16,7 @@ export function isPresenceEditingActive(updatedAt: number | undefined, now = Dat
   );
 }
 
-/** Seed the local user before awareness finishes connecting so they always appear when alone. */
+/** Seed the local user so awareness can deduplicate this browser's sessions. */
 export function createCurrentPresenceParticipant(user: TCurrentPresenceIdentity) {
   return {
     avatarUrl: user.avatarUrl,
@@ -27,4 +27,9 @@ export function createCurrentPresenceParticipant(user: TCurrentPresenceIdentity)
     isEditing: false,
     name: user.name,
   };
+}
+
+/** The collaborator avatar stack represents other people, never the viewer. */
+export function getRemotePresenceParticipants<T extends { isCurrentUser: boolean }>(participants: T[]): T[] {
+  return participants.filter((participant) => !participant.isCurrentUser);
 }

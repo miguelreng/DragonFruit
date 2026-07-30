@@ -11,7 +11,7 @@ import { searchWikipedia } from "@plane/editor";
 import type { TMentionSection, TMentionSuggestion } from "@plane/editor";
 // plane imports
 import { WorkItemsIcon } from "@/components/icons/propel-shim";
-import { FileText } from "@/components/icons/lucide-shim";
+import { Calendar, FileText, Whiteboard } from "@/components/icons/lucide-shim";
 // plane types
 import type { TSearchEntities, TSearchResponse } from "@plane/types";
 // hooks
@@ -20,12 +20,14 @@ import { useProject } from "@/hooks/store/use-project";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // local components
 import { WikipediaLogo } from "@/plane-web/components/editor/embeds/mentions/wikipedia-logo";
+import { getPageMentionKind, shouldSuggestProjectCalendar } from "./editor-mention-helpers";
 
 export type TUseAdditionalEditorMentionArgs = {
   enableAdvancedMentions: boolean;
 };
 
 export type TAdditionalEditorMentionHandlerArgs = {
+  query: string;
   response: TSearchResponse;
 };
 
@@ -56,7 +58,7 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
   // Build the extra (non-user) sections for the @-mention dropdown. Work items
   // come back under `issue` from the entity search; other docs under `page`.
   const updateAdditionalSections = useCallback(
-    ({ response }: TAdditionalEditorMentionHandlerArgs): TAdditionalEditorMentionHandlerReturnType => {
+    ({ query, response }: TAdditionalEditorMentionHandlerArgs): TAdditionalEditorMentionHandlerReturnType => {
       const sections: TMentionSection[] = [];
       const issues = response?.issue ?? [];
       if (issues.length > 0) {
@@ -72,23 +74,56 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
       const pages = response?.page ?? [];
       if (pages.length > 0) {
         const currentProjectId = projectId?.toString();
-        const items: TMentionSuggestion[] = pages.flatMap((page) => {
-          if (!page.id) return [];
+        const pageItems: TMentionSuggestion[] = [];
+        const whiteboardItems: TMentionSuggestion[] = [];
+        pages.forEach((page) => {
+          if (!page.id) return;
           // The backend serializes `projects__id` as one uuid per row even
           // though the type declares an array — handle both shapes.
           const pageProjectId = Array.isArray(page.projects__id) ? page.projects__id[0] : page.projects__id;
           const isOtherProject = !!pageProjectId && !!currentProjectId && pageProjectId !== currentProjectId;
-          return {
-            icon: <FileText className="size-3.5 flex-shrink-0 text-tertiary" />,
+          const mentionKind = getPageMentionKind(page.page_type);
+          const item: TMentionSuggestion = {
+            icon:
+              mentionKind === "whiteboard" ? (
+                <Whiteboard className="size-3.5 flex-shrink-0 text-tertiary" />
+              ) : (
+                <FileText className="size-3.5 flex-shrink-0 text-tertiary" />
+              ),
             id: page.id,
             entity_identifier: page.id,
-            entity_name: "page",
+            entity_name: mentionKind,
             title: page.name || "Untitled",
             // Disambiguate docs coming from other projects.
             subTitle: isOtherProject ? getProjectById(pageProjectId)?.name : undefined,
           };
+          if (mentionKind === "whiteboard") {
+            whiteboardItems.push(item);
+          } else {
+            pageItems.push(item);
+          }
         });
-        if (items.length > 0) sections.push({ key: "pages", title: "Docs", items });
+        if (pageItems.length > 0) sections.push({ key: "pages", title: "Docs", items: pageItems });
+        if (whiteboardItems.length > 0)
+          sections.push({ key: "whiteboards", title: "Whiteboards", items: whiteboardItems });
+      }
+
+      const currentProjectId = projectId?.toString();
+      const currentProject = currentProjectId ? getProjectById(currentProjectId) : undefined;
+      if (currentProjectId && shouldSuggestProjectCalendar(query, currentProject?.name)) {
+        sections.push({
+          key: "project-links",
+          title: "Project links",
+          items: [
+            {
+              icon: <Calendar className="size-3.5 flex-shrink-0 text-tertiary" />,
+              id: `calendar-${currentProjectId}`,
+              entity_identifier: currentProjectId,
+              entity_name: "calendar",
+              title: currentProject?.name ? `${currentProject.name} calendar` : "Project calendar",
+            },
+          ],
+        });
       }
       return { sections };
     },
@@ -108,6 +143,22 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
           redirectionPath: `${workspaceSlug}/projects/${pageProjectId}/pages/${id}`,
         };
       }
+      if (entityType === "whiteboard") {
+        const page = getPageById(id);
+        const pageProjectId = page?.project_ids?.[0];
+        if (!page || !pageProjectId) return undefined;
+        return {
+          textContent: page.name || "Untitled whiteboard",
+          redirectionPath: `${workspaceSlug}/projects/${pageProjectId}/pages/${id}`,
+        };
+      }
+      if (entityType === "calendar") {
+        const project = getProjectById(id);
+        return {
+          textContent: project?.name ? `${project.name} calendar` : "Project calendar",
+          redirectionPath: `${workspaceSlug}/projects/${id}/calendar`,
+        };
+      }
       if (entityType !== "issue") return undefined;
       const issue = getIssueById(id);
       if (!issue?.project_id) return undefined;
@@ -116,7 +167,7 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
         redirectionPath: `${workspaceSlug}/projects/${issue.project_id}/issues/${id}`,
       };
     },
-    [getIssueById, getPageById, workspaceSlug]
+    [getIssueById, getPageById, getProjectById, workspaceSlug]
   );
 
   const editorMentionTypes: TSearchEntities[] = useMemo(() => ["user_mention", "issue", "page"], []);

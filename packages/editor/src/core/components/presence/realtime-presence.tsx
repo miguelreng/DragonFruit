@@ -2,8 +2,10 @@ import { Avatar } from "@plane/ui";
 import { cn } from "@plane/utils";
 import type { HocuspocusProvider } from "@hocuspocus/provider";
 import type { RefObject } from "react";
+import { createPortal } from "react-dom";
 
 import { useRealtimePresence } from "@/hooks/use-realtime-presence";
+import { getRemotePresenceParticipants } from "@/hooks/presence-state";
 import type {
   TPresenceMember,
   TPresenceParticipant,
@@ -13,6 +15,7 @@ import type {
 import type { TUserDetails } from "@/types";
 
 type Props = {
+  avatarPortalId?: string;
   className?: string;
   containerRef: RefObject<HTMLElement | null>;
   provider: HocuspocusProvider;
@@ -25,33 +28,48 @@ type Props = {
 
 export function RealtimePresence(props: Props) {
   const participants = useRealtimePresence(props);
-  return <RealtimePresenceLayer participants={participants} className={props.className} />;
+  return (
+    <RealtimePresenceLayer
+      avatarPortalId={props.avatarPortalId}
+      participants={participants}
+      className={props.className}
+    />
+  );
 }
 
 export function RealtimePresenceLayer({
+  avatarPortalId,
   className,
   avatarsClassName,
   participants,
 }: {
+  avatarPortalId?: string;
   avatarsClassName?: string;
   className?: string;
   participants: TPresenceParticipant[];
 }) {
-  const visible = participants.slice(0, 4);
-  const overflow = participants.length - visible.length;
-
-  return (
-    <div className={cn("pointer-events-none absolute inset-0 z-30 overflow-hidden", className)}>
+  const remoteParticipants = getRemotePresenceParticipants(participants);
+  const visible = remoteParticipants.slice(0, 4);
+  const overflow = remoteParticipants.length - visible.length;
+  const avatarPortalTarget =
+    avatarPortalId && typeof document !== "undefined" ? document.getElementById(avatarPortalId) : null;
+  const avatarStack =
+    remoteParticipants.length > 0 ? (
       <div
-        className={cn("absolute top-3 right-3 z-10 flex items-center -space-x-2", avatarsClassName)}
-        aria-label={`${participants.length} collaborator${participants.length === 1 ? "" : "s"} online`}
+        className={cn(
+          avatarPortalTarget
+            ? "flex items-center -space-x-2"
+            : "absolute top-3 right-3 z-10 flex items-center -space-x-2",
+          avatarsClassName
+        )}
+        aria-label={`${remoteParticipants.length} collaborator${remoteParticipants.length === 1 ? "" : "s"} online`}
       >
         {visible.map((participant) => (
           <div
             key={participant.id}
             className="shadow-xs relative rounded-full border-2 bg-surface-1 p-px"
             style={{ borderColor: participant.color }}
-            title={`${participant.name}${participant.isCurrentUser ? " (you)" : ""}${participant.isEditing ? " · actively editing" : ""}`}
+            title={`${participant.name}${participant.isEditing ? " · actively editing" : ""}`}
           >
             {participant.isEditing && (
               <span
@@ -76,7 +94,6 @@ export function RealtimePresenceLayer({
             )}
             <span className="sr-only">
               {participant.name}
-              {participant.isCurrentUser ? " (you)" : ""}
               {participant.isEditing ? ", actively editing" : ""}
             </span>
           </div>
@@ -87,6 +104,11 @@ export function RealtimePresenceLayer({
           </div>
         ) : null}
       </div>
+    ) : null;
+
+  return (
+    <div className={cn("pointer-events-none absolute inset-0 z-30 overflow-hidden", className)}>
+      {avatarPortalTarget && avatarStack ? createPortal(avatarStack, avatarPortalTarget) : avatarStack}
 
       {participants
         .filter((participant) => !participant.isCurrentUser && participant.pointer)

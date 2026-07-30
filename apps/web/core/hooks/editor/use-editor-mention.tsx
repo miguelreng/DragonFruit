@@ -106,6 +106,7 @@ export const useEditorMention = (args: TArgs) => {
           });
         }
         const { sections } = updateAdditionalSections({
+          query,
           response: res,
         });
         // Append Wikipedia results (client-side only, never sent to the API).

@@ -156,6 +156,11 @@ const BriefPageActions = observer(function BriefPageActions(props: { page: TPage
           </span>
         </div>
         <div className="flex items-center gap-1.5">
+          <div
+            id={`page-presence-avatars-${page.id}`}
+            className="mr-0.5 flex min-h-7 items-center"
+            aria-label="Online collaborators"
+          />
           {/* The Brief renders PageRoot chromeless (no PageHeaderActions), so mount
             the editor guide here — styled like the other floating controls. */}
           <EditorCapabilitiesGuide buttonClassName="size-7 border border-subtle bg-surface-1" />

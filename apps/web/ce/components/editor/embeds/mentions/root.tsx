@@ -16,9 +16,11 @@ import { Popover } from "@plane/propel/popover";
 import type { TPage } from "@plane/types";
 import { cn } from "@plane/utils";
 // components
+import { Calendar, Whiteboard } from "@/components/icons/lucide-shim";
 import { PageIcon } from "@/components/icons/propel-shim";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useProject } from "@/hooks/store/use-project";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
 // services
 import { ProjectPageService } from "@/services/page";
@@ -34,6 +36,12 @@ export function EditorAdditionalMentionsRoot(props: TEditorMentionComponentProps
   }
   if (entity_name === "page" && entity_identifier) {
     return <EditorPageMention pageId={entity_identifier} />;
+  }
+  if (entity_name === "whiteboard" && entity_identifier) {
+    return <EditorPageMention pageId={entity_identifier} forceWhiteboard />;
+  }
+  if (entity_name === "calendar" && entity_identifier) {
+    return <EditorCalendarMention projectId={entity_identifier} />;
   }
   if (entity_name === "wiki" && entity_identifier) {
     return <EditorWikiMention articleUrl={entity_identifier} />;
@@ -103,8 +111,8 @@ const fetchWorkspacePagesOnce = (workspaceSlug: string): Promise<TPage[]> => {
  * cache), falling back to a current-project detail fetch for docs created
  * after the list was cached.
  */
-const EditorPageMention = observer(function EditorPageMention(props: { pageId: string }) {
-  const { pageId } = props;
+const EditorPageMention = observer(function EditorPageMention(props: { forceWhiteboard?: boolean; pageId: string }) {
+  const { forceWhiteboard = false, pageId } = props;
   const { workspaceSlug, projectId } = useParams();
   const ws = workspaceSlug?.toString();
   const pid = projectId?.toString();
@@ -141,15 +149,36 @@ const EditorPageMention = observer(function EditorPageMention(props: { pageId: s
   const label = page?.name || "Untitled";
   const redirectProjectId = page?.project_ids?.[0] ?? pid;
   const href = ws && redirectProjectId ? `/${ws}/projects/${redirectProjectId}/pages/${pageId}` : "#";
+  const isWhiteboard = forceWhiteboard || page?.page_type === "whiteboard";
 
   return (
     <Link to={href} className={cn(pageLinkClassName)} title={page?.name ?? undefined}>
       <span className="inline-flex size-3.5 flex-shrink-0 items-center justify-center align-text-bottom">
-        {page?.logo_props?.in_use ? (
+        {isWhiteboard ? (
+          <Whiteboard className="size-3.5" />
+        ) : page?.logo_props?.in_use ? (
           <Logo logo={page.logo_props} size={14} type="lucide" />
         ) : (
           <PageIcon className="size-3.5" />
         )}
+      </span>
+      {label}
+    </Link>
+  );
+});
+
+const EditorCalendarMention = observer(function EditorCalendarMention(props: { projectId: string }) {
+  const { projectId } = props;
+  const { workspaceSlug } = useParams();
+  const { getProjectById } = useProject();
+  const project = getProjectById(projectId);
+  const label = project?.name ? `${project.name} calendar` : "Project calendar";
+  const href = workspaceSlug ? `/${workspaceSlug}/projects/${projectId}/calendar` : "#";
+
+  return (
+    <Link to={href} className={cn(pageLinkClassName)} title={label}>
+      <span className="inline-flex size-3.5 flex-shrink-0 items-center justify-center align-text-bottom">
+        <Calendar className="size-3.5" />
       </span>
       {label}
     </Link>

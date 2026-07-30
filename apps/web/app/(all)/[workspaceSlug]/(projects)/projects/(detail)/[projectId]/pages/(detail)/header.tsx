@@ -106,6 +106,11 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
         <PageHeaderMetadata page={page} />
       </Header.LeftItem>
       <Header.RightItem className="shrink-0 items-center">
+        <div
+          id={`page-presence-avatars-${page.id}`}
+          className="mr-1 flex min-h-7 items-center"
+          aria-label="Online collaborators"
+        />
         <PageDetailsHeaderExtraActions page={page} storeType={storeType} />
         <PageHeaderActions page={page} storeType={storeType} />
       </Header.RightItem>

@@ -53,6 +53,7 @@ function CollaborativeDocumentEditorInner(props: ICollaborativeDocumentEditorPro
     tabIndex,
     user,
     resolvePresenceUser,
+    presenceAvatarPortalId,
     extendedDocumentEditorProps,
     titleRef,
     updatePageProperties,
@@ -140,6 +141,7 @@ function CollaborativeDocumentEditorInner(props: ICollaborativeDocumentEditorPro
           state={state}
         />
         <RealtimePresence
+          avatarPortalId={presenceAvatarPortalId}
           containerRef={presenceContainerRef}
           provider={provider}
           resolveUser={resolvePresenceUser}

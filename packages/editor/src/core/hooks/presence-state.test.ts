@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   PRESENCE_EDITING_STALE_AFTER,
   createCurrentPresenceParticipant,
+  getRemotePresenceParticipants,
   isPresenceEditingActive,
 } from "./presence-state";
 
 describe("createCurrentPresenceParticipant", () => {
-  it("keeps the current user visible with their profile picture when they are alone", () => {
+  it("seeds the current user identity before awareness connects", () => {
     expect(
       createCurrentPresenceParticipant({
         avatarUrl: "https://example.com/me.png",
@@ -23,6 +24,18 @@ describe("createCurrentPresenceParticipant", () => {
       isEditing: false,
       name: "Miguel",
     });
+  });
+});
+
+describe("getRemotePresenceParticipants", () => {
+  it("hides the viewer from collaborator avatars while retaining everyone else", () => {
+    const participants = [
+      { id: "me", isCurrentUser: true },
+      { id: "other-person", isCurrentUser: false },
+    ];
+
+    expect(getRemotePresenceParticipants(participants)).toEqual([{ id: "other-person", isCurrentUser: false }]);
+    expect(getRemotePresenceParticipants(participants.slice(0, 1))).toEqual([]);
   });
 });
 

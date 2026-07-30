@@ -219,6 +219,7 @@ export type ICollaborativeDocumentEditorProps = Omit<IEditorProps, "initialValue
   serverHandler?: TServerHandler;
   user: TUserDetails;
   resolvePresenceUser?: (userId: string) => { avatarUrl?: string; id: string; name: string } | null | undefined;
+  presenceAvatarPortalId?: string;
   extendedDocumentEditorProps?: ICollaborativeDocumentEditorPropsExtended;
   updatePageProperties?: <T extends keyof EventToPayloadMap>(
     pageIds: string | string[],

@@ -611,6 +611,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             serverHandler={serverHandler}
             user={userConfig}
             resolvePresenceUser={resolvePresenceUser}
+            presenceAvatarPortalId={`page-presence-avatars-${pageId}`}
             disabledExtensions={documentEditorExtensions.disabled}
             flaggedExtensions={documentEditorExtensions.flagged}
             aiHandler={{
