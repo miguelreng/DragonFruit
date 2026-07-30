@@ -64,15 +64,6 @@ export const getEditorAssetInlineSrc = (args: TEditorSrcArgs): string | undefine
 export const getEditorAssetPdfContentSrc = (args: TEditorSrcArgs): string | undefined => {
   const { assetId, projectId, workspaceSlug } = args;
   if (!projectId) return undefined;
-  const hostname = typeof window === "undefined" ? "" : window.location.hostname;
-  if (hostname === "app.dragonfruit.sh" || hostname.endsWith(".vercel.app")) {
-    const params = new URLSearchParams({
-      asset: assetId,
-      project: projectId,
-      workspace: workspaceSlug,
-    });
-    return `/api/file-stream?${params.toString()}`;
-  }
   return getFileURL(`/api/assets/v2/workspaces/${workspaceSlug}/projects/${projectId}/${assetId}/pdf-content/`);
 };
 
