@@ -1029,8 +1029,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
             />
           ) : (
             <EmptyStateDetailed
-              assetKey={hasFilters ? "search" : undefined}
-              asset={hasFilters ? undefined : <EmptyStateIcon name={isWhiteboardSurface ? "whiteboards" : "docs"} />}
+              asset={<EmptyStateIcon name={hasFilters ? "search" : isWhiteboardSurface ? "whiteboards" : "docs"} />}
               title={
                 hasFilters
                   ? (labels?.filteredEmptyTitle ?? "No docs match your filters")
