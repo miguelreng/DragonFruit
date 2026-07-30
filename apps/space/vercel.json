@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "react-router",
+  "installCommand": "npm_config_node_linker=isolated pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm turbo run build --filter=space"
+}

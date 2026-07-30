@@ -4,7 +4,17 @@
  * See the LICENSE file for details.
  */
 
-import { Bookmark, Checklist, DocumentText, Routing, RulerCrossPen, StickerSquare } from "@solar-icons/react/ssr";
+import {
+  Bookmark,
+  Checklist,
+  DocumentText,
+  History,
+  Magnifer,
+  Routing,
+  RulerCrossPen,
+  StickerSquare,
+  Widget,
+} from "@solar-icons/react/ssr";
 import { cn } from "@plane/utils";
 
 // An empty tab echoes the same Solar glyph its sidebar/nav entry uses, so a blank
@@ -18,6 +28,9 @@ const EMPTY_STATE_ICONS = {
   whiteboards: RulerCrossPen,
   stickies: StickerSquare,
   workflows: Routing,
+  search: Magnifer,
+  activity: History,
+  widgets: Widget,
 } as const;
 
 export type TEmptyStateIconName = keyof typeof EMPTY_STATE_ICONS;
@@ -29,5 +42,5 @@ type Props = {
 
 export const EmptyStateIcon = ({ name, className }: Props) => {
   const Icon = EMPTY_STATE_ICONS[name];
-  return <Icon weight="BoldDuotone" className={cn("size-16 text-tertiary", className)} />;
+  return <Icon aria-hidden="true" weight="BoldDuotone" className={cn("size-16 text-tertiary", className)} />;
 };

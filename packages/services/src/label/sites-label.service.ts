@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@plane/constants";
 import type { IIssueLabel } from "@plane/types";
 // api service
 import { APIService } from "../api.service";
@@ -18,7 +18,7 @@ import { APIService } from "../api.service";
  */
 export class SitesLabelService extends APIService {
   constructor(BASE_URL?: string) {
-    super(BASE_URL || API_BASE_URL);
+    super(BASE_URL || getPublicApiBaseUrl());
   }
 
   /**

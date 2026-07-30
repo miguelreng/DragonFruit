@@ -7,6 +7,7 @@
 import type { Request, Response } from "express";
 import { Controller, Get } from "@plane/decorators";
 import { env } from "@/env";
+import { redisManager } from "@/redis";
 
 @Controller("/health")
 export class HealthController {
@@ -14,6 +15,17 @@ export class HealthController {
   async healthCheck(_req: Request, res: Response) {
     res.status(200).json({
       status: "OK",
+      timestamp: new Date().toISOString(),
+      version: env.APP_VERSION,
+    });
+  }
+
+  @Get("/ready")
+  async readinessCheck(_req: Request, res: Response) {
+    const redisReady = redisManager.isClientConnected();
+    res.status(redisReady ? 200 : 503).json({
+      status: redisReady ? "ready" : "unavailable",
+      redis: redisReady ? "ok" : "error",
       timestamp: new Date().toISOString(),
       version: env.APP_VERSION,
     });

@@ -10,6 +10,7 @@ import {
   ChartNoAxesColumn,
   CheckSquare,
   Code2,
+  FileText,
   Heading1,
   Heading2,
   Heading3,
@@ -92,7 +93,7 @@ const insertDocEmbed = ({
   embedType,
   attrs,
 }: CommandProps & {
-  embedType: "whiteboard" | "sticky" | "task_view" | "google_drive";
+  embedType: "whiteboard" | "sticky" | "task_view" | "google_drive" | "page";
   attrs: {
     entityId: string;
     projectId?: string;
@@ -470,6 +471,35 @@ export const getSlashCommandFilteredSections =
             command: ({ editor, range }: CommandProps) => {
               editor.chain().focus().deleteRange(range).run();
               embedConfig.issue?.onTranscriptRequest?.();
+            },
+          });
+        }
+        if (embedConfig?.page?.onPickerRequest) {
+          workItems.push({
+            commandKey: "external-embed",
+            key: "attach-doc",
+            title: "Attach Doc",
+            description: "Attach a workspace Doc",
+            searchTerms: ["attach doc", "embed doc", "document", "page", "reference"],
+            icon: <FileText className="size-3.5" />,
+            command: ({ editor, range }: CommandProps) => {
+              embedConfig.page?.onPickerRequest?.({
+                embedType: "page",
+                mode: "embed",
+                insertEmbed: (attrs) =>
+                  insertDocEmbed({
+                    editor,
+                    range,
+                    embedType: "page",
+                    attrs: {
+                      entityId: attrs.entityId,
+                      projectId: attrs.projectId,
+                      workspaceSlug: attrs.workspaceSlug,
+                      title: attrs.title,
+                      snapshot: attrs.snapshot,
+                    },
+                  }),
+              });
             },
           });
         }

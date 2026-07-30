@@ -200,6 +200,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
               <Search className="size-4 text-tertiary" />
               <input
                 type="text"
+                // oxlint-disable-next-line jsx-a11y/no-autofocus -- search is the modal's primary action
                 autoFocus
                 value={projectSearch}
                 onChange={(e) => setProjectSearch(e.target.value)}
@@ -259,7 +260,7 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
                   label={label}
                   active={activeRail === key}
                   onClick={() => setActiveRail(key)}
-                  icon={<Icon className="size-4" weight={activeRail === key ? "Bold" : undefined} />}
+                  icon={<Icon className="size-4" />}
                 />
               ))}
             </div>

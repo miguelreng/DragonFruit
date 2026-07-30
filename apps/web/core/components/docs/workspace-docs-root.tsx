@@ -90,6 +90,7 @@ import { ProjectPageService } from "@/services/page/project-page.service";
 import { buildPublicPageUrl, getPublicPageSlug } from "@/helpers/page-public";
 import { WikiImportModal } from "./import/wiki-import-modal";
 import { WikiSettingsModal } from "./wiki-settings-modal";
+import { getWorkspaceDocFavoritePresentation, resolveWorkspaceDocAdminProjectId } from "./workspace-doc-permissions";
 import { WikiSharePopover } from "./wiki-share-popover";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
 import { isMarkdownFile, useCreateMarkdownDocPage } from "./use-create-markdown-doc";
@@ -318,7 +319,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
 }: Props) {
   const { getProjectById, joinedProjectIds } = useProject();
   const { data: currentUser } = useUser();
-  const { getProjectRoleByWorkspaceSlugAndProjectId } = useUserPermissions();
+  const { getProjectRoleByWorkspaceSlugAndProjectId, getWorkspaceRoleByWorkspaceSlug } = useUserPermissions();
   const { addFavorite, removeFavoriteEntity, removeFavoriteFromStore, entityMap: favoriteEntityMap } = useFavorite();
   const joinedProjectIdSet = useMemo(() => new Set(joinedProjectIds ?? []), [joinedProjectIds]);
   const getPageProjectId = useCallback(
@@ -337,20 +338,30 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     (page: TPage) => getPageProjectId(page) ?? page.project_ids?.[0],
     [getPageProjectId]
   );
+  const isWorkspaceAdmin = Number(getWorkspaceRoleByWorkspaceSlug(workspaceSlug)) === Number(EUserPermissions.ADMIN);
   // Destructive page actions must use a linked project where the API will
   // recognize the user as owner/admin. `project_ids` is not ordered and can
   // include projects the user cannot access, so its first item is unsafe.
   const getPageAdminProjectId = useCallback(
-    (page: TPage) => {
-      if (isProjectBriefPage(page)) return undefined;
-      if (currentUser?.id && page.owned_by === currentUser.id) return getPageProjectId(page);
-      return (page.project_ids ?? []).find(
-        (projectId) =>
-          joinedProjectIdSet.has(projectId) &&
-          getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId) === EUserPermissions.ADMIN
-      );
-    },
-    [currentUser?.id, getPageProjectId, getProjectRoleByWorkspaceSlugAndProjectId, joinedProjectIdSet, workspaceSlug]
+    (page: TPage) =>
+      resolveWorkspaceDocAdminProjectId({
+        currentUserId: currentUser?.id,
+        getProjectRole: (projectId) => getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId),
+        isProjectBrief: isProjectBriefPage(page),
+        isWorkspaceAdmin,
+        joinedProjectIds: joinedProjectIdSet,
+        ownerId: page.owned_by,
+        pageProjectIds: page.project_ids ?? [],
+        preferredProjectId: getPageProjectId(page),
+      }),
+    [
+      currentUser?.id,
+      getPageProjectId,
+      getProjectRoleByWorkspaceSlugAndProjectId,
+      isWorkspaceAdmin,
+      joinedProjectIdSet,
+      workspaceSlug,
+    ]
   );
   // Mirrors the API's delete rule (owner OR project admin; never a brief) and
   // guarantees there is a valid linked project for the request.
@@ -633,31 +644,30 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
     }
   };
 
-  // ----- Folder favorites -----
-  // Folders are pages, so they ride the generic page-favorite plumbing; the
-  // entity_data.page_type snapshot is what makes the sidebar render a folder
-  // icon and deep-link back here (?folder=) instead of the page editor.
-  const isFolderFavorited = useCallback(
-    (folder: TPage) => Boolean(folder.id && favoriteEntityMap[folder.id]),
+  // Folders and Docs share the generic page-favorite plumbing. The
+  // entity_data.page_type snapshot keeps sidebar rendering and links correct.
+  const isPageFavorited = useCallback(
+    (page: TPage) => Boolean(page.id && favoriteEntityMap[page.id]),
     [favoriteEntityMap]
   );
-  const handleToggleFolderFavorite = useCallback(
-    async (folder: TPage) => {
-      if (!folder.id) return;
-      const isFavorited = Boolean(favoriteEntityMap[folder.id]);
+  const handleTogglePageFavorite = useCallback(
+    async (page: TPage) => {
+      if (!page.id) return;
+      const isFavorited = Boolean(favoriteEntityMap[page.id]);
+      const { label, pageType: favoritePageType } = getWorkspaceDocFavoritePresentation(page.page_type);
       try {
-        if (isFavorited) await removeFavoriteEntity(workspaceSlug, folder.id);
+        if (isFavorited) await removeFavoriteEntity(workspaceSlug, page.id);
         else
           await addFavorite(workspaceSlug, {
             entity_type: "page",
-            entity_identifier: folder.id,
-            project_id: getPageProjectId(folder) ?? null,
-            entity_data: { name: getPageName(folder.name), page_type: "folder" },
+            entity_identifier: page.id,
+            project_id: getPageProjectId(page) ?? null,
+            entity_data: { name: getPageName(page.name), page_type: favoritePageType },
           });
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: "Success!",
-          message: isFavorited ? "Folder removed from favorites." : "Folder added to favorites.",
+          message: isFavorited ? `${label} removed from favorites.` : `${label} added to favorites.`,
         });
       } catch (error) {
         setToast({
@@ -665,7 +675,7 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
           title: "Error!",
           message: pageActionErrorMessage(
             error,
-            isFavorited ? "Folder could not be removed from favorites." : "Folder could not be added to favorites."
+            isFavorited ? `${label} could not be removed from favorites.` : `${label} could not be added to favorites.`
           ),
         });
       }
@@ -1060,15 +1070,15 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                       : (getProjectById(getPageDisplayProjectId(folder) ?? "")?.name ?? undefined)
                   }
                   canDelete={canDeleteDoc(folder)}
-                  isFavorite={isFolderFavorited(folder)}
-                  onToggleFavorite={() => void handleToggleFolderFavorite(folder)}
+                  isFavorite={isPageFavorited(folder)}
+                  onToggleFavorite={() => void handleTogglePageFavorite(folder)}
                   onOpen={() => folder.id && setActiveFolderId(folder.id)}
                   onRename={() => setFolderNameModal({ folder })}
                   isWikiPublished={folder.access === EPageAccess.PUBLIC}
                   onWikiSettings={() => setWikiSettingsFolder(folder)}
                   onCopyWikiLink={() => {
-                    void copyUrlToClipboard(buildPublicPageUrl(workspaceSlug, getPublicPageSlug(folder))).then(() =>
-                      setToast({ type: TOAST_TYPE.SUCCESS, title: "Wiki link copied" })
+                    void copyUrlToClipboard(buildPublicPageUrl(workspaceSlug, getPublicPageSlug(folder), "wiki")).then(
+                      () => setToast({ type: TOAST_TYPE.SUCCESS, title: "Wiki link copied" })
                     );
                   }}
                   onDelete={() => setFolderToDelete(folder)}
@@ -1090,6 +1100,8 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                   isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
                   isSelectionActive={isSelectionActive}
                   onSelect={handleDocSelect}
+                  isFavorite={isPageFavorited(page)}
+                  onToggleFavorite={() => void handleTogglePageFavorite(page)}
                   folders={showFolderUi ? folders : []}
                   cardStyle={cardStyle}
                 />
@@ -1114,15 +1126,15 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 folder={folder}
                 count={folder.id ? (folderDocCounts.get(folder.id) ?? 0) : 0}
                 canDelete={canDeleteDoc(folder)}
-                isFavorite={isFolderFavorited(folder)}
-                onToggleFavorite={() => void handleToggleFolderFavorite(folder)}
+                isFavorite={isPageFavorited(folder)}
+                onToggleFavorite={() => void handleTogglePageFavorite(folder)}
                 onOpen={() => folder.id && setActiveFolderId(folder.id)}
                 onRename={() => setFolderNameModal({ folder })}
                 isWikiPublished={folder.access === EPageAccess.PUBLIC}
                 onWikiSettings={() => setWikiSettingsFolder(folder)}
                 onCopyWikiLink={() => {
-                  void copyUrlToClipboard(buildPublicPageUrl(workspaceSlug, getPublicPageSlug(folder))).then(() =>
-                    setToast({ type: TOAST_TYPE.SUCCESS, title: "Wiki link copied" })
+                  void copyUrlToClipboard(buildPublicPageUrl(workspaceSlug, getPublicPageSlug(folder), "wiki")).then(
+                    () => setToast({ type: TOAST_TYPE.SUCCESS, title: "Wiki link copied" })
                   );
                 }}
                 onDelete={() => setFolderToDelete(folder)}
@@ -1139,6 +1151,8 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
                 isSelected={Boolean(page.id && selectedDocIdSet.has(page.id))}
                 isSelectionActive={isSelectionActive}
                 onSelect={handleDocSelect}
+                isFavorite={isPageFavorited(page)}
+                onToggleFavorite={() => void handleTogglePageFavorite(page)}
               />
             ))}
           </ListLayout>
@@ -1322,6 +1336,7 @@ function FolderNameModal({ isOpen, isRename, initialName, onClose, onSubmit }: F
       >
         <h3 className="text-16 font-medium text-primary">{isRename ? "Rename folder" : "New folder"}</h3>
         <input
+          // oxlint-disable-next-line jsx-a11y/no-autofocus -- naming is the modal's primary action
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -2004,11 +2019,48 @@ const isProjectBriefPage = (page: TPage) => isBriefPage(page);
 const getWorkspaceDocDisplayName = (page: TPage, projectName: string | undefined) =>
   isProjectBriefPage(page) ? getBriefPageDisplayName(projectName) : getPageName(page.name);
 
+function DocFavoriteButton({
+  isFavorite,
+  onToggle,
+  className,
+}: {
+  isFavorite: boolean;
+  onToggle: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={isFavorite ? "Remove favorite" : "Add to favorites"}
+      title={isFavorite ? "Remove favorite" : "Add to favorites"}
+      className={cn(
+        "grid size-6 place-items-center rounded-lg text-tertiary transition-[color,background-color,opacity]",
+        "focus-visible:ring-accent-primary/40 hover:bg-layer-2 hover:text-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:outline-none",
+        isFavorite && "text-amber-500",
+        className
+      )}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onToggle();
+      }}
+    >
+      <Star weight={isFavorite ? "Bold" : undefined} className="size-4" />
+    </button>
+  );
+}
+
 type DocListItemProps = {
   page: TPage;
   workspaceSlug: string;
   projectId: string | undefined;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   isSelected: boolean;
   isSelectionActive: boolean;
   onSelect: (pageId: string, isRange: boolean) => void;
@@ -2019,6 +2071,8 @@ function DocListItem({
   workspaceSlug,
   projectId,
   getProjectById,
+  isFavorite,
+  onToggleFavorite,
   isSelected,
   isSelectionActive,
   onSelect,
@@ -2127,6 +2181,14 @@ function DocListItem({
       titleClassName={cn("font-semibold text-secondary", { "text-accent-primary": isProjectBrief })}
       actionableItems={
         <div className="flex items-center gap-3 text-13 text-tertiary">
+          <DocFavoriteButton
+            isFavorite={isFavorite}
+            onToggle={onToggleFavorite}
+            className={cn(
+              "shrink-0",
+              !isFavorite && "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+            )}
+          />
           {pdfMeta && <span className="shrink-0 text-11">PDF | {convertBytesToSize(pdfMeta.size)}</span>}
           {tags.length > 0 && (
             <div className="flex max-w-[220px] items-center gap-1 overflow-hidden">
@@ -2167,6 +2229,8 @@ type DocCardProps = {
   adminProjectId: string | undefined;
   getProjectById: ReturnType<typeof useProject>["getProjectById"];
   joinedProjectIds: string[];
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   /** Whether the current user can archive/delete this doc (owner or project admin). */
   canModify: boolean;
   /** When viewing a single project's docs, the project name is redundant — hide it. */
@@ -2187,6 +2251,8 @@ function DocCard({
   adminProjectId,
   getProjectById,
   joinedProjectIds,
+  isFavorite,
+  onToggleFavorite,
   canModify,
   isProjectScoped,
   isSelected,
@@ -2551,25 +2617,31 @@ function DocCard({
             ))}
           </CustomMenu.SubMenu>
         )}
-        {!isProjectBrief && canModify && (
+        {!isProjectBrief && (
           <>
-            <CustomMenu.MenuItem onClick={() => void handleArchive()}>
-              <span className="flex items-center gap-2">
-                {page.archived_at ? (
-                  <ArchiveRestoreIcon className="size-4" />
-                ) : (
-                  <DetailIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-                )}
-                {page.archived_at ? "Restore" : "Archive"}
-              </span>
-            </CustomMenu.MenuItem>
+            {canModify && (
+              <CustomMenu.MenuItem onClick={() => void handleArchive()}>
+                <span className="flex items-center gap-2">
+                  {page.archived_at ? (
+                    <ArchiveRestoreIcon className="size-4" />
+                  ) : (
+                    <DetailIcon icon={Archive02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+                  )}
+                  {page.archived_at ? "Restore" : "Archive"}
+                </span>
+              </CustomMenu.MenuItem>
+            )}
             <CustomMenu.MenuItem
+              disabled={!canModify}
               onClick={() => void handleDelete()}
-              className="text-red-500 hover:!bg-red-500/10 hover:!text-red-500"
+              className={cn({
+                "text-red-500 hover:!bg-red-500/10 hover:!text-red-500": canModify,
+              })}
             >
-              <span className="flex items-center gap-2">
-                <DetailIcon icon={Delete02Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-                Delete
+              <span className="flex w-full min-w-0 items-center gap-2">
+                <DetailIcon icon={Delete02Icon} className="size-4 shrink-0" color="currentColor" strokeWidth={1.5} />
+                <span>Delete</span>
+                {!canModify && <span className="ml-auto text-10">Owner or admin only</span>}
               </span>
             </CustomMenu.MenuItem>
           </>
@@ -2584,13 +2656,21 @@ function DocCard({
   const actionsMenuOverlay =
     primaryProjectId && page.id ? (
       <div
-        className={cn("absolute z-20", {
+        className={cn("absolute z-20 flex items-center gap-1", {
           "top-2 right-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100":
             cardStyle === "paper",
           "top-3 right-3": cardStyle === "tile",
         })}
         onPointerDown={(event) => event.stopPropagation()}
       >
+        <DocFavoriteButton
+          isFavorite={isFavorite}
+          onToggle={onToggleFavorite}
+          className={cn(
+            "shadow-sm bg-layer-2 hover:bg-layer-3",
+            !isFavorite && cardStyle === "paper" && "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+          )}
+        />
         {actionsMenu(
           cardStyle === "paper"
             ? "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary"

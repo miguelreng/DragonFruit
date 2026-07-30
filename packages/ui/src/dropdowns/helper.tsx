@@ -7,6 +7,13 @@
 // FIXME: fix this!!!
 import type { ICustomSearchSelectOption } from "@plane/types";
 
+/**
+ * Select panels portal to `document.body`, outside any modal stacking context.
+ * ModalCore uses 100 for its backdrop and 110 for its panel, so selects need
+ * the next shared layer to stay visible and interactive inside a modal.
+ */
+export const SELECT_PORTAL_LAYER_CLASS = "z-[120]";
+
 type Placement =
   | "top"
   | "top-start"

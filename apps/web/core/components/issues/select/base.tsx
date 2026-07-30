@@ -35,9 +35,54 @@ export type TWorkItemLabelSelectBaseProps = {
   onDropdownOpen?: () => void;
   placement?: Placement;
   createLabel?: (data: Partial<IIssueLabel>) => Promise<IIssueLabel>;
+  updateLabelColor?: (labelId: string, color: string) => Promise<IIssueLabel>;
+  canEditLabelColor?: boolean;
   tabIndex?: number;
   value: string[];
 };
+
+type TLabelColorSwatchProps = {
+  color: string;
+  onChange: (color: string) => void;
+};
+
+function LabelColorSwatch(props: TLabelColorSwatchProps) {
+  const { color, onChange } = props;
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleOnClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    inputRef.current?.click();
+  };
+
+  return (
+    <span className="relative flex flex-shrink-0 items-center justify-center">
+      <button
+        type="button"
+        className="group focus-visible:outline-accent-primary grid size-5 cursor-pointer place-items-center rounded-md hover:bg-layer-2 focus-visible:outline-2 focus-visible:outline-offset-1"
+        onClick={handleOnClick}
+        aria-label="Change label color"
+        title="Change label color"
+      >
+        <span
+          className="size-2.5 rounded-full ring-1 ring-transparent transition-shadow group-hover:ring-2 group-hover:ring-current"
+          style={{ backgroundColor: color, color }}
+        />
+      </button>
+      <input
+        ref={inputRef}
+        type="color"
+        value={color}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => onChange(e.target.value)}
+        className="invisible absolute inset-0 size-5"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+    </span>
+  );
+}
 
 export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase(props: TWorkItemLabelSelectBaseProps) {
   const {
@@ -52,6 +97,8 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
     onDropdownOpen,
     placement,
     createLabel,
+    updateLabelColor,
+    canEditLabelColor = false,
     tabIndex,
     value,
   } = props;
@@ -134,6 +181,15 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
       inputRef.current.focus();
     }
   }, [isDropdownOpen, isMobile]);
+
+  const handleColorChange = async (labelId: string, color: string) => {
+    if (!updateLabelColor) return;
+    try {
+      await updateLabelColor(labelId, color);
+    } catch (e) {
+      console.error("Failed to update label color", e);
+    }
+  };
 
   const handleAddLabel = async (labelName: string) => {
     if (!createLabel || submitting) return;
@@ -235,12 +291,19 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                             {({ selected }) => (
                               <div className="flex w-full justify-between gap-2 rounded-lg">
                                 <div className="flex items-center justify-start gap-2 truncate">
-                                  <span
-                                    className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                    style={{
-                                      backgroundColor: option.color,
-                                    }}
-                                  />
+                                  {canEditLabelColor ? (
+                                    <LabelColorSwatch
+                                      color={option.color}
+                                      onChange={(color) => handleColorChange(option.id, color)}
+                                    />
+                                  ) : (
+                                    <span
+                                      className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                                      style={{
+                                        backgroundColor: option.color,
+                                      }}
+                                    />
+                                  )}
                                   <span className="truncate">{option.name}</span>
                                 </div>
                                 <div className="flex shrink-0 items-center justify-center rounded-lg p-1">
@@ -270,12 +333,19 @@ export const WorkItemLabelSelectBase = observer(function WorkItemLabelSelectBase
                                 {({ selected }) => (
                                   <div className="flex w-full justify-between gap-2 rounded-lg">
                                     <div className="flex items-center justify-start gap-2">
-                                      <span
-                                        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                        style={{
-                                          backgroundColor: child?.color,
-                                        }}
-                                      />
+                                      {canEditLabelColor ? (
+                                        <LabelColorSwatch
+                                          color={child.color}
+                                          onChange={(color) => handleColorChange(child.id, color)}
+                                        />
+                                      ) : (
+                                        <span
+                                          className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                                          style={{
+                                            backgroundColor: child?.color,
+                                          }}
+                                        />
+                                      )}
                                       <span>{child.name}</span>
                                     </div>
                                     <div className="flex items-center justify-center rounded-lg p-1">

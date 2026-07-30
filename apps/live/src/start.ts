@@ -9,6 +9,7 @@ import { AppError } from "@/lib/errors";
 import { Server } from "./server";
 
 let server: Server;
+let shutdownPromise: Promise<void> | null = null;
 
 async function startServer() {
   server = new Server();
@@ -23,41 +24,41 @@ async function startServer() {
 
 startServer();
 
-// Handle process signals
-process.on("SIGTERM", async () => {
-  logger.info("Received SIGTERM signal. Initiating graceful shutdown...");
-  try {
-    if (server) {
-      await server.destroy();
+function shutdown(reason: string, exitCode: number): Promise<void> {
+  if (shutdownPromise) return shutdownPromise;
+
+  shutdownPromise = (async () => {
+    logger.info(`Received ${reason}. Initiating graceful shutdown...`);
+    try {
+      if (server) {
+        await server.destroy();
+      }
+      logger.info("Server shut down gracefully");
+      process.exit(exitCode);
+    } catch (error) {
+      logger.error("Error during graceful shutdown:", error);
+      process.exit(1);
     }
-    logger.info("Server shut down gracefully");
-  } catch (error) {
-    logger.error("Error during graceful shutdown:", error);
-    process.exit(1);
-  }
-  process.exit(0);
+  })();
+  return shutdownPromise;
+}
+
+process.on("SIGTERM", () => {
+  void shutdown("SIGTERM", 0);
 });
 
-process.on("SIGINT", async () => {
-  logger.info("Received SIGINT signal. Killing node process...");
-  try {
-    if (server) {
-      await server.destroy();
-    }
-    logger.info("Server shut down gracefully");
-  } catch (error) {
-    logger.error("Error during graceful shutdown:", error);
-    process.exit(1);
-  }
-  process.exit(1);
+process.on("SIGINT", () => {
+  void shutdown("SIGINT", 0);
 });
 
 process.on("unhandledRejection", (err: Error) => {
   const error = new AppError(err);
   logger.error(`[UNHANDLED_REJECTION]`, error);
+  void shutdown("unhandled rejection", 1);
 });
 
 process.on("uncaughtException", (err: Error) => {
   const error = new AppError(err);
   logger.error(`[UNCAUGHT_EXCEPTION]`, error);
+  void shutdown("uncaught exception", 1);
 });

@@ -6,10 +6,23 @@
 
 import type { Hocuspocus } from "@hocuspocus/server";
 import type { Request } from "express";
-import type WebSocket from "ws";
+import type { WebSocket as WebSocketConnection } from "ws";
 // plane imports
 import { Controller, WebSocket as WSDecorator } from "@plane/decorators";
 import { logger } from "@plane/logger";
+import { env } from "@/env";
+
+export function isAllowedWebSocketOrigin(origin: string | undefined, configuredOrigins: string): boolean {
+  // Non-browser/native clients may omit Origin. Browsers always send it for
+  // cross-origin WebSocket handshakes, which is the CSWSH boundary here.
+  if (!origin) return true;
+
+  const allowedOrigins = configuredOrigins
+    .split(",")
+    .map((value) => value.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  return allowedOrigins.includes(origin.replace(/\/$/, ""));
+}
 
 @Controller("/collaboration")
 export class CollaborationController {
@@ -21,8 +34,14 @@ export class CollaborationController {
   }
 
   @WSDecorator("/")
-  handleConnection(ws: WebSocket, req: Request) {
+  handleConnection(ws: WebSocketConnection, req: Request) {
     try {
+      if (!isAllowedWebSocketOrigin(req.headers.origin, env.CORS_ALLOWED_ORIGINS)) {
+        logger.warn("COLLABORATION_CONTROLLER: rejected WebSocket origin");
+        ws.close(1008, "Origin not allowed");
+        return;
+      }
+
       // Initialize the connection with Hocuspocus
       this.hocusPocusServer.handleConnection(ws, req);
 

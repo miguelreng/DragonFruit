@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@plane/constants";
 import type {
   IFormattedInstanceConfiguration,
   IInstance,
@@ -28,7 +28,7 @@ export class InstanceService extends APIService {
    * Initializes the service with the base API URL
    */
   constructor() {
-    super(API_BASE_URL);
+    super(getPublicApiBaseUrl());
   }
 
   /**

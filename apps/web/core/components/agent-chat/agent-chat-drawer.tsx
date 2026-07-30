@@ -2187,7 +2187,7 @@ function ChatThread(props: {
               </div>
             )}
             <div className="relative flex-1">
-              {/* Highlight overlay: renders the draft with @mentions in pink
+              {/* Highlight overlay: renders the draft with @mentions in the app accent
                   behind a transparent textarea (native textareas can't color a
                   substring). Must mirror the textarea's font/wrap exactly. */}
               <div
@@ -2197,7 +2197,7 @@ function ChatThread(props: {
               >
                 {getAtlasPromptHighlightParts(draft).map((part) =>
                   part.isMention ? (
-                    <span key={part.key} className="text-[#e548a5]">
+                    <span key={part.key} className="text-accent-primary">
                       {part.text}
                     </span>
                   ) : (

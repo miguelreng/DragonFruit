@@ -1,0 +1,258 @@
+/* Public project calendars use the same Schedule-X visual language as the
+ * signed-in Calendar page. Keep every override scoped to this wrapper. */
+.dragonfruit-calendar {
+  --dragonfruit-calendar-accent: #ec4899;
+  --sx-color-primary: var(--dragonfruit-calendar-accent);
+  --sx-color-on-primary: #ffffff;
+  --sx-color-primary-container: color-mix(in srgb, var(--dragonfruit-calendar-accent) 14%, transparent);
+  --sx-color-on-primary-container: var(--text-color-primary);
+  --sx-color-tasks: var(--dragonfruit-calendar-accent);
+  --sx-color-tasks-container: color-mix(in srgb, var(--dragonfruit-calendar-accent) 14%, transparent);
+  --sx-color-on-tasks-container: var(--dragonfruit-calendar-accent);
+  --dragonfruit-calendar-surface: var(--background-color-surface-1, var(--background-color-canvas));
+  --sx-color-surface: var(--dragonfruit-calendar-surface);
+  --sx-color-surface-variant: var(--dragonfruit-calendar-surface);
+  --sx-color-on-surface: var(--text-color-primary);
+  --sx-color-on-surface-variant: var(--text-color-tertiary);
+  --sx-color-background: var(--dragonfruit-calendar-surface);
+  --sx-color-outline: var(--neutral-200);
+  --sx-color-outline-variant: var(--neutral-200);
+  --sx-border: 1px solid var(--neutral-200);
+  --sx-internal-color-text: var(--text-color-primary);
+  --sx-internal-color-line: var(--neutral-200);
+  --sx-color-shadow: rgba(0, 0, 0, 0.08);
+  isolation: isolate;
+  z-index: 0;
+  background-color: var(--dragonfruit-calendar-surface);
+  font-family:
+    "Figtree Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+.dragonfruit-calendar .sx__calendar,
+.dragonfruit-calendar .sx__calendar-wrapper {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.dragonfruit-calendar > .sx-react-calendar-wrapper,
+.dragonfruit-calendar .sx__calendar,
+.dragonfruit-calendar .sx__calendar-wrapper,
+.dragonfruit-calendar .sx__view-container,
+.dragonfruit-calendar .sx__month-view,
+.dragonfruit-calendar .sx__month-grid {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.dragonfruit-calendar,
+.dragonfruit-calendar *,
+.dragonfruit-calendar *::before,
+.dragonfruit-calendar *::after {
+  border-radius: 0 !important;
+}
+
+.dragonfruit-calendar .sx__calendar-header {
+  display: none !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-day,
+.dragonfruit-calendar .sx__week-grid__date,
+.dragonfruit-calendar .sx__month-grid-day--leading,
+.dragonfruit-calendar .sx__month-grid-day--trailing,
+.dragonfruit-calendar .sx__week-grid,
+.dragonfruit-calendar .sx__month-grid {
+  background-color: var(--dragonfruit-calendar-surface) !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-week:first-child,
+.dragonfruit-calendar .sx__week-grid__hour:first-child + .sx__week-grid__hour,
+.dragonfruit-calendar .sx__month-agenda-week:first-child {
+  border-top: none !important;
+}
+
+.dragonfruit-calendar .sx__week-grid__day-name,
+.dragonfruit-calendar .sx__month-grid-day__header {
+  color: var(--text-color-tertiary) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-day__header {
+  flex-flow: row !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 4px;
+}
+
+.dragonfruit-calendar .sx__month-grid-day__header-day-name {
+  color: var(--text-color-tertiary) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-day__header-date {
+  margin-bottom: 0 !important;
+  border-radius: 9999px !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-day__header-date.sx__is-today {
+  background-color: var(--dragonfruit-calendar-accent) !important;
+  color: #ffffff !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-day__events-more {
+  background-color: transparent !important;
+  color: var(--text-color-tertiary) !important;
+  font-size: 11px !important;
+}
+
+.dragonfruit-calendar .sx__event {
+  padding: 2px 6px !important;
+  border-inline-start: 0 !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  animation: none !important;
+  cursor: pointer;
+}
+
+.dragonfruit-calendar .sx__event:focus-visible {
+  outline: 2px solid var(--dragonfruit-calendar-accent) !important;
+  outline-offset: 1px;
+}
+
+.dragonfruit-calendar .sx__month-grid-event {
+  min-height: 22px !important;
+  margin-inline-start: 5px !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  animation: none !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-event-title {
+  color: var(--text-color-primary) !important;
+  font-weight: 500 !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-event-time {
+  color: var(--text-color-tertiary) !important;
+  font-weight: 500 !important;
+}
+
+.dragonfruit-calendar .sx__month-grid-day__events {
+  gap: 6px !important;
+}
+
+.dragonfruit-calendar .sx__week-grid__date {
+  height: auto !important;
+  padding: 2px 0 !important;
+}
+
+.dragonfruit-calendar .df-week-date-pill {
+  border-radius: 9999px !important;
+}
+
+.dragonfruit-calendar .sx__time-grid-event {
+  padding: 6px 8px !important;
+  border-right: 2px solid transparent !important;
+  border-left: 2px solid transparent !important;
+  border-radius: 6px !important;
+  background-clip: padding-box !important;
+  box-shadow: none !important;
+}
+
+.dragonfruit-calendar .sx__time-grid-event-inner {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dragonfruit-calendar .sx__time-grid-event-title {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--text-color-primary) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  overflow-wrap: break-word;
+}
+
+.dragonfruit-calendar .sx__time-grid-event-time {
+  flex: 0 0 auto;
+  color: var(--text-color-tertiary) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+.dragonfruit-calendar .sx__time-grid-event:has(.sx__title-and-time-compact) {
+  padding: 0 8px !important;
+}
+
+.dragonfruit-calendar .sx__time-grid-event-inner:has(.sx__title-and-time-compact) {
+  justify-content: center;
+}
+
+.dragonfruit-calendar .sx__time-grid-event-time svg,
+.dragonfruit-calendar .sx__date-grid-event svg {
+  display: none !important;
+}
+
+.dragonfruit-calendar .sx__date-grid-event {
+  height: 18px !important;
+  min-height: 18px !important;
+  padding: 0 6px !important;
+  border-radius: 6px !important;
+  color: var(--text-color-primary) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 18px !important;
+}
+
+.dragonfruit-calendar .sx__date-grid-event--left-overflow,
+.dragonfruit-calendar .sx__date-grid-event--right-overflow {
+  display: none !important;
+}
+
+.dragonfruit-calendar .sx__date-grid {
+  max-height: 48px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.dragonfruit-calendar .sx__week-grid__hour-text {
+  color: var(--text-color-tertiary) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+.dragonfruit-calendar .sx__current-time-indicator,
+.dragonfruit-calendar .sx__current-time-indicator-full-week {
+  background-color: var(--dragonfruit-calendar-accent) !important;
+}
+
+.dragonfruit-calendar .sx__current-time-indicator::before {
+  border-radius: 9999px !important;
+  background-color: var(--dragonfruit-calendar-accent) !important;
+}
+
+@media (max-width: 860px) {
+  .dragonfruit-calendar-toolbar {
+    align-items: flex-start;
+  }
+
+  .dragonfruit-calendar-toolbar > :first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    padding-right: 0.5rem;
+    background: var(--background-color-surface-1);
+  }
+}

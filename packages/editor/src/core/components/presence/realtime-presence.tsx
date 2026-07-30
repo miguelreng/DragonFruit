@@ -49,17 +49,36 @@ export function RealtimePresenceLayer({
         {visible.map((participant) => (
           <div
             key={participant.id}
-            className="shadow-xs rounded-full border-2 bg-surface-1 p-px"
+            className="shadow-xs relative rounded-full border-2 bg-surface-1 p-px"
             style={{ borderColor: participant.color }}
-            title={`${participant.name}${participant.isCurrentUser ? " (you)" : ""}`}
+            title={`${participant.name}${participant.isCurrentUser ? " (you)" : ""}${participant.isEditing ? " · actively editing" : ""}`}
           >
+            {participant.isEditing && (
+              <span
+                className="absolute -inset-1 rounded-full border-2 opacity-50 motion-safe:animate-ping motion-reduce:opacity-80"
+                style={{ borderColor: participant.color }}
+                aria-hidden="true"
+              />
+            )}
             <Avatar
               size={24}
               showTooltip={false}
-              src={participant.avatarUrl}
+              src={participant.avatarUrl || undefined}
               name={participant.name}
               fallbackBackgroundColor={participant.color}
             />
+            {participant.isEditing && (
+              <span
+                className="border-surface-1 absolute right-0 bottom-0 size-2 rounded-full border"
+                style={{ backgroundColor: participant.color }}
+                aria-hidden="true"
+              />
+            )}
+            <span className="sr-only">
+              {participant.name}
+              {participant.isCurrentUser ? " (you)" : ""}
+              {participant.isEditing ? ", actively editing" : ""}
+            </span>
           </div>
         ))}
         {overflow > 0 ? (

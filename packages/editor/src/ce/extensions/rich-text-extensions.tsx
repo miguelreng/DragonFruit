@@ -6,13 +6,13 @@
 
 import type { AnyExtension, Extensions } from "@tiptap/core";
 // extensions
-import { SlashCommands } from "@/extensions/slash-commands/root";
+import { DocEmbedExtension, SlashCommands } from "@/extensions";
 // types
 import type { IEditorProps, TExtensions } from "@/types";
 
 export type TRichTextEditorAdditionalExtensionsProps = Pick<
   IEditorProps,
-  "disabledExtensions" | "flaggedExtensions" | "fileHandler" | "extendedEditorProps"
+  "disabledExtensions" | "flaggedExtensions" | "fileHandler" | "extendedEditorProps" | "embedConfig"
 >;
 
 /**
@@ -28,11 +28,17 @@ export type TRichTextEditorAdditionalExtensionsRegistry = {
 const extensionRegistry: TRichTextEditorAdditionalExtensionsRegistry[] = [
   {
     isEnabled: (disabledExtensions) => !disabledExtensions.includes("slash-commands"),
-    getExtension: ({ disabledExtensions, flaggedExtensions }) =>
+    getExtension: ({ disabledExtensions, embedConfig, flaggedExtensions }) =>
       SlashCommands({
         disabledExtensions,
+        embedConfig,
         flaggedExtensions,
       }),
+  },
+  {
+    isEnabled: () => true,
+    getExtension: ({ embedConfig }) =>
+      embedConfig?.page?.widgetCallback ? DocEmbedExtension({ configs: { page: embedConfig.page } }) : undefined,
   },
 ];
 

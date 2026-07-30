@@ -856,9 +856,12 @@ class WorkspacePagesListEndpoint(BaseAPIView):
         qs = (
             Page.objects.filter(workspace__slug=slug)
             .filter(
-                projects__project_projectmember__member=request.user,
-                projects__project_projectmember__is_active=True,
-                projects__archived_at__isnull=True,
+                project_pages__deleted_at__isnull=True,
+                project_pages__project__deleted_at__isnull=True,
+                project_pages__project__archived_at__isnull=True,
+                project_pages__project__project_projectmember__member=request.user,
+                project_pages__project__project_projectmember__is_active=True,
+                project_pages__project__project_projectmember__deleted_at__isnull=True,
             )
             .filter(Q(owned_by=request.user) | Q(access=0))
         )
@@ -871,12 +874,15 @@ class WorkspacePagesListEndpoint(BaseAPIView):
             qs.annotate(
                 project_ids=Coalesce(
                     ArrayAgg(
-                        "projects__id",
+                        "project_pages__project_id",
                         distinct=True,
                         filter=Q(
-                            projects__project_projectmember__member=request.user,
-                            projects__project_projectmember__is_active=True,
-                            projects__archived_at__isnull=True,
+                            project_pages__deleted_at__isnull=True,
+                            project_pages__project__deleted_at__isnull=True,
+                            project_pages__project__archived_at__isnull=True,
+                            project_pages__project__project_projectmember__member=request.user,
+                            project_pages__project__project_projectmember__is_active=True,
+                            project_pages__project__project_projectmember__deleted_at__isnull=True,
                         ),
                     ),
                     Value([], output_field=ArrayField(UUIDField())),

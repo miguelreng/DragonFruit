@@ -89,11 +89,12 @@ export const AddColumnMenu = observer(function AddColumnMenu(props: Props) {
         {hiddenProperties.length > 0 && (
           <>
             {showCustomField && <div className="my-1 border-t border-subtle" />}
-            <span className="flex px-1 pb-0.5 pt-1 text-11 font-medium uppercase tracking-wide text-tertiary">
+            <span className="flex px-1 pt-1 pb-0.5 text-11 font-medium tracking-wide text-tertiary uppercase">
               Show field
             </span>
             {hiddenProperties.map((property) => {
               const propertyDetails = SPREADSHEET_PROPERTY_DETAILS[property];
+              if (!propertyDetails) return null;
               const label =
                 property === "sub_issue_count" && isEpic
                   ? t("issue.label", { count: 2 })

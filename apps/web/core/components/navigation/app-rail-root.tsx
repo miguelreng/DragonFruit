@@ -399,6 +399,10 @@ const CompactRailOverflowMenu = (props: {
       className="p-0"
       optionsClassName="min-w-52 p-1.5"
       panelDataTheme={panelDataTheme}
+      // The rail scroller's mask-image (scroll fade) makes it paint as an atomic
+      // group, clipping even position:fixed descendants to its box — portal the
+      // panel out so it can extend past the rail edge.
+      portalElement={document.body}
     >
       {items.map((item) => (
         <CustomMenu.MenuItem key={item.id} onClick={() => routerPush(item.href)} className="rounded-lg">
@@ -595,6 +599,7 @@ const ProjectRailItem = (props: { item: TProjectRailItem; workspaceSlug: string 
   const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
   const [isRenameProjectModalOpen, setIsRenameProjectModalOpen] = useState(false);
   const [isRenameSubmitting, setIsRenameSubmitting] = useState(false);
+  const surfaceTheme = useTopBarTheme();
   const { updateProject } = useProject();
   const router = useRouter();
   const { t } = useTranslation();
@@ -701,6 +706,10 @@ const ProjectRailItem = (props: { item: TProjectRailItem; workspaceSlug: string 
           optionsClassName="rounded-lg"
           ariaLabel="Project actions"
           closeOnSelect
+          // Escape the rail scroller's mask-image paint clip (see CompactRailOverflowMenu).
+          // Portaled out of the rail, the panel no longer inherits its data-theme.
+          portalElement={document.body}
+          panelDataTheme={surfaceTheme}
         >
           <CustomMenu.MenuItem className="rounded-xs" onClick={() => void handleCopyProjectId()}>
             <span className="flex items-center justify-start gap-2">

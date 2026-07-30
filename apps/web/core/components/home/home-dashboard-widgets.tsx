@@ -7,13 +7,9 @@
 import { lazy, Suspense } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import type { THomeWidgetKeys, THomeWidgetProps } from "@plane/types";
-// assets
-import darkWidgetsAsset from "@/app/assets/empty-state/dashboard/widgets-dark.webp?url";
-import lightWidgetsAsset from "@/app/assets/empty-state/dashboard/widgets-light.webp?url";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 // hooks
@@ -38,7 +34,7 @@ const LazyStickiesWidget = lazy(() => import("../stickies/widget").then((m) => (
 if (import.meta.env.DEV) {
   void import("../stickies/widget");
 }
-const StickiesWidget = (props: THomeWidgetProps) => (
+const StickiesWidget = () => (
   <Suspense fallback={null}>
     <LazyStickiesWidget />
   </Suspense>
@@ -83,17 +79,12 @@ export const DashboardWidgets = observer(function DashboardWidgets() {
   const { workspaceSlug } = useParams();
   // navigation
   const pathname = usePathname();
-  // theme hook
-  const { resolvedTheme } = useTheme();
   // store hooks
   const { toggleWidgetSettings, widgetsMap, showWidgetSettings, orderedWidgets, isAnyWidgetEnabled, loading } =
     useHome();
   const { loader } = useProject();
   // plane hooks
   const { t } = useTranslation();
-  // derived values
-  const noWidgetsResolvedPath = resolvedTheme === "light" ? lightWidgetsAsset : darkWidgetsAsset;
-
   // derived values
   const isWikiApp = pathname.includes(`/${workspaceSlug.toString()}/pages`);
   if (!workspaceSlug) return null;
@@ -127,7 +118,7 @@ export const DashboardWidgets = observer(function DashboardWidgets() {
           <SimpleEmptyState
             title={t("home.empty.widgets.title")}
             description={t("home.empty.widgets.description")}
-            assetPath={noWidgetsResolvedPath}
+            visual={{ type: "icon", name: "widgets" }}
           />
         </div>
       )}

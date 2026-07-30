@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 // ui
 import { SITES_ISSUE_LAYOUTS } from "@plane/constants";
 // plane i18n
@@ -29,6 +29,7 @@ export const IssuesLayoutSelection = observer(function IssuesLayoutSelection(pro
   const { t } = useTranslation();
   // router
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   // query params
   const labels = searchParams.get("labels");
@@ -44,7 +45,7 @@ export const IssuesLayoutSelection = observer(function IssuesLayoutSelection(pro
   const handleCurrentBoardView = (boardView: TIssueLayout) => {
     updateIssueFilters(anchor, "display_filters", "layout", boardView);
     const { queryParam } = queryParamGenerator({ board: boardView, peekId, priority, state, labels });
-    router.push(`/issues/${anchor}?${queryParam}`);
+    router.push(`${pathname}?${queryParam}`);
   };
 
   return (

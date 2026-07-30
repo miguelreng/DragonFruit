@@ -7,7 +7,7 @@
 import { useCallback } from "react";
 import { cloneDeep } from "lodash-es";
 import { observer } from "mobx-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 // hooks
 import { useIssueFilter } from "@/hooks/store/use-issue-filter";
 // store
@@ -23,6 +23,7 @@ export const IssueAppliedFilters = observer(function IssueAppliedFilters(props: 
   const { anchor } = props;
   // router
   const router = useRouter();
+  const pathname = usePathname();
   // store hooks
   const { getIssueFilters, initIssueFilters, updateIssueFilters } = useIssueFilter();
   // derived values
@@ -57,9 +58,9 @@ export const IssueAppliedFilters = observer(function IssueAppliedFilters(props: 
       if (labels.length > 0) params.labels = labels.join(",");
 
       const qs = new URLSearchParams(params).toString();
-      router.push(`/issues/${anchor}?${qs}`);
+      router.push(`${pathname}?${qs}`);
     },
-    [activeLayout, anchor, issueFilters, router]
+    [activeLayout, issueFilters, pathname, router]
   );
 
   const handleFilters = useCallback(
@@ -89,7 +90,7 @@ export const IssueAppliedFilters = observer(function IssueAppliedFilters(props: 
       true
     );
 
-    router.push(`/issues/${anchor}?${`board=${activeLayout || "list"}`}`);
+    router.push(`${pathname}?${`board=${activeLayout || "list"}`}`);
   };
 
   if (Object.keys(appliedFilters).length === 0) return null;

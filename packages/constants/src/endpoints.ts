@@ -7,6 +7,17 @@
 export const API_BASE_URL = process.env.VITE_API_BASE_URL || "";
 export const API_BASE_PATH = process.env.VITE_API_BASE_PATH || "";
 export const API_URL = encodeURI(`${API_BASE_URL}${API_BASE_PATH}`);
+
+type TPublicApiLocation = {
+  hostname: string;
+  origin: string;
+};
+
+const PUBLIC_CONTENT_HOSTS = new Set(["dragonfruit.page", "www.dragonfruit.page"]);
+
+export const getPublicApiBaseUrl = (
+  location: TPublicApiLocation | undefined = typeof window === "undefined" ? undefined : window.location
+): string => (location && PUBLIC_CONTENT_HOSTS.has(location.hostname) ? location.origin : API_BASE_URL);
 // God Mode Admin App Base Url
 export const ADMIN_BASE_URL = process.env.VITE_ADMIN_BASE_URL || "";
 export const ADMIN_BASE_PATH = process.env.VITE_ADMIN_BASE_PATH || "";

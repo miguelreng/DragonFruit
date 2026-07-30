@@ -7,7 +7,7 @@
 import { useCallback } from "react";
 import { cloneDeep } from "lodash-es";
 import { observer } from "mobx-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 // constants
 import { ISSUE_DISPLAY_FILTERS_BY_LAYOUT } from "@plane/constants";
 // components
@@ -28,6 +28,7 @@ export const IssueFiltersDropdown = observer(function IssueFiltersDropdown(props
   const { anchor } = props;
   // router
   const router = useRouter();
+  const pathname = usePathname();
   // hooks
   const { getIssueFilters, updateIssueFilters } = useIssueFilter();
   // derived values
@@ -41,9 +42,9 @@ export const IssueFiltersDropdown = observer(function IssueFiltersDropdown(props
       const labels = key === "labels" ? value : (issueFilters?.filters?.labels ?? []);
 
       const { queryParam } = queryParamGenerator({ board: activeLayout, priority, state, labels });
-      router.push(`/issues/${anchor}?${queryParam}`);
+      router.push(`${pathname}?${queryParam}`);
     },
-    [anchor, activeLayout, issueFilters, router]
+    [activeLayout, issueFilters, pathname, router]
   );
 
   const handleFilters = useCallback(

@@ -8,6 +8,15 @@ import type { TBaseIssue } from "@plane/types";
 import { getDate } from "@plane/utils";
 
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
+const TASK_SORT_STEP = 65535;
+
+/** Pick a manual sort order between two neighbors, or just beyond one edge. */
+export function computeTaskSortOrder(before?: number, after?: number): number {
+  if (before != null && after != null) return (before + after) / 2;
+  if (before != null) return before + TASK_SORT_STEP;
+  if (after != null) return after - TASK_SORT_STEP;
+  return TASK_SORT_STEP;
+}
 
 /** Soonest due first, then by priority — mirrors how Reminders surfaces what's urgent. */
 export function sortIssues(issues: TBaseIssue[]): TBaseIssue[] {

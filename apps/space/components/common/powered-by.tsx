@@ -4,9 +4,10 @@
  * See the LICENSE file for details.
  */
 
-import { WEBSITE_URL } from "@plane/constants";
 // assets
 import { DragonfruitLogo } from "@plane/propel/icons";
+
+const DRAGONFRUIT_URL = "https://dragonfruit.sh";
 
 type TPoweredBy = {
   disabled?: boolean;
@@ -16,18 +17,18 @@ export function PoweredBy(props: TPoweredBy) {
   // props
   const { disabled = false } = props;
 
-  if (disabled || !WEBSITE_URL) return null;
+  if (disabled) return null;
 
   return (
     <a
-      href={WEBSITE_URL}
+      href={DRAGONFRUIT_URL}
       className="fixed right-5 bottom-2.5 !z-[999999] flex items-center gap-1 rounded-sm border border-subtle bg-layer-3 px-2 py-1 shadow-raised-100"
       target="_blank"
       rel="noreferrer noopener"
     >
       <DragonfruitLogo className="h-3 w-auto text-primary" />
       <div className="text-11">
-        Powered by <span className="font-semibold">DragonFruit Publish</span>
+        Powered by <span className="font-semibold">DragonFruit</span>
       </div>
     </a>
   );

@@ -280,7 +280,44 @@ class TestWorkspacePagesListAPI:
 
         assert response.status_code == status.HTTP_200_OK
         response_page = next(item for item in response.data if str(item["id"]) == str(page.id))
-        assert response_page["project_ids"] == [joined_project.id]
+        assert response_page["project_ids"] == [str(joined_project.id)]
+
+    @pytest.mark.django_db
+    def test_pages_linked_only_to_deleted_projects_are_not_listed(
+        self, session_client, workspace, create_user
+    ):
+        active_project = Project.objects.create(name="Active", identifier="ACT", workspace=workspace)
+        deleted_project = Project.objects.create(name="Deleted", identifier="DEL", workspace=workspace)
+        for project in (active_project, deleted_project):
+            ProjectMember.objects.create(
+                project=project,
+                workspace=workspace,
+                member=create_user,
+                role=20,
+                is_active=True,
+            )
+
+        active_page = Page.objects.create(name="Active doc", workspace=workspace, owned_by=create_user, access=0)
+        deleted_project_page = Page.objects.create(
+            name="Deleted project doc",
+            workspace=workspace,
+            owned_by=create_user,
+            access=0,
+        )
+        ProjectPage.objects.create(project=active_project, page=active_page, workspace=workspace)
+        ProjectPage.objects.create(project=deleted_project, page=active_page, workspace=workspace)
+        ProjectPage.objects.create(project=deleted_project, page=deleted_project_page, workspace=workspace)
+
+        # Project deletion is asynchronous beyond the project's own soft delete,
+        # so its membership and page link can remain active for a short period.
+        Project.objects.filter(id=deleted_project.id).update(deleted_at=timezone.now())
+
+        response = session_client.get(f"/api/workspaces/{workspace.slug}/pages/")
+
+        assert response.status_code == status.HTTP_200_OK
+        response_pages = {str(item["id"]): item for item in response.data}
+        assert response_pages[str(active_page.id)]["project_ids"] == [str(active_project.id)]
+        assert str(deleted_project_page.id) not in response_pages
 
 
 @pytest.mark.contract

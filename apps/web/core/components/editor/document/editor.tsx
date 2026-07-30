@@ -83,6 +83,7 @@ export const DocumentEditor = forwardRef(function DocumentEditor(
     stickyEmbedProps,
     taskViewEmbedProps,
     googleDriveEmbedProps,
+    pageEmbedProps,
     chartEmbedProps,
     renderPicker: renderDocEmbedPicker,
   } = useDocEmbed({
@@ -96,12 +97,14 @@ export const DocumentEditor = forwardRef(function DocumentEditor(
       sticky: stickyEmbedProps,
       taskView: taskViewEmbedProps,
       googleDrive: googleDriveEmbedProps,
+      page: pageEmbedProps,
       chart: chartEmbedProps,
     }),
     [
       chartEmbedProps,
       googleDriveEmbedProps,
       issueEmbedProps,
+      pageEmbedProps,
       stickyEmbedProps,
       taskViewEmbedProps,
       whiteboardEmbedProps,

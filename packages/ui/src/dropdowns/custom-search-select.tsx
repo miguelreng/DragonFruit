@@ -16,7 +16,7 @@ import { CheckIcon, SearchIcon, ChevronDownIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import { useDropdownKeyDown } from "../hooks/use-dropdown-key-down";
 import { cn } from "../utils";
-import type { ICustomSearchSelectProps } from "./helper";
+import { SELECT_PORTAL_LAYER_CLASS, type ICustomSearchSelectProps } from "./helper";
 
 export function CustomSearchSelect(props: ICustomSearchSelectProps) {
   const {
@@ -147,7 +147,8 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                 <Combobox.Options data-prevent-outside-click static>
                   <div
                     className={cn(
-                      "z-30 my-1 min-w-48 overflow-y-scroll rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 py-2.5 text-13 whitespace-nowrap focus:outline-none",
+                      SELECT_PORTAL_LAYER_CLASS,
+                      "my-1 min-w-48 overflow-y-scroll rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 py-2.5 text-13 whitespace-nowrap focus:outline-none",
                       optionsClassName
                     )}
                     ref={setPopperElement}

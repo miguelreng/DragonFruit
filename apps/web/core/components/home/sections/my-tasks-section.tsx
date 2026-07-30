@@ -4,6 +4,8 @@
  * See the LICENSE file for details.
  */
 
+/* eslint-disable oxc/no-map-spread -- optimistic SWR updates require immutable copy-on-write */
+
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
@@ -13,7 +15,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useSearchParams as useRouterSearchParams } from "react-router";
 import { TOAST_TYPE, dismissToast, setToast } from "@plane/propel/toast";
 import type { TBaseIssue, TIssuesResponse } from "@plane/types";
-import { cn, createIssuePayload, renderFormattedPayloadDate } from "@plane/utils";
+import { cn, createIssuePayload, renderFormattedDate, renderFormattedPayloadDate } from "@plane/utils";
 import { Collapse } from "@/components/common/collapse";
 import { ChevronDown, ChevronUp, Plus } from "@/components/icons/lucide-shim";
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -23,10 +25,18 @@ import { useLabel } from "@/hooks/store/use-label";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { IssueService } from "@/services/issue";
-import { buildForest, sortIssues, sortIssuesManual, type Forest, type ForestEntry } from "./task-forest";
+import {
+  buildForest,
+  computeTaskSortOrder,
+  sortIssues,
+  sortIssuesManual,
+  type Forest,
+  type ForestEntry,
+} from "./task-forest";
 import { normalizeProjectToken, parseQuickInput, randomLabelColor } from "./task-parse";
 import { TaskQuickAdd } from "./task-quick-add";
 import { MAX_TASK_DEPTH, TaskRow, type TaskRowOps } from "./task-row";
+import { MY_TASKS_TABLE_COLUMNS } from "./my-tasks-table";
 import { isOpenIssue, useMyTasksData } from "./use-my-tasks";
 
 // How long the row stays visibly "checked" before it animates out of the list.
@@ -35,17 +45,6 @@ const COMPLETE_ANIMATION_MS = 320;
 // Delay between each task's check landing when a parent cascades down its subtasks, so the
 // checks ripple parent → child → grandchild instead of all flipping at once.
 const CASCADE_STAGGER_MS = 90;
-
-// Gap left between adjacent tasks' sort_order values (Plane's manual-ordering step).
-const SORT_STEP = 65535;
-
-/** Pick a sort_order that lands between two neighbors (or just past the edge when at an end). */
-function computeSortOrder(before?: number, after?: number): number {
-  if (before != null && after != null) return (before + after) / 2;
-  if (before != null) return before + SORT_STEP;
-  if (after != null) return after - SORT_STEP;
-  return SORT_STEP;
-}
 
 const issueService = new IssueService();
 
@@ -93,7 +92,7 @@ function ProjectGroupDropZone({
   return (
     <div
       ref={ref}
-      className={cn("rounded-lg transition", isOver && "bg-accent-primary/5 ring-accent-primary/30 ring-1 ring-inset")}
+      className={cn("rounded-lg transition", isOver && "ring-accent-primary/30 bg-accent-primary/5 ring-1 ring-inset")}
     >
       {children}
     </div>
@@ -111,6 +110,8 @@ type MyTasksSectionProps = {
   groupByProject?: boolean;
   /** Fill the parent's height with an internal scroll instead of the 420px widget cap. */
   fullHeight?: boolean;
+  /** Dedicated My Tasks page can switch to a cross-project table. */
+  layout?: "list" | "table";
 };
 
 export const MyTasksSection = observer(function MyTasksSection({
@@ -119,6 +120,7 @@ export const MyTasksSection = observer(function MyTasksSection({
   flat = false,
   groupByProject = false,
   fullHeight = false,
+  layout = "list",
 }: MyTasksSectionProps = {}) {
   const { workspaceSlug } = useParams();
   const searchParams = useSearchParams();
@@ -280,9 +282,7 @@ export const MyTasksSection = observer(function MyTasksSection({
         if (idx === 0) {
           setCheckingIds((prev) => new Set(prev).add(node.id));
         } else {
-          timers.push(
-            setTimeout(() => setCheckingIds((prev) => new Set(prev).add(node.id)), idx * CASCADE_STAGGER_MS)
-          );
+          timers.push(setTimeout(() => setCheckingIds((prev) => new Set(prev).add(node.id)), idx * CASCADE_STAGGER_MS));
         }
       });
 
@@ -526,7 +526,7 @@ export const MyTasksSection = observer(function MyTasksSection({
       const targetIdx = siblings.findIndex((s) => s.id === targetId);
       if (targetIdx === -1) return;
       const insertIdx = position === "above" ? targetIdx : targetIdx + 1;
-      const newSortOrder = computeSortOrder(siblings[insertIdx - 1]?.sort_order, siblings[insertIdx]?.sort_order);
+      const newSortOrder = computeTaskSortOrder(siblings[insertIdx - 1]?.sort_order, siblings[insertIdx]?.sort_order);
 
       // Move the row immediately, then persist — otherwise it visibly snaps back until the refetch lands.
       mutate(
@@ -845,7 +845,87 @@ export const MyTasksSection = observer(function MyTasksSection({
                 )
               : null}
             {tasks.length > 0 &&
-              (groupByProject ? (
+              (layout === "table" ? (
+                <div className={cn("overflow-auto", fullHeight ? "min-h-0 flex-1" : "max-h-[420px]")}>
+                  <table className="w-full min-w-[980px] border-separate border-spacing-0 text-left text-12">
+                    <thead className="sticky top-0 z-20 bg-surface-1 text-11 font-medium text-tertiary">
+                      <tr>
+                        {MY_TASKS_TABLE_COLUMNS.map((column, index) => (
+                          <th
+                            key={column}
+                            className={cn(
+                              "border-b border-subtle px-3 py-2 font-medium",
+                              index === 0 && "sticky left-0 z-30 min-w-[280px] bg-surface-1"
+                            )}
+                          >
+                            {column}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tasks.map((issue) => {
+                        const project = getProjectById(issue.project_id);
+                        const state = getStateById(issue.state_id ?? undefined);
+                        const labels = (issue.label_ids ?? [])
+                          .map((id) => labelById.get(id)?.name)
+                          .filter((name): name is string => Boolean(name));
+                        return (
+                          <tr key={issue.id} className="group/table-row hover:bg-layer-transparent-hover">
+                            <td className="sticky left-0 z-10 border-b border-subtle bg-surface-1 px-3 py-2 group-hover/table-row:bg-layer-1">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <button
+                                  type="button"
+                                  aria-label={`Complete ${issue.name}`}
+                                  onClick={() => handleComplete(issue)}
+                                  className="grid size-5 shrink-0 place-items-center rounded-full border border-subtle-1 text-transparent transition hover:border-accent-strong hover:text-accent-primary"
+                                >
+                                  <span className="text-10">✓</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenDetail(issue)}
+                                  className="min-w-0 truncate text-left font-medium text-secondary hover:text-primary"
+                                >
+                                  {issue.name}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="border-b border-subtle px-3 py-2">
+                              {project && slug ? (
+                                <Link
+                                  href={`/${slug}/projects/${project.id}/issues`}
+                                  className="font-medium text-secondary hover:text-primary"
+                                >
+                                  {project.name}
+                                </Link>
+                              ) : (
+                                <span className="text-placeholder">Unavailable</span>
+                              )}
+                            </td>
+                            <td className="border-b border-subtle px-3 py-2 text-secondary">{state?.name ?? "—"}</td>
+                            <td className="border-b border-subtle px-3 py-2 text-secondary capitalize">
+                              {issue.priority ?? "none"}
+                            </td>
+                            <td className="border-b border-subtle px-3 py-2 text-secondary">
+                              {issue.assignee_ids?.length ? `${issue.assignee_ids.length} assigned` : "—"}
+                            </td>
+                            <td className="border-b border-subtle px-3 py-2 text-secondary">
+                              {issue.target_date ? renderFormattedDate(issue.target_date) : "—"}
+                            </td>
+                            <td className="max-w-[220px] border-b border-subtle px-3 py-2 text-secondary">
+                              <span className="block truncate">{labels.length ? labels.join(", ") : "—"}</span>
+                            </td>
+                            <td className="border-b border-subtle px-3 py-2 whitespace-nowrap text-tertiary">
+                              {issue.updated_at ? renderFormattedDate(issue.updated_at) : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : groupByProject ? (
                 <div className={cn("scrollbar-hide overflow-y-auto", fullHeight ? "min-h-0 flex-1" : "max-h-[420px]")}>
                   {projectGroups.map((group) => {
                     const isCollapsed = collapsedSet.has(group.projectId);

@@ -10,7 +10,6 @@ import { useParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 
 // types
-import { SPACE_BASE_PATH, SPACE_BASE_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { GlobeIcon, NewTabIcon, CheckIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -21,6 +20,7 @@ import { Loader, ToggleSwitch, CustomSelect, ModalCore, EModalWidth } from "@pla
 import { copyTextToClipboard } from "@plane/utils";
 // hooks
 import { useProjectPublish } from "@/hooks/store/use-project-publish";
+import { buildPublishedProjectUrl } from "./public-link";
 
 type Props = {
   isOpen: boolean;
@@ -45,6 +45,7 @@ const VIEW_OPTIONS: {
 }[] = [
   { key: "list", label: "List" },
   { key: "kanban", label: "Kanban" },
+  { key: "calendar", label: "Calendar" },
 ];
 
 export const PublishProjectModal = observer(function PublishProjectModal(props: Props) {
@@ -164,8 +165,12 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
     });
   }, [projectPublishSettings, reset]);
 
-  const SPACE_APP_URL = (SPACE_BASE_URL.trim() === "" ? window.location.origin : SPACE_BASE_URL) + SPACE_BASE_PATH;
-  const publishLink = `${SPACE_APP_URL}/issues/${projectPublishSettings?.anchor}`;
+  const publishLink =
+    workspaceSlug && projectPublishSettings?.anchor
+      ? buildPublishedProjectUrl(workspaceSlug.toString(), projectPublishSettings.anchor, "project", {
+          currentOrigin: window.location.origin,
+        })
+      : "";
 
   const handleCopyLink = () =>
     copyTextToClipboard(publishLink).then(() =>
@@ -180,7 +185,7 @@ export const PublishProjectModal = observer(function PublishProjectModal(props: 
     <ModalCore isOpen={isOpen} handleClose={handleClose} width={EModalWidth.XXL}>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div className="flex items-center justify-between gap-2 p-5">
-          <h5 className="text-18 font-normal text-secondary">Publish project</h5>
+          <h5 className="font-normal text-18 text-secondary">Publish project</h5>
           {isProjectPublished && (
             <Button
               variant="error-fill"

@@ -5,10 +5,16 @@
  */
 
 import { action, observable, makeObservable } from "mobx";
+import {
+  ATLAS_SIDEBAR_DEFAULT_WIDTH,
+  clampAtlasSidebarWidth,
+  parsePersistedAtlasSidebarWidth,
+} from "@/helpers/atlas-sidebar-layout";
 
 const ATLAS_SIDEBAR_OPEN_KEY = "atlas_sidebar_open";
 const ATLAS_SIDEBAR_COLLAPSED_KEY = "atlas_sidebar_collapsed";
 const ATLAS_SIDEBAR_EXPANDED_KEY = "atlas_sidebar_expanded";
+const ATLAS_SIDEBAR_WIDTH_KEY = "atlas_sidebar_width";
 
 /**
  * Atlas docks open by default. A fresh localStorage key (not the legacy
@@ -43,6 +49,19 @@ function readAtlasSidebarExpanded(): boolean {
   return window.localStorage.getItem(ATLAS_SIDEBAR_EXPANDED_KEY) === "true";
 }
 
+/**
+ * Desktop-only: the docked Atlas sidebar's last regular (non-collapsed,
+ * non-full) width. Keep the preferred value even when the current viewport is
+ * smaller; the workspace wrapper clamps only the rendered width so returning
+ * to a larger monitor restores the user's preference.
+ */
+function readAtlasSidebarWidth(): number {
+  if (typeof window === "undefined") return ATLAS_SIDEBAR_DEFAULT_WIDTH;
+  return (
+    parsePersistedAtlasSidebarWidth(window.localStorage.getItem(ATLAS_SIDEBAR_WIDTH_KEY)) ?? ATLAS_SIDEBAR_DEFAULT_WIDTH
+  );
+}
+
 export interface IThemeStore {
   // observables
   isAnySidebarDropdownOpen: boolean | undefined;
@@ -60,6 +79,8 @@ export interface IThemeStore {
   atlasSidebarCollapsed: boolean;
   /** Desktop-only: Atlas sidebar expanded to full width (content closed). */
   atlasSidebarExpanded: boolean;
+  /** Desktop-only: last regular (non-collapsed, non-full) docked width, in px. */
+  atlasSidebarWidth: number;
   // actions
   toggleAnySidebarDropdown: (open?: boolean) => void;
   toggleSidebar: (collapsed?: boolean) => void;
@@ -73,6 +94,7 @@ export interface IThemeStore {
   toggleAgentChat: (open?: boolean) => void;
   toggleAtlasSidebar: (collapsed?: boolean) => void;
   toggleAtlasSidebarExpanded: (expanded?: boolean) => void;
+  setAtlasSidebarWidth: (width: number) => void;
 }
 
 export class ThemeStore implements IThemeStore {
@@ -89,6 +111,7 @@ export class ThemeStore implements IThemeStore {
   agentChatOpen: boolean = readAtlasSidebarOpen();
   atlasSidebarCollapsed: boolean = readAtlasSidebarCollapsed();
   atlasSidebarExpanded: boolean = readAtlasSidebarExpanded();
+  atlasSidebarWidth: number = readAtlasSidebarWidth();
 
   constructor() {
     makeObservable(this, {
@@ -105,6 +128,7 @@ export class ThemeStore implements IThemeStore {
       agentChatOpen: observable.ref,
       atlasSidebarCollapsed: observable.ref,
       atlasSidebarExpanded: observable.ref,
+      atlasSidebarWidth: observable.ref,
       // action
       toggleAnySidebarDropdown: action,
       toggleSidebar: action,
@@ -118,6 +142,7 @@ export class ThemeStore implements IThemeStore {
       toggleAgentChat: action,
       toggleAtlasSidebar: action,
       toggleAtlasSidebarExpanded: action,
+      setAtlasSidebarWidth: action,
     });
   }
 
@@ -256,5 +281,16 @@ export class ThemeStore implements IThemeStore {
       this.atlasSidebarExpanded = expanded;
     }
     localStorage.setItem(ATLAS_SIDEBAR_EXPANDED_KEY, this.atlasSidebarExpanded.toString());
+  };
+
+  /**
+   * Set the docked Atlas sidebar's regular width. Re-clamped against the
+   * current viewport before storing — a stray call with an out-of-range
+   * value (e.g. mid-drag) never persists an unusable width. Persists across
+   * reloads.
+   */
+  setAtlasSidebarWidth = (width: number) => {
+    this.atlasSidebarWidth = clampAtlasSidebarWidth(width, typeof window === "undefined" ? width : window.innerWidth);
+    localStorage.setItem(ATLAS_SIDEBAR_WIDTH_KEY, this.atlasSidebarWidth.toString());
   };
 }

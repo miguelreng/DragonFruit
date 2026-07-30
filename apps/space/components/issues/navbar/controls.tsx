@@ -6,7 +6,7 @@
 
 import { useEffect } from "react";
 import { observer } from "mobx-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 // components
 import { IssueFiltersDropdown } from "@/components/issues/filters";
 // helpers
@@ -33,6 +33,7 @@ export const NavbarControls = observer(function NavbarControls(props: NavbarCont
   const { publishSettings } = props;
   // router
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   // query params
   const board = searchParams.get("board") || undefined;
@@ -74,7 +75,7 @@ export const NavbarControls = observer(function NavbarControls(props: NavbarCont
         if (activeLayout === undefined || activeLayout !== currentBoard) {
           const { query, queryParam } = queryParamGenerator({ board: currentBoard, peekId, priority, state, labels });
           const params: any = {
-            display_filters: { layout: (query?.board as string[])[0] },
+            display_filters: { layout: (query?.board as string[] | undefined)?.[0] },
             filters: {
               priority: query?.priority ?? undefined,
               state: query?.state ?? undefined,
@@ -84,7 +85,7 @@ export const NavbarControls = observer(function NavbarControls(props: NavbarCont
 
           if (!isIssueFiltersUpdated(anchor, params)) {
             initIssueFilters(anchor, params);
-            router.push(`/issues/${anchor}?${queryParam}`);
+            router.push(`${pathname}?${queryParam}`);
           }
         }
       }
@@ -97,6 +98,7 @@ export const NavbarControls = observer(function NavbarControls(props: NavbarCont
     priority,
     peekId,
     activeLayout,
+    pathname,
     router,
     initIssueFilters,
     setPeekId,

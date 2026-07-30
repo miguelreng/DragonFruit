@@ -44,7 +44,8 @@ const extensionRegistry: TDocumentEditorAdditionalExtensionsRegistry[] = [
         embedConfig?.whiteboard?.widgetCallback ||
         embedConfig?.sticky?.widgetCallback ||
         embedConfig?.taskView?.widgetCallback ||
-        embedConfig?.googleDrive?.widgetCallback
+        embedConfig?.googleDrive?.widgetCallback ||
+        embedConfig?.page?.widgetCallback
       ),
     getExtension: ({ embedConfig }) =>
       DocEmbedExtension({
@@ -53,6 +54,7 @@ const extensionRegistry: TDocumentEditorAdditionalExtensionsRegistry[] = [
           sticky: embedConfig?.sticky,
           task_view: embedConfig?.taskView,
           google_drive: embedConfig?.googleDrive,
+          page: embedConfig?.page,
         },
       }),
   },

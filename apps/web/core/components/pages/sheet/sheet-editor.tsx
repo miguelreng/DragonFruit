@@ -246,11 +246,12 @@ const SheetEditorContent = observer(function SheetEditorContent({
   const { getMemberIds, getUserDetails } = useMember();
   const presenceUser = useMemo<TUserDetails>(
     () => ({
+      avatarUrl: getFileURL(currentUser?.avatar_url ?? ""),
       id: currentUser?.id ?? "",
       name: currentUser?.display_name ?? "",
       color: hslToHex(generateRandomColor(currentUser?.id ?? "")),
     }),
-    [currentUser?.display_name, currentUser?.id]
+    [currentUser?.avatar_url, currentUser?.display_name, currentUser?.id]
   );
   const presenceSelection = useMemo(() => {
     if (selection) return selection;

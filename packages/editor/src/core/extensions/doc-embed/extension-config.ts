@@ -6,7 +6,7 @@
 
 import { mergeAttributes, Node } from "@tiptap/core";
 // constants
-import { CORE_EXTENSIONS } from "@/constants/extension";
+import { CORE_EXTENSIONS } from "../../constants/extension";
 
 export const DocEmbedExtensionConfig = Node.create({
   name: CORE_EXTENSIONS.DOC_EMBED,

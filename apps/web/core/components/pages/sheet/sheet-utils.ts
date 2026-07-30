@@ -913,7 +913,10 @@ export const columnDistinctValues = (grid: TSheetGrid, col: number): string[] =>
       out.push(v);
     }
   }
-  return out.toSorted((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  // `out` is local to this call, so an in-place sort is safe and keeps the
+  // helper compatible with the app's current (pre-ES2023) TypeScript target.
+  // oxlint-disable-next-line unicorn/no-array-sort
+  return out.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 };
 
 /** Whether a column has an active filter. */

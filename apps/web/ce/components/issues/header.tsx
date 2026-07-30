@@ -13,8 +13,6 @@ import {
   EUserPermissions,
   EUserPermissionsLevel,
   IS_FAVORITE_MENU_OPEN,
-  SPACE_BASE_PATH,
-  SPACE_BASE_URL,
   WORK_ITEM_TRACKER_ELEMENTS,
 } from "@plane/constants";
 import { useLocalStorage } from "@plane/hooks";
@@ -38,6 +36,7 @@ import { useAppRouter } from "@/hooks/use-app-router";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web imports
 import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
+import { buildPublishedProjectUrl } from "@/components/project/publish-project/public-link";
 
 export const IssuesHeader = observer(function IssuesHeader() {
   // router
@@ -78,8 +77,12 @@ export const IssuesHeader = observer(function IssuesHeader() {
     }
   };
 
-  const SPACE_APP_URL = (SPACE_BASE_URL.trim() === "" ? window.location.origin : SPACE_BASE_URL) + SPACE_BASE_PATH;
-  const publishedURL = `${SPACE_APP_URL}/issues/${currentProjectDetails?.anchor}`;
+  const publishedURL =
+    workspaceSlug && currentProjectDetails?.anchor
+      ? buildPublishedProjectUrl(workspaceSlug.toString(), currentProjectDetails.anchor, "project", {
+          currentOrigin: window.location.origin,
+        })
+      : "";
 
   const issuesCount = getGroupIssueCount(undefined, undefined, false);
   const canUserCreateIssue = allowPermissions(
@@ -95,11 +98,7 @@ export const IssuesHeader = observer(function IssuesHeader() {
             <CommonProjectBreadcrumbs workspaceSlug={workspaceSlug?.toString()} projectId={projectId?.toString()} />
             <Breadcrumbs.Item
               component={
-                <BreadcrumbLink
-                  label="Tasks"
-                  href={`/${workspaceSlug}/projects/${projectId}/issues/`}
-                  isLast
-                />
+                <BreadcrumbLink label="Tasks" href={`/${workspaceSlug}/projects/${projectId}/issues/`} isLast />
               }
               isLast
             />

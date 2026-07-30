@@ -5,7 +5,7 @@
  */
 
 // plane imports
-import { API_BASE_URL } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@plane/constants";
 // local services
 import type { TFileEntityInfo, TFileSignedURLResponse } from "@plane/types";
 import { FileUploadService } from "./file-upload.service";
@@ -27,7 +27,7 @@ export class SitesFileService extends FileService {
    * @param {string} BASE_URL - The base URL for API requests
    */
   constructor(BASE_URL?: string) {
-    super(BASE_URL || API_BASE_URL);
+    super(BASE_URL || getPublicApiBaseUrl());
     this.cancelUpload = this.cancelUpload.bind(this);
     // services
     this.fileUploadService = new FileUploadService();

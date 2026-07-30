@@ -12,15 +12,11 @@ import type {
 import type { ElementDragPayload } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { observer } from "mobx-react";
 import { usePathname, useParams } from "next/navigation";
-import { useTheme } from "next-themes";
 
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 import { cn } from "@plane/utils";
-// assets
-import darkStickiesSearchAsset from "@/app/assets/empty-state/stickies/stickies-search-dark.webp?url";
-import lightStickiesSearchAsset from "@/app/assets/empty-state/stickies/stickies-search-light.webp?url";
 // components
 import type { ViewMode } from "@/components/core/view-mode-toggle";
 import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
@@ -60,8 +56,6 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   const pathname = usePathname();
   const { projectId } = useParams();
   const scopeKey = projectId ? projectId.toString() : (workspaceSlug?.toString() ?? "");
-  // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // store hooks
@@ -72,7 +66,6 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
   const workspaceStickyIds = getWorkspaceStickyIds(scopeKey);
   const itemWidth = "100%";
   const isStickiesPage = pathname?.includes("stickies");
-  const stickiesSearchResolvedPath = resolvedTheme === "light" ? lightStickiesSearchAsset : darkStickiesSearchAsset;
 
   const handleDrop = (self: DropTargetRecord, source: ElementDragPayload, location: DragLocationHistory) => {
     const dropTargets = location?.current?.dropTargets ?? [];
@@ -106,7 +99,7 @@ export const StickiesList = observer(function StickiesList(props: TProps) {
               <SimpleEmptyState
                 title={t("stickies.empty_state.search.title")}
                 description={t("stickies.empty_state.search.description")}
-                assetPath={stickiesSearchResolvedPath}
+                visual={{ type: "icon", name: "search" }}
               />
             ) : (
               <EmptyStateDetailed

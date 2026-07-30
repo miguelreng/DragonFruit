@@ -41,12 +41,11 @@ export function WikiSharePopover({ workspaceSlug, folder, onOpenSettings, onChan
 
   const isPublished = folder.access === EPageAccess.PUBLIC;
   const publicSlug = getPublicPageSlug(folder);
-  const publicPath = buildPublicPagePath(workspaceSlug, publicSlug);
+  const publicPath = buildPublicPagePath(workspaceSlug, publicSlug, "wiki");
+  const publicUrl = buildPublicPageUrl(workspaceSlug, publicSlug, "wiki");
 
   const copyLink = () => {
-    void copyUrlToClipboard(buildPublicPageUrl(workspaceSlug, publicSlug)).then(() =>
-      setToast({ type: TOAST_TYPE.SUCCESS, title: "Wiki link copied" })
-    );
+    void copyUrlToClipboard(publicUrl).then(() => setToast({ type: TOAST_TYPE.SUCCESS, title: "Wiki link copied" }));
   };
 
   const unpublish = async (close: () => void) => {
@@ -119,7 +118,7 @@ export function WikiSharePopover({ workspaceSlug, folder, onOpenSettings, onChan
                   </div>
                   <div className="flex items-center gap-1.5">
                     <a
-                      href={publicPath}
+                      href={publicUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={cn(getButtonStyling("primary", "lg"), "flex-1 justify-center")}
@@ -144,7 +143,7 @@ export function WikiSharePopover({ workspaceSlug, folder, onOpenSettings, onChan
                     type="button"
                     onClick={() => void unpublish(close)}
                     disabled={isUnpublishing}
-                    className="self-start text-11 font-medium text-tertiary hover:text-red-500 disabled:opacity-60"
+                    className="hover:text-red-500 self-start text-11 font-medium text-tertiary disabled:opacity-60"
                   >
                     {isUnpublishing ? "Unpublishing..." : "Unpublish wiki"}
                   </button>
@@ -153,8 +152,8 @@ export function WikiSharePopover({ workspaceSlug, folder, onOpenSettings, onChan
                 <>
                   <p className="text-13 font-medium text-primary">Not published yet</p>
                   <p className="-mt-2 text-12 text-tertiary">
-                    Only workspace members can see the docs in {getPageName(folder.name)}. Publish it as a wiki to
-                    share a read-only link.
+                    Only workspace members can see the docs in {getPageName(folder.name)}. Publish it as a wiki to share
+                    a read-only link.
                   </p>
                   <div className="flex items-center gap-1.5">
                     <Button
@@ -169,7 +168,7 @@ export function WikiSharePopover({ workspaceSlug, folder, onOpenSettings, onChan
                       Create wiki
                     </Button>
                     <a
-                      href={publicPath}
+                      href={publicUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Preview how the wiki will look — only visible to workspace members"

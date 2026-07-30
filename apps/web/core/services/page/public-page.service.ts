@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { API_BASE_URL } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@plane/constants";
 import type { TPageType } from "@plane/types";
 import { APIService } from "@/services/api.service";
 
@@ -66,7 +66,7 @@ export type TPublicDocEmbed = {
 
 export class PublicPageService extends APIService {
   constructor() {
-    super(API_BASE_URL);
+    super(getPublicApiBaseUrl());
   }
 
   async retrieve(workspaceSlug: string, pageSlug: string): Promise<TPublicPageResponse> {

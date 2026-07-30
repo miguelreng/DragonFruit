@@ -22,6 +22,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useParseEditorContent } from "@/hooks/use-parse-editor-content";
 // plane web hooks
 import { useEditorFlagging } from "@/plane-web/hooks/use-editor-flagging";
+import { useDocEmbed } from "@/plane-web/hooks/use-doc-embed";
 // plane web service
 import { WorkspaceService } from "@/services/workspace.service";
 import { LiteToolbar } from "./lite-toolbar";
@@ -56,6 +57,10 @@ type LiteTextEditorWrapperProps = MakeOptional<
         duplicateFile: TFileHandler["duplicate"];
       }
   );
+
+function isMutableRefObject<T>(forwardedRef: React.ForwardedRef<T>): forwardedRef is React.MutableRefObject<T | null> {
+  return !!forwardedRef && typeof forwardedRef === "object" && "current" in forwardedRef;
+}
 
 export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
   props: LiteTextEditorWrapperProps,
@@ -111,11 +116,10 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
         issue_id,
       }),
   });
+  const { pageEmbedProps, renderPicker: renderDocEmbedPicker } = useDocEmbed({ projectId, workspaceSlug });
+  const embedConfig = useMemo(() => ({ page: pageEmbedProps }), [pageEmbedProps]);
   // editor config
   const { getEditorFileHandlers } = useEditorConfig();
-  function isMutableRefObject<T>(ref: React.ForwardedRef<T>): ref is React.MutableRefObject<T | null> {
-    return !!ref && typeof ref === "object" && "current" in ref;
-  }
   // derived values
   const isEmpty = isCommentEmpty(props.initialValue);
 
@@ -201,6 +205,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
               "p-2": !editable,
             })}
             extendedEditorProps={{}}
+            embedConfig={embedConfig}
             editorClassName={editorClassName}
             {...rest}
           />
@@ -254,6 +259,7 @@ export const LiteTextEditor = React.forwardRef(function LiteTextEditor(
           />
         </div>
       )}
+      {renderDocEmbedPicker()}
     </div>
   );
 });

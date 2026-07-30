@@ -11,7 +11,15 @@ import { ArchiveRestoreIcon, FileOutput, FileText, LockKeyhole, LockKeyholeOpen 
 // constants
 import { EPageAccess, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // plane editor
-import { LinkIcon, CopyIcon, LockIcon, NewTabIcon, ArchiveIcon, TrashIcon, GlobeIcon } from "@/components/icons/propel-shim";
+import {
+  LinkIcon,
+  CopyIcon,
+  LockIcon,
+  NewTabIcon,
+  ArchiveIcon,
+  TrashIcon,
+  GlobeIcon,
+} from "@/components/icons/propel-shim";
 // plane ui
 import type { TContextMenuItem } from "@plane/ui";
 import { ContextMenu, CustomMenu } from "@plane/ui";
@@ -23,6 +31,7 @@ import { isBriefPage } from "@/components/project/brief/constants";
 import {
   buildPublicPagePath,
   buildPublicPageUrl,
+  getPublicPageContentType,
   getPublicPageSlug,
   normalizePublicPageSlug,
   validatePublicPageSlug,
@@ -172,7 +181,9 @@ export const PageActions = observer(function PageActions(props: Props) {
           action: async () => {
             if (!workspaceSlug || !page.id) return;
             const slug = getPublicPageSlug(page);
-            await copyUrlToClipboard(buildPublicPageUrl(workspaceSlug.toString(), slug));
+            await copyUrlToClipboard(
+              buildPublicPageUrl(workspaceSlug.toString(), slug, getPublicPageContentType(page))
+            );
             setToast({
               type: TOAST_TYPE.SUCCESS,
               title: "Public link copied",
@@ -204,7 +215,7 @@ export const PageActions = observer(function PageActions(props: Props) {
             setToast({
               type: TOAST_TYPE.SUCCESS,
               title: "Public URL updated",
-              message: buildPublicPagePath(workspaceSlug.toString(), nextSlug),
+              message: buildPublicPagePath(workspaceSlug.toString(), nextSlug, getPublicPageContentType(page)),
             });
           },
           title: "Edit public URL",

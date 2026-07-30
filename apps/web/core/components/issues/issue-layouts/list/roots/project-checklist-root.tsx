@@ -16,7 +16,8 @@ import { cn, renderFormattedPayloadDate } from "@plane/utils";
 import { Collapse } from "@/components/common/collapse";
 import {
   buildForest,
-  sortIssues,
+  computeTaskSortOrder,
+  sortIssuesManual,
   type Forest,
   type ForestEntry,
 } from "@/components/home/sections/task-forest";
@@ -70,7 +71,10 @@ function StatusDropZone({
   }, [stateId, onDropTask]);
 
   return (
-    <div ref={ref} className={cn("rounded-lg transition", isOver && "ring-accent-primary/30 bg-accent-primary/5 ring-1")}>
+    <div
+      ref={ref}
+      className={cn("rounded-lg transition", isOver && "ring-accent-primary/30 bg-accent-primary/5 ring-1")}
+    >
       {children}
     </div>
   );
@@ -162,7 +166,7 @@ export const ProjectChecklist = observer(function ProjectChecklist() {
   };
   for (const group of groups) {
     const idSet = new Set(group.issues.map((i) => i.id));
-    const forest = buildForest(group.issues, idSet);
+    const forest = buildForest(group.issues, idSet, true);
     forestByState.set(group.state.id, forest);
     forest.byId.forEach((v, k) => combined.byId.set(k, v));
     forest.depthById.forEach((v, k) => combined.depthById.set(k, v));
@@ -282,6 +286,40 @@ export const ProjectChecklist = observer(function ProjectChecklist() {
     [projectId, updateIssue]
   );
 
+  const reorderTask = useCallback(
+    async (sourceId: string, targetId: string, position: "above" | "below") => {
+      const c = combinedRef.current;
+      if (!projectId || sourceId === targetId) return;
+      const source = c.byId.get(sourceId);
+      const target = c.byId.get(targetId);
+      if (!source || !target || source.state_id !== target.state_id) return;
+      if (c.descendantIdsById.get(sourceId)?.has(targetId)) return;
+
+      const targetParentId = target.parent_id && c.byId.has(target.parent_id) ? target.parent_id : null;
+      const newDepth = c.depthById.get(targetId) ?? 0;
+      const sourceHeight = c.heightById.get(sourceId) ?? 0;
+      if (newDepth + sourceHeight > MAX_TASK_DEPTH) return;
+
+      const forest = target.state_id ? forestByStateRef.current.get(target.state_id) : undefined;
+      if (!forest) return;
+      const siblingsRaw = targetParentId
+        ? (forest.childrenByParent.get(targetParentId) ?? [])
+        : forest.allEntries.filter((entry) => entry.depth === 0).map((entry) => entry.issue);
+      const siblings = sortIssuesManual(siblingsRaw).filter((issue) => issue.id !== sourceId);
+      const targetIndex = siblings.findIndex((issue) => issue.id === targetId);
+      if (targetIndex === -1) return;
+      const insertIndex = position === "above" ? targetIndex : targetIndex + 1;
+      const sortOrder = computeTaskSortOrder(siblings[insertIndex - 1]?.sort_order, siblings[insertIndex]?.sort_order);
+
+      try {
+        await updateIssue?.(projectId, sourceId, { parent_id: targetParentId, sort_order: sortOrder });
+      } catch {
+        setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't move task", message: "Something went wrong." });
+      }
+    },
+    [projectId, updateIssue]
+  );
+
   // Drag a task onto a different status group → re-state it (and detach from any parent, since
   // subtasks live within a single status).
   const moveTaskToStatus = useCallback(
@@ -325,7 +363,7 @@ export const ProjectChecklist = observer(function ProjectChecklist() {
       const siblingsRaw = effParent
         ? (forest.childrenByParent.get(effParent) ?? [])
         : forest.allEntries.filter((e) => e.depth === 0).map((e) => e.issue);
-      const siblings = sortIssues(siblingsRaw);
+      const siblings = sortIssuesManual(siblingsRaw);
       const idx = siblings.findIndex((i) => i.id === issue.id);
       const prev = idx > 0 ? siblings[idx - 1] : undefined;
       if (!prev) return;
@@ -367,6 +405,7 @@ export const ProjectChecklist = observer(function ProjectChecklist() {
       onIndent: indentTask,
       onOutdent: outdentTask,
       onNest: nestTask,
+      onReorder: reorderTask,
       onOpenDetail,
       // No onFilterLabel: project labels filter via the rich-filter system, not here.
     }),
@@ -379,6 +418,7 @@ export const ProjectChecklist = observer(function ProjectChecklist() {
       indentTask,
       outdentTask,
       nestTask,
+      reorderTask,
       onOpenDetail,
     ]
   );
@@ -387,7 +427,7 @@ export const ProjectChecklist = observer(function ProjectChecklist() {
   const totalTasks = groups.reduce((sum, g) => sum + g.issues.length, 0);
 
   return (
-    <div className="w-full max-w-xl px-4 pb-4 pt-1">
+    <div className="w-full max-w-xl px-4 pt-1 pb-4">
       {isLoading ? (
         <div className="px-3 py-6 text-center text-12 text-placeholder">Loading…</div>
       ) : totalTasks === 0 && !draft ? (
@@ -399,70 +439,70 @@ export const ProjectChecklist = observer(function ProjectChecklist() {
           return (
             <div key={group.state.id}>
               <StatusDropZone stateId={group.state.id} onDropTask={moveTaskToStatus}>
-              <button
-                type="button"
-                onClick={() => toggleStateCollapsed(group.state.id)}
-                aria-expanded={!isCollapsed}
-                className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1 text-left transition hover:bg-layer-transparent-hover"
-              >
-                {isCollapsed ? (
-                  <ChevronUp className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
-                ) : (
-                  <ChevronDown className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
-                )}
-                <span
-                  className="size-2 flex-shrink-0 rounded-full"
-                  style={{ backgroundColor: group.state.color || undefined }}
-                />
-                <span className="truncate text-14 font-semibold text-secondary">{group.state.name}</span>
-                <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
-                  {group.issues.length}
-                </span>
-              </button>
-              <Collapse open={!isCollapsed}>
-                <ul>
-                  {entries.map((entry: ForestEntry) => (
-                    <TaskRow
-                      key={entry.issue.id}
-                      issue={entry.issue}
-                      isChecked={group.state.group === "completed"}
-                      showProject={false}
-                      depth={entry.depth}
-                      height={entry.height}
-                      ancestorIds={entry.ancestorIds}
-                      statusId={group.state.id}
-                      enableDrag
-                      shouldFocus={focusTaskId === entry.issue.id}
-                      onFocused={() => setFocusTaskId(null)}
-                      ops={rowOps}
-                    />
-                  ))}
-                  {draft?.stateId === group.state.id && (
+                <button
+                  type="button"
+                  onClick={() => toggleStateCollapsed(group.state.id)}
+                  aria-expanded={!isCollapsed}
+                  className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1 text-left transition hover:bg-layer-transparent-hover"
+                >
+                  {isCollapsed ? (
+                    <ChevronUp className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
+                  ) : (
+                    <ChevronDown className="size-3 flex-shrink-0 text-tertiary" weight="Bold" />
+                  )}
+                  <span
+                    className="size-2 flex-shrink-0 rounded-full"
+                    style={{ backgroundColor: group.state.color || undefined }}
+                  />
+                  <span className="truncate text-14 font-semibold text-secondary">{group.state.name}</span>
+                  <span className="rounded-full bg-layer-1 px-1.5 py-px text-11 font-medium text-tertiary">
+                    {group.issues.length}
+                  </span>
+                </button>
+                <Collapse open={!isCollapsed}>
+                  <ul>
+                    {entries.map((entry: ForestEntry) => (
+                      <TaskRow
+                        key={entry.issue.id}
+                        issue={entry.issue}
+                        isChecked={group.state.group === "completed"}
+                        showProject={false}
+                        depth={entry.depth}
+                        height={entry.height}
+                        ancestorIds={entry.ancestorIds}
+                        statusId={group.state.id}
+                        enableDrag
+                        shouldFocus={focusTaskId === entry.issue.id}
+                        onFocused={() => setFocusTaskId(null)}
+                        ops={rowOps}
+                      />
+                    ))}
+                    {draft?.stateId === group.state.id && (
+                      <TaskQuickAdd
+                        slug={slug ?? ""}
+                        projectId={projectId ?? ""}
+                        indentTargetId={draft.indentTargetId}
+                        defaultIndented={draft.defaultIndented}
+                        hideProjectToken
+                        focusOnMount
+                        onCreate={(text, opts) => createTask(text, group.state.id, opts.parentId)}
+                        onClose={() => setDraft(null)}
+                      />
+                    )}
+                    {/* Per-status add row — only visible while the group is expanded. */}
                     <TaskQuickAdd
                       slug={slug ?? ""}
                       projectId={projectId ?? ""}
-                      indentTargetId={draft.indentTargetId}
-                      defaultIndented={draft.defaultIndented}
+                      onCreate={(text) => createTask(text, group.state.id)}
+                      onCreated={(created) => {
+                        const id = (created as TIssue | null)?.id;
+                        if (id) setFocusTaskId(id);
+                      }}
                       hideProjectToken
-                      focusOnMount
-                      onCreate={(text, opts) => createTask(text, group.state.id, opts.parentId)}
-                      onClose={() => setDraft(null)}
+                      persistent
                     />
-                  )}
-                  {/* Per-status add row — only visible while the group is expanded. */}
-                  <TaskQuickAdd
-                    slug={slug ?? ""}
-                    projectId={projectId ?? ""}
-                    onCreate={(text) => createTask(text, group.state.id)}
-                    onCreated={(created) => {
-                      const id = (created as TIssue | null)?.id;
-                      if (id) setFocusTaskId(id);
-                    }}
-                    hideProjectToken
-                    persistent
-                  />
-                </ul>
-              </Collapse>
+                  </ul>
+                </Collapse>
               </StatusDropZone>
             </div>
           );

@@ -104,6 +104,21 @@ export class Server {
   }
 
   public async destroy() {
+    // Stop accepting new HTTP/WebSocket connections before disconnecting
+    // active collaborators or shared dependencies.
+    const serverClosed = this.httpServer
+      ? new Promise<void>((resolve, reject) => {
+          this.httpServer!.close((err) => {
+            if (err) {
+              reject(err);
+            } else {
+              logger.info("SERVER: Express server closed gracefully.");
+              resolve();
+            }
+          });
+        })
+      : Promise.resolve();
+
     if (this.hocuspocusServer) {
       this.hocuspocusServer.closeConnections();
       logger.info("SERVER: HocusPocus connections closed gracefully.");
@@ -112,17 +127,6 @@ export class Server {
     await redisManager.disconnect();
     logger.info("SERVER: Redis connection closed gracefully.");
 
-    if (this.httpServer) {
-      await new Promise<void>((resolve, reject) => {
-        this.httpServer!.close((err) => {
-          if (err) {
-            reject(err);
-          } else {
-            logger.info("SERVER: Express server closed gracefully.");
-            resolve();
-          }
-        });
-      });
-    }
+    await serverClosed;
   }
 }

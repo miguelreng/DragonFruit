@@ -17,7 +17,7 @@ import { useDropdownKeyDown } from "../hooks/use-dropdown-key-down";
 // helpers
 import { cn } from "../utils";
 // types
-import type { ICustomSelectItemProps, ICustomSelectProps } from "./helper";
+import { SELECT_PORTAL_LAYER_CLASS, type ICustomSelectItemProps, type ICustomSelectProps } from "./helper";
 
 // Context to share the close handler with option components
 const DropdownContext = createContext<() => void>(() => {});
@@ -123,7 +123,8 @@ function CustomSelect(props: ICustomSelectProps) {
             <Combobox.Options data-prevent-outside-click>
               <div
                 className={cn(
-                  "z-30 my-1 min-w-48 overflow-y-scroll rounded-lg border-[0.5px] border-subtle-1 bg-surface-1 p-1 text-13 whitespace-nowrap focus:outline-none",
+                  SELECT_PORTAL_LAYER_CLASS,
+                  "my-1 min-w-48 overflow-y-scroll rounded-lg border-[0.5px] border-subtle-1 bg-surface-1 p-1 text-13 whitespace-nowrap focus:outline-none",
                   optionsClassName
                 )}
                 ref={setPopperElement}

@@ -5,7 +5,16 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HardDrive, ListChecks, Loader2, Whiteboard, Plus, Search, StickyNote } from "@/components/icons/lucide-shim";
+import {
+  FileText,
+  HardDrive,
+  ListChecks,
+  Loader2,
+  Whiteboard,
+  Plus,
+  Search,
+  StickyNote,
+} from "@/components/icons/lucide-shim";
 import { pickGoogleDriveFile } from "@/components/google-drive/google-drive-picker";
 import type { TDocEmbedInsertAttrs, TDocEmbedPickerMode, TDocEmbedType } from "@plane/editor";
 import type { IProjectView, TSticky } from "@plane/types";
@@ -59,6 +68,13 @@ const TYPE_COPY = {
     placeholder: "Choose a Google Drive file...",
     createPlaceholder: "Choose a Google Drive file...",
     Icon: HardDrive,
+  },
+  page: {
+    label: "Doc",
+    plural: "Docs",
+    placeholder: "Search workspace Docs…",
+    createPlaceholder: "Search workspace Docs…",
+    Icon: FileText,
   },
 };
 
@@ -122,7 +138,28 @@ export function DocEmbedPicker(props: Props) {
     const handle = window.setTimeout(async () => {
       try {
         const trimmed = trimmedQuery.toLowerCase();
-        if (embedType === "whiteboard") {
+        if (embedType === "page") {
+          const pages = await pageService.fetchWorkspacePages(workspaceSlug, "doc");
+          setResults(
+            pages
+              .filter((page) => !trimmed || (page.name ?? "Untitled Doc").toLowerCase().includes(trimmed))
+              .slice(0, EMBED_PICKER_RESULT_LIMIT)
+              .flatMap((page) => {
+                const linkedProjectId = page.project_ids?.[0];
+                return page.id && linkedProjectId
+                  ? [
+                      {
+                        type: "page" as const,
+                        id: page.id,
+                        title: page.name ?? "Untitled Doc",
+                        projectId: linkedProjectId,
+                        page,
+                      },
+                    ]
+                  : [];
+              })
+          );
+        } else if (embedType === "whiteboard") {
           const pages = await pageService.fetchAll(workspaceSlug, projectId!, "whiteboard");
           setResults(
             pages
@@ -188,7 +225,10 @@ export function DocEmbedPicker(props: Props) {
     onInsert({
       embedType,
       entityId: source.id,
-      projectId: source.type === "whiteboard" || source.type === "task_view" ? source.projectId : projectId,
+      projectId:
+        source.type === "whiteboard" || source.type === "task_view" || source.type === "page"
+          ? source.projectId
+          : projectId,
       workspaceSlug,
       title: source.title,
       snapshot: source.type === "whiteboard" ? source.page.description_json : undefined,

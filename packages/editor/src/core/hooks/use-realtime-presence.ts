@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { TUserDetails } from "@/types";
+import { createCurrentPresenceParticipant, isPresenceEditingActive } from "./presence-state";
 
 export type TPresenceSurface = "document" | "sheet";
 
@@ -24,6 +25,7 @@ export type TPresenceParticipant = TPresenceMember & {
   clientId: number;
   color: string;
   isCurrentUser: boolean;
+  isEditing: boolean;
   pointer?: { x: number; y: number; updatedAt: number };
   selection?: TPresenceSelection;
   sheetId?: string;
@@ -32,6 +34,7 @@ export type TPresenceParticipant = TPresenceMember & {
 type TPresencePayload = {
   v: 1;
   user: { id: string };
+  editing?: { updatedAt: number };
   pointer?: { x: number; y: number; surface: TPresenceSurface; updatedAt: number };
   sheet?: { sheetId: string; selection?: TPresenceSelection };
 };
@@ -53,6 +56,7 @@ type TUseRealtimePresenceArgs = {
 
 const POINTER_INTERVAL = 50;
 const POINTER_STALE_AFTER = 10_000;
+const EDITING_INTERVAL = 500;
 const isFinitePoint = (pointer: TPresencePayload["pointer"]): pointer is NonNullable<TPresencePayload["pointer"]> =>
   !!pointer && Number.isFinite(pointer.x) && Number.isFinite(pointer.y) && Number.isFinite(pointer.updatedAt);
 
@@ -73,6 +77,7 @@ export const useRealtimePresence = ({
 }: TUseRealtimePresenceArgs) => {
   const [participants, setParticipants] = useState<TPresenceParticipant[]>([]);
   const payloadRef = useRef<TPresencePayload>({ v: 1, user: { id: user.id } });
+  const lastEditingAtRef = useRef(0);
   const lastPointerAtRef = useRef(0);
   const frameRef = useRef<number | null>(null);
   const resolveUserRef = useRef(resolveUser);
@@ -82,18 +87,37 @@ export const useRealtimePresence = ({
     const awareness = provider.awareness;
     if (!awareness) return;
     awareness.setLocalStateField("user", {
+      avatarUrl: user.avatarUrl,
       id: user.id,
       name: user.name,
       color: hslToHex(generateRandomColor(user.id)),
     });
     awareness.setLocalStateField("presence", payloadRef.current);
-  }, [provider, user.id, user.name]);
+  }, [provider, user.avatarUrl, user.id, user.name]);
 
   const refreshParticipants = useCallback(() => {
-    const awareness = provider.awareness;
-    if (!awareness) return;
     const now = Date.now();
     const byUser = new Map<string, TPresenceParticipant>();
+    const latestActivityByUser = new Map<string, number>();
+
+    if (user.id) {
+      byUser.set(
+        user.id,
+        createCurrentPresenceParticipant({
+          avatarUrl: user.avatarUrl,
+          color: hslToHex(generateRandomColor(user.id)),
+          id: user.id,
+          name: user.name,
+        })
+      );
+      latestActivityByUser.set(user.id, 0);
+    }
+
+    const awareness = provider.awareness;
+    if (!awareness) {
+      setParticipants([...byUser.values()]);
+      return;
+    }
 
     awareness.getStates().forEach((rawState, clientId) => {
       const state = rawState as TAwarenessState;
@@ -101,11 +125,16 @@ export const useRealtimePresence = ({
       if (presence?.v !== 1 || !presence.user?.id) return;
 
       const userId = presence.user.id;
+      const awarenessMember = state.user?.name
+        ? { avatarUrl: state.user.avatarUrl, id: userId, name: state.user.name }
+        : null;
+      const resolvedMember = resolveUserRef.current?.(userId);
       const member =
         userId === user.id
-          ? { id: user.id, name: user.name }
-          : (resolveUserRef.current?.(userId) ??
-            (!resolveUserRef.current && state.user?.name ? { id: userId, name: state.user.name } : null));
+          ? { avatarUrl: user.avatarUrl, id: user.id, name: user.name }
+          : resolvedMember
+            ? { ...resolvedMember, avatarUrl: resolvedMember.avatarUrl || awarenessMember?.avatarUrl }
+            : awarenessMember;
       if (!member) return;
 
       const pointer =
@@ -120,23 +149,38 @@ export const useRealtimePresence = ({
         clientId,
         color,
         isCurrentUser: userId === user.id,
+        isEditing: isPresenceEditingActive(presence.editing?.updatedAt, now),
         pointer,
         selection: isFiniteSelection(presence.sheet?.selection) ? presence.sheet.selection : undefined,
         sheetId: presence.sheet?.sheetId,
       };
       const existing = byUser.get(userId);
-      if (!existing || (candidate.pointer?.updatedAt ?? 0) >= (existing.pointer?.updatedAt ?? 0)) {
+      const activityAt = Math.max(candidate.pointer?.updatedAt ?? 0, presence.editing?.updatedAt ?? 0);
+      if (!existing) {
         byUser.set(userId, candidate);
+        latestActivityByUser.set(userId, activityAt);
+      } else if (activityAt >= (latestActivityByUser.get(userId) ?? 0)) {
+        byUser.set(userId, {
+          ...candidate,
+          avatarUrl: candidate.avatarUrl || existing.avatarUrl,
+          isEditing: candidate.isEditing || existing.isEditing,
+        });
+        latestActivityByUser.set(userId, activityAt);
+      } else if (candidate.isEditing && !existing.isEditing) {
+        byUser.set(userId, { ...existing, isEditing: true });
       }
     });
 
+    // Copy the awareness values before sorting; this package targets a
+    // pre-ES2023 runtime where `toSorted` is unavailable.
     setParticipants(
+      // oxlint-disable-next-line unicorn/no-array-sort
       [...byUser.values()].sort((a, b) => {
         if (a.isCurrentUser !== b.isCurrentUser) return a.isCurrentUser ? -1 : 1;
         return a.name.localeCompare(b.name);
       })
     );
-  }, [provider, surface, user.id, user.name]);
+  }, [provider, surface, user.avatarUrl, user.id, user.name]);
 
   useEffect(() => {
     payloadRef.current = {
@@ -145,7 +189,7 @@ export const useRealtimePresence = ({
       sheet: sheetId ? { sheetId, selection } : undefined,
     };
     publish();
-  }, [publish, selection?.c1, selection?.c2, selection?.r1, selection?.r2, sheetId, user.id]);
+  }, [publish, selection, sheetId, user.id]);
 
   useEffect(() => {
     const awareness = provider.awareness;
@@ -163,6 +207,18 @@ export const useRealtimePresence = ({
     const container = containerRef.current;
     if (!container) return;
 
+    const clearEditing = () => {
+      if (!payloadRef.current.editing) return;
+      payloadRef.current = { ...payloadRef.current, editing: undefined };
+      publish();
+    };
+    const handleEditing = () => {
+      const now = Date.now();
+      if (now - lastEditingAtRef.current < EDITING_INTERVAL) return;
+      lastEditingAtRef.current = now;
+      payloadRef.current = { ...payloadRef.current, editing: { updatedAt: now } };
+      publish();
+    };
     const clearPointer = () => {
       if (!payloadRef.current.pointer) return;
       payloadRef.current = { ...payloadRef.current, pointer: undefined };
@@ -182,18 +238,26 @@ export const useRealtimePresence = ({
       });
     };
     const handleVisibility = () => {
-      if (document.visibilityState !== "visible") clearPointer();
+      if (document.visibilityState !== "visible") {
+        clearEditing();
+        clearPointer();
+      }
     };
 
+    container.addEventListener("beforeinput", handleEditing);
     container.addEventListener("pointermove", handlePointerMove, { passive: true });
     container.addEventListener("pointerleave", clearPointer);
+    window.addEventListener("blur", clearEditing);
     window.addEventListener("blur", clearPointer);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
+      clearEditing();
       clearPointer();
       if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
+      container.removeEventListener("beforeinput", handleEditing);
       container.removeEventListener("pointermove", handlePointerMove);
       container.removeEventListener("pointerleave", clearPointer);
+      window.removeEventListener("blur", clearEditing);
       window.removeEventListener("blur", clearPointer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };

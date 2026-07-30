@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
 import type { TPage } from "@plane/types";
@@ -34,6 +34,14 @@ import {
 } from "@/components/icons/lucide-shim";
 import { ViewsIcon, WorkItemsIcon } from "@/components/icons/propel-shim";
 import { isTypingInInput } from "@/components/power-k/core/shortcut-handler";
+import {
+  ATLAS_SIDEBAR_DEFAULT_WIDTH,
+  ATLAS_SIDEBAR_MIN_WIDTH,
+  clampAtlasSidebarWidth,
+  getAtlasSidebarMaxWidth,
+  getAtlasSidebarWidthForKey,
+  snapAtlasSidebarWidth,
+} from "@/helpers/atlas-sidebar-layout";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";
 import useSize from "@/hooks/use-window-size";
@@ -62,6 +70,8 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     toggleAtlasSidebar,
     atlasSidebarExpanded,
     toggleAtlasSidebarExpanded,
+    atlasSidebarWidth,
+    setAtlasSidebarWidth,
   } = useAppTheme();
   const [windowWidth] = useSize();
   const pathname = usePathname();
@@ -80,6 +90,87 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   const atlasFull = agentChatOpen && atlasSidebarExpanded && !atlasSidebarCollapsed;
   const desktopAtlasFull = atlasFull && !isMobile;
   const contentPreviewRef = useRef<HTMLDivElement>(null);
+
+  // Desktop resize: `dragWidth` is the live width while the separator is
+  // being dragged (updated at most once per frame); the settled value only
+  // reaches the persisted store on pointer up. `dragStateRef` holds the
+  // per-drag transient math so it doesn't trigger re-renders on every move.
+  const [dragWidth, setDragWidth] = useState<number | null>(null);
+  const dragStateRef = useRef<{
+    startX: number;
+    startWidth: number;
+    pendingWidth: number;
+    rafId: number | null;
+  } | null>(null);
+  const regularWidth = clampAtlasSidebarWidth(dragWidth ?? atlasSidebarWidth, windowWidth);
+  const isResizing = dragWidth !== null;
+
+  const commitDragFrame = useCallback(() => {
+    const state = dragStateRef.current;
+    if (!state) return;
+    state.rafId = null;
+    setDragWidth(state.pendingWidth);
+  }, []);
+
+  // Cleanup for the (rare) case the component unmounts mid-drag — never
+  // leave the document stuck with the resize cursor or blocked selection.
+  useEffect(
+    () => () => {
+      const state = dragStateRef.current;
+      if (!state) return;
+      if (state.rafId != null) cancelAnimationFrame(state.rafId);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    },
+    []
+  );
+
+  const handleResizePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    // Dragging out of full mode starts from the last regular width, not the
+    // full-width value, and never collapses to the rail (the min clamp below
+    // is well above the rail width).
+    const startWidth = clampAtlasSidebarWidth(atlasSidebarWidth, windowWidth);
+    dragStateRef.current = { startX: event.clientX, startWidth, pendingWidth: startWidth, rafId: null };
+    setDragWidth(startWidth);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    if (atlasSidebarExpanded) toggleAtlasSidebarExpanded(false);
+  };
+
+  const handleResizePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    if (!state) return;
+    // The separator sits on the panel's left edge and the panel is docked to
+    // the right, so moving the pointer left grows the panel.
+    const delta = event.clientX - state.startX;
+    state.pendingWidth = clampAtlasSidebarWidth(state.startWidth - delta, window.innerWidth);
+    if (state.rafId == null) state.rafId = requestAnimationFrame(commitDragFrame);
+  };
+
+  const endResizeDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    if (!state) return;
+    if (state.rafId != null) cancelAnimationFrame(state.rafId);
+    dragStateRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    setAtlasSidebarWidth(snapAtlasSidebarWidth(state.pendingWidth));
+    setDragWidth(null);
+  };
+
+  const handleResizeDoubleClick = () => setAtlasSidebarWidth(ATLAS_SIDEBAR_DEFAULT_WIDTH);
+
+  const handleResizeKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const next = getAtlasSidebarWidthForKey(event.key, regularWidth, event.shiftKey, windowWidth);
+    if (next === null) return;
+    event.preventDefault();
+    setAtlasSidebarWidth(next);
+  };
 
   // `inert` removes the hidden content controls from sequential
   // keyboard navigation. The current React type package does not expose the
@@ -205,14 +296,15 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
                 // standard ease) — the panel reveals/hides as the width animates.
                 // In the expanded tier, Atlas fills the space beside the
                 // content rail; the collapsed Atlas rail always wins over it.
-                "md:shadow-sm md:relative md:z-auto md:flex-shrink-0 md:transition-[width] md:duration-[250ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]",
-                atlasSidebarCollapsed
-                  ? "md:w-[3.25rem]"
-                  : atlasSidebarExpanded
-                    ? "md:min-w-0 md:flex-1"
-                    : "md:w-[350px]"
+                "md:shadow-sm md:relative md:z-auto md:flex-shrink-0",
+                isResizing
+                  ? "md:transition-none"
+                  : "md:transition-[width] md:duration-[250ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]",
+                atlasSidebarCollapsed ? "md:w-[3.25rem]" : atlasSidebarExpanded ? "md:min-w-0 md:flex-1" : undefined
               )}
+              style={!isMobile && !atlasSidebarCollapsed && !atlasSidebarExpanded ? { width: regularWidth } : undefined}
               data-open="true"
+              data-resizing={isResizing ? "true" : undefined}
               // Stable hook for focus (zen) mode: globals.css lifts the open
               // drawer above the zen canvas, and the editor's Esc handler
               // skips exiting while focus is inside it.
@@ -221,19 +313,23 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
               {/* The drawer stays mounted across collapse, so expanding is a
                   pure width reveal (matching the left rail) with no entrance
                   replay and the chat state preserved. At the default tier it
-                  keeps a fixed 350px so it doesn't reflow while the container
-                  animates to/from the rail (the rail overlay covers the
-                  clipped panel while collapsed); in full mode it tracks the
-                  container (w-full) — rail transitions reflow there, which the
-                  centered chat column absorbs gracefully. */}
+                  keeps the saved regular width so it doesn't reflow while the
+                  container animates to/from the rail (the rail overlay covers
+                  the clipped panel while collapsed); in full mode it tracks
+                  the container (w-full) — rail transitions reflow there, which
+                  the centered chat column absorbs gracefully. */}
               <div
                 className={cn(
-                  "h-full w-full md:transition-[width] md:duration-[250ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]",
-                  atlasSidebarExpanded ? "md:w-full" : "md:w-[350px]",
+                  "h-full w-full",
+                  isResizing
+                    ? "md:transition-none"
+                    : "md:transition-[width] md:duration-[250ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  atlasSidebarExpanded && "md:w-full",
                   // Covered by the rail while collapsed — `invisible` also pulls
                   // the chat controls out of the tab order / a11y tree.
                   atlasSidebarCollapsed && !isMobile && "pointer-events-none invisible"
                 )}
+                style={!isMobile && !atlasSidebarExpanded ? { width: regularWidth } : undefined}
                 aria-hidden={atlasSidebarCollapsed && !isMobile ? true : undefined}
               >
                 <AgentChatDrawer
@@ -243,6 +339,31 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
                   onToggleExpand={isMobile ? undefined : () => toggleAtlasSidebarExpanded()}
                 />
               </div>
+              {!isMobile && !atlasSidebarCollapsed && (
+                <div
+                  role="separator"
+                  aria-label="Resize Atlas sidebar"
+                  aria-orientation="vertical"
+                  aria-valuemin={ATLAS_SIDEBAR_MIN_WIDTH}
+                  aria-valuemax={getAtlasSidebarMaxWidth(windowWidth)}
+                  aria-valuenow={Math.round(regularWidth)}
+                  tabIndex={0}
+                  title="Drag to resize Atlas. Double-click to reset."
+                  className={cn(
+                    "group absolute inset-y-0 left-0 z-20 w-2 cursor-col-resize touch-none outline-none",
+                    "after:absolute after:inset-y-3 after:left-0 after:w-px after:rounded-full after:bg-transparent after:transition-colors",
+                    "hover:after:bg-accent-primary focus-visible:after:w-0.5 focus-visible:after:bg-accent-primary",
+                    isResizing && "after:w-0.5 after:bg-accent-primary"
+                  )}
+                  onDoubleClick={handleResizeDoubleClick}
+                  onKeyDown={handleResizeKeyDown}
+                  onPointerDown={handleResizePointerDown}
+                  onPointerMove={handleResizePointerMove}
+                  onPointerUp={endResizeDrag}
+                  onPointerCancel={endResizeDrag}
+                  onLostPointerCapture={endResizeDrag}
+                />
+              )}
               {atlasSidebarCollapsed && !isMobile && <AtlasSidebarRail onExpand={() => toggleAtlasSidebar(false)} />}
             </div>
           )}

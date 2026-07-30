@@ -62,7 +62,7 @@ type BoardIconComponent = ComponentType<{
   className?: string;
   color?: string;
   size?: number | string;
-  strokeWidth?: number | string;
+  strokeWidth?: number;
 }>;
 
 const DetailIcon = ({
@@ -76,7 +76,7 @@ const DetailIcon = ({
   className?: string;
   color?: string;
   size?: number | string;
-  strokeWidth?: number | string;
+  strokeWidth?: number;
 }) => <Icon className={className} color={color} size={size} strokeWidth={strokeWidth} />;
 
 type Props = {

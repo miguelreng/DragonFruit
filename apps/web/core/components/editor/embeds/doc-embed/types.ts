@@ -6,7 +6,7 @@
 
 import type { IProjectView, TPage, TSticky } from "@plane/types";
 
-export type TDocEmbedSourceType = "whiteboard" | "sticky" | "task_view" | "google_drive";
+export type TDocEmbedSourceType = "whiteboard" | "sticky" | "task_view" | "google_drive" | "page";
 
 export type TDocEmbedSource =
   | {
@@ -35,4 +35,11 @@ export type TDocEmbedSource =
       title: string;
       url: string;
       mimeType?: string;
+    }
+  | {
+      type: "page";
+      id: string;
+      title: string;
+      projectId: string;
+      page: TPage;
     };

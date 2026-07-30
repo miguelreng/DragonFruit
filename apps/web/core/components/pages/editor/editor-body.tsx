@@ -485,11 +485,12 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
 
   const userConfig = useMemo(
     () => ({
+      avatarUrl: getFileURL(currentUser?.avatar_url ?? ""),
       id: currentUser?.id ?? "",
       name: currentUser?.display_name ?? "",
       color: hslToHex(generateRandomColor(currentUser?.id ?? "")),
     }),
-    [currentUser?.display_name, currentUser?.id]
+    [currentUser?.avatar_url, currentUser?.display_name, currentUser?.id]
   );
 
   const resolvePresenceUser = useCallback(

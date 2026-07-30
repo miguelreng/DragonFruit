@@ -18,6 +18,7 @@ import { useIssueFilter } from "@/hooks/store/use-issue-filter";
 import type { PublishStore } from "@/store/publish/publish.store";
 // local imports
 import { SomethingWentWrongError } from "./error";
+import { PublicCalendarLayout } from "./calendar/public-calendar";
 import { IssueKanbanLayoutRoot } from "./kanban/base-kanban-root";
 import { IssuesListLayoutRoot } from "./list/base-list-root";
 
@@ -72,6 +73,11 @@ export const IssuesLayoutsRoot = observer(function IssuesLayoutsRoot(props: Prop
           {activeLayout === "kanban" && (
             <div className="relative mx-auto size-full p-5">
               <IssueKanbanLayoutRoot anchor={anchor} />
+            </div>
+          )}
+          {activeLayout === "calendar" && (
+            <div className="relative size-full">
+              <PublicCalendarLayout />
             </div>
           )}
         </div>

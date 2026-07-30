@@ -72,7 +72,8 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
       const pages = response?.page ?? [];
       if (pages.length > 0) {
         const currentProjectId = projectId?.toString();
-        const items: TMentionSuggestion[] = pages.map((page) => {
+        const items: TMentionSuggestion[] = pages.flatMap((page) => {
+          if (!page.id) return [];
           // The backend serializes `projects__id` as one uuid per row even
           // though the type declares an array — handle both shapes.
           const pageProjectId = Array.isArray(page.projects__id) ? page.projects__id[0] : page.projects__id;
@@ -87,7 +88,7 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
             subTitle: isOtherProject ? getProjectById(pageProjectId)?.name : undefined,
           };
         });
-        sections.push({ key: "pages", title: "Docs", items });
+        if (items.length > 0) sections.push({ key: "pages", title: "Docs", items });
       }
       return { sections };
     },
@@ -100,11 +101,11 @@ export const useAdditionalEditorMention = (_args: TUseAdditionalEditorMentionArg
     ({ id, entityType }: TAdditionalParseEditorContentArgs): TAdditionalParseEditorContentReturnType => {
       if (entityType === "page") {
         const page = getPageById(id);
-        const projectId = page?.project_ids?.[0];
-        if (!page || !projectId) return undefined;
+        const pageProjectId = page?.project_ids?.[0];
+        if (!page || !pageProjectId) return undefined;
         return {
           textContent: page.name || "Untitled",
-          redirectionPath: `${workspaceSlug}/projects/${projectId}/pages/${id}`,
+          redirectionPath: `${workspaceSlug}/projects/${pageProjectId}/pages/${id}`,
         };
       }
       if (entityType !== "issue") return undefined;

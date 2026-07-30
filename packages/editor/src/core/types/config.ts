@@ -40,6 +40,7 @@ export type TDisplayConfig = {
 };
 
 export type TUserDetails = {
+  avatarUrl?: string;
   color: string;
   id: string;
   name: string;

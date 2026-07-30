@@ -57,15 +57,14 @@ const THEME_CHOICES: { key: TThemeChoice; label: string; icon: typeof Monitor }[
 const sortDocsByWikiOrder = (docs: TPage[], order: string[] | undefined) => {
   // No saved order yet: mirror the public reader's default (creation order).
   if (!order?.length)
-    return [...docs].sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
+    return docs.toSorted((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
   const rank = new Map(order.map((id, index) => [id, index]));
-  return [...docs].sort((a, b) => (rank.get(a.id ?? "") ?? order.length) - (rank.get(b.id ?? "") ?? order.length));
+  return docs.toSorted((a, b) => (rank.get(a.id ?? "") ?? order.length) - (rank.get(b.id ?? "") ?? order.length));
 };
 
 export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose, onSaved }: Props) {
   const wikiProps = useMemo(() => getWikiViewProps(folder.view_props), [folder.view_props]);
-  const savedSlug =
-    typeof folder.view_props?.public_slug === "string" ? (folder.view_props.public_slug as string) : "";
+  const savedSlug = typeof folder.view_props?.public_slug === "string" ? (folder.view_props.public_slug as string) : "";
 
   // "Create wiki" opens this modal for an unpublished folder: same controls,
   // but the flow reads as creation — publish defaults ON so saving mints the
@@ -108,7 +107,7 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
   }, [isOpen, folder.id]);
 
   const publicSlug = normalizePublicPageSlug(slug) || folder.id || "";
-  const publicUrl = buildPublicPageUrl(workspaceSlug, publicSlug);
+  const publicUrl = buildPublicPageUrl(workspaceSlug, publicSlug, "wiki");
   const visibleDocs = orderedDocs.filter((doc) => !hiddenIds.has(doc.id ?? ""));
 
   const toggleDocHidden = (docId: string) => {
@@ -189,12 +188,15 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Wiki settings saved",
-        message: isPublished ? buildPublicPagePath(workspaceSlug, publicSlug) : undefined,
+        message: isPublished ? buildPublicPagePath(workspaceSlug, publicSlug, "wiki") : undefined,
       });
       onClose();
     } catch (error) {
       const message =
-        error && typeof error === "object" && "error" in error && typeof (error as { error: unknown }).error === "string"
+        error &&
+        typeof error === "object" &&
+        "error" in error &&
+        typeof (error as { error: unknown }).error === "string"
           ? ((error as { error: string }).error ?? "")
           : "Settings could not be saved. Please try again.";
       setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message });
@@ -226,10 +228,7 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
             }}
           >
             <div className="w-60 rounded-t-xl border border-b-0 border-subtle bg-surface-1 px-5 pt-5 pb-3 shadow-raised-100">
-              <p
-                className="truncate text-16 text-primary"
-                style={{ fontFamily: '"Sorts Mill Goudy", Georgia, serif' }}
-              >
+              <p className="truncate text-16 text-primary" style={{ fontFamily: '"Sorts Mill Goudy", Georgia, serif' }}>
                 {wikiName.trim() || getPageName(folder.name)}
               </p>
               <div className="mt-3 flex flex-col gap-1.5 border-t border-subtle pt-3">
@@ -256,7 +255,7 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
                 <Link className="size-4" />
               </span>
               <span className="min-w-0 flex-1 truncate pr-3 text-left text-13 text-primary">
-                {buildPublicPagePath(workspaceSlug, publicSlug)}
+                {buildPublicPagePath(workspaceSlug, publicSlug, "wiki")}
               </span>
               <button
                 type="button"
@@ -268,7 +267,7 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
               </button>
             </div>
             <a
-              href={buildPublicPagePath(workspaceSlug, publicSlug)}
+              href={publicUrl}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(getButtonStyling("primary", "lg"), "w-full justify-center")}
@@ -303,7 +302,11 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
                 <p className="text-13 font-medium text-primary">Publish wiki</p>
                 <p className="text-12 text-tertiary">Anyone with the link can read the visible docs in this wiki.</p>
               </div>
-              <ToggleSwitch value={isPublished} onChange={() => setIsPublished((value) => !value)} disabled={isSaving} />
+              <ToggleSwitch
+                value={isPublished}
+                onChange={() => setIsPublished((value) => !value)}
+                disabled={isSaving}
+              />
             </div>
             {!isCreateFlow && !isPublished && (
               <p className="-mt-3 text-11 text-tertiary">
@@ -324,7 +327,10 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
               </label>
               <div>
                 <span className="mb-1.5 block text-11 font-medium text-secondary">Theme</span>
-                <div ref={themeGroupRef} className="relative flex h-10 w-fit items-center gap-0.5 rounded-lg border border-subtle p-0.5">
+                <div
+                  ref={themeGroupRef}
+                  className="relative flex h-10 w-fit items-center gap-0.5 rounded-lg border border-subtle p-0.5"
+                >
                   {themePill && (
                     <span
                       aria-hidden
@@ -376,7 +382,7 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
                   <Copy className="size-4" />
                 </button>
                 <a
-                  href={buildPublicPagePath(workspaceSlug, publicSlug)}
+                  href={publicUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="grid size-10 shrink-0 place-items-center rounded-lg border border-subtle text-tertiary hover:bg-layer-1 hover:text-primary"
@@ -406,7 +412,7 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
                     title={WIKI_ACCENTS[key].label}
                     className={cn(
                       "grid size-8 place-items-center rounded-full border border-subtle transition-shadow duration-200 ease-in-out",
-                      accent === key && "ring-accent-primary ring-2 ring-offset-2 ring-offset-surface-1"
+                      accent === key && "ring-accent-primary ring-offset-surface-1 ring-2 ring-offset-2"
                     )}
                   >
                     <span className="size-5 rounded-full" style={{ background: WIKI_ACCENTS[key].light }} />
@@ -484,7 +490,10 @@ function WikiDocRow({ doc, index, isLast, isHidden, disabled, onToggleHidden, on
         element,
         canDrop: ({ source }) => source.data.docId !== doc.id,
         getData: ({ input, element: targetElement }) =>
-          attachClosestEdge({ docId: doc.id, index }, { input, element: targetElement, allowedEdges: ["top", "bottom"] }),
+          attachClosestEdge(
+            { docId: doc.id, index },
+            { input, element: targetElement, allowedEdges: ["top", "bottom"] }
+          ),
         onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
         onDragLeave: () => setClosestEdge(null),
         onDrop: ({ self, source }) => {
@@ -520,7 +529,9 @@ function WikiDocRow({ doc, index, isLast, isHidden, disabled, onToggleHidden, on
           onClick={onToggleHidden}
           disabled={disabled}
           className="grid size-7 shrink-0 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-40"
-          aria-label={isHidden ? `Show ${getPageName(doc.name)} on the wiki` : `Hide ${getPageName(doc.name)} from the wiki`}
+          aria-label={
+            isHidden ? `Show ${getPageName(doc.name)} on the wiki` : `Hide ${getPageName(doc.name)} from the wiki`
+          }
           title={isHidden ? "Show on wiki" : "Hide from wiki"}
         >
           {isHidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

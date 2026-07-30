@@ -8,12 +8,18 @@ import { forwardRef, useMemo } from "react";
 // components
 import { EditorWrapper } from "@/components/editors/editor-wrapper";
 // extensions
-import { EnterKeyExtension, TaskItemDragHandleExtension } from "@/extensions";
+import { DocEmbedExtension, EnterKeyExtension, SlashCommands, TaskItemDragHandleExtension } from "@/extensions";
 // types
 import type { EditorRefApi, ILiteTextEditorProps } from "@/types";
 
 function LiteTextEditor(props: ILiteTextEditorProps) {
-  const { onEnterKeyPress, disabledExtensions, extensions: externalExtensions = [] } = props;
+  const {
+    onEnterKeyPress,
+    disabledExtensions,
+    embedConfig,
+    flaggedExtensions,
+    extensions: externalExtensions = [],
+  } = props;
 
   const extensions = useMemo(() => {
     const resolvedExtensions = [...externalExtensions];
@@ -25,9 +31,15 @@ function LiteTextEditor(props: ILiteTextEditorProps) {
     // The lite text editor has no side menu, so task list items get their own
     // per-item drag handle for reordering.
     resolvedExtensions.push(TaskItemDragHandleExtension);
+    if (embedConfig?.page?.widgetCallback) {
+      resolvedExtensions.push(DocEmbedExtension({ configs: { page: embedConfig.page } }));
+      if (!disabledExtensions?.includes("slash-commands")) {
+        resolvedExtensions.push(SlashCommands({ disabledExtensions, embedConfig, flaggedExtensions }));
+      }
+    }
 
     return resolvedExtensions;
-  }, [externalExtensions, disabledExtensions, onEnterKeyPress]);
+  }, [externalExtensions, disabledExtensions, embedConfig, flaggedExtensions, onEnterKeyPress]);
 
   return <EditorWrapper {...props} extensions={extensions} />;
 }

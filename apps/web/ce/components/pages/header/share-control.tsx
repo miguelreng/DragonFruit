@@ -15,6 +15,7 @@ import { copyTextToClipboard } from "@plane/utils";
 import {
   buildPublicPagePath,
   buildPublicPageUrl,
+  getPublicPageContentType,
   getPublicPageSlug,
   normalizePublicPageSlug,
   validatePublicPageSlug,
@@ -63,7 +64,7 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
 
   const publicUrl = useMemo(() => {
     if (!workspaceSlug || !page.id) return "";
-    return buildPublicPageUrl(workspaceSlug.toString(), getPublicPageSlug(page));
+    return buildPublicPageUrl(workspaceSlug.toString(), getPublicPageSlug(page), getPublicPageContentType(page));
   }, [page, workspaceSlug]);
 
   useEffect(
@@ -114,7 +115,7 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Public URL updated",
-        message: buildPublicPagePath(workspaceSlug.toString(), nextSlug),
+        message: buildPublicPagePath(workspaceSlug.toString(), nextSlug, getPublicPageContentType(page)),
       });
     } catch {
       setToast({
@@ -188,8 +189,9 @@ export const PageShareControl = observer(function PageShareControl({ page }: TPa
           <div className="flex items-center gap-2">
             {isEditingSlug ? (
               <div className="flex min-w-0 flex-1 items-center rounded-lg border border-subtle-1 bg-layer-1 px-2 py-1.5 text-12 text-secondary">
-                <span className="flex-shrink-0 truncate text-tertiary">{`published/${workspaceSlug}/`}</span>
+                <span className="flex-shrink-0 truncate text-tertiary">{`/${workspaceSlug}/${getPublicPageContentType(page)}/`}</span>
                 <input
+                  // oxlint-disable-next-line jsx-a11y/no-autofocus -- focus follows the explicit Edit URL action
                   autoFocus
                   value={slugDraft}
                   onChange={(e) => setSlugDraft(e.target.value)}

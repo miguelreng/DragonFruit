@@ -1,0 +1,137 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/api/public/(.*)",
+      "destination": "/api/public-proxy?path=$1"
+    },
+    {
+      "source": "/api/instances/",
+      "destination": "/api/public-proxy?scope=instance"
+    },
+    {
+      "source": "/__manifest",
+      "destination": "https://dragonfruit-space.vercel.app/__manifest"
+    },
+    {
+      "source": "/:workspaceIdentifier/calendar/:anchor/",
+      "destination": "https://dragonfruit-space.vercel.app/:workspaceIdentifier/calendar/:anchor/"
+    },
+    {
+      "source": "/:workspaceIdentifier/calendar/:anchor",
+      "destination": "https://dragonfruit-space.vercel.app/:workspaceIdentifier/calendar/:anchor"
+    },
+    {
+      "source": "/:workspaceIdentifier/project/:anchor/",
+      "destination": "https://dragonfruit-space.vercel.app/:workspaceIdentifier/project/:anchor/"
+    },
+    {
+      "source": "/:workspaceIdentifier/project/:anchor",
+      "destination": "https://dragonfruit-space.vercel.app/:workspaceIdentifier/project/:anchor"
+    },
+    {
+      "source": "/:workspaceIdentifier/doc/:pageSlug",
+      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+    },
+    {
+      "source": "/:workspaceIdentifier/wiki/:pageSlug",
+      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+    },
+    {
+      "source": "/:workspaceIdentifier/whiteboard/:pageSlug",
+      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+    },
+    {
+      "source": "/:workspaceIdentifier/pdf/:pageSlug",
+      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+    },
+    {
+      "source": "/:workspaceIdentifier/sheet/:pageSlug",
+      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+    },
+    {
+      "source": "/spaces/assets/:path*",
+      "destination": "https://dragonfruit-space.vercel.app/assets/:path*"
+    },
+    {
+      "source": "/spaces/fonts/:path*",
+      "destination": "https://dragonfruit-space.vercel.app/fonts/:path*"
+    },
+    {
+      "source": "/spaces/:path*",
+      "destination": "https://dragonfruit-space.vercel.app/spaces/:path*"
+    },
+    {
+      "source": "/published/:path*",
+      "destination": "https://app.dragonfruit.sh/published/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "https://app.dragonfruit.sh/assets/:path*"
+    },
+    {
+      "source": "/fonts/:path*",
+      "destination": "https://app.dragonfruit.sh/fonts/:path*"
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "https://app.dragonfruit.sh/favicon.ico"
+    },
+    {
+      "source": "/favicon.svg",
+      "destination": "https://app.dragonfruit.sh/favicon.svg"
+    },
+    {
+      "source": "/manifest.json",
+      "destination": "https://app.dragonfruit.sh/manifest.json"
+    },
+    {
+      "source": "/site.webmanifest.json",
+      "destination": "https://app.dragonfruit.sh/site.webmanifest.json"
+    },
+    {
+      "source": "/offline.html",
+      "destination": "https://app.dragonfruit.sh/offline.html"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "https://app.dragonfruit.sh/sw.js"
+    },
+    {
+      "source": "/sw.js.map",
+      "destination": "https://app.dragonfruit.sh/sw.js.map"
+    },
+    {
+      "source": "/workbox-:path*",
+      "destination": "https://app.dragonfruit.sh/workbox-:path*"
+    },
+    {
+      "source": "/atlas-:path*",
+      "destination": "https://app.dragonfruit.sh/atlas-:path*"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "https://app.dragonfruit.sh",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ]
+}

@@ -65,7 +65,13 @@ export const useDocEmbed = ({ projectId, workspaceSlug }: Props) => {
   const whiteboardEmbedProps: TDocEmbedConfig<"whiteboard"> = useMemo(
     () => ({
       // Whiteboards render as native inline canvases, not link cards.
-      widgetCallback: ({ entityId, projectId: embedProjectId, workspaceSlug: embedWorkspaceSlug, title, isEditable }) => (
+      widgetCallback: ({
+        entityId,
+        projectId: embedProjectId,
+        workspaceSlug: embedWorkspaceSlug,
+        title,
+        isEditable,
+      }) => (
         <WhiteboardEmbed
           entityId={entityId}
           projectId={embedProjectId}
@@ -111,6 +117,16 @@ export const useDocEmbed = ({ projectId, workspaceSlug }: Props) => {
     [onPickerRequest, projectId, workspaceSlug]
   );
 
+  const pageEmbedProps: TDocEmbedConfig<"page"> = useMemo(
+    () => ({
+      widgetCallback: makeWidgetCallback("page"),
+      onPickerRequest,
+      workspaceSlug,
+      projectId,
+    }),
+    [onPickerRequest, projectId, workspaceSlug]
+  );
+
   const chartEmbedProps: TChartEmbedConfig = useMemo(
     () => ({
       widgetCallback: ({ chart, isEditable, updateChart, deleteChart }) => (
@@ -142,6 +158,7 @@ export const useDocEmbed = ({ projectId, workspaceSlug }: Props) => {
     stickyEmbedProps,
     taskViewEmbedProps,
     googleDriveEmbedProps,
+    pageEmbedProps,
     chartEmbedProps,
     renderPicker,
   };

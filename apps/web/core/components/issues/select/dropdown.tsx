@@ -27,7 +27,7 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: TWorkI
   const { workspaceSlug } = useParams();
   // store hooks
   const { allowPermissions } = useUserPermissions();
-  const { getProjectLabelIds, getLabelById, fetchProjectLabels, createLabel } = useLabel();
+  const { getProjectLabelIds, getLabelById, fetchProjectLabels, createLabel, updateLabel } = useLabel();
   // derived values
   const projectLabelIds = getProjectLabelIds(projectId);
 
@@ -47,6 +47,13 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: TWorkI
     return createLabel(workspaceSlug.toString(), projectId, data);
   };
 
+  const handleUpdateLabelColor = (labelId: string, color: string) => {
+    if (!workspaceSlug || !projectId) {
+      throw new Error("Workspace slug or project ID is missing");
+    }
+    return updateLabel(workspaceSlug.toString(), projectId, labelId, { color });
+  };
+
   return (
     <WorkItemLabelSelectBase
       {...props}
@@ -55,6 +62,8 @@ export const IssueLabelSelect = observer(function IssueLabelSelect(props: TWorkI
       onDropdownOpen={onDropdownOpen}
       createLabel={handleCreateLabel}
       createLabelEnabled={!!canCreateLabel}
+      updateLabelColor={handleUpdateLabelColor}
+      canEditLabelColor={!!canCreateLabel}
     />
   );
 });

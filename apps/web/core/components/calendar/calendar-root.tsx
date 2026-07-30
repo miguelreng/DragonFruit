@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { Temporal } from "@js-temporal/polyfill";
@@ -23,6 +23,7 @@ import { createEventsServicePlugin } from "@schedule-x/events-service";
 import { createCalendarControlsPlugin } from "@schedule-x/calendar-controls";
 import { createCurrentTimePlugin } from "@schedule-x/current-time";
 import { createScrollControllerPlugin } from "@schedule-x/scroll-controller";
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // reason: side-effect CSS import
 // eslint-disable-next-line import/no-unassigned-import
 import "@schedule-x/theme-default/dist/index.css";
@@ -35,12 +36,20 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Earth,
   Eye,
   EyeOff,
+  ExternalLink,
+  FileText,
+  MapPin,
+  Pencil,
   RefreshCw,
   Search,
+  Share2,
   Trash2,
+  Video,
+  X,
 } from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -49,6 +58,7 @@ import { Breadcrumbs, EModalWidth, Header, ModalCore } from "@plane/ui";
 import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { useUserPermissions } from "@/hooks/store/user";
 import {
   CalendarService,
   type TCalendarAccount,
@@ -58,6 +68,13 @@ import {
 } from "@/services/calendar.service";
 import { IssueService } from "@/services/issue/issue.service";
 import { getScheduleXPayloadDate } from "./calendar-date.utils";
+import {
+  buildEventTimeRange,
+  eventDateTimeFields,
+  formatEventWhen,
+  googleAllDayInclusiveEnd,
+  htmlToPlainText,
+} from "./event-modal/event-utils";
 
 const calendarService = new CalendarService();
 const issueService = new IssueService();
@@ -72,6 +89,11 @@ const CreateUpdateIssueModal = lazy(() =>
 );
 const IssuePeekOverview = lazy(() =>
   import("@/components/issues/peek-overview").then((module) => ({ default: module.IssuePeekOverview }))
+);
+const ShareProjectCalendarModal = lazy(() =>
+  import("@/components/project/publish-project/share-calendar-modal").then((module) => ({
+    default: module.ShareProjectCalendarModal,
+  }))
 );
 type TGoogleCalendarSource = {
   id: string;
@@ -240,15 +262,6 @@ function toTemporal(iso: string, allDay: boolean) {
   } catch (err) {
     console.warn("Skipping calendar item with invalid date", { iso, allDay, err });
     return null;
-  }
-}
-
-function googleAllDayInclusiveEnd(iso: string) {
-  if (!iso) return iso;
-  try {
-    return Temporal.PlainDate.from(iso.slice(0, 10)).subtract({ days: 1 }).toString();
-  } catch {
-    return iso;
   }
 }
 
@@ -446,9 +459,20 @@ const BASE_CALENDARS_CONFIG = {
   },
 };
 
-export function CalendarRoot() {
+export type TCalendarRootProps = {
+  // Scopes the calendar to a single project: task feed narrows to every dated
+  // task in that project (not just assigned/created-by-me), quick-create locks
+  // to it, and the Google Calendar overlay + connect/manage controls are hidden.
+  projectId?: string;
+};
+
+export function CalendarRoot({ projectId }: TCalendarRootProps = {}) {
   const { workspaceSlug } = useParams() as { workspaceSlug: string };
   const { setPeekIssue } = useIssueDetail();
+  const { allowPermissions } = useUserPermissions();
+  const canShareProjectCalendar = Boolean(
+    projectId && allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT, workspaceSlug, projectId)
+  );
 
   // Tasks: always loaded.
   const taskRange = useMemo(() => {
@@ -458,8 +482,8 @@ export function CalendarRoot() {
     return { from, to };
   }, []);
   const { data: tasksRes, mutate: refetchTasks } = useSWR(
-    workspaceSlug ? `CALENDAR_TASKS_${workspaceSlug}` : null,
-    () => calendarService.tasks(workspaceSlug, taskRange)
+    workspaceSlug ? `CALENDAR_TASKS_${workspaceSlug}_${projectId ?? "all"}` : null,
+    () => calendarService.tasks(workspaceSlug, { ...taskRange, project_id: projectId })
   );
 
   // "Quick add" task: opened via Schedule-X day-click. Holds the date the
@@ -470,12 +494,15 @@ export function CalendarRoot() {
     description_html?: string;
     start_date: string;
     target_date: string;
+    project_id?: string;
   } | null>(null);
   const [hasOpenedIssuePeek, setHasOpenedIssuePeek] = useState(false);
+  const [isShareCalendarOpen, setIsShareCalendarOpen] = useState(false);
 
-  // Google: optional overlay.
-  const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>("CALENDAR_ACCOUNTS", () =>
-    calendarService.list()
+  // Google: optional overlay — not offered on a project-scoped calendar.
+  const { data: accounts, mutate: refetchAccounts } = useSWR<TCalendarAccount[]>(
+    projectId ? null : "CALENDAR_ACCOUNTS",
+    () => calendarService.list()
   );
   const googleAccounts = useMemo(() => accounts ?? [], [accounts]);
   const [calendarPrefs, setCalendarPrefs] = useState<TCalendarPrefs>(() => loadCalendarPrefs());
@@ -1218,6 +1245,7 @@ export function CalendarRoot() {
           <CalendarPageHeader
             workspaceSlug={workspaceSlug}
             taskCount={tasksRes?.tasks?.length ?? 0}
+            hideGoogleIntegration={Boolean(projectId)}
             googleAccounts={googleAccounts}
             googleSources={googleSources}
             calendarPrefs={calendarPrefs}
@@ -1238,6 +1266,7 @@ export function CalendarRoot() {
             onToggleTasks={handleToggleTasks}
             calendarTimezone={calendarTimezone}
             onChangeTimezone={handleChangeTimezone}
+            onShareCalendar={canShareProjectCalendar ? () => setIsShareCalendarOpen(true) : undefined}
           />
         }
       />
@@ -1284,12 +1313,14 @@ export function CalendarRoot() {
               await refetchTasks();
               setQuickAddSeed(null);
             }}
+            allowedProjectIds={projectId ? [projectId] : undefined}
             data={
               quickAddSeed
-                ? quickAddSeed
+                ? { ...quickAddSeed, project_id: quickAddSeed.project_id ?? projectId }
                 : {
                     start_date: quickAddDate,
                     target_date: quickAddDate,
+                    project_id: projectId,
                   }
             }
           />
@@ -1300,6 +1331,11 @@ export function CalendarRoot() {
       {hasOpenedIssuePeek && (
         <Suspense fallback={null}>
           <IssuePeekOverview />
+        </Suspense>
+      )}
+      {projectId && isShareCalendarOpen && (
+        <Suspense fallback={null}>
+          <ShareProjectCalendarModal isOpen projectId={projectId} onClose={() => setIsShareCalendarOpen(false)} />
         </Suspense>
       )}
       <NewEventModal
@@ -1354,6 +1390,8 @@ export function CalendarRoot() {
 type CalendarPageHeaderProps = {
   workspaceSlug: string;
   taskCount: number;
+  // Project-scoped calendar: no Google account to connect/manage.
+  hideGoogleIntegration?: boolean;
   googleAccounts: TCalendarAccount[];
   googleSources: TGoogleCalendarSource[];
   calendarPrefs: TCalendarPrefs;
@@ -1374,10 +1412,12 @@ type CalendarPageHeaderProps = {
   onToggleTasks: () => void;
   calendarTimezone: string;
   onChangeTimezone: (timezone: string) => void;
+  onShareCalendar?: () => void;
 };
 
 function CalendarPageHeader({
   taskCount,
+  hideGoogleIntegration = false,
   googleAccounts,
   googleSources,
   calendarPrefs,
@@ -1399,6 +1439,7 @@ function CalendarPageHeader({
   onToggleTasks,
   calendarTimezone,
   onChangeTimezone,
+  onShareCalendar,
 }: CalendarPageHeaderProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const hasGoogleAccounts = googleAccounts.length > 0;
@@ -1519,27 +1560,33 @@ function CalendarPageHeader({
         </button>
         <span className="bg-subtle mx-1 h-5 w-px" aria-hidden />
         <TimezoneMenu value={calendarTimezone} onChange={onChangeTimezone} />
-        {hasGoogleAccounts ? (
-          <GoogleAccountsMenu
-            accounts={googleAccounts}
-            sources={googleSources}
-            calendarPrefs={calendarPrefs}
-            onUpdateCalendarPrefs={onUpdateCalendarPrefs}
-            onDisconnect={handleDisconnect}
-            onAddCalendar={handleConnect}
-            isConnecting={isConnecting}
-          />
-        ) : (
-          <Button
-            variant="secondary"
-            size="lg"
-            prependIcon={<CalendarIcon />}
-            onClick={handleConnect}
-            disabled={isConnecting}
-          >
-            {isConnecting ? "Redirecting…" : "Connect calendar"}
+        {onShareCalendar && (
+          <Button variant="secondary" size="lg" prependIcon={<Share2 />} onClick={onShareCalendar}>
+            Share
           </Button>
         )}
+        {!hideGoogleIntegration &&
+          (hasGoogleAccounts ? (
+            <GoogleAccountsMenu
+              accounts={googleAccounts}
+              sources={googleSources}
+              calendarPrefs={calendarPrefs}
+              onUpdateCalendarPrefs={onUpdateCalendarPrefs}
+              onDisconnect={handleDisconnect}
+              onAddCalendar={handleConnect}
+              isConnecting={isConnecting}
+            />
+          ) : (
+            <Button
+              variant="secondary"
+              size="lg"
+              prependIcon={<CalendarIcon />}
+              onClick={handleConnect}
+              disabled={isConnecting}
+            >
+              {isConnecting ? "Redirecting…" : "Connect calendar"}
+            </Button>
+          ))}
         {/* Always render the dropdown so the trigger doesn't morph from "New task"
             to "New ▾" once the writable-calendar state resolves after load. The
             "New event" item only appears when a writable Google calendar exists. */}
@@ -1871,57 +1918,20 @@ function DayEventsHoverCard(props: {
   );
 }
 
-const formatEventDay = (d: Date) =>
-  d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-
-// Human-readable "when" for a Google event, in the calendar's display timezone.
-function formatEventWhen(event: TCalendarEventWithSource, timezone: string) {
-  try {
-    if (event.all_day || event.start?.length === 10) {
-      const formatDay = formatEventDay;
-      const start = new Date(`${event.start}T00:00:00`);
-      // Google's all-day `end` is exclusive.
-      const end = new Date(`${event.end?.length === 10 ? event.end : event.start}T00:00:00`);
-      end.setDate(end.getDate() - 1);
-      return end > start ? `${formatDay(start)} – ${formatDay(end)}` : formatDay(start);
-    }
-    const start = new Date(event.start);
-    const end = new Date(event.end);
-    const dateFormat = new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      timeZone: timezone,
-    });
-    const timeFormat = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "numeric", timeZone: timezone });
-    if (dateFormat.format(start) === dateFormat.format(end)) {
-      return `${dateFormat.format(start)} · ${timeFormat.format(start)} – ${timeFormat.format(end)}`;
-    }
-    return `${dateFormat.format(start)} ${timeFormat.format(start)} – ${dateFormat.format(end)} ${timeFormat.format(end)}`;
-  } catch {
-    return `${event.start ?? ""} – ${event.end ?? ""}`;
-  }
-}
-
 const EVENT_FIELD_CLASS =
   "focus:border-accent-primary h-10 w-full rounded-lg border border-subtle bg-surface-1 px-3 text-13 text-primary outline-none";
 
-function eventDateTimeFields(iso: string, timezone: string) {
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(new Date(iso));
-    const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return { date: `${value.year}-${value.month}-${value.day}`, time: `${value.hour}:${value.minute}` };
-  } catch {
-    return { date: iso.slice(0, 10), time: "09:00" };
-  }
+function EventDetailRow(props: { icon: ReactNode; label: string; children: ReactNode }) {
+  const { icon, label, children } = props;
+  return (
+    <div className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-2.5">
+      <div className="mt-0.5 grid size-7 place-items-center rounded-lg bg-layer-1 text-tertiary">{icon}</div>
+      <div className="min-w-0">
+        <div className="text-11 font-medium text-tertiary">{label}</div>
+        <div className="mt-0.5 text-13 leading-5 text-primary">{children}</div>
+      </div>
+    </div>
+  );
 }
 
 // Details and in-place editor for a Google Calendar event.
@@ -1951,10 +1961,7 @@ function GoogleEventDetailsModal(props: {
   const [startTime, setStartTime] = useState(initialStart.time);
   const [endTime, setEndTime] = useState(initialEnd.time);
   const [isSaving, setIsSaving] = useState(false);
-  const plainDescription = (event.description || "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const plainDescription = htmlToPlainText(event.description);
 
   const resetEditor = () => {
     const start = event.all_day
@@ -1980,11 +1987,9 @@ function GoogleEventDetailsModal(props: {
 
   const handleSave = async () => {
     const name = title.trim();
-    const effectiveEndDate = endDate || startDate;
-    if (!name || !startDate || !effectiveEndDate || isSaving) return;
-    const start = allDay ? startDate : `${startDate}T${startTime}:00`;
-    const end = allDay ? effectiveEndDate : `${effectiveEndDate}T${endTime}:00`;
-    if ((allDay && end < start) || (!allDay && end <= start)) {
+    if (!name || isSaving) return;
+    const timeRange = buildEventTimeRange({ allDay, startDate, startTime, endDate, endTime }, timezone);
+    if (!timeRange) {
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Check the event time",
@@ -1999,9 +2004,9 @@ function GoogleEventDetailsModal(props: {
         event_id: event.id,
         calendar_id: event.calendarId,
         all_day: allDay,
-        start,
-        end,
-        time_zone: allDay ? undefined : timezone,
+        start: timeRange.start,
+        end: timeRange.end,
+        time_zone: timeRange.timeZone,
         title: name,
         description,
         location,
@@ -2021,193 +2026,230 @@ function GoogleEventDetailsModal(props: {
     }
   };
 
-  if (isEditing) {
-    return (
-      <ModalCore isOpen handleClose={handleCancelEdit} width={EModalWidth.XXL}>
-        <form
-          className="flex flex-col"
-          onSubmit={(submitEvent) => {
-            submitEvent.preventDefault();
-            void handleSave();
-          }}
-        >
-          <div className="border-b border-subtle px-5 py-4">
-            <div className="flex items-center gap-2 text-12 text-tertiary">
-              <LegendDot color={color} />
-              <span className="min-w-0 truncate">{event.calendarName}</span>
-            </div>
-            <h2 className="mt-1 text-16 font-semibold text-primary">Edit event</h2>
-          </div>
-          <div className="flex flex-col gap-3 px-5 py-4">
-            <label className="block">
-              <span className="mb-1.5 block text-11 font-medium text-secondary">Title</span>
-              <input
-                // eslint-disable-next-line jsx-a11y/no-autofocus -- focus the primary field when edit mode opens
-                autoFocus
-                className={EVENT_FIELD_CLASS}
-                value={title}
-                onChange={(inputEvent) => setTitle(inputEvent.target.value)}
-              />
-            </label>
-            <label className="flex items-center gap-2 text-13 text-secondary">
-              <input type="checkbox" checked={allDay} onChange={(inputEvent) => setAllDay(inputEvent.target.checked)} />
-              All day
-            </label>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1.5 block text-11 font-medium text-secondary">Starts</span>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    required
-                    className={EVENT_FIELD_CLASS}
-                    value={startDate}
-                    onChange={(inputEvent) => setStartDate(inputEvent.target.value)}
-                  />
-                  {!allDay && (
-                    <input
-                      type="time"
-                      required
-                      className={EVENT_FIELD_CLASS}
-                      value={startTime}
-                      onChange={(inputEvent) => setStartTime(inputEvent.target.value)}
-                    />
-                  )}
-                </div>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-11 font-medium text-secondary">Ends</span>
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    required
-                    min={startDate}
-                    className={EVENT_FIELD_CLASS}
-                    value={endDate}
-                    onChange={(inputEvent) => setEndDate(inputEvent.target.value)}
-                  />
-                  {!allDay && (
-                    <input
-                      type="time"
-                      required
-                      className={EVENT_FIELD_CLASS}
-                      value={endTime}
-                      onChange={(inputEvent) => setEndTime(inputEvent.target.value)}
-                    />
-                  )}
-                </div>
-              </label>
-            </div>
-            <label className="block">
-              <span className="mb-1.5 block text-11 font-medium text-secondary">Location</span>
-              <input
-                className={EVENT_FIELD_CLASS}
-                placeholder="Optional"
-                value={location}
-                onChange={(inputEvent) => setLocation(inputEvent.target.value)}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-11 font-medium text-secondary">Description</span>
-              <textarea
-                className="focus:border-accent-primary min-h-24 w-full resize-y rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none"
-                placeholder="Optional"
-                value={description}
-                onChange={(inputEvent) => setDescription(inputEvent.target.value)}
-              />
-            </label>
-          </div>
-          <div className="flex justify-end gap-2 border-t border-subtle px-5 py-3">
-            <Button variant="secondary" size="lg" type="button" onClick={handleCancelEdit} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              size="lg"
-              type="submit"
-              disabled={!title.trim() || !startDate || !endDate || isSaving}
-            >
-              {isSaving ? "Saving…" : "Save changes"}
-            </Button>
-          </div>
-        </form>
-      </ModalCore>
-    );
-  }
+  const handleModalClose = () => {
+    if (isEditing) resetEditor();
+    onClose();
+  };
 
   return (
-    <ModalCore isOpen handleClose={onClose} width={EModalWidth.MD}>
-      <div className="border-b border-subtle px-5 py-4">
-        <div className="flex items-center gap-2 text-12 text-tertiary">
-          <LegendDot color={color} />
-          <span className="min-w-0 truncate">
-            {event.calendarName}
-            {event.accountEmail ? ` · ${event.accountEmail}` : ""}
-          </span>
-        </div>
-        <h2 className="mt-1 text-16 font-semibold text-primary">{event.title || "(no title)"}</h2>
-      </div>
-      <div className="flex flex-col gap-3 px-5 py-4">
-        <div>
-          <div className="text-11 font-medium text-tertiary">When</div>
-          <div className="mt-0.5 text-13 text-primary">
-            {formatEventWhen(event, timezone)}
-            <span className="ml-1.5 text-12 text-tertiary">({timezoneOffsetLabel(timezone)})</span>
-          </div>
-        </div>
-        {event.location && (
-          <div>
-            <div className="text-11 font-medium text-tertiary">Location</div>
-            <div className="mt-0.5 text-13 break-words text-primary">{event.location}</div>
-          </div>
-        )}
-        {event.hangout_link && (
-          <div>
-            <div className="text-11 font-medium text-tertiary">Meeting</div>
-            <a
-              className="mt-0.5 block text-13 break-all text-accent-primary hover:underline"
-              href={event.hangout_link}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {event.hangout_link}
-            </a>
-          </div>
-        )}
-        {plainDescription && (
-          <div>
-            <div className="text-11 font-medium text-tertiary">Description</div>
-            <div className="mt-0.5 max-h-40 overflow-y-auto text-13 leading-5 whitespace-pre-wrap text-secondary">
-              {plainDescription}
+    <ModalCore isOpen handleClose={handleModalClose} width={EModalWidth.XXL} className="overflow-hidden">
+      <div className="flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-subtle px-5 py-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-12 text-tertiary">
+              <LegendDot color={color} />
+              <span className="min-w-0 truncate">
+                {event.calendarName}
+                {event.accountEmail ? ` · ${event.accountEmail}` : ""}
+              </span>
+              {isEditing && <span className="rounded-md bg-layer-1 px-1.5 py-0.5 text-10 font-medium">Editing</span>}
             </div>
+            <h2 className="mt-1 line-clamp-2 text-16 font-semibold break-words text-primary">
+              {event.title || "(no title)"}
+            </h2>
           </div>
-        )}
-      </div>
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-subtle px-5 py-3">
-        <Button variant="secondary" size="lg" onClick={onClose}>
-          Close
-        </Button>
-        <Button variant="secondary" size="lg" onClick={onCreateTask}>
-          Create task
-        </Button>
-        {canEdit && (
-          <Button variant="secondary" size="lg" onClick={() => setIsEditing(true)}>
-            Edit
-          </Button>
-        )}
-        {event.html_link && (
-          <Button
-            variant={event.hangout_link ? "secondary" : "primary"}
-            size="lg"
-            onClick={() => window.open(event.html_link, "_blank", "noopener")}
+          <button
+            type="button"
+            onClick={handleModalClose}
+            className="grid size-7 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-1 hover:text-primary"
+            aria-label="Close event"
           >
-            Open in Google Calendar
-          </Button>
-        )}
-        {event.hangout_link && (
-          <Button variant="primary" size="lg" onClick={() => window.open(event.hangout_link, "_blank", "noopener")}>
-            Join meeting
-          </Button>
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {isEditing ? (
+          <form
+            className="flex min-h-0 flex-1 flex-col"
+            onSubmit={(submitEvent) => {
+              submitEvent.preventDefault();
+              void handleSave();
+            }}
+          >
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+              <label className="block">
+                <span className="mb-1.5 block text-11 font-medium text-secondary">Title</span>
+                <input
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- focus the primary field when edit mode opens
+                  autoFocus
+                  className={EVENT_FIELD_CLASS}
+                  value={title}
+                  onChange={(inputEvent) => setTitle(inputEvent.target.value)}
+                />
+              </label>
+              <label className="flex items-center gap-2 text-13 text-secondary">
+                <input
+                  type="checkbox"
+                  checked={allDay}
+                  onChange={(inputEvent) => setAllDay(inputEvent.target.checked)}
+                />
+                All day
+              </label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-11 font-medium text-secondary">Starts</span>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="date"
+                      required
+                      className={EVENT_FIELD_CLASS}
+                      value={startDate}
+                      onChange={(inputEvent) => setStartDate(inputEvent.target.value)}
+                    />
+                    {!allDay && (
+                      <input
+                        type="time"
+                        required
+                        className={EVENT_FIELD_CLASS}
+                        value={startTime}
+                        onChange={(inputEvent) => setStartTime(inputEvent.target.value)}
+                      />
+                    )}
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-11 font-medium text-secondary">Ends</span>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="date"
+                      required
+                      min={startDate}
+                      className={EVENT_FIELD_CLASS}
+                      value={endDate}
+                      onChange={(inputEvent) => setEndDate(inputEvent.target.value)}
+                    />
+                    {!allDay && (
+                      <input
+                        type="time"
+                        required
+                        className={EVENT_FIELD_CLASS}
+                        value={endTime}
+                        onChange={(inputEvent) => setEndTime(inputEvent.target.value)}
+                      />
+                    )}
+                  </div>
+                </label>
+              </div>
+              <label className="block">
+                <span className="mb-1.5 block text-11 font-medium text-secondary">Location</span>
+                <input
+                  className={EVENT_FIELD_CLASS}
+                  placeholder="Optional"
+                  value={location}
+                  onChange={(inputEvent) => setLocation(inputEvent.target.value)}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-11 font-medium text-secondary">Description</span>
+                <textarea
+                  className="focus:border-accent-primary min-h-24 w-full resize-y rounded-lg border border-subtle bg-surface-1 px-3 py-2 text-13 text-primary outline-none"
+                  placeholder="Optional"
+                  value={description}
+                  onChange={(inputEvent) => setDescription(inputEvent.target.value)}
+                />
+              </label>
+            </div>
+            <div className="flex shrink-0 justify-end gap-2 border-t border-subtle px-5 py-3">
+              <Button variant="secondary" size="lg" type="button" onClick={handleCancelEdit} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                type="submit"
+                disabled={!title.trim() || !startDate || !endDate || isSaving}
+              >
+                {isSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+              <EventDetailRow icon={<Clock className="size-4" />} label="When">
+                {formatEventWhen(event, timezone)}
+                <span className="ml-1.5 text-12 text-tertiary">({timezoneOffsetLabel(timezone)})</span>
+              </EventDetailRow>
+              {event.location && (
+                <EventDetailRow icon={<MapPin className="size-4" />} label="Location">
+                  <span className="break-words">{event.location}</span>
+                </EventDetailRow>
+              )}
+              {event.hangout_link && (
+                <EventDetailRow icon={<Video className="size-4" />} label="Meeting">
+                  <a
+                    className="inline-flex max-w-full items-center gap-1 text-accent-primary hover:underline"
+                    href={event.hangout_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span className="truncate">Google Meet</span>
+                    <ExternalLink className="size-3.5 shrink-0" />
+                  </a>
+                </EventDetailRow>
+              )}
+              {plainDescription && (
+                <EventDetailRow icon={<FileText className="size-4" />} label="Description">
+                  <div className="max-h-48 overflow-y-auto whitespace-pre-wrap text-secondary">{plainDescription}</div>
+                </EventDetailRow>
+              )}
+            </div>
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-subtle px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                {canEdit && (
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    prependIcon={<Pencil className="size-4" />}
+                    onClick={() => setIsEditing(true)}
+                  >
+                    Edit
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  prependIcon={<CheckSquare className="size-4" />}
+                  onClick={onCreateTask}
+                >
+                  Create task
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {event.hangout_link && event.html_link && (
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    prependIcon={<ExternalLink className="size-4" />}
+                    onClick={() => window.open(event.html_link, "_blank", "noopener")}
+                  >
+                    Open in Google Calendar
+                  </Button>
+                )}
+                {event.hangout_link ? (
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    prependIcon={<Video className="size-4" />}
+                    onClick={() => window.open(event.hangout_link, "_blank", "noopener")}
+                  >
+                    Join meeting
+                  </Button>
+                ) : (
+                  event.html_link && (
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      prependIcon={<ExternalLink className="size-4" />}
+                      onClick={() => window.open(event.html_link, "_blank", "noopener")}
+                    >
+                      Open in Google Calendar
+                    </Button>
+                  )
+                )}
+              </div>
+            </div>
+          </>
         )}
       </div>
     </ModalCore>

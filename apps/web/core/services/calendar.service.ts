@@ -63,7 +63,10 @@ export class CalendarService extends APIService {
     super(API_BASE_URL);
   }
 
-  async tasks(workspaceSlug: string, params: { from: string; to: string }): Promise<{ tasks: TCalendarTask[] }> {
+  async tasks(
+    workspaceSlug: string,
+    params: { from: string; to: string; project_id?: string }
+  ): Promise<{ tasks: TCalendarTask[] }> {
     return this.get(`/api/workspaces/${workspaceSlug}/my-calendar-tasks/`, { params }).then((r) => r?.data);
   }
 

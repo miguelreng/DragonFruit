@@ -24,6 +24,7 @@ function RichTextEditor(props: IRichTextEditorProps) {
     fileHandler,
     flaggedExtensions,
     extendedEditorProps,
+    embedConfig,
     workItemIdentifier,
   } = props;
 
@@ -39,11 +40,20 @@ function RichTextEditor(props: IRichTextEditorProps) {
         fileHandler,
         flaggedExtensions,
         extendedEditorProps,
+        embedConfig,
       }),
     ];
 
     return extensions;
-  }, [dragDropEnabled, disabledExtensions, externalExtensions, fileHandler, flaggedExtensions, extendedEditorProps]);
+  }, [
+    dragDropEnabled,
+    disabledExtensions,
+    embedConfig,
+    externalExtensions,
+    fileHandler,
+    flaggedExtensions,
+    extendedEditorProps,
+  ]);
 
   return (
     <EditorWrapper {...props} extensions={getExtensions()}>

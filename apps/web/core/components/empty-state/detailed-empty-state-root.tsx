@@ -10,6 +10,7 @@ import { observer } from "mobx-react";
 import { Button } from "@plane/propel/button";
 // utils
 import { cn } from "@plane/utils";
+import { EmptyStateIcon, type TEmptyStateIconName } from "./empty-state-icon";
 
 type EmptyStateSize = "sm" | "base" | "lg";
 
@@ -25,6 +26,7 @@ type Props = {
   title: string;
   description?: string;
   assetPath?: string;
+  visual?: { type: "icon"; name: TEmptyStateIconName } | { type: "asset"; path: string; alt?: string };
   size?: EmptyStateSize;
   primaryButton?: ButtonConfig;
   secondaryButton?: ButtonConfig;
@@ -72,10 +74,12 @@ export const DetailedEmptyState = observer(function DetailedEmptyState(props: Pr
     customPrimaryButton,
     customSecondaryButton,
     assetPath,
+    visual,
     className,
   } = props;
 
   const hasButtons = primaryButton || secondaryButton || customPrimaryButton || customSecondaryButton;
+  const resolvedVisual = visual ?? (assetPath ? { type: "asset" as const, path: assetPath, alt: title } : undefined);
 
   return (
     <div
@@ -90,7 +94,14 @@ export const DetailedEmptyState = observer(function DetailedEmptyState(props: Pr
           {description && <p className="text-13">{description}</p>}
         </div>
 
-        {assetPath && <img src={assetPath} alt={title} className="h-auto w-full" loading="lazy" />}
+        {resolvedVisual &&
+          (resolvedVisual.type === "icon" ? (
+            <div className="grid place-items-center py-3">
+              <EmptyStateIcon name={resolvedVisual.name} />
+            </div>
+          ) : (
+            <img src={resolvedVisual.path} alt={resolvedVisual.alt ?? ""} className="h-auto w-full" loading="lazy" />
+          ))}
 
         {hasButtons && (
           <div className="relative flex w-full flex-shrink-0 items-center justify-center gap-2">

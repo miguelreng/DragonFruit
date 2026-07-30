@@ -4,12 +4,17 @@
  * See the LICENSE file for details.
  */
 
+import { SPACE_BASE_URL } from "@plane/constants";
+import type { TPageType } from "@plane/types";
 import { validateSlug } from "@plane/utils";
 
 type TPageLike = {
   id?: string;
+  page_type?: TPageType;
   view_props?: Record<string, unknown> | undefined;
 };
+
+export type TPublicPageContentType = Exclude<TPageType, "folder"> | "wiki";
 
 export const getPublicPageSlug = (page: TPageLike): string => {
   const raw = page?.view_props?.public_slug;
@@ -17,12 +22,42 @@ export const getPublicPageSlug = (page: TPageLike): string => {
   return page?.id ?? "";
 };
 
-export const buildPublicPagePath = (workspaceSlug: string, pageSlug: string) =>
-  `/published/${workspaceSlug}/${encodeURIComponent(pageSlug)}`;
+export const getPublicPageContentType = (page: TPageLike): TPublicPageContentType =>
+  page.page_type === "folder" ? "wiki" : (page.page_type ?? "doc");
 
-export const buildPublicPageUrl = (workspaceSlug: string, pageSlug: string) => {
-  const base = typeof window !== "undefined" ? window.location.origin : "";
-  return `${base}${buildPublicPagePath(workspaceSlug, pageSlug)}`;
+export const buildPublicPagePath = (
+  workspaceIdentifier: string,
+  pageSlug: string,
+  contentType: TPublicPageContentType = "doc"
+) => `/${encodeURIComponent(workspaceIdentifier)}/${contentType}/${encodeURIComponent(pageSlug)}`;
+
+type TPublicPageUrlOptions = {
+  currentOrigin?: string;
+  publicBaseUrl?: string;
+};
+
+export const buildPublicPageUrl = (
+  workspaceIdentifier: string,
+  pageSlug: string,
+  contentType: TPublicPageContentType = "doc",
+  {
+    currentOrigin = typeof window !== "undefined" ? window.location.origin : "",
+    publicBaseUrl = SPACE_BASE_URL,
+  }: TPublicPageUrlOptions = {}
+) => {
+  const configuredBaseUrl = publicBaseUrl.trim();
+  const isPublicContentOrigin = (() => {
+    try {
+      return ["dragonfruit.page", "www.dragonfruit.page"].includes(new URL(configuredBaseUrl).hostname);
+    } catch {
+      return false;
+    }
+  })();
+  const base = (isPublicContentOrigin ? configuredBaseUrl : currentOrigin).replace(/\/+$/, "");
+  const path = isPublicContentOrigin
+    ? buildPublicPagePath(workspaceIdentifier, pageSlug, contentType)
+    : `/published/${encodeURIComponent(workspaceIdentifier)}/${encodeURIComponent(pageSlug)}`;
+  return `${base}${path}`;
 };
 
 export const normalizePublicPageSlug = (input: string): string => input.trim().toLowerCase().replace(/\s+/g, "-");

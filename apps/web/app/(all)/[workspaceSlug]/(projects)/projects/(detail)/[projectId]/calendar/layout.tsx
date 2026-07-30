@@ -5,19 +5,13 @@
  */
 
 import { Outlet } from "react-router";
-// components
-import { AppHeader } from "@/components/core/app-header";
-import { ContentWrapper } from "@/components/core/content-wrapper";
-import { ProjectCalendarHeader } from "./header";
-import { ProjectCalendarMobileHeader } from "./mobile-header";
 
+// CalendarRoot renders its own AppHeader toolbar (shared with the workspace
+// calendar), so this layout doesn't add a second one.
 export default function ProjectCalendarLayout() {
   return (
-    <>
-      <AppHeader header={<ProjectCalendarHeader />} mobileHeader={<ProjectCalendarMobileHeader />} />
-      <ContentWrapper>
-        <Outlet />
-      </ContentWrapper>
-    </>
+    <div className="flex h-full w-full flex-col overflow-hidden bg-surface-1">
+      <Outlet />
+    </div>
   );
 }

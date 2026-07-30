@@ -6,7 +6,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { ExternalLink, HardDrive, ListChecks, Loader2, Whiteboard, StickyNote } from "@/components/icons/lucide-shim";
+import {
+  ExternalLink,
+  FileText,
+  HardDrive,
+  ListChecks,
+  Loader2,
+  Whiteboard,
+  StickyNote,
+} from "@/components/icons/lucide-shim";
 import type { IProjectView, TPage, TSticky } from "@plane/types";
 import { EViewAccess } from "@plane/types";
 import { cn } from "@plane/utils";
@@ -20,7 +28,7 @@ const stickyService = new StickyService();
 const viewService = new ViewService();
 
 type Props = {
-  embedType: "whiteboard" | "sticky" | "task_view" | "google_drive";
+  embedType: "whiteboard" | "sticky" | "task_view" | "google_drive" | "page";
   entityId: string;
   projectId: string | undefined;
   workspaceSlug: string | undefined;
@@ -46,12 +54,12 @@ export function DocEmbedCard(props: Props) {
   useEffect(() => {
     if (!workspaceSlug || !entityId) return;
     if (embedType === "google_drive") return;
-    if ((embedType === "whiteboard" || embedType === "task_view") && !projectId) return;
+    if ((embedType === "whiteboard" || embedType === "task_view" || embedType === "page") && !projectId) return;
     let cancelled = false;
     setState({ status: "loading" });
     const load = async () => {
       try {
-        if (embedType === "whiteboard") {
+        if (embedType === "whiteboard" || embedType === "page") {
           const page = await pageService.fetchById(workspaceSlug, projectId!, entityId, false);
           if (!cancelled) setState({ status: "ready", page });
         } else if (embedType === "sticky") {
@@ -90,6 +98,16 @@ export function DocEmbedCard(props: Props) {
         name: page?.name || title || "Untitled whiteboard",
         href: workspaceSlug && projectId ? `/${workspaceSlug}/projects/${projectId}/pages/${entityId}` : undefined,
         body: "Canvas page",
+      };
+    }
+    if (embedType === "page") {
+      const page = state.status === "ready" ? state.page : undefined;
+      return {
+        label: "Doc",
+        Icon: FileText,
+        name: page?.name || "Untitled Doc",
+        href: workspaceSlug && projectId ? `/${workspaceSlug}/projects/${projectId}/pages/${entityId}` : undefined,
+        body: "Workspace document",
       };
     }
     if (embedType === "sticky") {

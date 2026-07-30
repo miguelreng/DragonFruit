@@ -14,6 +14,11 @@
 
 ## Status
 
+- **Implementation status**: IN PROGRESS — base presence shipped in commit
+  `a2560e6a07`; a 2026-07-30 acceptance follow-up now guarantees the current
+  user appears when alone, carries real profile-picture URLs with initials
+  fallback, and publishes a reduced-motion-safe active-editing pulse. Automated
+  tests and types pass; signed-in two-browser smoke remains in Plan 034.
 - **Priority**: P1
 - **Effort**: M (roughly 3–5 engineering days including tests and two-browser QA)
 - **Risk**: MED — awareness is ephemeral, but the work touches the shared editor connection lifecycle and live-server authorization
