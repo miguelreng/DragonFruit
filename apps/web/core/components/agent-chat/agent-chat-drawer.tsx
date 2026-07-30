@@ -2493,7 +2493,11 @@ const MessageRow = memo(function MessageRow({ message }: { message: TAgentChatMe
           )}
           {visibleContent && (
             <div className="rounded-2xl rounded-br-md bg-layer-1 px-3.5 py-2 text-13 [overflow-wrap:anywhere] whitespace-pre-wrap text-primary">
-              {visibleContent}
+              {getAtlasPromptHighlightParts(visibleContent).map((part) => (
+                <span key={part.key} className={part.isMention ? "font-medium text-accent-primary" : undefined}>
+                  {part.text}
+                </span>
+              ))}
             </div>
           )}
         </div>
