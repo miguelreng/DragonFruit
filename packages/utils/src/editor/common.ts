@@ -71,7 +71,7 @@ export const getEditorAssetPdfContentSrc = (args: TEditorSrcArgs): string | unde
       project: projectId,
       workspace: workspaceSlug,
     });
-    return `/api/pdf-content?${params.toString()}`;
+    return `/api/file-stream?${params.toString()}`;
   }
   return getFileURL(`/api/assets/v2/workspaces/${workspaceSlug}/projects/${projectId}/${assetId}/pdf-content/`);
 };

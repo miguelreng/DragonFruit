@@ -1,3 +1,4 @@
+// Neutral route name avoids over-eager content blockers while streaming private files.
 export const config = {
   runtime: "edge",
 };
