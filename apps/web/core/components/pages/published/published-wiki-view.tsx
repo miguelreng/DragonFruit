@@ -5,7 +5,6 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { cn } from "@plane/utils";
 import {
   addPublicDocHeadingIds,
   getPublicDocHeadings,
@@ -39,9 +38,6 @@ export function PublishedWikiView({ data }: Props) {
   const docs = useMemo(() => data.wiki_docs ?? [], [data.wiki_docs]);
   const wikiProps = getWikiViewProps(data.view_props);
   const accent = WIKI_ACCENTS[wikiProps.accent ?? DEFAULT_WIKI_ACCENT];
-  // Owner-picked theme wins; absent = follow the reader's system preference.
-  const themeClass =
-    wikiProps.theme === "dark" ? "wiki-theme-dark" : wikiProps.theme === "light" ? "wiki-theme-light" : undefined;
 
   const [activeDocId, setActiveDocId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -56,7 +52,9 @@ export function PublishedWikiView({ data }: Props) {
   const activeHtml = useMemo(
     () =>
       activeDoc
-        ? addPublicDocHeadingIds(transformPublicDocMentions(activeDoc.description_html || "<p></p>", activeDoc.mentions))
+        ? addPublicDocHeadingIds(
+            transformPublicDocMentions(activeDoc.description_html || "<p></p>", activeDoc.mentions)
+          )
         : "",
     [activeDoc]
   );
@@ -87,8 +85,9 @@ export function PublishedWikiView({ data }: Props) {
 
   return (
     <div
-      className={cn("df-wiki-reader", themeClass)}
-      style={{ "--wiki-accent-light": accent.light, "--wiki-accent-dark": accent.dark } as React.CSSProperties}
+      data-theme="light"
+      className="df-wiki-reader public-page-light"
+      style={{ "--wiki-accent": accent.light } as React.CSSProperties}
     >
       <style>{WIKI_READER_CSS}</style>
       {data.is_preview && (
@@ -126,7 +125,9 @@ export function PublishedWikiView({ data }: Props) {
                   <PublicDocContent html={activeHtml} embeds={[]} />
                 </>
               ) : (
-                <p className="wiki-empty">This wiki has no visible docs yet. Add docs to the folder, or unhide them in Wiki settings.</p>
+                <p className="wiki-empty">
+                  This wiki has no visible docs yet. Add docs to the folder, or unhide them in Wiki settings.
+                </p>
               )}
             </article>
           </main>
@@ -136,17 +137,11 @@ export function PublishedWikiView({ data }: Props) {
   );
 }
 
-const WIKI_DARK_VARS = `
-  --canvas: #14160f; --paper: #1c1f17; --ink: #eceade; --muted: #a8b0a2; --quiet: #7f877b;
-  --line: rgba(242, 241, 232, 0.13); --line-strong: rgba(242, 241, 232, 0.26);
-  --accent: var(--wiki-accent-dark); --code-bg: rgba(242, 241, 232, 0.08);
-`;
-
 const WIKI_READER_CSS = `
 .df-wiki-reader {
   --canvas: #f7f8f3; --paper: #fffef9; --ink: #171914; --muted: #667064; --quiet: #8b9288;
   --line: rgba(23, 25, 20, 0.12); --line-strong: rgba(23, 25, 20, 0.22);
-  --accent: var(--wiki-accent-light); --code-bg: rgba(23, 25, 20, 0.055);
+  --accent: var(--wiki-accent); --code-bg: rgba(23, 25, 20, 0.055);
   min-height: 100vh;
   background: var(--canvas);
   color: var(--ink);
@@ -154,11 +149,6 @@ const WIKI_READER_CSS = `
   font-size: 15px;
   line-height: 1.6;
 }
-@media (prefers-color-scheme: dark) {
-  .df-wiki-reader:not(.wiki-theme-light) { ${WIKI_DARK_VARS} }
-}
-.df-wiki-reader.wiki-theme-dark { ${WIKI_DARK_VARS} }
-
 .df-wiki-reader .wiki-preview-banner {
   display: flex; align-items: baseline; gap: 8px;
   padding: 8px 20px;

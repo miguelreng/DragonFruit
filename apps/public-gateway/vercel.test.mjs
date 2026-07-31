@@ -18,3 +18,14 @@ test("does not expose private API namespaces", () => {
 
   assert.deepEqual(exposedApiRoutes, ["/api/public/(.*)", "/api/instances/"]);
 });
+
+test("renders canonical public pages through the metadata gateway", () => {
+  assert.equal(
+    rewrites.get("/:workspaceIdentifier/doc/:pageSlug"),
+    "/api/public-page?workspaceIdentifier=:workspaceIdentifier&pageType=doc&pageSlug=:pageSlug"
+  );
+  assert.equal(
+    rewrites.get("/published/:workspaceIdentifier/:pageSlug"),
+    "/api/public-page?workspaceIdentifier=:workspaceIdentifier&pageType=auto&pageSlug=:pageSlug"
+  );
+});

@@ -1,0 +1,13 @@
+{
+  "name": "public-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vercel/og": "0.11.1",
+    "react": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

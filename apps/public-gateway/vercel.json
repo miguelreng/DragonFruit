@@ -33,23 +33,27 @@
     },
     {
       "source": "/:workspaceIdentifier/doc/:pageSlug",
-      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+      "destination": "/api/public-page?workspaceIdentifier=:workspaceIdentifier&pageType=doc&pageSlug=:pageSlug"
     },
     {
       "source": "/:workspaceIdentifier/wiki/:pageSlug",
-      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+      "destination": "/api/public-page?workspaceIdentifier=:workspaceIdentifier&pageType=wiki&pageSlug=:pageSlug"
     },
     {
       "source": "/:workspaceIdentifier/whiteboard/:pageSlug",
-      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+      "destination": "/api/public-page?workspaceIdentifier=:workspaceIdentifier&pageType=whiteboard&pageSlug=:pageSlug"
     },
     {
       "source": "/:workspaceIdentifier/pdf/:pageSlug",
-      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+      "destination": "/api/public-page?workspaceIdentifier=:workspaceIdentifier&pageType=pdf&pageSlug=:pageSlug"
     },
     {
       "source": "/:workspaceIdentifier/sheet/:pageSlug",
-      "destination": "https://app.dragonfruit.sh/published/:workspaceIdentifier/:pageSlug"
+      "destination": "/api/public-page?workspaceIdentifier=:workspaceIdentifier&pageType=sheet&pageSlug=:pageSlug"
+    },
+    {
+      "source": "/published/:workspaceIdentifier/:pageSlug",
+      "destination": "/api/public-page?workspaceIdentifier=:workspaceIdentifier&pageType=auto&pageSlug=:pageSlug"
     },
     {
       "source": "/spaces/assets/:path*",

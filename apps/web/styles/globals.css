@@ -817,6 +817,25 @@ a.public-doc-mention:hover {
   text-underline-offset: 2px;
 }
 
+/* Public readers are light-only. Rebind legacy semantic aliases locally so
+   they cannot retain values computed on a dark document root during the
+   first render or a later application-theme update. */
+.public-page-light {
+  color-scheme: only light;
+  --background-color-canvas: var(--bg-canvas);
+  --background-color-surface-1: var(--bg-surface-1);
+  --background-color-surface-2: var(--bg-surface-2);
+  --background-color-layer-1: var(--bg-layer-1);
+  --background-color-layer-3: var(--bg-layer-3);
+  --background-color-accent-primary: var(--bg-accent-primary);
+  --border-color-subtle: var(--border-subtle);
+  --border-color-strong: var(--border-strong);
+  --text-color-primary: var(--txt-primary);
+  --text-color-secondary: var(--txt-secondary);
+  --text-color-tertiary: var(--txt-tertiary);
+  --text-color-accent-primary: var(--txt-accent-primary);
+}
+
 .published-doc-surface {
   --published-doc-body-font:
     "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
