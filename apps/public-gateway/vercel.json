@@ -76,6 +76,10 @@
       "destination": "https://app.dragonfruit.sh/fonts/:path*"
     },
     {
+      "source": "/icons/:path*",
+      "destination": "https://app.dragonfruit.sh/icons/:path*"
+    },
+    {
       "source": "/favicon.ico",
       "destination": "https://app.dragonfruit.sh/favicon.ico"
     },

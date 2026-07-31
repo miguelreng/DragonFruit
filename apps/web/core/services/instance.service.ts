@@ -5,7 +5,7 @@
  */
 
 // types
-import { API_BASE_URL } from "@plane/constants";
+import { getPublicApiBaseUrl } from "@plane/constants";
 import type { IInstanceInfo } from "@plane/types";
 // helpers
 // services
@@ -13,7 +13,7 @@ import { APIService } from "@/services/api.service";
 
 export class InstanceService extends APIService {
   constructor() {
-    super(API_BASE_URL);
+    super(getPublicApiBaseUrl());
   }
 
   async requestCSRFToken(): Promise<{ csrf_token: string }> {

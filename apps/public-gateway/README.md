@@ -8,7 +8,8 @@ This Vercel project owns `dragonfruit.page` and keeps public content on one bran
 - `/published/*` proxies published documents and wikis from the web app.
 - `/spaces/*` proxies public project views and calendars from the Space app.
 - `/api/public/*` forwards read-only public API requests without exposing private API routes.
-- Web assets required by the published-document reader are proxied from the web app.
+- `/api/instances/` forwards the public instance bootstrap request so published pages stay same-origin.
+- Web assets required by the published-document reader and its manifest are proxied from the web app.
 - The root redirects to the private application.
 
 Create this as a separate Vercel project with `apps/public-gateway` as its Root Directory and attach

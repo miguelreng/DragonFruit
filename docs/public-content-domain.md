@@ -12,6 +12,7 @@ applications without exposing private application routes on the public domain.
 | `https://dragonfruit.page/:workspace/:page-type/:slug` | `apps/web` at `app.dragonfruit.sh`    |
 | `https://dragonfruit.page/:workspace/calendar/:anchor` | `apps/space` through its Vercel alias |
 | `https://dragonfruit.page/:workspace/project/:anchor`  | `apps/space` through its Vercel alias |
+| `https://dragonfruit.page/api/instances/`              | Public instance bootstrap route       |
 | `https://dragonfruit.page/api/public/*`                | Public-only API routes                |
 
 `:workspace` is the readable workspace identifier used by the application, such as `rengi-media`. Supported page
@@ -61,8 +62,8 @@ Keep every existing trusted origin in `CORS_ALLOWED_ORIGINS`; the example shows 
 Public read-only requests do not require a session. If authenticated interaction is later enabled on public pages,
 add `api.dragonfruit.page` as a second domain on the API service and use it as the Space app API origin.
 
-The gateway exposes only `/api/public/*`. Browser reads on `dragonfruit.page` therefore remain same-origin without
-opening private API routes on the public domain.
+The gateway exposes only `/api/instances/` and `/api/public/*`. Browser reads on `dragonfruit.page` therefore remain
+same-origin without opening private API routes on the public domain.
 
 ## DNS
 
