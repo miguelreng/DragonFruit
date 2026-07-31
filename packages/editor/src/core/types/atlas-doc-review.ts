@@ -12,6 +12,8 @@ export type TAtlasDocEditOperation = "insert_after" | "replace" | "delete";
 
 export type TAtlasDocProposalStatus = "streaming" | "pending" | "accepted" | "rejected" | "stale" | "failed";
 
+export type TAtlasDocReviewResolution = "applied" | "no-op" | "stale";
+
 export type TAtlasDocReviewSession = {
   id: string;
   mode: TAtlasDocWriteMode;
@@ -28,8 +30,12 @@ export type TAtlasDocReviewProposal = {
   targetOriginalText?: string;
   contentText?: string;
   contentHtml?: Content;
+  contentJson?: Content;
 };
 
 export type TAtlasDocReviewProposalUpdate = Partial<
-  Pick<TAtlasDocReviewProposal, "status" | "contentText" | "contentHtml" | "targetOriginalText" | "targetBlockId">
+  Pick<
+    TAtlasDocReviewProposal,
+    "status" | "contentText" | "contentHtml" | "contentJson" | "targetOriginalText" | "targetBlockId"
+  >
 >;

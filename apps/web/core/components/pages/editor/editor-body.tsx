@@ -72,6 +72,7 @@ type Props = {
   config: TEditorBodyConfig;
   editorReady: boolean;
   editorForwardRef: React.RefObject<EditorRefApi>;
+  titleEditorForwardRef: React.RefObject<EditorTitleRefApi>;
   handleEditorReady: (status: boolean) => void;
   handleOpenNavigationPane: () => void;
   handlers: TEditorBodyHandlers;
@@ -96,6 +97,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
   const {
     config,
     editorForwardRef,
+    titleEditorForwardRef,
     handleEditorReady,
     handleOpenNavigationPane,
     handlers,
@@ -112,8 +114,6 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     headerLabel,
     editorPlaceholder,
   } = props;
-  // refs
-  const titleEditorRef = useRef<EditorTitleRefApi>(null);
   // store hooks
   const { data: currentUser } = useUser();
   const { getWorkspaceBySlug } = useWorkspace();
@@ -127,9 +127,19 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
     id: pageId,
     isContentEditable,
     view_props,
-    editor: { editorRef, updateAssetsList },
+    editor: { editorRef, atlasReviewPhase, updateAssetsList },
     setSyncingStatus,
   } = page;
+  const atlasEditorSurfaceRef = useRef<HTMLDivElement>(null);
+  const isAtlasPreparing = atlasReviewPhase === "requesting" || atlasReviewPhase === "streaming";
+
+  useEffect(() => {
+    const surface = atlasEditorSurfaceRef.current;
+    if (!surface) return;
+    if (isAtlasPreparing) surface.setAttribute("inert", "");
+    else surface.removeAttribute("inert");
+    return () => surface.removeAttribute("inert");
+  }, [isAtlasPreparing]);
   // Focus (zen) mode never applies to chromeless embeds (the Brief) — they
   // have no toolbar to toggle it back off from.
   const isFocusMode = Boolean(view_props?.focus_mode) && !chromeless;
@@ -544,7 +554,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
           </Tooltip>
         </div>
       )}
-      <div id="page-content-container" className="relative w-full flex-shrink-0">
+      <div id="page-content-container" className="relative w-full flex-shrink-0" aria-busy={isAtlasPreparing}>
         {/* table of content */}
         {!isNavigationPaneOpen && !isFocusMode && (
           <div className="page-summary-container absolute top-[64px] right-0 z-[5] h-full">
@@ -565,7 +575,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             </div>
           </div>
         )}
-        <div>
+        <div ref={atlasEditorSurfaceRef}>
           <div className="page-header-container group/page-header">
             <div className={blockWidthClassName}>
               {chromeless ? (
@@ -584,7 +594,7 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             fileHandler={config.fileHandler}
             handleEditorReady={handleEditorReady}
             ref={editorForwardRef}
-            titleRef={titleEditorRef}
+            titleRef={titleEditorForwardRef}
             containerClassName="h-full p-0 pb-64"
             displayConfig={displayConfig}
             getEditorMetaData={getEditorMetaData}
@@ -637,6 +647,40 @@ export const PageEditorBody = observer(function PageEditorBody(props: Props) {
             onCancelEmpty={handleFloatingCancelEmpty}
           />
         </div>
+        {isAtlasPreparing && (
+          <div
+            role="status"
+            aria-live="polite"
+            aria-label="Atlas is preparing document changes"
+            className="absolute inset-0 z-20 min-h-[calc(100vh-7rem)] cursor-wait bg-surface-1"
+          >
+            <span className="sr-only">Atlas is preparing document changes.</span>
+            <div
+              aria-hidden="true"
+              className={cn(blockWidthClassName, "animate-pulse px-page-x pt-5 motion-reduce:animate-none")}
+            >
+              <div className="h-3 w-20 rounded-full bg-layer-2" />
+              <div className="mt-4 h-9 w-3/4 max-w-[520px] rounded-lg bg-layer-2" />
+              <div className="mt-12 space-y-3">
+                <div className="h-3.5 w-full rounded-full bg-layer-2" />
+                <div className="h-3.5 w-[94%] rounded-full bg-layer-2" />
+                <div className="h-3.5 w-[78%] rounded-full bg-layer-2" />
+              </div>
+              <div className="mt-9 h-5 w-2/5 rounded-md bg-layer-2" />
+              <div className="mt-4 space-y-3">
+                <div className="h-3.5 w-[96%] rounded-full bg-layer-2" />
+                <div className="h-3.5 w-full rounded-full bg-layer-2" />
+                <div className="h-3.5 w-[87%] rounded-full bg-layer-2" />
+                <div className="h-3.5 w-[62%] rounded-full bg-layer-2" />
+              </div>
+              <div className="mt-9 space-y-3 pl-5">
+                <div className="h-3.5 w-[82%] rounded-full bg-layer-2" />
+                <div className="h-3.5 w-[76%] rounded-full bg-layer-2" />
+                <div className="h-3.5 w-[68%] rounded-full bg-layer-2" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Row>
   );

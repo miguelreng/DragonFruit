@@ -10,8 +10,10 @@ export const ATLAS_SIDEBAR_DEFAULT_WIDTH = 350;
 export const ATLAS_SIDEBAR_MIN_WIDTH = 320;
 /** Hard cap on the max width, before the viewport-relative margin is applied. */
 export const ATLAS_SIDEBAR_MAX_WIDTH_CAP = 720;
-/** Content pane must keep at least this much space beside the docked panel. */
-export const ATLAS_SIDEBAR_VIEWPORT_MARGIN = 420;
+/** Minimum usable width preserved for the workspace editor beside Atlas. */
+export const ATLAS_EDITOR_MIN_WIDTH = 600;
+/** Visual gap between the workspace panel and a docked Atlas panel. */
+export const ATLAS_LAYOUT_GAP = 2;
 /** Dragging within this many px of the default snaps to it. */
 export const ATLAS_SIDEBAR_SNAP_THRESHOLD = 24;
 /** Arrow-key resize step, in px. */
@@ -20,21 +22,62 @@ export const ATLAS_SIDEBAR_KEYBOARD_STEP = 16;
 export const ATLAS_SIDEBAR_KEYBOARD_STEP_LARGE = 64;
 
 /**
- * Max allowed width for a given viewport: `min(720px, viewport - 420px)`,
- * floored at the min width so an inverted range (very narrow viewports) never
- * produces a max below the min.
+ * Max docked width for the actual shared container, not the browser viewport.
  */
-export function getAtlasSidebarMaxWidth(viewportWidth: number): number {
+export function getAtlasSidebarMaxWidth(containerWidth: number): number {
   return Math.max(
     ATLAS_SIDEBAR_MIN_WIDTH,
-    Math.min(ATLAS_SIDEBAR_MAX_WIDTH_CAP, viewportWidth - ATLAS_SIDEBAR_VIEWPORT_MARGIN)
+    Math.min(ATLAS_SIDEBAR_MAX_WIDTH_CAP, containerWidth - ATLAS_EDITOR_MIN_WIDTH - ATLAS_LAYOUT_GAP)
   );
 }
 
-/** Clamps a candidate width to `[MIN, getAtlasSidebarMaxWidth(viewportWidth)]`. */
-export function clampAtlasSidebarWidth(width: number, viewportWidth: number): number {
-  const max = getAtlasSidebarMaxWidth(viewportWidth);
+/** Clamps a docked candidate against the measured shared container. */
+export function clampAtlasSidebarWidth(width: number, containerWidth: number): number {
+  const max = getAtlasSidebarMaxWidth(containerWidth);
   return Math.min(Math.max(width, ATLAS_SIDEBAR_MIN_WIDTH), max);
+}
+
+/** Store the user's preference independently from today's window/container. */
+export function clampAtlasSidebarPreferredWidth(width: number): number {
+  return Math.min(Math.max(width, ATLAS_SIDEBAR_MIN_WIDTH), ATLAS_SIDEBAR_MAX_WIDTH_CAP);
+}
+
+export type TAtlasSidebarLayout = {
+  mode: "docked" | "overlay";
+  atlasWidth: number;
+  remainingEditorWidth: number;
+};
+
+/**
+ * Dock only when both surfaces remain genuinely usable. Otherwise Atlas
+ * overlays the workspace and preserves the preferred docked width for later.
+ */
+export function resolveAtlasSidebarLayout({
+  containerWidth,
+  preferredWidth,
+  gap = ATLAS_LAYOUT_GAP,
+  minEditorWidth = ATLAS_EDITOR_MIN_WIDTH,
+}: {
+  containerWidth: number;
+  preferredWidth: number;
+  gap?: number;
+  minEditorWidth?: number;
+}): TAtlasSidebarLayout {
+  const preferred = clampAtlasSidebarPreferredWidth(preferredWidth);
+  const availableForAtlas = containerWidth - minEditorWidth - gap;
+  if (availableForAtlas < ATLAS_SIDEBAR_MIN_WIDTH) {
+    return {
+      mode: "overlay",
+      atlasWidth: preferred,
+      remainingEditorWidth: Math.max(0, containerWidth),
+    };
+  }
+  const atlasWidth = Math.min(preferred, ATLAS_SIDEBAR_MAX_WIDTH_CAP, availableForAtlas);
+  return {
+    mode: "docked",
+    atlasWidth,
+    remainingEditorWidth: Math.max(0, containerWidth - atlasWidth - gap),
+  };
 }
 
 /** Snaps a width to the default when within the snap threshold of it. */
@@ -61,9 +104,9 @@ export function parsePersistedAtlasSidebarWidth(raw: string | null | undefined):
  * the default when missing/invalid) and re-clamps it against the current
  * viewport, since a value saved on a larger monitor may no longer fit.
  */
-export function resolveAtlasSidebarWidth(raw: string | null | undefined, viewportWidth: number): number {
+export function resolveAtlasSidebarWidth(raw: string | null | undefined, containerWidth: number): number {
   const persisted = parsePersistedAtlasSidebarWidth(raw);
-  return clampAtlasSidebarWidth(persisted ?? ATLAS_SIDEBAR_DEFAULT_WIDTH, viewportWidth);
+  return clampAtlasSidebarWidth(persisted ?? ATLAS_SIDEBAR_DEFAULT_WIDTH, containerWidth);
 }
 
 /**
@@ -76,13 +119,13 @@ export function getAtlasSidebarWidthForKey(
   key: string,
   currentWidth: number,
   shiftKey: boolean,
-  viewportWidth: number
+  containerWidth: number
 ): number | null {
   const step = shiftKey ? ATLAS_SIDEBAR_KEYBOARD_STEP_LARGE : ATLAS_SIDEBAR_KEYBOARD_STEP;
   // The separator sits on the panel's left edge and the panel is docked to
   // the right, so moving the handle left grows the panel.
-  if (key === "ArrowLeft") return clampAtlasSidebarWidth(currentWidth + step, viewportWidth);
-  if (key === "ArrowRight") return clampAtlasSidebarWidth(currentWidth - step, viewportWidth);
-  if (key === "Home") return clampAtlasSidebarWidth(ATLAS_SIDEBAR_DEFAULT_WIDTH, viewportWidth);
+  if (key === "ArrowLeft") return clampAtlasSidebarWidth(currentWidth + step, containerWidth);
+  if (key === "ArrowRight") return clampAtlasSidebarWidth(currentWidth - step, containerWidth);
+  if (key === "Home") return clampAtlasSidebarWidth(ATLAS_SIDEBAR_DEFAULT_WIDTH, containerWidth);
   return null;
 }

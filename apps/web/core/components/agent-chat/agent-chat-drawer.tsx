@@ -67,7 +67,7 @@ function ensureHljsRegistered() {
   _hljsRegistered = true;
 }
 // plane imports
-import type { EditorRefApi } from "@plane/editor";
+import type { EditorRefApi, EditorTitleRefApi } from "@plane/editor";
 import type { TProject } from "@plane/types";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -115,6 +115,12 @@ import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { EPageStoreType, usePageStore } from "@/plane-web/hooks/store";
+import type {
+  TAtlasReviewCoverage,
+  TAtlasReviewPhase,
+  TAtlasReviewSnapshot,
+  TAtlasTitleProposal,
+} from "@/store/pages/page-editor-info";
 // services
 import { AgentChatService } from "@/services/agent-chat.service";
 import type {
@@ -426,6 +432,14 @@ export const AgentChatDrawer = observer(function AgentChatDrawer({
   );
   const activePage = pageId ? projectPages.getPageById(pageId) : undefined;
   const activePageEditorRef = activePage?.editor.editorRef ?? null;
+  const activePageTitleEditorRef = activePage?.editor.titleEditorRef ?? null;
+  const setAtlasReviewPhase = activePage?.editor.setAtlasReviewPhase;
+  const atlasReviewSnapshot = activePage?.editor.atlasReviewSnapshot ?? null;
+  const setAtlasReviewSnapshot = activePage?.editor.setAtlasReviewSnapshot;
+  const atlasTitleProposals = activePage?.editor.atlasTitleProposals ?? [];
+  const setAtlasTitleProposals = activePage?.editor.setAtlasTitleProposals;
+  const atlasReviewCoverage = activePage?.editor.atlasReviewCoverage ?? null;
+  const setAtlasReviewCoverage = activePage?.editor.setAtlasReviewCoverage;
   const effectivePageId = pageId ?? activeSession?.context_page ?? undefined;
   // Pill label. Falls back to "Untitled" while a real doc is attached — the
   // pill should still show (and be dismissible) for unnamed docs.
@@ -469,6 +483,14 @@ export const AgentChatDrawer = observer(function AgentChatDrawer({
           activeDocTitle={activeDocTitle}
           onDismissDocContext={handleDismissDocContext}
           activePageEditorRef={activePageEditorRef}
+          activePageTitleEditorRef={activePageTitleEditorRef}
+          setAtlasReviewPhase={setAtlasReviewPhase}
+          atlasReviewSnapshot={atlasReviewSnapshot}
+          setAtlasReviewSnapshot={setAtlasReviewSnapshot}
+          atlasTitleProposals={atlasTitleProposals}
+          setAtlasTitleProposals={setAtlasTitleProposals}
+          atlasReviewCoverage={atlasReviewCoverage}
+          setAtlasReviewCoverage={setAtlasReviewCoverage}
           onClose={onClose}
           onCollapse={onCollapse}
           isExpanded={isExpanded}
@@ -636,6 +658,14 @@ function ChatView(props: {
   agent: TAgent | undefined;
   sessions: TAgentChatSession[];
   activePageEditorRef: EditorRefApi | null;
+  activePageTitleEditorRef: EditorTitleRefApi | null;
+  setAtlasReviewPhase?: (phase: TAtlasReviewPhase) => void;
+  atlasReviewSnapshot: TAtlasReviewSnapshot | null;
+  setAtlasReviewSnapshot?: (snapshot: TAtlasReviewSnapshot | null) => void;
+  atlasTitleProposals: TAtlasTitleProposal[];
+  setAtlasTitleProposals?: (proposals: TAtlasTitleProposal[]) => void;
+  atlasReviewCoverage: TAtlasReviewCoverage | null;
+  setAtlasReviewCoverage?: (coverage: TAtlasReviewCoverage | null) => void;
   onClose: () => void;
   onCollapse?: () => void;
   isExpanded?: boolean;
@@ -661,6 +691,14 @@ function ChatView(props: {
     agent,
     sessions,
     activePageEditorRef,
+    activePageTitleEditorRef,
+    setAtlasReviewPhase,
+    atlasReviewSnapshot,
+    setAtlasReviewSnapshot,
+    atlasTitleProposals,
+    setAtlasTitleProposals,
+    atlasReviewCoverage,
+    setAtlasReviewCoverage,
     onClose,
     onCollapse,
     isExpanded,
@@ -682,18 +720,16 @@ function ChatView(props: {
   const [pendingProposalCount, setPendingProposalCount] = useState(0);
 
   const openClearConfirm = () => {
-    setPendingProposalCount(activePageEditorRef?.getActiveAtlasProposalCount() ?? 0);
+    setPendingProposalCount((activePageEditorRef?.getActiveAtlasProposalCount() ?? 0) + atlasTitleProposals.length);
     setConfirmClearOpen(true);
   };
 
   const handleConfirmClear = async () => {
     setClearing(true);
     try {
-      // Keep the result: bake any still-pending Atlas edits into the
-      // document before the chat (and its proposal session) goes away.
-      if (activePageEditorRef && activePageEditorRef.getActiveAtlasProposalCount() > 0) {
-        activePageEditorRef.acceptAllAtlasProposals();
-      }
+      // Review state belongs to the document, not this chat session. Clearing
+      // messages must neither accept suggestions implicitly nor lose title
+      // proposals that have not been reviewed yet.
       await onClearSession();
       setConfirmClearOpen(false);
     } finally {
@@ -810,7 +846,7 @@ function ChatView(props: {
         title="Clear conversation?"
         content={
           pendingProposalCount > 0
-            ? "This permanently deletes the chat messages and starts a fresh thread. Atlas' edits already in your document are kept."
+            ? "This permanently deletes the chat messages and starts a fresh thread. Your pending document review stays open."
             : "This permanently deletes the chat messages and starts a fresh thread. Anything Atlas wrote in your document stays."
         }
         primaryButtonText={{ loading: "Clearing", default: "Clear chat" }}
@@ -842,6 +878,14 @@ function ChatView(props: {
               onDismissDocContext={onDismissDocContext}
               agent={agent}
               activePageEditorRef={activePageEditorRef}
+              activePageTitleEditorRef={activePageTitleEditorRef}
+              setAtlasReviewPhase={setAtlasReviewPhase}
+              atlasReviewSnapshot={atlasReviewSnapshot}
+              setAtlasReviewSnapshot={setAtlasReviewSnapshot}
+              atlasTitleProposals={atlasTitleProposals}
+              setAtlasTitleProposals={setAtlasTitleProposals}
+              atlasReviewCoverage={atlasReviewCoverage}
+              setAtlasReviewCoverage={setAtlasReviewCoverage}
               joinedProjectIds={joinedProjectIds}
               getProjectById={getProjectById}
               onScopeChange={onScopeChange}
@@ -1113,6 +1157,17 @@ type TAtlasContextRequest = {
   originalRequest: string;
 };
 
+function normalizeAtlasTitleProposal(value: string): string {
+  const firstLine = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+  return (firstLine ?? "")
+    .replace(/^#{1,3}\s+/, "")
+    .trim()
+    .slice(0, 255);
+}
+
 function getAtlasContextQuestion(content: string, errorMessage = ""): string | null {
   const text = `${content}\n${errorMessage}`.toLowerCase();
   if (text.includes("no project is currently open")) {
@@ -1183,6 +1238,14 @@ function ChatThread(props: {
   onDismissDocContext: () => void;
   agent: TAgent | undefined;
   activePageEditorRef: EditorRefApi | null;
+  activePageTitleEditorRef: EditorTitleRefApi | null;
+  setAtlasReviewPhase?: (phase: TAtlasReviewPhase) => void;
+  atlasReviewSnapshot: TAtlasReviewSnapshot | null;
+  setAtlasReviewSnapshot?: (snapshot: TAtlasReviewSnapshot | null) => void;
+  atlasTitleProposals: TAtlasTitleProposal[];
+  setAtlasTitleProposals?: (proposals: TAtlasTitleProposal[]) => void;
+  atlasReviewCoverage: TAtlasReviewCoverage | null;
+  setAtlasReviewCoverage?: (coverage: TAtlasReviewCoverage | null) => void;
   joinedProjectIds: string[];
   getProjectById: (projectId: string | undefined | null) => TProject | undefined;
   onScopeChange: (projectId: string | undefined) => void;
@@ -1197,6 +1260,14 @@ function ChatThread(props: {
     onDismissDocContext,
     agent,
     activePageEditorRef,
+    activePageTitleEditorRef,
+    setAtlasReviewPhase,
+    atlasReviewSnapshot,
+    setAtlasReviewSnapshot,
+    atlasTitleProposals,
+    setAtlasTitleProposals,
+    atlasReviewCoverage,
+    setAtlasReviewCoverage,
     joinedProjectIds,
     getProjectById,
     onScopeChange,
@@ -1363,16 +1434,72 @@ function ChatThread(props: {
     [handleAttach]
   );
 
-  // Atlas doc-write review. We snapshot the document HTML before the first
-  // proposal is written (see handleSend) so "Discard Atlas changes" can revert
-  // the doc in place. The live proposal count is mirrored from the editor —
-  // per-proposal Accept/Reject happen in the document margin, so the bar must
-  // react to the editor's state, not just the drawer's. When the review
-  // resolves (count returns to 0 via the margin controls), the snapshot is
-  // dropped so the Discard affordance disappears.
-  const [atlasReviewSnapshot, setAtlasReviewSnapshot] = useState<string | null>(null);
+  // Title and body are separate collaborative editors, but one Atlas request
+  // must review them as a single document. Keep one snapshot and one lifecycle
+  // for both surfaces so Accept/Reject/Discard cannot report success after a
+  // stale transaction or leave the title behind.
   const [activeProposalCount, setActiveProposalCount] = useState(0);
+  const [isResolvingAtlasReview, setIsResolvingAtlasReview] = useState(false);
   const prevProposalCountRef = useRef(0);
+  const titleProposalsRef = useRef<TAtlasTitleProposal[]>(atlasTitleProposals);
+  const docWriteAbortRef = useRef<AbortController | null>(null);
+  const resolvingAtlasReviewRef = useRef(false);
+  const phaseResetTimerRef = useRef<number | null>(null);
+
+  const replaceTitleProposals = useCallback(
+    (updater: (current: TAtlasTitleProposal[]) => TAtlasTitleProposal[]) => {
+      const next = updater(titleProposalsRef.current);
+      titleProposalsRef.current = next;
+      setAtlasTitleProposals?.(next);
+      return next;
+    },
+    [setAtlasTitleProposals]
+  );
+
+  useEffect(() => {
+    titleProposalsRef.current = atlasTitleProposals;
+  }, [atlasTitleProposals]);
+
+  const setReviewPhase = useCallback(
+    (phase: TAtlasReviewPhase) => {
+      if (phaseResetTimerRef.current !== null) {
+        window.clearTimeout(phaseResetTimerRef.current);
+        phaseResetTimerRef.current = null;
+      }
+      setAtlasReviewPhase?.(phase);
+    },
+    [setAtlasReviewPhase]
+  );
+
+  const finishReview = useCallback(
+    (phase: "applied" | "rejected") => {
+      setAtlasReviewSnapshot?.(null);
+      setAtlasReviewCoverage?.(null);
+      setReviewPhase(phase);
+      phaseResetTimerRef.current = window.setTimeout(() => {
+        setAtlasReviewPhase?.("idle");
+        phaseResetTimerRef.current = null;
+      }, 700);
+    },
+    [setAtlasReviewCoverage, setAtlasReviewPhase, setAtlasReviewSnapshot, setReviewPhase]
+  );
+
+  useEffect(
+    () => () => {
+      docWriteAbortRef.current?.abort();
+      if (phaseResetTimerRef.current !== null) window.clearTimeout(phaseResetTimerRef.current);
+      const hasPendingReview =
+        (activePageEditorRef?.getActiveAtlasProposalCount() ?? 0) + titleProposalsRef.current.length > 0;
+      setAtlasReviewPhase?.(hasPendingReview ? "reviewing" : "idle");
+    },
+    [activePageEditorRef, setAtlasReviewPhase]
+  );
+
+  useEffect(() => {
+    if ((activePageEditorRef?.getActiveAtlasProposalCount() ?? 0) + atlasTitleProposals.length > 0) {
+      setReviewPhase("reviewing");
+    }
+  }, [activePageEditorRef, atlasTitleProposals.length, setReviewPhase]);
 
   useEffect(() => {
     if (!activePageEditorRef) {
@@ -1382,26 +1509,129 @@ function ChatThread(props: {
     const sync = () => {
       const count = activePageEditorRef.getActiveAtlasProposalCount();
       setActiveProposalCount(count);
-      if (prevProposalCountRef.current > 0 && count === 0) {
-        // Review was resolved through the in-margin controls — drop the
-        // pre-session snapshot so the Discard bar hides itself.
-        setAtlasReviewSnapshot(null);
+      if (prevProposalCountRef.current > 0 && count === 0 && titleProposalsRef.current.length === 0) {
+        setAtlasReviewSnapshot?.(null);
+        setAtlasReviewCoverage?.(null);
+        setReviewPhase("idle");
       }
       prevProposalCountRef.current = count;
     };
     sync();
     return activePageEditorRef.onStateChange(sync);
-  }, [activePageEditorRef]);
+  }, [activePageEditorRef, setAtlasReviewCoverage, setAtlasReviewSnapshot, setReviewPhase]);
 
   const handleAcceptAllProposals = useCallback(() => {
-    setAtlasReviewSnapshot(null);
-    activePageEditorRef?.acceptAllAtlasProposals();
-  }, [activePageEditorRef]);
+    if (resolvingAtlasReviewRef.current) return;
+    resolvingAtlasReviewRef.current = true;
+    setIsResolvingAtlasReview(true);
+    setReviewPhase("resolving");
+    try {
+      const pendingTitles = titleProposalsRef.current.filter((proposal) => proposal.status === "pending");
+      const liveTitle = activePageTitleEditorRef
+        ? htmlToPlainText(activePageTitleEditorRef.getDocument().html).trim()
+        : "";
+      if (
+        pendingTitles.some(
+          (proposal) =>
+            proposal.operation !== "insert_after" &&
+            proposal.targetOriginalText.trim() !== "" &&
+            proposal.targetOriginalText.trim() !== liveTitle
+        )
+      ) {
+        setReviewPhase("reviewing");
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "The title changed",
+          message: "Atlas kept the review open so you can refresh it without overwriting newer work.",
+        });
+        return;
+      }
+
+      const bodyResolution =
+        activePageEditorRef && activePageEditorRef.getActiveAtlasProposalCount() > 0
+          ? activePageEditorRef.acceptAllAtlasProposals()
+          : "no-op";
+      if (bodyResolution === "stale") {
+        setReviewPhase("reviewing");
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "The document changed",
+          message: "Atlas kept the review open instead of applying edits to stale content.",
+        });
+        return;
+      }
+
+      const finalTitle = pendingTitles[pendingTitles.length - 1];
+      if (finalTitle && activePageTitleEditorRef) {
+        const nextTitle = finalTitle.operation === "delete" ? "" : normalizeAtlasTitleProposal(finalTitle.contentText);
+        activePageTitleEditorRef.setEditorValue(`<h1>${escapeHtml(nextTitle)}</h1>`, true);
+      }
+      replaceTitleProposals(() => []);
+      finishReview("applied");
+    } finally {
+      resolvingAtlasReviewRef.current = false;
+      setIsResolvingAtlasReview(false);
+    }
+  }, [activePageEditorRef, activePageTitleEditorRef, finishReview, replaceTitleProposals, setReviewPhase]);
 
   const handleRejectAllProposals = useCallback(() => {
-    setAtlasReviewSnapshot(null);
-    activePageEditorRef?.rejectAllAtlasProposals();
-  }, [activePageEditorRef]);
+    if (resolvingAtlasReviewRef.current) return;
+    resolvingAtlasReviewRef.current = true;
+    setIsResolvingAtlasReview(true);
+    setReviewPhase("resolving");
+    try {
+      const bodyResolution =
+        activePageEditorRef && activePageEditorRef.getActiveAtlasProposalCount() > 0
+          ? activePageEditorRef.rejectAllAtlasProposals()
+          : "no-op";
+      if (bodyResolution === "stale") {
+        setReviewPhase("reviewing");
+        return;
+      }
+      replaceTitleProposals(() => []);
+      finishReview("rejected");
+    } finally {
+      resolvingAtlasReviewRef.current = false;
+      setIsResolvingAtlasReview(false);
+    }
+  }, [activePageEditorRef, finishReview, replaceTitleProposals, setReviewPhase]);
+
+  const handleAcceptTitleProposal = useCallback(
+    (proposalId: string) => {
+      const proposal = titleProposalsRef.current.find((item) => item.id === proposalId);
+      if (!proposal || proposal.status !== "pending" || !activePageTitleEditorRef) return;
+      const liveTitle = htmlToPlainText(activePageTitleEditorRef.getDocument().html).trim();
+      if (
+        proposal.operation !== "insert_after" &&
+        proposal.targetOriginalText.trim() &&
+        proposal.targetOriginalText.trim() !== liveTitle
+      ) {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: "The title changed",
+          message: "This suggestion is stale and was not applied.",
+        });
+        return;
+      }
+      const nextTitle = proposal.operation === "delete" ? "" : normalizeAtlasTitleProposal(proposal.contentText);
+      activePageTitleEditorRef.setEditorValue(`<h1>${escapeHtml(nextTitle)}</h1>`, true);
+      const remaining = replaceTitleProposals((current) => current.filter((item) => item.id !== proposalId));
+      if (remaining.length === 0 && activePageEditorRef?.getActiveAtlasProposalCount() === 0) {
+        finishReview("applied");
+      }
+    },
+    [activePageEditorRef, activePageTitleEditorRef, finishReview, replaceTitleProposals]
+  );
+
+  const handleRejectTitleProposal = useCallback(
+    (proposalId: string) => {
+      const remaining = replaceTitleProposals((current) => current.filter((item) => item.id !== proposalId));
+      if (remaining.length === 0 && activePageEditorRef?.getActiveAtlasProposalCount() === 0) {
+        finishReview("rejected");
+      }
+    },
+    [activePageEditorRef, finishReview, replaceTitleProposals]
+  );
 
   const handleDiscardAtlasChanges = useCallback(() => {
     if (!activePageEditorRef || atlasReviewSnapshot === null) return;
@@ -1412,10 +1642,16 @@ function ChatThread(props: {
     )
       return;
     const snapshot = atlasReviewSnapshot;
-    setAtlasReviewSnapshot(null);
     activePageEditorRef.rejectAllAtlasProposals();
-    activePageEditorRef.replaceProviderDocumentFromHTML(snapshot);
-  }, [activePageEditorRef, atlasReviewSnapshot]);
+    activePageEditorRef.replaceProviderDocumentFromHTML(snapshot.bodyHtml);
+    activePageTitleEditorRef?.setEditorValue(snapshot.titleHtml, true);
+    replaceTitleProposals(() => []);
+    finishReview("rejected");
+  }, [activePageEditorRef, activePageTitleEditorRef, atlasReviewSnapshot, finishReview, replaceTitleProposals]);
+
+  const handleCancelAtlasWrite = useCallback(() => {
+    docWriteAbortRef.current?.abort();
+  }, []);
 
   const searchMentionReferences = useCallback(
     async (query: string): Promise<TAtlasMentionedReference[]> => {
@@ -1633,10 +1869,22 @@ function ChatThread(props: {
 
       if (shouldWriteIntoEditor && activePageEditorRef && pageId) {
         const document = activePageEditorRef.getDocument();
+        const titleDocument = activePageTitleEditorRef?.getDocument() ?? {
+          html: "<h1></h1>",
+          json: null,
+        };
+        const snapshotVersion =
+          globalThis.crypto?.randomUUID?.() ?? `atlas-doc-snapshot-${Date.now()}-${Math.random()}`;
         // Snapshot the doc BEFORE any proposal is written so "Discard Atlas
         // changes" can revert in place.
-        setAtlasReviewSnapshot(document.html);
+        setAtlasReviewSnapshot?.({
+          bodyHtml: document.html,
+          titleHtml: titleDocument.html,
+        });
+        replaceTitleProposals(() => []);
+        setAtlasReviewCoverage?.(null);
         const documentMarkdown = activePageEditorRef.getMarkDown();
+        const documentTitle = htmlToPlainText(titleDocument.html).trim();
         const liveCursorPosition = activePageEditorRef.getCurrentCursorPosition();
         // A pinned passage anchors the edit to where it was picked — the live
         // editor selection has usually collapsed once focus moved to the
@@ -1647,10 +1895,14 @@ function ChatThread(props: {
         const mode: TAtlasDocWriteMode = reply || documentMarkdown.trim().length > 0 ? "update" : "create";
         const intent = mode === "create" ? "insert" : inferDocWriteIntent(trimmed);
         let streamError: string | null = null;
+        const abortController = new AbortController();
+        docWriteAbortRef.current?.abort();
+        docWriteAbortRef.current = abortController;
 
         setDraft("");
         setPendingFiles([]);
         setReplyContext(null);
+        setReviewPhase("requesting");
         activePageEditorRef.startAtlasReviewSession({
           id: `local-atlas-doc-write-${Date.now()}`,
           mode,
@@ -1671,9 +1923,23 @@ function ChatThread(props: {
               selection_text: reply?.text ?? activePageEditorRef.getSelectedText(),
               document_markdown: documentMarkdown,
               document_json: document.json,
+              document_snapshot: {
+                version: snapshotVersion,
+                title: {
+                  text: documentTitle,
+                  json: titleDocument.json,
+                },
+                body: {
+                  markdown: documentMarkdown,
+                  json: document.json,
+                },
+              },
             },
             (event: TAtlasDocWriteEvent) => {
+              if ("snapshot_version" in event && event.snapshot_version && event.snapshot_version !== snapshotVersion)
+                return;
               if (event.event === "session_started") {
+                setReviewPhase("streaming");
                 activePageEditorRef.startAtlasReviewSession({
                   id: event.session_id,
                   mode: event.mode,
@@ -1687,35 +1953,90 @@ function ChatThread(props: {
                   { revalidate: false }
                 );
               } else if (event.event === "proposal_started") {
-                activePageEditorRef.appendAtlasProposal({
-                  id: event.proposal_id,
-                  operation: event.operation,
-                  status: "streaming",
-                  anchorPos,
-                  targetBlockId: event.target_block_id || undefined,
-                  targetOriginalText: event.target_original_text || undefined,
-                  contentText: "",
-                  contentHtml: "",
-                });
+                setReviewPhase("reviewing");
+                if (event.surface === "title") {
+                  replaceTitleProposals((current) => [
+                    ...current.filter((proposal) => proposal.id !== event.proposal_id),
+                    {
+                      id: event.proposal_id,
+                      operation: event.operation,
+                      status: "streaming",
+                      targetOriginalText: event.target_original_text,
+                      contentText: "",
+                    },
+                  ]);
+                } else {
+                  activePageEditorRef.appendAtlasProposal({
+                    id: event.proposal_id,
+                    operation: event.operation,
+                    status: "streaming",
+                    anchorPos,
+                    targetBlockId: event.target_block_id || undefined,
+                    targetOriginalText: event.target_original_text || undefined,
+                    contentText: "",
+                    contentHtml: "",
+                  });
+                }
               } else if (event.event === "proposal_delta") {
-                activePageEditorRef.updateAtlasProposal(event.proposal_id, {
-                  contentText: event.content_text,
-                  contentHtml: event.content_html,
-                  status: "streaming",
-                });
+                if (event.surface === "title") {
+                  replaceTitleProposals((current) =>
+                    current.map((proposal) =>
+                      proposal.id === event.proposal_id
+                        ? { ...proposal, contentText: event.content_text, status: "streaming" }
+                        : proposal
+                    )
+                  );
+                } else {
+                  activePageEditorRef.updateAtlasProposal(event.proposal_id, {
+                    contentText: event.content_text,
+                    contentHtml: event.content_html,
+                    contentJson: event.content_json ?? undefined,
+                    status: "streaming",
+                  });
+                }
               } else if (event.event === "proposal_completed") {
-                activePageEditorRef.updateAtlasProposal(event.proposal_id, {
-                  status: "pending",
-                  contentText: event.content_text,
-                  contentHtml: event.content_html,
-                  targetBlockId: event.target_block_id || undefined,
-                  targetOriginalText: event.target_original_text || undefined,
-                });
+                if (event.surface === "title") {
+                  replaceTitleProposals((current) =>
+                    current.map((proposal) =>
+                      proposal.id === event.proposal_id
+                        ? {
+                            ...proposal,
+                            operation: event.operation,
+                            status: "pending",
+                            targetOriginalText: event.target_original_text,
+                            contentText: event.content_text,
+                          }
+                        : proposal
+                    )
+                  );
+                } else {
+                  activePageEditorRef.updateAtlasProposal(event.proposal_id, {
+                    status: "pending",
+                    contentText: event.content_text,
+                    contentHtml: event.content_html,
+                    contentJson: event.content_json ?? undefined,
+                    targetBlockId: event.target_block_id || undefined,
+                    targetOriginalText: event.target_original_text || undefined,
+                  });
+                }
+              } else if (event.event === "proposal_cancelled") {
+                if (event.surface === "title") {
+                  replaceTitleProposals((current) => current.filter((proposal) => proposal.id !== event.proposal_id));
+                } else {
+                  activePageEditorRef.rejectAtlasProposal(event.proposal_id);
+                }
+              } else if (event.event === "coverage") {
+                setAtlasReviewCoverage?.({ processed: event.processed_blocks, total: event.total_blocks });
               } else if (event.event === "session_completed") {
                 activePageEditorRef.setAtlasReviewLoading(false);
-                // No proposals landed (empty/no-op result) — drop the snapshot so
-                // the review bar doesn't linger over an unchanged document.
-                if (activePageEditorRef.getActiveAtlasProposalCount() === 0) setAtlasReviewSnapshot(null);
+                const reviewCount =
+                  activePageEditorRef.getActiveAtlasProposalCount() + titleProposalsRef.current.length;
+                if (reviewCount === 0) {
+                  setAtlasReviewSnapshot?.(null);
+                  setReviewPhase("idle");
+                } else {
+                  setReviewPhase("reviewing");
+                }
                 void mutate(
                   (current) =>
                     current
@@ -1726,24 +2047,41 @@ function ChatThread(props: {
               } else if (event.event === "error") {
                 activePageEditorRef.setAtlasReviewLoading(false);
                 streamError = event.error;
+                setReviewPhase("failed");
               }
-            }
+            },
+            abortController.signal
           );
           if (streamError) throw new Error(streamError);
-          setToast({
-            type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
-            title: "Atlas drafted edits",
-            message: "Review them inline, then accept or reject each paragraph.",
-          });
+          const reviewCount = activePageEditorRef.getActiveAtlasProposalCount() + titleProposalsRef.current.length;
+          if (reviewCount > 0) {
+            setToast({
+              type: TOAST_TYPE.CURSOR_BUDDY_SUCCESS,
+              title: "Atlas drafted edits",
+              message: "Review them, then accept or reject the changes.",
+            });
+          } else {
+            setToast({ type: TOAST_TYPE.INFO, title: "No document changes were needed" });
+          }
           await mutate();
           onSentRefreshSessions();
         } catch (err) {
           activePageEditorRef.setAtlasReviewLoading(false);
-          if (activePageEditorRef.getActiveAtlasProposalCount() === 0) setAtlasReviewSnapshot(null);
+          const reviewCount = activePageEditorRef.getActiveAtlasProposalCount() + titleProposalsRef.current.length;
+          if (reviewCount === 0) {
+            setAtlasReviewSnapshot?.(null);
+            setReviewPhase("idle");
+          } else {
+            setReviewPhase("reviewing");
+          }
+          if (err instanceof DOMException && err.name === "AbortError") {
+            return;
+          }
           const msg = err instanceof Error ? err.message : "Couldn't draft document edits.";
           setToast({ type: TOAST_TYPE.ERROR, title: "Doc write failed", message: msg });
           await mutate();
         } finally {
+          if (docWriteAbortRef.current === abortController) docWriteAbortRef.current = null;
           setSending(false);
         }
         return;
@@ -1898,6 +2236,7 @@ function ChatThread(props: {
     },
     [
       activePageEditorRef,
+      activePageTitleEditorRef,
       agent?.name,
       aiMode,
       draft,
@@ -1912,10 +2251,16 @@ function ChatThread(props: {
       pageId,
       mutate,
       onSentRefreshSessions,
+      replaceTitleProposals,
+      setAtlasReviewCoverage,
+      setAtlasReviewSnapshot,
+      setReviewPhase,
     ]
   );
 
   const isEmpty = messages.length === 0;
+  const totalProposalCount = activeProposalCount + atlasTitleProposals.length;
+  const isAtlasDocWritePreparing = atlasReviewSnapshot !== null && sending && totalProposalCount === 0;
 
   // Starter shortcuts for the empty state — scoped to what the user is
   // looking at: an open doc beats project, project beats workspace. The
@@ -2046,40 +2391,97 @@ function ChatThread(props: {
             Drop files to attach
           </div>
         )}
-        {(activeProposalCount > 0 || atlasReviewSnapshot !== null) && (
-          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-subtle bg-layer-1 px-2.5 py-1.5">
-            <span className="mr-auto text-[11px] font-medium text-secondary">
-              {activeProposalCount > 0
-                ? `${activeProposalCount} Atlas ${activeProposalCount === 1 ? "edit" : "edits"} to review`
-                : "Atlas edits applied"}
-            </span>
-            {activeProposalCount > 0 && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleAcceptAllProposals}
-                  className="t-press inline-flex h-6 shrink-0 items-center rounded-full bg-accent-primary px-2.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90"
-                >
-                  Accept all
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRejectAllProposals}
-                  className="t-press inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
-                >
-                  Reject all
-                </button>
-              </>
+        {isAtlasDocWritePreparing && (
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-subtle bg-layer-1 px-2.5 py-2">
+            <MorphingInfinity className="size-4 shrink-0 text-accent-primary" />
+            <span className="mr-auto text-[11px] font-medium text-secondary">Atlas is preparing document changes…</span>
+            {atlasReviewCoverage && (
+              <span className="text-[10px] text-tertiary tabular-nums">
+                {atlasReviewCoverage.processed}/{atlasReviewCoverage.total}
+              </span>
             )}
-            {atlasReviewSnapshot !== null && (
+            <button
+              type="button"
+              onClick={handleCancelAtlasWrite}
+              className="t-press inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+        {totalProposalCount > 0 && (
+          <div className="mb-2 flex flex-col gap-2 rounded-lg border border-subtle bg-layer-1 px-2.5 py-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-auto text-[11px] font-medium text-secondary">
+                {totalProposalCount} Atlas {totalProposalCount === 1 ? "edit" : "edits"} to review
+                {atlasReviewCoverage && atlasReviewCoverage.total > 0
+                  ? ` · ${atlasReviewCoverage.processed}/${atlasReviewCoverage.total} blocks`
+                  : ""}
+              </span>
               <button
                 type="button"
-                onClick={handleDiscardAtlasChanges}
-                className="t-press inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
+                disabled={sending || isResolvingAtlasReview}
+                onClick={handleAcceptAllProposals}
+                className="t-press inline-flex h-6 shrink-0 items-center rounded-full bg-accent-primary px-2.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                Discard Atlas changes
+                Accept all
               </button>
-            )}
+              <button
+                type="button"
+                disabled={sending || isResolvingAtlasReview}
+                onClick={handleRejectAllProposals}
+                className="t-press inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-2 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Reject all
+              </button>
+              {atlasReviewSnapshot !== null && (
+                <button
+                  type="button"
+                  disabled={sending || isResolvingAtlasReview}
+                  onClick={handleDiscardAtlasChanges}
+                  className="t-press inline-flex h-6 shrink-0 items-center rounded-full border border-subtle px-2.5 text-[11px] font-medium text-secondary transition-colors hover:bg-layer-2 hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  Discard changes
+                </button>
+              )}
+            </div>
+            {atlasTitleProposals.map((proposal) => (
+              <div
+                key={proposal.id}
+                className="flex min-w-0 items-center gap-2 rounded-md border border-subtle bg-surface-1 px-2 py-1.5"
+              >
+                <span className="shrink-0 text-[10px] font-semibold tracking-wide text-tertiary uppercase">Title</span>
+                <span className="min-w-0 flex-1 truncate text-11 text-secondary">
+                  {proposal.status === "streaming"
+                    ? proposal.contentText || "Drafting title…"
+                    : proposal.operation === "delete"
+                      ? "Remove title"
+                      : proposal.contentText}
+                </span>
+                {proposal.status === "pending" && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={sending || isResolvingAtlasReview}
+                      onClick={() => handleAcceptTitleProposal(proposal.id)}
+                      className="t-press grid size-6 shrink-0 place-items-center rounded-full bg-accent-primary text-white disabled:cursor-not-allowed disabled:opacity-45"
+                      aria-label="Accept title edit"
+                    >
+                      <Check className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={sending || isResolvingAtlasReview}
+                      onClick={() => handleRejectTitleProposal(proposal.id)}
+                      className="t-press grid size-6 shrink-0 place-items-center rounded-full border border-subtle text-secondary hover:bg-layer-2 disabled:cursor-not-allowed disabled:opacity-45"
+                      aria-label="Reject title edit"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         )}
         <input

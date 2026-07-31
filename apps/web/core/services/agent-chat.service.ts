@@ -5,6 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
+import type { Content } from "@tiptap/core";
 // services
 import { APIService } from "@/services/api.service";
 
@@ -97,42 +98,84 @@ export type TAtlasDocWriteIntent = "insert" | "replace" | "delete" | "update";
 
 export type TAtlasDocEditOperation = "insert_after" | "replace" | "delete";
 
+export type TAtlasDocSurface = "title" | "body";
+
+export type TAtlasDocumentSnapshot = {
+  version: string;
+  title: {
+    text: string;
+    json?: Content | null;
+  };
+  body: {
+    markdown: string;
+    json?: Content | null;
+  };
+};
+
 export type TAtlasDocWriteEvent =
   | {
       event: "session_started";
       session_id: string;
       mode: TAtlasDocWriteMode;
+      snapshot_version?: string;
       user_message: TAgentChatMessage;
     }
   | {
       event: "proposal_started";
       proposal_id: string;
       operation: TAtlasDocEditOperation;
+      surface?: TAtlasDocSurface;
+      snapshot_version?: string;
       target_block_id: string;
       target_original_text: string;
     }
   | {
       event: "proposal_delta";
       proposal_id: string;
+      surface?: TAtlasDocSurface;
+      snapshot_version?: string;
       content_text: string;
       content_html: string;
+      content_json?: Content | null;
     }
   | {
       event: "proposal_completed";
       proposal_id: string;
       operation: TAtlasDocEditOperation;
+      surface?: TAtlasDocSurface;
+      snapshot_version?: string;
       target_block_id: string;
       target_original_text: string;
       content_text: string;
       content_html: string;
+      content_json?: Content | null;
+    }
+  | {
+      event: "proposal_cancelled";
+      proposal_id: string;
+      surface?: TAtlasDocSurface;
+      snapshot_version?: string;
+    }
+  | {
+      event: "coverage";
+      processed_blocks: number;
+      total_blocks: number;
+      snapshot_version?: string;
     }
   | {
       event: "session_completed";
+      snapshot_version?: string;
+      proposal_count?: number;
+      coverage?: {
+        processed_blocks: number;
+        total_blocks: number;
+      };
       assistant_message: TAgentChatMessage;
     }
   | {
       event: "error";
       error: string;
+      snapshot_version?: string;
     };
 
 export type TAtlasDocWritePayload = {
@@ -146,6 +189,7 @@ export type TAtlasDocWritePayload = {
   selection_text?: string | null;
   document_markdown?: string;
   document_json?: object | null;
+  document_snapshot?: TAtlasDocumentSnapshot;
 };
 
 export class AgentChatService extends APIService {
@@ -347,7 +391,8 @@ export class AgentChatService extends APIService {
     workspaceSlug: string,
     sessionId: string,
     payload: TAtlasDocWritePayload,
-    onEvent: (event: TAtlasDocWriteEvent) => void
+    onEvent: (event: TAtlasDocWriteEvent) => void,
+    signal?: AbortSignal
   ): Promise<void> {
     const response = await fetch(
       `${this.baseURL}/api/workspaces/${workspaceSlug}/agent-chats/sessions/${sessionId}/doc-writes/`,
@@ -358,6 +403,7 @@ export class AgentChatService extends APIService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        signal,
       }
     );
 

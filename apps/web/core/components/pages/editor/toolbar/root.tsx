@@ -56,9 +56,9 @@ export const PageEditorToolbarRoot = observer(function PageEditorToolbarRoot(pro
             }
           )}
         >
-          <div className="flex w-full max-w-full items-center justify-between">
-            <div className="flex-1">{editorRef && <PageToolbar editorRef={editorRef} />}</div>
-            <div className="flex items-center gap-2">
+          <div className="flex w-full max-w-full min-w-0 items-center justify-between">
+            <div className="min-w-0 flex-1 overflow-hidden">{editorRef && <PageToolbar editorRef={editorRef} />}</div>
+            <div className="flex shrink-0 items-center gap-2">
               <PageCollaboratorsList page={page} />
               {showNavigationPaneButton && !isNavigationPaneOpen && (
                 <button

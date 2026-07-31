@@ -7,7 +7,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import type { CollaborationState, EditorRefApi } from "@plane/editor";
+import type { CollaborationState, EditorRefApi, EditorTitleRefApi } from "@plane/editor";
 import type { TDocumentPayload, TPage, TPageVersion, TWebhookConnectionQueryParams } from "@plane/types";
 // hooks
 import { usePageFallback } from "@/hooks/use-page-fallback";
@@ -78,10 +78,11 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
   const [showContentTooLargeBanner, setShowContentTooLargeBanner] = useState(false);
   // refs
   const editorRef = useRef<EditorRefApi>(null);
+  const titleEditorRef = useRef<EditorTitleRefApi>(null);
   // derived values
   const {
     isContentEditable,
-    editor: { setEditorRef },
+    editor: { setEditorRef, setTitleEditorRef },
   } = page;
   // page fallback
   const { isFetchingFallbackBinary } = usePageFallback({
@@ -107,17 +108,21 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
       if (editorRef.current && !page.editor.editorRef) {
         setEditorRef(editorRef.current);
       }
+      if (titleEditorRef.current && !page.editor.titleEditorRef) {
+        setTitleEditorRef(titleEditorRef.current);
+      }
     },
-    [page.editor.editorRef, setEditorRef]
+    [page.editor.editorRef, page.editor.titleEditorRef, setEditorRef, setTitleEditorRef]
   );
 
   useEffect(() => {
     const setEditorRefTimer = setTimeout(() => {
       setEditorRef(editorRef.current);
+      setTitleEditorRef(titleEditorRef.current);
     }, 0);
 
     return () => clearTimeout(setEditorRefTimer);
-  }, [isContentEditable, setEditorRef]);
+  }, [isContentEditable, setEditorRef, setTitleEditorRef]);
 
   // Get extensions and navigation logic from hook
   const {
@@ -171,8 +176,9 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
   useEffect(
     () => () => {
       setEditorRef(null);
+      setTitleEditorRef(null);
     },
-    [setEditorRef]
+    [setEditorRef, setTitleEditorRef]
   );
 
   // Doc pages keep the rich-text toolbar. The right-hand navigation pane is
@@ -228,6 +234,7 @@ export const PageRoot = observer(function PageRoot(props: TPageRootProps) {
               customRealtimeEventHandlers={mergedCustomEventHandlers}
               editorReady={editorReady}
               editorForwardRef={editorRef}
+              titleEditorForwardRef={titleEditorRef}
               handleEditorReady={handleEditorReady}
               handleOpenNavigationPane={shouldShowNavigationPane ? handleOpenNavigationPane : () => undefined}
               handlers={handlers}

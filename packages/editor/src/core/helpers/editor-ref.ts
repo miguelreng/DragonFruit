@@ -18,7 +18,7 @@ import { CORE_EDITOR_META } from "@/constants/meta";
 // extensions
 import { atlasDocReviewPluginKey } from "@/extensions/atlas-doc-review/extension";
 // types
-import type { EditorRefApi, IEditorProps, TEditorCommands } from "@/types";
+import type { EditorRefApi, IEditorProps, TAtlasDocReviewResolution, TEditorCommands } from "@/types";
 // local imports
 import { getParagraphCount } from "./common";
 import { insertContentAtSavedSelection } from "./insert-content-at-cursor-position";
@@ -32,6 +32,19 @@ type TArgs = Pick<IEditorProps, "getEditorMetaData"> & {
 
 export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
   const { editor, getEditorMetaData, provider } = args;
+  const resolveAtlasReviewCommand = (
+    command: () => boolean,
+    options?: { proposalId?: string; selectedOnly?: boolean }
+  ): TAtlasDocReviewResolution => {
+    if (!editor) return "no-op";
+    const reviewState = atlasDocReviewPluginKey.getState(editor.state);
+    const activeProposals =
+      reviewState?.proposals.filter((proposal) => !["accepted", "rejected"].includes(proposal.status)) ?? [];
+    if (activeProposals.length === 0) return "no-op";
+    if (options?.proposalId && !activeProposals.some((proposal) => proposal.id === options.proposalId)) return "no-op";
+    if (options?.selectedOnly && (reviewState?.selectedIds.length ?? 0) === 0) return "no-op";
+    return command() ? "applied" : "stale";
+  };
 
   return {
     blur: () => editor?.commands.blur(),
@@ -310,16 +323,16 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       editor?.commands.updateAtlasProposal(id, patch);
     },
     acceptAtlasProposal: (id) => {
-      editor?.commands.acceptAtlasProposal(id);
+      return resolveAtlasReviewCommand(() => editor?.commands.acceptAtlasProposal(id) ?? false, { proposalId: id });
     },
     rejectAtlasProposal: (id) => {
-      editor?.commands.rejectAtlasProposal(id);
+      return resolveAtlasReviewCommand(() => editor?.commands.rejectAtlasProposal(id) ?? false, { proposalId: id });
     },
     acceptAllAtlasProposals: () => {
-      editor?.commands.acceptAllAtlasProposals();
+      return resolveAtlasReviewCommand(() => editor?.commands.acceptAllAtlasProposals() ?? false);
     },
     rejectAllAtlasProposals: () => {
-      editor?.commands.rejectAllAtlasProposals();
+      return resolveAtlasReviewCommand(() => editor?.commands.rejectAllAtlasProposals() ?? false);
     },
     toggleAtlasProposalSelection: (id) => {
       editor?.commands.toggleAtlasProposalSelection(id);
@@ -331,10 +344,14 @@ export const getEditorRefHelpers = (args: TArgs): EditorRefApi => {
       return reviewState.selectedIds.length;
     },
     acceptSelectedAtlasProposals: () => {
-      editor?.commands.acceptSelectedAtlasProposals();
+      return resolveAtlasReviewCommand(() => editor?.commands.acceptSelectedAtlasProposals() ?? false, {
+        selectedOnly: true,
+      });
     },
     rejectSelectedAtlasProposals: () => {
-      editor?.commands.rejectSelectedAtlasProposals();
+      return resolveAtlasReviewCommand(() => editor?.commands.rejectSelectedAtlasProposals() ?? false, {
+        selectedOnly: true,
+      });
     },
     clearAtlasReview: () => {
       editor?.commands.clearAtlasReview();

@@ -3,11 +3,13 @@ import {
   ATLAS_SIDEBAR_DEFAULT_WIDTH,
   ATLAS_SIDEBAR_MAX_WIDTH_CAP,
   ATLAS_SIDEBAR_MIN_WIDTH,
+  clampAtlasSidebarPreferredWidth,
   clampAtlasSidebarWidth,
   getAtlasSidebarMaxWidth,
   getAtlasSidebarWidthForKey,
   parsePersistedAtlasSidebarWidth,
   resolveAtlasSidebarWidth,
+  resolveAtlasSidebarLayout,
   snapAtlasSidebarWidth,
 } from "./atlas-sidebar-layout";
 
@@ -16,8 +18,8 @@ describe("getAtlasSidebarMaxWidth", () => {
     expect(getAtlasSidebarMaxWidth(1920)).toBe(ATLAS_SIDEBAR_MAX_WIDTH_CAP);
   });
 
-  it("leaves 420px for content on narrower viewports", () => {
-    expect(getAtlasSidebarMaxWidth(1024)).toBe(1024 - 420);
+  it("leaves 600px plus the panel gap for content", () => {
+    expect(getAtlasSidebarMaxWidth(1024)).toBe(1024 - 600 - 2);
   });
 
   it("never drops below the min width on very narrow viewports", () => {
@@ -40,6 +42,40 @@ describe("clampAtlasSidebarWidth", () => {
 
   it("clamps to the min on a narrow viewport even if that exceeds the nominal max", () => {
     expect(clampAtlasSidebarWidth(500, 600)).toBe(ATLAS_SIDEBAR_MIN_WIDTH);
+  });
+});
+
+describe("clampAtlasSidebarPreferredWidth", () => {
+  it("preserves a valid preference without using the current viewport", () => {
+    expect(clampAtlasSidebarPreferredWidth(500)).toBe(500);
+  });
+
+  it("bounds persisted preferences globally", () => {
+    expect(clampAtlasSidebarPreferredWidth(100)).toBe(ATLAS_SIDEBAR_MIN_WIDTH);
+    expect(clampAtlasSidebarPreferredWidth(2000)).toBe(ATLAS_SIDEBAR_MAX_WIDTH_CAP);
+  });
+});
+
+describe("resolveAtlasSidebarLayout", () => {
+  it.each([
+    [752, "overlay", 752],
+    [766, "overlay", 766],
+    [1022, "docked", 670],
+    [1182, "docked", 830],
+  ] as const)("resolves a %ipx container to %s", (containerWidth, mode, remainingEditorWidth) => {
+    expect(resolveAtlasSidebarLayout({ containerWidth, preferredWidth: 350 })).toEqual({
+      mode,
+      atlasWidth: 350,
+      remainingEditorWidth,
+    });
+  });
+
+  it("shrinks Atlas before letting the editor fall below its minimum", () => {
+    expect(resolveAtlasSidebarLayout({ containerWidth: 1000, preferredWidth: 500 })).toEqual({
+      mode: "docked",
+      atlasWidth: 398,
+      remainingEditorWidth: 600,
+    });
   });
 });
 

@@ -38,6 +38,7 @@ import type {
   EventToPayloadMap,
   TAtlasDocReviewProposal,
   TAtlasDocReviewProposalUpdate,
+  TAtlasDocReviewResolution,
   TAtlasDocReviewSession,
 } from "@/types";
 
@@ -154,14 +155,14 @@ export type CoreEditorRefApi = {
   getActiveAtlasProposalCount: () => number;
   appendAtlasProposal: (proposal: TAtlasDocReviewProposal) => void;
   updateAtlasProposal: (id: string, patch: TAtlasDocReviewProposalUpdate) => void;
-  acceptAtlasProposal: (id: string) => void;
-  rejectAtlasProposal: (id: string) => void;
-  acceptAllAtlasProposals: () => void;
-  rejectAllAtlasProposals: () => void;
+  acceptAtlasProposal: (id: string) => TAtlasDocReviewResolution;
+  rejectAtlasProposal: (id: string) => TAtlasDocReviewResolution;
+  acceptAllAtlasProposals: () => TAtlasDocReviewResolution;
+  rejectAllAtlasProposals: () => TAtlasDocReviewResolution;
   toggleAtlasProposalSelection: (id: string) => void;
   getSelectedAtlasProposalCount: () => number;
-  acceptSelectedAtlasProposals: () => void;
-  rejectSelectedAtlasProposals: () => void;
+  acceptSelectedAtlasProposals: () => TAtlasDocReviewResolution;
+  rejectSelectedAtlasProposals: () => TAtlasDocReviewResolution;
   clearAtlasReview: () => void;
   undo: () => void;
 };

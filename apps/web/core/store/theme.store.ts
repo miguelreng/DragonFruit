@@ -7,7 +7,7 @@
 import { action, observable, makeObservable } from "mobx";
 import {
   ATLAS_SIDEBAR_DEFAULT_WIDTH,
-  clampAtlasSidebarWidth,
+  clampAtlasSidebarPreferredWidth,
   parsePersistedAtlasSidebarWidth,
 } from "@/helpers/atlas-sidebar-layout";
 
@@ -24,7 +24,7 @@ const ATLAS_SIDEBAR_WIDTH_KEY = "atlas_sidebar_width";
 function readAtlasSidebarOpen(): boolean {
   if (typeof window === "undefined") return false;
   // Desktop: Atlas is a permanent docked sidebar — always open, never closeable.
-  if (window.innerWidth >= 768) return true;
+  if (window.innerWidth > 768) return true;
   // Mobile: it's a dismissible overlay; respect the last choice, closed by default.
   return window.localStorage.getItem(ATLAS_SIDEBAR_OPEN_KEY) === "true";
 }
@@ -285,12 +285,11 @@ export class ThemeStore implements IThemeStore {
 
   /**
    * Set the docked Atlas sidebar's regular width. Re-clamped against the
-   * current viewport before storing — a stray call with an out-of-range
-   * value (e.g. mid-drag) never persists an unusable width. Persists across
-   * reloads.
+   * global bounds before storing. The current container only clamps the
+   * rendered dock, so moving back to a wider workspace restores this value.
    */
   setAtlasSidebarWidth = (width: number) => {
-    this.atlasSidebarWidth = clampAtlasSidebarWidth(width, typeof window === "undefined" ? width : window.innerWidth);
+    this.atlasSidebarWidth = clampAtlasSidebarPreferredWidth(width);
     localStorage.setItem(ATLAS_SIDEBAR_WIDTH_KEY, this.atlasSidebarWidth.toString());
   };
 }

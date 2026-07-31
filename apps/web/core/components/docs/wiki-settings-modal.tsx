@@ -56,10 +56,13 @@ const THEME_CHOICES: { key: TThemeChoice; label: string; icon: typeof Monitor }[
 
 const sortDocsByWikiOrder = (docs: TPage[], order: string[] | undefined) => {
   // No saved order yet: mirror the public reader's default (creation order).
-  if (!order?.length)
-    return docs.toSorted((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
+  if (!order?.length) {
+    // oxlint-disable-next-line unicorn/no-array-sort -- Web's current TS target does not include ES2023 toSorted
+    return [...docs].sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime());
+  }
   const rank = new Map(order.map((id, index) => [id, index]));
-  return docs.toSorted((a, b) => (rank.get(a.id ?? "") ?? order.length) - (rank.get(b.id ?? "") ?? order.length));
+  // oxlint-disable-next-line unicorn/no-array-sort -- Web's current TS target does not include ES2023 toSorted
+  return [...docs].sort((a, b) => (rank.get(a.id ?? "") ?? order.length) - (rank.get(b.id ?? "") ?? order.length));
 };
 
 export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose, onSaved }: Props) {

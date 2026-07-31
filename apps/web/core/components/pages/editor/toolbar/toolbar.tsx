@@ -116,7 +116,7 @@ export function PageToolbar(props: Props) {
   );
 
   return (
-    <div className="animate-in fade-in flex items-center divide-x divide-subtle-1 overflow-x-scroll duration-200">
+    <div className="animate-in fade-in flex min-w-0 items-center divide-x divide-subtle-1 overflow-x-auto duration-200">
       <CustomMenu
         customButton={
           <span

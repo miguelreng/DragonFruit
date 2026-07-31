@@ -5,15 +5,15 @@
  */
 
 import { Extension } from "@tiptap/core";
-import { DOMParser as ProseMirrorDOMParser, type Node as ProseMirrorNode, type Slice } from "@tiptap/pm/model";
-import { Plugin, PluginKey, type EditorState } from "@tiptap/pm/state";
+import { DOMParser as ProseMirrorDOMParser, Fragment, type Node as ProseMirrorNode, Slice } from "@tiptap/pm/model";
+import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import type { TAtlasDocReviewProposal, TAtlasDocReviewProposalUpdate, TAtlasDocReviewSession } from "@/types";
 
 // A proposal whose content is written into the real document. `from`/`to`
 // track the live range of that content so it can be re-streamed, highlighted,
 // accepted (keep), or rejected (delete from the doc).
-type TTrackedProposal = TAtlasDocReviewProposal & { from: number; to: number };
+export type TTrackedProposal = TAtlasDocReviewProposal & { from: number; to: number };
 
 type TAtlasDocReviewState = {
   session: TAtlasDocReviewSession | null;
@@ -94,6 +94,15 @@ const contentHtml = (proposal: TAtlasDocReviewProposal) => {
 const proposalHtml = (proposal: TAtlasDocReviewProposal) => contentHtml(proposal) || "<p></p>";
 
 const parseProposalSlice = (state: EditorState, proposal: TAtlasDocReviewProposal): Slice => {
+  if (proposal.contentJson && typeof proposal.contentJson === "object") {
+    try {
+      const node = state.schema.nodeFromJSON(proposal.contentJson);
+      return new Slice(Fragment.from(node), 0, 0);
+    } catch {
+      // Fall through to the safe HTML/text parser. Invalid model JSON must not
+      // break the review session.
+    }
+  }
   const container = document.createElement("div");
   container.innerHTML = proposalHtml(proposal);
   return ProseMirrorDOMParser.fromSchema(state.schema).parseSlice(container);
@@ -112,6 +121,19 @@ const findNodeById = (state: EditorState, nodeId?: string): TFoundNode | null =>
   });
   return found;
 };
+
+const normalizeComparableText = (value: string) => value.replace(/\s+/g, " ").trim();
+
+const findFreshTarget = (state: EditorState, proposal: TTrackedProposal): TFoundNode | null => {
+  const target = findNodeById(state, proposal.targetBlockId);
+  if (!target) return null;
+  const expected = normalizeComparableText(proposal.targetOriginalText ?? "");
+  if (expected && normalizeComparableText(target.node.textContent) !== expected) return null;
+  return target;
+};
+
+const uniqueTargetsHighToLow = (targets: TFoundNode[]) =>
+  [...new Map(targets.map((target) => [target.pos, target])).values()].toSorted((a, b) => b.pos - a.pos);
 
 // Resolve a clean top-level block boundary at/after `pos` so inserted content
 // lands between blocks instead of splitting the paragraph the cursor is in.
@@ -144,60 +166,78 @@ const dispatchReviewEvent = (view: EditorView, eventName: string, id?: string) =
 };
 
 // --------------------------------------------------------------------------
-// Accept / reject — operate on the real document via the view.
+// Accept / reject — build exactly one transaction from the state supplied by
+// the Tiptap command manager. Dispatching a second `view.state.tr` from inside a
+// command leaves the command manager holding a transaction for the previous
+// state and causes ProseMirror's "Applying a mismatched transaction" error.
 // --------------------------------------------------------------------------
 
-const acceptProposal = (view: EditorView, id?: string) => {
-  const proposal = getReviewState(view.state).proposals.find((item) => item.id === id);
-  if (!proposal) return;
-  let tr = view.state.tr;
+export const acceptProposalTransaction = (
+  state: EditorState,
+  tr: Transaction,
+  proposals: TTrackedProposal[],
+  id?: string
+): Transaction | null => {
+  const proposal = proposals.find((item) => item.id === id);
+  if (!proposal) return null;
   // For replace/delete the proposed content (if any) is already written in;
   // accepting also removes the original target block it was meant to supersede.
   if (proposal.operation === "replace" || proposal.operation === "delete") {
-    const target = findNodeById(view.state, proposal.targetBlockId);
-    if (target) tr = tr.delete(target.pos, target.pos + target.node.nodeSize);
+    const target = findFreshTarget(state, proposal);
+    if (!target) return null;
+    tr.delete(target.pos, target.pos + target.node.nodeSize);
   }
-  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id: proposal.id } satisfies TAtlasDocReviewAction);
-  view.dispatch(tr);
+  return tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id: proposal.id } satisfies TAtlasDocReviewAction);
 };
 
-const rejectProposal = (view: EditorView, id?: string) => {
-  const proposal = getReviewState(view.state).proposals.find((item) => item.id === id);
-  if (!proposal) return;
-  let tr = view.state.tr;
+export const rejectProposalTransaction = (
+  state: EditorState,
+  tr: Transaction,
+  proposals: TTrackedProposal[],
+  id?: string
+): Transaction | null => {
+  const proposal = proposals.find((item) => item.id === id);
+  if (!proposal) return null;
   // Delete the written-in content. (A delete proposal never wrote anything, so
   // rejecting it simply keeps the original block.)
   if (proposal.operation !== "delete") {
-    tr = tr.delete(clampPos(view.state, proposal.from), clampPos(view.state, proposal.to));
+    tr.delete(clampPos(state, proposal.from), clampPos(state, proposal.to));
   }
-  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id: proposal.id } satisfies TAtlasDocReviewAction);
-  view.dispatch(tr);
+  return tr.setMeta(atlasDocReviewPluginKey, { type: "remove", id: proposal.id } satisfies TAtlasDocReviewAction);
 };
 
-const acceptAllProposals = (view: EditorView) => {
-  const proposals = getReviewState(view.state).proposals;
-  let tr = view.state.tr;
+export const acceptAllProposalsTransaction = (
+  state: EditorState,
+  tr: Transaction,
+  proposals: TTrackedProposal[]
+): Transaction | null => {
+  if (proposals.length === 0) return null;
   // Delete superseded target blocks high-to-low so earlier positions stay valid.
-  const targets = proposals
-    .filter((p) => p.operation === "replace" || p.operation === "delete")
-    .map((p) => findNodeById(view.state, p.targetBlockId))
-    .filter((t): t is TFoundNode => t !== null)
-    .toSorted((a, b) => b.pos - a.pos);
-  for (const target of targets) tr = tr.delete(target.pos, target.pos + target.node.nodeSize);
-  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "clear" } satisfies TAtlasDocReviewAction);
-  view.dispatch(tr);
+  const targetProposals = proposals.filter(
+    (proposal) => proposal.operation === "replace" || proposal.operation === "delete"
+  );
+  const targets = targetProposals.map((proposal) => findFreshTarget(state, proposal));
+  // A stale target makes the entire bulk action stale. Never clear the other
+  // proposals and leave the document half-applied.
+  if (targets.some((target) => target === null)) return null;
+  for (const target of uniqueTargetsHighToLow(targets as TFoundNode[])) {
+    tr.delete(target.pos, target.pos + target.node.nodeSize);
+  }
+  return tr.setMeta(atlasDocReviewPluginKey, { type: "clear" } satisfies TAtlasDocReviewAction);
 };
 
-const rejectAllProposals = (view: EditorView) => {
-  const proposals = getReviewState(view.state).proposals;
-  let tr = view.state.tr;
+export const rejectAllProposalsTransaction = (
+  state: EditorState,
+  tr: Transaction,
+  proposals: TTrackedProposal[]
+): Transaction | null => {
+  if (proposals.length === 0) return null;
   const ranges = proposals
     .filter((p) => p.operation !== "delete")
-    .map((p) => ({ from: clampPos(view.state, p.from), to: clampPos(view.state, p.to) }))
+    .map((p) => ({ from: clampPos(state, p.from), to: clampPos(state, p.to) }))
     .toSorted((a, b) => b.from - a.from);
-  for (const range of ranges) tr = tr.delete(range.from, range.to);
-  tr = tr.setMeta(atlasDocReviewPluginKey, { type: "clear" } satisfies TAtlasDocReviewAction);
-  view.dispatch(tr);
+  for (const range of ranges) tr.delete(range.from, range.to);
+  return tr.setMeta(atlasDocReviewPluginKey, { type: "clear" } satisfies TAtlasDocReviewAction);
 };
 
 // Accept/reject only the proposals that have been individually selected.
@@ -205,39 +245,45 @@ const rejectAllProposals = (view: EditorView) => {
 // so earlier positions remain valid after each deletion. Uses remove-many so
 // all removals are batched into a single transaction meta (setMeta overwrites,
 // so dispatching remove per-id in one transaction would lose all but the last).
-const acceptSelectedProposals = (view: EditorView) => {
-  const { proposals, selectedIds } = getReviewState(view.state);
+const acceptSelectedProposalsTransaction = (
+  state: EditorState,
+  tr: Transaction,
+  proposals: TTrackedProposal[],
+  selectedIds: string[]
+): Transaction | null => {
   const selected = proposals.filter((p) => selectedIds.includes(p.id));
-  if (selected.length === 0) return;
-  let tr = view.state.tr;
-  const targets = selected
-    .filter((p) => p.operation === "replace" || p.operation === "delete")
-    .map((p) => findNodeById(view.state, p.targetBlockId))
-    .filter((t): t is TFoundNode => t !== null)
-    .toSorted((a, b) => b.pos - a.pos);
-  for (const target of targets) tr = tr.delete(target.pos, target.pos + target.node.nodeSize);
-  tr = tr.setMeta(atlasDocReviewPluginKey, {
+  if (selected.length === 0) return null;
+  const targetProposals = selected.filter(
+    (proposal) => proposal.operation === "replace" || proposal.operation === "delete"
+  );
+  const targets = targetProposals.map((proposal) => findFreshTarget(state, proposal));
+  if (targets.some((target) => target === null)) return null;
+  for (const target of uniqueTargetsHighToLow(targets as TFoundNode[])) {
+    tr.delete(target.pos, target.pos + target.node.nodeSize);
+  }
+  return tr.setMeta(atlasDocReviewPluginKey, {
     type: "remove-many",
     ids: selected.map((p) => p.id),
   } satisfies TAtlasDocReviewAction);
-  view.dispatch(tr);
 };
 
-const rejectSelectedProposals = (view: EditorView) => {
-  const { proposals, selectedIds } = getReviewState(view.state);
+const rejectSelectedProposalsTransaction = (
+  state: EditorState,
+  tr: Transaction,
+  proposals: TTrackedProposal[],
+  selectedIds: string[]
+): Transaction | null => {
   const selected = proposals.filter((p) => selectedIds.includes(p.id));
-  if (selected.length === 0) return;
-  let tr = view.state.tr;
+  if (selected.length === 0) return null;
   const ranges = selected
     .filter((p) => p.operation !== "delete")
-    .map((p) => ({ from: clampPos(view.state, p.from), to: clampPos(view.state, p.to) }))
+    .map((p) => ({ from: clampPos(state, p.from), to: clampPos(state, p.to) }))
     .toSorted((a, b) => b.from - a.from);
-  for (const range of ranges) tr = tr.delete(range.from, range.to);
-  tr = tr.setMeta(atlasDocReviewPluginKey, {
+  for (const range of ranges) tr.delete(range.from, range.to);
+  return tr.setMeta(atlasDocReviewPluginKey, {
     type: "remove-many",
     ids: selected.map((p) => p.id),
   } satisfies TAtlasDocReviewAction);
-  view.dispatch(tr);
 };
 
 // --------------------------------------------------------------------------
@@ -312,56 +358,14 @@ const buildProposalControls = (view: EditorView, proposal: TTrackedProposal, isS
   return controls;
 };
 
-// Skeleton shown at the session anchor from the moment Atlas starts a write
-// until the first proposal streams in — so the document isn't blank while the
-// model composes. Reads as a "writing…" placeholder (pulsing label + shimmer
-// lines) rather than applied text, and is removed the instant real content lands.
-const buildWritingSkeleton = () => {
-  const wrap = document.createElement("div");
-  wrap.className = "atlas-doc-review-writing";
-  wrap.contentEditable = "false";
-  wrap.setAttribute("aria-live", "polite");
-  wrap.setAttribute("aria-label", "Atlas is writing");
-
-  const label = document.createElement("div");
-  label.className = "atlas-doc-review-writing-label";
-  const dot = document.createElement("span");
-  dot.className = "atlas-doc-review-writing-dot";
-  const text = document.createElement("span");
-  text.textContent = "Atlas is writing…";
-  label.appendChild(dot);
-  label.appendChild(text);
-  wrap.appendChild(label);
-
-  const lines = document.createElement("div");
-  lines.className = "atlas-doc-review-writing-lines";
-  for (const width of ["100%", "94%", "72%"]) {
-    const line = document.createElement("div");
-    line.className = "atlas-doc-review-writing-line";
-    line.style.width = width;
-    lines.appendChild(line);
-  }
-  wrap.appendChild(lines);
-  return wrap;
-};
-
 const buildDecorations = (
   proposals: TTrackedProposal[],
   selectedIds: string[],
   state: EditorState,
-  loading: boolean,
-  session: TAtlasDocReviewSession | null
+  _loading: boolean,
+  _session: TAtlasDocReviewSession | null
 ): DecorationSet => {
   const visibleProposals = proposals.filter((proposal) => !["accepted", "rejected"].includes(proposal.status));
-
-  // While Atlas is composing and nothing has landed yet, show the writing
-  // skeleton at the anchor so the editor reflects that a doc is being drafted.
-  if (loading && visibleProposals.length === 0) {
-    const pos = clampPos(state, session?.anchorPos);
-    return DecorationSet.create(state.doc, [
-      Decoration.widget(pos, buildWritingSkeleton, { key: "atlas-doc-review-writing", side: 1 }),
-    ]);
-  }
 
   // Fast path: no visible proposals → return the singleton empty set immediately.
   if (visibleProposals.length === 0) return DecorationSet.empty;
@@ -479,55 +483,63 @@ export const AtlasDocReviewExtension = Extension.create({
         },
       acceptAtlasProposal:
         (id) =>
-        ({ view }) => {
-          if (!view) return false;
-          acceptProposal(view, id);
+        ({ state, tr, dispatch }) => {
+          const next = acceptProposalTransaction(state, tr, getReviewState(state).proposals, id);
+          if (!next) return false;
+          dispatch?.(next);
           return true;
         },
       rejectAtlasProposal:
         (id) =>
-        ({ view }) => {
-          if (!view) return false;
-          rejectProposal(view, id);
+        ({ state, tr, dispatch }) => {
+          const next = rejectProposalTransaction(state, tr, getReviewState(state).proposals, id);
+          if (!next) return false;
+          dispatch?.(next);
           return true;
         },
       acceptAllAtlasProposals:
         () =>
-        ({ view }) => {
-          if (!view) return false;
-          acceptAllProposals(view);
+        ({ state, tr, dispatch }) => {
+          const next = acceptAllProposalsTransaction(state, tr, getReviewState(state).proposals);
+          if (!next) return false;
+          dispatch?.(next);
           return true;
         },
       rejectAllAtlasProposals:
         () =>
-        ({ view }) => {
-          if (!view) return false;
-          rejectAllProposals(view);
+        ({ state, tr, dispatch }) => {
+          const next = rejectAllProposalsTransaction(state, tr, getReviewState(state).proposals);
+          if (!next) return false;
+          dispatch?.(next);
           return true;
         },
       toggleAtlasProposalSelection:
         (id) =>
-        ({ view }) => {
-          if (!view) return false;
-          const tr = view.state.tr.setMeta(atlasDocReviewPluginKey, {
-            type: "toggle-select",
-            id,
-          } satisfies TAtlasDocReviewAction);
-          view.dispatch(tr);
+        ({ tr, dispatch }) => {
+          dispatch?.(
+            tr.setMeta(atlasDocReviewPluginKey, {
+              type: "toggle-select",
+              id,
+            } satisfies TAtlasDocReviewAction)
+          );
           return true;
         },
       acceptSelectedAtlasProposals:
         () =>
-        ({ view }) => {
-          if (!view) return false;
-          acceptSelectedProposals(view);
+        ({ state, tr, dispatch }) => {
+          const { proposals, selectedIds } = getReviewState(state);
+          const next = acceptSelectedProposalsTransaction(state, tr, proposals, selectedIds);
+          if (!next) return false;
+          dispatch?.(next);
           return true;
         },
       rejectSelectedAtlasProposals:
         () =>
-        ({ view }) => {
-          if (!view) return false;
-          rejectSelectedProposals(view);
+        ({ state, tr, dispatch }) => {
+          const { proposals, selectedIds } = getReviewState(state);
+          const next = rejectSelectedProposalsTransaction(state, tr, proposals, selectedIds);
+          if (!next) return false;
+          dispatch?.(next);
           return true;
         },
       clearAtlasReview:
@@ -540,6 +552,17 @@ export const AtlasDocReviewExtension = Extension.create({
   },
 
   addProseMirrorPlugins() {
+    const dispatchDomTransaction = (
+      view: EditorView,
+      builder: (state: EditorState, tr: Transaction, proposals: TTrackedProposal[]) => Transaction | null
+    ) => {
+      const state = view.state;
+      const next = builder(state, state.tr, getReviewState(state).proposals);
+      if (!next) return false;
+      view.dispatch(next);
+      return true;
+    };
+
     return [
       new Plugin<TAtlasDocReviewState>({
         key: atlasDocReviewPluginKey,
@@ -590,7 +613,13 @@ export const AtlasDocReviewExtension = Extension.create({
               return {
                 ...mapped,
                 loading: action.loading,
-                decorations: buildDecorations(mapped.proposals, mapped.selectedIds, newState, action.loading, mapped.session),
+                decorations: buildDecorations(
+                  mapped.proposals,
+                  mapped.selectedIds,
+                  newState,
+                  action.loading,
+                  mapped.session
+                ),
               };
             }
             if (action.type === "append") {
@@ -611,7 +640,13 @@ export const AtlasDocReviewExtension = Extension.create({
               return {
                 ...mapped,
                 proposals: newProposals,
-                decorations: buildDecorations(newProposals, mapped.selectedIds, newState, mapped.loading, mapped.session),
+                decorations: buildDecorations(
+                  newProposals,
+                  mapped.selectedIds,
+                  newState,
+                  mapped.loading,
+                  mapped.session
+                ),
               };
             }
             if (action.type === "remove") {
@@ -645,7 +680,13 @@ export const AtlasDocReviewExtension = Extension.create({
               return {
                 ...mapped,
                 selectedIds: newSelectedIds,
-                decorations: buildDecorations(mapped.proposals, newSelectedIds, newState, mapped.loading, mapped.session),
+                decorations: buildDecorations(
+                  mapped.proposals,
+                  newSelectedIds,
+                  newState,
+                  mapped.loading,
+                  mapped.session
+                ),
               };
             }
             // "clear" action
@@ -657,22 +698,22 @@ export const AtlasDocReviewExtension = Extension.create({
           // when proposals change, mapped on every other transaction.
           decorations: (state) => atlasDocReviewPluginKey.getState(state)?.decorations ?? DecorationSet.empty,
           handleDOMEvents: {
-            "atlas-doc-review-accept": (view, event) => {
-              acceptProposal(view, (event as CustomEvent<{ id?: string }>).detail?.id);
-              return true;
-            },
-            "atlas-doc-review-reject": (view, event) => {
-              rejectProposal(view, (event as CustomEvent<{ id?: string }>).detail?.id);
-              return true;
-            },
-            "atlas-doc-review-accept-all": (view) => {
-              acceptAllProposals(view);
-              return true;
-            },
-            "atlas-doc-review-reject-all": (view) => {
-              rejectAllProposals(view);
-              return true;
-            },
+            "atlas-doc-review-accept": (view, event) =>
+              dispatchDomTransaction(view, (state, tr, proposals) =>
+                acceptProposalTransaction(state, tr, proposals, (event as CustomEvent<{ id?: string }>).detail?.id)
+              ),
+            "atlas-doc-review-reject": (view, event) =>
+              dispatchDomTransaction(view, (state, tr, proposals) =>
+                rejectProposalTransaction(state, tr, proposals, (event as CustomEvent<{ id?: string }>).detail?.id)
+              ),
+            "atlas-doc-review-accept-all": (view) =>
+              dispatchDomTransaction(view, (state, tr, proposals) =>
+                acceptAllProposalsTransaction(state, tr, proposals)
+              ),
+            "atlas-doc-review-reject-all": (view) =>
+              dispatchDomTransaction(view, (state, tr, proposals) =>
+                rejectAllProposalsTransaction(state, tr, proposals)
+              ),
             "atlas-doc-review-toggle-select": (view, event) => {
               const id = (event as CustomEvent<{ id?: string }>).detail?.id;
               if (!id) return false;

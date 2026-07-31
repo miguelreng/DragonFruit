@@ -40,6 +40,7 @@ import {
   clampAtlasSidebarWidth,
   getAtlasSidebarMaxWidth,
   getAtlasSidebarWidthForKey,
+  resolveAtlasSidebarLayout,
   snapAtlasSidebarWidth,
 } from "@/helpers/atlas-sidebar-layout";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
@@ -79,7 +80,26 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   const activeDocPageId = useActiveDocPageId();
   const projectPages = usePageStore(EPageStoreType.PROJECT);
   const { getProjectById } = useProject();
-  const isMobile = windowWidth < MOBILE_BREAKPOINT;
+  const isMobile = windowWidth <= MOBILE_BREAKPOINT;
+  const [dragWidth, setDragWidth] = useState<number | null>(null);
+  const layoutAreaRef = useRef<HTMLDivElement>(null);
+  const [layoutAreaWidth, setLayoutAreaWidth] = useState(windowWidth);
+  useEffect(() => {
+    const area = layoutAreaRef.current;
+    if (!area) return;
+    const updateWidth = () => setLayoutAreaWidth(area.getBoundingClientRect().width);
+    updateWidth();
+    if (typeof ResizeObserver === "undefined") return;
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(area);
+    return () => resizeObserver.disconnect();
+  }, []);
+  const atlasLayout = resolveAtlasSidebarLayout({
+    containerWidth: layoutAreaWidth,
+    preferredWidth: dragWidth ?? atlasSidebarWidth,
+  });
+  const isAtlasOverlay = isMobile || atlasLayout.mode === "overlay";
+  const isAtlasDocked = !isAtlasOverlay;
   const currentPageId = routePageId?.toString() ?? activeDocPageId;
   const currentPage = currentPageId ? projectPages.getPageById(currentPageId) : undefined;
   const currentProject = routeProjectId ? getProjectById(routeProjectId.toString()) : undefined;
@@ -88,21 +108,20 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   // content collapses into a single left rail control that restores the split
   // view, rather than rendering an unusably narrow page preview.
   const atlasFull = agentChatOpen && atlasSidebarExpanded && !atlasSidebarCollapsed;
-  const desktopAtlasFull = atlasFull && !isMobile;
+  const desktopAtlasFull = atlasFull && isAtlasDocked;
   const contentPreviewRef = useRef<HTMLDivElement>(null);
 
   // Desktop resize: `dragWidth` is the live width while the separator is
   // being dragged (updated at most once per frame); the settled value only
   // reaches the persisted store on pointer up. `dragStateRef` holds the
   // per-drag transient math so it doesn't trigger re-renders on every move.
-  const [dragWidth, setDragWidth] = useState<number | null>(null);
   const dragStateRef = useRef<{
     startX: number;
     startWidth: number;
     pendingWidth: number;
     rafId: number | null;
   } | null>(null);
-  const regularWidth = clampAtlasSidebarWidth(dragWidth ?? atlasSidebarWidth, windowWidth);
+  const regularWidth = atlasLayout.atlasWidth;
   const isResizing = dragWidth !== null;
 
   const commitDragFrame = useCallback(() => {
@@ -132,7 +151,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     // Dragging out of full mode starts from the last regular width, not the
     // full-width value, and never collapses to the rail (the min clamp below
     // is well above the rail width).
-    const startWidth = clampAtlasSidebarWidth(atlasSidebarWidth, windowWidth);
+    const startWidth = clampAtlasSidebarWidth(atlasSidebarWidth, layoutAreaWidth);
     dragStateRef.current = { startX: event.clientX, startWidth, pendingWidth: startWidth, rafId: null };
     setDragWidth(startWidth);
     document.body.style.cursor = "col-resize";
@@ -146,7 +165,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     // The separator sits on the panel's left edge and the panel is docked to
     // the right, so moving the pointer left grows the panel.
     const delta = event.clientX - state.startX;
-    state.pendingWidth = clampAtlasSidebarWidth(state.startWidth - delta, window.innerWidth);
+    state.pendingWidth = clampAtlasSidebarWidth(state.startWidth - delta, layoutAreaWidth);
     if (state.rafId == null) state.rafId = requestAnimationFrame(commitDragFrame);
   };
 
@@ -166,7 +185,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   const handleResizeDoubleClick = () => setAtlasSidebarWidth(ATLAS_SIDEBAR_DEFAULT_WIDTH);
 
   const handleResizeKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const next = getAtlasSidebarWidthForKey(event.key, regularWidth, event.shiftKey, windowWidth);
+    const next = getAtlasSidebarWidthForKey(event.key, regularWidth, event.shiftKey, layoutAreaWidth);
     if (next === null) return;
     event.preventDefault();
     setAtlasSidebarWidth(next);
@@ -199,7 +218,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
       event.preventDefault();
       // Desktop: Atlas is permanently docked, so the shortcut collapses it to a
       // rail / expands it back. Mobile: it opens the dismissible overlay.
-      if (window.innerWidth >= MOBILE_BREAKPOINT) {
+      if (isAtlasDocked) {
         toggleAtlasSidebar();
       } else {
         toggleAgentChat(true);
@@ -211,7 +230,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [toggleAgentChat, toggleAtlasSidebar]);
+  }, [isAtlasDocked, toggleAgentChat, toggleAtlasSidebar]);
 
   // Focus the Atlas composer when the sidebar becomes visible — opening the
   // drawer or expanding the collapsed rail. Transition-gated (ref tracks the
@@ -219,7 +238,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   // page on load. On a first-ever open the composer mounts a beat later
   // (sessions load async), so a pending-focus flag is left for it to consume
   // on mount when the direct attempt below finds nothing yet.
-  const atlasVisible = agentChatOpen && !(atlasSidebarCollapsed && !isMobile);
+  const atlasVisible = agentChatOpen && !(atlasSidebarCollapsed && isAtlasDocked);
   const prevAtlasVisibleRef = useRef(atlasVisible);
   useEffect(() => {
     const wasVisible = prevAtlasVisibleRef.current;
@@ -265,7 +284,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
           <AppRailRoot />
         ))}
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="relative flex size-full min-h-0 gap-0.5 overflow-hidden">
+        <div ref={layoutAreaRef} className="relative flex size-full min-h-0 gap-0.5 overflow-hidden">
           {/* Full mode preserves the content's place with a single affordance,
               not a miniature, non-functional version of the page. */}
           <div
@@ -291,18 +310,19 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
               className={cn(
                 "shadow-sm absolute top-0 right-0 z-30 h-full overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300",
                 "w-[min(560px,calc(100%-24px))]",
-                // Desktop: docked sibling of the content. Collapses to a slim
-                // rail with the same width curve as the left app rail (250ms,
-                // standard ease) — the panel reveals/hides as the width animates.
-                // In the expanded tier, Atlas fills the space beside the
-                // content rail; the collapsed Atlas rail always wins over it.
-                "md:shadow-sm md:relative md:z-auto md:flex-shrink-0",
+                isAtlasDocked && "shadow-sm relative z-auto flex-shrink-0",
                 isResizing
-                  ? "md:transition-none"
-                  : "md:transition-[width] md:duration-[250ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]",
-                atlasSidebarCollapsed ? "md:w-[3.25rem]" : atlasSidebarExpanded ? "md:min-w-0 md:flex-1" : undefined
+                  ? "transition-none"
+                  : "transition-[width] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                atlasSidebarCollapsed && isAtlasDocked
+                  ? "w-[3.25rem]"
+                  : atlasSidebarExpanded && isAtlasDocked
+                    ? "min-w-0 flex-1"
+                    : undefined
               )}
-              style={!isMobile && !atlasSidebarCollapsed && !atlasSidebarExpanded ? { width: regularWidth } : undefined}
+              style={
+                isAtlasDocked && !atlasSidebarCollapsed && !atlasSidebarExpanded ? { width: regularWidth } : undefined
+              }
               data-open="true"
               data-resizing={isResizing ? "true" : undefined}
               // Stable hook for focus (zen) mode: globals.css lifts the open
@@ -322,30 +342,30 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
                 className={cn(
                   "h-full w-full",
                   isResizing
-                    ? "md:transition-none"
-                    : "md:transition-[width] md:duration-[250ms] md:ease-[cubic-bezier(0.22,1,0.36,1)]",
-                  atlasSidebarExpanded && "md:w-full",
+                    ? "transition-none"
+                    : "transition-[width] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  atlasSidebarExpanded && isAtlasDocked && "w-full",
                   // Covered by the rail while collapsed — `invisible` also pulls
                   // the chat controls out of the tab order / a11y tree.
-                  atlasSidebarCollapsed && !isMobile && "pointer-events-none invisible"
+                  atlasSidebarCollapsed && isAtlasDocked && "pointer-events-none invisible"
                 )}
-                style={!isMobile && !atlasSidebarExpanded ? { width: regularWidth } : undefined}
-                aria-hidden={atlasSidebarCollapsed && !isMobile ? true : undefined}
+                style={isAtlasDocked && !atlasSidebarExpanded ? { width: regularWidth } : undefined}
+                aria-hidden={atlasSidebarCollapsed && isAtlasDocked ? true : undefined}
               >
                 <AgentChatDrawer
-                  dismissible={isMobile}
-                  onCollapse={isMobile ? undefined : () => toggleAtlasSidebar(true)}
-                  isExpanded={!isMobile && atlasSidebarExpanded}
-                  onToggleExpand={isMobile ? undefined : () => toggleAtlasSidebarExpanded()}
+                  dismissible={isAtlasOverlay}
+                  onCollapse={isAtlasDocked ? () => toggleAtlasSidebar(true) : undefined}
+                  isExpanded={isAtlasDocked && atlasSidebarExpanded}
+                  onToggleExpand={isAtlasDocked ? () => toggleAtlasSidebarExpanded() : undefined}
                 />
               </div>
-              {!isMobile && !atlasSidebarCollapsed && (
+              {isAtlasDocked && !atlasSidebarCollapsed && (
                 <div
                   role="separator"
                   aria-label="Resize Atlas sidebar"
                   aria-orientation="vertical"
                   aria-valuemin={ATLAS_SIDEBAR_MIN_WIDTH}
-                  aria-valuemax={getAtlasSidebarMaxWidth(windowWidth)}
+                  aria-valuemax={getAtlasSidebarMaxWidth(layoutAreaWidth)}
                   aria-valuenow={Math.round(regularWidth)}
                   tabIndex={0}
                   title="Drag to resize Atlas. Double-click to reset."
@@ -364,7 +384,9 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
                   onLostPointerCapture={endResizeDrag}
                 />
               )}
-              {atlasSidebarCollapsed && !isMobile && <AtlasSidebarRail onExpand={() => toggleAtlasSidebar(false)} />}
+              {atlasSidebarCollapsed && isAtlasDocked && (
+                <AtlasSidebarRail onExpand={() => toggleAtlasSidebar(false)} />
+              )}
             </div>
           )}
         </div>
