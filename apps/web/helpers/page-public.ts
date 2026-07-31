@@ -16,6 +16,11 @@ type TPageLike = {
 
 export type TPublicPageContentType = Exclude<TPageType, "folder"> | "wiki";
 
+const CANONICAL_PUBLIC_PAGE_PATH_PATTERN = /^\/[^/]+\/(?:doc|wiki|whiteboard|pdf|sheet)\/[^/]+\/?$/;
+
+export const isCanonicalPublicPagePath = (pathname: string): boolean =>
+  CANONICAL_PUBLIC_PAGE_PATH_PATTERN.test(pathname);
+
 export const getPublicPageSlug = (page: TPageLike): string => {
   const raw = page?.view_props?.public_slug;
   if (typeof raw === "string" && raw.trim().length > 0) return raw.trim();

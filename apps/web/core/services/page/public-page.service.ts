@@ -7,15 +7,13 @@
 import { getPublicApiBaseUrl } from "@plane/constants";
 import type { TPageType } from "@plane/types";
 import { APIService } from "@/services/api.service";
+import type { TPublicDocMentions } from "@/helpers/public-doc-mention";
 
 export type TPublicWikiDoc = {
   id: string;
   name: string;
   description_html: string;
-  mentions?: {
-    users?: Record<string, string>;
-    issues?: Record<string, string>;
-  };
+  mentions?: TPublicDocMentions;
   updated_at: string;
 };
 
@@ -29,10 +27,7 @@ export type TPublicPageResponse = {
   description_html: string;
   description_json: Record<string, unknown> | null;
   embeds?: TPublicDocEmbed[];
-  mentions?: {
-    users?: Record<string, string>;
-    issues?: Record<string, string>;
-  };
+  mentions?: TPublicDocMentions;
   logo_props: Record<string, unknown> | null;
   owned_by?: {
     id: string;

@@ -8,7 +8,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchWikipediaSummary } from "@plane/editor";
 import type { TWikipediaSummary } from "@plane/editor";
 import { ListChecks, Whiteboard, StickyNote } from "@/components/icons/lucide-shim";
+import { getPublicDocMentionPresentation, type TPublicDocMentions } from "@/helpers/public-doc-mention";
 import type { TPublicDocEmbed } from "@/services/page/public-page.service";
+
+export type { TPublicDocMentions } from "@/helpers/public-doc-mention";
 
 export type TPublicDocHeading = {
   id: string;
@@ -190,11 +193,6 @@ export function getPublicDocHeadings(html: string): TPublicDocHeading[] {
   }));
 }
 
-export type TPublicDocMentions = {
-  users?: Record<string, string>;
-  issues?: Record<string, string>;
-};
-
 /**
  * description_html serializes mentions as empty <mention-component> custom
  * elements (attributes only, no text), which browsers render as nothing.
@@ -231,11 +229,18 @@ export function transformPublicDocMentions(html: string, mentions?: TPublicDocMe
       return;
     }
 
-    const span = document.createElement("span");
-    span.className = "public-doc-mention";
-    if (entityName === "issue") span.textContent = mentions?.issues?.[entityId] ?? "a task";
-    else span.textContent = `@${mentions?.users?.[entityId] ?? "member"}`;
-    el.replaceWith(span);
+    const presentation = getPublicDocMentionPresentation(entityName, entityId, mentions);
+    const replacement = presentation.href ? document.createElement("a") : document.createElement("span");
+    replacement.className = "public-doc-mention";
+    replacement.textContent = presentation.label;
+
+    if (replacement instanceof HTMLAnchorElement && presentation.href) {
+      replacement.href = presentation.href;
+      replacement.target = "_blank";
+      replacement.rel = "noopener noreferrer";
+    }
+
+    el.replaceWith(replacement);
   });
 
   return template.innerHTML;

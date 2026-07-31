@@ -25,6 +25,7 @@ import type { Route } from "./+types/root";
 import { CustomErrorComponent } from "./error";
 import { AppProvider } from "./provider";
 import { AppLoadingScreen } from "@/components/common/app-loading-screen";
+import { isCanonicalPublicPagePath } from "@/helpers/page-public";
 // fonts – side-effect imports
 // Figtree is self-hosted from /public/fonts via @font-face in globals.css.
 // Material Symbols: only the Latin subset at weight 400 ships — the icon
@@ -134,7 +135,10 @@ export default function Root() {
   const { pathname } = useLocation();
   const [hasMounted, setHasMounted] = useState(false);
   const isPublicRoute =
-    pathname === "/google-oauth" || pathname.startsWith("/legal/") || pathname.startsWith("/published/");
+    pathname === "/google-oauth" ||
+    pathname.startsWith("/legal/") ||
+    pathname.startsWith("/published/") ||
+    isCanonicalPublicPagePath(pathname);
 
   useEffect(() => {
     setHasMounted(true);

@@ -7,6 +7,7 @@
 import { observer } from "mobx-react";
 import { useMemo, type ReactNode } from "react";
 import useSWR from "swr";
+import { SitesProjectPublishService } from "@plane/services";
 import { PublicPageService } from "@/services/page/public-page.service";
 import dragonFruitLogo from "@/app/assets/plane-logos/logo-black.svg?url";
 import { renderFormattedDate } from "@plane/utils";
@@ -20,9 +21,11 @@ import {
 } from "@/components/pages/published/public-doc-content";
 import { PublishedWikiView } from "@/components/pages/published/published-wiki-view";
 import { normalizeDocFontStyle } from "@/helpers/doc-font";
+import { buildPublishedProjectCalendarUrl } from "@/components/project/publish-project/public-link";
 import type { Route } from "./+types/page";
 
 const publicPageService = new PublicPageService();
+const projectPublishService = new SitesProjectPublishService();
 
 const PublicPageShell = ({ children }: { children: ReactNode }) => (
   <div className="min-h-full bg-white text-primary">
@@ -53,9 +56,34 @@ function PublishedPage({ params }: Route.ComponentProps) {
     () => publicPageService.retrieve(workspaceSlug, pageSlug),
     { revalidateOnFocus: false }
   );
+  const calendarProjectId =
+    data?.project_id && data.description_html.includes('entity_name="calendar"') ? data.project_id : null;
+  const { data: projectPublishSettings } = useSWR(
+    calendarProjectId ? `PUBLIC_PROJECT_SETTINGS_${workspaceSlug}_${calendarProjectId}` : null,
+    () => projectPublishService.retrieveSettingsByProjectId(workspaceSlug, calendarProjectId ?? ""),
+    { revalidateOnFocus: false, shouldRetryOnError: false }
+  );
+  const mentions = useMemo(() => {
+    const anchor = projectPublishSettings?.anchor;
+    if (!calendarProjectId || !anchor) return data?.mentions;
+
+    const projectName = projectPublishSettings.project_details?.name?.trim();
+    return {
+      ...data?.mentions,
+      calendars: {
+        ...data?.mentions?.calendars,
+        [calendarProjectId]: {
+          label: projectName ? `${projectName} calendar` : "Project calendar",
+          href: buildPublishedProjectCalendarUrl(workspaceSlug, anchor, {
+            currentOrigin: typeof window === "undefined" ? "" : window.location.origin,
+          }),
+        },
+      },
+    };
+  }, [calendarProjectId, data?.mentions, projectPublishSettings, workspaceSlug]);
   const docHtml = useMemo(
-    () => addPublicDocHeadingIds(transformPublicDocMentions(data?.description_html || "<p></p>", data?.mentions)),
-    [data?.description_html, data?.mentions]
+    () => addPublicDocHeadingIds(transformPublicDocMentions(data?.description_html || "<p></p>", mentions)),
+    [data?.description_html, mentions]
   );
   const docHeadings = useMemo(() => getPublicDocHeadings(docHtml), [docHtml]);
 
