@@ -63,14 +63,8 @@ class TestMarkdownLiteHtml:
         assert "<a" not in markdown_lite_html("[x](javascript:alert(1))")
 
     def test_bullet_and_ordered_lists(self):
-        assert (
-            markdown_lite_html("- one\n- two")
-            == "<ul><li><p>one</p></li><li><p>two</p></li></ul>"
-        )
-        assert (
-            markdown_lite_html("1. first\n2. second")
-            == "<ol><li><p>first</p></li><li><p>second</p></li></ol>"
-        )
+        assert markdown_lite_html("- one\n- two") == "<ul><li><p>one</p></li><li><p>two</p></li></ul>"
+        assert markdown_lite_html("1. first\n2. second") == "<ol><li><p>first</p></li><li><p>second</p></li></ol>"
 
     def test_task_list_uses_tiptap_shape(self):
         html = markdown_lite_html("- [ ] draft\n- [x] ship")
@@ -103,7 +97,10 @@ class TestPlainTextToHtml:
         assert _plain_text_to_html("## Heading") == "<h2>Heading</h2>"
 
     def test_chart_fence_still_intercepted(self):
-        text = 'Before\n\n```chart\n{"type": "bar", "labels": ["A"], "series": [{"name": "S", "values": [1]}]}\n```\n\n## After'
+        text = (
+            'Before\n\n```chart\n{"type": "bar", "labels": ["A"], '
+            '"series": [{"name": "S", "values": [1]}]}\n```\n\n## After'
+        )
         html = _plain_text_to_html(text)
         assert "<chart-component" in html
         assert "<p>Before</p>" in html
@@ -147,3 +144,14 @@ class TestBlankSpacer:
         assert completed[0]["content_text"] == ""
         assert completed[0]["content_html"] == "<p></p>"
         assert completed[1]["content_html"] == "<h3>Better heading</h3>"
+
+    def test_no_changes_marker_does_not_create_a_proposal(self):
+        events = list(
+            _stream_doc_write_events(
+                iter(["@@ATLAS_NO_CHANGES"]),
+                mode="update",
+                intent="update",
+                block_map=BLOCK_MAP,
+            )
+        )
+        assert events == []

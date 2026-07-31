@@ -14,10 +14,11 @@ _text_from_pm_node) that feed them.
 import html
 import json
 import re
+from copy import deepcopy
 
 from django.core.serializers.json import DjangoJSONEncoder
 
-from plane.utils.html_builders import markdown_lite_html, paragraphs_html
+from plane.utils.html_builders import markdown_lite_html
 
 
 _DOC_WRITE_SYSTEM_PROMPT = """
@@ -36,13 +37,19 @@ Return JSON only, with this shape:
 
 Rules:
 - Create one proposal per paragraph or logical block.
+- The block whose type/surface is `title` is the real page title, not the first body heading. Translate or
+  replace it when the request includes the whole document, and never invent a body block as a title substitute.
+- Preserve explicit hard breaks, inline emphasis, links, headings, and list structure unless the user asks to
+  change that structure.
 - For create mode, use only insert_after proposals and leave target_block_id empty.
 - For update mode, use replace/delete only when you are changing a provided block; use insert_after for new context.
 - `Edit scope: entire_document` is authoritative and overrides any cursor or selected-text context. Inspect every
   provided block from first to last, apply the request consistently to every applicable block, and do not stop
   after a representative sample. Leave blocks that already satisfy the request untouched.
 - `Edit scope: selection` means change only the selected passage unless the user explicitly broadens the scope.
-- If "Intent: replace" is present, prefer replace proposals against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
+- If "Intent: replace" is present, prefer replace proposals against existing block ids. For requests to replace
+  the entire text/document, replace the first relevant block with the new full text and delete any remaining
+  obsolete blocks.
 - Preserve the user's intent and write production-ready document prose.
 - content_text supports EXACTLY this Markdown subset (anything else stays literal text):
   # / ## / ### headings · **bold** · *italic* · ~~strikethrough~~ · `code` · [text](https://url) ·
@@ -83,14 +90,23 @@ Then write the proposed document text on the following lines. Begin each new edi
 
 Rules:
 - One @@ATLAS block per paragraph, heading, or short list.
+- The block whose type/surface is `title` is the real page title. Target it when a whole-document translation
+  or replacement applies; do not treat the first body heading as the page title.
+- Preserve explicit hard breaks, inline emphasis, links, headings, and list structure unless the request asks
+  to change that structure.
 - create mode: use only `op=insert_after` and leave target empty.
-- update mode: use `op=replace` or `op=delete` only against a provided block id; use `op=insert_after` with an empty target for brand-new content.
+- update mode: use `op=replace` or `op=delete` only against a provided block id; use `op=insert_after` with an
+  empty target for brand-new content.
 - `Edit scope: entire_document` is authoritative and overrides any cursor or selected-text context. Inspect every
   provided block from first to last, apply the request consistently to every applicable block, and do not stop
   after a representative sample. Leave blocks that already satisfy the request untouched.
 - `Edit scope: selection` means change only the selected passage unless the user explicitly broadens the scope.
-- If "Intent: replace" is present, prefer `op=replace` against existing block ids. For requests to replace the entire text/document, replace the first relevant block with the new full text and delete any remaining obsolete blocks.
-- If a "Selected text" section is present, the user is editing exactly that passage: find the provided block id whose text matches the selection and emit a single `op=replace` against it. Do not rewrite, re-order, or touch other blocks unless the request clearly asks you to.
+- If "Intent: replace" is present, prefer `op=replace` against existing block ids. For requests to replace the
+  entire text/document, replace the first relevant block with the new full text and delete any remaining
+  obsolete blocks.
+- If a "Selected text" section is present, the user is editing exactly that passage: find the provided block id
+  whose text matches the selection and emit a single `op=replace` against it. Do not rewrite, re-order, or touch
+  other blocks unless the request clearly asks you to.
 - For `op=delete`, emit only the header line (no body).
 - To add vertical space between two blocks, emit `op=insert_after` targeting the block ABOVE the gap with a
   body that is exactly the single line `[blank]` — it becomes one empty paragraph. For "fix/add spacing
@@ -112,11 +128,22 @@ Rules:
   with type one of bar|line|area|pie|donut, an optional "title", and only real numbers from the
   request, the document, or provided reference material. Give the chart its own @@ATLAS block.
 - Never write the literal text "@@ATLAS" inside body content.
+- If this chunk needs no changes, emit exactly `@@ATLAS_NO_CHANGES` and nothing else.
 - When "Cited reference material" is provided in the user prompt, ground factual statements in it
   and include a cited Source line (e.g. "Source: <url>") where appropriate; do not invent sources.
 """.strip()
 
 _DOC_WRITE_STREAM_MARKER = "@@ATLAS"
+ATLAS_TITLE_BLOCK_ID = "__atlas_title__"
+DOC_WRITE_CHUNK_SIZE = 80
+
+
+def chunk_document_blocks(blocks: list[dict]) -> list[list[dict]]:
+    """Split every block into bounded model requests; keep create mode viable."""
+
+    return [blocks[index : index + DOC_WRITE_CHUNK_SIZE] for index in range(0, len(blocks), DOC_WRITE_CHUNK_SIZE)] or [
+        []
+    ]
 
 
 # Page-scoped editing often retains a browser selection after focus moves to
@@ -225,13 +252,27 @@ def _plain_text_to_html(text: str) -> str:
     return "".join(parts)
 
 
-def _document_blocks_from_json(document_json) -> list[dict]:
+def _document_blocks_from_json(document_json, document_title: str = "") -> list[dict]:
+    """Return every editable surface without silently truncating the document."""
+
+    blocks: list[dict] = []
+    clean_title = str(document_title or "").strip()
+    if clean_title:
+        blocks.append(
+            {
+                "id": ATLAS_TITLE_BLOCK_ID,
+                "type": "title",
+                "surface": "title",
+                "text": clean_title[:2_000],
+                "source_markdown": clean_title[:2_000],
+            }
+        )
+
     if not isinstance(document_json, dict):
-        return []
+        return blocks
     content = document_json.get("content")
     if not isinstance(content, list):
-        return []
-    blocks: list[dict] = []
+        return blocks
     for node in content:
         if not isinstance(node, dict):
             continue
@@ -239,8 +280,17 @@ def _document_blocks_from_json(document_json) -> list[dict]:
         block_id = str(attrs.get("id") or "").strip()
         text = _text_from_pm_node(node).strip()
         if block_id and text:
-            blocks.append({"id": block_id, "type": node.get("type") or "block", "text": text[:2_000]})
-    return blocks[:80]
+            blocks.append(
+                {
+                    "id": block_id,
+                    "type": node.get("type") or "block",
+                    "surface": "body",
+                    "text": text[:2_000],
+                    "source_markdown": _markdown_from_pm_node(node).strip()[:4_000],
+                    "node": deepcopy(node),
+                }
+            )
+    return blocks
 
 
 def _text_from_pm_node(node) -> str:
@@ -248,10 +298,65 @@ def _text_from_pm_node(node) -> str:
         return ""
     if node.get("type") == "text":
         return str(node.get("text") or "")
+    if node.get("type") == "hardBreak":
+        return "\n"
     content = node.get("content")
     if not isinstance(content, list):
         return ""
-    return " ".join(part for part in (_text_from_pm_node(child) for child in content) if part)
+    separator = "\n" if node.get("type") in {"bulletList", "orderedList", "taskList"} else ""
+    return separator.join(_text_from_pm_node(child) for child in content)
+
+
+def _markdown_from_pm_node(node) -> str:
+    """Serialize the supported ProseMirror subset without flattening structure."""
+
+    if not isinstance(node, dict):
+        return ""
+    node_type = node.get("type")
+    if node_type == "hardBreak":
+        return "\n"
+    if node_type == "text":
+        value = str(node.get("text") or "")
+        marks = node.get("marks") if isinstance(node.get("marks"), list) else []
+        for mark in marks:
+            if not isinstance(mark, dict):
+                continue
+            mark_type = mark.get("type")
+            if mark_type == "bold":
+                value = f"**{value}**"
+            elif mark_type == "italic":
+                value = f"*{value}*"
+            elif mark_type == "strike":
+                value = f"~~{value}~~"
+            elif mark_type == "code":
+                value = f"`{value}`"
+            elif mark_type == "link":
+                attrs = mark.get("attrs") if isinstance(mark.get("attrs"), dict) else {}
+                href = str(attrs.get("href") or "").strip()
+                if href:
+                    value = f"[{value}]({href})"
+        return value
+
+    content = node.get("content")
+    children = content if isinstance(content, list) else []
+    inner = "".join(_markdown_from_pm_node(child) for child in children)
+    if node_type == "heading":
+        attrs = node.get("attrs") if isinstance(node.get("attrs"), dict) else {}
+        level = max(1, min(3, int(attrs.get("level") or 1)))
+        return f"{'#' * level} {inner}"
+    if node_type == "blockquote":
+        return "\n".join(f"> {line}" for line in inner.splitlines())
+    if node_type == "bulletList":
+        items = [_markdown_from_pm_node(child).strip() for child in children]
+        return "\n".join(f"- {item}" for item in items if item)
+    if node_type == "orderedList":
+        items = [_markdown_from_pm_node(child).strip() for child in children]
+        return "\n".join(f"{index}. {item}" for index, item in enumerate(items, start=1) if item)
+    if node_type in {"listItem", "taskItem"}:
+        return inner
+    if node_type == "horizontalRule":
+        return "---"
+    return inner
 
 
 # Literal find-replace detection. A user request like "replace renji for rengi"
@@ -272,6 +377,21 @@ _FIND_REPLACE_PATTERNS = [
     re.compile(r"^\s*change\s+(?P<search>.+?)\s+(?:to|into)\s+(?P<replacement>.+?)\s*$", re.IGNORECASE),
     # rename X to Y
     re.compile(r"^\s*rename\s+(?P<search>.+?)\s+to\s+(?P<replacement>.+?)\s*$", re.IGNORECASE),
+    # reemplaza/sustituye X por Y
+    re.compile(
+        r"^\s*(?:reemplaza|reemplazar|sustituye|sustituir)\s+(?P<search>.+?)\s+por\s+(?P<replacement>.+?)\s*$",
+        re.IGNORECASE,
+    ),
+    # cambia X por/a Y
+    re.compile(
+        r"^\s*(?:cambia|cambiar)\s+(?P<search>.+?)\s+(?:por|a)\s+(?P<replacement>.+?)\s*$",
+        re.IGNORECASE,
+    ),
+    # renombra X como/a Y
+    re.compile(
+        r"^\s*(?:renombra|renombrar)\s+(?P<search>.+?)\s+(?:como|a)\s+(?P<replacement>.+?)\s*$",
+        re.IGNORECASE,
+    ),
 ]
 
 
@@ -286,7 +406,20 @@ def _strip_optional_quotes(value: str) -> str:
 # `replace word "rengi" for "antonio"`. When the prompt opens with one of these
 # AND carries exactly two quoted segments, we take the two quoted strings as the
 # (search, replacement) pair and ignore any filler words around them.
-_REPLACE_KEYWORDS = ("replace", "swap", "change", "rename")
+_REPLACE_KEYWORDS = (
+    "replace",
+    "swap",
+    "change",
+    "rename",
+    "reemplaza",
+    "reemplazar",
+    "sustituye",
+    "sustituir",
+    "cambia",
+    "cambiar",
+    "renombra",
+    "renombrar",
+)
 
 # Matches a single quoted segment: "...", '...', or `...`. Used only to detect
 # the "exactly two quoted segments" case; we do not parse arbitrary nesting.
@@ -304,7 +437,50 @@ _FIND_REPLACE_FILLER_PREFIXES = (
     "all occurrences of ",
     "every instance of ",
     "every occurrence of ",
+    "la palabra ",
+    "palabra ",
+    "la frase ",
+    "frase ",
+    "todas las apariciones de ",
+    "todas las ocurrencias de ",
+    "cada aparición de ",
+    "cada aparicion de ",
+    "cada ocurrencia de ",
 )
+
+_FIND_REPLACE_SAFE_SUFFIXES = (
+    re.compile(
+        r"(?:[.,;:]\s*)?(?:en\s+todo\s+el\s+documento|en\s+toda\s+la\s+p[aá]gina|en\s+todas\s+partes)\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:[.,;:]\s*)?no\s+(?:cambies|modifiques|alteres)\s+nada\s+m[aá]s[.!]?\s*$",
+        re.IGNORECASE,
+    ),
+)
+
+_FIND_REPLACE_UNSAFE_CLAUSE_RE = re.compile(
+    r"(?:\s|[,;])(?:y|and)\s+(?:tambi[eé]n\s+|also\s+)?"
+    r"(?:resume|resumir|summari[sz]e|reescribe|rewrite|traduce|translate|ordena|reorder)\b"
+    r"|\b(?:solo|solamente|only)\s+(?:en\s+|in\s+)?(?:el\s+|the\s+)?"
+    r"(?:primer|primero|first)\s+(?:p[aá]rrafo|paragraph|bloque|block)\b",
+    re.IGNORECASE,
+)
+
+
+def _strip_safe_find_replace_suffixes(value: str) -> str:
+    """Remove only allow-listed scope/safety clauses from literal commands."""
+
+    clean = value.strip()
+    changed = True
+    while changed:
+        changed = False
+        for pattern in _FIND_REPLACE_SAFE_SUFFIXES:
+            next_value = pattern.sub("", clean).strip()
+            if next_value != clean:
+                clean = next_value
+                changed = True
+    return clean
 
 
 def _strip_leading_filler(value: str) -> str:
@@ -362,11 +538,13 @@ def parse_find_replace(prompt: str) -> tuple[str, str] | None:
     """
     if not prompt:
         return None
-    text = prompt.strip()
+    text = _strip_safe_find_replace_suffixes(prompt.strip())
     # A literal replace is a single instruction; reject multi-line prompts so we
     # don't accidentally swallow a longer editorial request whose first line
     # happens to look like a command.
     if "\n" in text:
+        return None
+    if _FIND_REPLACE_UNSAFE_CLAUSE_RE.search(text):
         return None
     # Quoted-terms priority: `replace word "rengi" for "antonio"` or
     # `replace all "rengi" with "antonio"`. When the command opens with a
@@ -406,6 +584,32 @@ def _replace_all_case_insensitive(text: str, search: str, replacement: str) -> s
     return re.sub(re.escape(search), lambda _m: replacement, text, flags=re.IGNORECASE)
 
 
+def _replace_text_in_pm_node(node: dict, search: str, replacement: str) -> tuple[dict, bool]:
+    """Replace text-node content while preserving marks, breaks, and block attrs."""
+
+    updated = deepcopy(node)
+    changed = False
+
+    def visit(current):
+        nonlocal changed
+        if not isinstance(current, dict):
+            return
+        if current.get("type") == "text":
+            original = str(current.get("text") or "")
+            replaced = _replace_all_case_insensitive(original, search, replacement)
+            if replaced != original:
+                current["text"] = replaced
+                changed = True
+            return
+        content = current.get("content")
+        if isinstance(content, list):
+            for child in content:
+                visit(child)
+
+    visit(updated)
+    return updated, changed
+
+
 def build_find_replace_proposals(blocks: list[dict], search: str, replacement: str) -> list[dict]:
     """Build deterministic replace proposals for a literal find-replace.
 
@@ -428,18 +632,29 @@ def build_find_replace_proposals(blocks: list[dict], search: str, replacement: s
         original = block.get("text") or ""
         if needle not in original.casefold():
             continue
-        new_text = _replace_all_case_insensitive(original, search, replacement)[:4_000]
+        content_json = None
+        if block.get("surface") == "body" and isinstance(block.get("node"), dict):
+            content_json, changed = _replace_text_in_pm_node(block["node"], search, replacement)
+            if not changed:
+                continue
+            new_text = _text_from_pm_node(content_json)[:4_000]
+            content_html = _plain_text_to_html(_markdown_from_pm_node(content_json)[:4_000])
+        else:
+            new_text = _replace_all_case_insensitive(original, search, replacement)[:4_000]
+            content_html = _plain_text_to_html(new_text)
         index += 1
-        proposals.append(
-            {
-                "id": f"proposal-{index}",
-                "operation": "replace",
-                "target_block_id": block["id"],
-                "target_original_text": original,
-                "content_text": new_text,
-                "content_html": _plain_text_to_html(new_text),
-            }
-        )
+        proposal = {
+            "id": f"proposal-{index}",
+            "operation": "replace",
+            "surface": block.get("surface", "body"),
+            "target_block_id": block["id"],
+            "target_original_text": original,
+            "content_text": new_text,
+            "content_html": content_html,
+        }
+        if content_json is not None:
+            proposal["content_json"] = content_json
+        proposals.append(proposal)
     return proposals
 
 
@@ -471,6 +686,7 @@ def _normalise_doc_write_proposals(
                 {
                     "id": f"proposal-{index + 1}",
                     "operation": operation,
+                    "surface": block_map.get(target_block_id, {}).get("surface", "body"),
                     "target_block_id": target_block_id,
                     "target_original_text": block_map.get(target_block_id, {}).get("text", ""),
                     "content_text": "",
@@ -487,6 +703,7 @@ def _normalise_doc_write_proposals(
             {
                 "id": f"proposal-{index + 1}",
                 "operation": operation,
+                "surface": block_map.get(target_block_id, {}).get("surface", "body"),
                 "target_block_id": target_block_id,
                 "target_original_text": block_map.get(target_block_id, {}).get("text", ""),
                 "content_text": content_text[:4_000],
@@ -509,6 +726,7 @@ def _normalise_doc_write_proposals(
             {
                 "id": f"proposal-{index + 1}",
                 "operation": operation,
+                "surface": block_map.get(target_block_id, {}).get("surface", "body"),
                 "target_block_id": target_block_id,
                 "target_original_text": block_map.get(target_block_id, {}).get("text", ""),
                 "content_text": part[:4_000],
@@ -554,7 +772,7 @@ def _normalise_stream_header(operation: str, target_block_id: str, *, mode: str,
     return operation, target_block_id
 
 
-def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict):
+def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict, proposal_offset: int = 0):
     """Parse Atlas's `@@ATLAS` block protocol from a token iterable.
 
     Yields (event_name, payload) tuples — proposal_started / proposal_delta /
@@ -580,6 +798,7 @@ def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict)
         return {
             "proposal_id": proposal["id"],
             "operation": proposal["operation"],
+            "surface": proposal["surface"],
             "target_block_id": proposal["target_block_id"],
             "target_original_text": proposal["target_original_text"],
             "content_text": proposal["content_text"],
@@ -600,8 +819,9 @@ def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict)
                 )
                 index += 1
                 current = {
-                    "id": f"proposal-{index}",
+                    "id": f"proposal-{proposal_offset + index}",
                     "operation": operation,
+                    "surface": block_map.get(target, {}).get("surface", "body"),
                     "target_block_id": target,
                     "target_original_text": block_map.get(target, {}).get("text", ""),
                     "content_text": "",
@@ -612,6 +832,7 @@ def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict)
                     {
                         "proposal_id": current["id"],
                         "operation": current["operation"],
+                        "surface": current["surface"],
                         "target_block_id": current["target_block_id"],
                         "target_original_text": current["target_original_text"],
                     },
@@ -622,6 +843,7 @@ def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict)
                     "proposal_delta",
                     {
                         "proposal_id": current["id"],
+                        "surface": current["surface"],
                         "content_text": current["content_text"].strip(),
                         "content_html": _plain_text_to_html(current["content_text"]),
                     },
@@ -633,6 +855,7 @@ def _stream_doc_write_events(tokens, *, mode: str, intent: str, block_map: dict)
                 "proposal_delta",
                 {
                     "proposal_id": current["id"],
+                    "surface": current["surface"],
                     "content_text": (current["content_text"] + buffer).strip(),
                     "content_html": _plain_text_to_html(current["content_text"] + buffer),
                 },

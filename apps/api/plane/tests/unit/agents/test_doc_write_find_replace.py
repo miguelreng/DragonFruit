@@ -20,7 +20,9 @@ import pytest
 
 from plane.app.views.agent.doc_write import (
     _document_blocks_from_json,
+    _markdown_from_pm_node,
     build_find_replace_proposals,
+    chunk_document_blocks,
     parse_find_replace,
 )
 
@@ -112,9 +114,45 @@ class TestParseFindReplace:
         # patterns handle it and the conservative filler strip applies.
         assert parse_find_replace('replace the word "rengi" with antonio') == ("rengi", "antonio")
 
+    @pytest.mark.parametrize(
+        ("prompt", "expected"),
+        [
+            ("reemplaza renji por rengi", ("renji", "rengi")),
+            ("Sustituye la palabra renji por rengi", ("renji", "rengi")),
+            ('cambia "Renji" por "Rengi"', ("Renji", "Rengi")),
+            ("renombra renji como rengi", ("renji", "rengi")),
+            (
+                "Reemplaza renji por rengi en todo el documento. No cambies nada más.",
+                ("renji", "rengi"),
+            ),
+        ],
+    )
+    def test_spanish_literal_commands(self, prompt, expected):
+        assert parse_find_replace(prompt) == expected
+
+    @pytest.mark.parametrize(
+        "prompt",
+        [
+            "Reemplaza renji por rengi y resume el resto",
+            "Cambia renji por rengi solamente en el primer párrafo",
+        ],
+    )
+    def test_spanish_editorial_or_narrow_requests_fall_back(self, prompt):
+        assert parse_find_replace(prompt) is None
+
 
 @pytest.mark.unit
 class TestBuildFindReplaceProposals:
+    def test_real_title_is_a_separate_edit_surface(self):
+        document = _document(_pm_block("p-1", "paragraph", "Notes about Renji"))
+        blocks = _document_blocks_from_json(document, document_title="Renji launch brief")
+        proposals = build_find_replace_proposals(blocks, "Renji", "Rengi")
+
+        by_id = {proposal["target_block_id"]: proposal for proposal in proposals}
+        assert by_id["__atlas_title__"]["surface"] == "title"
+        assert by_id["__atlas_title__"]["content_text"] == "Rengi launch brief"
+        assert by_id["p-1"]["surface"] == "body"
+
     def test_title_h1_block_is_included(self):
         # The H1 title is exactly what the LLM path drops, so it must be covered.
         document = _document(
@@ -134,10 +172,7 @@ class TestBuildFindReplaceProposals:
     def test_multiple_blocks_all_get_edits_no_cap(self):
         # Build more than a handful of matching blocks to prove there is no cap.
         block_count = 25
-        nodes = [
-            _pm_block(f"b-{i}", "paragraph", f"line {i} mentions Renji here")
-            for i in range(block_count)
-        ]
+        nodes = [_pm_block(f"b-{i}", "paragraph", f"line {i} mentions Renji here") for i in range(block_count)]
         document = _document(*nodes)
         blocks = _document_blocks_from_json(document)
         proposals = build_find_replace_proposals(blocks, "Renji", "Rengi")
@@ -192,10 +227,12 @@ class TestBuildFindReplaceProposals:
         assert set(proposal.keys()) == {
             "id",
             "operation",
+            "surface",
             "target_block_id",
             "target_original_text",
             "content_text",
             "content_html",
+            "content_json",
         }
         assert proposal["id"] == "proposal-1"
         assert proposal["content_html"]  # HTML is rendered for the review UI
@@ -221,6 +258,47 @@ class TestBuildFindReplaceProposals:
         assert proposals[0]["target_block_id"] == "title-1"
         assert proposals[0]["content_text"] == "Brief de Marca: antonio.mp4"
         assert proposals[0]["target_original_text"] == "Brief de Marca: rengi.mp4"
+
+    def test_extraction_does_not_silently_drop_blocks_after_eighty(self):
+        document = _document(*[_pm_block(f"p-{index}", "paragraph", f"Paragraph {index}") for index in range(160)])
+        assert len(_document_blocks_from_json(document)) == 160
+        assert [len(chunk) for chunk in chunk_document_blocks(_document_blocks_from_json(document))] == [80, 80]
+
+    def test_structured_replacement_preserves_marks_and_hard_breaks(self):
+        node = {
+            "type": "paragraph",
+            "attrs": {"id": "p-1"},
+            "content": [
+                {"type": "text", "text": "Renji", "marks": [{"type": "bold"}]},
+                {"type": "hardBreak"},
+                {
+                    "type": "text",
+                    "text": "site",
+                    "marks": [{"type": "link", "attrs": {"href": "https://example.com"}}],
+                },
+            ],
+        }
+        blocks = _document_blocks_from_json(_document(node))
+        assert blocks[0]["text"] == "Renji\nsite"
+        assert blocks[0]["source_markdown"] == "**Renji**\n[site](https://example.com)"
+        assert _markdown_from_pm_node(node) == "**Renji**\n[site](https://example.com)"
+
+        proposal = build_find_replace_proposals(blocks, "Renji", "Rengi")[0]
+        assert proposal["content_json"]["content"][0]["text"] == "Rengi"
+        assert proposal["content_json"]["content"][0]["marks"] == [{"type": "bold"}]
+        assert proposal["content_json"]["content"][1] == {"type": "hardBreak"}
+
+    def test_list_markdown_preserves_each_item(self):
+        node = {
+            "type": "bulletList",
+            "attrs": {"id": "list-1"},
+            "content": [
+                {"type": "listItem", "content": [{"type": "paragraph", "content": [_pm_text("One")]}]},
+                {"type": "listItem", "content": [{"type": "paragraph", "content": [_pm_text("Two")]}]},
+            ],
+        }
+        blocks = _document_blocks_from_json(_document(node))
+        assert blocks[0]["source_markdown"] == "- One\n- Two"
 
     def test_quoted_terms_prompt_end_to_end(self):
         # `replace all "rengi" with "antonio"` should drive the same edit.

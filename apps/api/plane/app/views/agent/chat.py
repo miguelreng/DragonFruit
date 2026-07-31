@@ -25,6 +25,7 @@ import logging
 import re
 import urllib.parse
 import urllib.request
+from time import monotonic
 from uuid import uuid4
 
 import requests
@@ -78,6 +79,7 @@ from .doc_write import (
     _normalise_doc_write_proposals,
     _stream_doc_write_events,
     build_find_replace_proposals,
+    chunk_document_blocks,
     infer_doc_write_scope,
     parse_find_replace,
 )
@@ -2399,10 +2401,32 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
         if session.scope_type != "page" and session.user_id != request.user.id:
             return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        document_markdown = str(request.data.get("document_markdown") or "")[:40_000]
+        document_snapshot = request.data.get("document_snapshot")
+        if not isinstance(document_snapshot, dict):
+            document_snapshot = {}
+        snapshot_version = str(document_snapshot.get("version") or "").strip()[:120]
+        title_snapshot = document_snapshot.get("title")
+        if not isinstance(title_snapshot, dict):
+            title_snapshot = {}
+        body_snapshot = document_snapshot.get("body")
+        if not isinstance(body_snapshot, dict):
+            body_snapshot = {}
+        document_title = str(title_snapshot.get("text") or "").strip()[:2_000]
+        document_json = body_snapshot.get("json") or request.data.get("document_json")
+        document_markdown = str(body_snapshot.get("markdown") or request.data.get("document_markdown") or "")[:40_000]
         selection_text = str(request.data.get("selection_text") or "")[:8_000]
         context_note = str(request.data.get("context_note") or "").strip()[:12_000]
-        blocks = _document_blocks_from_json(request.data.get("document_json"))
+        blocks = _document_blocks_from_json(document_json, document_title=document_title)
+        if len(blocks) > 400:
+            return Response(
+                {
+                    "error": (
+                        "This document has more than 400 editable blocks. Split it into smaller documents "
+                        "before asking Atlas to rewrite the entire page."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         edit_scope = infer_doc_write_scope(content, selection_text)
         # An editor selection can survive after focus moves into the composer.
         # Never let that residual selection narrow an explicit whole-document
@@ -2411,11 +2435,13 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
         agent = session.agent
 
         def stream():
+            stream_started_at = monotonic()
             review_session_id = f"atlas-doc-write-{user_msg.id}"
             yield _doc_write_event(
                 "session_started",
                 session_id=review_session_id,
                 mode=mode,
+                snapshot_version=snapshot_version,
                 user_message=AgentChatMessageSerializer(user_msg).data,
             )
 
@@ -2439,57 +2465,78 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             if find_replace is not None:
                 search, replacement = find_replace
                 deterministic = build_find_replace_proposals(blocks, search, replacement)
-                if deterministic:
-                    for proposal in deterministic:
-                        yield _doc_write_event(
-                            "proposal_started",
-                            proposal_id=proposal["id"],
-                            operation=proposal["operation"],
-                            target_block_id=proposal["target_block_id"],
-                            target_original_text=proposal["target_original_text"],
-                        )
-                        yield _doc_write_event(
-                            "proposal_delta",
-                            proposal_id=proposal["id"],
-                            content_text=proposal["content_text"],
-                            content_html=proposal["content_html"],
-                        )
-                        yield _doc_write_event(
-                            "proposal_completed",
-                            proposal_id=proposal["id"],
-                            operation=proposal["operation"],
-                            target_block_id=proposal["target_block_id"],
-                            target_original_text=proposal["target_original_text"],
-                            content_text=proposal["content_text"],
-                            content_html=proposal["content_html"],
-                        )
-                    completed_count = len(deterministic)
-                    assistant_msg = AgentChatMessage.objects.create(
-                        session=session,
-                        role="assistant",
-                        content=(
+                for proposal in deterministic:
+                    yield _doc_write_event(
+                        "proposal_started",
+                        proposal_id=proposal["id"],
+                        operation=proposal["operation"],
+                        surface=proposal["surface"],
+                        target_block_id=proposal["target_block_id"],
+                        target_original_text=proposal["target_original_text"],
+                        snapshot_version=snapshot_version,
+                    )
+                    yield _doc_write_event(
+                        "proposal_delta",
+                        proposal_id=proposal["id"],
+                        surface=proposal["surface"],
+                        content_text=proposal["content_text"],
+                        content_html=proposal["content_html"],
+                        content_json=proposal.get("content_json"),
+                        snapshot_version=snapshot_version,
+                    )
+                    yield _doc_write_event(
+                        "proposal_completed",
+                        proposal_id=proposal["id"],
+                        operation=proposal["operation"],
+                        surface=proposal["surface"],
+                        target_block_id=proposal["target_block_id"],
+                        target_original_text=proposal["target_original_text"],
+                        content_text=proposal["content_text"],
+                        content_html=proposal["content_html"],
+                        content_json=proposal.get("content_json"),
+                        snapshot_version=snapshot_version,
+                    )
+                completed_count = len(deterministic)
+                yield _doc_write_event(
+                    "coverage",
+                    processed_blocks=len(blocks),
+                    total_blocks=len(blocks),
+                    snapshot_version=snapshot_version,
+                )
+                assistant_msg = AgentChatMessage.objects.create(
+                    session=session,
+                    role="assistant",
+                    content=(
+                        (
                             f"I drafted {completed_count} reviewable document "
                             f"{'edit' if completed_count == 1 else 'edits'} in the page."
-                        ),
-                        prompt_tokens=0,
-                        completion_tokens=0,
-                        total_tokens=0,
-                        cost_usd=0,
-                    )
-                    session.save(update_fields=["updated_at", "last_activity_at"])
-                    yield _doc_write_event(
-                        "session_completed",
-                        assistant_message=AgentChatMessageSerializer(assistant_msg).data,
-                    )
-                    return
-                # No block contains the search term — nothing to do
-                # deterministically. Fall through to the LLM path rather than
-                # silently returning zero edits.
-
-            block_context = "\n".join(
-                f"- block: {index}/{len(blocks)}\n  id: {block['id']}\n  type: {block['type']}\n  text: {block['text']}"
-                for index, block in enumerate(blocks, start=1)
-            )
+                        )
+                        if completed_count
+                        else "I didn't find matching text in the page, so I made no changes."
+                    ),
+                    prompt_tokens=0,
+                    completion_tokens=0,
+                    total_tokens=0,
+                    cost_usd=0,
+                )
+                session.save(update_fields=["updated_at", "last_activity_at"])
+                logger.info(
+                    "agent doc-write route=deterministic_find_replace agent=%s session=%s "
+                    "duration_ms=%s block_count=%s proposal_count=%s",
+                    agent.id,
+                    session.id,
+                    round((monotonic() - stream_started_at) * 1000),
+                    len(blocks),
+                    completed_count,
+                )
+                yield _doc_write_event(
+                    "session_completed",
+                    proposal_count=completed_count,
+                    coverage={"processed_blocks": len(blocks), "total_blocks": len(blocks)},
+                    snapshot_version=snapshot_version,
+                    assistant_message=AgentChatMessageSerializer(assistant_msg).data,
+                )
+                return
 
             # Phase C: pre-fetch Wikipedia grounding for definitional requests so
             # the streaming path (which has no tool access) can cite real sources.
@@ -2497,115 +2544,211 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             if _DEFINITIONAL_DOC_REQUEST_RE.search(content):
                 reference_material = _fetch_doc_write_reference_material(content)
 
-            user_prompt = "\n\n".join(
-                part
-                for part in [
-                    f"Mode: {mode}",
-                    f"Intent: {intent}",
-                    f"Edit scope: {edit_scope}",
-                    f"User request:\n{content}",
-                    reference_material if reference_material else "",
-                    f"Selected text:\n{effective_selection_text}" if effective_selection_text else "",
-                    (
-                        "Private Atlas context (do not quote this block unless the user asks):\n"
-                        f"{context_note}\n\n"
-                        "Use this context only to resolve references and improve grounding."
-                    )
-                    if context_note
-                    else "",
-                    (
-                        f"Document blocks with stable ids (total: {len(blocks)}):\n{block_context}"
-                        if block_context
-                        else ""
-                    ),
-                    f"Document markdown:\n{document_markdown}" if document_markdown else "",
-                ]
-                if part
-            )
-
-            block_map = {block["id"]: block for block in blocks}
-            usage_out: dict = {}
+            block_chunks = chunk_document_blocks(blocks)
+            prompt_tokens = 0
+            completion_tokens = 0
             completed_count = 0
+            proposal_offset = 0
+            processed_blocks = 0
 
-            # Live path: parse the `@@ATLAS` block protocol as tokens arrive so
-            # each proposal surfaces (and types out) in the editor immediately.
-            try:
-                for name, payload in _stream_doc_write_events(
-                    provider.stream_text(
+            for chunk_index, chunk in enumerate(block_chunks, start=1):
+                block_context = "\n".join(
+                    (
+                        f"- block: {processed_blocks + index}/{len(blocks)}\n"
+                        f"  id: {block['id']}\n"
+                        f"  type: {block['type']}\n"
+                        f"  surface: {block['surface']}\n"
+                        f"  source: {block['source_markdown'].replace(chr(10), chr(10) + '    ')}"
+                    )
+                    for index, block in enumerate(chunk, start=1)
+                )
+                user_prompt = "\n\n".join(
+                    part
+                    for part in [
+                        f"Mode: {mode}",
+                        f"Intent: {intent}",
+                        f"Edit scope: {edit_scope}",
+                        f"Coverage chunk: {chunk_index}/{len(block_chunks)}",
+                        f"User request:\n{content}",
+                        reference_material if reference_material else "",
+                        f"Selected text:\n{effective_selection_text}" if effective_selection_text else "",
+                        (
+                            "Private Atlas context (do not quote this block unless the user asks):\n"
+                            f"{context_note}\n\n"
+                            "Use this context only to resolve references and improve grounding."
+                        )
+                        if context_note
+                        else "",
+                        (
+                            f"Document blocks with stable ids (document total: {len(blocks)}):\n{block_context}"
+                            if block_context
+                            else ""
+                        ),
+                        (
+                            f"Document markdown:\n{document_markdown}"
+                            if document_markdown and len(block_chunks) == 1
+                            else ""
+                        ),
+                    ]
+                    if part
+                )
+                block_map = {block["id"]: block for block in chunk}
+                usage_out: dict = {}
+                chunk_completed = 0
+                streamed_text_parts: list[str] = []
+                stream_failed = False
+                started_proposals: dict[str, str] = {}
+                completed_proposal_ids: set[str] = set()
+
+                def tracked_tokens():
+                    for token in provider.stream_text(
                         system_prompt=_DOC_WRITE_STREAM_SYSTEM_PROMPT,
                         user_prompt=user_prompt,
                         request_timeout=60,
                         usage_out=usage_out,
-                        # Drafting prose needs little deliberation; skipping the
-                        # model's thinking phase is what makes the proposals
-                        # actually stream in live instead of arriving in a burst.
                         reasoning_effort="minimal",
-                    ),
-                    mode=mode,
-                    intent=intent,
-                    block_map=block_map,
-                ):
-                    if name == "proposal_completed":
-                        completed_count += 1
-                    yield _doc_write_event(name, **payload)
-            except Exception:  # noqa: BLE001
-                logger.exception("agent doc-write stream failed agent=%s session=%s", agent.id, session.id)
+                    ):
+                        streamed_text_parts.append(token)
+                        yield token
 
-            # Fallback: streaming produced nothing usable (model ignored the
-            # protocol or the stream errored before any block) — make one
-            # blocking call so the user still gets reviewable edits.
-            if completed_count == 0:
+                # Live path: parse the `@@ATLAS` block protocol as tokens arrive
+                # so each proposal surfaces in the editor immediately.
                 try:
-                    result = provider.chat(
-                        system_prompt=_DOC_WRITE_SYSTEM_PROMPT,
-                        user_prompt=user_prompt,
-                        request_timeout=25,
-                    )
-                    fallback = _normalise_doc_write_proposals(
-                        _extract_json_object(result.final_text),
+                    for name, payload in _stream_doc_write_events(
+                        tracked_tokens(),
                         mode=mode,
                         intent=intent,
-                        blocks=blocks,
-                        fallback_text=result.final_text,
-                    )
-                    usage_out.setdefault("prompt_tokens", getattr(result, "prompt_tokens", 0))
-                    usage_out.setdefault("completion_tokens", getattr(result, "completion_tokens", 0))
+                        block_map=block_map,
+                        proposal_offset=proposal_offset,
+                    ):
+                        if name == "proposal_started":
+                            proposal_offset += 1
+                            started_proposals[payload["proposal_id"]] = payload["surface"]
+                        if name == "proposal_completed":
+                            completed_count += 1
+                            chunk_completed += 1
+                            completed_proposal_ids.add(payload["proposal_id"])
+                        yield _doc_write_event(name, snapshot_version=snapshot_version, **payload)
                 except Exception:  # noqa: BLE001
-                    logger.exception("agent doc-write fallback failed agent=%s session=%s", agent.id, session.id)
-                    fallback = _normalise_doc_write_proposals(
-                        {},
-                        mode=mode,
-                        intent=intent,
-                        blocks=blocks,
-                        fallback_text=_fallback_doc_write_text(content, mode=mode),
+                    stream_failed = True
+                    logger.exception(
+                        "agent doc-write stream failed agent=%s session=%s chunk=%s",
+                        agent.id,
+                        session.id,
+                        chunk_index,
                     )
-                for proposal in fallback:
-                    yield _doc_write_event(
-                        "proposal_started",
-                        proposal_id=proposal["id"],
-                        operation=proposal["operation"],
-                        target_block_id=proposal["target_block_id"],
-                        target_original_text=proposal["target_original_text"],
-                    )
-                    yield _doc_write_event(
-                        "proposal_delta",
-                        proposal_id=proposal["id"],
-                        content_text=proposal["content_text"],
-                        content_html=proposal["content_html"],
-                    )
-                    yield _doc_write_event(
-                        "proposal_completed",
-                        proposal_id=proposal["id"],
-                        operation=proposal["operation"],
-                        target_block_id=proposal["target_block_id"],
-                        target_original_text=proposal["target_original_text"],
-                        content_text=proposal["content_text"],
-                        content_html=proposal["content_html"],
-                    )
-                completed_count = len(fallback)
+                    for proposal_id, surface in started_proposals.items():
+                        if proposal_id in completed_proposal_ids:
+                            continue
+                        yield _doc_write_event(
+                            "proposal_cancelled",
+                            proposal_id=proposal_id,
+                            surface=surface,
+                            snapshot_version=snapshot_version,
+                        )
 
-            prompt_tokens = usage_out.get("prompt_tokens", 0)
-            completion_tokens = usage_out.get("completion_tokens", 0)
+                if stream_failed and chunk_completed > 0:
+                    logger.warning(
+                        "agent doc-write route=llm status=partial agent=%s session=%s "
+                        "duration_ms=%s completed_chunks=%s total_chunks=%s proposal_count=%s",
+                        agent.id,
+                        session.id,
+                        round((monotonic() - stream_started_at) * 1000),
+                        chunk_index - 1,
+                        len(block_chunks),
+                        completed_count,
+                    )
+                    yield _doc_write_event(
+                        "coverage",
+                        processed_blocks=processed_blocks,
+                        total_blocks=len(blocks),
+                        snapshot_version=snapshot_version,
+                    )
+                    yield _doc_write_event(
+                        "error",
+                        error=(
+                            "Atlas drafted only part of the document before the model stream failed. "
+                            "The completed suggestions remain available to review; no partial success was reported."
+                        ),
+                        snapshot_version=snapshot_version,
+                    )
+                    return
+
+                # Fallback per chunk: a broken chunk must not make the rest of a
+                # long document disappear from review.
+                no_changes_marker = "@@ATLAS_NO_CHANGES" in "".join(streamed_text_parts)
+                if chunk_completed == 0 and not no_changes_marker:
+                    try:
+                        result = provider.chat(
+                            system_prompt=_DOC_WRITE_SYSTEM_PROMPT,
+                            user_prompt=user_prompt,
+                            request_timeout=25,
+                        )
+                        fallback = _normalise_doc_write_proposals(
+                            _extract_json_object(result.final_text),
+                            mode=mode,
+                            intent=intent,
+                            blocks=chunk,
+                            fallback_text=result.final_text,
+                        )
+                        usage_out.setdefault("prompt_tokens", getattr(result, "prompt_tokens", 0))
+                        usage_out.setdefault("completion_tokens", getattr(result, "completion_tokens", 0))
+                    except Exception:  # noqa: BLE001
+                        logger.exception(
+                            "agent doc-write fallback failed agent=%s session=%s chunk=%s",
+                            agent.id,
+                            session.id,
+                            chunk_index,
+                        )
+                        fallback = _normalise_doc_write_proposals(
+                            {},
+                            mode=mode,
+                            intent=intent,
+                            blocks=chunk,
+                            fallback_text=_fallback_doc_write_text(content, mode=mode),
+                        )
+                    for proposal in fallback:
+                        proposal_offset += 1
+                        proposal["id"] = f"proposal-{proposal_offset}"
+                        shared_payload = {
+                            "proposal_id": proposal["id"],
+                            "surface": proposal["surface"],
+                            "snapshot_version": snapshot_version,
+                        }
+                        yield _doc_write_event(
+                            "proposal_started",
+                            operation=proposal["operation"],
+                            target_block_id=proposal["target_block_id"],
+                            target_original_text=proposal["target_original_text"],
+                            **shared_payload,
+                        )
+                        yield _doc_write_event(
+                            "proposal_delta",
+                            content_text=proposal["content_text"],
+                            content_html=proposal["content_html"],
+                            **shared_payload,
+                        )
+                        yield _doc_write_event(
+                            "proposal_completed",
+                            operation=proposal["operation"],
+                            target_block_id=proposal["target_block_id"],
+                            target_original_text=proposal["target_original_text"],
+                            content_text=proposal["content_text"],
+                            content_html=proposal["content_html"],
+                            **shared_payload,
+                        )
+                    completed_count += len(fallback)
+
+                prompt_tokens += int(usage_out.get("prompt_tokens", 0) or 0)
+                completion_tokens += int(usage_out.get("completion_tokens", 0) or 0)
+                processed_blocks += len(chunk)
+                yield _doc_write_event(
+                    "coverage",
+                    processed_blocks=processed_blocks,
+                    total_blocks=len(blocks),
+                    snapshot_version=snapshot_version,
+                )
+
             assistant_msg = AgentChatMessage.objects.create(
                 session=session,
                 role="assistant",
@@ -2619,8 +2762,22 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 cost_usd=estimate_cost_usd(agent.provider_model or "", prompt_tokens, completion_tokens),
             )
             session.save(update_fields=["updated_at", "last_activity_at"])
+            logger.info(
+                "agent doc-write route=llm agent=%s session=%s duration_ms=%s "
+                "block_count=%s proposal_count=%s coverage=%s/%s",
+                agent.id,
+                session.id,
+                round((monotonic() - stream_started_at) * 1000),
+                len(blocks),
+                completed_count,
+                processed_blocks,
+                len(blocks),
+            )
             yield _doc_write_event(
                 "session_completed",
+                proposal_count=completed_count,
+                coverage={"processed_blocks": processed_blocks, "total_blocks": len(blocks)},
+                snapshot_version=snapshot_version,
                 assistant_message=AgentChatMessageSerializer(assistant_msg).data,
             )
 
