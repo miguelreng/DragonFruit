@@ -40,7 +40,7 @@ export function PublicDocContent({ html, embeds }: Props) {
         part.kind === "html" ? (
           <article
             key={`html-${part.html.length}-${part.html.slice(0, 24)}`}
-            className="published-doc prose-neutral dark:prose-invert max-w-none prose"
+            className="published-doc prose-neutral max-w-none prose"
             dangerouslySetInnerHTML={{ __html: part.html }}
           />
         ) : (
