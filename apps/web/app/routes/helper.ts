@@ -6,10 +6,12 @@
 
 import type { RouteConfigEntry } from "@react-router/dev/routes";
 
+const getRouteKey = (route: RouteConfigEntry): string => route.id ?? route.file;
+
 /**
  * Merges two route configurations intelligently.
- * - Deep merges children when the same layout file exists in both arrays
- * - Deduplicates routes by file property, preferring extended over core
+ * - Deep merges children when the same route ID or layout file exists in both arrays
+ * - Deduplicates routes by explicit ID or file property, preferring extended over core
  * - Maintains order: core routes first, then extended routes at each level
  */
 export function mergeRoutes(core: RouteConfigEntry[], extended: RouteConfigEntry[]): RouteConfigEntry[] {
@@ -18,13 +20,13 @@ export function mergeRoutes(core: RouteConfigEntry[], extended: RouteConfigEntry
 
   // Step 2: Process core routes first
   for (const coreRoute of core) {
-    const fileKey = coreRoute.file;
+    const fileKey = getRouteKey(coreRoute);
     routeMap.set(fileKey, coreRoute);
   }
 
   // Step 3: Process extended routes
   for (const extendedRoute of extended) {
-    const fileKey = extendedRoute.file;
+    const fileKey = getRouteKey(extendedRoute);
 
     if (routeMap.has(fileKey)) {
       // Route exists in both - need to merge
@@ -56,7 +58,7 @@ export function mergeRoutes(core: RouteConfigEntry[], extended: RouteConfigEntry
 
   // Add all core routes (now merged or original)
   for (const coreRoute of core) {
-    const fileKey = coreRoute.file;
+    const fileKey = getRouteKey(coreRoute);
     if (routeMap.has(fileKey)) {
       result.push(routeMap.get(fileKey)!);
       routeMap.delete(fileKey); // Remove so we don't add it again
@@ -65,7 +67,7 @@ export function mergeRoutes(core: RouteConfigEntry[], extended: RouteConfigEntry
 
   // Add remaining extended-only routes
   for (const extendedRoute of extended) {
-    const fileKey = extendedRoute.file;
+    const fileKey = getRouteKey(extendedRoute);
     if (routeMap.has(fileKey)) {
       result.push(routeMap.get(fileKey)!);
       routeMap.delete(fileKey);

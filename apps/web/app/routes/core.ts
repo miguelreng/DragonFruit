@@ -66,8 +66,26 @@ export const coreRoutes: RouteConfigEntry[] = [
     route("__preview/toasts", "./(all)/__preview/toasts/page.tsx"),
   ]),
 
-  // Public published docs
-  route("published/:workspaceSlug/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx"),
+  // Public published docs. The legacy route remains valid while the canonical
+  // branded gateway exposes content-type-specific URLs.
+  route("published/:workspaceSlug/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx", {
+    id: "public-page-legacy",
+  }),
+  route(":workspaceSlug/doc/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx", {
+    id: "public-page-doc",
+  }),
+  route(":workspaceSlug/wiki/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx", {
+    id: "public-page-wiki",
+  }),
+  route(":workspaceSlug/whiteboard/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx", {
+    id: "public-page-whiteboard",
+  }),
+  route(":workspaceSlug/pdf/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx", {
+    id: "public-page-pdf",
+  }),
+  route(":workspaceSlug/sheet/:pageSlug", "./(all)/published/[workspaceSlug]/[pageSlug]/page.tsx", {
+    id: "public-page-sheet",
+  }),
 
   // ========================================================================
   // ALL APP ROUTES
