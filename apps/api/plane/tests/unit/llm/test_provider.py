@@ -5,6 +5,69 @@ from plane.llm.provider import _serialise_tool_call_for_history
 from plane.llm.provider import LLMProvider
 
 
+def test_stream_run_emits_factual_tool_progress(monkeypatch):
+    import litellm
+
+    calls = [0]
+    builds = [0]
+
+    def mock_completion(**kwargs):
+        calls[0] += 1
+        text = "" if calls[0] == 1 else "Done"
+        return [SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=text))])]
+
+    def mock_stream_chunk_builder(chunks, messages):
+        builds[0] += 1
+        tool_calls = (
+            [
+                SimpleNamespace(
+                    id="tool-1",
+                    function=SimpleNamespace(name="search_workspace", arguments='{"query":"launch"}'),
+                )
+            ]
+            if builds[0] == 1
+            else []
+        )
+        message = SimpleNamespace(
+            content="" if tool_calls else "Done",
+            tool_calls=tool_calls,
+            provider_specific_fields=None,
+        )
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=None)
+
+    monkeypatch.setattr(litellm, "completion", mock_completion)
+    monkeypatch.setattr(litellm, "stream_chunk_builder", mock_stream_chunk_builder)
+
+    from plane.llm.provider import LLMTool
+
+    provider = LLMProvider(model="openai/gpt-4o", api_key="test-key")
+    events = list(
+        provider.stream_run(
+            system_prompt="Use tools when useful.",
+            user_prompt="Find the launch notes.",
+            tools=[
+                LLMTool(
+                    name="search_workspace",
+                    description="Search",
+                    parameters_schema={"type": "object", "properties": {}},
+                    handler=lambda args: "one result",
+                )
+            ],
+            max_iterations=3,
+        )
+    )
+
+    progress = [value for kind, value in events if kind == "progress"]
+    assert progress == [
+        {"stage": "understanding", "iteration": 1},
+        {"stage": "tool_started", "tool": "search_workspace", "iteration": 1},
+        {"stage": "tool_completed", "tool": "search_workspace", "iteration": 1, "ok": True},
+        {"stage": "synthesizing", "iteration": 2},
+    ]
+    assert events[-1][0] == "result"
+    assert events[-1][1].final_text == "Done"
+
+
 def test_serialise_tool_call_preserves_provider_specific_fields():
     tool_call = SimpleNamespace(
         id="call_123",

@@ -63,6 +63,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@hocuspocus/provider": "2.15.2",
     "@plane/typescript-config": "workspace:*",
     "@types/compression": "1.8.1",
     "@types/cors": "^2.8.17",

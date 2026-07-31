@@ -11,6 +11,7 @@ ProseMirror JSON traversal helpers (_document_blocks_from_json,
 _text_from_pm_node) that feed them.
 """
 
+import hashlib
 import html
 import json
 import re
@@ -188,6 +189,134 @@ def infer_doc_write_scope(prompt: str, selection_text: str = "") -> str:
     if (selection_text or "").strip():
         return "selection"
     return "document"
+
+
+_SPANISH_DOC_WRITE_SIGNAL_RE = re.compile(
+    r"(?:[¿¡ñáéíóúü]|\b(?:actualiza|cambia|crea|escribe|haz|prepara|reemplaza|resume|"
+    r"traduce|traducir|traducci[oó]n|documento|p[aá]gina|p[aá]rrafo)\b)",
+    re.IGNORECASE,
+)
+_TRANSLATION_REQUEST_RE = re.compile(
+    r"\b(?:translate|translation|trad[uú]c(?:e(?:lo|la|los|las)?|ir|ci[oó]n|ido|ida)|"
+    r"pasa(?:r)?\s+(?:esto|el|la|lo)\s+a)\b",
+    re.IGNORECASE,
+)
+
+
+def _pick_completion_variant(variants: tuple[str, ...], seed: str) -> str:
+    digest = hashlib.sha256((seed or "atlas-doc-write").encode("utf-8")).digest()
+    return variants[int.from_bytes(digest[:2], "big") % len(variants)]
+
+
+def build_doc_write_completion_message(
+    *,
+    prompt: str,
+    proposal_count: int,
+    title_count: int = 0,
+    body_count: int = 0,
+    variant_seed: str = "",
+) -> str:
+    """Describe reviewable proposals naturally without implying they are applied."""
+
+    count = max(0, int(proposal_count or 0))
+    title_edits = max(0, int(title_count or 0))
+    body_edits = max(0, int(body_count or 0))
+    is_spanish = bool(_SPANISH_DOC_WRITE_SIGNAL_RE.search(prompt or ""))
+    is_translation = bool(_TRANSLATION_REQUEST_RE.search(prompt or ""))
+    seed = f"{variant_seed}:{prompt}:{count}:{title_edits}:{body_edits}"
+
+    if count == 0:
+        variants = (
+            (
+                "Revisé el documento, pero no encontré ningún fragmento que coincidiera. No cambié nada.",
+                "No encontré una coincidencia exacta en el documento, así que lo dejé intacto.",
+                "Comprobé el contenido y no había ningún texto coincidente para reemplazar. No se prepararon cambios.",
+            )
+            if is_spanish
+            else (
+                "I checked the document but couldn't find a matching passage, so nothing was changed.",
+                "There wasn't an exact match in the document, so I left it untouched.",
+                "I reviewed the content and found no matching text to replace. No changes were prepared.",
+            )
+        )
+        return _pick_completion_variant(variants, seed)
+
+    if is_translation:
+        if is_spanish:
+            variants = (
+                f"Preparé la traducción en {count} "
+                f"{('cambio' if count == 1 else 'cambios')}. Revísala antes de aplicarla.",
+                "La traducción ya está lista como propuesta en el documento. Échale un vistazo antes de aplicarla.",
+                f"Dejé la traducción preparada en {count} "
+                f"{('ajuste revisable' if count == 1 else 'ajustes revisables')}; todavía no se ha aplicado.",
+            )
+        else:
+            variants = (
+                f"I prepared the translation as {count} reviewable "
+                f"{('change' if count == 1 else 'changes')}. Check it before applying.",
+                "The translation is ready as a document proposal. Take a look before you apply it.",
+                f"I've prepared the translation in {count} "
+                f"{('reviewable edit' if count == 1 else 'reviewable edits')}; it hasn't been applied yet.",
+            )
+        return _pick_completion_variant(variants, seed)
+
+    if title_edits and body_edits:
+        if is_spanish:
+            variants = (
+                f"Preparé el cambio de título y {body_edits} "
+                f"{('ajuste' if body_edits == 1 else 'ajustes')} en el contenido. Revísalos antes de aplicarlos.",
+                f"El título y {body_edits} {('sección' if body_edits == 1 else 'secciones')} "
+                "del documento ya tienen propuestas listas para revisar.",
+                f"Dejé listos {count} cambios entre el título y el contenido; "
+                "todavía puedes aceptar o rechazar cada uno.",
+            )
+        else:
+            variants = (
+                f"I prepared the title change and {body_edits} content "
+                f"{('edit' if body_edits == 1 else 'edits')}. Review them before applying.",
+                f"The title and {body_edits} document {('section' if body_edits == 1 else 'sections')} "
+                "now have proposals ready to review.",
+                f"I've prepared {count} changes across the title and content; you can still accept or reject each one.",
+            )
+        return _pick_completion_variant(variants, seed)
+
+    if title_edits:
+        variants = (
+            (
+                "Preparé un nuevo título. Está listo para que lo revises antes de aplicarlo.",
+                "El ajuste del título ya está listo como propuesta; todavía puedes aceptarlo o rechazarlo.",
+                "Dejé el cambio de título preparado para revisión, sin aplicarlo todavía.",
+            )
+            if is_spanish
+            else (
+                "I prepared a new title. It's ready for you to review before applying.",
+                "The title adjustment is ready as a proposal; you can still accept or reject it.",
+                "I've prepared the title change for review without applying it yet.",
+            )
+        )
+        return _pick_completion_variant(variants, seed)
+
+    variants = (
+        (
+            f"Preparé {count} {('cambio' if count == 1 else 'cambios')} en el contenido. "
+            f"{('Revísalo' if count == 1 else 'Revísalos')} antes de "
+            f"{('aplicarlo' if count == 1 else 'aplicarlos')}.",
+            f"Ya {('hay una propuesta lista' if count == 1 else f'hay {count} propuestas listas')} "
+            "en el documento; puedes aceptar o rechazar cada cambio.",
+            f"Dejé {count} {('ajuste preparado' if count == 1 else 'ajustes preparados')} "
+            "para revisión, sin modificar todavía la versión final.",
+        )
+        if is_spanish
+        else (
+            f"I prepared {count} content {('change' if count == 1 else 'changes')}. "
+            f"Review {('it' if count == 1 else 'them')} before applying.",
+            f"The document now has {('one proposal' if count == 1 else f'{count} proposals')} ready; "
+            "you can accept or reject each change.",
+            f"I've left {count} {('adjustment' if count == 1 else 'adjustments')} ready for review "
+            "without changing the final version yet.",
+        )
+    )
+    return _pick_completion_variant(variants, seed)
 
 
 def _doc_write_event(event: str, **payload):

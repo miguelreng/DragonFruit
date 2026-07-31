@@ -80,14 +80,24 @@ export type TAgentChatPostResponse = {
   assistant_message: TAgentChatMessage;
 };
 
+export type TAgentChatProgressEvent = {
+  type: "progress";
+  stage: "understanding" | "tool_started" | "tool_completed" | "synthesizing" | "retrying";
+  iteration?: number;
+  tool?: string;
+  ok?: boolean;
+};
+
 /**
  * NDJSON events emitted by the streaming chat endpoint. `start` carries the
- * persisted user row, `delta` carries an assistant text fragment, `done`
- * carries both final rows (with token/cost telemetry), `error` carries a
- * message and — when it got far enough to persist one — the assistant row.
+ * persisted user row, `progress` carries factual pipeline activity (never raw
+ * model reasoning), `delta` carries an assistant text fragment, `done` carries
+ * both final rows (with token/cost telemetry), and `error` carries a message
+ * and — when it got far enough to persist one — the assistant row.
  */
 export type TAgentChatStreamEvent =
   | { type: "start"; user_message: TAgentChatMessage }
+  | TAgentChatProgressEvent
   | { type: "delta"; value: string }
   | { type: "done"; user_message: TAgentChatMessage; assistant_message: TAgentChatMessage }
   | { type: "error"; error: string; user_message?: TAgentChatMessage; assistant_message?: TAgentChatMessage };
@@ -112,6 +122,19 @@ export type TAtlasDocumentSnapshot = {
   };
 };
 
+export type TAtlasDocWriteProgressEvent = {
+  event: "progress";
+  stage: "reading_document" | "checking_matches" | "researching" | "drafting" | "finalizing";
+  snapshot_version?: string;
+  processed_blocks?: number;
+  total_blocks?: number;
+  current_start?: number;
+  current_end?: number;
+  chunk_index?: number;
+  chunk_count?: number;
+  proposal_count?: number;
+};
+
 export type TAtlasDocWriteEvent =
   | {
       event: "session_started";
@@ -120,6 +143,7 @@ export type TAtlasDocWriteEvent =
       snapshot_version?: string;
       user_message: TAgentChatMessage;
     }
+  | TAtlasDocWriteProgressEvent
   | {
       event: "proposal_started";
       proposal_id: string;
@@ -307,6 +331,7 @@ export class AgentChatService extends APIService {
       | undefined,
     handlers: {
       onStart?: (userMessage: TAgentChatMessage) => void;
+      onProgress?: (event: TAgentChatProgressEvent) => void;
       onDelta: (text: string) => void;
       onDone: (res: TAgentChatPostResponse) => void;
       onError: (message: string, res?: TAgentChatPostResponse) => void;
@@ -361,6 +386,7 @@ export class AgentChatService extends APIService {
       if (!trimmed) return;
       const event = JSON.parse(trimmed) as TAgentChatStreamEvent;
       if (event.type === "start") handlers.onStart?.(event.user_message);
+      else if (event.type === "progress") handlers.onProgress?.(event);
       else if (event.type === "delta") handlers.onDelta(event.value);
       else if (event.type === "done")
         handlers.onDone({ user_message: event.user_message, assistant_message: event.assistant_message });

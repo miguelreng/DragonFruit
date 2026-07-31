@@ -78,6 +78,7 @@ from .doc_write import (
     _fallback_doc_write_text,
     _normalise_doc_write_proposals,
     _stream_doc_write_events,
+    build_doc_write_completion_message,
     build_find_replace_proposals,
     chunk_document_blocks,
     infer_doc_write_scope,
@@ -2444,15 +2445,15 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 snapshot_version=snapshot_version,
                 user_message=AgentChatMessageSerializer(user_msg).data,
             )
+            yield _doc_write_event(
+                "progress",
+                stage="reading_document",
+                total_blocks=len(blocks),
+                snapshot_version=snapshot_version,
+            )
 
             if not agent.is_enabled:
                 yield _doc_write_event("error", error="Atlas is disabled. Re-enable it in Atlas Settings.")
-                return
-
-            try:
-                provider = LLMProvider.from_agent(agent)
-            except LLMConfigError as exc:
-                yield _doc_write_event("error", error=str(exc))
                 return
 
             # Deterministic literal find-replace. The LLM tends to miss
@@ -2464,6 +2465,12 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
             find_replace = parse_find_replace(content)
             if find_replace is not None:
                 search, replacement = find_replace
+                yield _doc_write_event(
+                    "progress",
+                    stage="checking_matches",
+                    total_blocks=len(blocks),
+                    snapshot_version=snapshot_version,
+                )
                 deterministic = build_find_replace_proposals(blocks, search, replacement)
                 for proposal in deterministic:
                     yield _doc_write_event(
@@ -2497,8 +2504,18 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                         snapshot_version=snapshot_version,
                     )
                 completed_count = len(deterministic)
+                title_completed_count = sum(1 for proposal in deterministic if proposal["surface"] == "title")
+                body_completed_count = completed_count - title_completed_count
                 yield _doc_write_event(
                     "coverage",
+                    processed_blocks=len(blocks),
+                    total_blocks=len(blocks),
+                    snapshot_version=snapshot_version,
+                )
+                yield _doc_write_event(
+                    "progress",
+                    stage="finalizing",
+                    proposal_count=completed_count,
                     processed_blocks=len(blocks),
                     total_blocks=len(blocks),
                     snapshot_version=snapshot_version,
@@ -2506,13 +2523,12 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 assistant_msg = AgentChatMessage.objects.create(
                     session=session,
                     role="assistant",
-                    content=(
-                        (
-                            f"I drafted {completed_count} reviewable document "
-                            f"{'edit' if completed_count == 1 else 'edits'} in the page."
-                        )
-                        if completed_count
-                        else "I didn't find matching text in the page, so I made no changes."
+                    content=build_doc_write_completion_message(
+                        prompt=content,
+                        proposal_count=completed_count,
+                        title_count=title_completed_count,
+                        body_count=body_completed_count,
+                        variant_seed=str(user_msg.id),
                     ),
                     prompt_tokens=0,
                     completion_tokens=0,
@@ -2538,20 +2554,47 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                 )
                 return
 
+            # Only model-backed edits need provider configuration. Literal
+            # replacements and no-ops above must remain fast and available
+            # without decrypting a key or touching an LLM provider.
+            try:
+                provider = LLMProvider.from_agent(agent)
+            except LLMConfigError as exc:
+                yield _doc_write_event("error", error=str(exc))
+                return
+
             # Phase C: pre-fetch Wikipedia grounding for definitional requests so
             # the streaming path (which has no tool access) can cite real sources.
             reference_material = ""
             if _DEFINITIONAL_DOC_REQUEST_RE.search(content):
+                yield _doc_write_event(
+                    "progress",
+                    stage="researching",
+                    snapshot_version=snapshot_version,
+                )
                 reference_material = _fetch_doc_write_reference_material(content)
 
             block_chunks = chunk_document_blocks(blocks)
             prompt_tokens = 0
             completion_tokens = 0
             completed_count = 0
+            title_completed_count = 0
+            body_completed_count = 0
             proposal_offset = 0
             processed_blocks = 0
 
             for chunk_index, chunk in enumerate(block_chunks, start=1):
+                yield _doc_write_event(
+                    "progress",
+                    stage="drafting",
+                    processed_blocks=processed_blocks,
+                    total_blocks=len(blocks),
+                    current_start=processed_blocks + 1 if chunk else None,
+                    current_end=processed_blocks + len(chunk) if chunk else None,
+                    chunk_index=chunk_index,
+                    chunk_count=len(block_chunks),
+                    snapshot_version=snapshot_version,
+                )
                 block_context = "\n".join(
                     (
                         f"- block: {processed_blocks + index}/{len(blocks)}\n"
@@ -2628,6 +2671,10 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                             completed_count += 1
                             chunk_completed += 1
                             completed_proposal_ids.add(payload["proposal_id"])
+                            if payload.get("surface") == "title":
+                                title_completed_count += 1
+                            else:
+                                body_completed_count += 1
                         yield _doc_write_event(name, snapshot_version=snapshot_version, **payload)
                 except Exception:  # noqa: BLE001
                     stream_failed = True
@@ -2737,6 +2784,10 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                             content_html=proposal["content_html"],
                             **shared_payload,
                         )
+                        if proposal["surface"] == "title":
+                            title_completed_count += 1
+                        else:
+                            body_completed_count += 1
                     completed_count += len(fallback)
 
                 prompt_tokens += int(usage_out.get("prompt_tokens", 0) or 0)
@@ -2749,12 +2800,23 @@ class AgentChatDocWriteEndpoint(BaseAPIView):
                     snapshot_version=snapshot_version,
                 )
 
+            yield _doc_write_event(
+                "progress",
+                stage="finalizing",
+                proposal_count=completed_count,
+                processed_blocks=processed_blocks,
+                total_blocks=len(blocks),
+                snapshot_version=snapshot_version,
+            )
             assistant_msg = AgentChatMessage.objects.create(
                 session=session,
                 role="assistant",
-                content=(
-                    f"I drafted {completed_count} reviewable document "
-                    f"{'edit' if completed_count == 1 else 'edits'} in the page."
+                content=build_doc_write_completion_message(
+                    prompt=content,
+                    proposal_count=completed_count,
+                    title_count=title_completed_count,
+                    body_count=body_completed_count,
+                    variant_seed=str(user_msg.id),
                 ),
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
@@ -3144,6 +3206,8 @@ class AgentChatMessageEndpoint(BaseAPIView):
                             if value:
                                 buffer_parts.append(value)
                                 yield _chat_stream_event("delta", value=value)
+                        elif kind == "progress":
+                            yield _chat_stream_event("progress", **value)
                         else:  # "result"
                             run_result = value
                 except Exception:  # noqa: BLE001 — surface any provider error
@@ -3152,6 +3216,7 @@ class AgentChatMessageEndpoint(BaseAPIView):
                     # user still gets an answer on providers that can't stream
                     # tool-use. If text already streamed, keep it as the reply.
                     if not "".join(buffer_parts).strip():
+                        yield _chat_stream_event("progress", stage="retrying")
                         try:
                             run_result = provider.run(
                                 system_prompt=system,

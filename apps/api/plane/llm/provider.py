@@ -471,15 +471,17 @@ class LLMProvider:
         """Streaming counterpart to `run()` — a tool-use loop that yields text.
 
         Yields 2-tuples in order:
+          - `("progress", dict)` for factual pipeline/tool activity
           - `("delta", str)` for each assistant text fragment as it streams in
           - `("result", LLMRunResult)` exactly once at the very end
 
         Tool calls execute between turns exactly like `run()`; only the
-        model's natural-language text is streamed. Reassembling streamed
-        chunks (content + fragmented tool-call args) into a normal message
-        relies on litellm's `stream_chunk_builder`; if a provider can't
-        stream tool use the caller should catch the exception and fall back
-        to the blocking `run()`.
+        model's natural-language text is streamed. Progress events describe
+        observable orchestration stages and never expose tool arguments or
+        private chain-of-thought. Reassembling streamed chunks (content +
+        fragmented tool-call args) into a normal message relies on litellm's
+        `stream_chunk_builder`; if a provider can't stream tool use the caller
+        should catch the exception and fall back to the blocking `run()`.
         """
         import litellm  # local import — heavy module, only load when used
 
@@ -527,6 +529,13 @@ class LLMProvider:
 
         for iteration in range(max_iters):
             result.iterations = iteration + 1
+            yield (
+                "progress",
+                {
+                    "stage": "understanding" if iteration == 0 else "synthesizing",
+                    "iteration": iteration + 1,
+                },
+            )
 
             rebuilt = None
             try:
@@ -566,6 +575,14 @@ class LLMProvider:
             for tc in tool_calls:
                 tool_name = tc.function.name
                 tool = tools_by_name.get(tool_name)
+                yield (
+                    "progress",
+                    {
+                        "stage": "tool_started",
+                        "tool": tool_name,
+                        "iteration": iteration + 1,
+                    },
+                )
                 raw_args = tc.function.arguments or "{}"
                 try:
                     import json as _json
@@ -585,6 +602,15 @@ class LLMProvider:
                         logger.exception("tool '%s' raised", tool_name)
                         tool_output = f"tool_error: {exc.__class__.__name__}: {exc}"
 
+                yield (
+                    "progress",
+                    {
+                        "stage": "tool_completed",
+                        "tool": tool_name,
+                        "iteration": iteration + 1,
+                        "ok": not tool_output.startswith("tool_error:"),
+                    },
+                )
                 result.tool_calls.append(
                     {
                         "name": tool_name,

@@ -97,6 +97,29 @@ dirty working tree on 2026-07-30. Execute in this order:
 7. **046 — optional spike**: evaluate only after a concrete annotation use case
    is approved; keep Excalidraw as the Whiteboard implementation.
 
+## Docs + Atlas UX recovery sequence (048–052)
+
+The [production UX audit](docs-atlas-ux-audit-2026-07-30.md) was run against
+`main` at `0cb42cdc533a` on 2026-07-30 with an authenticated browser. It covered
+translation, literal replacement in English and Spanish, structural editing,
+bulk accept/reject, loading, and responsive widths from 768 to 1470 px.
+
+Execute in this order:
+
+1. **048 — transaction integrity (P0):** fix the nested dispatch and make review
+   resolution idempotent before changing presentation or adding edit types.
+2. **049 — real-document contract (P0):** add title, body, structure, snapshot
+   versioning, and explicit long-document coverage.
+3. **050 — Spanish deterministic edits:** complete title coverage after 049;
+   body parser work can start independently.
+4. **051 — full-document skeleton:** consume the explicit state from 048; do
+   not infer loading/applied from snapshot presence.
+5. **052 — adaptive layout:** preserve Plan 036 resize/snap and change only the
+   dock/overlay decision plus toolbar overflow.
+
+Plans 050, 051, and 052 touch separate primary areas and can be prepared
+independently, but this repository still uses one working tree on `main`.
+
 Screenshot items mapped to plans:
 
 | Screenshot item                                  | Disposition                                                                                  |

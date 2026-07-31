@@ -157,6 +157,13 @@ import {
   type TAtlasMentionMatch,
   type TAtlasReferenceContextSource,
 } from "./atlas-doc-mentions";
+import {
+  getAtlasChatProgressLabel,
+  getAtlasDocWriteProgressLabel,
+  getAtlasPromptLanguage,
+  getInitialAtlasProgressLabel,
+} from "./atlas-progress";
+import { AtlasActivityIndicator } from "./atlas-activity-indicator";
 import { consumePendingReplyContext, subscribePendingReplyContext, type PendingReplyContext } from "./reply-context";
 
 const chatService = new AgentChatService();
@@ -165,45 +172,6 @@ const workspaceService = new WorkspaceService();
 const bookmarkService = new BookmarkService();
 const issueService = new IssueService();
 const projectPageService = new ProjectPageService();
-
-// Morphing-infinity loader (loading-ui.com/morphing-infinity): one SVG path
-// morphing circle → infinity → circle on a 5s loop, animated via SMIL so it
-// needs no motion library. The three keyframe paths share an identical
-// command structure (M + 4×C + Z) so `d` interpolates smoothly.
-const MI_CIRCLE_A =
-  "M 12 8 C 14.21 8 16 9.79 16 12 C 16 14.21 14.21 16 12 16 C 9.79 16 8 14.21 8 12 C 8 9.79 9.79 8 12 8 Z";
-const MI_INFINITY =
-  "M 12 12 C 14 8.5 19 8.5 19 12 C 19 15.5 14 15.5 12 12 C 10 8.5 5 8.5 5 12 C 5 15.5 10 15.5 12 12 Z";
-const MI_CIRCLE_B =
-  "M 12 16 C 14.21 16 16 14.21 16 12 C 16 9.79 14.21 8 12 8 C 9.79 8 8 9.79 8 12 C 8 14.21 9.79 16 12 16 Z";
-
-function MorphingInfinity({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      role="status"
-      aria-label="Loading"
-      className={className}
-    >
-      <path d={MI_CIRCLE_A}>
-        <animate
-          attributeName="d"
-          dur="5s"
-          repeatCount="indefinite"
-          calcMode="spline"
-          keyTimes="0;0.25;0.5;0.75;1"
-          keySplines="0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1"
-          values={`${MI_CIRCLE_A};${MI_INFINITY};${MI_CIRCLE_B};${MI_INFINITY};${MI_CIRCLE_A}`}
-        />
-      </path>
-    </svg>
-  );
-}
 
 // A drag carrying files (vs. selected text or a dragged element). Guards the
 // composer's drop overlay so it only appears for real file drags.
@@ -1144,14 +1112,6 @@ const AI_MODES: { id: TAtlasAiMode; label: string }[] = [
   { id: "summarize", label: "Summarize" },
 ];
 
-const ATLAS_LOADING_MESSAGES = [
-  "Reading your request…",
-  "Thinking through the best approach…",
-  "Checking the relevant context…",
-  "Writing a response…",
-  "Polishing the details…",
-];
-
 type TAtlasContextRequest = {
   question: string;
   originalRequest: string;
@@ -1301,7 +1261,7 @@ function ChatThread(props: {
   // key). The id is local to this component — never sent to the server.
   const [pendingFiles, setPendingFiles] = useState<{ id: string; file: File }[]>([]);
   const [contextRequest, setContextRequest] = useState<TAtlasContextRequest | null>(null);
-  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  const [activityMessage, setActivityMessage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptHighlightRef = useRef<HTMLDivElement>(null);
@@ -1313,22 +1273,6 @@ function ChatThread(props: {
       .filter((project): project is TProject => Boolean(project));
     return orderBy(projects, "name", "asc").slice(0, 6);
   }, [getProjectById, joinedProjectIds]);
-
-  const loadingMessages = useMemo(
-    () =>
-      aiMode === "create" || aiMode === "plan"
-        ? ["Reading your request…", "Planning the next steps…", "Writing the draft…", "Polishing the details…"]
-        : ATLAS_LOADING_MESSAGES,
-    [aiMode]
-  );
-
-  useEffect(() => {
-    if (!sending) return;
-    const timer = window.setInterval(() => {
-      setLoadingMessageIndex((index) => (index + 1) % loadingMessages.length);
-    }, 1800);
-    return () => window.clearInterval(timer);
-  }, [loadingMessages.length, sending]);
 
   // Pin scroll to the bottom as messages arrive. Using `behavior:
   // instant` avoids the visible jump that smooth scrolling produces
@@ -1651,6 +1595,7 @@ function ChatThread(props: {
 
   const handleCancelAtlasWrite = useCallback(() => {
     docWriteAbortRef.current?.abort();
+    window.requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
   }, []);
 
   const searchMentionReferences = useCallback(
@@ -1841,8 +1786,9 @@ function ChatThread(props: {
       // Allow attachments-only messages — common for "what's in this
       // CSV?" without any typed text.
       if ((!trimmed && !hasFiles) || sending) return;
+      const requestLanguage = getAtlasPromptLanguage(trimmed);
       setContextRequest(null);
-      setLoadingMessageIndex(0);
+      setActivityMessage(getInitialAtlasProgressLabel(requestLanguage, hasFiles));
       setSending(true);
 
       // Read each pending file into base64. We do this here rather than
@@ -1854,6 +1800,7 @@ function ChatThread(props: {
         attachments = await Promise.all(pendingFiles.map((entry) => fileToAgentChatAttachmentPayload(entry.file)));
       } catch {
         setToast({ type: TOAST_TYPE.ERROR, title: "Couldn't read attachment" });
+        setActivityMessage(null);
         setSending(false);
         return;
       }
@@ -1952,6 +1899,8 @@ function ChatThread(props: {
                       : current,
                   { revalidate: false }
                 );
+              } else if (event.event === "progress") {
+                setActivityMessage(getAtlasDocWriteProgressLabel(event, requestLanguage));
               } else if (event.event === "proposal_started") {
                 setReviewPhase("reviewing");
                 if (event.surface === "title") {
@@ -2028,6 +1977,7 @@ function ChatThread(props: {
               } else if (event.event === "coverage") {
                 setAtlasReviewCoverage?.({ processed: event.processed_blocks, total: event.total_blocks });
               } else if (event.event === "session_completed") {
+                setActivityMessage(null);
                 activePageEditorRef.setAtlasReviewLoading(false);
                 const reviewCount =
                   activePageEditorRef.getActiveAtlasProposalCount() + titleProposalsRef.current.length;
@@ -2045,6 +1995,7 @@ function ChatThread(props: {
                   { revalidate: false }
                 );
               } else if (event.event === "error") {
+                setActivityMessage(null);
                 activePageEditorRef.setAtlasReviewLoading(false);
                 streamError = event.error;
                 setReviewPhase("failed");
@@ -2080,8 +2031,10 @@ function ChatThread(props: {
           const msg = err instanceof Error ? err.message : "Couldn't draft document edits.";
           setToast({ type: TOAST_TYPE.ERROR, title: "Doc write failed", message: msg });
           await mutate();
+          window.requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
         } finally {
           if (docWriteAbortRef.current === abortController) docWriteAbortRef.current = null;
+          setActivityMessage(null);
           setSending(false);
         }
         return;
@@ -2153,7 +2106,11 @@ function ChatThread(props: {
             fact_check: true,
           },
           {
+            onProgress: (event) => {
+              setActivityMessage(getAtlasChatProgressLabel(event, requestLanguage));
+            },
             onDelta: (text) => {
+              setActivityMessage(null);
               streamed += text;
               if (!assistantAdded) {
                 assistantAdded = true;
@@ -2194,6 +2151,7 @@ function ChatThread(props: {
               }
             },
             onDone: (res) => {
+              setActivityMessage(null);
               const contextQuestion = getAtlasContextQuestion(
                 res.assistant_message.content,
                 res.assistant_message.error_message
@@ -2213,6 +2171,7 @@ function ChatThread(props: {
               }
             },
             onError: (message) => {
+              setActivityMessage(null);
               const contextQuestion = getAtlasContextQuestion("", message);
               if (contextQuestion) setContextRequest({ question: contextQuestion, originalRequest: trimmed });
               else setToast({ type: TOAST_TYPE.ERROR, title: "Send failed", message });
@@ -2231,6 +2190,7 @@ function ChatThread(props: {
         else setToast({ type: TOAST_TYPE.ERROR, title: "Send failed", message: msg });
         await mutate();
       } finally {
+        setActivityMessage(null);
         setSending(false);
       }
     },
@@ -2258,9 +2218,9 @@ function ChatThread(props: {
     ]
   );
 
-  const isEmpty = messages.length === 0;
   const totalProposalCount = activeProposalCount + atlasTitleProposals.length;
   const isAtlasDocWritePreparing = atlasReviewSnapshot !== null && sending && totalProposalCount === 0;
+  const isEmpty = messages.length === 0 && (!sending || isAtlasDocWritePreparing);
 
   // Starter shortcuts for the empty state — scoped to what the user is
   // looking at: an open doc beats project, project beats workspace. The
@@ -2340,13 +2300,18 @@ function ChatThread(props: {
                 onSubmitCustom={(answer) => void handleSend({ content: answer })}
               />
             )}
-            {/* Keep the loader up until the first streamed token arrives — once
-                the assistant bubble starts filling it takes over. */}
-            {sending && !messages.some((m) => m.id.startsWith("local-assistant-")) && (
+            {/* Activity comes only from real pipeline events. A streamed answer
+                clears it; a later tool event may surface it again. */}
+            {sending && activityMessage && !isAtlasDocWritePreparing && (
               <li className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 text-12 text-tertiary" aria-live="polite">
-                  <MorphingInfinity className="size-5" />
-                  {loadingMessages[loadingMessageIndex % loadingMessages.length]}
+                <span
+                  className="flex min-h-5 items-center gap-1.5 text-12 text-tertiary"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  <AtlasActivityIndicator className="size-5" />
+                  {activityMessage}
                 </span>
               </li>
             )}
@@ -2393,10 +2358,17 @@ function ChatThread(props: {
         )}
         {isAtlasDocWritePreparing && (
           <div className="mb-2 flex items-center gap-2 rounded-lg border border-subtle bg-layer-1 px-2.5 py-2">
-            <MorphingInfinity className="size-4 shrink-0 text-accent-primary" />
-            <span className="mr-auto text-[11px] font-medium text-secondary">Atlas is preparing document changes…</span>
+            <AtlasActivityIndicator className="size-4 shrink-0 text-accent-primary" />
+            <span
+              className="mr-auto min-w-0 text-[11px] font-medium text-secondary"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {activityMessage ?? "Atlas is preparing document changes…"}
+            </span>
             {atlasReviewCoverage && (
-              <span className="text-[10px] text-tertiary tabular-nums">
+              <span className="text-[10px] text-tertiary tabular-nums" aria-hidden="true">
                 {atlasReviewCoverage.processed}/{atlasReviewCoverage.total}
               </span>
             )}
