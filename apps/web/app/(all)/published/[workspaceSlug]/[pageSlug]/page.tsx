@@ -29,7 +29,7 @@ const publicPageService = new PublicPageService();
 const projectPublishService = new SitesProjectPublishService();
 
 const PublicPageShell = ({ children }: { children: ReactNode }) => (
-  <div className="min-h-full bg-white text-primary">
+  <div data-theme="light" className="min-h-full bg-white text-primary">
     <div className="mx-auto flex min-h-full w-full max-w-[1040px] flex-col px-5 sm:px-8">
       <main className="flex-1 py-12 sm:py-16">{children}</main>
       <footer className="flex justify-center py-8">
