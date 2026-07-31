@@ -32,6 +32,16 @@ describe("buildPublishedProjectCalendarUrl", () => {
     ).toContain("/spaces/issues/calendar%20anchor?board=calendar");
   });
 
+  it("prefers the public-content current origin over a localhost SPACE_BASE_URL", () => {
+    expect(
+      buildPublishedProjectCalendarUrl("rengi-media", "calendar-anchor", {
+        currentOrigin: "https://dragonfruit.page",
+        spaceBasePath: "/spaces",
+        spaceBaseUrl: "http://localhost:3002",
+      })
+    ).toBe("https://dragonfruit.page/rengi-media/calendar/calendar-anchor?board=calendar");
+  });
+
   it("builds a canonical public project URL", () => {
     expect(
       buildPublishedProjectUrl("rengi-media", "project-anchor", "project", {

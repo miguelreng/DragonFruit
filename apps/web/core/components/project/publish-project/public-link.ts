@@ -24,7 +24,7 @@ export const buildPublishedProjectUrl = (
   contentType: TPublicProjectContentType,
   { currentOrigin = "", spaceBasePath = SPACE_BASE_PATH, spaceBaseUrl = SPACE_BASE_URL }: TPublicProjectUrlOptions = {}
 ) => {
-  const baseUrl = spaceBaseUrl.trim() || currentOrigin;
+  const baseUrl = isPublicContentOrigin(currentOrigin) ? currentOrigin : spaceBaseUrl.trim() || currentOrigin;
   const usesPublicContentRoutes = isPublicContentOrigin(baseUrl);
   const normalizedBasePath =
     !usesPublicContentRoutes && spaceBasePath ? `/${spaceBasePath.replace(/^\/+|\/+$/g, "")}` : "";

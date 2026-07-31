@@ -20,6 +20,7 @@ import {
   transformPublicDocMentions,
 } from "@/components/pages/published/public-doc-content";
 import { PublishedWikiView } from "@/components/pages/published/published-wiki-view";
+import { getPublishedBriefTitle, isBriefPage } from "@/components/project/brief/constants";
 import { normalizeDocFontStyle } from "@/helpers/doc-font";
 import { buildPublishedProjectCalendarUrl } from "@/components/project/publish-project/public-link";
 import type { Route } from "./+types/page";
@@ -30,7 +31,7 @@ const projectPublishService = new SitesProjectPublishService();
 const PublicPageShell = ({ children }: { children: ReactNode }) => (
   <div className="min-h-full bg-white text-primary">
     <div className="mx-auto flex min-h-full w-full max-w-[1040px] flex-col px-5 sm:px-8">
-      <main className="flex-1 py-10 sm:py-14">{children}</main>
+      <main className="flex-1 py-12 sm:py-16">{children}</main>
       <footer className="flex justify-center py-8">
         <img src={dragonFruitLogo} alt="Dragon Fruit" className="h-7 w-auto opacity-35" />
       </footer>
@@ -56,22 +57,26 @@ function PublishedPage({ params }: Route.ComponentProps) {
     () => publicPageService.retrieve(workspaceSlug, pageSlug),
     { revalidateOnFocus: false }
   );
+  const isProjectBriefPage = isBriefPage(data);
   const calendarProjectId =
     data?.project_id && data.description_html.includes('entity_name="calendar"') ? data.project_id : null;
+  const projectSettingsProjectId = isProjectBriefPage ? data?.project_id : calendarProjectId;
   const { data: projectPublishSettings } = useSWR(
-    calendarProjectId ? `PUBLIC_PROJECT_SETTINGS_${workspaceSlug}_${calendarProjectId}` : null,
-    () => projectPublishService.retrieveSettingsByProjectId(workspaceSlug, calendarProjectId ?? ""),
+    projectSettingsProjectId ? `PUBLIC_PROJECT_SETTINGS_${workspaceSlug}_${projectSettingsProjectId}` : null,
+    () => projectPublishService.retrieveSettingsByProjectId(workspaceSlug, projectSettingsProjectId ?? ""),
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
   const mentions = useMemo(() => {
     const anchor = projectPublishSettings?.anchor;
-    if (!calendarProjectId || !anchor) return data?.mentions;
+    const calendars = { ...data?.mentions?.calendars };
+    if (calendarProjectId) delete calendars[calendarProjectId];
+    if (!calendarProjectId || !anchor) return { ...data?.mentions, calendars };
 
     const projectName = projectPublishSettings.project_details?.name?.trim();
     return {
       ...data?.mentions,
       calendars: {
-        ...data?.mentions?.calendars,
+        ...calendars,
         [calendarProjectId]: {
           label: projectName ? `${projectName} calendar` : "Project calendar",
           href: buildPublishedProjectCalendarUrl(workspaceSlug, anchor, {
@@ -110,6 +115,7 @@ function PublishedPage({ params }: Route.ComponentProps) {
   }
 
   const authorHandle = formatPublicAuthorHandle(data.owned_by?.display_name);
+  const pageTitle = getPublishedBriefTitle(data, projectPublishSettings?.project_details?.name);
 
   return (
     <PublicPageShell>
@@ -123,13 +129,13 @@ function PublishedPage({ params }: Route.ComponentProps) {
             className={`published-doc-surface ${normalizeDocFontStyle(data.view_props?.font_style)} mx-auto w-full max-w-[680px]`}
           >
             <PublicDocIndex headings={docHeadings} />
-            <div className="mb-10">
+            <div className="published-doc-header">
               <p className="tracking-normal text-12 font-medium text-tertiary">
                 Written{authorHandle ? ` by ${authorHandle}` : ""}
               </p>
-              <h1 className="published-doc-title mt-2 text-primary">{data.name || "Untitled"}</h1>
+              <h1 className="published-doc-title text-primary">{pageTitle}</h1>
               {data.updated_at && (
-                <p className="mt-3 text-13 text-tertiary">Updated {renderFormattedDate(data.updated_at)}</p>
+                <p className="text-13 text-tertiary">Updated {renderFormattedDate(data.updated_at)}</p>
               )}
             </div>
             <PublicDocContent html={docHtml} embeds={data.embeds ?? []} />

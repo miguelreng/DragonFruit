@@ -848,7 +848,8 @@ a.public-doc-mention:hover {
 .published-doc-surface.font-newsreader {
   --published-doc-body-font: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
   --published-doc-heading-font: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
-  --published-doc-display-sans-font: "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
+  --published-doc-display-sans-font:
+    "Sorts Mill Goudy", "Iowan Old Style", "Apple Garamond", "Palatino", Georgia, serif;
 }
 
 .published-doc-surface.font-inter {
@@ -863,6 +864,13 @@ a.public-doc-mention:hover {
   line-height: 1.15;
   font-weight: 500;
   letter-spacing: 0 !important;
+}
+
+.published-doc-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 3rem;
 }
 
 .published-doc {
@@ -880,13 +888,8 @@ a.public-doc-mention:hover {
   --tw-prose-td-borders: var(--border-color-subtle);
   font-family: var(--published-doc-body-font);
   font-size: 0.9375rem;
-  line-height: 1.55;
+  line-height: 1.65;
   color: var(--text-color-primary);
-}
-
-.published-doc > :where(:first-child) {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
 }
 
 .published-doc :where(h1, h2, h3, .editor-heading-block:is(h1, h2, h3)) {
@@ -902,26 +905,31 @@ a.public-doc-mention:hover {
 
 .published-doc :where(h1, h1.editor-heading-block) {
   margin: 0;
-  padding-top: 2rem;
-  padding-bottom: 0.45rem;
+  padding-top: 2.75rem !important;
+  padding-bottom: 0.6rem !important;
   font-size: 1.875rem !important;
   line-height: 2.25rem !important;
 }
 
 .published-doc :where(h2, h2.editor-heading-block) {
   margin: 0;
-  padding-top: 1.75rem;
-  padding-bottom: 0.4rem;
+  padding-top: 2.25rem !important;
+  padding-bottom: 0.5rem !important;
   font-size: 1.4375rem !important;
   line-height: 1.85rem !important;
 }
 
 .published-doc :where(h3, h3.editor-heading-block) {
   margin: 0;
-  padding-top: 1.35rem;
-  padding-bottom: 0.35rem;
+  padding-top: 1.75rem !important;
+  padding-bottom: 0.45rem !important;
   font-size: 1.1875rem !important;
   line-height: 1.65rem !important;
+}
+
+.published-doc > :where(:first-child) {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .published-doc :where(h4, h5, h6, h4.editor-heading-block, h5.editor-heading-block, h6.editor-heading-block) {
@@ -933,29 +941,29 @@ a.public-doc-mention:hover {
 
 .published-doc :where(p, p.editor-paragraph-block) {
   margin: 0;
-  padding-top: 0.2rem;
-  padding-bottom: 0.55rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.85rem;
   font-size: 0.9375rem !important;
-  line-height: 1.55 !important;
+  line-height: 1.65 !important;
   color: var(--text-color-primary);
 }
 
 .published-doc :where(h1, h2, h3, h4, h5, h6, .editor-heading-block) + :where(p, p.editor-paragraph-block) {
-  padding-top: 0.15rem;
+  padding-top: 0.2rem;
 }
 
 .published-doc div[data-type="horizontalRule"] + :is(h1, h2, h3, .editor-heading-block) {
-  padding-top: 0.45rem;
+  padding-top: 0.6rem;
 }
 
 .published-doc :where(ul, ol) {
-  margin-top: 0.45rem;
-  margin-bottom: 1rem;
+  margin-top: 0.6rem;
+  margin-bottom: 1.35rem;
 }
 
 .published-doc :where(li) {
-  margin-top: 0.35rem;
-  margin-bottom: 0.35rem;
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
 }
 
 .published-doc :where(li) :where(p, p.editor-paragraph-block) {
@@ -964,7 +972,7 @@ a.public-doc-mention:hover {
 }
 
 .published-doc :where(blockquote) {
-  margin: 1.25rem 0;
+  margin: 1.5rem 0;
   border-left: 2px solid var(--border-color-subtle);
   padding-left: 1.25rem;
   font-family: var(--published-doc-blockquote-font);

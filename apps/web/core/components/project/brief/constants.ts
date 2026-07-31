@@ -18,4 +18,13 @@ export const isBriefPage = (page: { is_brief?: boolean; name?: string; page_type
 export const getBriefPageDisplayName = (projectName: string | undefined) =>
   `Brief - ${projectName?.trim() || "Project"}`;
 
+export const getPublishedBriefTitle = (
+  page: { is_brief?: boolean; name?: string; page_type?: string } | undefined,
+  projectName: string | undefined
+) => {
+  const normalizedProjectName = projectName?.trim();
+  if (isBriefPage(page) && normalizedProjectName) return normalizedProjectName;
+  return page?.name?.trim() || "Untitled";
+};
+
 export const briefCacheKey = (projectId: string) => `df:brief-page:${projectId}`;
