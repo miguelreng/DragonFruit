@@ -6,8 +6,6 @@
 
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-// icons
-import { Circle } from "@/components/icons/lucide-shim";
 // plane imports
 import {
   EUserPermissions,
@@ -18,7 +16,6 @@ import {
 import { useLocalStorage } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { NewTabIcon } from "@/components/icons/propel-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { EIssuesStoreType } from "@plane/types";
 import { Breadcrumbs, FavoriteStar, Header } from "@plane/ui";
@@ -36,7 +33,6 @@ import { useAppRouter } from "@/hooks/use-app-router";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web imports
 import { CommonProjectBreadcrumbs } from "@/plane-web/components/breadcrumbs/common";
-import { buildPublishedProjectUrl } from "@/components/project/publish-project/public-link";
 
 export const IssuesHeader = observer(function IssuesHeader() {
   // router
@@ -76,13 +72,6 @@ export const IssuesHeader = observer(function IssuesHeader() {
       if (!isFavoriteMenuOpen) toggleFavoriteMenu(true);
     }
   };
-
-  const publishedURL =
-    workspaceSlug && currentProjectDetails?.anchor
-      ? buildPublishedProjectUrl(workspaceSlug.toString(), currentProjectDetails.anchor, "project", {
-          currentOrigin: window.location.origin,
-        })
-      : "";
 
   const issuesCount = getGroupIssueCount(undefined, undefined, false);
   const canUserCreateIssue = allowPermissions(
@@ -132,20 +121,6 @@ export const IssuesHeader = observer(function IssuesHeader() {
             </Tooltip>
           )}
         </div>
-        {currentProjectDetails?.anchor ? (
-          <a
-            href={publishedURL}
-            className="group flex items-center gap-1.5 rounded-lg bg-accent-primary/10 px-2.5 py-1 text-11 font-medium text-accent-primary"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Circle className="h-1.5 w-1.5 fill-accent-primary" strokeWidth={2} />
-            {t("workspace_projects.network.public.title")}
-            <NewTabIcon className="hidden h-3 w-3 group-hover:block" strokeWidth={2} />
-          </a>
-        ) : (
-          <></>
-        )}
       </Header.LeftItem>
       <Header.RightItem>
         <div className="hidden gap-2 md:flex">
