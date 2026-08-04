@@ -7,7 +7,7 @@
 import { useRef } from "react";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { ChevronRight, MoveDiagonal } from "@/components/icons/lucide-shim";
+import { ChevronRight, MoveDiagonal, Pin } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { CenterPanelIcon, CopyLinkIcon, FullScreenPanelIcon, SidePanelIcon } from "@/components/icons/propel-shim";
@@ -15,16 +15,15 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { TNameDescriptionLoader } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { CustomSelect } from "@plane/ui";
+import { CustomSelect, FavoriteStar } from "@plane/ui";
 import { copyUrlToClipboard, generateWorkItemLink } from "@plane/utils";
 // hooks
+import { useFavorite } from "@/hooks/store/use-favorite";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
-import { useUser } from "@/hooks/store/user";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
-import { IssueSubscription } from "../issue-detail/subscription";
 import { WorkItemDetailQuickActions } from "../issue-layouts/quick-action-dropdowns";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
 import { IconButton } from "@plane/propel/icon-button";
@@ -89,14 +88,16 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
   const parentRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   // store hooks
-  const { data: currentUser } = useUser();
   const {
     issue: { getIssueById },
     setPeekIssue,
+    isPeekPinned,
+    setPeekPinned,
     removeIssue,
     archiveIssue,
     getIsIssuePeeked,
   } = useIssueDetail();
+  const { entityMap: favoriteEntityMap, addFavorite, removeFavoriteEntity } = useFavorite();
   const { isMobile } = usePlatformOS();
   const { getProjectIdentifierById } = useProject();
   // derived values
@@ -152,6 +153,36 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     }
   };
 
+  const isFavorite = !!favoriteEntityMap[issueId];
+  const handleToggleFavorite = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      if (isFavorite) await removeFavoriteEntity(workspaceSlug, issueId);
+      else
+        await addFavorite(workspaceSlug, {
+          entity_type: "issue",
+          entity_identifier: issueId,
+          project_id: projectId,
+          // Top-level name is the server-side fallback title if the task is
+          // ever deleted; entity_data.name feeds the optimistic sidebar row.
+          name: issueDetails?.name ?? "",
+          entity_data: { name: issueDetails?.name ?? "" },
+        });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: "Success!",
+        message: isFavorite ? "Task removed from favorites." : "Task added to favorites.",
+      });
+    } catch (_error) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: isFavorite ? "Task could not be removed from favorites." : "Task could not be added to favorites.",
+      });
+    }
+  };
+
   return (
     <div
       className={`relative flex items-center justify-between p-4 ${
@@ -170,6 +201,19 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
             <MoveDiagonal className="h-4 w-4 text-tertiary hover:text-secondary" />
           </Link>
         </Tooltip>
+        {!embedIssue && (
+          <Tooltip
+            tooltipContent={isPeekPinned ? "Unpin — closes when you click away" : "Pin — stays open while you navigate"}
+            isMobile={isMobile}
+          >
+            <button type="button" onClick={() => setPeekPinned(!isPeekPinned)}>
+              <Pin
+                weight={isPeekPinned ? "Bold" : "Linear"}
+                className={`h-4 w-4 ${isPeekPinned ? "text-accent-primary" : "text-tertiary hover:text-secondary"}`}
+              />
+            </button>
+          </Tooltip>
+        )}
         {currentMode && embedIssue === false && (
           <div className="flex flex-shrink-0 items-center gap-2">
             <CustomSelect
@@ -202,8 +246,13 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
       <div className="flex items-center gap-x-4">
         <NameDescriptionUpdateStatus isSubmitting={isSubmitting} />
         <div className="flex items-center gap-2">
-          {currentUser && !isArchived && (
-            <IssueSubscription workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
+          {!isArchived && (
+            <Tooltip
+              tooltipContent={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              isMobile={isMobile}
+            >
+              <FavoriteStar selected={isFavorite} onClick={handleToggleFavorite} buttonClassName="size-7" />
+            </Tooltip>
           )}
           <Tooltip tooltipContent={t("common.actions.copy_link")} isMobile={isMobile}>
             <IconButton variant="secondary" size="lg" onClick={handleCopyText} icon={CopyLinkIcon} />

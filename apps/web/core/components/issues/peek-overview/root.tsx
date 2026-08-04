@@ -24,12 +24,18 @@ import { useWorkItemProperties } from "@/plane-web/hooks/use-issue-properties";
 import type { TIssueOperations } from "../issue-detail";
 import { IssueView } from "./view";
 
-export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWorkItemPeekOverview) {
+export const IssuePeekOverview = observer(function IssuePeekOverview(
+  // `isPinnedRoot` marks the single workspace-level instance that owns the
+  // drawer while it is pinned (it survives page navigation). Local instances
+  // mounted inside layout roots yield to it so only one drawer renders.
+  props: IWorkItemPeekOverview & { isPinnedRoot?: boolean }
+) {
   const {
     embedIssue = false,
     embedRemoveCurrentNotification,
     is_draft = false,
     storeType: issueStoreFromProps,
+    isPinnedRoot = false,
   } = props;
   const { t } = useTranslation();
   // router
@@ -42,6 +48,7 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
   } = useIssues(EIssuesStoreType.ARCHIVED);
   const {
     peekIssue,
+    isPeekPinned,
     setPeekIssue,
     issue: { fetchIssue },
     fetchActivities,
@@ -226,6 +233,11 @@ export const IssuePeekOverview = observer(function IssuePeekOverview(props: IWor
   );
 
   if (!peekIssue?.workspaceSlug || !peekIssue?.projectId || !peekIssue?.issueId) return <></>;
+
+  // Exactly one overlay instance renders the drawer: the workspace-level
+  // pinned root while pinned, the page-local instance otherwise. Embedded
+  // usages (e.g. notification previews) are unaffected.
+  if (!embedIssue && isPeekPinned !== isPinnedRoot) return <></>;
 
   // Check if issue is editable, based on user role
   const isEditable = allowPermissions(

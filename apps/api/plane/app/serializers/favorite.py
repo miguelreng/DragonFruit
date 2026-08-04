@@ -33,6 +33,14 @@ class CycleFavoriteLiteSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "logo_props", "project_id"]
 
 
+class IssueFavoriteLiteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Issue
+        # `sequence_id` lets the client show the human-readable task key
+        # (e.g. PROJ-42) alongside the name in the favorites sidebar.
+        fields = ["id", "name", "sequence_id", "project_id"]
+
+
 class ModuleFavoriteLiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Module
@@ -57,7 +65,7 @@ class ViewFavoriteSerializer(serializers.ModelSerializer):
 def get_entity_model_and_serializer(entity_type):
     entity_map = {
         "cycle": (Cycle, CycleFavoriteLiteSerializer),
-        "issue": (Issue, None),
+        "issue": (Issue, IssueFavoriteLiteSerializer),
         "module": (Module, ModuleFavoriteLiteSerializer),
         "view": (IssueView, ViewFavoriteSerializer),
         "page": (Page, PageFavoriteLiteSerializer),

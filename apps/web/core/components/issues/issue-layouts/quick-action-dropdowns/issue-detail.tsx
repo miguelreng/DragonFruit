@@ -5,17 +5,21 @@
  */
 
 import { useState } from "react";
-import { omit } from "lodash-es";
+import { isNil, omit } from "lodash-es";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { Ellipsis } from "@/components/icons/lucide-shim";
+import { Bell, BellOff, Ellipsis } from "@/components/icons/lucide-shim";
 // plane imports
 import { ARCHIVABLE_STATE_GROUPS, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TIssue } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
+import type { TContextMenuItem } from "@plane/ui";
 import { ContextMenu, CustomMenu } from "@plane/ui";
 import { cn } from "@plane/utils";
 // hooks
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
@@ -60,6 +64,7 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
   } = props;
   // router
   const { workspaceSlug } = useParams();
+  const { t } = useTranslation();
   // states
   const [createUpdateIssueModal, setCreateUpdateIssueModal] = useState(false);
   const [issueToEdit, setIssueToEdit] = useState<TIssue | undefined>(undefined);
@@ -71,6 +76,11 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
   const { issuesFilter } = useIssues(EIssuesStoreType.PROJECT);
   const { getStateById } = useProjectState();
   const { getProjectIdentifierById } = useProject();
+  const {
+    subscription: { getSubscriptionByIssueId },
+    createSubscription,
+    removeSubscription,
+  } = useIssueDetail();
   // derived values
   const activeLayout = `${issuesFilter.issueFilters?.displayFilters?.layout} layout`;
   const stateDetails = getStateById(issue.state_id);
@@ -151,7 +161,39 @@ export const WorkItemDetailQuickActions = observer(function WorkItemDetailQuickA
   //   const MENU_ITEMS = useWorkItemDetailMenuItems(menuItemProps);
   const baseMenuItems = useWorkItemDetailMenuItems(menuItemProps);
 
-  const MENU_ITEMS = baseMenuItems
+  // Subscribe/Unsubscribe lives in this menu (peek mode only) instead of a
+  // standalone header button — the drawer header stays compact. State comes
+  // from the issue-detail store, populated by fetchIssue's is_subscribed.
+  const isSubscribed = getSubscriptionByIssueId(issue.id);
+  const handleToggleSubscription = async () => {
+    if (!workspaceSlug || !issue.project_id) return;
+    try {
+      if (isSubscribed) await removeSubscription(workspaceSlug.toString(), issue.project_id, issue.id);
+      else await createSubscription(workspaceSlug.toString(), issue.project_id, issue.id);
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("toast.success"),
+        message: isSubscribed
+          ? t("issue.subscription.actions.unsubscribed")
+          : t("issue.subscription.actions.subscribed"),
+      });
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: t("common.error.message"),
+      });
+    }
+  };
+  const subscriptionMenuItem: TContextMenuItem = {
+    key: "subscription",
+    title: isSubscribed ? t("common.actions.unsubscribe") : t("common.actions.subscribe"),
+    icon: isSubscribed ? BellOff : Bell,
+    action: handleToggleSubscription,
+    shouldRender: isPeekMode && !issue.archived_at && isEditingAllowed && !isNil(isSubscribed),
+  };
+
+  const MENU_ITEMS = [subscriptionMenuItem, ...baseMenuItems]
     .map((item) => {
       // Customize edit action for task
       if (item.key === "edit") {

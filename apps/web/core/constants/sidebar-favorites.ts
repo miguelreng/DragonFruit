@@ -8,7 +8,7 @@ import { Folder } from "@/components/icons/lucide-shim";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane imports
 import type { ISvgIcons } from "@/components/icons/propel-shim";
-import { CycleIcon, ModuleIcon, PageIcon, ProjectIcon, ViewsIcon } from "@/components/icons/propel-shim";
+import { CycleIcon, LayersIcon, ModuleIcon, PageIcon, ProjectIcon, ViewsIcon } from "@/components/icons/propel-shim";
 import type { IFavorite } from "@plane/types";
 
 export const FAVORITE_ITEM_ICONS: Record<string, React.FC<ISvgIcons> | LucideIcon> = {
@@ -17,6 +17,7 @@ export const FAVORITE_ITEM_ICONS: Record<string, React.FC<ISvgIcons> | LucideIco
   view: ViewsIcon,
   module: ModuleIcon,
   cycle: CycleIcon,
+  issue: LayersIcon,
   folder: Folder,
 };
 
@@ -45,5 +46,9 @@ export const FAVORITE_ITEM_LINKS: {
   page: {
     itemLevel: "project",
     getLink: (favorite) => `pages/${favorite.entity_identifier}`,
+  },
+  issue: {
+    itemLevel: "project",
+    getLink: (favorite) => `issues/${favorite.entity_identifier}`,
   },
 };

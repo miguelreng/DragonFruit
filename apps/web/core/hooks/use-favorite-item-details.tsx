@@ -17,6 +17,7 @@ import {
 // helpers
 // hooks
 import { useCycle } from "@/hooks/store/use-cycle";
+import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useModule } from "@/hooks/store/use-module";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectView } from "@/hooks/store/use-project-view";
@@ -25,17 +26,20 @@ import { EPageStoreType, usePage } from "@/plane-web/hooks/store";
 import { useAdditionalFavoriteItemDetails } from "@/plane-web/hooks/use-additional-favorite-item-details";
 
 export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorite) => {
-  const {
-    entity_identifier: favoriteItemId,
-    entity_data: { logo_props: favoriteItemLogoProps },
-    entity_type: favoriteItemEntityType,
-  } = favorite;
+  const { entity_identifier: favoriteItemId, entity_type: favoriteItemEntityType } = favorite;
+  // entity_data is null when the favorited entity no longer resolves on the
+  // server (hard-deleted, or a stale row) — don't let a destructure crash
+  // take the whole favorites section down with it.
+  const favoriteItemLogoProps = favorite?.entity_data?.logo_props;
   const favoriteItemName = favorite?.entity_data?.name || favorite?.name;
   // store hooks
   const { getViewById, fetchViews } = useProjectView();
   const { getProjectById } = useProject();
   const { getCycleById } = useCycle();
   const { getModuleById } = useModule();
+  const {
+    issue: { getIssueById },
+  } = useIssueDetail();
 
   // Backfill for older view favorites that were created before we started
   // snapshotting `view_layout` into `entity_data`. When the sidebar mounts and
@@ -120,6 +124,13 @@ export const useFavoriteItemDetails = (workspaceSlug: string, favorite: IFavorit
     case "module":
       itemTitle = moduleDetail?.name ?? favoriteItemName;
       itemIcon = getFavoriteItemIcon("module");
+      break;
+    case "issue":
+      // Prefer the live task from the store (fresh after renames this
+      // session); the entity_data snapshot from the favorites fetch covers
+      // tasks that haven't been loaded yet.
+      itemTitle = getIssueById(favoriteItemId ?? "")?.name ?? favoriteItemName;
+      itemIcon = getFavoriteItemIcon("issue");
       break;
     default: {
       const additionalDetails = getAdditionalFavoriteItemDetails(workspaceSlug, favorite);

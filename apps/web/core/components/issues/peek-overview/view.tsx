@@ -66,6 +66,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   // store hooks
   const {
     setPeekIssue,
+    isPeekPinned,
     isAnyModalOpen,
     issue: { getIssueById },
   } = useIssueDetail();
@@ -88,6 +89,9 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   usePeekOverviewOutsideClickDetector(
     issuePeekOverviewRef,
     () => {
+      // A pinned drawer stays open while the user works elsewhere — that's
+      // the whole point of pinning. Only the explicit close button closes it.
+      if (isPeekPinned) return;
       const isAnyDropbarOpen = editorRef.current?.isAnyDropbarOpen();
       if (!embedIssue) {
         if (!isAnyModalOpen && !isAnyEpicModalOpen && !isAnyLocalModalOpen && !isAnyDropbarOpen) {
@@ -100,6 +104,7 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   );
 
   const handleKeyDown = () => {
+    if (isPeekPinned) return;
     const editorImageFullScreenModalElement = document.querySelector(".editor-image-full-screen-modal");
     const dropdownElement = document.activeElement?.tagName === "INPUT";
     const isAnyDropbarOpen = editorRef.current?.isAnyDropbarOpen();

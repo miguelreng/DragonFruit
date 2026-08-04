@@ -84,6 +84,7 @@ export interface IIssueDetail
     IIssueCommentReactionStoreActions {
   // observables
   peekIssue: TPeekIssue | undefined;
+  isPeekPinned: boolean;
   relationKey: TIssueRelationTypes | null;
   issueLinkData: TIssueLink | null;
   issueCrudOperationState: TIssueCrudOperationState;
@@ -105,6 +106,7 @@ export interface IIssueDetail
   getIsIssuePeeked: (issueId: string) => boolean;
   // actions
   setPeekIssue: (peekIssue: TPeekIssue | undefined) => void;
+  setPeekPinned: (isPinned: boolean) => void;
   setIssueLinkData: (issueLinkData: TIssueLink | null) => void;
   toggleCreateIssueModal: (value: boolean) => void;
   toggleIssueLinkModal: (value: boolean) => void;
@@ -137,6 +139,7 @@ export interface IIssueDetail
 export abstract class IssueDetail implements IIssueDetail {
   // observables
   peekIssue: TPeekIssue | undefined = undefined;
+  isPeekPinned: boolean = false;
   relationKey: TIssueRelationTypes | null = null;
   issueLinkData: TIssueLink | null = null;
   issueCrudOperationState: TIssueCrudOperationState = {
@@ -181,6 +184,7 @@ export abstract class IssueDetail implements IIssueDetail {
     makeObservable(this, {
       // observables
       peekIssue: observable,
+      isPeekPinned: observable.ref,
       relationKey: observable,
       issueLinkData: observable,
       issueCrudOperationState: observable,
@@ -200,6 +204,7 @@ export abstract class IssueDetail implements IIssueDetail {
       isPeekOpen: computed,
       // action
       setPeekIssue: action,
+      setPeekPinned: action,
       setIssueLinkData: action,
       toggleCreateIssueModal: action,
       toggleIssueLinkModal: action,
@@ -264,7 +269,13 @@ export abstract class IssueDetail implements IIssueDetail {
     if (!this.openWidgets.includes("sub-work-items")) this.openWidgets = ["sub-work-items", ...this.openWidgets];
     if (this.lastWidgetAction) this.lastWidgetAction = null;
   };
-  setPeekIssue = (peekIssue: TPeekIssue | undefined) => (this.peekIssue = peekIssue);
+  setPeekIssue = (peekIssue: TPeekIssue | undefined) => {
+    this.peekIssue = peekIssue;
+    // A pin only makes sense while a drawer is open — closing the drawer
+    // resets it so the next peek starts unpinned.
+    if (!peekIssue) this.isPeekPinned = false;
+  };
+  setPeekPinned = (isPinned: boolean) => (this.isPeekPinned = isPinned);
   toggleCreateIssueModal = (value: boolean) => (this.isCreateIssueModalOpen = value);
   toggleIssueLinkModal = (value: boolean) => (this.isIssueLinkModalOpen = value);
   toggleParentIssueModal = (issueId: string | null) => (this.isParentIssueModalOpen = issueId);

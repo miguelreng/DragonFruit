@@ -7,8 +7,10 @@
 import { observer } from "mobx-react";
 import { usePathname } from "next/navigation";
 import { Outlet } from "react-router";
+import { EIssuesStoreType } from "@plane/types";
 import { WikiExplainListener } from "@/components/editor/wiki-explain-listener";
 import { WikiToolsListener } from "@/components/editor/wiki-tools-listener";
+import { IssuePeekOverview } from "@/components/issues/peek-overview";
 import { ProjectsAppPowerKProvider } from "@/components/power-k/projects-app-provider";
 
 function WorkspaceLayout() {
@@ -31,6 +33,11 @@ function WorkspaceLayout() {
             <div key={section} className="animate-fade-in flex h-full w-full flex-col overflow-hidden">
               <Outlet />
             </div>
+            {/* Workspace-level home for a pinned task drawer: page-local peek
+                instances unmount on navigation, so a pinned drawer re-renders
+                from here (outside the section-keyed fade div) and survives
+                project/page changes. Renders nothing while unpinned. */}
+            <IssuePeekOverview isPinnedRoot storeType={EIssuesStoreType.PROJECT} />
           </main>
         </div>
       </div>
