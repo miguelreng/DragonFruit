@@ -8,7 +8,7 @@ from unittest.mock import patch
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage, UserFavorite, WorkspaceMember
+from plane.db.models import FileAsset, Page, Project, ProjectMember, ProjectPage, User, UserFavorite, WorkspaceMember
 
 
 def mock_presigned_post(file_type="application/pdf"):
@@ -284,7 +284,7 @@ class TestWorkspacePagesListAPI:
         assert response_page["project_ids"] == [str(joined_project.id)]
 
     @pytest.mark.django_db
-    def test_pages_linked_only_to_deleted_projects_are_not_listed(
+    def test_pages_orphaned_by_project_deletion_stay_visible_to_their_owner(
         self, session_client, workspace, create_user
     ):
         active_project = Project.objects.create(name="Active", identifier="ACT", workspace=workspace)
@@ -298,16 +298,24 @@ class TestWorkspacePagesListAPI:
                 is_active=True,
             )
 
+        other_user = User.objects.create(email="orphan-other@plane.so", username="orphan-other")
         active_page = Page.objects.create(name="Active doc", workspace=workspace, owned_by=create_user, access=0)
-        deleted_project_page = Page.objects.create(
+        orphaned_page = Page.objects.create(
             name="Deleted project doc",
             workspace=workspace,
             owned_by=create_user,
             access=0,
         )
+        foreign_orphaned_page = Page.objects.create(
+            name="Someone else's orphan",
+            workspace=workspace,
+            owned_by=other_user,
+            access=0,
+        )
         ProjectPage.objects.create(project=active_project, page=active_page, workspace=workspace)
         ProjectPage.objects.create(project=deleted_project, page=active_page, workspace=workspace)
-        ProjectPage.objects.create(project=deleted_project, page=deleted_project_page, workspace=workspace)
+        ProjectPage.objects.create(project=deleted_project, page=orphaned_page, workspace=workspace)
+        ProjectPage.objects.create(project=deleted_project, page=foreign_orphaned_page, workspace=workspace)
 
         # Project deletion is asynchronous beyond the project's own soft delete,
         # so its membership and page link can remain active for a short period.
@@ -318,7 +326,74 @@ class TestWorkspacePagesListAPI:
         assert response.status_code == status.HTTP_200_OK
         response_pages = {str(item["id"]): item for item in response.data}
         assert response_pages[str(active_page.id)]["project_ids"] == [str(active_project.id)]
-        assert str(deleted_project_page.id) not in response_pages
+        # The owner keeps seeing their orphaned doc (empty project_ids) so they
+        # can still delete it through the workspace-level destroy endpoint.
+        assert response_pages[str(orphaned_page.id)]["project_ids"] == []
+        # Other users' orphans stay hidden — there is no project membership to
+        # grant access through anymore.
+        assert str(foreign_orphaned_page.id) not in response_pages
+
+
+@pytest.mark.contract
+class TestWorkspaceOrphanPageDeleteAPI:
+    """Owners (or workspace admins) can delete a page whose every project link
+    is dead via the workspace-level route; project-linked pages must keep using
+    the project-scoped destroy."""
+
+    def get_url(self, workspace_slug: str, page_id) -> str:
+        return f"/api/workspaces/{workspace_slug}/pages/{page_id}/"
+
+    def make_orphan_page(self, workspace, owner, **kwargs):
+        project = Project.objects.create(name="Doomed", identifier="DOOM", workspace=workspace)
+        page = Page.objects.create(name="Orphan doc", workspace=workspace, owned_by=owner, access=0, **kwargs)
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+        Project.objects.filter(id=project.id).update(deleted_at=timezone.now())
+        return page
+
+    @pytest.mark.django_db
+    def test_owner_can_delete_orphaned_page(self, session_client, workspace, create_user):
+        page = self.make_orphan_page(workspace, create_user)
+
+        response = session_client.delete(self.get_url(workspace.slug, page.id))
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Page.objects.filter(id=page.id).exists()
+
+    @pytest.mark.django_db
+    def test_page_with_live_project_link_is_rejected(self, session_client, workspace, create_user):
+        project = Project.objects.create(name="Alive", identifier="ALV", workspace=workspace)
+        ProjectMember.objects.create(project=project, workspace=workspace, member=create_user, role=20, is_active=True)
+        page = Page.objects.create(name="Linked doc", workspace=workspace, owned_by=create_user, access=0)
+        ProjectPage.objects.create(project=project, page=page, workspace=workspace)
+
+        response = session_client.delete(self.get_url(workspace.slug, page.id))
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert Page.objects.filter(id=page.id).exists()
+
+    @pytest.mark.django_db
+    def test_non_owner_member_cannot_delete_orphaned_page(self, api_client, workspace, create_user):
+        page = self.make_orphan_page(workspace, create_user)
+        member = User.objects.create(email="orphan-member@plane.so", username="orphan-member")
+        WorkspaceMember.objects.create(workspace=workspace, member=member, role=15)
+        api_client.force_authenticate(user=member)
+
+        response = api_client.delete(self.get_url(workspace.slug, page.id))
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert Page.objects.filter(id=page.id).exists()
+
+    @pytest.mark.django_db
+    def test_workspace_admin_can_delete_someone_elses_orphaned_page(self, api_client, workspace, create_user):
+        page = self.make_orphan_page(workspace, create_user)
+        admin = User.objects.create(email="orphan-admin@plane.so", username="orphan-admin")
+        WorkspaceMember.objects.create(workspace=workspace, member=admin, role=20)
+        api_client.force_authenticate(user=admin)
+
+        response = api_client.delete(self.get_url(workspace.slug, page.id))
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Page.objects.filter(id=page.id).exists()
 
 
 @pytest.mark.contract

@@ -19,6 +19,7 @@ from plane.app.views import (
     PageTemplateInstantiateEndpoint,
     PageTemplateListEndpoint,
     WorkspacePagesListEndpoint,
+    WorkspaceOrphanPageDestroyEndpoint,
     CapturedChatIngestEndpoint,
     CapturedPageIngestEndpoint,
 )
@@ -28,6 +29,13 @@ urlpatterns = [
         "workspaces/<str:slug>/pages/",
         WorkspacePagesListEndpoint.as_view(),
         name="workspace-pages",
+    ),
+    # Deleting an orphaned page (all of its projects were deleted) has no
+    # project URL to go through — the workspace-level route covers it.
+    path(
+        "workspaces/<str:slug>/pages/<uuid:page_id>/",
+        WorkspaceOrphanPageDestroyEndpoint.as_view(),
+        name="workspace-page-detail",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/pages-summary/",

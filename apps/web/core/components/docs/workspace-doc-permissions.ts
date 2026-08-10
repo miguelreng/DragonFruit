@@ -20,6 +20,31 @@ type ResolveWorkspaceDocAdminProjectIdParams = {
   preferredProjectId?: string;
 };
 
+type CanDeleteOrphanWorkspaceDocParams = {
+  currentUserId?: string;
+  hasAccessibleProject: boolean;
+  isProjectBrief: boolean;
+  isWorkspaceAdmin: boolean;
+  ownerId?: string;
+};
+
+/**
+ * A doc whose every linked project was deleted has no project route left for
+ * the regular destroy, so the owner (or a workspace admin) deletes it through
+ * the workspace-level endpoint instead. The API re-checks that no live project
+ * link remains, so a stale `hasAccessibleProject` can't over-delete.
+ */
+export const canDeleteOrphanWorkspaceDoc = ({
+  currentUserId,
+  hasAccessibleProject,
+  isProjectBrief,
+  isWorkspaceAdmin,
+  ownerId,
+}: CanDeleteOrphanWorkspaceDocParams) => {
+  if (isProjectBrief || hasAccessibleProject) return false;
+  return isWorkspaceAdmin || (Boolean(currentUserId) && ownerId === currentUserId);
+};
+
 export const resolveWorkspaceDocAdminProjectId = ({
   currentUserId,
   getProjectRole,

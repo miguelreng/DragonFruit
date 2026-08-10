@@ -198,6 +198,7 @@ from .page.base import (
     PageDuplicateEndpoint,
     PageMoveEndpoint,
     WorkspacePagesListEndpoint,
+    WorkspaceOrphanPageDestroyEndpoint,
 )
 from .page.version import PageVersionEndpoint
 from .page.capture import CapturedChatIngestEndpoint, CapturedPageIngestEndpoint

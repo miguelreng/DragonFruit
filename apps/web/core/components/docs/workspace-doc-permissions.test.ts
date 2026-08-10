@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { EUserPermissions } from "@plane/constants";
-import { getWorkspaceDocFavoritePresentation, resolveWorkspaceDocAdminProjectId } from "./workspace-doc-permissions";
+import {
+  canDeleteOrphanWorkspaceDoc,
+  getWorkspaceDocFavoritePresentation,
+  resolveWorkspaceDocAdminProjectId,
+} from "./workspace-doc-permissions";
 
 const projectIds = ["project-a", "project-b"];
 const joinedProjectIds = new Set(projectIds);
@@ -38,6 +42,35 @@ describe("workspace Doc destructive-action permissions", () => {
   it("protects briefs and Docs the user cannot administer", () => {
     expect(resolve()).toBeUndefined();
     expect(resolve({ isProjectBrief: true, isWorkspaceAdmin: true })).toBeUndefined();
+  });
+});
+
+describe("orphaned workspace Doc deletion", () => {
+  const canDeleteOrphan = (overrides: Partial<Parameters<typeof canDeleteOrphanWorkspaceDoc>[0]> = {}) =>
+    canDeleteOrphanWorkspaceDoc({
+      currentUserId: "current-user",
+      hasAccessibleProject: false,
+      isProjectBrief: false,
+      isWorkspaceAdmin: false,
+      ownerId: "another-user",
+      ...overrides,
+    });
+
+  it("lets the owner delete a Doc whose projects were all deleted", () => {
+    expect(canDeleteOrphan({ ownerId: "current-user" })).toBe(true);
+  });
+
+  it("lets a workspace admin delete someone else's orphaned Doc", () => {
+    expect(canDeleteOrphan({ isWorkspaceAdmin: true })).toBe(true);
+  });
+
+  it("keeps project-linked Docs on the project-scoped delete", () => {
+    expect(canDeleteOrphan({ ownerId: "current-user", hasAccessibleProject: true })).toBe(false);
+  });
+
+  it("still protects briefs and other users' Docs", () => {
+    expect(canDeleteOrphan()).toBe(false);
+    expect(canDeleteOrphan({ ownerId: "current-user", isProjectBrief: true })).toBe(false);
   });
 });
 

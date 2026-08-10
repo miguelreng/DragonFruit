@@ -90,6 +90,16 @@ export class ProjectPageService extends APIService {
       });
   }
 
+  /** Delete a page orphaned by project deletion — there is no project URL left
+   * to route the regular remove() through. Owner or workspace admin only. */
+  async removeOrphan(workspaceSlug: string, pageId: string): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/pages/${pageId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
   async fetchFavorites(workspaceSlug: string, projectId: string): Promise<TPage[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/favorite-pages/`)
       .then((response) => response?.data)

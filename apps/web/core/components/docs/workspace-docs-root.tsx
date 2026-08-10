@@ -90,7 +90,11 @@ import { ProjectPageService } from "@/services/page/project-page.service";
 import { buildPublicPageUrl, getPublicPageSlug } from "@/helpers/page-public";
 import { WikiImportModal } from "./import/wiki-import-modal";
 import { WikiSettingsModal } from "./wiki-settings-modal";
-import { getWorkspaceDocFavoritePresentation, resolveWorkspaceDocAdminProjectId } from "./workspace-doc-permissions";
+import {
+  canDeleteOrphanWorkspaceDoc,
+  getWorkspaceDocFavoritePresentation,
+  resolveWorkspaceDocAdminProjectId,
+} from "./workspace-doc-permissions";
 import { WikiSharePopover } from "./wiki-share-popover";
 import { WorkspaceCreateDocButton } from "./workspace-create-doc-button";
 import { isMarkdownFile, useCreateMarkdownDocPage } from "./use-create-markdown-doc";
@@ -363,9 +367,26 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
       workspaceSlug,
     ]
   );
+  // A page whose every linked project was deleted (no accessible project left)
+  // is deletable by its owner or a workspace admin via the workspace route.
+  const canDeleteOrphanDoc = useCallback(
+    (page: TPage) =>
+      canDeleteOrphanWorkspaceDoc({
+        currentUserId: currentUser?.id,
+        hasAccessibleProject: Boolean(getPageProjectId(page)),
+        isProjectBrief: isProjectBriefPage(page),
+        isWorkspaceAdmin,
+        ownerId: page.owned_by,
+      }),
+    [currentUser?.id, getPageProjectId, isWorkspaceAdmin]
+  );
   // Mirrors the API's delete rule (owner OR project admin; never a brief) and
-  // guarantees there is a valid linked project for the request.
-  const canDeleteDoc = useCallback((page: TPage) => Boolean(getPageAdminProjectId(page)), [getPageAdminProjectId]);
+  // guarantees there is a valid linked project for the request — or, for
+  // orphaned pages, that the workspace-level destroy will accept it.
+  const canDeleteDoc = useCallback(
+    (page: TPage) => Boolean(getPageAdminProjectId(page)) || canDeleteOrphanDoc(page),
+    [canDeleteOrphanDoc, getPageAdminProjectId]
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<TPageType[]>([]);
@@ -609,20 +630,26 @@ export const WorkspaceDocsRoot = observer(function WorkspaceDocsRoot({
   const confirmDeleteFolder = async () => {
     const folder = folderToDelete;
     const projectId = folder ? getPageAdminProjectId(folder) : undefined;
-    if (!folder?.id || !projectId) return;
+    if (!folder?.id || (!projectId && !canDeleteOrphanDoc(folder))) return;
     setIsDeletingFolder(true);
     try {
-      // Move contents back to the root first — archiving the folder would
-      // otherwise cascade-archive every doc inside it.
       const children = (pages ?? []).filter((p) => p.parent === folder.id && p.id);
-      await Promise.all(
-        children.map((child) => pageService.update(workspaceSlug, projectId, child.id as string, { parent: null }))
-      );
-      // The API only deletes archived pages, so archive before removing.
-      // Archiving also deletes any favorite server-side — mirror that locally
-      // so the sidebar doesn't keep a dangling folder favorite.
-      await pageService.archive(workspaceSlug, projectId, folder.id);
-      await pageService.remove(workspaceSlug, projectId, folder.id);
+      if (projectId) {
+        // Move contents back to the root first — archiving the folder would
+        // otherwise cascade-archive every doc inside it.
+        await Promise.all(
+          children.map((child) => pageService.update(workspaceSlug, projectId, child.id as string, { parent: null }))
+        );
+        // The API only deletes archived pages, so archive before removing.
+        // Archiving also deletes any favorite server-side — mirror that locally
+        // so the sidebar doesn't keep a dangling folder favorite.
+        await pageService.archive(workspaceSlug, projectId, folder.id);
+        await pageService.remove(workspaceSlug, projectId, folder.id);
+      } else {
+        // Orphaned folder (its project was deleted) — the workspace destroy
+        // unparents its children server-side.
+        await pageService.removeOrphan(workspaceSlug, folder.id);
+      }
       if (favoriteEntityMap[folder.id]) removeFavoriteFromStore(folder.id);
       if (activeFolderId === folder.id) setActiveFolderId(null);
       setFolderToDelete(null);
@@ -2341,7 +2368,8 @@ function DocCard({
 
   // Folders live in a single project, so only offer ones the doc shares.
   const eligibleFolders = folders.filter((f) => primaryProjectId && (f.project_ids ?? []).includes(primaryProjectId));
-  const showFolderMenu = !isProjectBrief && (eligibleFolders.length > 0 || Boolean(page.parent));
+  const showFolderMenu =
+    !isProjectBrief && Boolean(primaryProjectId) && (eligibleFolders.length > 0 || Boolean(page.parent));
   const moveTargetProjects = useMemo(
     () =>
       sortBy(
@@ -2353,7 +2381,7 @@ function DocCard({
       ),
     [getProjectById, joinedProjectIds, primaryProjectId]
   );
-  const showProjectMoveMenu = !isProjectBrief && moveTargetProjects.length > 0;
+  const showProjectMoveMenu = !isProjectBrief && Boolean(primaryProjectId) && moveTargetProjects.length > 0;
 
   const handleMoveToFolder = async (folderId: string | null) => {
     if (!primaryProjectId || !page.id) return;
@@ -2452,7 +2480,7 @@ function DocCard({
   };
 
   const handleDelete = () => {
-    if (!adminProjectId || !page.id) return;
+    if (!canModify || !page.id) return;
     if (isProjectBrief) {
       setToast({
         type: TOAST_TYPE.WARNING,
@@ -2465,11 +2493,17 @@ function DocCard({
   };
 
   const confirmDelete = async () => {
-    if (!adminProjectId || !page.id) return;
+    if (!canModify || !page.id) return;
     setIsDeleting(true);
     try {
-      if (!page.archived_at) await pageService.archive(workspaceSlug, adminProjectId, page.id);
-      await pageService.remove(workspaceSlug, adminProjectId, page.id);
+      if (adminProjectId) {
+        if (!page.archived_at) await pageService.archive(workspaceSlug, adminProjectId, page.id);
+        await pageService.remove(workspaceSlug, adminProjectId, page.id);
+      } else {
+        // Orphaned doc (its projects were deleted) — no project route exists,
+        // so it goes through the workspace-level destroy.
+        await pageService.removeOrphan(workspaceSlug, page.id);
+      }
       await refreshPages();
       setIsDeleteModalOpen(false);
       setToast({
@@ -2539,7 +2573,7 @@ function DocCard({
   });
 
   const actionsMenu = (buttonClassName: string) =>
-    primaryProjectId && page.id ? (
+    page.id && (primaryProjectId || canModify) ? (
       <CustomMenu
         ariaLabel="Page actions"
         placement="bottom-end"
@@ -2551,18 +2585,22 @@ function DocCard({
           </span>
         }
       >
-        <CustomMenu.MenuItem onClick={() => void handleCopyLink()}>
-          <span className="flex items-center gap-2">
-            <DetailIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-            Copy link
-          </span>
-        </CustomMenu.MenuItem>
-        <CustomMenu.MenuItem onClick={() => void handleDuplicate()}>
-          <span className="flex items-center gap-2">
-            <DetailIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
-            Duplicate
-          </span>
-        </CustomMenu.MenuItem>
+        {itemLink && (
+          <CustomMenu.MenuItem onClick={() => void handleCopyLink()}>
+            <span className="flex items-center gap-2">
+              <DetailIcon icon={LinkSquare01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              Copy link
+            </span>
+          </CustomMenu.MenuItem>
+        )}
+        {primaryProjectId && (
+          <CustomMenu.MenuItem onClick={() => void handleDuplicate()}>
+            <span className="flex items-center gap-2">
+              <DetailIcon icon={Copy01Icon} className="size-4" color="currentColor" strokeWidth={1.5} />
+              Duplicate
+            </span>
+          </CustomMenu.MenuItem>
+        )}
         {showFolderMenu && (
           <CustomMenu.SubMenu
             trigger={
@@ -2618,7 +2656,7 @@ function DocCard({
         )}
         {!isProjectBrief && (
           <>
-            {canModify && (
+            {canModify && Boolean(adminProjectId) && (
               <CustomMenu.MenuItem onClick={() => void handleArchive()}>
                 <span className="flex items-center gap-2">
                   {page.archived_at ? (
@@ -2653,7 +2691,7 @@ function DocCard({
   // menu trigger. Stopping pointer-down propagation also prevents a menu press
   // from starting the card's drag gesture before the click can open the menu.
   const actionsMenuOverlay =
-    primaryProjectId && page.id ? (
+    page.id && (primaryProjectId || canModify) ? (
       <div
         className={cn("absolute z-20 flex items-center gap-1", {
           "top-2 right-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100":

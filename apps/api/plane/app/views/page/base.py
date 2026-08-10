@@ -846,6 +846,11 @@ class WorkspacePagesListEndpoint(BaseAPIView):
     Pages inside a folder (parent set) are included — the docs UI groups them
     client-side.
 
+    Pages whose every project link is dead (all linked projects deleted) stay
+    visible to their owner with an empty `project_ids`, so the owner can still
+    delete them through the workspace-level destroy endpoint instead of the
+    content silently disappearing.
+
     Accepts `?page_type=<doc|whiteboard|pdf>` to scope to a single type;
     folder pages are always included alongside so the list can be grouped.
     """
@@ -853,16 +858,29 @@ class WorkspacePagesListEndpoint(BaseAPIView):
     ALLOWED_PAGE_TYPES = {choice[0] for choice in Page.PAGE_TYPE_CHOICES}
 
     def get(self, request, slug):
+        accessible_link = ProjectPage.objects.filter(
+            page_id=OuterRef("id"),
+            deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
+            project__archived_at__isnull=True,
+            project__project_projectmember__member=request.user,
+            project__project_projectmember__is_active=True,
+            project__project_projectmember__deleted_at__isnull=True,
+        )
+        # Any link to a project that still exists — even archived or one the
+        # user can't access. Only when none remain is the page a true orphan.
+        live_link = ProjectPage.objects.filter(
+            page_id=OuterRef("id"),
+            deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
+        )
         qs = (
             Page.objects.filter(workspace__slug=slug)
-            .filter(
-                project_pages__deleted_at__isnull=True,
-                project_pages__project__deleted_at__isnull=True,
-                project_pages__project__archived_at__isnull=True,
-                project_pages__project__project_projectmember__member=request.user,
-                project_pages__project__project_projectmember__is_active=True,
-                project_pages__project__project_projectmember__deleted_at__isnull=True,
+            .annotate(
+                has_accessible_link=Exists(accessible_link),
+                has_live_link=Exists(live_link),
             )
+            .filter(Q(has_accessible_link=True) | Q(owned_by=request.user, has_live_link=False))
             .filter(Q(owned_by=request.user) | Q(access=0))
         )
 
@@ -896,3 +914,56 @@ class WorkspacePagesListEndpoint(BaseAPIView):
             WorkspacePageListSerializer(pages, many=True).data,
             status=status.HTTP_200_OK,
         )
+
+
+class WorkspaceOrphanPageDestroyEndpoint(BaseAPIView):
+    """Delete a page whose every project link is dead (all linked projects
+    deleted). Project-linked pages keep using the project-scoped destroy; this
+    route exists so owners aren't locked out of docs orphaned by project
+    deletion — there is no project URL left to delete them through.
+    """
+
+    @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
+    def delete(self, request, slug, page_id):
+        page = Page.objects.filter(pk=page_id, workspace__slug=slug).first()
+        if page is None:
+            return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        has_live_link = ProjectPage.objects.filter(
+            page_id=page.id,
+            deleted_at__isnull=True,
+            project__deleted_at__isnull=True,
+        ).exists()
+        if has_live_link:
+            return Response(
+                {"error": "The page is linked to a project. Delete it from the project instead."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        is_workspace_admin = WorkspaceMember.objects.filter(
+            workspace__slug=slug,
+            member=request.user,
+            role=ROLE.ADMIN.value,
+            is_active=True,
+        ).exists()
+        if page.owned_by_id != request.user.id and not is_workspace_admin:
+            return Response(
+                {"error": "Only the owner or a workspace admin can delete the page"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # remove parent from all the children
+        _ = Page.objects.filter(parent_id=page_id, workspace__slug=slug).update(parent=None)
+
+        page.delete()
+        UserFavorite.objects.filter(
+            workspace__slug=slug,
+            entity_identifier=page_id,
+            entity_type="page",
+        ).delete()
+        UserRecentVisit.objects.filter(
+            workspace__slug=slug,
+            entity_identifier=page_id,
+            entity_name="page",
+        ).delete(soft=False)
+        return Response(status=status.HTTP_204_NO_CONTENT)
