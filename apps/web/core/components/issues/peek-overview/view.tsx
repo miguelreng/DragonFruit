@@ -67,6 +67,8 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
   const {
     setPeekIssue,
     isPeekPinned,
+    peekSide,
+    setPeekSide,
     isAnyModalOpen,
     issue: { getIssueById },
   } = useIssueDetail();
@@ -128,11 +130,75 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
       ? "t-panel-slide absolute z-[25] flex flex-col overflow-hidden rounded-lg border border-subtle bg-surface-1 transition-all duration-300"
       : `h-full w-full`,
     !embedIssue && {
-      "top-0 right-0 bottom-0 w-full border-0 border-l md:w-[50%]": peekMode === "side-peek",
+      "top-0 bottom-0 w-full border-0 md:w-[50%]": peekMode === "side-peek",
+      "right-0 border-l": peekMode === "side-peek" && peekSide === "right",
+      "left-0 border-r": peekMode === "side-peek" && peekSide === "left",
       "top-[8.33%] left-[8.33%] size-5/6": peekMode === "modal",
       "absolute inset-0 m-4": peekMode === "full-screen",
     }
   );
+
+  // Drag the drawer by its header to dock it on the other screen edge. The
+  // drawer follows the pointer with a transform while dragging; on release
+  // it snaps to whichever half of the viewport the pointer ended in. Clicks
+  // stay clicks — dragging only engages past a small movement threshold and
+  // never starts on interactive elements.
+  const handleHeaderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (embedIssue || peekMode !== "side-peek") return;
+    if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role='button']")) return;
+    const el = issuePeekOverviewRef.current;
+    if (!el) return;
+    const startX = e.clientX;
+    let dragging = false;
+    let lastX = startX;
+    const finish = (endX: number | null, expectClick: boolean) => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onPointerEnd);
+      document.removeEventListener("mouseup", onMouseEnd);
+      document.removeEventListener("pointercancel", onCancel);
+      if (!dragging) return;
+      document.body.style.userSelect = "";
+      el.style.transition = "";
+      el.style.transform = "";
+      if (endX !== null) {
+        // clientWidth fallback: window.innerWidth reads 0 in some embedded
+        // browser panes.
+        const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+        setPeekSide(endX < viewportWidth / 2 ? "left" : "right");
+      }
+      // Swallow the click that follows a drag release — if the pointer ends
+      // over the page (fast fling past the drawer edge), that click would
+      // otherwise activate whatever sits under it (open another task, close
+      // the drawer via click-outside, ...). Only armed for real releases —
+      // pointercancel produces no click, and a lingering swallower would eat
+      // the user's next genuine click. The click, if any, dispatches
+      // synchronously after the release, so disarm on the next tick.
+      if (expectClick) {
+        const squelch = (ce: MouseEvent) => ce.stopPropagation();
+        document.addEventListener("click", squelch, { capture: true, once: true });
+        setTimeout(() => document.removeEventListener("click", squelch, { capture: true }), 0);
+      }
+    };
+    const onMove = (ev: PointerEvent) => {
+      lastX = ev.clientX;
+      const dx = ev.clientX - startX;
+      if (!dragging && Math.abs(dx) < 8) return;
+      dragging = true;
+      document.body.style.userSelect = "none";
+      el.style.transition = "none";
+      el.style.transform = `translateX(${dx}px)`;
+    };
+    // Some environments end a drag with mouseup but no pointerup (and the
+    // browser can abort one with pointercancel) — treat any of the three as
+    // the release so the drawer never sticks mid-screen on a stale transform.
+    const onPointerEnd = (ev: PointerEvent) => finish(ev.clientX, true);
+    const onMouseEnd = (ev: MouseEvent) => finish(ev.clientX, true);
+    const onCancel = () => finish(lastX, false);
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onPointerEnd);
+    document.addEventListener("mouseup", onMouseEnd);
+    document.addEventListener("pointercancel", onCancel);
+  };
 
   const shouldUsePortal = !embedIssue;
 
@@ -159,24 +225,30 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
           )}
           {!isLoading && !isError && issue && (
             <>
-              {/* header */}
-              <IssuePeekOverviewHeader
-                peekMode={peekMode}
-                setPeekMode={(value) => setPeekMode(value)}
-                removeRoutePeekId={removeRoutePeekId}
-                toggleDeleteIssueModal={toggleDeleteIssueModal}
-                toggleArchiveIssueModal={toggleArchiveIssueModal}
-                toggleDuplicateIssueModal={toggleDuplicateIssueModal}
-                toggleEditIssueModal={toggleEditIssueModal}
-                handleRestoreIssue={handleRestore}
-                isArchived={is_archived}
-                issueId={issueId}
-                workspaceSlug={workspaceSlug}
-                projectId={projectId}
-                isSubmitting={isSubmitting}
-                disabled={disabled}
-                embedIssue={embedIssue}
-              />
+              {/* header — in side-peek mode it doubles as the drag handle for
+                  docking the drawer to the left or right screen edge */}
+              <div
+                onPointerDown={handleHeaderPointerDown}
+                className={cn(!embedIssue && peekMode === "side-peek" && "cursor-grab")}
+              >
+                <IssuePeekOverviewHeader
+                  peekMode={peekMode}
+                  setPeekMode={(value) => setPeekMode(value)}
+                  removeRoutePeekId={removeRoutePeekId}
+                  toggleDeleteIssueModal={toggleDeleteIssueModal}
+                  toggleArchiveIssueModal={toggleArchiveIssueModal}
+                  toggleDuplicateIssueModal={toggleDuplicateIssueModal}
+                  toggleEditIssueModal={toggleEditIssueModal}
+                  handleRestoreIssue={handleRestore}
+                  isArchived={is_archived}
+                  issueId={issueId}
+                  workspaceSlug={workspaceSlug}
+                  projectId={projectId}
+                  isSubmitting={isSubmitting}
+                  disabled={disabled}
+                  embedIssue={embedIssue}
+                />
+              </div>
               {/* content */}
               <div className="vertical-scrollbar relative scrollbar-md h-full w-full overflow-hidden overflow-y-auto">
                 {["side-peek", "modal"].includes(peekMode) ? (

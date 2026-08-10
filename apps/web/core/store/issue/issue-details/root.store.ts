@@ -53,6 +53,8 @@ export type TPeekIssue = {
   isArchived?: boolean;
 };
 
+export type TPeekSide = "left" | "right";
+
 export type TIssueRelationModal = {
   issueId: string | null;
   relationType: TIssueRelationTypes | null;
@@ -85,6 +87,7 @@ export interface IIssueDetail
   // observables
   peekIssue: TPeekIssue | undefined;
   isPeekPinned: boolean;
+  peekSide: TPeekSide;
   relationKey: TIssueRelationTypes | null;
   issueLinkData: TIssueLink | null;
   issueCrudOperationState: TIssueCrudOperationState;
@@ -107,6 +110,7 @@ export interface IIssueDetail
   // actions
   setPeekIssue: (peekIssue: TPeekIssue | undefined) => void;
   setPeekPinned: (isPinned: boolean) => void;
+  setPeekSide: (side: TPeekSide) => void;
   setIssueLinkData: (issueLinkData: TIssueLink | null) => void;
   toggleCreateIssueModal: (value: boolean) => void;
   toggleIssueLinkModal: (value: boolean) => void;
@@ -140,6 +144,9 @@ export abstract class IssueDetail implements IIssueDetail {
   // observables
   peekIssue: TPeekIssue | undefined = undefined;
   isPeekPinned: boolean = false;
+  // Which screen edge the side-peek drawer docks to. Deliberately NOT reset
+  // when the drawer closes — it's a session-level placement preference.
+  peekSide: TPeekSide = "right";
   relationKey: TIssueRelationTypes | null = null;
   issueLinkData: TIssueLink | null = null;
   issueCrudOperationState: TIssueCrudOperationState = {
@@ -185,6 +192,7 @@ export abstract class IssueDetail implements IIssueDetail {
       // observables
       peekIssue: observable,
       isPeekPinned: observable.ref,
+      peekSide: observable.ref,
       relationKey: observable,
       issueLinkData: observable,
       issueCrudOperationState: observable,
@@ -205,6 +213,7 @@ export abstract class IssueDetail implements IIssueDetail {
       // action
       setPeekIssue: action,
       setPeekPinned: action,
+      setPeekSide: action,
       setIssueLinkData: action,
       toggleCreateIssueModal: action,
       toggleIssueLinkModal: action,
@@ -276,6 +285,7 @@ export abstract class IssueDetail implements IIssueDetail {
     if (!peekIssue) this.isPeekPinned = false;
   };
   setPeekPinned = (isPinned: boolean) => (this.isPeekPinned = isPinned);
+  setPeekSide = (side: TPeekSide) => (this.peekSide = side);
   toggleCreateIssueModal = (value: boolean) => (this.isCreateIssueModalOpen = value);
   toggleIssueLinkModal = (value: boolean) => (this.isIssueLinkModalOpen = value);
   toggleParentIssueModal = (issueId: string | null) => (this.isParentIssueModalOpen = issueId);
