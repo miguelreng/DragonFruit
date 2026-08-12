@@ -44,6 +44,11 @@ PAGE_DESCRIPTION_ASSET_MIME_TYPES = [
 def get_allowed_asset_mime_types(entity_type):
     if entity_type == FileAsset.EntityTypeContext.PAGE_DESCRIPTION:
         return PAGE_DESCRIPTION_ASSET_MIME_TYPES
+    if entity_type == FileAsset.EntityTypeContext.COMMENT_DESCRIPTION:
+        # Comments accept the same file types as work-item attachments so
+        # files can be attached inline; "image/jpg" is a legacy alias the
+        # editor still sends for pasted images.
+        return [*settings.ATTACHMENT_MIME_TYPES, "image/jpg"]
     return IMAGE_ASSET_MIME_TYPES
 
 

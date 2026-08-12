@@ -83,13 +83,16 @@ export const CommentCreate = observer(function CommentCreate(props: TCommentCrea
       const payload: Partial<TIssueComment> = parentId ? { ...formData, parent: parentId } : formData;
       const comment = await activityOperations.createComment(payload);
       if (comment?.id) onSubmitCallback?.(comment.id);
-      if (uploadedAssetIds.length > 0) {
+      if (comment?.id && uploadedAssetIds.length > 0) {
+        // The bulk endpoint validates the entity id against the asset's
+        // entity type — COMMENT_DESCRIPTION assets must be linked to the
+        // newly created comment, not the parent work item.
         if (projectId) {
-          await fileService.updateBulkProjectAssetsUploadStatus(workspaceSlug, projectId.toString(), entityId, {
+          await fileService.updateBulkProjectAssetsUploadStatus(workspaceSlug, projectId.toString(), comment.id, {
             asset_ids: uploadedAssetIds,
           });
         } else {
-          await fileService.updateBulkWorkspaceAssetsUploadStatus(workspaceSlug, entityId, {
+          await fileService.updateBulkWorkspaceAssetsUploadStatus(workspaceSlug, comment.id, {
             asset_ids: uploadedAssetIds,
           });
         }
