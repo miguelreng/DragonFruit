@@ -5,6 +5,7 @@
  */
 
 import React from "react";
+import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
@@ -20,12 +21,14 @@ import { CustomMenu } from "@plane/ui";
 import { ExistingIssuesListModal } from "@/components/core/modals/existing-issues-list-modal";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
 // constants
+import { useProjectState } from "@/hooks/store/use-project-state";
 import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { CreateUpdateEpicModal } from "@/plane-web/components/epics/epic-modal";
 // types
 // DragonFruit-web
 import { WorkFlowGroupTree } from "@/plane-web/components/workflow";
 import { getStateGroupThemeFromHeaderTitle } from "../../utils";
+import { KANBAN_STATE_COLUMN_DRAG_TYPE, useKanbanStateColumnsEditable } from "../state-columns";
 
 interface IHeaderGroupByCard {
   sub_group_by: TIssueGroupByOptions | undefined;
@@ -62,10 +65,68 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
   // states
   const [isOpen, setIsOpen] = React.useState(false);
   const [openExistingIssueListModal, setOpenExistingIssueListModal] = React.useState(false);
+  const [isRenaming, setIsRenaming] = React.useState(false);
+  const [draftName, setDraftName] = React.useState(title);
+  // refs
+  const pillRef = React.useRef<HTMLDivElement | null>(null);
+  const isRenamingRef = React.useRef(false);
   // hooks
   const storeType = useIssueStoreType();
+  const { updateState } = useProjectState();
+  const isStateColumnEditable = useKanbanStateColumnsEditable(group_by);
   // router
   const { workspaceSlug, projectId, moduleId, cycleId } = useParams();
+
+  // Keep the rename draft in sync when the state is renamed elsewhere.
+  React.useEffect(() => {
+    if (!isRenamingRef.current) setDraftName(title);
+  }, [title]);
+
+  // State columns can be dragged by their header pill to reorder the board.
+  // Only wired on the plain kanban (not swimlanes) — the column wrapper in
+  // default.tsx carries the matching drop targets.
+  React.useEffect(() => {
+    const element = pillRef.current;
+    if (!element || !isStateColumnEditable || sub_group_by !== null) return;
+    return draggable({
+      element,
+      canDrag: () => !isRenamingRef.current,
+      getInitialData: () => ({ type: KANBAN_STATE_COLUMN_DRAG_TYPE, stateId: column_id }),
+    });
+  }, [isStateColumnEditable, sub_group_by, column_id]);
+
+  const startRenaming = () => {
+    if (!isStateColumnEditable || verticalAlignPosition) return;
+    setDraftName(title);
+    isRenamingRef.current = true;
+    setIsRenaming(true);
+  };
+
+  const commitRename = async () => {
+    isRenamingRef.current = false;
+    setIsRenaming(false);
+    const trimmedName = draftName.trim();
+    if (!trimmedName || trimmedName === title || !workspaceSlug || !projectId) {
+      setDraftName(title);
+      return;
+    }
+    try {
+      await updateState(workspaceSlug.toString(), projectId.toString(), column_id, { name: trimmedName });
+    } catch {
+      setDraftName(title);
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: "Error!",
+        message: "The column could not be renamed. Please try again.",
+      });
+    }
+  };
+
+  const cancelRename = () => {
+    isRenamingRef.current = false;
+    setIsRenaming(false);
+    setDraftName(title);
+  };
 
   const renderExistingIssueModal = moduleId || cycleId;
   const ExistingIssuesListModalPayload = moduleId ? { module: moduleId.toString() } : { cycle: true };
@@ -132,9 +193,10 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           neutral `bg-layer-1`.
         */}
         <div
+          ref={pillRef}
           className={`inline-flex min-w-0 items-center gap-1.5 rounded-lg bg-layer-1 ${
             verticalAlignPosition ? `flex-col px-1 py-1.5` : `flex-row overflow-hidden px-2 py-0.5`
-          }`}
+          } ${isStateColumnEditable && sub_group_by === null && !isRenaming ? "cursor-grab" : ""}`}
           style={{
             ...(stateGroupTheme
               ? {
@@ -160,14 +222,32 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
               <Circle width={14} strokeWidth={2} />
             )}
           </div>
-          <div
-            className={`line-clamp-1 inline-block truncate overflow-hidden text-11 font-semibold uppercase ${
-              verticalAlignPosition ? `max-h-[400px] vertical-lr` : ``
-            }`}
-            style={stateGroupTheme ? { color: stateGroupTheme.color } : undefined}
-          >
-            {title}
-          </div>
+          {isRenaming ? (
+            <input
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onBlur={() => void commitRename()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") cancelRename();
+              }}
+              onFocus={(e) => e.currentTarget.select()}
+              className="w-full min-w-0 bg-transparent text-11 font-semibold uppercase outline-none"
+              style={stateGroupTheme ? { color: stateGroupTheme.color } : undefined}
+              maxLength={100}
+              autoFocus
+            />
+          ) : (
+            <div
+              className={`line-clamp-1 inline-block truncate overflow-hidden text-11 font-semibold uppercase ${
+                verticalAlignPosition ? `max-h-[400px] vertical-lr` : ``
+              }`}
+              style={stateGroupTheme ? { color: stateGroupTheme.color } : undefined}
+              onDoubleClick={startRenaming}
+            >
+              {title}
+            </div>
+          )}
           <div
             className={`flex-shrink-0 text-11 font-semibold ${verticalAlignPosition ? `pt-0.5` : ``}`}
             style={stateGroupTheme ? { color: stateGroupTheme.color } : undefined}

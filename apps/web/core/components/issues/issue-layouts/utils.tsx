@@ -247,8 +247,13 @@ const getStateColumns = ({ projectId }: TGetColumns): IGroupByColumn[] | undefin
   const { getProjectStates, projectStates } = store.state;
   const _states = projectId ? getProjectStates(projectId) : projectStates;
   if (!_states) return;
+  // Group/column order follows the state sequence alone (not group-first
+  // like sortStates) so kanban columns can be freely reordered by drag —
+  // default sequences already follow the group order, so untouched
+  // projects keep the familiar Backlog → … → Cancelled layout.
+  const orderedStates = [..._states].sort((a, b) => a.sequence - b.sequence);
   // map project states to group by columns
-  return _states.map((state) => ({
+  return orderedStates.map((state) => ({
     id: state.id,
     name: state.name,
     icon: (

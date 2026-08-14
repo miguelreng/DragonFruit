@@ -33,10 +33,11 @@ import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 import { useWorkFlowFDragNDrop } from "@/plane-web/components/workflow";
 import type { TRenderQuickActions } from "../list/list-view-types";
 import type { GroupDropLocation } from "../utils";
-import { getGroupByColumns, isWorkspaceLevel, getApproximateCardHeight } from "../utils";
+import { getGroupByColumns, isWorkspaceLevel, getApproximateCardHeight, getStateGroupThemeFromHeaderTitle } from "../utils";
 // components
 import { HeaderGroupByCard } from "./headers/group-by-card";
 import { KanbanGroup } from "./kanban-group";
+import { KanbanAddStateColumn, KanbanStateColumnWrapper, useKanbanStateColumnsEditable } from "./state-columns";
 
 export interface IKanBan {
   issuesMap: IIssueMap;
@@ -113,11 +114,21 @@ export const KanBan = observer(function KanBan(props: IKanBan) {
   const getStateColor = (columnId: string): string | undefined => {
     if (group_by !== "state") return undefined;
     const state = projectState.projectStates?.find((s) => s.id === columnId);
-    const groupKey = state?.group as keyof typeof STATE_GROUPS | undefined;
-    return groupKey ? STATE_GROUPS[groupKey]?.color : undefined;
+    if (!state) return undefined;
+    // Default-named states keep their group tint (mirrors the header pill's
+    // name-based theming); custom-named columns use their own state color.
+    const groupKey = state.group as keyof typeof STATE_GROUPS | undefined;
+    const groupColor = groupKey ? STATE_GROUPS[groupKey]?.color : undefined;
+    if (getStateGroupThemeFromHeaderTitle(group_by, state.name)) return groupColor;
+    return state.color || groupColor;
   };
   // derived values
   const isDragDisabled = !issueKanBanView?.getCanUserDragDrop(group_by, sub_group_by);
+  // State-grouped boards let project admins manage columns inline: rename
+  // (header pill), add (trailing composer), and drag-reorder (pill drag +
+  // column drop targets). Plain kanban only — swimlane rows share this
+  // component but keep static columns.
+  const isStateColumnsEditable = useKanbanStateColumnsEditable(group_by) && sub_group_by === null;
 
   const { getIsWorkflowWorkItemCreationDisabled } = useWorkFlowFDragNDrop(group_by, sub_group_by);
 
@@ -175,8 +186,10 @@ export const KanBan = observer(function KanBan(props: IKanBan) {
 
           const stateColor = getStateColor(subList.id);
           return (
-            <div
+            <KanbanStateColumnWrapper
               key={subList.id}
+              stateId={subList.id}
+              isEditable={isStateColumnsEditable}
               className={`group relative flex flex-shrink-0 flex-col rounded-xl ${
                 groupByVisibilityToggle.showIssues ? `w-[350px] p-2` : ``
               } `}
@@ -255,9 +268,10 @@ export const KanBan = observer(function KanBan(props: IKanBan) {
                   />
                 </RenderIfVisible>
               )}
-            </div>
+            </KanbanStateColumnWrapper>
           );
         })}
+      {isStateColumnsEditable && <KanbanAddStateColumn />}
     </ContentWrapper>
   );
 });
