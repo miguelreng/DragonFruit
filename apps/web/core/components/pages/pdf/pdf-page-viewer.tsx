@@ -4,27 +4,17 @@
  * See the LICENSE file for details.
  */
 
-import { useCallback, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import type { OnProgressParameters, PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 // Vite's `?url` transform provides the default string export at build time.
 // oxlint-disable-next-line import/default
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  FileText,
-  Loader2,
-  Minus,
-  Plus,
-  RotateCcw,
-} from "@/components/icons/lucide-shim";
-import { PageEditorHeaderRoot } from "@/components/pages/editor/header";
-import { PageEditorTitle } from "@/components/pages/editor/title";
+import { FileText } from "@/components/icons/lucide-shim";
+import { LogoSpinner } from "@/components/common/logo-spinner";
 import type { TPageInstance } from "@/store/pages/base-page";
-import { cn, getEditorAssetInlineSrc, getEditorAssetPdfContentSrc } from "@plane/utils";
-import { clampPdfScale, getPdfFitWidthScale, PDF_MAX_SCALE, PDF_MIN_SCALE, PDF_SCALE_STEP } from "./pdf-viewer-utils";
+import { cn, getEditorAssetPdfContentSrc } from "@plane/utils";
+import { getPdfFitWidthScale } from "./pdf-viewer-utils";
 
 type Props = {
   page: TPageInstance;
@@ -38,8 +28,6 @@ type PdfAsset = {
   name: string;
 };
 
-type ZoomMode = "fit-width" | "custom";
-
 const readPdfAsset = (viewProps: Record<string, unknown> | undefined): PdfAsset | undefined => {
   const rawPdf = viewProps?.pdf;
   if (!rawPdf || typeof rawPdf !== "object") return undefined;
@@ -52,56 +40,113 @@ const readPdfAsset = (viewProps: Record<string, unknown> | undefined): PdfAsset 
   };
 };
 
-type ToolbarButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  active?: boolean;
-  label: string;
-  children: ReactNode;
+// Cap the rendered page width so wide viewports get a centered reading column
+// instead of an edge-to-edge zoomed-in page.
+const PDF_MAX_PAGE_WIDTH = 720;
+
+type PdfPageCanvasProps = {
+  documentProxy: PDFDocumentProxy;
+  pageNumber: number;
+  pageCount: number;
+  containerWidth: number;
 };
 
-function ToolbarButton({ active = false, label, children, className, ...props }: ToolbarButtonProps) {
+function PdfPageCanvas({ documentProxy, pageNumber, pageCount, containerWidth }: PdfPageCanvasProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isNearViewport, setIsNearViewport] = useState(pageNumber <= 2);
+  const [isRendered, setIsRendered] = useState(false);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const intersectionObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setIsNearViewport(true);
+      },
+      { rootMargin: "1000px 0px" }
+    );
+    intersectionObserver.observe(wrapper);
+    return () => intersectionObserver.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let renderTask: RenderTask | undefined;
+    let cancelled = false;
+
+    if (!isNearViewport || containerWidth <= 0) return;
+
+    const renderPage = async () => {
+      try {
+        const pdfPage = await documentProxy.getPage(pageNumber);
+        if (cancelled || !canvasRef.current) return;
+
+        const baseViewport = pdfPage.getViewport({ scale: 1 });
+        const scale = getPdfFitWidthScale(Math.min(containerWidth, PDF_MAX_PAGE_WIDTH + 48), baseViewport.width);
+        const logicalViewport = pdfPage.getViewport({ scale });
+        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+        const renderViewport = pdfPage.getViewport({ scale: scale * outputScale });
+        const canvas = canvasRef.current;
+        canvas.width = Math.floor(renderViewport.width);
+        canvas.height = Math.floor(renderViewport.height);
+        canvas.style.width = `${Math.floor(logicalViewport.width)}px`;
+        canvas.style.height = `${Math.floor(logicalViewport.height)}px`;
+
+        renderTask = pdfPage.render({
+          canvas,
+          viewport: renderViewport,
+          background: "rgb(255, 255, 255)",
+        });
+        await renderTask.promise;
+        if (!cancelled) setIsRendered(true);
+      } catch (renderError) {
+        if (cancelled || (renderError as { name?: string }).name === "RenderingCancelledException") return;
+        console.error("Failed to render PDF page", renderError);
+      }
+    };
+
+    void renderPage();
+
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+    };
+  }, [containerWidth, documentProxy, isNearViewport, pageNumber]);
+
+  // Approximate an A4-ish aspect ratio until the real page dimensions are known,
+  // so the scroller has stable-ish extents for lazy rendering.
+  const placeholderWidth = Math.max(0, Math.min(containerWidth, PDF_MAX_PAGE_WIDTH + 48) - 48);
+  const placeholderHeight = Math.max(120, Math.floor(placeholderWidth * 1.294));
+
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      className={cn(
-        "grid size-7 shrink-0 place-items-center rounded-lg text-secondary transition-colors",
-        "hover:bg-layer-2 hover:text-primary disabled:pointer-events-none disabled:opacity-35",
-        active && "bg-accent-primary/10 text-accent-primary",
-        className
+    <div ref={wrapperRef} style={!isRendered ? { minHeight: placeholderHeight } : undefined}>
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label={`Page ${pageNumber} of ${pageCount}`}
+        className={cn("block bg-white shadow-raised-200 ring-1 ring-black/5", !isRendered && "hidden")}
+      />
+      {!isRendered && (
+        <div className="bg-white/50 ring-1 ring-black/5" style={{ height: placeholderHeight, width: placeholderWidth }} />
       )}
-      {...props}
-    >
-      {children}
-    </button>
+    </div>
   );
 }
 
 export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, workspaceSlug }: Props) {
   const pdf = readPdfAsset(page.view_props);
   const assetProjectId = pdf?.projectId ?? projectId;
-  const inlineSrc =
-    pdf && assetProjectId
-      ? getEditorAssetInlineSrc({ assetId: pdf.assetId, projectId: assetProjectId, workspaceSlug })
-      : undefined;
   const contentSrc =
     pdf && assetProjectId
       ? getEditorAssetPdfContentSrc({ assetId: pdf.assetId, projectId: assetProjectId, workspaceSlug })
       : undefined;
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const [documentProxy, setDocumentProxy] = useState<PDFDocumentProxy | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [zoomMode, setZoomMode] = useState<ZoomMode>("fit-width");
-  const [customScale, setCustomScale] = useState(1);
-  const [renderedScale, setRenderedScale] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  const [loadProgress, setLoadProgress] = useState<number | null>(null);
   const [isDocumentLoading, setIsDocumentLoading] = useState(Boolean(contentSrc));
-  const [isPageRendering, setIsPageRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -126,9 +171,7 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
 
     setDocumentProxy(null);
     setPageCount(0);
-    setPageNumber(1);
     setError(null);
-    setLoadProgress(null);
     setIsDocumentLoading(Boolean(contentSrc));
 
     if (!contentSrc) return;
@@ -143,9 +186,6 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
           disableRange: true,
           disableStream: true,
         });
-        loadingTask.onProgress = ({ loaded, total }: OnProgressParameters) => {
-          if (!cancelled && total > 0) setLoadProgress(Math.round((loaded / total) * 100));
-        };
         const loadedDocument = await loadingTask.promise;
         if (cancelled) {
           await loadedDocument.destroy();
@@ -170,73 +210,6 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
     };
   }, [contentSrc, reloadKey]);
 
-  useEffect(() => {
-    let renderTask: RenderTask | undefined;
-    let cancelled = false;
-
-    if (!documentProxy || !canvasRef.current || containerWidth <= 0) return;
-
-    const renderPage = async () => {
-      setIsPageRendering(true);
-      try {
-        const pdfPage = await documentProxy.getPage(pageNumber);
-        if (cancelled || !canvasRef.current) return;
-
-        const baseViewport = pdfPage.getViewport({ scale: 1, rotation });
-        const nextScale =
-          zoomMode === "fit-width"
-            ? getPdfFitWidthScale(containerWidth, baseViewport.width)
-            : clampPdfScale(customScale);
-        const logicalViewport = pdfPage.getViewport({ scale: nextScale, rotation });
-        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
-        const renderViewport = pdfPage.getViewport({ scale: nextScale * outputScale, rotation });
-        const canvas = canvasRef.current;
-        canvas.width = Math.floor(renderViewport.width);
-        canvas.height = Math.floor(renderViewport.height);
-        canvas.style.width = `${Math.floor(logicalViewport.width)}px`;
-        canvas.style.height = `${Math.floor(logicalViewport.height)}px`;
-
-        renderTask = pdfPage.render({
-          canvas,
-          viewport: renderViewport,
-          background: "rgb(255, 255, 255)",
-        });
-        await renderTask.promise;
-        if (!cancelled) setRenderedScale(nextScale);
-      } catch (renderError) {
-        if (cancelled || (renderError as { name?: string }).name === "RenderingCancelledException") return;
-        console.error("Failed to render PDF page", renderError);
-        setError("This page couldn’t be rendered. Try reloading the PDF.");
-      } finally {
-        if (!cancelled) setIsPageRendering(false);
-      }
-    };
-
-    void renderPage();
-
-    return () => {
-      cancelled = true;
-      renderTask?.cancel();
-    };
-  }, [containerWidth, customScale, documentProxy, pageNumber, rotation, zoomMode]);
-
-  const changeZoom = useCallback(
-    (direction: -1 | 1) => {
-      const nextScale = clampPdfScale(renderedScale + direction * PDF_SCALE_STEP);
-      setCustomScale(nextScale);
-      setZoomMode("custom");
-    },
-    [renderedScale]
-  );
-
-  const goToPage = useCallback(
-    (nextPage: number) => {
-      setPageNumber(Math.min(pageCount, Math.max(1, nextPage)));
-      viewerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    },
-    [pageCount]
-  );
-
   const retry = () => {
     setError(null);
     setReloadKey((current) => current + 1);
@@ -247,97 +220,6 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-canvas">
-      <div className="mx-auto w-full max-w-[1120px] px-page-x pt-6">
-        <div className="page-header-container group/page-header">
-          <PageEditorHeaderRoot page={page} projectId={projectId} />
-          <PageEditorTitle
-            editorRef={null}
-            readOnly={!page.isContentEditable}
-            title={page.name}
-            updateTitle={page.updateTitle}
-          />
-        </div>
-      </div>
-
-      {inlineSrc && (
-        <div className="mt-3 shrink-0 border-y border-subtle bg-surface-1">
-          <div className="mx-auto flex h-11 w-full max-w-[1120px] items-center gap-2 px-3 sm:px-page-x">
-            <div className="hidden min-w-0 flex-1 items-center gap-2 sm:flex">
-              <FileText className="size-4 shrink-0 text-tertiary" />
-              <span className="truncate text-12 font-medium text-secondary">{pdf?.name ?? "PDF"}</span>
-            </div>
-
-            <div className="flex flex-1 items-center justify-start gap-0.5 sm:flex-none sm:justify-center">
-              <ToolbarButton
-                label="Previous page"
-                disabled={!documentProxy || pageNumber <= 1}
-                onClick={() => goToPage(pageNumber - 1)}
-              >
-                <ChevronLeft className="size-4" />
-              </ToolbarButton>
-              <span className="min-w-[70px] text-center text-11 text-secondary tabular-nums">
-                {pageCount ? `${pageNumber} / ${pageCount}` : "— / —"}
-              </span>
-              <ToolbarButton
-                label="Next page"
-                disabled={!documentProxy || pageNumber >= pageCount}
-                onClick={() => goToPage(pageNumber + 1)}
-              >
-                <ChevronRight className="size-4" />
-              </ToolbarButton>
-            </div>
-
-            <div className="flex flex-1 items-center justify-end gap-0.5">
-              <ToolbarButton
-                label="Zoom out"
-                disabled={!documentProxy || renderedScale <= PDF_MIN_SCALE}
-                onClick={() => changeZoom(-1)}
-              >
-                <Minus className="size-4" />
-              </ToolbarButton>
-              <button
-                type="button"
-                title="Fit page width"
-                aria-label="Fit page width"
-                onClick={() => setZoomMode("fit-width")}
-                disabled={!documentProxy}
-                className={cn(
-                  "h-7 min-w-[52px] rounded-lg px-1.5 text-11 text-secondary tabular-nums transition-colors",
-                  "hover:bg-layer-2 hover:text-primary disabled:pointer-events-none disabled:opacity-35",
-                  zoomMode === "fit-width" && "bg-accent-primary/10 text-accent-primary"
-                )}
-              >
-                {Math.round(renderedScale * 100)}%
-              </button>
-              <ToolbarButton
-                label="Zoom in"
-                disabled={!documentProxy || renderedScale >= PDF_MAX_SCALE}
-                onClick={() => changeZoom(1)}
-              >
-                <Plus className="size-4" />
-              </ToolbarButton>
-              <span className="mx-1 h-4 w-px bg-[var(--border-color-subtle)]" aria-hidden="true" />
-              <ToolbarButton
-                label="Rotate clockwise"
-                disabled={!documentProxy}
-                onClick={() => setRotation((current) => (current + 90) % 360)}
-              >
-                <RotateCcw className="size-4 -scale-x-100" />
-              </ToolbarButton>
-              <a
-                href={inlineSrc}
-                download={pdf?.name}
-                aria-label="Download PDF"
-                title="Download PDF"
-                className="grid size-7 shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-2 hover:text-primary"
-              >
-                <Download className="size-4" />
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div
         ref={viewerRef}
         className="relative flex min-h-0 flex-1 overflow-auto bg-layer-1 [scrollbar-gutter:stable_both-edges]"
@@ -364,24 +246,20 @@ export const PdfPageViewer = observer(function PdfPageViewer({ page, projectId, 
             )}
           </div>
         ) : (
-          <div className="relative mx-auto min-h-full p-6 sm:p-8">
-            <canvas
-              ref={canvasRef}
-              role="img"
-              aria-label={`Page ${pageNumber} of ${pageCount || 1}`}
-              className={cn(
-                "block bg-white shadow-raised-200 ring-1 ring-black/5 transition-opacity",
-                (isDocumentLoading || isPageRendering) && "opacity-40"
-              )}
-            />
-            {(isDocumentLoading || isPageRendering) && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="flex items-center gap-2 rounded-xl border border-subtle bg-surface-1/95 px-3 py-2 text-12 text-secondary shadow-raised-100 backdrop-blur-sm">
-                  <Loader2 className="size-4 animate-spin text-accent-primary" />
-                  <span>
-                    {isDocumentLoading ? `Opening PDF${loadProgress ? ` · ${loadProgress}%` : ""}` : "Rendering page"}
-                  </span>
-                </div>
+          <div className="relative mx-auto flex min-h-full flex-col items-center gap-6 px-6 py-6 sm:py-8">
+            {documentProxy &&
+              Array.from({ length: pageCount }, (_, index) => (
+                <PdfPageCanvas
+                  key={index + 1}
+                  documentProxy={documentProxy}
+                  pageNumber={index + 1}
+                  pageCount={pageCount}
+                  containerWidth={containerWidth}
+                />
+              ))}
+            {isDocumentLoading && (
+              <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                <LogoSpinner />
               </div>
             )}
           </div>
