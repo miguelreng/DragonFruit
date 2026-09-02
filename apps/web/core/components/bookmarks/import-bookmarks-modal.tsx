@@ -11,6 +11,7 @@ import type { TProjectBookmarkBulkImportResult, TProjectBookmarkCreatePayload } 
 import { EModalWidth, ModalCore } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { type CsvImportResult, mapCsvToBookmarks, parseCsv } from "./csv";
+import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   isOpen: boolean;
@@ -110,14 +111,13 @@ export function ImportBookmarksModal(props: Props) {
               imported when present.
             </p>
           </div>
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={CancelCircle}
             onClick={handleClose}
-            className="grid size-7 shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
             aria-label="Close import modal"
-          >
-            <CancelCircle className="size-4" color="currentColor" size="1em" />
-          </button>
+          />
         </div>
         <div className="flex flex-col gap-3 px-5 py-4">
           {showProjectSelect && (

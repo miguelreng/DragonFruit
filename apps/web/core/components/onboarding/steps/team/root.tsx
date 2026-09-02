@@ -26,7 +26,8 @@ import { Button } from "@plane/propel/button";
 import { PlusIcon, CheckIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EOnboardingSteps } from "@plane/types";
-import { Input, Spinner } from "@plane/ui";
+import { Input } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // services

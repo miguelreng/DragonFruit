@@ -12,8 +12,7 @@ import { generateWorkItemLink } from "@plane/utils";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
-// plane web components
-import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
+import { useProjectState } from "@/hooks/store/use-project-state";
 
 type TIssueParentSiblingItem = {
   workspaceSlug: string;
@@ -24,6 +23,7 @@ export const IssueParentSiblingItem = observer(function IssueParentSiblingItem(p
   const { workspaceSlug, issueId } = props;
   // hooks
   const { getProjectById } = useProject();
+  const { getProjectStates } = useProjectState();
   const {
     issue: { getIssueById },
   } = useIssueDetail();
@@ -33,6 +33,9 @@ export const IssueParentSiblingItem = observer(function IssueParentSiblingItem(p
   if (!issueDetail) return <></>;
 
   const projectDetails = (issueDetail.project_id && getProjectById(issueDetail.project_id)) || undefined;
+  const stateColor = getProjectStates(issueDetail.project_id)?.find(
+    (state) => state?.id === issueDetail.state_id
+  )?.color;
 
   const workItemLink = generateWorkItemLink({
     workspaceSlug,
@@ -43,23 +46,14 @@ export const IssueParentSiblingItem = observer(function IssueParentSiblingItem(p
   });
 
   return (
-    <>
-      <CustomMenu.MenuItem
-        key={issueDetail.id}
-        onClick={() => window.open(workItemLink, "_blank", "noopener,noreferrer")}
-      >
-        <div className="flex items-center gap-2 py-0.5">
-          {issueDetail.project_id && projectDetails?.identifier && (
-            <IssueIdentifier
-              projectId={issueDetail.project_id}
-              issueTypeId={issueDetail.type_id}
-              projectIdentifier={projectDetails?.identifier}
-              issueSequenceId={issueDetail.sequence_id}
-              size="xs"
-            />
-          )}
-        </div>
-      </CustomMenu.MenuItem>
-    </>
+    <CustomMenu.MenuItem
+      key={issueDetail.id}
+      onClick={() => window.open(workItemLink, "_blank", "noopener,noreferrer")}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: stateColor }} aria-hidden="true" />
+        <span className="truncate text-secondary">{issueDetail.name}</span>
+      </div>
+    </CustomMenu.MenuItem>
   );
 });

@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, X } from "@/components/icons/lucide-shim";
+import { IconButton } from "@plane/propel/icon-button";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -89,14 +90,13 @@ export function MobileAppInstallPrompt() {
         >
           Install
         </button>
-        <button
-          type="button"
-          className="grid size-8 shrink-0 place-items-center rounded-lg text-secondary hover:bg-surface-2 hover:text-primary"
+        <IconButton
+          variant="ghost"
+          size="xl"
+          icon={X}
           onClick={dismiss}
           aria-label="Dismiss install prompt"
-        >
-          <X width={16} height={16} />
-        </button>
+        />
       </div>
     </div>
   );

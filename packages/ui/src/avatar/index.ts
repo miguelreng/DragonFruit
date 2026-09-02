@@ -4,5 +4,6 @@
  * See the LICENSE file for details.
  */
 
+export type { TAvatarSize } from "./helper";
 export * from "./avatar-group";
 export * from "./avatar";

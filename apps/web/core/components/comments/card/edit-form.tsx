@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { observer } from "mobx-react";
 import { useForm } from "react-hook-form";
 import type { EditorRefApi } from "@plane/editor";
@@ -116,32 +117,28 @@ export const CommentCardEditForm = observer(function CommentCardEditForm(props: 
         <CommentAttachmentMenu activityOperations={activityOperations} commentId={comment.id} editorRef={editorRef} />
         <div className="flex items-center gap-2">
           {!isEmpty && (
-            <button
-              type="button"
+            <IconButton
+              variant="success-outline"
+              size="lg"
+              icon={CheckIcon}
+              aria-label="Save comment"
+              iconClassName="text-success-primary"
               onClick={handleSubmit(onEnter)}
               disabled={isDisabled}
-              className={cn(
-                "group grid size-7 place-items-center rounded-lg border border-success-subtle bg-success-subtle shadow-raised-100 duration-300",
-                isDisabled ? "" : "hover:bg-success-subtle-1"
-              )}
-            >
-              <CheckIcon className="size-4 text-success-primary" />
-            </button>
+            />
           )}
-          <button
-            type="button"
+          <IconButton
+            variant="error-outline"
+            size="lg"
+            icon={CloseIcon}
+            aria-label="Discard edit"
+            iconClassName="text-danger-primary"
             disabled={isSubmitting}
-            className={cn(
-              "group grid size-7 place-items-center rounded-lg border border-danger-subtle bg-danger-subtle shadow-raised-100 duration-300",
-              isSubmitting ? "" : "hover:bg-danger-subtle-hover"
-            )}
             onClick={() => {
               setIsEditing(false);
               editorRef.current?.setEditorValue(comment.comment_html ?? "<p></p>");
             }}
-          >
-            <CloseIcon className="size-4 text-danger-primary" />
-          </button>
+          />
         </div>
       </div>
     </form>

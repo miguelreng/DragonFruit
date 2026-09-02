@@ -37,13 +37,13 @@ export function ProjectTemplateSelect(props: TProjectTemplateSelect) {
     <div className="flex items-center gap-3">
       {/* span, not label — there's no native form control to point
           `htmlFor` at (the trigger is a non-input <div> that
-          CustomMenu wraps in its own <button>). Visual label only. */}
+          CustomMenu wraps in its own <button type="button">). Visual label only. */}
       <span className="shrink-0 text-12 text-tertiary">Start from</span>
       <CustomMenu
         disabled={disabled}
         customButton={
           // div, not button — CustomMenu wraps customButton in its
-          // own <button> internally. Avoids nested-button HTML.
+          // own <button type="button"> internally. Avoids nested-button HTML.
           <div className="flex w-full min-w-[220px] cursor-pointer items-center justify-between rounded-lg border-[0.5px] border-subtle bg-layer-1 px-3 py-2 text-13 text-primary hover:bg-layer-2">
             <span className="truncate">{triggerLabel}</span>
             <ChevronDown className="size-3.5 text-tertiary" />

@@ -15,6 +15,7 @@ import { Plus, Trash2, X } from "@/components/icons/lucide-shim";
 // services
 import { ProjectTemplateService } from "@/services/project/project-template.service";
 import type { TProjectTemplate, TProjectTemplateInitialTask } from "@/services/project/project-template.service";
+import { IconButton } from "@plane/propel/icon-button";
 
 const projectTemplateService = new ProjectTemplateService();
 
@@ -243,14 +244,13 @@ export function ProjectTemplateModal(props: Props) {
                         </option>
                       ))}
                     </select>
-                    <button
-                      type="button"
+                    <IconButton
+                      variant="error-outline"
+                      size="lg"
+                      icon={Trash2}
                       onClick={() => handleRemoveTask(row._key)}
-                      className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2 hover:text-danger-primary"
                       aria-label="Remove task"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
+                    />
                   </li>
                 ))}
                 <li>

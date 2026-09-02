@@ -14,6 +14,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import useSWR from "swr";
 import {
   Calendar,
+  CheckSquare,
   Checklist,
   Document,
   Download,
@@ -70,6 +71,7 @@ import type {
   TProjectEntityData,
 } from "@plane/types";
 import { DeleteProjectModal } from "@/components/project/delete-project-modal";
+import { IconButton } from "@plane/propel/icon-button";
 
 const workspaceService = new WorkspaceService();
 
@@ -205,6 +207,8 @@ const getFavoriteRailIcon = (favorite: IFavorite, projectLogoProps: TLogoProps |
     }
     case "page":
       return favorite.entity_data?.page_type === "folder" ? railSolarIconSet(Folder) : railSolarIconSet(Document);
+    case "issue":
+      return railSolarIconSet(CheckSquare);
     case "cycle":
       return railSolarIconSet(Calendar);
     case "module":
@@ -236,7 +240,7 @@ const getRecentVisitRailIcon = (visit: TActivityEntityData) => {
       return railSolarIconSet(Document);
     }
     case "issue":
-      return railSolarIconSet(Checklist);
+      return railSolarIconSet(CheckSquare);
     default:
       return railSolarIconSet(Folder);
   }
@@ -1258,14 +1262,13 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
               />
               {!isMobile && isRailExpanded && (
                 <AppSidebarTooltip tooltipContent="Collapse rail">
-                  <button
-                    type="button"
+                  <IconButton
+                    variant="ghost"
+                    size="xl"
+                    icon={Sidebar}
                     onClick={() => updateDisplayMode("icon_only")}
-                    className="grid size-8 shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-4 [&_svg]:text-current"
                     aria-label="Collapse app rail"
-                  >
-                    <Sidebar className="size-4" weight={RAIL_SOLAR_ICON_WEIGHT_ACTIVE} />
-                  </button>
+                  />
                 </AppSidebarTooltip>
               )}
             </div>
@@ -1374,17 +1377,16 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
                 action={
                   canCreateProject ? (
                     <AppSidebarTooltip tooltipContent={t("create_project")}>
-                      <button
-                        type="button"
+                      <IconButton
+                        variant="ghost"
+                        size="sm"
+                        icon={PlusIcon}
                         onClick={(event) => {
                           event.stopPropagation();
                           toggleCreateProjectModal(true);
                         }}
-                        className="grid size-5 flex-shrink-0 place-items-center rounded-lg text-icon-tertiary opacity-0 transition-opacity group-hover/category:opacity-100 hover:bg-layer-transparent-hover hover:text-icon-secondary focus:opacity-100 dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-3.5 [&_svg]:text-current"
                         aria-label={t("aria_labels.projects_sidebar.create_new_project")}
-                      >
-                        <PlusIcon />
-                      </button>
+                      />
                     </AppSidebarTooltip>
                   ) : null
                 }
@@ -1437,15 +1439,14 @@ export const AppRailRoot = observer((props: { isMobile?: boolean }) => {
             </button>
           ) : (
             <AppSidebarTooltip tooltipContent={t("sidebar.new_work_item")}>
-              <button
-                type="button"
+              <IconButton
+                variant="secondary"
+                size="xl"
+                icon={PlusIcon}
                 onClick={handleCreateTask}
                 disabled={isCreateTaskDisabled}
                 aria-label={t("sidebar.new_work_item")}
-                className="t-press grid size-8 place-items-center rounded-lg border border-subtle bg-layer-1 text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:text-current"
-              >
-                <PlusIcon />
-              </button>
+              />
             </AppSidebarTooltip>
           )}
         </div>

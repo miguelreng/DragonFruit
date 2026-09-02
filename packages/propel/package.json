@@ -7,7 +7,6 @@
   "exports": {
     "./accordion": "./dist/accordion/index.js",
     "./animated-counter": "./dist/animated-counter/index.js",
-    "./avatar": "./dist/avatar/index.js",
     "./badge": "./dist/badge/index.js",
     "./banner": "./dist/banner/index.js",
     "./button": "./dist/button/index.js",
@@ -20,7 +19,6 @@
     "./charts/radar-chart": "./dist/charts/radar-chart/index.js",
     "./charts/scatter-chart": "./dist/charts/scatter-chart/index.js",
     "./charts/tree-map": "./dist/charts/tree-map/index.js",
-    "./collapsible": "./dist/collapsible/index.js",
     "./combobox": "./dist/combobox/index.js",
     "./command": "./dist/command/index.js",
     "./context-menu": "./dist/context-menu/index.js",
@@ -31,12 +29,11 @@
     "./icon-button": "./dist/icon-button/index.js",
     "./icons": "./dist/icons/index.js",
     "./input": "./dist/input/index.js",
-    "./menu": "./dist/menu/index.js",
     "./pill": "./dist/pill/index.js",
     "./popover": "./dist/popover/index.js",
     "./portal": "./dist/portal/index.js",
     "./scrollarea": "./dist/scrollarea/index.js",
-    "./skeleton": "./dist/skeleton/index.js",
+    "./spinners": "./dist/spinners/index.js",
     "./switch": "./dist/switch/index.js",
     "./tab-navigation": "./dist/tab-navigation/index.js",
     "./table": "./dist/table/index.js",
@@ -57,9 +54,7 @@
     "check:format": "oxfmt --check .",
     "fix:lint": "oxlint --fix .",
     "fix:format": "oxfmt .",
-    "clean": "rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "clean": "rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-beta.3",
@@ -86,12 +81,8 @@
   "devDependencies": {
     "@plane/tailwind-config": "workspace:*",
     "@plane/typescript-config": "workspace:*",
-    "@storybook/addon-designs": "10.0.2",
-    "@storybook/addon-docs": "9.1.10",
-    "@storybook/react-vite": "9.1.10",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "storybook": "9.1.19",
     "tsdown": "catalog:",
     "typescript": "catalog:"
   }

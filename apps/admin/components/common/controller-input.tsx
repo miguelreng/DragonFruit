@@ -65,7 +65,7 @@ export function ControllerInput(props: Props) {
         />
         {type === "password" &&
           (showPassword ? (
-            <button
+            <button type="button"
               tabIndex={-1}
               className="absolute top-2.5 right-3 flex items-center justify-center text-placeholder"
               onClick={() => setShowPassword(false)}
@@ -73,7 +73,7 @@ export function ControllerInput(props: Props) {
               <EyeOff className="h-4 w-4" />
             </button>
           ) : (
-            <button
+            <button type="button"
               tabIndex={-1}
               className="absolute top-2.5 right-3 flex items-center justify-center text-placeholder"
               onClick={() => setShowPassword(true)}

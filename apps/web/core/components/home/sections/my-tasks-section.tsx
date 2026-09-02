@@ -38,6 +38,7 @@ import { TaskQuickAdd } from "./task-quick-add";
 import { MAX_TASK_DEPTH, TaskRow, type TaskRowOps } from "./task-row";
 import { MY_TASKS_TABLE_COLUMNS } from "./my-tasks-table";
 import { isOpenIssue, useMyTasksData } from "./use-my-tasks";
+import { IconButton } from "@plane/propel/icon-button";
 
 // How long the row stays visibly "checked" before it animates out of the list.
 const COMPLETE_ANIMATION_MS = 320;
@@ -878,7 +879,7 @@ export const MyTasksSection = observer(function MyTasksSection({
                                   type="button"
                                   aria-label={`Complete ${issue.name}`}
                                   onClick={() => handleComplete(issue)}
-                                  className="grid size-5 shrink-0 place-items-center rounded-full border border-subtle-1 text-transparent transition hover:border-accent-strong hover:text-accent-primary"
+                                  className="t-focus grid size-5 shrink-0 place-items-center rounded-full border border-subtle-1 text-transparent transition hover:border-accent-strong hover:text-accent-primary"
                                 >
                                   <span className="text-10">✓</span>
                                 </button>
@@ -956,14 +957,13 @@ export const MyTasksSection = observer(function MyTasksSection({
                                 {group.issues.length}
                               </span>
                             </button>
-                            <button
-                              type="button"
+                            <IconButton
+                              variant="ghost"
+                              size="sm"
+                              icon={Plus}
                               onClick={() => addTaskInProject(group.projectId)}
                               aria-label={`Add task to ${group.name}`}
-                              className="grid size-5 flex-shrink-0 place-items-center rounded-md text-tertiary opacity-0 transition group-hover/header:opacity-100 hover:bg-layer-1 hover:text-primary focus-visible:opacity-100"
-                            >
-                              <Plus className="size-3.5" />
-                            </button>
+                            />
                           </div>
                         </ProjectGroupDropZone>
                         <Collapse open={!isCollapsed}>

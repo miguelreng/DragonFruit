@@ -38,6 +38,7 @@ import type { IEditorPropsExtended, TEditorCommands, TExtensions } from "@/types
 // local imports
 import { TextAlignmentSelector } from "./alignment-selector";
 import { BubbleMenuLinkSelector } from "./link-selector";
+import { IconButton } from "@plane/propel/icon-button";
 
 type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children">;
 
@@ -211,22 +212,19 @@ export function EditorBubbleMenu(props: Props) {
           )}
           <div className="flex gap-0.5 px-2">
             {basicFormattingOptions.map((item) => (
-              <button
+              <IconButton
                 key={item.key}
-                type="button"
+                variant="ghost"
+                size="lg"
+                icon={item.icon}
+                aria-label={item.key}
+                aria-pressed={editorState[item.key]}
                 onClick={(e) => {
                   item.command();
                   e.stopPropagation();
                 }}
-                className={cn(
-                  "grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 active:bg-layer-1",
-                  {
-                    "bg-layer-1 text-primary": editorState[item.key],
-                  }
-                )}
-              >
-                <item.icon className="size-4" />
-              </button>
+                className={cn({ "bg-layer-1 text-primary": editorState[item.key] })}
+              />
             ))}
           </div>
           <TextAlignmentSelector editor={editor} editorState={editorState} />
@@ -296,8 +294,12 @@ export function EditorBubbleMenu(props: Props) {
             </button>
           </div>
           <div className="flex gap-0.5 px-2">
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="lg"
+              icon={MessageCircle}
+              aria-label="Comment on selection"
+              title="Comment"
               onClick={(e) => {
                 e.stopPropagation();
                 const { from, to } = editor.state.selection;
@@ -320,12 +322,7 @@ export function EditorBubbleMenu(props: Props) {
                   })
                 );
               }}
-              aria-label="Comment on selection"
-              title="Comment"
-              className="grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:bg-layer-1"
-            >
-              <MessageCircle className="size-4" />
-            </button>
+            />
           </div>
         </div>
       )}

@@ -266,7 +266,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
           <WorkFlowGroupTree groupBy={group_by} groupId={column_id} />
 
           {sub_group_by === null && (
-            <button
+            <button type="button"
               className="flex h-[20px] w-[20px] flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-layer-transparent transition-all hover:bg-layer-transparent-hover"
               onClick={() => handleCollapsedGroups("group_by", column_id)}
             >
@@ -304,7 +304,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
                 </CustomMenu.MenuItem>
               </CustomMenu>
             ) : (
-              <button
+              <button type="button"
                 className="flex h-[20px] w-[20px] flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-layer-transparent transition-all hover:bg-layer-transparent-hover"
                 onClick={() => {
                   setIsOpen(true);

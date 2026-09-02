@@ -7,7 +7,6 @@
 import { Fragment, useCallback, useRef, useState } from "react";
 import { isEmpty } from "lodash-es";
 import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
 import { CalendarCheck } from "@/components/icons/lucide-shim";
 // headless ui
 import { Tab } from "@headlessui/react";
@@ -22,12 +21,6 @@ import { EIssuesStoreType } from "@plane/types";
 import { Loader, Avatar } from "@plane/ui";
 import { cn, renderFormattedDate, renderFormattedDateWithoutYear, getFileURL } from "@plane/utils";
 // assets
-import darkAssigneeAsset from "@/app/assets/empty-state/active-cycle/assignee-dark.webp?url";
-import lightAssigneeAsset from "@/app/assets/empty-state/active-cycle/assignee-light.webp?url";
-import darkLabelAsset from "@/app/assets/empty-state/active-cycle/label-dark.webp?url";
-import lightLabelAsset from "@/app/assets/empty-state/active-cycle/label-light.webp?url";
-import darkPriorityAsset from "@/app/assets/empty-state/active-cycle/priority-dark.webp?url";
-import lightPriorityAsset from "@/app/assets/empty-state/active-cycle/priority-light.webp?url";
 import userImage from "@/app/assets/user.png?url";
 // components
 import { SingleProgressStats } from "@/components/core/sidebar/single-progress-stats";
@@ -61,13 +54,9 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
   // states
   const [issuesLoaderElement, setIssueLoaderElement] = useState<HTMLDivElement | null>(null);
   // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // derived values
-  const priorityResolvedPath = resolvedTheme === "light" ? lightPriorityAsset : darkPriorityAsset;
-  const assigneesResolvedPath = resolvedTheme === "light" ? lightAssigneeAsset : darkAssigneeAsset;
-  const labelsResolvedPath = resolvedTheme === "light" ? lightLabelAsset : darkLabelAsset;
 
   const currentValue = (tab: string | null) => {
     switch (tab) {
@@ -253,7 +242,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
                   <div className="flex h-full w-full items-center justify-center">
                     <SimpleEmptyState
                       title={t("active_cycle.empty_state.priority_issue.title")}
-                      assetPath={priorityResolvedPath}
+                      visual={{ type: "icon", name: "priority" }}
                     />
                   </div>
                 )
@@ -316,7 +305,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
                 <div className="flex h-full w-full items-center justify-center">
                   <SimpleEmptyState
                     title={t("active_cycle.empty_state.assignee.title")}
-                    assetPath={assigneesResolvedPath}
+                    visual={{ type: "icon", name: "members" }}
                   />
                 </div>
               )
@@ -360,7 +349,7 @@ export const ActiveCycleStats = observer(function ActiveCycleStats(props: Active
                 ))
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
-                  <SimpleEmptyState title={t("active_cycle.empty_state.label.title")} assetPath={labelsResolvedPath} />
+                  <SimpleEmptyState title={t("active_cycle.empty_state.label.title")} visual={{ type: "icon", name: "labels" }} />
                 </div>
               )
             ) : (

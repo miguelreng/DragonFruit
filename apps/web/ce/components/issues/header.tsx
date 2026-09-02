@@ -16,6 +16,7 @@ import {
 import { useLocalStorage } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
+import { getIconButtonStyling } from "@plane/propel/icon-button";
 import { Tooltip } from "@plane/propel/tooltip";
 import { EIssuesStoreType } from "@plane/types";
 import { Breadcrumbs, FavoriteStar, Header } from "@plane/ui";
@@ -103,26 +104,28 @@ export const IssuesHeader = observer(function IssuesHeader() {
               </span>
             </Tooltip>
           ) : null}
-          {currentProjectDetails && (
-            <Tooltip
-              isMobile={isMobile}
-              tooltipContent={currentProjectDetails.is_favorite ? "Remove from favorites" : "Add to favorites"}
-              position="bottom"
-            >
-              <FavoriteStar
-                buttonClassName="size-5"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleToggleFavorite();
-                }}
-                selected={!!currentProjectDetails.is_favorite}
-              />
-            </Tooltip>
-          )}
         </div>
       </Header.LeftItem>
       <Header.RightItem>
+        {/* Favorite leads the right-hand action cluster, same as the work item
+            drawer and full page — one position for the star across the app. */}
+        {currentProjectDetails && (
+          <Tooltip
+            isMobile={isMobile}
+            tooltipContent={currentProjectDetails.is_favorite ? "Remove from favorites" : "Add to favorites"}
+            position="bottom"
+          >
+            <FavoriteStar
+              buttonClassName={getIconButtonStyling("secondary", "lg")}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggleFavorite();
+              }}
+              selected={!!currentProjectDetails.is_favorite}
+            />
+          </Tooltip>
+        )}
         <div className="hidden gap-2 md:flex">
           <HeaderFilters
             projectId={projectId}

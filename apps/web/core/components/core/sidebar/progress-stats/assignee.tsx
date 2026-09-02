@@ -10,9 +10,9 @@ import { useTranslation } from "@plane/i18n";
 import { Avatar } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 // assets
-import emptyMembers from "@/app/assets/empty-state/empty_members.svg?url";
 import userImage from "@/app/assets/user.png?url";
 // components
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { SingleProgressStats } from "@/components/core/sidebar/single-progress-stats";
 
 export type TAssigneeData = {
@@ -75,7 +75,7 @@ export const AssigneeStatComponent = observer(function AssigneeStatComponent(pro
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-2">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-layer-1">
-            <img src={emptyMembers} className="h-12 w-12 object-contain" alt="empty members" />
+            <EmptyStateIcon name="members" className="size-12" />
           </div>
           <h6 className="text-14 text-tertiary">{t("no_assignee")}</h6>
         </div>

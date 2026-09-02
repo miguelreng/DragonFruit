@@ -23,7 +23,8 @@ import { WorkItemsIcon } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import type { IModule } from "@plane/types";
-import { Card, FavoriteStar, LinearProgressIndicator } from "@plane/ui";
+import { FavoriteStar, LinearProgressIndicator } from "@plane/ui";
+import { Card } from "@plane/propel/card";
 import { getDate, renderFormattedPayloadDate, generateQueryParams } from "@plane/utils";
 // components
 import { DateRangeDropdown } from "@/components/dropdowns/date-range";
@@ -200,7 +201,7 @@ export const ModuleCardItem = observer(function ModuleCardItem(props: Props) {
                     handleModuleDetailsChange={handleModuleDetailsChange}
                   />
                 )}
-                <button onClick={openModuleOverview}>
+                <button type="button" onClick={openModuleOverview}>
                   <Info className="h-4 w-4 text-placeholder" />
                 </button>
               </div>

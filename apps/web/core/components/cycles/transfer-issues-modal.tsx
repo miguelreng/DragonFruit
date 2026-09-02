@@ -84,7 +84,7 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
             <TransferIcon className="w-5 fill-primary" />
             <h4 className="text-18 font-normal text-primary">Transfer tasks</h4>
           </div>
-          <button onClick={handleClose}>
+          <button type="button" onClick={handleClose}>
             <CloseIcon className="h-4 w-4" />
           </button>
         </div>
@@ -106,7 +106,7 @@ export const TransferIssuesModal = observer(function TransferIssuesModal(props: 
                 if (!cycleDetails) return;
 
                 return (
-                  <button
+                  <button type="button"
                     key={optionId}
                     className="flex w-full items-center gap-4 rounded-lg px-4 py-3 text-13 text-secondary hover:bg-surface-2"
                     onClick={() => {

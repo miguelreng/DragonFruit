@@ -10,6 +10,7 @@ import { useTranslation } from "@plane/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
 // helpers
 import type React from "react";
+import { IconButton } from "@plane/propel/icon-button";
 
 type TAuthBanner = {
   message: React.ReactNode;
@@ -31,14 +32,13 @@ export function AuthBanner(props: TAuthBanner) {
         <Info size={16} className="text-accent-primary" />
       </div>
       <p className="w-full text-13 font-medium text-accent-primary">{message}</p>
-      <button
-        type="button"
-        className="relative ml-auto grid size-6 place-items-center rounded-xs text-accent-primary/80 transition-all hover:bg-accent-primary/20"
+      <IconButton
+        variant="ghost"
+        size="base"
+        icon={CloseIcon}
         onClick={() => handleBannerData?.(undefined)}
         aria-label={t("aria_labels.auth_forms.close_alert")}
-      >
-        <CloseIcon className="size-4" />
-      </button>
+      />
     </div>
   );
 }

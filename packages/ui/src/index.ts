@@ -5,10 +5,7 @@
  */
 
 export * from "./avatar";
-export * from "./badge";
 export * from "./breadcrumbs";
-export * from "./button";
-export * from "./card";
 export * from "./collapsible";
 export * from "./color-picker";
 export * from "./constants";
@@ -29,11 +26,9 @@ export * from "./progress";
 export * from "./row";
 export * from "./scroll-area";
 export * from "./sortable";
-export * from "./spinners";
 export * from "./tables";
-export * from "./tabs";
 export * from "./tag";
-export * from "./tooltip";
+export * from "./toggle-switch";
 export * from "./typography";
 export * from "./utils";
 export * from "./oauth";

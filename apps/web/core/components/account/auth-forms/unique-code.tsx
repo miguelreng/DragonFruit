@@ -9,7 +9,8 @@ import { CircleCheck, XCircle } from "@/components/icons/lucide-shim";
 import { API_BASE_URL } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
-import { Input, Spinner } from "@plane/ui";
+import { Input } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // constants
 // helpers
 import { EAuthModes } from "@/helpers/authentication.helper";
@@ -17,6 +18,7 @@ import { EAuthModes } from "@/helpers/authentication.helper";
 import useTimer from "@/hooks/use-timer";
 // services
 import { AuthService } from "@/services/auth.service";
+import { IconButton } from "@plane/propel/icon-button";
 
 // services
 const authService = new AuthService();
@@ -112,14 +114,14 @@ export function AuthUniqueCodeForm(props: TAuthUniqueCodeForm) {
             disabled
           />
           {uniqueCodeFormData.email.length > 0 && (
-            <button
-              type="button"
-              className="absolute right-3 grid size-5 place-items-center"
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={XCircle}
+              iconClassName="stroke-placeholder"
               aria-label={t("aria_labels.auth_forms.clear_email")}
               onClick={handleEmailClear}
-            >
-              <XCircle className="size-5 stroke-placeholder" />
-            </button>
+            />
           )}
         </div>
       </div>

@@ -6,13 +6,31 @@
 
 import {
   Bookmark,
+  Box,
+  ChartSquare,
   Checklist,
   DocumentText,
+  Eye,
+  Flag,
+  Folder,
+  Gallery,
+  GraphUp,
   History,
+  InboxIn,
+  Letter,
+  LinkBrokenMinimalistic,
+  ListCheck,
+  Lock,
   Magnifer,
+  PenNewSquare,
+  QuestionCircle,
+  Restart,
   Routing,
   RulerCrossPen,
+  ServerSquare,
   StickerSquare,
+  Tag,
+  UsersGroupTwoRounded,
   Widget,
 } from "@solar-icons/react/ssr";
 import { cn } from "@plane/utils";
@@ -31,9 +49,29 @@ const EMPTY_STATE_ICONS = {
   search: Magnifer,
   activity: History,
   widgets: Widget,
+  cycles: Restart,
+  modules: Box,
+  views: Eye,
+  intake: InboxIn,
+  projects: Folder,
+  members: UsersGroupTwoRounded,
+  labels: Tag,
+  priority: Flag,
+  charts: ChartSquare,
+  progress: GraphUp,
+  drafts: PenNewSquare,
+  invitations: Letter,
+  assets: Gallery,
+  outline: ListCheck,
+  "no-access": Lock,
+  "invalid-link": LinkBrokenMinimalistic,
+  maintenance: ServerSquare,
+  "not-found": QuestionCircle,
 } as const;
 
 export type TEmptyStateIconName = keyof typeof EMPTY_STATE_ICONS;
+
+export const EMPTY_STATE_ICON_NAMES = Object.keys(EMPTY_STATE_ICONS) as TEmptyStateIconName[];
 
 type Props = {
   name: TEmptyStateIconName;

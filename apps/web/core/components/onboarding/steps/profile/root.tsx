@@ -168,8 +168,9 @@ export const ProfileSetupStep = observer(function ProfileSetupStep({ handleStepC
       />
       <div className="flex items-center gap-4">
         <button
-          className="flex size-12 items-center justify-center rounded-full bg-accent-primary text-18 font-semibold text-on-color"
+          className="t-focus flex size-12 items-center justify-center rounded-full bg-accent-primary text-18 font-semibold text-on-color"
           type="button"
+          aria-label={userAvatar ? "Change profile image" : "Upload profile image"}
           onClick={() => setIsImageUploadModalOpen(true)}
         >
           {userAvatar ? (

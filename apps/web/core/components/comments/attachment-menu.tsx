@@ -153,7 +153,7 @@ export function CommentAttachmentMenu(props: TCommentAttachmentMenu) {
               key={key}
               type="button"
               disabled
-              className="grid size-7 place-items-center rounded-lg text-placeholder"
+              className="t-focus grid size-7 place-items-center rounded-lg text-placeholder"
               aria-hidden="true"
             >
               <Icon className="size-3.5" />

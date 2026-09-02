@@ -70,7 +70,6 @@ export const WorkspaceDraftIssuesRoot = observer(function WorkspaceDraftIssuesRo
         title={t("workspace_projects.empty_state.no_projects.title")}
         description={t("workspace_projects.empty_state.no_projects.description")}
         assetKey="project"
-        assetClassName="size-40"
         actions={[
           {
             label: t("workspace_projects.empty_state.no_projects.primary_button.text"),

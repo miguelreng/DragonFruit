@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { IconButton } from "@plane/propel/icon-button";
 import { usePathname } from "next/navigation";
 import { HamburgerMenu as Menu, Settings } from "@solar-icons/react/ssr";
 // icons
@@ -20,12 +21,14 @@ import { EXTENDED_HEADER_SEGMENT_LABELS } from "./extended";
 export const HamburgerToggle = observer(function HamburgerToggle() {
   const { isSidebarCollapsed, toggleSidebar } = useTheme();
   return (
-    <button
-      className="group flex size-7 cursor-pointer items-center justify-center rounded-sm bg-layer-1 transition-all hover:bg-layer-1-hover md:hidden"
+    <IconButton
+      variant="ghost"
+      size="lg"
+      icon={Menu}
+      aria-label="Toggle sidebar"
+      iconClassName="text-secondary transition-all group-hover:text-primary"
       onClick={() => toggleSidebar(!isSidebarCollapsed)}
-    >
-      <Menu size={14} className="text-secondary transition-all group-hover:text-primary" />
-    </button>
+    />
   );
 });
 

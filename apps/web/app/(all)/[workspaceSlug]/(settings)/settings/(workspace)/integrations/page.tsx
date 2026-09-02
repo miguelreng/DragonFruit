@@ -530,7 +530,7 @@ function WorkspaceIntegrationsPage() {
                       </Button>
                     ) : (
                       <Button
-                        variant="primary"
+                        variant="secondary"
                         size="sm"
                         disabled={disabled}
                         loading={busy && integration.authType === "none"}

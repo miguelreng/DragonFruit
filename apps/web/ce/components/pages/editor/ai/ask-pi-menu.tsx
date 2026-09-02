@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { CircleArrowUp, CornerDownRight, RefreshCcw, Sparkles } from "@/components/icons/lucide-shim";
 // ui
 import { Tooltip } from "@plane/propel/tooltip";
@@ -65,31 +66,28 @@ export function AskPiMenu(props: Props) {
                 Replace selection
               </button>
               <Tooltip tooltipContent="Add to next line">
-                <button
-                  type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-lg outline-none hover:bg-layer-1"
+                <IconButton
+                  variant="ghost"
+                  size="base"
+                  icon={CornerDownRight}
+                  aria-label="Insert response"
+                  iconClassName="text-tertiary"
                   onClick={() => handleInsertText(true)}
-                >
-                  <CornerDownRight className="size-4 text-tertiary" />
-                </button>
+                />
               </Tooltip>
               <Tooltip tooltipContent="Re-generate response">
-                <button
-                  type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-lg outline-none hover:bg-layer-1"
+                <IconButton
+                  variant="ghost"
+                  size="base"
+                  icon={RefreshCcw}
+                  aria-label="Regenerate response"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     handleRegenerate();
                   }}
                   disabled={isRegenerating}
-                >
-                  <RefreshCcw
-                    className={cn("size-4 text-tertiary", {
-                      "animate-spin": isRegenerating,
-                    })}
-                  />
-                </button>
+                />
               </Tooltip>
             </div>
           </div>

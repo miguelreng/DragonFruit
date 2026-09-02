@@ -57,6 +57,7 @@ import {
 } from "./helpers";
 import { ImportBookmarksModal } from "./import-bookmarks-modal";
 import { SuggestedTagChips } from "./suggested-tag-chips";
+import { IconButton } from "@plane/propel/icon-button";
 
 type BoardIconComponent = ComponentType<{
   className?: string;
@@ -294,14 +295,13 @@ function BookmarkFormModal(props: {
             <h2 className="text-16 font-semibold text-primary">{title}</h2>
             <p className="mt-1 text-12 text-tertiary">Save a link with project, notes, and tags.</p>
           </div>
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={CancelCircleIcon}
             onClick={onCancel}
-            className="grid size-7 shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
             aria-label="Close bookmark modal"
-          >
-            <DetailIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
-          </button>
+          />
         </div>
         <div className="px-5 py-4">
           <BookmarkForm onCancel={onCancel} {...formProps} />
@@ -400,7 +400,7 @@ function BookmarkCard(props: {
           onSelect(bookmark.id, event.shiftKey);
         }}
         className={cn(
-          "shadow-sm absolute top-2 left-2 z-30 grid size-6 place-items-center rounded-lg bg-layer-1/95 backdrop-blur-sm transition-opacity",
+          "shadow-sm absolute top-2 left-2 z-30 grid size-6 place-items-center rounded-lg bg-layer-1/95 backdrop-blur-sm transition-opacity t-focus",
           {
             "opacity-100": isSelected || isSelectionActive,
             "pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100":
@@ -502,18 +502,17 @@ function BookmarkCard(props: {
             }
           />
           {hasTwitterScreenshot && (
-            <button
-              type="button"
-              className="shadow-sm absolute top-2 left-10 z-20 grid size-7 place-items-center rounded-lg border border-white/40 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/70 focus:opacity-100 focus:outline-none"
+            <IconButton
+              variant="secondary"
+              size="lg"
+              icon={LinkSquare01Icon}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 void openImageUrl(imageUrl);
               }}
               aria-label="Open Twitter screenshot"
-            >
-              <DetailIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-            </button>
+            />
           )}
           <div
             className="absolute inset-x-0 bottom-0 z-10 px-4 pt-14 pb-3 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
@@ -680,22 +679,20 @@ function BookmarkListItem(props: {
                 <DetailIcon icon={LinkSquare01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
               </Link>
             ))}
-          <button
-            type="button"
-            className="grid size-7 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-primary"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={Copy01Icon}
             onClick={() => void navigator.clipboard?.writeText(href)}
             aria-label="Copy bookmark link"
-          >
-            <DetailIcon icon={Copy01Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-          </button>
-          <button
-            type="button"
-            className="hover:bg-red-500/10 hover:text-red-500 grid size-7 place-items-center rounded-lg text-icon-tertiary"
+          />
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={Delete02Icon}
             onClick={() => onDelete(bookmark)}
             aria-label="Delete bookmark"
-          >
-            <DetailIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-          </button>
+          />
         </div>
       }
     />

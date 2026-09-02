@@ -6,10 +6,8 @@
 
 import { observer } from "mobx-react";
 // components
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { useTranslation } from "@plane/i18n";
-// assets
-import AllFiltersImage from "@/app/assets/empty-state/cycle/all-filters.svg?url";
-import NameFilterImage from "@/app/assets/empty-state/cycle/name-filter.svg?url";
 // components
 import { CyclesList } from "@/components/cycles/list";
 import { CycleModuleListLayoutLoader } from "@/components/ui/loader/cycle-module-list-loader";
@@ -41,11 +39,7 @@ export const CyclesView = observer(function CyclesView(props: ICyclesView) {
     return (
       <div className="grid h-full w-full place-items-center">
         <div className="text-center">
-          <img
-            src={searchQuery.trim() === "" ? AllFiltersImage : NameFilterImage}
-            className="mx-auto h-36 w-36 object-contain sm:h-48 sm:w-48"
-            alt="No matching cycles"
-          />
+          <EmptyStateIcon name="search" className="mx-auto" />
           <h5 className="mt-7 mb-1 text-18 font-medium">{t("project_cycles.no_matching_cycles")}</h5>
           <p className="text-14 text-placeholder">
             {searchQuery.trim() === ""

@@ -161,7 +161,7 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
           {QuickAddButton && <QuickAddButton isEpic={isEpic} onClick={() => handleIsOpen(true)} />}
           {customQuickAddButton && <>{customQuickAddButton}</>}
           {!QuickAddButton && !customQuickAddButton && (
-            <button
+            <button type="button"
               className="flex w-full cursor-pointer items-center gap-2 bg-layer-transparent px-2 py-3 hover:bg-layer-transparent-hover"
               onClick={() => handleIsOpen(true)}
             >

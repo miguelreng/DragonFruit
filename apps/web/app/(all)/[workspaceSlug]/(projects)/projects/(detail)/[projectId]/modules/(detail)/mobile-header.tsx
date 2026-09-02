@@ -126,7 +126,7 @@ export const ModuleIssuesMobileHeader = observer(function ModuleIssuesMobileHead
           </FiltersDropdown>
         </div>
 
-        <button
+        <button type="button"
           onClick={() => setAnalyticsModal(true)}
           className="flex flex-grow justify-center border-l border-subtle text-13 text-secondary"
         >

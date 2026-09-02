@@ -15,7 +15,7 @@ export function AddLink(props: TProps) {
   const { t } = useTranslation();
 
   return (
-    <button
+    <button type="button"
       className="btn btn-primary flex h-[56px] w-[230px] gap-4 rounded-lg border-[0.5px] border-subtle bg-surface-1 px-4"
       onClick={onClick}
     >

@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { observer } from "mobx-react";
 import { useNavigate } from "react-router";
 import { Temporal } from "temporal-polyfill";
@@ -321,22 +322,20 @@ export const PublicCalendarLayout = observer(function PublicCalendarLayout() {
               Today
             </button>
             <div className="flex items-center">
-              <button
-                type="button"
-                onClick={() => handleStep(-1)}
+              <IconButton
+                variant="ghost"
+                size="lg"
+                icon={(props) => <Icon name="arrow.chevron-left" {...props} />}
                 aria-label="Previous"
-                className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2-hover hover:text-primary"
-              >
-                <Icon name="arrow.chevron-left" className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleStep(1)}
+                onClick={() => handleStep(-1)}
+              />
+              <IconButton
+                variant="ghost"
+                size="lg"
+                icon={(props) => <Icon name="arrow.chevron-right" {...props} />}
                 aria-label="Next"
-                className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2-hover hover:text-primary"
-              >
-                <Icon name="arrow.chevron-right" className="size-4" />
-              </button>
+                onClick={() => handleStep(1)}
+              />
             </div>
             <span className="inline-block w-44 truncate px-1 text-center text-13 font-medium text-primary">
               {toolbarLabel}

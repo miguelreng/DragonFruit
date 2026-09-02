@@ -14,7 +14,7 @@ import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IUser, IWorkspace } from "@plane/types";
-import { Spinner } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { cn, validateWorkspaceName, validateSlug } from "@plane/utils";
 // hooks
 import { useInstance } from "@/hooks/store/use-instance";
@@ -262,6 +262,7 @@ export const WorkspaceCreateStep = observer(function WorkspaceCreateStep({
                     const isSelected = value === size;
                     return (
                       <button
+                        type="button"
                         key={size}
                         onClick={(e) => {
                           e.preventDefault();

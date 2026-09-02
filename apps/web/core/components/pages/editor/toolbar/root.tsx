@@ -18,6 +18,7 @@ import { usePageFilters } from "@/hooks/use-page-filters";
 import { PageCollaboratorsList } from "@/plane-web/components/pages/header/collaborators-list";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
+import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   handleOpenNavigationPane: () => void;
@@ -61,13 +62,13 @@ export const PageEditorToolbarRoot = observer(function PageEditorToolbarRoot(pro
             <div className="flex shrink-0 items-center gap-2">
               <PageCollaboratorsList page={page} />
               {showNavigationPaneButton && !isNavigationPaneOpen && (
-                <button
-                  type="button"
-                  className="grid size-6 shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
+                <IconButton
+                  variant="ghost"
+                  size="base"
+                  icon={PanelRight}
+                  aria-label="Open navigation pane"
                   onClick={handleOpenNavigationPane}
-                >
-                  <PanelRight className="size-3.5" />
-                </button>
+                />
               )}
             </div>
           </div>
@@ -77,14 +78,13 @@ export const PageEditorToolbarRoot = observer(function PageEditorToolbarRoot(pro
         <div className="absolute top-0 right-0 z-10 flex h-[52px] items-center px-page-x">
           {showNavigationPaneButton && !isNavigationPaneOpen && (
             <Tooltip tooltipContent={t("page_navigation_pane.open_button")}>
-              <button
-                type="button"
-                className="grid size-6 shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
+              <IconButton
+                variant="ghost"
+                size="base"
+                icon={PanelRight}
                 onClick={handleOpenNavigationPane}
                 aria-label={t("page_navigation_pane.open_button")}
-              >
-                <PanelRight className="size-3.5" />
-              </button>
+              />
             </Tooltip>
           )}
         </div>

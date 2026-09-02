@@ -204,7 +204,7 @@ function ComboboxOptions({
                   React.Children.toArray(filteredChildren).filter(
                     (child) => React.isValidElement(child) && child.type === ComboboxOption
                   )
-                ) === 0 && <div className="px-2 py-1.5 text-13 text-placeholder">{emptyMessage}</div>}
+                ) === 0 && <div className="px-2 py-1 text-13 text-placeholder">{emptyMessage}</div>}
             </BaseCombobox.List>
           </div>
         </BaseCombobox.Popup>
@@ -219,7 +219,7 @@ function ComboboxOption({ value, children, disabled, className }: ComboboxOption
     <BaseCombobox.Item
       value={value}
       disabled={disabled}
-      className={cn("cursor-pointer rounded-lg px-2 py-1.5 text-13 transition-colors outline-none", className)}
+      className={cn("cursor-pointer rounded-lg px-2 py-1 text-13 transition-colors outline-none", className)}
     >
       {children}
     </BaseCombobox.Item>

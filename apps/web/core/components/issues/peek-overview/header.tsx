@@ -22,11 +22,12 @@ import { useFavorite } from "@/hooks/store/use-favorite";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useIssues } from "@/hooks/store/use-issues";
 import { useProject } from "@/hooks/store/use-project";
+import { useAppRouter } from "@/hooks/use-app-router";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // local imports
 import { WorkItemDetailQuickActions } from "../issue-layouts/quick-action-dropdowns";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
-import { IconButton } from "@plane/propel/icon-button";
+import { IconButton, getIconButtonStyling } from "@plane/propel/icon-button";
 
 export type TPeekModes = "side-peek" | "modal" | "full-screen";
 
@@ -87,6 +88,8 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
   // ref
   const parentRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  // router
+  const router = useAppRouter();
   // store hooks
   const {
     issue: { getIssueById },
@@ -153,6 +156,18 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
     }
   };
 
+  // "Full screen" isn't a drawer size — it opens the work item's own page (same
+  // target as the expand button) instead of stretching the drawer into a
+  // full-width overlay of the peek view.
+  const handlePeekModeChange = (value: TPeekModes) => {
+    if (value === "full-screen") {
+      removeRoutePeekId();
+      router.push(workItemLink);
+      return;
+    }
+    setPeekMode(value);
+  };
+
   const isFavorite = !!favoriteEntityMap[issueId];
   const handleToggleFavorite = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -189,16 +204,29 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
         currentMode?.key === "full-screen" ? "border-b border-subtle" : ""
       }`}
     >
-      <div className="flex items-center gap-4">
+      {/* Window chrome (close/expand/pin/layout) and item actions (favorite/copy/more)
+          share one primitive and one metric — IconButton at size "lg" (28px) — so the
+          strip reads as a single row. Variant carries the grouping: ghost for the
+          chrome, secondary for the actions on the right. */}
+      <div className="flex items-center gap-2">
         <Tooltip tooltipContent={t("common.close_peek_view")} isMobile={isMobile}>
-          <button onClick={removeRoutePeekId}>
-            <ChevronRight className="h-4 w-4 text-tertiary hover:text-secondary" />
-          </button>
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={ChevronRight}
+            onClick={removeRoutePeekId}
+            aria-label={t("common.close_peek_view")}
+          />
         </Tooltip>
 
         <Tooltip tooltipContent={t("issue.open_in_full_screen")} isMobile={isMobile}>
-          <Link href={workItemLink} onClick={() => removeRoutePeekId()}>
-            <MoveDiagonal className="h-4 w-4 text-tertiary hover:text-secondary" />
+          <Link
+            href={workItemLink}
+            onClick={() => removeRoutePeekId()}
+            aria-label={t("issue.open_in_full_screen")}
+            className={getIconButtonStyling("ghost", "lg")}
+          >
+            <MoveDiagonal className="size-4" />
           </Link>
         </Tooltip>
         {!embedIssue && (
@@ -206,24 +234,29 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
             tooltipContent={isPeekPinned ? "Unpin — closes when you click away" : "Pin — stays open while you navigate"}
             isMobile={isMobile}
           >
-            <button type="button" onClick={() => setPeekPinned(!isPeekPinned)}>
-              <Pin
-                weight={isPeekPinned ? "Bold" : "Linear"}
-                className={`h-4 w-4 ${isPeekPinned ? "text-accent-primary" : "text-tertiary hover:text-secondary"}`}
-              />
-            </button>
+            <IconButton
+              variant="ghost"
+              size="lg"
+              icon={(iconProps) => <Pin {...iconProps} weight={isPeekPinned ? "Bold" : "Linear"} />}
+              onClick={() => setPeekPinned(!isPeekPinned)}
+              aria-label={isPeekPinned ? "Unpin peek view" : "Pin peek view"}
+              className={isPeekPinned ? "text-accent-primary" : ""}
+            />
           </Tooltip>
         )}
         {currentMode && embedIssue === false && (
           <div className="flex flex-shrink-0 items-center gap-2">
             <CustomSelect
               value={currentMode}
-              onChange={(val: any) => setPeekMode(val)}
+              onChange={(val: TPeekModes) => handlePeekModeChange(val)}
+              // CustomSelect renders its own <button type="button">, so the trigger is styled through
+              // customButtonClassName — nesting a second <button type="button"> here would be invalid DOM.
+              customButtonClassName={`${getIconButtonStyling("ghost", "lg")} justify-center`}
               customButton={
                 <Tooltip tooltipContent={t("common.toggle_peek_view_layout")} isMobile={isMobile}>
-                  <button type="button" className="">
-                    <currentMode.icon className="h-4 w-4 text-tertiary hover:text-secondary" />
-                  </button>
+                  <span className="grid place-items-center">
+                    <currentMode.icon className="size-4" />
+                  </span>
                 </Tooltip>
               }
             >
@@ -247,11 +280,12 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
         <NameDescriptionUpdateStatus isSubmitting={isSubmitting} />
         <div className="flex items-center gap-2">
           {!isArchived && (
-            <Tooltip
-              tooltipContent={isFavorite ? "Remove from favorites" : "Add to favorites"}
-              isMobile={isMobile}
-            >
-              <FavoriteStar selected={isFavorite} onClick={handleToggleFavorite} buttonClassName="size-7" />
+            <Tooltip tooltipContent={isFavorite ? "Remove from favorites" : "Add to favorites"} isMobile={isMobile}>
+              <FavoriteStar
+                selected={isFavorite}
+                onClick={handleToggleFavorite}
+                buttonClassName={getIconButtonStyling("secondary", "lg")}
+              />
             </Tooltip>
           )}
           <Tooltip tooltipContent={t("common.actions.copy_link")} isMobile={isMobile}>

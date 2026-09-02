@@ -48,6 +48,9 @@ export const coreRoutes: RouteConfigEntry[] = [
   layout("./(all)/calendar-oauth-callback/layout.tsx", [
     route("calendar/oauth/callback", "./(all)/calendar-oauth-callback/page.tsx"),
   ]),
+  layout("./(all)/project-context-oauth-callback/layout.tsx", [
+    route("context-sources/google/callback", "./(all)/project-context-oauth-callback/page.tsx"),
+  ]),
 
   // Native/API-token handoff bridge used by Copilot and the Chrome extension
   // after the normal web login flow has authenticated the browser session.

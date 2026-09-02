@@ -9,6 +9,7 @@ import { ToggleSwitch } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { Play, Trash } from "@/components/icons/lucide-shim";
 import type { TWorkflowView } from "./types";
+import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   currentId: string | null;
@@ -93,15 +94,14 @@ export function BuilderToolbar({
         </span>
         <ToggleSwitch value={enabled} onChange={onToggleEnabled} />
         {isExisting && (
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={Trash}
             onClick={onDelete}
-            className="text-red-600 hover:bg-red-500/10 grid size-7 flex-shrink-0 place-items-center rounded-md transition-colors"
             aria-label="Delete workflow"
             title="Delete"
-          >
-            <Trash className="size-4" />
-          </button>
+          />
         )}
         <Button
           variant="primary"

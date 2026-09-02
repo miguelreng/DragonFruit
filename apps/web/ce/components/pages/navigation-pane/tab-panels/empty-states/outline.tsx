@@ -4,25 +4,19 @@
  * See the LICENSE file for details.
  */
 
-import { useTheme } from "next-themes";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-// assets
-import darkOutlineAsset from "@/app/assets/empty-state/wiki/navigation-pane/outline-dark.webp?url";
-import lightOutlineAsset from "@/app/assets/empty-state/wiki/navigation-pane/outline-light.webp?url";
+// components
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 
 export function PageNavigationPaneOutlineTabEmptyState() {
-  // theme hook
-  const { resolvedTheme } = useTheme();
-  // asset resolved path
-  const resolvedPath = resolvedTheme === "light" ? lightOutlineAsset : darkOutlineAsset;
   // translation
   const { t } = useTranslation();
 
   return (
     <div className="grid size-full place-items-center">
       <div className="flex flex-col items-center gap-y-6 text-center">
-        <img src={resolvedPath} className="size-40 object-contain" alt="depicts the outline of a page" />
+        <EmptyStateIcon name="outline" className="size-12" />
         <div className="space-y-2.5">
           <h4 className="text-14 font-medium">{t("page_navigation_pane.tabs.outline.empty_state.title")}</h4>
           <p className="text-13 font-medium text-secondary">

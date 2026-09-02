@@ -14,6 +14,7 @@ import { FileText, FolderPlus, X } from "@/components/icons/lucide-shim";
 import { ProjectPageService } from "@/services/page/project-page.service";
 import { getImportErrorMessage } from "./markdown-doc";
 import { planWikiImport, type TWikiImportDraft } from "./wiki-import-planner";
+import { IconButton } from "@plane/propel/icon-button";
 
 const pageService = new ProjectPageService();
 
@@ -144,15 +145,14 @@ export function WikiImportModal(props: Props) {
               <h2 className="truncate text-16 font-medium text-primary">Import wiki</h2>
             </div>
           </div>
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={X}
             onClick={handleClose}
             disabled={isImporting}
-            className="grid size-7 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-60"
             aria-label="Close"
-          >
-            <X className="size-4" />
-          </button>
+          />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-5 py-4">

@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 import { CornerDownRight, RefreshCcw, Sparkles, TriangleAlert } from "@/components/icons/lucide-shim";
 // plane editor
@@ -155,7 +156,7 @@ export function EditorAIMenu(props: Props) {
           "divide-x divide-subtle-1": activeTask,
         })}
       >
-        <div className="w-[210px] flex-shrink-0 overflow-y-auto px-2 py-2.5 transition-all">
+        <div className="w-[210px] flex-shrink-0 overflow-y-auto px-2 py-1.5 transition-all">
           {MENU_ITEMS.map((item) => {
             const isActiveTask = activeTask === item.key;
 
@@ -164,7 +165,7 @@ export function EditorAIMenu(props: Props) {
                 key={item.key}
                 type="button"
                 className={cn(
-                  "flex w-full items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 text-11 text-secondary transition-colors hover:bg-layer-1",
+                  "flex w-full items-center justify-between gap-2 truncate rounded-lg px-1 py-1 text-11 text-secondary transition-colors hover:bg-layer-1",
                   {
                     "bg-layer-1": isActiveTask,
                   }
@@ -235,31 +236,28 @@ export function EditorAIMenu(props: Props) {
                         Replace selection
                       </button>
                       <Tooltip tooltipContent="Add to next line">
-                        <button
-                          type="button"
-                          className="grid size-6 flex-shrink-0 place-items-center rounded-lg outline-none hover:bg-layer-1"
+                        <IconButton
+                          variant="ghost"
+                          size="base"
+                          icon={CornerDownRight}
+                          aria-label="Insert response"
+                          iconClassName="text-tertiary"
                           onClick={() => handleInsertText(true)}
-                        >
-                          <CornerDownRight className="size-4 text-tertiary" />
-                        </button>
+                        />
                       </Tooltip>
                       <Tooltip tooltipContent="Re-generate response">
-                        <button
-                          type="button"
-                          className="grid size-6 flex-shrink-0 place-items-center rounded-lg outline-none hover:bg-layer-1"
+                        <IconButton
+                          variant="ghost"
+                          size="base"
+                          icon={RefreshCcw}
+                          aria-label="Regenerate response"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             handleRegenerate();
                           }}
                           disabled={isRegenerating}
-                        >
-                          <RefreshCcw
-                            className={cn("size-4 text-tertiary", {
-                              "animate-spin": isRegenerating,
-                            })}
-                          />
-                        </button>
+                        />
                       </Tooltip>
                     </div>
                   </div>

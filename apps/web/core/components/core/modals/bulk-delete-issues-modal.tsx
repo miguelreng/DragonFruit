@@ -7,7 +7,6 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
-import { useTheme } from "next-themes";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { Combobox } from "@headlessui/react";
@@ -19,11 +18,6 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { ISearchIssueResponse, IUser } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { Loader, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
-// assets
-import darkIssuesAsset from "@/app/assets/empty-state/search/issues-dark.webp?url";
-import lightIssuesAsset from "@/app/assets/empty-state/search/issues-light.webp?url";
-import darkSearchAsset from "@/app/assets/empty-state/search/search-dark.webp?url";
-import lightSearchAsset from "@/app/assets/empty-state/search/search-light.webp?url";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 // hooks
@@ -55,7 +49,6 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
   const [issues, setIssues] = useState<ISearchIssueResponse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   // theme hook
-  const { resolvedTheme } = useTheme();
   // hooks
   const {
     issues: { removeBulkIssues },
@@ -63,8 +56,6 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
   const { t } = useTranslation();
   // derived values
   const debouncedSearchTerm: string = useDebounce(query, 500);
-  const searchResolvedPath = resolvedTheme === "light" ? lightSearchAsset : darkSearchAsset;
-  const issuesResolvedPath = resolvedTheme === "light" ? lightIssuesAsset : darkIssuesAsset;
 
   useEffect(() => {
     if (!isOpen || !workspaceSlug || !projectId) return;
@@ -146,9 +137,9 @@ export const BulkDeleteIssuesModal = observer(function BulkDeleteIssuesModal(pro
     ) : (
       <div className="flex flex-col items-center justify-center px-3 py-8 text-center">
         {query === "" ? (
-          <SimpleEmptyState title={t("issue_relation.empty_state.no_issues.title")} assetPath={issuesResolvedPath} />
+          <SimpleEmptyState title={t("issue_relation.empty_state.no_issues.title")} visual={{ type: "icon", name: "tasks" }} />
         ) : (
-          <SimpleEmptyState title={t("issue_relation.empty_state.search.title")} assetPath={searchResolvedPath} />
+          <SimpleEmptyState title={t("issue_relation.empty_state.search.title")} visual={{ type: "icon", name: "search" }} />
         )}
       </div>
     );

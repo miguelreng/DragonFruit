@@ -7,7 +7,6 @@
 import { observer } from "mobx-react";
 import useSWR from "swr";
 // assets
-import emptyView from "@/app/assets/empty-state/view.svg?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHead } from "@/components/core/page-title";
@@ -35,7 +34,7 @@ function ProjectViewIssuesPage({ params }: Route.ComponentProps) {
   if (error) {
     return (
       <EmptyState
-        image={emptyView}
+        iconName="views"
         title="View does not exist"
         description="The view you are looking for does not exist or you don't have permission to view it."
         primaryButton={{

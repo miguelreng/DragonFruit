@@ -8,6 +8,7 @@ import type { ComponentType } from "react";
 import { GridIconShim as GridIcon, List as ListViewIcon } from "@/components/icons/lucide-shim";
 // plane utils
 import { cn } from "@plane/utils";
+import { IconButton } from "@plane/propel/icon-button";
 
 export type ViewMode = "list" | "grid";
 
@@ -36,19 +37,16 @@ export function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
       {options.map(({ value, icon: Icon, label }) => {
         const isActive = mode === value;
         return (
-          <button
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={Icon}
             key={value}
-            type="button"
+            className={cn({ "bg-layer-1 text-primary": isActive })}
             aria-label={label}
             aria-pressed={isActive}
             onClick={() => onChange(value)}
-            className={cn(
-              "grid size-6 place-items-center rounded-lg text-tertiary transition-colors hover:text-primary",
-              { "bg-layer-1 text-primary": isActive }
-            )}
-          >
-            <Icon className="size-3.5" color="currentColor" size="1em" />
-          </button>
+          />
         );
       })}
     </div>

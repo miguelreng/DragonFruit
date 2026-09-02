@@ -213,7 +213,7 @@ function ContextMenuWithoutPortal(props: ContextMenuProps) {
       <div
         ref={contextMenuRef}
         className={cn(
-          "t-dropdown vertical-scrollbar fixed scrollbar-sm max-h-72 min-w-[12rem] overflow-y-scroll rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-2.5",
+          "t-dropdown vertical-scrollbar fixed scrollbar-sm max-h-72 min-w-[12rem] overflow-y-scroll rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 px-2 py-1.5",
           isOpen && "is-open"
         )}
         style={{

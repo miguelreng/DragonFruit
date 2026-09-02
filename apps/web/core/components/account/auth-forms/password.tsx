@@ -14,7 +14,8 @@ import { API_BASE_URL, E_PASSWORD_STRENGTH, AUTH_TRACKER_ELEMENTS } from "@plane
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { CloseIcon } from "@/components/icons/propel-shim";
-import { Input, PasswordStrengthIndicator, Spinner } from "@plane/ui";
+import { Input, PasswordStrengthIndicator } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { getPasswordStrength } from "@plane/utils";
 // components
 import { ForgotPasswordPopover } from "@/components/account/auth-forms/forgot-password-popover";
@@ -215,7 +216,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
             <button
               type="button"
               onClick={() => handleShowPassword("password")}
-              className="absolute right-3 grid size-5 place-items-center"
+              className="t-focus absolute right-3 grid size-5 place-items-center rounded-sm"
               aria-label={t(
                 showPassword?.password ? "aria_labels.auth_forms.hide_password" : "aria_labels.auth_forms.show_password"
               )}
@@ -250,7 +251,7 @@ export const AuthPasswordForm = observer(function AuthPasswordForm(props: Props)
               />
               <button
                 type="button"
-                className="absolute right-3 grid size-5 place-items-center"
+                className="t-focus absolute right-3 grid size-5 place-items-center rounded-sm"
                 aria-label={t(
                   showPassword?.retypePassword
                     ? "aria_labels.auth_forms.hide_password"

@@ -125,7 +125,7 @@ export const HeaderGroupByCard = observer(function HeaderGroupByCard(props: IHea
               handleCollapsedGroups(groupID);
             }
           }}
-          // reason: contains heterogeneous children (title, count, WorkFlowGroupTree) — can't be a real <button>
+          // reason: contains heterogeneous children (title, count, WorkFlowGroupTree) — can't be a real <button type="button">
           // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="button"
           tabIndex={0}

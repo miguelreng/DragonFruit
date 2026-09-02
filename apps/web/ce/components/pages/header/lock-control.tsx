@@ -14,6 +14,7 @@ import { Tooltip } from "@plane/propel/tooltip";
 import { usePageOperations } from "@/hooks/use-page-operations";
 // store
 import type { TPageInstance } from "@/store/pages/base-page";
+import { IconButton } from "@plane/propel/icon-button";
 
 // Define our lock display states, renaming "icon-only" to "neutral"
 type LockDisplayState = "neutral" | "locked" | "unlocked";
@@ -87,14 +88,13 @@ export const PageLockControl = observer(function PageLockControl({ page }: Props
     <>
       {displayState === "neutral" && (
         <Tooltip tooltipContent="Lock" position="bottom">
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={LockIcon}
             onClick={toggleLock}
-            className="grid size-6 flex-shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label="Lock"
-          >
-            <LockIcon className="size-3.5" />
-          </button>
+          />
         </Tooltip>
       )}
 

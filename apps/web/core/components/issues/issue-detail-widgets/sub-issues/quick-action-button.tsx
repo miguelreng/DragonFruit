@@ -13,6 +13,7 @@ import type { TIssue, TIssueServiceType } from "@plane/types";
 import { Tooltip } from "@plane/propel/tooltip";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
+import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   issueId: string;
@@ -49,15 +50,14 @@ export const SubIssuesActionButton = observer(function SubIssuesActionButton(pro
 
   return (
     <Tooltip tooltipContent={t("sub_work_item.add.inline")} isMobile={false}>
-      <button
-        type="button"
+      <IconButton
+        variant="ghost"
+        size="lg"
+        icon={PlusIcon}
         disabled={disabled}
         aria-label={t("sub_work_item.add.inline")}
         onClick={handleCreateInline}
-        className="grid size-7 place-items-center rounded text-secondary transition-colors hover:bg-surface-2 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <PlusIcon className="h-4 w-4" />
-      </button>
+      />
     </Tooltip>
   );
 });

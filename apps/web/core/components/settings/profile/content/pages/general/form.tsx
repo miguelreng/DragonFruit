@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { Avatar } from "@plane/propel/avatar";
+import { Avatar } from "@plane/ui";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
 import type { IUser, TUserProfile } from "@plane/types";

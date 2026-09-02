@@ -88,7 +88,6 @@ export const EstimateRoot = observer(function EstimateRoot(props: TEstimateRoot)
           ) : (
             <EmptyStateCompact
               assetKey="estimate"
-              assetClassName="size-20"
               title={t("settings_empty_state.estimates.title")}
               description={t("settings_empty_state.estimates.description")}
               actions={[

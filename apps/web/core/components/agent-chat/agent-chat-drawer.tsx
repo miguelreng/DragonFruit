@@ -68,10 +68,12 @@ function ensureHljsRegistered() {
 }
 // plane imports
 import type { EditorRefApi, EditorTitleRefApi } from "@plane/editor";
-import type { TProject } from "@plane/types";
+import type { IWorkspaceIssueSearchResult, IWorkspacePageSearchResult, TProject } from "@plane/types";
+import { Button } from "@plane/propel/button";
 import { IconButton } from "@plane/propel/icon-button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore, Button, CustomMenu, Spinner, ToggleSwitch } from "@plane/ui";
+import { AlertModalCore, CustomMenu, ToggleSwitch } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { cn } from "@plane/utils";
 // components
 import { parseChartSpec } from "@/components/chart/spec";
@@ -111,6 +113,7 @@ import {
   formatAgentChatFileSize,
 } from "@/helpers/agent-chat-attachments";
 // hooks
+import { useAppRouter } from "@/hooks/use-app-router";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";
 import { useWorkspace } from "@/hooks/store/use-workspace";
@@ -736,15 +739,14 @@ function ChatView(props: {
               Chats
             </button>
           )}
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={Plus}
             onClick={() => void onStartSession()}
-            className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label="New chat"
             title="New chat"
-          >
-            <Plus className="size-4" />
-          </button>
+          />
           {sessionId && (
             <>
               <span aria-hidden="true" className="bg-subtle mx-0.5 h-4 w-px" />
@@ -771,36 +773,33 @@ function ChatView(props: {
             </>
           )}
           {onToggleExpand && (
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="lg"
+              icon={isExpanded ? Minimize2 : Maximize2}
               onClick={onToggleExpand}
-              className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
               aria-label={isExpanded ? "Shrink chat" : "Expand chat"}
               title={isExpanded ? "Shrink chat" : "Expand chat"}
-            >
-              {isExpanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-            </button>
+            />
           )}
           {onCollapse && (
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="lg"
+              icon={PanelRight}
               onClick={onCollapse}
-              className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
               aria-label="Collapse Atlas"
               title="Collapse Atlas"
-            >
-              <PanelRight className="size-4" />
-            </button>
+            />
           )}
           {dismissible && (
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="lg"
+              icon={X}
               onClick={onClose}
-              className="t-press grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
               aria-label="Close"
-            >
-              <X className="size-4" />
-            </button>
+            />
           )}
         </div>
       </header>
@@ -883,8 +882,8 @@ function SessionsSidebar(props: {
     <div className="flex w-[260px] flex-shrink-0 flex-col border-r border-subtle">
       <div className="px-3 pb-2">
         <Button
-          variant="neutral-primary"
-          size="sm"
+          variant="secondary"
+          size="base"
           onClick={() => void onStartSession()}
           className="w-full justify-center"
           prependIcon={<Plus />}
@@ -910,7 +909,7 @@ function SessionsSidebar(props: {
             <button
               type="button"
               onClick={() => void onDeleteSession(s.id)}
-              className="hover:text-error rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
+              className="t-focus hover:text-error rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
               aria-label="Delete chat"
             >
               <Trash2 className="size-3.5 text-tertiary" />
@@ -987,8 +986,8 @@ function HistoryView(props: {
 
       <div className="border-b border-subtle px-3 py-2">
         <Button
-          variant="neutral-primary"
-          size="sm"
+          variant="secondary"
+          size="base"
           onClick={() => void onStartSession()}
           className="w-full justify-center"
           prependIcon={<Plus />}
@@ -1013,7 +1012,7 @@ function HistoryView(props: {
             <button
               type="button"
               onClick={() => void onDeleteSession(s.id)}
-              className="hover:text-error rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
+              className="t-focus hover:text-error rounded p-1 opacity-0 transition-opacity group-hover:opacity-100"
               aria-label="Delete chat"
             >
               <Trash2 className="size-3.5 text-tertiary" />
@@ -2254,6 +2253,7 @@ function ChatThread(props: {
     // the context carries the open doc's editor ref down without threading it
     // through every message component.
     <ChatActiveEditorContext.Provider value={activePageEditorRef}>
+      <ChatWorkspaceSlugContext.Provider value={workspaceSlug}>
       <div ref={scrollRef} className="vertical-scrollbar scrollbar-sm flex-1 overflow-y-auto px-4 py-5">
         {isEmpty && (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
@@ -2432,24 +2432,22 @@ function ChatThread(props: {
                 </span>
                 {proposal.status === "pending" && (
                   <>
-                    <button
-                      type="button"
+                    <IconButton
+                      variant="ghost"
+                      size="base"
+                      icon={Check}
                       disabled={sending || isResolvingAtlasReview}
                       onClick={() => handleAcceptTitleProposal(proposal.id)}
-                      className="t-press grid size-6 shrink-0 place-items-center rounded-full bg-accent-primary text-white disabled:cursor-not-allowed disabled:opacity-45"
                       aria-label="Accept title edit"
-                    >
-                      <Check className="size-3.5" />
-                    </button>
-                    <button
-                      type="button"
+                    />
+                    <IconButton
+                      variant="secondary"
+                      size="base"
+                      icon={X}
                       disabled={sending || isResolvingAtlasReview}
                       onClick={() => handleRejectTitleProposal(proposal.id)}
-                      className="t-press grid size-6 shrink-0 place-items-center rounded-full border border-subtle text-secondary hover:bg-layer-2 disabled:cursor-not-allowed disabled:opacity-45"
                       aria-label="Reject title edit"
-                    >
-                      <X className="size-3.5" />
-                    </button>
+                    />
                   </>
                 )}
               </div>
@@ -2500,14 +2498,13 @@ function ChatThread(props: {
               >
                 <FileText className="size-3 shrink-0 text-tertiary" />
                 <span className="truncate">{activeDocTitle}</span>
-                <button
-                  type="button"
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  icon={X}
                   onClick={onDismissDocContext}
-                  className="grid size-4 shrink-0 place-items-center rounded-full text-tertiary opacity-0 transition-opacity group-hover/doc-pill:opacity-100 hover:bg-layer-2 hover:text-primary focus-visible:opacity-100"
                   aria-label={`Remove "${activeDocTitle}" from context`}
-                >
-                  <X className="size-3" />
-                </button>
+                />
               </span>
             </div>
           )}
@@ -2517,14 +2514,13 @@ function ChatThread(props: {
                 <div className="text-[11px] font-medium text-accent-primary">Replying to selection</div>
                 <p className="text-xs line-clamp-2 text-tertiary">{replyContext.text}</p>
               </div>
-              <button
-                type="button"
+              <IconButton
+                variant="ghost"
+                size="sm"
+                icon={X}
                 onClick={() => setReplyContext(null)}
-                className="t-press grid size-5 shrink-0 place-items-center rounded text-tertiary hover:bg-layer-1 hover:text-primary"
                 aria-label="Remove reply context"
-              >
-                <X className="size-3" />
-              </button>
+              />
             </div>
           )}
           <div className="relative flex items-center gap-2">
@@ -2660,15 +2656,14 @@ function ChatThread(props: {
           </div>
         </div>
         <div className="mt-0.5 flex items-center gap-1 px-1">
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={Paperclip}
             onClick={() => fileInputRef.current?.click()}
-            className="t-press grid size-6 shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label="Attach file"
             title="Attach image, CSV, or PDF"
-          >
-            <Paperclip className="size-3.5" />
-          </button>
+          />
           <IntegrationsMenu workspaceSlug={workspaceSlug} agent={agent} />
           <CustomMenu
             placement="top-start"
@@ -2695,6 +2690,7 @@ function ChatThread(props: {
           />
         </div>
       </div>
+      </ChatWorkspaceSlugContext.Provider>
     </ChatActiveEditorContext.Provider>
   );
 }
@@ -2830,15 +2826,14 @@ function PendingAttachmentContextRow({ file, onRemove }: { file: File; onRemove:
         </p>
       </div>
       {/* always-visible remove */}
-      <button
-        type="button"
+      <IconButton
+        variant="ghost"
+        size="base"
+        icon={X}
         onClick={onRemove}
-        className="t-press grid size-6 shrink-0 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary"
         aria-label={`Remove ${file.name}`}
         title={`Remove ${file.name}`}
-      >
-        <X className="size-3.5" />
-      </button>
+      />
     </li>
   );
 }
@@ -2867,11 +2862,13 @@ const MessageRow = memo(function MessageRow({ message }: { message: TAgentChatMe
           )}
           {visibleContent && (
             <div className="rounded-2xl rounded-br-md bg-layer-1 px-3.5 py-2 text-13 [overflow-wrap:anywhere] whitespace-pre-wrap text-primary">
-              {getAtlasPromptHighlightParts(visibleContent).map((part) => (
-                <span key={part.key} className={part.isMention ? "font-medium text-accent-primary" : undefined}>
-                  {part.text}
-                </span>
-              ))}
+              {getAtlasPromptHighlightParts(visibleContent).map((part) =>
+                part.isMention ? (
+                  <AtlasMentionToken key={part.key} token={part.text} className="font-medium text-accent-primary" />
+                ) : (
+                  <span key={part.key}>{part.text}</span>
+                )
+              )}
             </div>
           )}
         </div>
@@ -3209,25 +3206,23 @@ function BlockActions({ text }: { text: string }) {
     // swallow clicks on the text it floats over; focus-within keeps the
     // buttons reachable by keyboard.
     <span className="pointer-events-none absolute -top-2.5 right-0 z-10 flex items-center gap-0.5 rounded-md border-[0.5px] border-subtle bg-surface-1 p-0.5 not-italic opacity-0 shadow-raised-100 transition-opacity group-hover/opt:pointer-events-auto group-hover/opt:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100">
-      <button
-        type="button"
+      <IconButton
+        variant="ghost"
+        size="sm"
+        icon={copied ? Check : Copy}
         onClick={() => void handleCopy()}
-        className="t-press grid size-5 place-items-center rounded text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
         aria-label="Copy text"
         title="Copy text"
-      >
-        {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-      </button>
+      />
       {activeEditorRef && (
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="sm"
+          icon={ArrowRightLeft}
           onClick={handleReplace}
-          className="t-press grid size-5 place-items-center rounded text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
           aria-label="Replace selected text in doc"
           title="Replace selected text in doc"
-        >
-          <ArrowRightLeft className="size-3" />
-        </button>
+        />
       )}
     </span>
   );
@@ -3387,6 +3382,113 @@ function ChartStreamingSkeleton() {
 const ChatActiveEditorContext = createContext<EditorRefApi | null>(null);
 
 /**
+ * The chat's workspace slug, provided by ChatThread so @-mention tokens
+ * rendered deep inside message bubbles can resolve themselves into links
+ * without threading the slug through every message component.
+ */
+const ChatWorkspaceSlugContext = createContext<string | undefined>(undefined);
+
+// Slug-shaped tokens the composer's mention picker produces (see
+// getAtlasMentionToken): lowercase alphanumerics joined by single hyphens.
+// Used to spot mention tokens the assistant echoes back as inline code.
+const ATLAS_MENTION_TOKEN_PATTERN = /^@[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+// Resolved token → in-app href, cached per workspace so the same mention
+// appearing across messages (or a re-click) doesn't re-hit search.
+const atlasMentionHrefCache = new Map<string, string>();
+
+/**
+ * Messages only persist a mention as text (`@gantt-website-v2`) — the picked
+ * reference's id/project never leave the composer. Resolve the token back to
+ * its entity the way the picker found it: workspace search on the de-slugged
+ * title, preferring the result whose slugified title matches the token
+ * exactly (tasks before docs, mirroring the picker's ordering).
+ */
+async function resolveAtlasMentionHref(workspaceSlug: string, token: string): Promise<string | null> {
+  const cacheKey = `${workspaceSlug}:${token}`;
+  const cached = atlasMentionHrefCache.get(cacheKey);
+  if (cached) return cached;
+
+  const slug = token.replace(/^@/, "");
+  const spaced = slug.replace(/[-_]+/g, " ").trim();
+  if (!spaced) return null;
+
+  let issues: IWorkspaceIssueSearchResult[] = [];
+  let pages: IWorkspacePageSearchResult[] = [];
+  for (const query of spaced === slug ? [slug] : [spaced, slug]) {
+    const response = await workspaceService
+      .searchWorkspace(workspaceSlug, { search: query, workspace_search: true })
+      .catch(() => null);
+    issues = response?.results.issue ?? [];
+    pages = response?.results.page ?? [];
+    if (issues.length > 0 || pages.length > 0) break;
+  }
+
+  const issueHref = (issue: IWorkspaceIssueSearchResult) =>
+    `/${workspaceSlug}/browse/${issue.project__identifier}-${issue.sequence_id}/`;
+  const pageHref = (page: IWorkspacePageSearchResult) =>
+    page.project_ids?.[0] ? `/${workspaceSlug}/projects/${page.project_ids[0]}/pages/${page.id}/` : null;
+
+  const exactIssue = issues.find((issue) => getAtlasMentionToken(issue.name?.trim() ?? "", "task") === token);
+  const exactPage = pages.find((page) => getAtlasMentionToken(page.name?.trim() ?? "", "doc") === token);
+  const href =
+    (exactIssue ? issueHref(exactIssue) : null) ??
+    (exactPage ? pageHref(exactPage) : null) ??
+    (issues[0] ? issueHref(issues[0]) : null) ??
+    (pages[0] ? pageHref(pages[0]) : null);
+  if (href) atlasMentionHrefCache.set(cacheKey, href);
+  return href;
+}
+
+/**
+ * A clickable @-mention inside a chat bubble. Clicking resolves the token to
+ * the referenced task/doc and navigates there; a token that no longer matches
+ * anything (renamed/deleted entity, or a bookmark we can't search globally)
+ * degrades to a toast instead of a dead click.
+ */
+function AtlasMentionToken({ token, className }: { token: string; className?: string }) {
+  const workspaceSlug = useContext(ChatWorkspaceSlugContext);
+  const router = useAppRouter();
+  const [resolving, setResolving] = useState(false);
+
+  if (!workspaceSlug) return <span className={className}>{token}</span>;
+
+  const handleClick = async () => {
+    if (resolving) return;
+    setResolving(true);
+    try {
+      const href = await resolveAtlasMentionHref(workspaceSlug, token);
+      if (href) {
+        router.push(href);
+      } else {
+        setToast({
+          type: TOAST_TYPE.INFO,
+          title: "Couldn't find that reference",
+          message: `No task or doc matched ${token}. It may have been renamed or deleted.`,
+        });
+      }
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handleClick()}
+      className={cn(
+        "cursor-pointer underline-offset-2 hover:underline",
+        resolving && "cursor-wait opacity-70",
+        className
+      )}
+      title={`Open ${token}`}
+    >
+      {token}
+    </button>
+  );
+}
+
+/**
  * A ```chart fence in an assistant reply. While the fence is still open the
  * JSON is mid-stream, so parse failures show a skeleton; once the fence is
  * closed, unparseable content is real model error — surface it as code so
@@ -3480,14 +3582,27 @@ function renderInline(text: string, footnotes: Footnote[]): React.ReactNode {
   while (i < text.length) {
     const rest = text.slice(i);
 
-    // Inline code: `...`
+    // Inline code: `...`. A mention-token-shaped snippet (`@gantt-website-v2`)
+    // is the assistant echoing an @-reference from the prompt — render it as a
+    // clickable mention that navigates to the task/doc instead of dead code.
     const code = /^`([^`]+)`/.exec(rest);
     if (code) {
-      out.push(
-        <code key={nextKey()} className="font-mono rounded bg-layer-2 px-1 py-px text-[11px]">
-          {code[1]}
-        </code>
-      );
+      const codeText = code[1]!;
+      if (ATLAS_MENTION_TOKEN_PATTERN.test(codeText)) {
+        out.push(
+          <AtlasMentionToken
+            key={nextKey()}
+            token={codeText}
+            className="font-mono rounded bg-layer-2 px-1 py-px text-[11px] text-accent-primary"
+          />
+        );
+      } else {
+        out.push(
+          <code key={nextKey()} className="font-mono rounded bg-layer-2 px-1 py-px text-[11px]">
+            {codeText}
+          </code>
+        );
+      }
       i += code[0].length;
       continue;
     }

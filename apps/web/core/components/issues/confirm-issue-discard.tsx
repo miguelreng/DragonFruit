@@ -48,7 +48,7 @@ export function ConfirmIssueDiscard(props: Props) {
       </div>
       <div className="flex justify-between gap-2 p-4 sm:px-6">
         <div>
-          <Button variant="secondary" onClick={onDiscard}>
+          <Button variant="error-outline" onClick={onDiscard}>
             Discard
           </Button>
         </div>

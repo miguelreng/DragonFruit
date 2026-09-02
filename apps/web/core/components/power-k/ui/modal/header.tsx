@@ -52,7 +52,7 @@ export function PowerKModalHeader(props: Props) {
           autoFocus
         />
         {searchTerm && (
-          <button
+          <button type="button"
             onClick={() => onSearchChange("")}
             className="flex-shrink-0 rounded-lg p-1 text-placeholder hover:bg-layer-1 hover:text-secondary"
           >

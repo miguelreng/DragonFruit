@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 
 import { EIssueCommentAccessSpecifier } from "@plane/constants";
@@ -116,7 +117,9 @@ export function IssueCommentToolbar(props: Props) {
                 <button
                   type="button"
                   onClick={() => handleAccessChange?.(access.key)}
-                  className={cn("grid aspect-square place-items-center rounded-lg p-1 hover:bg-layer-1", {
+                  aria-label={access.label}
+                  aria-pressed={isAccessActive}
+                  className={cn("t-focus grid aspect-square place-items-center rounded-lg p-1 hover:bg-layer-1", {
                     "bg-layer-1": isAccessActive,
                   })}
                 >
@@ -155,23 +158,15 @@ export function IssueCommentToolbar(props: Props) {
                       </p>
                     }
                   >
-                    <button
-                      type="button"
+                    <IconButton
+                      variant="ghost"
+                      size="sm"
+                      icon={(p) => <item.icon {...p} strokeWidth={2.5} />}
+                      aria-label={item.name}
+                      aria-pressed={isItemActive}
                       onClick={() => executeCommand(item)}
-                      className={cn(
-                        "grid aspect-square place-items-center rounded-lg p-0.5 text-placeholder hover:bg-layer-1",
-                        {
-                          "bg-layer-1 text-primary": isItemActive,
-                        }
-                      )}
-                    >
-                      <item.icon
-                        className={cn("h-3.5 w-3.5", {
-                          "text-primary": isItemActive,
-                        })}
-                        strokeWidth={2.5}
-                      />
-                    </button>
+                      className={cn({ "bg-layer-1 text-primary": isItemActive })}
+                    />
                   </Tooltip>
                 );
               })}

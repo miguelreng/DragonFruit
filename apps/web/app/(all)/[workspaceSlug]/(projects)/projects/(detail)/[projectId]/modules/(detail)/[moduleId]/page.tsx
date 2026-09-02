@@ -9,7 +9,6 @@ import useSWR from "swr";
 // plane imports
 import { cn } from "@plane/utils";
 // assets
-import emptyModule from "@/app/assets/empty-state/module.svg?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHead } from "@/components/core/page-title";
@@ -52,7 +51,7 @@ function ModuleIssuesPage({ params }: Route.ComponentProps) {
       <PageHead title={pageTitle} />
       {error ? (
         <EmptyState
-          image={emptyModule}
+          iconName="modules"
           title="Module does not exist"
           description="The module you are looking for does not exist or has been deleted."
           primaryButton={{

@@ -17,7 +17,7 @@ import {
 } from "@/components/icons/lucide-shim";
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { Avatar } from "@plane/propel/avatar";
+import { Avatar } from "@plane/ui";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TBookmarkCommentActor, TProjectBookmark, TProjectBookmarkComment } from "@plane/types";
@@ -34,6 +34,7 @@ import {
   normalizeTags,
 } from "./helpers";
 import { SuggestedTagChips } from "./suggested-tag-chips";
+import { IconButton } from "@plane/propel/icon-button";
 
 type DetailIconComponent = ComponentType<{
   className?: string;
@@ -125,25 +126,23 @@ const CommentRow = observer(function CommentRow(props: {
       </div>
       {canEdit && !isEditing && (
         <div className="flex shrink-0 items-start gap-1 opacity-0 transition-opacity group-hover/comment:opacity-100 focus-within:opacity-100">
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={PencilEdit02Icon}
             aria-label="Edit comment"
             onClick={() => {
               setDraft(comment.comment);
               setIsEditing(true);
             }}
-            className="grid size-6 place-items-center rounded-md text-icon-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
-          >
-            <DetailIcon icon={PencilEdit02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-          </button>
-          <button
-            type="button"
+          />
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={Delete02Icon}
             aria-label="Delete comment"
             onClick={() => void onDelete(comment.id)}
-            className="hover:bg-red-500/10 hover:text-red-500 grid size-6 place-items-center rounded-md text-icon-tertiary transition-colors"
-          >
-            <DetailIcon icon={Delete02Icon} className="size-3.5" color="currentColor" strokeWidth={1.5} />
-          </button>
+          />
         </div>
       )}
     </div>
@@ -403,14 +402,13 @@ export const BookmarkDetailModal = observer(function BookmarkDetailModal(props: 
                 )}
               </CustomMenu>
             )}
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="xl"
+              icon={CancelCircleIcon}
               onClick={onClose}
-              className="grid size-8 place-items-center rounded-lg text-icon-tertiary transition-colors hover:bg-layer-1 hover:text-primary active:scale-95"
               aria-label="Close"
-            >
-              <DetailIcon icon={CancelCircleIcon} className="size-4" color="currentColor" strokeWidth={1.5} />
-            </button>
+            />
           </div>
         </div>
 

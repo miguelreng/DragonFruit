@@ -31,7 +31,6 @@ export const ProjectAccessRestriction = observer(function ProjectAccessRestricti
           title={t("project_empty_state.no_access.title")}
           description={t("project_empty_state.no_access.join_description")}
           assetKey="no-access"
-          assetClassName="size-40"
           actions={[
             {
               label: isJoinButtonDisabled
@@ -54,7 +53,6 @@ export const ProjectAccessRestriction = observer(function ProjectAccessRestricti
           title={t("project_empty_state.no_access.title")}
           description={t("project_empty_state.no_access.restricted_description")}
           assetKey="no-access"
-          assetClassName="size-40"
         />
       </div>
     );
@@ -69,7 +67,6 @@ export const ProjectAccessRestriction = observer(function ProjectAccessRestricti
         title={t("project_empty_state.invalid_project.title")}
         description={t("project_empty_state.invalid_project.description")}
         assetKey="project"
-        assetClassName="size-40"
       />
     </div>
   );

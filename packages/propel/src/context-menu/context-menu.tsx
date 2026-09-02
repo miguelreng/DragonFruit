@@ -87,7 +87,7 @@ const ContextMenuItem = React.forwardRef(function ContextMenuItem(
     <ContextMenuPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex cursor-default items-center rounded-xs px-2 py-1.5 text-13 outline-none select-none",
+        "relative flex cursor-default items-center rounded-xs px-2 py-1 text-13 outline-none select-none",
         "focus:bg-surface-2 focus:text-primary",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className
@@ -119,7 +119,7 @@ const ContextMenuSubmenuTrigger = React.forwardRef(function ContextMenuSubmenuTr
     <ContextMenuPrimitive.SubmenuTrigger
       ref={ref}
       className={cn(
-        "flex cursor-default items-center rounded-xs px-2 py-1.5 text-13 outline-none select-none focus:outline-none",
+        "flex cursor-default items-center rounded-xs px-2 py-1 text-13 outline-none select-none focus:outline-none",
         "focus:bg-surface-2 data-[state=open]:bg-surface-2",
         className
       )}

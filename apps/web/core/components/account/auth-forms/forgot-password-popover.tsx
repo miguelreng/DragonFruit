@@ -10,6 +10,7 @@ import { Popover } from "@headlessui/react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import { CloseIcon } from "@/components/icons/propel-shim";
+import { IconButton } from "@plane/propel/icon-button";
 
 export function ForgotPasswordPopover() {
   // popper-js refs
@@ -51,14 +52,14 @@ export function ForgotPasswordPopover() {
           >
             <span className="flex-shrink-0">🤥</span>
             <p className="text-11">{t("auth.forgot_password.errors.smtp_not_enabled")}</p>
-            <button
-              type="button"
-              className="grid size-3 flex-shrink-0 place-items-center"
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={CloseIcon}
+              iconClassName="text-secondary"
               onClick={() => close()}
               aria-label={t("aria_labels.auth_forms.close_popover")}
-            >
-              <CloseIcon className="size-3 text-secondary" />
-            </button>
+            />
           </div>
         )}
       </Popover.Panel>

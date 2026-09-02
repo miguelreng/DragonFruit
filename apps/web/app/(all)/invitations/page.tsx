@@ -20,7 +20,6 @@ import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IWorkspaceMemberInvitation } from "@plane/types";
 import { truncateText } from "@plane/utils";
 // assets
-import emptyInvitation from "@/app/assets/empty-state/invitation.svg?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 import { WorkspaceLogo } from "@/components/workspace/logo";
@@ -189,7 +188,7 @@ function UserInvitationsPage() {
               <EmptyState
                 title={t("no_pending_invites")}
                 description={t("you_can_see_here_if_someone_invites_you_to_a_workspace")}
-                image={emptyInvitation}
+                iconName="invitations"
                 primaryButton={{
                   text: t("back_to_home"),
                   onClick: () => router.push("/"),

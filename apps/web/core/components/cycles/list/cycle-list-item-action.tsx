@@ -179,7 +179,7 @@ export const CycleListItemAction = observer(function CycleListItemAction(props: 
         isOpen={transferIssuesModal}
         cycleId={cycleId.toString()}
       />
-      <button
+      <button type="button"
         onClick={openCycleOverview}
         className={`z-[1] flex flex-shrink-0 gap-1 text-11 text-accent-secondary ${isMobile || (isActive && !searchParams.has("peekCycle")) ? "flex" : "hidden group-hover:flex"}`}
       >

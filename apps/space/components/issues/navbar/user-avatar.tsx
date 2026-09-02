@@ -66,7 +66,7 @@ export const UserAvatar = observer(function UserAvatar() {
         <div>
           <Popover as="div">
             <Popover.Button as={Fragment}>
-              <button ref={setReferenceElement} className="flex items-center gap-2 rounded-sm border border-subtle p-2">
+              <button type="button" ref={setReferenceElement} className="flex items-center gap-2 rounded-sm border border-subtle p-2">
                 <Avatar
                   name={currentUser?.display_name}
                   src={getFileURL(currentUser?.avatar_url)}

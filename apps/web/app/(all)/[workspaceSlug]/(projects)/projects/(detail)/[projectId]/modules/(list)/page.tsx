@@ -6,16 +6,12 @@
 
 import { useCallback } from "react";
 import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type { TModuleFilters } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 import { calculateTotalFilters } from "@plane/utils";
-// assets
-import darkModulesAsset from "@/app/assets/empty-state/disabled-feature/modules-dark.webp?url";
-import lightModulesAsset from "@/app/assets/empty-state/disabled-feature/modules-light.webp?url";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
@@ -31,8 +27,6 @@ function ProjectModulesPage({ params }: Route.ComponentProps) {
   // router
   const router = useAppRouter();
   const { workspaceSlug, projectId } = params;
-  // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // store
@@ -49,7 +43,6 @@ function ProjectModulesPage({ params }: Route.ComponentProps) {
   const project = getProjectById(projectId);
   const pageTitle = project?.name ? `${project?.name} - Modules` : undefined;
   const canPerformEmptyStateActions = allowPermissions([EUserProjectRoles.ADMIN], EUserPermissionsLevel.PROJECT);
-  const resolvedPath = resolvedTheme === "light" ? lightModulesAsset : darkModulesAsset;
 
   const handleRemoveFilter = useCallback(
     (key: keyof TModuleFilters, value: string | null) => {
@@ -70,7 +63,7 @@ function ProjectModulesPage({ params }: Route.ComponentProps) {
         <DetailedEmptyState
           title={t("disabled_project.empty_state.module.title")}
           description={t("disabled_project.empty_state.module.description")}
-          assetPath={resolvedPath}
+          visual={{ type: "icon", name: "modules" }}
           primaryButton={{
             text: t("disabled_project.empty_state.module.primary_button.text"),
             onClick: () => {

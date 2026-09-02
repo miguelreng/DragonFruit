@@ -5,6 +5,7 @@
  */
 
 import { useEffect } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { observer } from "mobx-react";
 import { Controller, useForm } from "react-hook-form";
 import { ArrowRight } from "@/components/icons/lucide-shim";
@@ -123,12 +124,14 @@ export const CycleSidebarHeader = observer(function CycleSidebarHeader(props: Pr
     <>
       <div className="sticky top-0 z-10 flex items-center justify-between bg-surface-1 pt-2">
         <div className="flex size-5 items-center justify-center">
-          <button
-            className="flex size-6 flex-shrink-0 items-center justify-center rounded-full bg-layer-3 hover:bg-layer-3-hover"
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={ChevronRightIcon}
+            aria-label="Collapse sidebar"
+            iconClassName="stroke-2 text-secondary"
             onClick={() => handleClose()}
-          >
-            <ChevronRightIcon className="size-4 stroke-2 text-secondary" />
-          </button>
+          />
         </div>
       </div>
       <div className="flex w-full flex-col gap-2">

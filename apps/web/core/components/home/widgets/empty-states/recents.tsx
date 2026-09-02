@@ -40,7 +40,7 @@ export function RecentsEmptyState({ type }: { type: string }) {
 
   return (
     <div className="flex w-full items-center justify-center rounded-[18px] bg-layer-1 py-10">
-      <EmptyStateCompact assetKey={assetKey} assetClassName="size-20" title={t(text)} />
+      <EmptyStateCompact assetKey={assetKey} title={t(text)} />
     </div>
   );
 }

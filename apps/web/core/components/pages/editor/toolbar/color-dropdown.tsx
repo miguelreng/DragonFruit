@@ -5,6 +5,7 @@
  */
 
 import { memo } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { ALargeSmall, Ban } from "@/components/icons/lucide-shim";
 import { Popover } from "@headlessui/react";
 // plane editor
@@ -81,13 +82,13 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
                     onClick={() => handleColorSelect("text-color", color.key)}
                   />
                 ))}
-                <button
-                  type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-lg border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
+                <IconButton
+                  variant="secondary"
+                  size="base"
+                  icon={Ban}
+                  aria-label="Clear text colour"
                   onClick={() => handleColorSelect("text-color", undefined)}
-                >
-                  <Ban className="size-4" />
-                </button>
+                />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -104,13 +105,13 @@ export const ColorDropdown = memo(function ColorDropdown(props: Props) {
                     onClick={() => handleColorSelect("background-color", color.key)}
                   />
                 ))}
-                <button
-                  type="button"
-                  className="grid size-6 flex-shrink-0 place-items-center rounded-lg border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
+                <IconButton
+                  variant="secondary"
+                  size="base"
+                  icon={Ban}
+                  aria-label="Clear background colour"
                   onClick={() => handleColorSelect("background-color", undefined)}
-                >
-                  <Ban className="size-4" />
-                </button>
+                />
               </div>
             </div>
           </Popover.Panel>

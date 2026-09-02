@@ -22,6 +22,17 @@
 ## Code Style
 
 - **Imports**: Use `workspace:*` for internal packages, `catalog:` for external deps
+- **UI components**: Before building any new component, check the catalog — `pnpm --filter @plane/ui storybook`
+  (Design System / Component Catalog). Every recurring affordance already has a component; only invent a new
+  one when the catalog shows nothing fits. One implementation per slot: `Button`/`IconButton`/`Tooltip`/`Card`/
+  `Spinner` live in `@plane/propel/*`; `ModalCore`/`CustomMenu`/`Avatar`/`Loader` in `@plane/ui`. A new component
+  is not done without its `.stories.tsx` — `packages/ui` has a test that enforces it
+- **Swapping a JSX element for a component** (`<button>` → `<IconButton>`, and any codemod of that shape):
+  run `node packages/codemods/audit-jsx-prop-loss.mjs` before calling it done. On our primitives every prop but `icon`
+  is optional, so a dropped `onClick` or a flattened conditional `className` type-checks perfectly and ships a
+  dead control — the icon-button migration produced four such regressions, all green under `tsc`. The script
+  reports attributes present at `HEAD` and gone now; confirm each against `git diff -U15`, and recover original
+  values from `git show HEAD:<file>`, never from memory
 - **Icons**: Use the Solar icon set — web via the `lucide-shim`/`propel-shim` re-exports or `@solar-icons/react`, mobile via `@solar-icons/react-native`. HugeIcons/Phosphor have been removed; don't reintroduce mixed icon styles
 - **TypeScript**: Strict mode enabled, all files must be typed
 - **Formatting**: oxfmt, run `pnpm fix:format`

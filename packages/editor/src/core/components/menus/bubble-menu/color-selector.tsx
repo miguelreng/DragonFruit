@@ -5,6 +5,7 @@
  */
 
 import type { Editor } from "@tiptap/react";
+import { IconButton } from "@plane/propel/icon-button";
 import { ALargeSmall, Ban } from "@plane/icons";
 import { useMemo } from "react";
 // plane utils
@@ -78,13 +79,13 @@ export function BubbleMenuColorSelector(props: Props) {
                 onClick={() => TextColorItem(editor).command({ color: color.key })}
               />
             ))}
-            <button
-              type="button"
-              className="grid size-6 flex-shrink-0 place-items-center rounded-lg border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
+            <IconButton
+              variant="secondary"
+              size="base"
+              icon={Ban}
+              aria-label="Clear text colour"
               onClick={() => TextColorItem(editor).command({ color: undefined })}
-            >
-              <Ban className="size-4" />
-            </button>
+            />
           </div>
         </div>
         <div className="space-y-1.5">
@@ -101,13 +102,13 @@ export function BubbleMenuColorSelector(props: Props) {
                 onClick={() => BackgroundColorItem(editor).command({ color: color.key })}
               />
             ))}
-            <button
-              type="button"
-              className="grid size-6 flex-shrink-0 place-items-center rounded-lg border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1"
+            <IconButton
+              variant="secondary"
+              size="base"
+              icon={Ban}
+              aria-label="Clear background colour"
               onClick={() => BackgroundColorItem(editor).command({ color: undefined })}
-            >
-              <Ban className="size-4" />
-            </button>
+            />
           </div>
         </div>
       </section>

@@ -13,7 +13,8 @@ import { DangerCircle as CircleAlert, CloseCircle as XCircle } from "@solar-icon
 import { Button } from "@plane/propel/button";
 import type { IEmailCheckData } from "@plane/types";
 // ui
-import { Input, Spinner } from "@plane/ui";
+import { Input } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // helpers
 import { cn } from "@plane/utils";
 import { checkEmailValidity } from "@/helpers/string.helper";

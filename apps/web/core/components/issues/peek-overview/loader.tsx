@@ -24,7 +24,7 @@ export function IssuePeekOverviewLoader(props: TIssuePeekOverviewLoader) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Tooltip tooltipContent="Close the peek view" isMobile={isMobile}>
-            <button onClick={removeRoutePeekId}>
+            <button type="button" onClick={removeRoutePeekId}>
               <MoveRight className="h-4 w-4 text-tertiary hover:text-secondary" />
             </button>
           </Tooltip>

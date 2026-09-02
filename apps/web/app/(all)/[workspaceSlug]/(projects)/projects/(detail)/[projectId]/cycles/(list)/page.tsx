@@ -7,7 +7,6 @@
 import { useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
-import { useTheme } from "next-themes";
 import { EUserPermissionsLevel, CYCLE_TRACKER_ELEMENTS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
@@ -16,9 +15,6 @@ import { EUserProjectRoles } from "@plane/types";
 // components
 import { Header, EHeaderVariant } from "@plane/ui";
 import { calculateTotalFilters } from "@plane/utils";
-// assets
-import darkEmptyState from "@/app/assets/empty-state/disabled-feature/cycles-dark.webp?url";
-import lightEmptyState from "@/app/assets/empty-state/disabled-feature/cycles-light.webp?url";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { CycleAppliedFiltersList } from "@/components/cycles/applied-filters";
@@ -43,15 +39,12 @@ function ProjectCyclesPage({ params }: Route.ComponentProps) {
   // router
   const router = useAppRouter();
   const { workspaceSlug, projectId } = params;
-  // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // cycle filters hook
   const { clearAllFilters, currentProjectFilters, updateFilters } = useCycleFilter();
   const { allowPermissions } = useUserPermissions();
   // derived values
-  const resolvedEmptyState = resolvedTheme === "light" ? lightEmptyState : darkEmptyState;
   const totalCycles = currentProjectCycleIds?.length ?? 0;
   const project = getProjectById(projectId);
   const pageTitle = project?.name ? `${project?.name} - ${t("common.cycles", { count: 2 })}` : undefined;
@@ -77,7 +70,7 @@ function ProjectCyclesPage({ params }: Route.ComponentProps) {
         <DetailedEmptyState
           title={t("disabled_project.empty_state.cycle.title")}
           description={t("disabled_project.empty_state.cycle.description")}
-          assetPath={resolvedEmptyState}
+          visual={{ type: "icon", name: "cycles" }}
           primaryButton={{
             text: t("disabled_project.empty_state.cycle.primary_button.text"),
             onClick: () => {

@@ -29,7 +29,8 @@ import { PlusIcon, CheckIcon, ChevronDownIcon } from "@/components/icons/propel-
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IUser, IWorkspace } from "@plane/types";
 // ui
-import { Input, Spinner } from "@plane/ui";
+import { Input } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // services
 import { WorkspaceService } from "@/services/workspace.service";
 // components

@@ -76,7 +76,7 @@ export const CreateIssueToastActionItems = observer(function CreateIssueToastAct
         </>
       ) : (
         <>
-          <button
+          <button type="button"
             className="hidden cursor-pointer rounded-lg px-2 py-1 text-tertiary group-hover:flex hover:bg-surface-2 hover:text-secondary"
             onClick={copyToClipboard}
           >

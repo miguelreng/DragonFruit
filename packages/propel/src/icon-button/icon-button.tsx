@@ -7,6 +7,7 @@
 import * as React from "react";
 import { cn } from "../utils";
 import type { IconButtonProps } from "./helper";
+import { CircularBarSpinner } from "../spinners";
 import { iconButtonVariants } from "./helper";
 
 const IconButton = React.forwardRef(function IconButton(
@@ -31,18 +32,26 @@ const IconButton = React.forwardRef(function IconButton(
       type={type}
       className={cn(iconButtonVariants({ variant, size }), className)}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...rest}
     >
-      <Icon
-        className={cn(
-          {
-            "size-3.5": size === "sm",
-            "size-4": size === "base" || size === "lg",
-            "size-5": size === "xl",
-          },
-          iconClassName
-        )}
-      />
+      {loading ? (
+        <CircularBarSpinner
+          height={size === "sm" ? "14px" : size === "xl" ? "20px" : "16px"}
+          width={size === "sm" ? "14px" : size === "xl" ? "20px" : "16px"}
+        />
+      ) : (
+        <Icon
+          className={cn(
+            {
+              "size-3.5": size === "sm",
+              "size-4": size === "base" || size === "lg",
+              "size-5": size === "xl",
+            },
+            iconClassName
+          )}
+        />
+      )}
     </button>
   );
 });

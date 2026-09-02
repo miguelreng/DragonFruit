@@ -13,8 +13,10 @@ import { CircleAlert, XCircle } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import type { IEmailCheckData } from "@plane/types";
-import { Input, Spinner } from "@plane/ui";
+import { Input } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { cn, checkEmailValidity } from "@plane/utils";
+import { IconButton } from "@plane/propel/icon-button";
 // helpers
 type TAuthEmailForm = {
   defaultEmail: string;
@@ -81,18 +83,18 @@ export const AuthEmailForm = observer(function AuthEmailForm(props: TAuthEmailFo
             ref={inputRef}
           />
           {email.length > 0 && (
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={XCircle}
+              iconClassName="stroke-placeholder"
               onClick={() => {
                 setEmail("");
                 inputRef.current?.focus();
               }}
-              className="absolute right-3 grid size-5 place-items-center"
               aria-label={t("aria_labels.auth_forms.clear_email")}
               tabIndex={-1}
-            >
-              <XCircle className="size-5 stroke-placeholder" />
-            </button>
+            />
           )}
         </div>
         {emailError?.email && !isFocused && (

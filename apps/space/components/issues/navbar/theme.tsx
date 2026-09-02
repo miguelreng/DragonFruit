@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { observer } from "mobx-react";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "@solar-icons/react/ssr";
@@ -25,12 +26,12 @@ export const NavbarTheme = observer(function NavbarTheme() {
   }, [theme]);
 
   return (
-    <button
-      type="button"
+    <IconButton
+      variant="ghost"
+      size="lg"
+      icon={appTheme === "light" ? Moon : Sun}
+      className="relative"
       onClick={handleTheme}
-      className="relative grid size-7 place-items-center rounded-sm bg-layer-transparent text-primary hover:bg-layer-transparent-hover"
-    >
-      {appTheme === "light" ? <Moon className="size-3.5 shrink-0" /> : <Sun className="size-3.5 shrink-0" />}
-    </button>
+    />
   );
 });

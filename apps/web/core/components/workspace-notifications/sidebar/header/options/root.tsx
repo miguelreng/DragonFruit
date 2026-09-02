@@ -10,7 +10,7 @@ import { CheckCheck, RefreshCw } from "@/components/icons/lucide-shim";
 import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Tooltip } from "@plane/propel/tooltip";
-import { Spinner } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // hooks
 import { useWorkspaceNotifications } from "@/hooks/store/notifications";
 import { usePlatformOS } from "@/hooks/use-platform-os";

@@ -16,6 +16,7 @@ import {
   type TPendingAgentChatFile,
 } from "@/helpers/agent-chat-attachments";
 import { AgentChatService } from "@/services/agent-chat.service";
+import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   workspaceSlug: string | undefined;
@@ -151,20 +152,19 @@ export function PowerKAskAISection(props: Props) {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={Paperclip}
             disabled={pending}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               fileInputRef.current?.click();
             }}
-            className="grid size-6 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary"
             aria-label="Attach file"
             title="Attach image, CSV, or PDF"
-          >
-            <Paperclip className="size-3.5" />
-          </button>
+          />
           <span className="text-11 text-tertiary">↵</span>
         </div>
       </Command.Item>
@@ -189,18 +189,17 @@ function PendingFileChip({ file, onRemove }: { file: File; onRemove: () => void 
       <FileText className="size-3 shrink-0 text-tertiary" />
       <span className="min-w-0 truncate text-primary">{file.name}</span>
       <span className="shrink-0 text-tertiary">{formatAgentChatFileSize(file.size)}</span>
-      <button
-        type="button"
+      <IconButton
+        variant="ghost"
+        size="sm"
+        icon={X}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
           onRemove();
         }}
-        className="grid size-4 shrink-0 place-items-center rounded text-tertiary hover:bg-layer-2 hover:text-primary"
         aria-label={`Remove ${file.name}`}
-      >
-        <X className="size-3" />
-      </button>
+      />
     </li>
   );
 }

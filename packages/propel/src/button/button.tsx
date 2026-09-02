@@ -7,7 +7,8 @@
 import * as React from "react";
 import { cn } from "../utils";
 import type { ButtonProps } from "./helper";
-import { getIconStyling, buttonVariants } from "./helper";
+import { CircularBarSpinner } from "../spinners";
+import { getIconStyling, getIconSizePx, buttonVariants } from "./helper";
 
 const Button = React.forwardRef(function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) {
   const {
@@ -24,6 +25,7 @@ const Button = React.forwardRef(function Button(props: ButtonProps, ref: React.F
   } = props;
 
   const buttonIconStyle = getIconStyling(size ?? "base");
+  const buttonIconPx = getIconSizePx(size ?? "base");
 
   return (
     <button
@@ -37,10 +39,25 @@ const Button = React.forwardRef(function Button(props: ButtonProps, ref: React.F
         className
       )}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...rest}
     >
-      {prependIcon && React.cloneElement(prependIcon, { className: cn("shrink-0", buttonIconStyle), strokeWidth: 2 })}
-      {children}
+      {loading ? (
+        <CircularBarSpinner className="shrink-0" height={buttonIconPx} width={buttonIconPx} />
+      ) : (
+        prependIcon &&
+        React.cloneElement(prependIcon, { className: cn("shrink-0", buttonIconStyle), strokeWidth: 2 })
+      )}
+      {/* Text labels ride ~1px high inside the fixed-height pill: flex centers the
+          line box, but the font's ascent/descent are asymmetric so the glyphs sit
+          above the optical center. Trim the label box to cap-height/baseline so
+          what gets centered is the ink. Element children stay unwrapped to keep
+          gap-1 spacing between them. */}
+      {typeof children === "string" || typeof children === "number" ? (
+        <span className="[text-box:trim-both_cap_alphabetic]">{children}</span>
+      ) : (
+        children
+      )}
       {appendIcon && React.cloneElement(appendIcon, { className: cn("shrink-0", buttonIconStyle), strokeWidth: 2 })}
     </button>
   );

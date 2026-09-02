@@ -10,7 +10,7 @@ import * as ColorPicker from "react-color";
 import type { ColorResult } from "react-color";
 import { usePopper } from "react-popper";
 // helpers
-import { Button } from "../button";
+import { Button } from "@plane/propel/button";
 import { cn } from "../utils";
 // components
 import { Input } from "./input";
@@ -62,7 +62,7 @@ export function InputColorPicker(props: InputColorPickerProps) {
         {() => (
           <>
             <Popover.Button as={React.Fragment}>
-              <Button ref={setReferenceElement} variant="neutral-primary" className="border-none !bg-transparent">
+              <Button ref={setReferenceElement} variant="ghost">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="14"

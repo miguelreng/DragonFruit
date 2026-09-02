@@ -11,6 +11,7 @@ import { ListFilter, Sparkles, Plus, Minus, Maximize, X } from "@/components/ico
 import type { TWorkflowEdge, TWorkflowNode, TWorkflowNodeKind } from "@/services/workflow.service";
 import { FlowNode } from "./flow-node";
 import { nodeDisplay, nodeKindLabel, NODE_W } from "./builder-helpers";
+import { IconButton } from "@plane/propel/icon-button";
 
 type AddKind = "condition" | "action";
 type Branch = "" | "true" | "false";
@@ -245,21 +246,20 @@ export function FlowCanvas({
 
           {/* Delete affordance on the selected edge. */}
           {selectedEdgePath && (
-            <button
-              type="button"
+            <IconButton
+              variant="secondary"
+              size="base"
+              icon={X}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onDeleteEdge(selectedEdgePath.edge);
                 setSelectedEdge(null);
               }}
-              className="absolute grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-subtle bg-layer-1 text-red-600 shadow-md transition-colors hover:bg-red-500/10"
               style={{ left: selectedEdgePath.lx, top: selectedEdgePath.ly + (selectedEdgePath.label ? 18 : 0) }}
               aria-label="Delete connection"
               title="Delete connection"
-            >
-              <X className="size-3.5" />
-            </button>
+            />
           )}
 
           {nodes.map((n) => {
@@ -327,9 +327,11 @@ export function FlowCanvas({
 
           {/* Add-child (+) slots */}
           {addSlots.map((s) => (
-            <button
+            <IconButton
+              variant="secondary"
+              size="base"
+              icon={Plus}
               key={`${s.parentId}-${s.branch}`}
-              type="button"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -337,12 +339,9 @@ export function FlowCanvas({
                 setBranchMenu(null);
                 setAddMenu({ parentId: s.parentId, branch: s.branch, x: s.x, y: s.y });
               }}
-              className="absolute grid size-6 -translate-x-1/2 place-items-center rounded-full border border-subtle bg-layer-1 text-tertiary shadow-sm t-press hover:bg-layer-2 hover:text-primary"
               style={{ left: s.x, top: s.y + 8 }}
               aria-label="Add step"
-            >
-              <Plus className="size-3.5" />
-            </button>
+            />
           ))}
 
           {/* Add-step type menu */}
@@ -398,34 +397,31 @@ export function FlowCanvas({
 
       {/* Zoom controls */}
       <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-subtle bg-layer-1 px-1.5 py-1 shadow-md">
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="base"
+          icon={Minus}
           onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
-          className="grid size-6 place-items-center rounded-md text-tertiary t-press hover:bg-layer-3"
           aria-label="Zoom out"
-        >
-          <Minus className="size-4" />
-        </button>
+        />
         <span className="min-w-[3rem] text-center text-12 font-medium text-secondary tabular-nums">
           {Math.round(zoom * 100)}%
         </span>
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="base"
+          icon={Plus}
           onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
-          className="grid size-6 place-items-center rounded-md text-tertiary t-press hover:bg-layer-3"
           aria-label="Zoom in"
-        >
-          <Plus className="size-4" />
-        </button>
+        />
         <span className="mx-0.5 h-4 w-px bg-strong/40" />
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="base"
+          icon={Maximize}
           onClick={resetView}
-          className="grid size-6 place-items-center rounded-md text-tertiary t-press hover:bg-layer-3"
           aria-label="Reset view"
-        >
-          <Maximize className="size-4" />
-        </button>
+        />
       </div>
     </div>
   );

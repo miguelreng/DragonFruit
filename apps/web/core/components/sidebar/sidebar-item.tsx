@@ -245,7 +245,7 @@ function AppSidebarItem({ variant = "link", item }: AppSidebarItemProps) {
 
   // Presentational variant: renders no interactive element. Used when the item is
   // already nested inside an interactive trigger (e.g. CustomMenu wraps customButton
-  // in its own <button>) — rendering another <button> here would nest buttons.
+  // in its own <button type="button">) — rendering another <button type="button"> here would nest buttons.
   if (variant === "static") {
     return (
       <AppSidebarTooltip tooltipContent={tooltipContent}>

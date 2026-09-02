@@ -62,7 +62,7 @@ function CalendarOauthCallbackPage() {
       <div className="max-w-md text-center">
         <div className="text-base font-medium text-danger-primary">Connection failed</div>
         <div className="text-sm mt-1 text-tertiary">{error}</div>
-        <button
+        <button type="button"
           onClick={() => navigate("/")}
           className="bg-primary text-sm text-primary-foreground mt-4 rounded-lg px-3 py-1.5"
         >

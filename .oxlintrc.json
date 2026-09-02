@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "jsx-a11y", "import", "promise", "unicorn", "oxc"],
+  "plugins": [
+    "react",
+    "typescript",
+    "jsx-a11y",
+    "import",
+    "promise",
+    "unicorn",
+    "oxc"
+  ],
   "categories": {
     "correctness": "warn",
     "suspicious": "warn",
@@ -47,6 +55,42 @@
         "caughtErrorsIgnorePattern": "^_",
         "destructuredArrayIgnorePattern": "^_",
         "ignoreRestSiblings": true
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "paths": [
+          {
+            "name": "@plane/ui",
+            "importNames": [
+              "Button",
+              "getButtonStyling",
+              "TButtonVariant",
+              "TButtonSizes",
+              "Tooltip",
+              "Card",
+              "ECardVariant",
+              "ECardSpacing",
+              "ECardDirection",
+              "Spinner",
+              "CircularBarSpinner"
+            ],
+            "message": "Un solo componente por slot. Button/Card/Tooltip/Spinner viven en @plane/propel/*. Ver Storybook -> Design System/Component Catalog."
+          },
+          {
+            "name": "@plane/propel/avatar",
+            "message": "Avatar canonico: import { Avatar, AvatarGroup } from \"@plane/ui\"."
+          },
+          {
+            "name": "@plane/propel/menu",
+            "message": "Dropdown canonico: import { CustomMenu } from \"@plane/ui\"."
+          },
+          {
+            "name": "@plane/propel/skeleton",
+            "message": "Skeleton canonico: import { Loader } from \"@plane/ui\" y compone con <Loader.Item>."
+          }
+        ]
       }
     ]
   }

@@ -442,7 +442,7 @@ function SubMenu(props: ICustomSubMenuProps) {
             // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
             <div
               className={cn(
-                "flex w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-left text-secondary select-none",
+                "flex w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1 text-left text-secondary select-none",
                 {
                   "bg-layer-transparent-hover text-primary": (active || isOpen) && !disabled,
                   "text-placeholder": disabled,
@@ -522,7 +522,7 @@ function MenuItem(props: ICustomMenuItemProps) {
         <button
           type="button"
           className={cn(
-            "w-full truncate rounded-sm px-2 py-1.5 text-left text-secondary select-none",
+            "w-full truncate rounded-sm px-2 py-1 text-left text-secondary select-none",
             {
               "bg-layer-transparent-hover": active && !disabled,
               "text-placeholder": disabled,
@@ -552,7 +552,7 @@ function SubMenuTrigger(props: ICustomSubMenuTriggerProps) {
       {({ active }) => (
         <div
           className={cn(
-            "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-secondary select-none",
+            "flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-secondary select-none",
             {
               "bg-layer-transparent-hover": active && !disabled,
               "text-placeholder": disabled,

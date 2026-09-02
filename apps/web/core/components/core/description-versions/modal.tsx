@@ -10,6 +10,7 @@ import { observer } from "mobx-react";
 import type { EditorRefApi } from "@plane/editor";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
+import { IconButton } from "@plane/propel/icon-button";
 import { CopyIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons/propel-shim";
 import { setToast, TOAST_TYPE } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
@@ -21,7 +22,6 @@ import { RichTextEditor } from "@/components/editor/rich-text";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useWorkspace } from "@/hooks/store/use-workspace";
-import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   activeVersionDescription: string | undefined;
@@ -96,28 +96,22 @@ export const DescriptionVersionsModal = observer(function DescriptionVersionsMod
             </p>
           </div>
           <div className="flex flex-shrink-0 items-center">
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="base"
+              icon={ChevronLeftIcon}
+              aria-label="Previous version"
               onClick={() => handleNavigation("prev")}
-              className={cn("grid size-6 place-items-center rounded-lg text-secondary transition-colors outline-none", {
-                "hover:bg-layer-1": !isPrevDisabled,
-                "opacity-50": isPrevDisabled,
-              })}
               disabled={isPrevDisabled}
-            >
-              <ChevronLeftIcon className="size-4" />
-            </button>
-            <button
-              type="button"
+            />
+            <IconButton
+              variant="ghost"
+              size="base"
+              icon={ChevronRightIcon}
+              aria-label="Next version"
               onClick={() => handleNavigation("next")}
-              className={cn("grid size-6 place-items-center rounded-lg text-secondary transition-colors outline-none", {
-                "hover:bg-layer-1": !isNextDisabled,
-                "opacity-50": isNextDisabled,
-              })}
               disabled={isNextDisabled}
-            >
-              <ChevronRightIcon className="size-4" />
-            </button>
+            />
           </div>
         </div>
         {/* End header */}

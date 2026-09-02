@@ -230,7 +230,7 @@ export const ProjectCard = observer(function ProjectCard(props: Props) {
 
           {!isArchived && (
             <div data-prevent-progress className="flex flex-shrink-0 items-center gap-2">
-              <button
+              <button type="button"
                 aria-label="Copy project link"
                 className="flex h-7 w-7 items-center justify-center rounded-lg border border-subtle bg-layer-1 text-secondary hover:text-primary"
                 onClick={(e) => {

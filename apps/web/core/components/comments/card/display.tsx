@@ -22,7 +22,8 @@ import { CommentReactions } from "../comment-reaction";
 import { CommentReplies } from "../comment-replies";
 import { CommentCardEditForm } from "./edit-form";
 import { EmojiReactionButton, EmojiReactionPicker } from "@plane/propel/emoji-reaction";
-import { Avatar, Tooltip } from "@plane/ui";
+import { Avatar } from "@plane/ui";
+import { Tooltip } from "@plane/propel/tooltip";
 import { useMember } from "@/hooks/store/use-member";
 
 export type TCommentCardDisplayProps = {

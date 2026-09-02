@@ -146,7 +146,7 @@ export const ContentOverflowWrapper = observer(function ContentOverflowWrapper(p
           }}
         >
           {customButton || (
-            <button
+            <button type="button"
               className={cn(
                 "w-full gap-1 text-13 font-medium text-accent-primary transition-opacity duration-300",
                 buttonClassName

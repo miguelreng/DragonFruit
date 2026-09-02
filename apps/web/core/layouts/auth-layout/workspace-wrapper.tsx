@@ -17,9 +17,9 @@ import { DragonfruitLogo } from "@/components/icons/propel-shim";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
-// assets
 // components
 import { AppLoadingScreen } from "@/components/common/app-loading-screen";
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { CursorBuddyDocToastListener } from "@/components/agent/cursor-buddy-doc-toast-listener";
 // constants
 import {
@@ -199,11 +199,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
           </div>
           <div className="relative flex h-full w-full flex-grow flex-col items-center justify-center space-y-3">
             <div className="relative flex-shrink-0">
-              <img
-                src="/empty-state/renaissance-sketch/invalid-link.png"
-                className="h-[220px] object-contain object-center"
-                alt="DragonFruit logo"
-              />
+              <EmptyStateIcon name="invalid-link" />
             </div>
             <h3 className="text-center text-16 font-semibold">Workspace not found</h3>
             <p className="text-center text-13 text-secondary">
@@ -243,11 +239,7 @@ export const WorkspaceAuthWrapper = observer(function WorkspaceAuthWrapper(props
       <div className={`h-screen w-full overflow-hidden bg-surface-1`}>
         <div className="grid h-full place-items-center p-4">
           <div className="space-y-8 text-center">
-            <img
-              src="/empty-state/renaissance-sketch/not-authorized.png"
-              alt=""
-              className="mx-auto h-40 w-40 object-contain"
-            />
+            <EmptyStateIcon name="no-access" className="mx-auto" />
             <div className="space-y-2">
               <h3 className="text-16 font-semibold">Not Authorized!</h3>
               <p className="mx-auto w-1/2 text-13 text-secondary">

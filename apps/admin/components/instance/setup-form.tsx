@@ -12,7 +12,8 @@ import { Eye, EyeClosed as EyeOff } from "@solar-icons/react/ssr";
 import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
-import { Checkbox, Input, PasswordStrengthIndicator, Spinner } from "@plane/ui";
+import { Checkbox, Input, PasswordStrengthIndicator } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { getPasswordStrength, validatePersonName, validateCompanyName } from "@plane/utils";
 // components
 import { AuthHeader } from "@/app/(all)/(home)/auth-header";

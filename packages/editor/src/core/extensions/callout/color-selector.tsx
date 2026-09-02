@@ -5,6 +5,7 @@
  */
 
 import { Ban } from "@plane/icons";
+import { IconButton } from "@plane/propel/icon-button";
 import { ChevronDownIcon } from "@plane/propel/icons";
 // plane utils
 import { cn } from "@plane/utils";
@@ -66,13 +67,13 @@ export function CalloutBlockColorSelector(props: Props) {
                   onClick={() => handleColorSelect(color.key)}
                 />
               ))}
-              <button
-                type="button"
-                className="grid size-6 flex-shrink-0 place-items-center rounded-lg border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1-hover"
+              <IconButton
+                variant="secondary"
+                size="base"
+                icon={Ban}
+                aria-label="Clear colour"
                 onClick={() => handleColorSelect(null)}
-              >
-                <Ban className="size-4" />
-              </button>
+              />
             </div>
           </section>
         )}

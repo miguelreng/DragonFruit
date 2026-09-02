@@ -46,12 +46,13 @@ export function CodeBlockComponent({ node }: Props) {
         <button
           type="button"
           className={cn(
-            "group/button absolute top-2 right-2 z-10 hidden size-8 items-center justify-center rounded-lg border border-subtle bg-layer-1 backdrop-blur-sm transition duration-150 ease-in-out group-hover/code:flex",
+            "t-focus group/button absolute top-2 right-2 z-10 hidden size-8 items-center justify-center rounded-lg border border-subtle bg-layer-1 backdrop-blur-sm transition duration-150 ease-in-out group-hover/code:flex",
             {
               "bg-success-subtle hover:bg-success-subtle-1 active:bg-success-subtle-1": copied,
             }
           )}
           onClick={(e) => void copyToClipboard(e)}
+          aria-label={copied ? "Code copied" : "Copy code"}
         >
           {copied ? (
             <CheckIcon className="h-3 w-3 text-success-primary" strokeWidth={3} />

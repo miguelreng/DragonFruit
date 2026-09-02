@@ -5,14 +5,10 @@
  */
 
 import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { EUserProjectRoles } from "@plane/types";
-// assets
-import darkPagesAsset from "@/app/assets/empty-state/disabled-feature/pages-dark.webp?url";
-import lightPagesAsset from "@/app/assets/empty-state/disabled-feature/pages-light.webp?url";
 // components
 import { Whiteboard } from "@/components/icons/lucide-shim";
 import { PageHead } from "@/components/core/page-title";
@@ -28,8 +24,6 @@ function ProjectWhiteboardsPage({ params }: Route.ComponentProps) {
   // router
   const router = useAppRouter();
   const { workspaceSlug, projectId } = params;
-  // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // store hooks
@@ -39,7 +33,6 @@ function ProjectWhiteboardsPage({ params }: Route.ComponentProps) {
   const project = getProjectById(projectId);
   const pageTitle = project?.name ? `${project?.name} - Whiteboards` : undefined;
   const canPerformEmptyStateActions = allowPermissions([EUserProjectRoles.ADMIN], EUserPermissionsLevel.PROJECT);
-  const resolvedPath = resolvedTheme === "light" ? lightPagesAsset : darkPagesAsset;
 
   if (currentProjectDetails?.page_view === false)
     return (
@@ -47,7 +40,7 @@ function ProjectWhiteboardsPage({ params }: Route.ComponentProps) {
         <DetailedEmptyState
           title={t("disabled_project.empty_state.page.title")}
           description={t("disabled_project.empty_state.page.description")}
-          assetPath={resolvedPath}
+          visual={{ type: "icon", name: "whiteboards" }}
           primaryButton={{
             text: t("disabled_project.empty_state.page.primary_button.text"),
             onClick: () => {

@@ -5,16 +5,12 @@
  */
 
 import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
 // plane imports
 import { PROGRESS_STATE_GROUPS_DETAILS } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type { TWorkItemFilterCondition } from "@plane/shared-state";
 import type { ICycle } from "@plane/types";
 import { LinearProgressIndicator, Loader } from "@plane/ui";
-// assets
-import darkProgressAsset from "@/app/assets/empty-state/active-cycle/progress-dark.webp?url";
-import lightProgressAsset from "@/app/assets/empty-state/active-cycle/progress-light.webp?url";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 
@@ -28,7 +24,6 @@ export type ActiveCycleProgressProps = {
 export const ActiveCycleProgress = observer(function ActiveCycleProgress(props: ActiveCycleProgressProps) {
   const { handleFiltersUpdate, cycle } = props;
   // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // derived values
@@ -46,7 +41,6 @@ export const ActiveCycleProgress = observer(function ActiveCycleProgress(props: 
         backlog: cycle?.backlog_issues,
       }
     : {};
-  const resolvedPath = resolvedTheme === "light" ? lightProgressAsset : darkProgressAsset;
 
   return cycle && cycle.hasOwnProperty("started_issues") ? (
     <div className="flex min-h-[17rem] flex-col gap-5 rounded-lg border border-subtle bg-surface-1 px-3.5 py-4">
@@ -105,7 +99,7 @@ export const ActiveCycleProgress = observer(function ActiveCycleProgress(props: 
         </div>
       ) : (
         <div className="flex h-full w-full items-center justify-center">
-          <SimpleEmptyState title={t("active_cycle.empty_state.progress.title")} assetPath={resolvedPath} />
+          <SimpleEmptyState title={t("active_cycle.empty_state.progress.title")} visual={{ type: "icon", name: "progress" }} />
         </div>
       )}
     </div>

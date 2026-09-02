@@ -269,7 +269,7 @@ export const TopNavPowerK = observer(() => {
               if (!isOpen) openPanel();
             }
           }}
-          // reason: wrapper contains an input + clear button, can't be a real <button>; focus delegated to inner input
+          // reason: wrapper contains an input + clear button, can't be a real <button type="button">; focus delegated to inner input
           // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="button"
           tabIndex={-1}

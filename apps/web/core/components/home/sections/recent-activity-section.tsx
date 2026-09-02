@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { Avatar } from "@plane/propel/avatar";
+import { Avatar } from "@plane/ui";
 import { calculateTimeAgo, getFileURL } from "@plane/utils";
 import { ActivityMessage, IssueLink } from "@/components/core/activity";
 import { useUser } from "@/hooks/store/user";

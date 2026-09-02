@@ -10,7 +10,8 @@ import { CheckCircle as CircleCheck, CloseCircle as XCircle } from "@solar-icons
 import { API_BASE_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
-import { Input, Spinner } from "@plane/ui";
+import { Input } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // hooks
 import useTimer from "@/hooks/use-timer";
 // types

@@ -3,13 +3,20 @@ import {
   ATLAS_SIDEBAR_DEFAULT_WIDTH,
   ATLAS_SIDEBAR_MAX_WIDTH_CAP,
   ATLAS_SIDEBAR_MIN_WIDTH,
+  ATLAS_SIDEBAR_RAIL_WIDTH,
+  ATLAS_SIDEBAR_RUBBER_MAX,
+  ATLAS_SIDEBAR_SNAP_OVERSHOOT,
   clampAtlasSidebarPreferredWidth,
   clampAtlasSidebarWidth,
+  getAtlasRailDragIntent,
+  getAtlasRailLiveDragWidth,
+  getAtlasSidebarDragIntent,
   getAtlasSidebarMaxWidth,
   getAtlasSidebarWidthForKey,
   parsePersistedAtlasSidebarWidth,
   resolveAtlasSidebarWidth,
   resolveAtlasSidebarLayout,
+  rubberBandAtlasSidebarWidth,
   snapAtlasSidebarWidth,
 } from "./atlas-sidebar-layout";
 
@@ -94,6 +101,79 @@ describe("snapAtlasSidebarWidth", () => {
 
   it("leaves widths far from the default untouched", () => {
     expect(snapAtlasSidebarWidth(500)).toBe(500);
+  });
+});
+
+describe("getAtlasSidebarDragIntent", () => {
+  it("collapses when the drag overshoots past the min", () => {
+    expect(getAtlasSidebarDragIntent(ATLAS_SIDEBAR_MIN_WIDTH - ATLAS_SIDEBAR_SNAP_OVERSHOOT, 1440)).toBe("collapse");
+  });
+
+  it("expands to full when the drag overshoots past the max", () => {
+    expect(getAtlasSidebarDragIntent(ATLAS_SIDEBAR_MAX_WIDTH_CAP + ATLAS_SIDEBAR_SNAP_OVERSHOOT, 1440)).toBe("expand");
+  });
+
+  it("uses the viewport-relative max on narrower containers", () => {
+    const max = getAtlasSidebarMaxWidth(1024);
+    expect(getAtlasSidebarDragIntent(max + ATLAS_SIDEBAR_SNAP_OVERSHOOT, 1024)).toBe("expand");
+    expect(getAtlasSidebarDragIntent(max + ATLAS_SIDEBAR_SNAP_OVERSHOOT - 1, 1024)).toBe("resize");
+  });
+
+  it("stays a resize when the drag stops at or near a bound", () => {
+    expect(getAtlasSidebarDragIntent(ATLAS_SIDEBAR_MIN_WIDTH, 1440)).toBe("resize");
+    expect(getAtlasSidebarDragIntent(ATLAS_SIDEBAR_MIN_WIDTH - ATLAS_SIDEBAR_SNAP_OVERSHOOT + 1, 1440)).toBe("resize");
+    expect(getAtlasSidebarDragIntent(ATLAS_SIDEBAR_MAX_WIDTH_CAP + ATLAS_SIDEBAR_SNAP_OVERSHOOT - 1, 1440)).toBe(
+      "resize"
+    );
+  });
+
+  it("stays a resize for in-range widths", () => {
+    expect(getAtlasSidebarDragIntent(450, 1440)).toBe("resize");
+  });
+});
+
+describe("rubberBandAtlasSidebarWidth", () => {
+  it("passes through in-range widths", () => {
+    expect(rubberBandAtlasSidebarWidth(450, 1440)).toBe(450);
+  });
+
+  it("applies resistance below the min", () => {
+    const banded = rubberBandAtlasSidebarWidth(ATLAS_SIDEBAR_MIN_WIDTH - 100, 1440);
+    expect(banded).toBeLessThan(ATLAS_SIDEBAR_MIN_WIDTH);
+    expect(banded).toBeGreaterThan(ATLAS_SIDEBAR_MIN_WIDTH - 100);
+  });
+
+  it("caps the visual overshoot on both sides", () => {
+    expect(rubberBandAtlasSidebarWidth(0, 1440)).toBe(ATLAS_SIDEBAR_MIN_WIDTH - ATLAS_SIDEBAR_RUBBER_MAX);
+    expect(rubberBandAtlasSidebarWidth(5000, 1920)).toBe(ATLAS_SIDEBAR_MAX_WIDTH_CAP + ATLAS_SIDEBAR_RUBBER_MAX);
+  });
+});
+
+describe("getAtlasRailLiveDragWidth", () => {
+  it("tracks the pointer exactly through the sub-minimum peek zone", () => {
+    expect(getAtlasRailLiveDragWidth(200, 1440)).toBe(200);
+  });
+
+  it("never renders narrower than the rail", () => {
+    expect(getAtlasRailLiveDragWidth(10, 1440)).toBe(ATLAS_SIDEBAR_RAIL_WIDTH);
+  });
+
+  it("rubber bands past the max like a regular drag", () => {
+    expect(getAtlasRailLiveDragWidth(5000, 1920)).toBe(ATLAS_SIDEBAR_MAX_WIDTH_CAP + ATLAS_SIDEBAR_RUBBER_MAX);
+  });
+});
+
+describe("getAtlasRailDragIntent", () => {
+  it("springs back to the rail when released short of the minimum", () => {
+    expect(getAtlasRailDragIntent(ATLAS_SIDEBAR_MIN_WIDTH - 1, 1440)).toBe("collapse");
+  });
+
+  it("commits the expand once the drag crosses the minimum", () => {
+    expect(getAtlasRailDragIntent(ATLAS_SIDEBAR_MIN_WIDTH, 1440)).toBe("resize");
+  });
+
+  it("snaps to full width when overshooting the max in the same gesture", () => {
+    expect(getAtlasRailDragIntent(ATLAS_SIDEBAR_MAX_WIDTH_CAP + ATLAS_SIDEBAR_SNAP_OVERSHOOT, 1440)).toBe("expand");
   });
 });
 

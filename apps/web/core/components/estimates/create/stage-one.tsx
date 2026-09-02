@@ -79,7 +79,7 @@ export function EstimateCreateStageOne(props: TEstimateCreateStageOne) {
             <div className="text-13 font-medium text-secondary">
               {t("project_settings.estimates.create.start_from_scratch")}
             </div>
-            <button
+            <button type="button"
               className="block w-full space-y-1 rounded-lg border border-subtle p-3 py-2.5 text-left hover:bg-layer-transparent-hover"
               onClick={() => handleEstimatePoints("custom")}
             >
@@ -98,7 +98,7 @@ export function EstimateCreateStageOne(props: TEstimateCreateStageOne) {
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               {Object.keys(currentEstimateSystem.templates).map((name) =>
                 currentEstimateSystem.templates[name]?.hide ? null : (
-                  <button
+                  <button type="button"
                     key={name}
                     className="space-y-1 rounded-lg border border-subtle p-3 py-2.5 text-left hover:bg-surface-2"
                     onClick={() => handleEstimatePoints(name)}

@@ -111,7 +111,6 @@ export const InboxIssueRoot = observer(function InboxIssueRoot(props: TInboxIssu
           <EmptyStateCompact
             assetKey="intake"
             title={t("project_empty_state.intake_main.title")}
-            assetClassName="size-20"
           />
         )}
       </div>

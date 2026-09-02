@@ -7,7 +7,6 @@
 import { MoveRight } from "@/components/icons/lucide-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 // assets
-import emptyIssue from "@/app/assets/empty-state/issue.svg?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 // hooks
@@ -26,7 +25,7 @@ export function IssuePeekOverviewError(props: TIssuePeekOverviewError) {
     <div className="relative flex h-full w-full flex-col overflow-hidden">
       <div className="flex flex-shrink-0 justify-start">
         <Tooltip tooltipContent="Close the peek view" isMobile={isMobile}>
-          <button onClick={removeRoutePeekId} className="m-5 h-5 w-5">
+          <button type="button" onClick={removeRoutePeekId} className="m-5 h-5 w-5">
             <MoveRight className="h-4 w-4 text-tertiary hover:text-secondary" />
           </button>
         </Tooltip>
@@ -34,7 +33,7 @@ export function IssuePeekOverviewError(props: TIssuePeekOverviewError) {
 
       <div className="h-full w-full">
         <EmptyState
-          image={emptyIssue ?? undefined}
+          iconName="tasks"
           title="Task does not exist"
           description="The task you are looking for does not exist, has been archived, or has been deleted."
         />

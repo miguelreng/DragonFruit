@@ -6,8 +6,9 @@
 
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
-import { MinusCircle } from "@/components/icons/lucide-shim";
+import { GitBranch as ParentPropertyIcon, MinusCircle, MoreHorizontal } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
+import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssue } from "@plane/types";
 // component
 // ui
@@ -20,8 +21,6 @@ import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-// plane web components
-import { IssueIdentifier } from "@/plane-web/components/issues/issue-details/issue-identifier";
 // types
 import type { TIssueOperations } from "../root";
 import { IssueParentSiblings } from "./siblings";
@@ -73,39 +72,54 @@ export const IssueParentDetail = observer(function IssueParentDetail(props: TIss
   };
 
   return (
-    <>
-      <div className="mb-5 flex w-min items-center gap-3 rounded-lg border border-strong bg-layer-1 px-2.5 py-1 text-11 whitespace-nowrap">
-        <ControlLink href={workItemLink} onClick={handleParentIssueClick}>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2.5">
-              <span className="block h-2 w-2 rounded-full" style={{ backgroundColor: stateColor }} />
-              {parentIssue.project_id && (
-                <IssueIdentifier
-                  projectId={parentIssue.project_id}
-                  issueId={parentIssue.id}
-                  size="xs"
-                  variant="secondary"
-                />
-              )}
-            </div>
-            <span className="truncate text-primary">{(parentIssue?.name ?? "").substring(0, 50)}</span>
-          </div>
+    <div className="mb-5 inline-flex max-w-full items-center gap-1 rounded-lg border border-subtle bg-layer-1 py-0.5 pr-0.5 pl-2 text-11">
+      <span className="flex shrink-0 items-center gap-1 text-tertiary">
+        <ParentPropertyIcon className="size-3 shrink-0" aria-hidden="true" />
+        {t("common.parent")}
+      </span>
+      <span className="mx-0.5 h-3 w-px shrink-0 bg-layer-3" aria-hidden="true" />
+
+      <Tooltip tooltipContent={parentIssue.name} position="top" isMobile={isMobile}>
+        <ControlLink
+          href={workItemLink}
+          onClick={handleParentIssueClick}
+          className="t-colors flex min-w-0 items-center gap-1.5 rounded-sm px-1 py-0.5 text-secondary hover:bg-layer-transparent-hover hover:text-primary"
+        >
+          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: stateColor }} aria-hidden="true" />
+          <span className="truncate">{parentIssue.name}</span>
         </ControlLink>
+      </Tooltip>
 
-        <CustomMenu ellipsis optionsClassName="p-1.5">
-          <div className="border-b border-strong text-11 font-medium text-secondary">{t("issue.sibling.label")}</div>
+      <CustomMenu
+        placement="bottom-end"
+        ariaLabel={t("common.parent")}
+        maxHeight="lg"
+        optionsClassName="w-64 max-w-[calc(100vw-2rem)] p-1"
+        // the peek drawer clips overflow, so the fixed popper has to escape it
+        portalElement={document.body}
+        customButtonClassName="grid shrink-0 place-items-center"
+        customButton={
+          <span className="t-colors grid size-5 place-items-center rounded-sm text-tertiary hover:bg-layer-transparent-hover hover:text-primary">
+            <MoreHorizontal weight="Bold" className="size-3.5" />
+          </span>
+        }
+      >
+        <div className="px-2 pt-1 pb-1.5 text-11 font-medium tracking-wide text-tertiary uppercase">
+          {t("issue.sibling.label")}
+        </div>
 
-          <IssueParentSiblings workspaceSlug={workspaceSlug} currentIssue={issue} parentIssue={parentIssue} />
+        <IssueParentSiblings workspaceSlug={workspaceSlug} currentIssue={issue} parentIssue={parentIssue} />
 
-          <CustomMenu.MenuItem
-            onClick={() => issueOperations.update(workspaceSlug, projectId, issueId, { parent_id: null })}
-            className="flex items-center gap-2 py-2 text-danger-primary"
-          >
-            <MinusCircle className="h-4 w-4" />
-            <span>{t("issue.remove.parent.label")}</span>
-          </CustomMenu.MenuItem>
-        </CustomMenu>
-      </div>
-    </>
+        <div className="my-1 h-px bg-layer-3" aria-hidden="true" />
+
+        <CustomMenu.MenuItem
+          onClick={() => issueOperations.update(workspaceSlug, projectId, issueId, { parent_id: null })}
+          className="flex items-center gap-2 text-danger-primary"
+        >
+          <MinusCircle className="size-3.5 shrink-0" />
+          <span>{t("issue.remove.parent.label")}</span>
+        </CustomMenu.MenuItem>
+      </CustomMenu>
+    </div>
   );
 });

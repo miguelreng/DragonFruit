@@ -59,7 +59,7 @@ export const IssueAttachmentsListItem = observer(function IssueAttachmentsListIt
 
   return (
     <>
-      <button
+      <button type="button"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();

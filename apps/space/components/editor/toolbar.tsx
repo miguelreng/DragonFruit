@@ -80,8 +80,10 @@ export function IssueCommentToolbar(props: Props) {
                     <button
                       type="button"
                       onClick={() => executeCommand(item)}
+                      aria-label={item.name}
+                      aria-pressed={isItemActive}
                       className={cn(
-                        "grid aspect-square place-items-center rounded-xs p-0.5 text-placeholder hover:bg-layer-transparent-hover",
+                        "t-focus grid aspect-square place-items-center rounded-xs p-0.5 text-placeholder hover:bg-layer-transparent-hover",
                         {
                           "bg-layer-transparent-hover text-primary": isItemActive,
                         }

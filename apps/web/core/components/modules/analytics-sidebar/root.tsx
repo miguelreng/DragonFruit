@@ -183,7 +183,7 @@ export const ModuleAnalyticsSidebar = observer(function ModuleAnalyticsSidebar(p
       <>
         <div className={`sticky top-0 z-10 flex items-center justify-between bg-surface-1 pt-5 pb-5`}>
           <div>
-            <button
+            <button type="button"
               className="flex h-5 w-5 items-center justify-center rounded-full bg-layer-3"
               onClick={() => handleClose()}
             >
@@ -393,7 +393,7 @@ export const ModuleAnalyticsSidebar = observer(function ModuleAnalyticsSidebar(p
                           <>
                             {isEditingAllowed && !isArchived && (
                               <div className="flex w-full items-center justify-end">
-                                <button
+                                <button type="button"
                                   className="flex items-center gap-1.5 text-13 font-medium text-accent-primary"
                                   onClick={() => setModuleLinkModal(true)}
                                 >
@@ -419,7 +419,7 @@ export const ModuleAnalyticsSidebar = observer(function ModuleAnalyticsSidebar(p
                               <span className="p-0.5 text-11 text-tertiary">{t("common.no_links_added_yet")}</span>
                             </div>
                             {isEditingAllowed && !isArchived && (
-                              <button
+                              <button type="button"
                                 className="flex items-center gap-1.5 text-13 font-medium text-accent-primary"
                                 onClick={() => setModuleLinkModal(true)}
                               >

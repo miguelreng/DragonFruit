@@ -367,8 +367,8 @@ export const TaskQuickAdd = observer(function TaskQuickAdd({
                 // buttonVariant is required by the dropdown's prop type but unused on the custom
                 // `button` path below.
                 buttonVariant="transparent-with-text"
-                // Custom trigger node (rendered inside the dropdown's own <button>) instead of the
-                // default DropdownButton, which nests a propel <button> inside that wrapper button.
+                // Custom trigger node (rendered inside the dropdown's own <button type="button">) instead of the
+                // default DropdownButton, which nests a propel <button type="button"> inside that wrapper button.
                 button={
                   <span className="flex items-center gap-1 rounded-md px-1.5 py-1 text-11 text-tertiary transition-colors hover:bg-layer-1">
                     {selectedProject?.logo_props && (

@@ -25,6 +25,7 @@ import type { TPageInstance } from "@/store/pages/base-page";
 // local imports
 import { PagesVersionEditor } from "./editor";
 import { PageVersionsMainContent } from "./main-content";
+import { IconButton } from "@plane/propel/icon-button";
 
 const projectPageVersionService = new ProjectPageVersionService();
 
@@ -131,14 +132,13 @@ export const PageVersionHistoryModal = observer(function PageVersionHistoryModal
               {t("page_navigation_pane.tabs.info.version_history.label")}
             </h3>
           </div>
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={XIcon}
             onClick={handleClose}
-            className="grid size-7 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
             aria-label={t("common.close")}
-          >
-            <XIcon className="size-4" />
-          </button>
+          />
         </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[19rem_minmax(0,1fr)]">

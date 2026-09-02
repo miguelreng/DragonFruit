@@ -8,8 +8,8 @@ import { observer } from "mobx-react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 // assets
-import emptyLabel from "@/app/assets/empty-state/empty_label.svg?url";
 // components
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 import { SingleProgressStats } from "@/components/core/sidebar/single-progress-stats";
 
 export type TLabelData = {
@@ -81,7 +81,7 @@ export const LabelStatComponent = observer(function LabelStatComponent(props: TL
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-2">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-layer-1">
-            <img src={emptyLabel} className="h-12 w-12 object-contain" alt="empty label" />
+            <EmptyStateIcon name="labels" className="size-12" />
           </div>
           <h6 className="text-14 text-tertiary">{t("no_labels_yet")}</h6>
         </div>

@@ -115,6 +115,46 @@ export const Loading: Story = {
   },
 };
 
+/** `loading` renders a spinner in the prepend slot and disables the button. */
+export const LoadingAcrossVariants: Story = {
+  render() {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="primary" loading>
+          Primary
+        </Button>
+        <Button variant="secondary" loading>
+          Secondary
+        </Button>
+        <Button variant="tertiary" loading>
+          Tertiary
+        </Button>
+        <Button variant="ghost" loading>
+          Ghost
+        </Button>
+        <Button variant="error-fill" loading>
+          Destructive
+        </Button>
+      </div>
+    );
+  },
+};
+
+/** Tab through these — every button carries the shared `t-focus` outline. */
+export const FocusRing: Story = {
+  render() {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="primary">Primary</Button>
+        <Button variant="secondary">Secondary</Button>
+        <Button variant="tertiary">Tertiary</Button>
+        <Button variant="ghost">Ghost</Button>
+        <Button variant="error-fill">Destructive</Button>
+      </div>
+    );
+  },
+};
+
 export const Disabled: Story = {
   args: {
     disabled: true,

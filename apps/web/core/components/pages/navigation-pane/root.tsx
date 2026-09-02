@@ -5,6 +5,7 @@
  */
 
 import { useCallback } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { observer } from "mobx-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRightCircle } from "@/components/icons/lucide-shim";
@@ -95,14 +96,13 @@ export const PageNavigationPaneRoot = observer(function PageNavigationPaneRoot(p
     >
       <div className="mb-3.5 px-3.5">
         <Tooltip tooltipContent={t("page_navigation_pane.close_button")}>
-          <button
-            type="button"
-            className="grid size-3.5 place-items-center text-secondary transition-colors hover:text-primary"
+          <IconButton
+            variant="ghost"
+            size="sm"
+            icon={ArrowRightCircle}
             onClick={handleClose}
             aria-label={t("page_navigation_pane.close_button")}
-          >
-            <ArrowRightCircle className="size-3.5" />
-          </button>
+          />
         </Tooltip>
       </div>
 

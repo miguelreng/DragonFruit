@@ -8,7 +8,6 @@ import { observer } from "mobx-react";
 // plane imports
 import { cn } from "@plane/utils";
 // assets
-import emptyCycle from "@/app/assets/empty-state/cycle.svg?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHead } from "@/components/core/page-title";
@@ -55,7 +54,7 @@ function CycleDetailPage({ params }: Route.ComponentProps) {
       <PageHead title={pageTitle} />
       {!cycle && !loader ? (
         <EmptyState
-          image={emptyCycle}
+          iconName="cycles"
           title="Cycle does not exist"
           description="The cycle you are looking for does not exist or has been deleted."
           primaryButton={{

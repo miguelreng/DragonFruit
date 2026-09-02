@@ -1,5 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import {
+  HORIZONTAL_STACK_ASSETS,
+  VERTICAL_STACK_ASSETS,
+  ILLUSTRATION_ASSETS,
+} from "@plane/propel/empty-state";
+import { EmptyStateIcon, EMPTY_STATE_ICON_NAMES } from "./empty-state-icon";
 import { SimpleEmptyState } from "./simple-empty-state-root";
 
 describe("SimpleEmptyState visuals", () => {
@@ -20,5 +26,24 @@ describe("SimpleEmptyState visuals", () => {
 
     expect(markup).toContain('<img src="/explanation.webp"');
     expect(markup).toContain('alt="Guide"');
+  });
+
+  it("renders every registered icon name as an inline svg", () => {
+    for (const name of EMPTY_STATE_ICON_NAMES) {
+      const markup = renderToStaticMarkup(<EmptyStateIcon name={name} />);
+      expect(markup, `icon "${name}"`).toContain("<svg");
+      expect(markup, `icon "${name}"`).not.toContain("<img");
+    }
+  });
+});
+
+describe("propel empty-state asset registry", () => {
+  it("renders every assetKey as an inline svg icon, never an image", () => {
+    const registries = { ...HORIZONTAL_STACK_ASSETS, ...VERTICAL_STACK_ASSETS, ...ILLUSTRATION_ASSETS };
+    for (const [key, Asset] of Object.entries(registries)) {
+      const markup = renderToStaticMarkup(<Asset />);
+      expect(markup, `assetKey "${key}"`).toContain("<svg");
+      expect(markup, `assetKey "${key}"`).not.toContain("<img");
+    }
   });
 });

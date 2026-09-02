@@ -111,7 +111,6 @@ export const ProjectSettingsLabelList = observer(function ProjectSettingsLabelLi
           projectLabels.length === 0 && !showLabelForm ? (
             <EmptyStateCompact
               assetKey="label"
-              assetClassName="size-20"
               title={t("settings_empty_state.labels.title")}
               description={t("settings_empty_state.labels.description")}
               actions={[

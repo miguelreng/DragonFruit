@@ -5,6 +5,7 @@
  */
 
 import { Disclosure } from "@headlessui/react";
+import { IconButton } from "@plane/propel/icon-button";
 import type { Editor } from "@tiptap/core";
 import { Ban, Palette } from "@plane/icons";
 // plane imports
@@ -80,13 +81,13 @@ export function TableDragHandleDropdownColorSelector(props: Props) {
                 onClick={() => handleTextColorChange(editor, color.textColor)}
               />
             ))}
-            <button
-              type="button"
-              className="flex-shrink-0 size-6 grid place-items-center rounded-lg text-tertiary border-[0.5px] border-strong-1 hover:bg-layer-1 transition-colors"
+            <IconButton
+              variant="secondary"
+              size="base"
+              icon={Ban}
+              aria-label="Clear text colour"
               onClick={() => handleTextColorChange(editor, null)}
-            >
-              <Ban className="size-4" />
-            </button>
+            />
           </div>
         </div> */}
         <div className="space-y-1">
@@ -106,16 +107,16 @@ export function TableDragHandleDropdownColorSelector(props: Props) {
                 }}
               />
             ))}
-            <button
-              type="button"
-              className="grid size-6 flex-shrink-0 place-items-center rounded-lg border-[0.5px] border-strong-1 text-tertiary transition-colors hover:bg-layer-1-hover"
+            <IconButton
+              variant="secondary"
+              size="base"
+              icon={Ban}
+              aria-label="Clear background colour"
               onClick={() => {
                 handleBackgroundColorChange(editor, null);
                 onSelect(null);
               }}
-            >
-              <Ban className="size-4" />
-            </button>
+            />
           </div>
         </div>
       </Disclosure.Panel>

@@ -7,6 +7,7 @@
 /* eslint-disable no-await-in-loop, react/no-array-index-key */
 
 import { observer } from "mobx-react";
+import { IconButton } from "@plane/propel/icon-button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getRandomLabelColor } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -439,14 +440,13 @@ export const CsvImportModal = observer(function CsvImportModal({
                     {parsed.rows.length} rows
                   </Pill>
                 )}
-                <button
-                  type="button"
+                <IconButton
+                  variant="ghost"
+                  size="base"
+                  icon={X}
                   onClick={handleClearFile}
-                  className="grid size-6 place-items-center rounded text-tertiary transition-colors hover:bg-layer-transparent-hover hover:text-primary"
                   aria-label="Remove file"
-                >
-                  <X className="size-3.5" />
-                </button>
+                />
               </div>
             ) : (
               <button

@@ -6,26 +6,22 @@
 
 import { observer } from "mobx-react";
 import Link from "next/link";
-import { useTheme } from "next-themes";
 // plane imports
 import { PROJECT_TRACKER_ELEMENTS } from "@plane/constants";
 import { Button, getButtonStyling } from "@plane/propel/button";
 import { cn } from "@plane/utils";
-// assets
-import ProjectDarkEmptyState from "@/app/assets/empty-state/project-settings/no-projects-dark.png?url";
-import ProjectLightEmptyState from "@/app/assets/empty-state/project-settings/no-projects-light.png?url";
+// components
+import { EmptyStateIcon } from "@/components/empty-state/empty-state-icon";
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 
 function ProjectSettingsPage() {
   // store hooks
-  const { resolvedTheme } = useTheme();
   const { toggleCreateProjectModal } = useCommandPalette();
   // derived values
-  const resolvedPath = resolvedTheme === "dark" ? ProjectDarkEmptyState : ProjectLightEmptyState;
   return (
     <div className="mx-auto flex h-full max-w-[480px] flex-col items-center justify-center gap-4">
-      <img src={resolvedPath} alt="No projects yet" />
+      <EmptyStateIcon name="projects" />
       <div className="text-16 font-semibold text-tertiary">No projects yet</div>
       <div className="text-center text-13 text-tertiary">
         Projects act as the foundation for goal-driven work. They let you manage your teams, tasks, and everything you

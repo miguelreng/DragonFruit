@@ -18,7 +18,8 @@ import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssue, IIssueDisplayProperties, TIssueMap } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // ui
-import { Spinner, ControlLink, Row } from "@plane/ui";
+import { ControlLink, Row } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { cn, generateWorkItemLink } from "@plane/utils";
 // components
 import { MultipleSelectEntityAction } from "@/components/core/multiple-select";
@@ -37,6 +38,7 @@ import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-st
 import { WithDisplayPropertiesHOC } from "../properties/with-display-properties-HOC";
 import { calculateIdentifierWidth } from "../utils";
 import type { TRenderQuickActions } from "./list-view-types";
+import { IconButton } from "@plane/propel/icon-button";
 
 interface IssueBlockProps {
   issueId: string;
@@ -261,20 +263,15 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                   (very faded) to `text-secondary` with a subtle hover bg so
                   it reads as a real disclosure control, not decoration. */}
               {subIssuesCount > 0 && !isEpic && (
-                <button
-                  type="button"
-                  className="grid size-5 flex-shrink-0 place-items-center rounded-xs text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  icon={ChevronRightIcon}
+                  iconClassName={cn("transition-transform", { "rotate-90": isExpanded })}
                   onClick={handleToggleExpand}
                   aria-expanded={isExpanded}
                   aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
-                >
-                  <ChevronRightIcon
-                    className={cn("size-4 transition-transform", {
-                      "rotate-90": isExpanded,
-                    })}
-                    strokeWidth={2.5}
-                  />
-                </button>
+                />
               )}
 
               {issue?.tempId !== undefined && (

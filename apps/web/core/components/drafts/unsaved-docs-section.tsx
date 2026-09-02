@@ -11,6 +11,7 @@ import { PageIcon } from "@/components/icons/propel-shim";
 import { cn, renderFormattedDate } from "@plane/utils";
 import { clearPageUnsynced, listUnsyncedPages, type TUnsyncedPageEntry } from "@/helpers/unsynced-pages";
 import { useProject } from "@/hooks/store/use-project";
+import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   workspaceSlug: string;
@@ -104,18 +105,17 @@ function UnsavedDocCard({ entry, projectName, onDismiss }: CardProps) {
           </div>
         </div>
       </Link>
-      <button
-        type="button"
+      <IconButton
+        variant="ghost"
+        size="base"
+        icon={X}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           onDismiss();
         }}
-        className="absolute top-3 right-3 grid size-6 place-items-center rounded-lg text-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-layer-1 hover:text-primary focus:opacity-100"
         aria-label="Dismiss"
-      >
-        <X className="size-3.5" />
-      </button>
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@
  */
 
 import type { Editor } from "@tiptap/core";
+import { IconButton } from "@plane/propel/icon-button";
 import type { LucideIcon } from "@plane/icons";
 import { AlignCenter, AlignLeft, AlignRight } from "@plane/icons";
 // plane utils
@@ -67,22 +68,19 @@ export function TextAlignmentSelector(props: Props) {
   return (
     <div className="flex gap-0.5 px-2">
       {textAlignmentOptions.map((item) => (
-        <button
+        <IconButton
           key={item.renderKey}
-          type="button"
+          variant="ghost"
+          size="lg"
+          icon={item.icon}
+          aria-label={item.renderKey.replace(/-/g, " ")}
+          aria-pressed={item.isActive()}
           onClick={(e) => {
             e.stopPropagation();
             item.command();
           }}
-          className={cn(
-            "grid size-7 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 active:bg-layer-1",
-            {
-              "bg-layer-1 text-primary": item.isActive(),
-            }
-          )}
-        >
-          <item.icon className="size-4" />
-        </button>
+          className={cn({ "bg-layer-1 text-primary": item.isActive() })}
+        />
       ))}
     </div>
   );

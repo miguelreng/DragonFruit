@@ -11,7 +11,7 @@ export function StickiesEmptyState() {
   const { t } = useTranslation();
   return (
     <div className="flex w-full items-center justify-center rounded-[18px] bg-layer-1 py-10">
-      <EmptyStateCompact assetKey="note" assetClassName="size-20" title={t("stickies.empty_state.simple")} />
+      <EmptyStateCompact assetKey="note" title={t("stickies.empty_state.simple")} />
     </div>
   );
 }

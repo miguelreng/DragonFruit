@@ -32,6 +32,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 // plane web components
 import { DeleteWorkspaceSection } from "@/plane-web/components/workspace/delete-workspace-section";
+import { IconButton } from "@plane/propel/icon-button";
 
 const defaultValues: Partial<IWorkspace> = {
   name: "",
@@ -79,14 +80,13 @@ const WorkspaceIdentifierRow = (props: {
         <div className="font-mono mt-0.5 truncate text-12 text-secondary">{value}</div>
       </div>
       <Tooltip tooltipContent={`Copy workspace ${label.toLowerCase()}`} position="top">
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="lg"
+          icon={Copy}
           onClick={() => onCopy(label, value)}
-          className="grid size-7 shrink-0 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-secondary"
           aria-label={`Copy workspace ${label.toLowerCase()}`}
-        >
-          <Copy className="size-3.5" />
-        </button>
+        />
       </Tooltip>
     </div>
   );

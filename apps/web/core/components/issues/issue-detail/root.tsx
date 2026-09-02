@@ -13,7 +13,6 @@ import { TOAST_TYPE, setPromiseToast, setToast } from "@plane/propel/toast";
 import type { TIssue } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 // assets
-import emptyIssue from "@/app/assets/empty-state/issue.svg?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 // hooks
@@ -229,7 +228,7 @@ export const IssueDetailRoot = observer(function IssueDetailRoot(props: TIssueDe
     <>
       {!issue ? (
         <EmptyState
-          image={emptyIssue}
+          iconName="tasks"
           title={t("issue.empty_state.issue_detail.title")}
           description={t("issue.empty_state.issue_detail.description")}
           primaryButton={{

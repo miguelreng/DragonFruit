@@ -36,6 +36,7 @@ import type { TRenderQuickActions } from "../list/list-view-types";
 import { isIssueNew } from "../utils";
 import { CustomFieldColumn } from "./custom-field-column";
 import { IssueColumn } from "./issue-column";
+import { IconButton } from "@plane/propel/icon-button";
 
 interface Props {
   displayProperties: IIssueDisplayProperties;
@@ -332,20 +333,15 @@ const IssueRowDetails = observer(function IssueRowDetails(props: IssueRowDetails
                   (very faded) to `text-secondary` with a subtle hover bg so
                   it reads as a real disclosure control, not decoration. */}
               {subIssuesCount > 0 && !isEpic && (
-                <button
-                  type="button"
-                  className="grid size-5 flex-shrink-0 place-items-center rounded-xs text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  icon={ChevronRightIcon}
+                  iconClassName={cn("transition-transform", { "rotate-90": isExpanded })}
                   onClick={handleToggleExpand}
                   aria-expanded={isExpanded}
                   aria-label={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
-                >
-                  <ChevronRightIcon
-                    className={cn("size-4 transition-transform", {
-                      "rotate-90": isExpanded,
-                    })}
-                    strokeWidth={2.5}
-                  />
-                </button>
+                />
               )}
 
               <div className="my-auto flex h-full w-full items-center justify-between gap-2 truncate">

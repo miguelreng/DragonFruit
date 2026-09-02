@@ -11,7 +11,8 @@ import { Eye, EyeClosed as EyeOff, CloseCircle as XCircle } from "@solar-icons/r
 import { API_BASE_URL, E_PASSWORD_STRENGTH } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
-import { Input, Spinner, PasswordStrengthIndicator } from "@plane/ui";
+import { Input, PasswordStrengthIndicator } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { getPasswordStrength } from "@plane/utils";
 // types
 import { EAuthModes, EAuthSteps } from "@/types/auth";

@@ -23,7 +23,7 @@ export const EstimateListItemButtons = observer(function EstimateListItemButtons
   if (!isAdmin || !isEditable) return <></>;
   return (
     <div className="relative flex items-center gap-1">
-      <button
+      <button type="button"
         className="relative flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg transition-colors hover:bg-layer-1"
         onClick={() => onDeleteClick && onDeleteClick(estimateId)}
         data-ph-element={PROJECT_SETTINGS_TRACKER_ELEMENTS.ESTIMATES_LIST_ITEM}

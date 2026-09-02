@@ -61,7 +61,6 @@ export const ProjectCardList = observer(function ProjectCardList(props: TProject
         title={t("workspace_projects.empty_state.general.title")}
         description={t("workspace_projects.empty_state.general.description")}
         assetKey="project"
-        assetClassName="size-40"
         actions={[
           {
             label: t("workspace_projects.empty_state.general.primary_button.text"),
@@ -96,7 +95,6 @@ export const ProjectCardList = observer(function ProjectCardList(props: TProject
             ? "archived-work-item"
             : "search"
         }
-        assetClassName="size-40"
       />
     );
 

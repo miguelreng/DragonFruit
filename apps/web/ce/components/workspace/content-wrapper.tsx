@@ -37,11 +37,17 @@ import { isTypingInInput } from "@/components/power-k/core/shortcut-handler";
 import {
   ATLAS_SIDEBAR_DEFAULT_WIDTH,
   ATLAS_SIDEBAR_MIN_WIDTH,
+  ATLAS_SIDEBAR_RAIL_WIDTH,
   clampAtlasSidebarWidth,
+  getAtlasRailDragIntent,
+  getAtlasRailLiveDragWidth,
+  getAtlasSidebarDragIntent,
   getAtlasSidebarMaxWidth,
   getAtlasSidebarWidthForKey,
   resolveAtlasSidebarLayout,
+  rubberBandAtlasSidebarWidth,
   snapAtlasSidebarWidth,
+  type TAtlasSidebarDragIntent,
 } from "@/helpers/atlas-sidebar-layout";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 import { useProject } from "@/hooks/store/use-project";
@@ -82,6 +88,9 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   const { getProjectById } = useProject();
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
   const [dragWidth, setDragWidth] = useState<number | null>(null);
+  // What releasing the current drag would do — drives the live preview cues
+  // (panel fades when it would collapse, content dims when it would go full).
+  const [dragIntent, setDragIntent] = useState<TAtlasSidebarDragIntent | null>(null);
   const layoutAreaRef = useRef<HTMLDivElement>(null);
   const [layoutAreaWidth, setLayoutAreaWidth] = useState(windowWidth);
   useEffect(() => {
@@ -96,7 +105,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
   }, []);
   const atlasLayout = resolveAtlasSidebarLayout({
     containerWidth: layoutAreaWidth,
-    preferredWidth: dragWidth ?? atlasSidebarWidth,
+    preferredWidth: atlasSidebarWidth,
   });
   const isAtlasOverlay = isMobile || atlasLayout.mode === "overlay";
   const isAtlasDocked = !isAtlasOverlay;
@@ -119,16 +128,29 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     startX: number;
     startWidth: number;
     pendingWidth: number;
+    // Unclamped width — overshooting well past a bound snaps to the rail /
+    // full width on release (see getAtlasSidebarDragIntent).
+    rawWidth: number;
+    intent: TAtlasSidebarDragIntent;
+    // Drag began on the collapsed rail: releasing short of the regular
+    // minimum springs back to the rail instead of snapping to the minimum.
+    fromCollapsed: boolean;
     rafId: number | null;
   } | null>(null);
-  const regularWidth = atlasLayout.atlasWidth;
+  // While dragging, the live (rubber-banded) width wins over the clamped
+  // layout width so overshoot resistance is actually visible.
+  const regularWidth = dragWidth ?? atlasLayout.atlasWidth;
   const isResizing = dragWidth !== null;
+  // The width transition stays on for the pointer-down reflow (leaving full
+  // mode, e.g.) and only cuts to none once the pointer actually moves.
+  const dragHasMoved = isResizing && dragWidth !== dragStateRef.current?.startWidth;
 
   const commitDragFrame = useCallback(() => {
     const state = dragStateRef.current;
     if (!state) return;
     state.rafId = null;
     setDragWidth(state.pendingWidth);
+    setDragIntent(state.intent);
   }, []);
 
   // Cleanup for the (rare) case the component unmounts mid-drag — never
@@ -148,14 +170,28 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    // Dragging out of full mode starts from the last regular width, not the
-    // full-width value, and never collapses to the rail (the min clamp below
-    // is well above the rail width).
-    const startWidth = clampAtlasSidebarWidth(atlasSidebarWidth, layoutAreaWidth);
-    dragStateRef.current = { startX: event.clientX, startWidth, pendingWidth: startWidth, rafId: null };
+    // A drag can start from any tier. From the rail it grows out of the rail
+    // width (the panel un-collapses immediately so the chat peeks alongside
+    // the pointer); from full mode it starts at the last regular width, and
+    // the pre-move width transition animates that hand-off.
+    const fromCollapsed = atlasSidebarCollapsed;
+    const startWidth = fromCollapsed
+      ? ATLAS_SIDEBAR_RAIL_WIDTH
+      : clampAtlasSidebarWidth(atlasSidebarWidth, layoutAreaWidth);
+    dragStateRef.current = {
+      startX: event.clientX,
+      startWidth,
+      pendingWidth: startWidth,
+      rawWidth: startWidth,
+      intent: fromCollapsed ? "collapse" : "resize",
+      fromCollapsed,
+      rafId: null,
+    };
     setDragWidth(startWidth);
+    setDragIntent(dragStateRef.current.intent);
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
+    if (fromCollapsed) toggleAtlasSidebar(false);
     if (atlasSidebarExpanded) toggleAtlasSidebarExpanded(false);
   };
 
@@ -165,7 +201,13 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     // The separator sits on the panel's left edge and the panel is docked to
     // the right, so moving the pointer left grows the panel.
     const delta = event.clientX - state.startX;
-    state.pendingWidth = clampAtlasSidebarWidth(state.startWidth - delta, layoutAreaWidth);
+    state.rawWidth = state.startWidth - delta;
+    state.pendingWidth = state.fromCollapsed
+      ? getAtlasRailLiveDragWidth(state.rawWidth, layoutAreaWidth)
+      : rubberBandAtlasSidebarWidth(state.rawWidth, layoutAreaWidth);
+    state.intent = state.fromCollapsed
+      ? getAtlasRailDragIntent(state.rawWidth, layoutAreaWidth)
+      : getAtlasSidebarDragIntent(state.rawWidth, layoutAreaWidth);
     if (state.rafId == null) state.rafId = requestAnimationFrame(commitDragFrame);
   };
 
@@ -178,8 +220,23 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
       event.currentTarget.releasePointerCapture(event.pointerId);
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
-    setAtlasSidebarWidth(snapAtlasSidebarWidth(state.pendingWidth));
+    const clickedNotDragged = Math.abs(state.rawWidth - state.startWidth) < 4;
+    if (state.fromCollapsed && clickedNotDragged) {
+      // A plain click on the rail edge expands to the saved width — same as
+      // clicking the rail body. The pointer-down already un-collapsed.
+    } else {
+      // Overshooting a bound snaps the whole tier: past the min collapses to
+      // the rail, past the max goes full width. Neither persists a width, so
+      // reopening restores the last regular size.
+      const intent = state.fromCollapsed
+        ? getAtlasRailDragIntent(state.rawWidth, layoutAreaWidth)
+        : getAtlasSidebarDragIntent(state.rawWidth, layoutAreaWidth);
+      if (intent === "collapse") toggleAtlasSidebar(true);
+      else if (intent === "expand") toggleAtlasSidebarExpanded(true);
+      else setAtlasSidebarWidth(snapAtlasSidebarWidth(clampAtlasSidebarWidth(state.rawWidth, layoutAreaWidth)));
+    }
     setDragWidth(null);
+    setDragIntent(null);
   };
 
   const handleResizeDoubleClick = () => setAtlasSidebarWidth(ATLAS_SIDEBAR_DEFAULT_WIDTH);
@@ -188,6 +245,12 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
     const next = getAtlasSidebarWidthForKey(event.key, regularWidth, event.shiftKey, layoutAreaWidth);
     if (next === null) return;
     event.preventDefault();
+    // From the rail, the first handled key just expands back to the saved
+    // width; subsequent presses resize as usual.
+    if (atlasSidebarCollapsed) {
+      toggleAtlasSidebar(false);
+      return;
+    }
     setAtlasSidebarWidth(next);
   };
 
@@ -291,6 +354,9 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
             ref={contentPreviewRef}
             className={cn(
               "shadow-sm relative min-h-0 flex-grow overflow-hidden rounded-[18px] border border-subtle bg-surface-1 transition-all duration-300 ease-in-out",
+              // Live preview while dragging past the max: the content dims to
+              // hint that releasing hands the whole area to Atlas.
+              isResizing && dragIntent === "expand" && "md:opacity-60",
               desktopAtlasFull && "md:pointer-events-none md:invisible md:w-0 md:border-0 md:opacity-0"
             )}
             style={desktopAtlasFull ? { flex: "0 0 0" } : undefined}
@@ -311,7 +377,7 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
                 "shadow-sm absolute top-0 right-0 z-30 h-full overflow-hidden rounded-[18px] border border-subtle bg-surface-1 shadow-raised-300",
                 "w-[min(560px,calc(100%-24px))]",
                 isAtlasDocked && "shadow-sm relative z-auto flex-shrink-0",
-                isResizing
+                dragHasMoved
                   ? "transition-none"
                   : "transition-[width] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
                 atlasSidebarCollapsed && isAtlasDocked
@@ -341,9 +407,12 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
               <div
                 className={cn(
                   "h-full w-full",
-                  isResizing
-                    ? "transition-none"
-                    : "transition-[width] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  dragHasMoved
+                    ? "transition-opacity duration-150"
+                    : "transition-[width,opacity] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  // Live preview while dragging past the min: the chat fades
+                  // to hint that releasing collapses to the rail.
+                  isResizing && dragIntent === "collapse" && "opacity-40",
                   atlasSidebarExpanded && isAtlasDocked && "w-full",
                   // Covered by the rail while collapsed — `invisible` also pulls
                   // the chat controls out of the tab order / a11y tree.
@@ -359,16 +428,20 @@ export const WorkspaceContentWrapper = observer(function WorkspaceContentWrapper
                   onToggleExpand={isAtlasDocked ? () => toggleAtlasSidebarExpanded() : undefined}
                 />
               </div>
-              {isAtlasDocked && !atlasSidebarCollapsed && (
+              {isAtlasDocked && (
                 <div
                   role="separator"
                   aria-label="Resize Atlas sidebar"
                   aria-orientation="vertical"
                   aria-valuemin={ATLAS_SIDEBAR_MIN_WIDTH}
                   aria-valuemax={getAtlasSidebarMaxWidth(layoutAreaWidth)}
-                  aria-valuenow={Math.round(regularWidth)}
+                  aria-valuenow={atlasSidebarCollapsed ? ATLAS_SIDEBAR_RAIL_WIDTH : Math.round(regularWidth)}
                   tabIndex={0}
-                  title="Drag to resize Atlas. Double-click to reset."
+                  title={
+                    atlasSidebarCollapsed
+                      ? "Drag to expand Atlas"
+                      : "Drag to resize Atlas. Double-click to reset."
+                  }
                   className={cn(
                     "group absolute inset-y-0 left-0 z-20 w-2 cursor-col-resize touch-none outline-none",
                     "after:absolute after:inset-y-3 after:left-0 after:w-px after:rounded-full after:bg-transparent after:transition-colors",

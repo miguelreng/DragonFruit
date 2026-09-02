@@ -5,6 +5,7 @@
  */
 
 import { useMemo, type ReactNode, type SVGProps } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import Link from "next/link";
 import type { IIssueLabel } from "@plane/types";
 import { CustomSelect, CustomSearchSelect } from "@plane/ui";
@@ -187,24 +188,22 @@ export function WorkflowInspector({
           </span>
           <div className="flex items-center gap-1">
             {node && kind !== "trigger" && (
-              <button
-                type="button"
+              <IconButton
+                variant="ghost"
+                size="lg"
+                icon={Trash}
                 onClick={onDelete}
                 aria-label="Delete step"
                 title="Delete step"
-                className="t-press hover:bg-red-500/10 hover:text-red-600 grid size-7 place-items-center rounded-lg text-tertiary"
-              >
-                <Trash className="size-4" />
-              </button>
+              />
             )}
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="lg"
+              icon={PlainX}
               onClick={onClose}
               aria-label="Close details"
-              className="t-press grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2"
-            >
-              <PlainX className="size-4" />
-            </button>
+            />
           </div>
         </div>
         <div>

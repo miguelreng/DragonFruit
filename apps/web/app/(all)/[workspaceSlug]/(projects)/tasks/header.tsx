@@ -13,9 +13,42 @@ import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { MyTasksFilterPills } from "@/components/home/sections/my-tasks-filter-pills";
 import { MyTasksSearch } from "@/components/home/sections/my-tasks-search";
 import { isOpenIssue, useMyTasksData } from "@/components/home/sections/use-my-tasks";
+import { GridIconShim, List } from "@/components/icons/lucide-shim";
 // hooks
 import { useProjectState } from "@/hooks/store/use-project-state";
 import { useUser } from "@/hooks/store/user";
+import useLocalStorage from "@/hooks/use-local-storage";
+import { cn } from "@plane/utils";
+import { IconButton } from "@plane/propel/icon-button";
+
+/** List/Table switcher — same segmented icon-toggle treatment as the Docs header. */
+function MyTasksLayoutToggle({ slug }: { slug: string }) {
+  const { storedValue, setValue } = useLocalStorage<"list" | "table">(`my-tasks-layout:${slug}`, "list");
+  const layout = storedValue ?? "list";
+  const options: Array<{ value: "list" | "table"; Icon: typeof List; label: string }> = [
+    { value: "list", Icon: List, label: "List view" },
+    { value: "table", Icon: GridIconShim, label: "Table view" },
+  ];
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg border border-subtle p-0.5" role="group">
+      {options.map(({ value, Icon, label }) => {
+        const isActive = layout === value;
+        return (
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={Icon}
+            key={value}
+            aria-label={label}
+            title={label}
+            aria-pressed={isActive}
+            onClick={() => setValue(value)}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 export const MyTasksHeader = observer(function MyTasksHeader() {
   const { workspaceSlug } = useParams();
@@ -53,7 +86,8 @@ export const MyTasksHeader = observer(function MyTasksHeader() {
           </div>
         </div>
       </Header.LeftItem>
-      <Header.RightItem>
+      <Header.RightItem className="items-center">
+        <MyTasksLayoutToggle slug={slug ?? "default"} />
         <MyTasksSearch />
       </Header.RightItem>
     </Header>

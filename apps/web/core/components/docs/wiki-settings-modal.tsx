@@ -33,6 +33,7 @@ import {
   type TWikiThemeKey,
 } from "@/helpers/wiki-appearance";
 import { ProjectPageService } from "@/services/page/project-page.service";
+import { IconButton } from "@plane/propel/icon-button";
 
 const pageService = new ProjectPageService();
 
@@ -216,14 +217,13 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
       <style>{WIKI_MODAL_CSS}</style>
       {phase === "published" ? (
         <div className="wiki-phase-in relative">
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={X}
             onClick={onClose}
-            className="absolute top-3 right-3 z-10 grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-1 hover:text-primary"
             aria-label="Close"
-          >
-            <X className="size-4" />
-          </button>
+          />
           <div
             className="flex justify-center rounded-t-lg px-8 pt-10 pb-0"
             style={{
@@ -288,15 +288,14 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
             <h2 className="truncate text-16 font-medium text-primary">
               {isCreateFlow ? "Create wiki" : "Wiki settings"}
             </h2>
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="lg"
+              icon={X}
               onClick={handleClose}
               disabled={isSaving}
-              className="grid size-7 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-60"
               aria-label="Close"
-            >
-              <X className="size-4" />
-            </button>
+            />
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-4">
@@ -351,7 +350,7 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
                       aria-label={choice.label}
                       title={choice.label}
                       className={cn(
-                        "t-colors relative z-[1] grid h-full w-10 place-items-center rounded-md text-tertiary hover:text-primary",
+                        "t-colors t-focus relative z-[1] grid h-full w-10 place-items-center rounded-md text-tertiary hover:text-primary",
                         theme === choice.key && "text-primary"
                       )}
                     >
@@ -375,15 +374,14 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
                     className="h-full w-full min-w-0 bg-transparent text-13 text-primary outline-none placeholder:text-placeholder disabled:opacity-60"
                   />
                 </div>
-                <button
-                  type="button"
+                <IconButton
+                  variant="secondary"
+                  size="xl"
+                  icon={Copy}
                   onClick={copyLink}
-                  className="grid size-10 shrink-0 place-items-center rounded-lg border border-subtle text-tertiary hover:bg-layer-1 hover:text-primary"
                   aria-label="Copy public link"
                   title="Copy public link"
-                >
-                  <Copy className="size-4" />
-                </button>
+                />
                 <a
                   href={publicUrl}
                   target="_blank"
@@ -414,7 +412,7 @@ export function WikiSettingsModal({ workspaceSlug, folder, docs, isOpen, onClose
                     aria-label={WIKI_ACCENTS[key].label}
                     title={WIKI_ACCENTS[key].label}
                     className={cn(
-                      "grid size-8 place-items-center rounded-full border border-subtle transition-shadow duration-200 ease-in-out",
+                      "t-focus grid size-8 place-items-center rounded-full border border-subtle transition-shadow duration-200 ease-in-out",
                       accent === key && "ring-accent-primary ring-offset-surface-1 ring-2 ring-offset-2"
                     )}
                   >
@@ -527,18 +525,18 @@ function WikiDocRow({ doc, index, isLast, isHidden, disabled, onToggleHidden, on
         {isHidden && (
           <span className="shrink-0 rounded-lg border border-subtle px-1.5 py-0.5 text-10 text-tertiary">Hidden</span>
         )}
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="lg"
+          icon={isHidden ? EyeOff : Eye}
+          className="shrink-0 disabled:opacity-40"
           onClick={onToggleHidden}
           disabled={disabled}
-          className="grid size-7 shrink-0 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary disabled:opacity-40"
           aria-label={
             isHidden ? `Show ${getPageName(doc.name)} on the wiki` : `Hide ${getPageName(doc.name)} from the wiki`
           }
           title={isHidden ? "Show on wiki" : "Hide from wiki"}
-        >
-          {isHidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-        </button>
+        />
       </div>
       {isLast && <DropIndicator isVisible={closestEdge === "bottom"} />}
     </div>

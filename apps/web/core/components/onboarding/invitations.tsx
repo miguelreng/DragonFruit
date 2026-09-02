@@ -11,7 +11,8 @@ import { ROLE } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import type { IWorkspaceMemberInvitation } from "@plane/types";
 // ui
-import { Checkbox, Spinner } from "@plane/ui";
+import { Checkbox } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { truncateText } from "@plane/utils";
 // constants
 // helpers

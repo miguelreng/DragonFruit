@@ -5,16 +5,12 @@
  */
 
 import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
 import { Disclosure } from "@headlessui/react";
 import { EmptyStateDetailed } from "@plane/propel/empty-state";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import type { ICycle } from "@plane/types";
 import { Row } from "@plane/ui";
-// assets
-import darkActiveCycleAsset from "@/app/assets/empty-state/cycle/active-dark.webp?url";
-import lightActiveCycleAsset from "@/app/assets/empty-state/cycle/active-light.webp?url";
 // components
 import { ActiveCycleStats } from "@/components/cycles/active-cycle/cycle-stats";
 import { ActiveCycleProductivity } from "@/components/cycles/active-cycle/productivity";
@@ -36,7 +32,6 @@ interface IActiveCycleDetails {
 type ActiveCyclesComponentProps = {
   cycleId: string | null | undefined;
   activeCycle: ICycle | null;
-  activeCycleResolvedPath: string;
   workspaceSlug: string;
   projectId: string;
   handleFiltersUpdate: (filters: any) => void;
@@ -46,7 +41,6 @@ type ActiveCyclesComponentProps = {
 const ActiveCyclesComponent = observer(function ActiveCyclesComponent({
   cycleId,
   activeCycle,
-  activeCycleResolvedPath: _activeCycleResolvedPath,
   workspaceSlug,
   projectId,
   handleFiltersUpdate,
@@ -99,15 +93,12 @@ const ActiveCyclesComponent = observer(function ActiveCyclesComponent({
 
 export const ActiveCycleRoot = observer(function ActiveCycleRoot(props: IActiveCycleDetails) {
   const { workspaceSlug, projectId, cycleId: propsCycleId, showHeader = true } = props;
-  // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // store hooks
   const { currentProjectActiveCycleId } = useCycle();
   // derived values
   const cycleId = propsCycleId ?? currentProjectActiveCycleId;
-  const activeCycleResolvedPath = resolvedTheme === "light" ? lightActiveCycleAsset : darkActiveCycleAsset;
   // fetch cycle details
   const {
     handleFiltersUpdate,
@@ -128,7 +119,6 @@ export const ActiveCycleRoot = observer(function ActiveCycleRoot(props: IActiveC
                 <ActiveCyclesComponent
                   cycleId={cycleId}
                   activeCycle={activeCycle}
-                  activeCycleResolvedPath={activeCycleResolvedPath}
                   workspaceSlug={workspaceSlug}
                   projectId={projectId}
                   handleFiltersUpdate={handleFiltersUpdate}
@@ -142,7 +132,6 @@ export const ActiveCycleRoot = observer(function ActiveCycleRoot(props: IActiveC
         <ActiveCyclesComponent
           cycleId={cycleId}
           activeCycle={activeCycle}
-          activeCycleResolvedPath={activeCycleResolvedPath}
           workspaceSlug={workspaceSlug}
           projectId={projectId}
           handleFiltersUpdate={handleFiltersUpdate}

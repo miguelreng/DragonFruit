@@ -6,6 +6,8 @@
 
 /** Default docked width — also the snap target and the keyboard "Home" reset. */
 export const ATLAS_SIDEBAR_DEFAULT_WIDTH = 350;
+/** Width of the collapsed rail (3.25rem) — the origin of rail-edge drags. */
+export const ATLAS_SIDEBAR_RAIL_WIDTH = 52;
 /** Narrowest a user can drag the docked panel to. */
 export const ATLAS_SIDEBAR_MIN_WIDTH = 320;
 /** Hard cap on the max width, before the viewport-relative margin is applied. */
@@ -16,6 +18,15 @@ export const ATLAS_EDITOR_MIN_WIDTH = 600;
 export const ATLAS_LAYOUT_GAP = 2;
 /** Dragging within this many px of the default snaps to it. */
 export const ATLAS_SIDEBAR_SNAP_THRESHOLD = 24;
+/**
+ * Dragging this many px past the min/max bound snaps to the rail / full
+ * width on release, instead of settling at the boundary width.
+ */
+export const ATLAS_SIDEBAR_SNAP_OVERSHOOT = 60;
+/** Resistance applied to the live width when dragging past a bound. */
+export const ATLAS_SIDEBAR_RUBBER_FACTOR = 0.3;
+/** Cap on how far past a bound the live width visually stretches. */
+export const ATLAS_SIDEBAR_RUBBER_MAX = 40;
 /** Arrow-key resize step, in px. */
 export const ATLAS_SIDEBAR_KEYBOARD_STEP = 16;
 /** Shift+Arrow resize step, in px. */
@@ -107,6 +118,57 @@ export function parsePersistedAtlasSidebarWidth(raw: string | null | undefined):
 export function resolveAtlasSidebarWidth(raw: string | null | undefined, containerWidth: number): number {
   const persisted = parsePersistedAtlasSidebarWidth(raw);
   return clampAtlasSidebarWidth(persisted ?? ATLAS_SIDEBAR_DEFAULT_WIDTH, containerWidth);
+}
+
+export type TAtlasSidebarDragIntent = "collapse" | "expand" | "resize";
+
+/**
+ * Live width while dragging past a bound: the panel follows with diminishing
+ * resistance (rubber band) instead of hard-stopping, signalling that pulling
+ * further does something (the tier snap) without letting the layout run away.
+ */
+export function rubberBandAtlasSidebarWidth(raw: number, containerWidth: number): number {
+  const max = getAtlasSidebarMaxWidth(containerWidth);
+  if (raw < ATLAS_SIDEBAR_MIN_WIDTH)
+    return ATLAS_SIDEBAR_MIN_WIDTH - Math.min((ATLAS_SIDEBAR_MIN_WIDTH - raw) * ATLAS_SIDEBAR_RUBBER_FACTOR, ATLAS_SIDEBAR_RUBBER_MAX);
+  if (raw > max) return max + Math.min((raw - max) * ATLAS_SIDEBAR_RUBBER_FACTOR, ATLAS_SIDEBAR_RUBBER_MAX);
+  return raw;
+}
+
+/**
+ * Live width for a drag that started on the collapsed rail. Below the regular
+ * minimum the panel tracks the pointer exactly (it's growing out of the rail,
+ * so sub-minimum widths are the natural peek zone); above the max it rubber
+ * bands like a regular drag.
+ */
+export function getAtlasRailLiveDragWidth(raw: number, containerWidth: number): number {
+  const max = getAtlasSidebarMaxWidth(containerWidth);
+  if (raw > max) return max + Math.min((raw - max) * ATLAS_SIDEBAR_RUBBER_FACTOR, ATLAS_SIDEBAR_RUBBER_MAX);
+  return Math.max(raw, ATLAS_SIDEBAR_RAIL_WIDTH);
+}
+
+/**
+ * Release intent for a drag that started on the collapsed rail: crossing the
+ * regular minimum commits the expand (anything short of it springs back to
+ * the rail), and overshooting the max still snaps to full width — so one
+ * gesture can go rail → any width → full.
+ */
+export function getAtlasRailDragIntent(rawWidth: number, containerWidth: number): TAtlasSidebarDragIntent {
+  if (rawWidth < ATLAS_SIDEBAR_MIN_WIDTH) return "collapse";
+  if (rawWidth >= getAtlasSidebarMaxWidth(containerWidth) + ATLAS_SIDEBAR_SNAP_OVERSHOOT) return "expand";
+  return "resize";
+}
+
+/**
+ * Classifies a finished drag from its raw (unclamped) width: overshooting
+ * well past the min collapses to the rail, well past the max expands to full
+ * width, anything else is a plain resize. Stopping exactly at a bound stays a
+ * resize — only a deliberate overshoot triggers the tier change.
+ */
+export function getAtlasSidebarDragIntent(rawWidth: number, containerWidth: number): TAtlasSidebarDragIntent {
+  if (rawWidth <= ATLAS_SIDEBAR_MIN_WIDTH - ATLAS_SIDEBAR_SNAP_OVERSHOOT) return "collapse";
+  if (rawWidth >= getAtlasSidebarMaxWidth(containerWidth) + ATLAS_SIDEBAR_SNAP_OVERSHOOT) return "expand";
+  return "resize";
 }
 
 /**

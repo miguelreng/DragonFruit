@@ -11,7 +11,7 @@ import { Triangle } from "@/components/icons/lucide-shim";
 import { useTranslation } from "@plane/i18n";
 import { EEstimateSystem } from "@plane/types";
 import type { TIssue } from "@plane/types";
-import { Spinner } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { convertMinutesToHoursMinutesString } from "@plane/utils";
 // hooks
 import { useEstimate, useProjectEstimates } from "@/hooks/store/estimates";

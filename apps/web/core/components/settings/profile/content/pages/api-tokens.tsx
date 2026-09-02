@@ -53,7 +53,6 @@ export const APITokensProfileSettings = observer(function APITokensProfileSettin
         ) : (
           <EmptyStateCompact
             assetKey="token"
-            assetClassName="size-20"
             title={t("settings_empty_state.tokens.title")}
             description={t("settings_empty_state.tokens.description")}
             actions={[

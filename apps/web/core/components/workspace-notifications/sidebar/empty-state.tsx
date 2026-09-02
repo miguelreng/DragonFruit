@@ -24,7 +24,6 @@ export const NotificationEmptyState = observer(function NotificationEmptyState({
     <>
       <EmptyStateCompact
         assetKey="inbox"
-        assetClassName="size-24"
         title={
           currentNotificationTab === ENotificationTab.ALL
             ? t("workspace_empty_state.inbox_sidebar_all.title")

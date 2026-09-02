@@ -19,6 +19,7 @@ import { useUserPermissions } from "@/hooks/store/user";
 import type { Route } from "./+types/page";
 import { GeneralProjectSettingsHeader } from "./header";
 import { GeneralProjectSettingsControlSection } from "@/components/project/settings/control-section";
+import { ProjectContextSourcesSection } from "@/components/project/settings/context-sources-section";
 
 function ProjectSettingsPage({ params }: Route.ComponentProps) {
   // router
@@ -46,6 +47,7 @@ function ProjectSettingsPage({ params }: Route.ComponentProps) {
           <ProjectDetailsFormLoader />
         )}
         {isAdmin && <GeneralProjectSettingsControlSection projectId={projectId} />}
+        {isAdmin && <ProjectContextSourcesSection workspaceSlug={workspaceSlug} projectId={projectId} />}
       </div>
     </SettingsContentWrapper>
   );

@@ -21,7 +21,7 @@ import type {
 } from "@plane/types";
 import { EIssuesStoreType, EIssueLayoutTypes } from "@plane/types";
 // ui
-import { Spinner } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { renderFormattedPayloadDate, cn } from "@plane/utils";
 // constants
 import { MONTHS_LIST } from "@/constants/calendar";

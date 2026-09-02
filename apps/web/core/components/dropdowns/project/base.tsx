@@ -240,7 +240,7 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
       {isOpen && (
         <Combobox.Options className="fixed z-10" static>
           <div
-            className="my-1 w-48 rounded-lg border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 text-13 shadow-raised-200 focus:outline-none"
+            className="my-1 w-48 rounded-lg border-[0.5px] border-strong bg-surface-1 px-2 py-1.5 text-13 shadow-raised-200 focus:outline-none"
             ref={setPopperElement}
             style={styles.popper}
             {...attributes.popper}
@@ -258,7 +258,7 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
                 onKeyDown={searchInputKeyDown}
               />
             </div>
-            <div className="mt-2 max-h-48 space-y-1 overflow-y-scroll">
+            <div className="mt-1 max-h-48 space-y-px overflow-y-scroll">
               {filteredOptions ? (
                 filteredOptions.length > 0 ? (
                   filteredOptions.map((option) => {
@@ -268,7 +268,7 @@ export const ProjectDropdownBase = observer(function ProjectDropdownBase(props: 
                         key={option.value}
                         value={option.value}
                         className={({ active, selected }) =>
-                          `flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 select-none ${
+                          `flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1 select-none ${
                             active ? "bg-layer-transparent-hover" : ""
                           } ${selected ? "text-primary" : "text-secondary"}`
                         }

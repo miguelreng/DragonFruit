@@ -146,7 +146,7 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
       />
       <div
         ref={dropdownContainer}
-        className="relative max-h-80 w-[14rem] space-y-2 overflow-y-auto rounded-lg border-[0.5px] border-strong bg-surface-1 px-2 py-2.5 shadow-raised-200"
+        className="relative max-h-80 w-[14rem] space-y-1 overflow-y-auto rounded-lg border-[0.5px] border-strong bg-surface-1 px-1.5 py-1.5 shadow-raised-200"
         style={{
           zIndex: 100,
         }}
@@ -161,8 +161,8 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
           <div className="text-center text-13 text-placeholder">Loading...</div>
         ) : sections.length ? (
           sections.map((section, sectionIndex) => (
-            <div key={section.key} className="space-y-2">
-              {section.title && <h6 className="text-11 font-semibold text-tertiary">{section.title}</h6>}
+            <div key={section.key} className="space-y-0.5">
+              {section.title && <h6 className="px-1 pt-0.5 pb-px text-11 font-semibold text-tertiary">{section.title}</h6>}
               {section.items.map((item, itemIndex) => {
                 const isSelected = sectionIndex === selectedIndex.section && itemIndex === selectedIndex.item;
 
@@ -172,7 +172,7 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
                     id={`mention-item-${sectionIndex}-${itemIndex}`}
                     type="button"
                     className={cn(
-                      "flex w-full items-center gap-2 truncate rounded-lg px-1 py-1.5 text-left text-11 text-secondary hover:bg-layer-1-hover",
+                      "flex w-full items-center gap-1.5 truncate rounded-md px-1 py-1 text-left text-11 text-secondary hover:bg-layer-1-hover",
                       {
                         "bg-layer-1-hover": isSelected,
                       }
@@ -189,7 +189,7 @@ export const MentionsListDropdown = forwardRef(function MentionsListDropdown(pro
                       })
                     }
                   >
-                    <span className="grid size-5 flex-shrink-0 place-items-center">{item.icon}</span>
+                    <span className="grid size-4 flex-shrink-0 place-items-center">{item.icon}</span>
                     {item.subTitle && (
                       <h5 className="flex-shrink-0 text-11 whitespace-nowrap text-tertiary">{item.subTitle}</h5>
                     )}

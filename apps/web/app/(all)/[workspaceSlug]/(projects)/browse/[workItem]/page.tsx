@@ -6,7 +6,6 @@
 
 import { useEffect } from "react";
 import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
 import useSWR from "swr";
 // plane imports
 import { useTranslation } from "@plane/i18n";
@@ -14,8 +13,6 @@ import type { TIssue } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 import { Loader } from "@plane/ui";
 // assets
-import emptyIssueDark from "@/app/assets/empty-state/search/issues-dark.webp?url";
-import emptyIssueLight from "@/app/assets/empty-state/search/issues-light.webp?url";
 // components
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHead } from "@/components/core/page-title";
@@ -38,7 +35,6 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
   const { workspaceSlug, workItem } = params;
   const workspaceSlugString = workspaceSlug.toString();
   // hooks
-  const { resolvedTheme } = useTheme();
   // store hooks
   const { t } = useTranslation();
   const {
@@ -96,7 +92,7 @@ export const IssueDetailsPage = observer(function IssueDetailsPage({ params }: R
 
   const workItemNotFoundEmptyState = (
     <EmptyState
-      image={resolvedTheme === "dark" ? emptyIssueDark : emptyIssueLight}
+      iconName="search"
       title={t("issue.empty_state.issue_detail.title")}
       description={t("issue.empty_state.issue_detail.description")}
       primaryButton={{

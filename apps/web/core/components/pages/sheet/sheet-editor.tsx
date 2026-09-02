@@ -107,6 +107,7 @@ import {
   type TSheetSnapshot,
 } from "./sheet-utils";
 import type { TChartSpec } from "@/components/chart/spec";
+import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   page: TPageInstance;
@@ -1404,15 +1405,14 @@ const SheetEditorContent = observer(function SheetEditorContent({
           aria-label="Sheet name"
           className="w-full min-w-0 flex-1 bg-transparent text-14 font-semibold text-primary outline-none placeholder:text-placeholder read-only:cursor-default"
         />
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="lg"
+          icon={History}
           onClick={() => setIsVersionHistoryOpen(true)}
-          className="ml-2 grid size-7 flex-shrink-0 place-items-center rounded-md text-secondary transition-colors hover:bg-layer-1 hover:text-primary"
           aria-label="Version history"
           title="Version history"
-        >
-          <History className="size-4" />
-        </button>
+        />
       </div>
 
       {/* Formatting toolbar. */}
@@ -1629,8 +1629,16 @@ const SheetEditorContent = observer(function SheetEditorContent({
                     >
                       <span className="pointer-events-none block truncate px-2">{columnLabel(c)}</span>
                       {active.filterEnabled && (
-                        <button
-                          type="button"
+                        <IconButton
+                          variant="ghost"
+                          size="sm"
+                          icon={ListFilter}
+                          iconClassName="size-3"
+                          className={cn(
+                            "absolute top-1/2 left-0.5 z-10 size-4 -translate-y-1/2 rounded hover:bg-layer-3",
+                            isColumnFiltered(active.filters?.[c]) && "text-accent-primary"
+                          )}
+                          aria-label="Filter column"
                           title="Filter column"
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
@@ -1638,13 +1646,7 @@ const SheetEditorContent = observer(function SheetEditorContent({
                             const rect = e.currentTarget.getBoundingClientRect();
                             setFilterMenu((m) => (m?.col === c ? null : { col: c, x: rect.left, y: rect.bottom }));
                           }}
-                          className={cn(
-                            "absolute top-1/2 left-0.5 z-10 grid size-4 -translate-y-1/2 place-items-center rounded hover:bg-layer-3",
-                            isColumnFiltered(active.filters?.[c]) ? "text-accent-primary" : "text-tertiary"
-                          )}
-                        >
-                          <ListFilter className="size-3" />
-                        </button>
+                        />
                       )}
                       {isEditable && (
                         <span
@@ -2110,14 +2112,14 @@ const SheetEditorContent = observer(function SheetEditorContent({
           );
         })}
         {isEditable && (
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={Plus}
+            aria-label="Add sheet"
             onClick={addSheet}
             title="Add sheet"
-            className="grid size-6 flex-shrink-0 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary"
-          >
-            <Plus className="size-4" />
-          </button>
+          />
         )}
       </div>
 
@@ -2226,9 +2228,10 @@ const SheetEditorContent = observer(function SheetEditorContent({
                         key={c}
                         type="button"
                         title={c}
+                        aria-label={`Tab color ${c}`}
                         onClick={run(() => setSheetColor(idx, c))}
                         className={cn(
-                          "grid size-5 place-items-center rounded-full border border-subtle transition-transform hover:scale-110",
+                          "t-focus grid size-5 place-items-center rounded-full border border-subtle transition-transform hover:scale-110",
                           {
                             "ring-primary ring-1 ring-offset-1": snapshot.sheets[idx].color === c,
                           }
@@ -2238,14 +2241,14 @@ const SheetEditorContent = observer(function SheetEditorContent({
                         {snapshot.sheets[idx].color === c && <Check className="size-3 text-primary" />}
                       </button>
                     ))}
-                    <button
-                      type="button"
+                    <IconButton
+                      variant="secondary"
+                      size="sm"
+                      icon={X}
+                      aria-label="No color"
                       title="No color"
                       onClick={run(() => setSheetColor(idx, undefined))}
-                      className="grid size-5 place-items-center rounded-full border border-subtle text-tertiary hover:text-primary"
-                    >
-                      <X className="size-3" />
-                    </button>
+                    />
                   </div>
                   {sep}
                   {item(
@@ -2461,7 +2464,7 @@ function ToolbarButton({ title, active, disabled, onClick, children }: ToolbarBu
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "grid size-7 flex-shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary disabled:pointer-events-none disabled:opacity-40",
+        "t-focus grid size-7 flex-shrink-0 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary disabled:pointer-events-none disabled:opacity-40",
         { "bg-layer-2 text-primary": active }
       )}
     >
@@ -2520,12 +2523,13 @@ function AlignMenu({ disabled, value, onSelect }: AlignMenuProps) {
               key={o.key}
               type="button"
               title={`Align ${o.label.toLowerCase()}`}
+              aria-label={`Align ${o.label.toLowerCase()}`}
               onClick={() => {
                 onSelect(o.key);
                 setOpen(false);
               }}
               className={cn(
-                "grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary",
+                "t-focus grid size-7 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary",
                 {
                   "bg-layer-2 text-primary": value === o.key,
                 }
@@ -2675,8 +2679,11 @@ function SelectConfigMenu({ x, y, config, onChange }: SelectConfigMenuProps) {
               }
               className="h-7 min-w-0 flex-1 rounded-md border border-subtle bg-canvas px-2 text-12 text-primary outline-none focus:border-strong"
             />
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={X}
+              aria-label="Remove"
               title="Remove"
               onClick={() =>
                 commit(
@@ -2684,10 +2691,7 @@ function SelectConfigMenu({ x, y, config, onChange }: SelectConfigMenuProps) {
                   multi
                 )
               }
-              className="grid size-5 shrink-0 place-items-center rounded text-tertiary hover:bg-layer-1 hover:text-primary"
-            >
-              <X className="size-3.5" />
-            </button>
+            />
           </div>
         ))}
       </div>
@@ -3007,8 +3011,9 @@ function BordersMenu({ disabled, onApply }: BordersMenuProps) {
                 key={p.key}
                 type="button"
                 title={p.label}
+                aria-label={p.label}
                 onClick={() => apply(p.key)}
-                className="grid size-8 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
+                className="t-focus grid size-8 place-items-center rounded-md text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
               >
                 <BorderIcon position={p.key} />
               </button>

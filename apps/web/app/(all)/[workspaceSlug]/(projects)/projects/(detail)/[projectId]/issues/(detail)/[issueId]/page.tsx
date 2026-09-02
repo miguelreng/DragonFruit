@@ -4,12 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { useTheme } from "next-themes";
 import { redirect } from "react-router";
 import { useTranslation } from "@plane/i18n";
 // assets
-import emptyIssueDark from "@/app/assets/empty-state/search/issues-dark.webp?url";
-import emptyIssueLight from "@/app/assets/empty-state/search/issues-light.webp?url";
 // components
 import { AppLoadingScreen } from "@/components/common/app-loading-screen";
 import { EmptyState } from "@/components/common/empty-state";
@@ -46,13 +43,12 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 export default function IssueDetailsPage({ loaderData }: Route.ComponentProps) {
   const router = useAppRouter();
   const { t } = useTranslation();
-  const { resolvedTheme } = useTheme();
 
   if (loaderData.error) {
     return (
       <div className="flex size-full items-center justify-center">
         <EmptyState
-          image={resolvedTheme === "dark" ? emptyIssueDark : emptyIssueLight}
+          iconName="search"
           title={t("issue.empty_state.issue_detail.title")}
           description={t("issue.empty_state.issue_detail.description")}
           primaryButton={{

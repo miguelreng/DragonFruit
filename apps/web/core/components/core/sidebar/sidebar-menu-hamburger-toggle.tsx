@@ -5,6 +5,7 @@
  */
 
 import { observer } from "mobx-react";
+import { IconButton } from "@plane/propel/icon-button";
 import { PanelRight } from "@/components/icons/lucide-shim";
 import { useAppTheme } from "@/hooks/store/use-app-theme";
 
@@ -19,12 +20,13 @@ export const SidebarHamburgerToggle = observer(function SidebarHamburgerToggle()
   };
 
   return (
-    <button
-      type="button"
-      className="group grid size-7 flex-shrink-0 place-items-center rounded-lg bg-surface-2 transition-all hover:bg-layer-1"
+    <IconButton
+      variant="ghost"
+      size="lg"
+      icon={PanelRight}
+      aria-label="Toggle sidebar"
+      iconClassName="text-secondary transition-all group-hover:text-primary"
       onClick={handleClick}
-    >
-      <PanelRight className="size-3.5 text-secondary transition-all group-hover:text-primary" />
-    </button>
+    />
   );
 });

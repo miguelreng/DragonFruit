@@ -91,7 +91,7 @@ export const ModuleListItem = observer(function ModuleListItem(props: Props) {
         </CircularProgressIndicator>
       }
       appendTitleElement={
-        <button
+        <button type="button"
           onClick={openModuleOverview}
           className={`z-[5] flex-shrink-0 ${isMobile ? "flex" : "hidden group-hover:flex"}`}
         >

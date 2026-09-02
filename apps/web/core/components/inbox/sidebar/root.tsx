@@ -142,7 +142,6 @@ export const InboxSidebar = observer(function InboxSidebar(props: IInboxSidebarP
                     assetKey="search"
                     title={t("common_empty_state.search.title")}
                     description={t("common_empty_state.search.description")}
-                    assetClassName="size-20"
                     rootClassName="px-page-x"
                   />
                 ) : currentTab === EInboxIssueCurrentTab.OPEN ? (
@@ -150,7 +149,6 @@ export const InboxSidebar = observer(function InboxSidebar(props: IInboxSidebarP
                     assetKey="inbox"
                     title={t("project_empty_state.intake_sidebar.title")}
                     description={t("project_empty_state.intake_sidebar.description")}
-                    assetClassName="size-20"
                     actions={[
                       {
                         label: t("project_empty_state.intake_sidebar.cta_primary"),
@@ -166,7 +164,6 @@ export const InboxSidebar = observer(function InboxSidebar(props: IInboxSidebarP
                     assetKey="inbox"
                     title="No request closed yet"
                     description="All the tasks whether accepted or declined can be found here."
-                    assetClassName="size-20"
                     className="px-10"
                   />
                 )}

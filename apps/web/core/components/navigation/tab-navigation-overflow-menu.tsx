@@ -10,8 +10,8 @@ import { Eye, Star } from "@solar-icons/react/ssr";
 import { MoreHorizontal } from "@/components/icons/lucide-shim";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { Menu } from "@plane/propel/menu";
 import { Tooltip } from "@plane/propel/tooltip";
+import { CustomMenu } from "@plane/ui";
 import { cn } from "@plane/utils";
 // local imports
 import type { TNavigationItem } from "./tab-navigation-root";
@@ -34,7 +34,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
   const { t } = useTranslation();
 
   return (
-    <Menu
+    <CustomMenu
       ellipsis
       ariaLabel="More project tabs"
       buttonClassName="!p-1.5"
@@ -52,7 +52,7 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
         const isDefault = item.key === tabPreferences.defaultTab;
 
         return (
-          <Menu.MenuItem key={`${item.key}-overflow-${itemIsActive ? "active" : "inactive"}`} className="w-full p-0">
+          <CustomMenu.MenuItem key={`${item.key}-overflow-${itemIsActive ? "active" : "inactive"}`} className="w-full p-0">
             <div className="group/menu-item flex w-full items-center justify-between">
               <Link to={item.href} className="w-full min-w-0 flex-1 p-1">
                 <span className="text-11">{t(item.i18n_key)}</span>
@@ -100,9 +100,9 @@ export function TabNavigationOverflowMenu({ overflowItems, isActive, tabPreferen
                 </Tooltip>
               </div>
             </div>
-          </Menu.MenuItem>
+          </CustomMenu.MenuItem>
         );
       })}
-    </Menu>
+    </CustomMenu>
   );
 }

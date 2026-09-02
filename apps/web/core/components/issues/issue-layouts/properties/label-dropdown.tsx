@@ -18,7 +18,8 @@ import { CheckIcon, SearchIcon, ChevronDownIcon } from "@/components/icons/prope
 import type { IIssueLabel } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 // components
-import { ComboDropDown, Spinner } from "@plane/ui";
+import { ComboDropDown } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { sortBySelectedFirst } from "@plane/utils";
 // hooks
 import { useLabel } from "@/hooks/store/use-label";
@@ -249,7 +250,7 @@ export function LabelDropdown(props: ILabelDropdownProps) {
         {isOpen && (
           <Combobox.Options className="fixed z-30" static>
             <div
-              className={`z-10 my-1 h-auto w-48 rounded-lg border border-strong bg-surface-1 px-2 py-2.5 text-13 whitespace-nowrap shadow-raised-200 focus:outline-none ${optionsClassName}`}
+              className={`z-10 my-1 h-auto w-48 rounded-lg border border-strong bg-surface-1 px-2 py-1.5 text-13 whitespace-nowrap shadow-raised-200 focus:outline-none ${optionsClassName}`}
               ref={setPopperElement}
               style={styles.popper}
               {...attributes.popper}
@@ -266,7 +267,7 @@ export function LabelDropdown(props: ILabelDropdownProps) {
                   onKeyDown={searchInputKeyDown}
                 />
               </div>
-              <div className={`mt-2 max-h-48 space-y-1 overflow-y-scroll`}>
+              <div className={`mt-1 max-h-48 space-y-px overflow-y-scroll`}>
                 {isLoading ? (
                   <p className="text-center text-secondary">{t("common.loading")}</p>
                 ) : filteredOptions && filteredOptions.length > 0 ? (
@@ -281,7 +282,7 @@ export function LabelDropdown(props: ILabelDropdownProps) {
                         }
                       }}
                       className={({ active, selected }) =>
-                        `flex cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 select-none hover:bg-layer-1 ${
+                        `flex cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1 select-none hover:bg-layer-1 ${
                           active ? "bg-layer-1" : ""
                         } ${selected ? "text-primary" : "text-secondary"}`
                       }

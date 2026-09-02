@@ -14,7 +14,8 @@ import { useTranslation } from "@plane/i18n";
 import { ChevronUpIcon, ChevronDownIcon } from "@/components/icons/propel-shim";
 import type { TModulePlotType } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
-import { CustomSelect, Spinner } from "@plane/ui";
+import { CustomSelect } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // components
 // constants
 // helpers

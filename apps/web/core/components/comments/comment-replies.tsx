@@ -9,7 +9,8 @@ import { observer } from "mobx-react";
 // plane imports
 import type { EditorRefApi } from "@plane/editor";
 import { CornerDownRight } from "@/components/icons/lucide-shim";
-import { Avatar, Tooltip } from "@plane/ui";
+import { Avatar } from "@plane/ui";
+import { Tooltip } from "@plane/propel/tooltip";
 import type { TCommentsOperations } from "@plane/types";
 import { calculateTimeAgo, cn, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
 // components

@@ -5,6 +5,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { observer } from "mobx-react";
 import { useNavigate } from "react-router";
 import { EPageAccess, EUserPermissions } from "@plane/constants";
@@ -170,28 +171,26 @@ export const DocTemplateGalleryModal = observer(function DocTemplateGalleryModal
         <div className="flex shrink-0 items-center justify-between border-b border-subtle px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             {showProjectStep && projectPickerOnlyType === undefined && (
-              <button
-                type="button"
+              <IconButton
+                variant="ghost"
+                size="base"
+                icon={ArrowLeft}
                 onClick={() => setPending(null)}
-                className="grid size-6 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary"
                 aria-label="Back to templates"
-              >
-                <ArrowLeft className="size-4" />
-              </button>
+              />
             )}
             <span className="text-15 font-normal text-primary">{showProjectStep ? "Choose a project" : "New doc"}</span>
             {showProjectStep && pending?.template && (
               <span className="text-13 text-tertiary">· {pending.template.title}</span>
             )}
           </div>
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={X}
             onClick={handleClose}
-            className="grid size-6 place-items-center rounded-md text-tertiary hover:bg-layer-1 hover:text-primary"
             aria-label="Close"
-          >
-            <X className="size-4" />
-          </button>
+          />
         </div>
 
         {showProjectStep ? (

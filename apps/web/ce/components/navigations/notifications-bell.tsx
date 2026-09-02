@@ -12,7 +12,7 @@ import { cn } from "@plane/utils";
 // plane imports
 import { ENotificationLoader, ENotificationQueryParamType } from "@plane/constants";
 import { Popover } from "@plane/propel/popover";
-import { Spinner } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // icons
 import { Bell } from "@solar-icons/react/ssr";
 import { CheckCheck } from "@/components/icons/lucide-shim";

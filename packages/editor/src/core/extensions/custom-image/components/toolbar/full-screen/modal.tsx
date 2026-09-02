@@ -10,6 +10,7 @@ import ReactDOM from "react-dom";
 import { NewTabIcon, PlusIcon, CloseIcon } from "@plane/propel/icons";
 // plane imports
 import { cn } from "@plane/utils";
+import { IconButton } from "@plane/propel/icon-button";
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2;
@@ -213,14 +214,14 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
         onMouseDown={(e) => e.target === modalRef.current && handleClose()}
         className="relative grid size-full place-items-center overflow-hidden"
       >
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="xl"
+          icon={CloseIcon}
+          iconClassName="text-white/60 transition-colors hover:text-white"
           onClick={handleClose}
-          className="absolute top-10 right-10 grid size-8 place-items-center"
           aria-label="Close image viewer"
-        >
-          <CloseIcon className="size-8 text-white/60 transition-colors hover:text-white" />
-        </button>
+        />
         <img
           ref={setImageRef}
           src={src}
@@ -240,8 +241,10 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
         />
         <div className="fixed bottom-10 left-1/2 flex -translate-x-1/2 items-center justify-center gap-1 divide-x divide-subtle-1 rounded-lg border border-subtle-1 bg-black py-2">
           <div className="flex items-center">
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="base"
+              icon={Minus}
               onClick={(e) => {
                 if (isTouchDevice) {
                   e.preventDefault();
@@ -249,15 +252,14 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
                 }
                 handleMagnification("decrease");
               }}
-              className="grid size-6 place-items-center text-white/60 transition-colors duration-200 hover:text-white disabled:text-white/30"
               disabled={magnification <= MIN_ZOOM}
               aria-label="Zoom out"
-            >
-              <Minus className="size-4" />
-            </button>
+            />
             <span className="w-12 text-center text-13 text-white">{Math.round(100 * magnification)}%</span>
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="base"
+              icon={PlusIcon}
               onClick={(e) => {
                 if (isTouchDevice) {
                   e.preventDefault();
@@ -265,32 +267,27 @@ function ImageFullScreenModalWithoutPortal(props: Props) {
                 }
                 handleMagnification("increase");
               }}
-              className="grid size-6 place-items-center text-white/60 transition-colors duration-200 hover:text-white disabled:text-white/30"
               disabled={magnification >= MAX_ZOOM}
               aria-label="Zoom in"
-            >
-              <PlusIcon className="size-4" />
-            </button>
+            />
           </div>
           {!isTouchDevice && (
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="xl"
+              icon={Download}
               onClick={() => window.open(downloadSrc, "_blank")}
-              className="grid size-8 flex-shrink-0 place-items-center text-white/60 transition-colors duration-200 hover:text-white"
               aria-label="Download image"
-            >
-              <Download className="size-4" />
-            </button>
+            />
           )}
           {!isTouchDevice && (
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="xl"
+              icon={NewTabIcon}
               onClick={() => window.open(src, "_blank")}
-              className="grid size-8 flex-shrink-0 place-items-center text-white/60 transition-colors duration-200 hover:text-white"
               aria-label="Open image in new tab"
-            >
-              <NewTabIcon className="size-4" />
-            </button>
+            />
           )}
         </div>
       </div>

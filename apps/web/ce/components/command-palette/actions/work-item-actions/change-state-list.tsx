@@ -9,7 +9,7 @@ import { observer } from "mobx-react";
 import { EIconSize } from "@plane/constants";
 // plane imports
 import { CheckIcon, StateGroupIcon } from "@/components/icons/propel-shim";
-import { Spinner } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // store hooks
 import { useProjectState } from "@/hooks/store/use-project-state";
 

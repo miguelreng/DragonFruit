@@ -132,7 +132,7 @@ function CustomSelect(props: ICustomSelectProps) {
                 {...attributes.popper}
               >
                 <div
-                  className={cn("space-y-1 overflow-y-scroll", {
+                  className={cn("space-y-px overflow-y-scroll", {
                     "max-h-60": maxHeight === "lg",
                     "max-h-48": maxHeight === "md",
                     "max-h-36": maxHeight === "rg",
@@ -168,7 +168,7 @@ function Option(props: ICustomSelectItemProps) {
       value={value}
       className={({ active }) =>
         cn(
-          "flex cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1.5 text-secondary select-none",
+          "flex cursor-pointer items-center justify-between gap-2 truncate rounded-sm px-1 py-1 text-secondary select-none",
           {
             "bg-layer-transparent-hover": active,
           },

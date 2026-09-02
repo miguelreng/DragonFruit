@@ -5,6 +5,7 @@
  */
 
 import type { Editor } from "@tiptap/core";
+import { IconButton } from "@plane/propel/icon-button";
 
 import { useCallback, useRef, useState } from "react";
 import { LinkIcon, TrashIcon, CheckIcon } from "@plane/propel/icons";
@@ -105,16 +106,16 @@ export function BubbleMenuLinkSelector(props: Props) {
               <TrashIcon className="size-4" />
             </button>
           ) : (
-            <button
-              type="button"
-              className="grid aspect-square h-full place-items-center rounded-xs p-1 text-tertiary transition-all hover:bg-layer-1"
+            <IconButton
+              variant="ghost"
+              size="base"
+              icon={CheckIcon}
+              aria-label="Apply link"
               onClick={(e) => {
                 e.stopPropagation();
                 handleLinkSubmit();
               }}
-            >
-              <CheckIcon className="size-4" />
-            </button>
+            />
           )}
         </div>
         {error && (

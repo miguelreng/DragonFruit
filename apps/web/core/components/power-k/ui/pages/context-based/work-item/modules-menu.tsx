@@ -7,7 +7,7 @@
 import { observer } from "mobx-react";
 // plane types
 import type { IModule, TIssue } from "@plane/types";
-import { Spinner } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // components
 import { PowerKModulesMenu } from "@/components/power-k/menus/modules";
 // hooks

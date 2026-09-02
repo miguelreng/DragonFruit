@@ -5,6 +5,8 @@
  */
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { IconButton } from "@plane/propel/icon-button";
+import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { Temporal } from "@js-temporal/polyfill";
@@ -49,7 +51,6 @@ import {
   Share2,
   Trash2,
   Video,
-  X,
 } from "@/components/icons/lucide-shim";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
@@ -59,6 +60,8 @@ import { AppHeader } from "@/components/core/app-header";
 import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useUserPermissions } from "@/hooks/store/user";
+import useKeypress from "@/hooks/use-keypress";
+import usePeekOverviewOutsideClickDetector from "@/hooks/use-peek-overview-outside-click";
 import {
   CalendarService,
   type TCalendarAccount,
@@ -758,7 +761,7 @@ export function CalendarRoot({ projectId }: TCalendarRootProps = {}) {
   // callbacks closure — we don't want to recreate the calendar on every render.
   const openQuickAddRef = useRef<(date: string) => void>(() => {});
   openQuickAddRef.current = (date) => setQuickAddDate(date);
-  // Google events open a read-only details modal; "Create task" inside it
+  // Google events open a details drawer; "Create task" inside it
   // seeds the quick-add task modal with the event's content.
   const [googleEventDetails, setGoogleEventDetails] = useState<TCalendarEventWithSource | null>(null);
   const seedTaskFromEvent = useCallback((e: TCalendarEventWithSource) => {
@@ -1346,9 +1349,9 @@ export function CalendarRoot({ projectId }: TCalendarRootProps = {}) {
           void refetchGoogleEvents();
         }}
       />
-      {/* Click a Google event → read-only details view. */}
+      {/* Click a Google event → details drawer (same design as the task drawer). */}
       {googleEventDetails !== null && (
-        <GoogleEventDetailsModal
+        <GoogleEventDetailsDrawer
           event={googleEventDetails}
           canEdit={writableSourceIds.has(googleEventDetails.sourceId)}
           color={
@@ -1526,38 +1529,35 @@ function CalendarPageHeader({
           Today
         </Button>
         <div className="flex items-center">
-          <button
-            type="button"
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={ChevronLeft}
             onClick={onPrev}
             aria-label="Previous"
-            className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2-hover hover:text-primary"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <button
-            type="button"
+          />
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon={ChevronRight}
             onClick={onNext}
             aria-label="Next"
-            className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2-hover hover:text-primary"
-          >
-            <ChevronRight className="size-4" />
-          </button>
+          />
         </div>
         {/* Fixed width sized to the longest label (cross-year week ranges) so
             switching views doesn't reflow the controls around it. */}
         <span className="df-calendar-toolbar-date inline-block w-48 truncate px-1 text-center text-13 font-medium text-primary">
           {visibleMonth}
         </span>
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="lg"
+          icon={RefreshCw}
           onClick={onRefresh}
           disabled={isRefreshing}
           aria-label="Refresh calendar events"
           title="Refresh calendar events"
-          className="grid size-7 place-items-center rounded-lg text-tertiary hover:bg-layer-2-hover hover:text-primary disabled:opacity-50"
-        >
-          <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} />
-        </button>
+        />
         <span className="bg-subtle mx-1 h-5 w-px" aria-hidden />
         <TimezoneMenu value={calendarTimezone} onChange={onChangeTimezone} />
         {onShareCalendar && (
@@ -1732,15 +1732,14 @@ function GoogleAccountsMenu({
             <div key={account.id} className="border-b border-subtle px-1.5 py-1.5 last:border-b-0">
               <div className="flex items-center justify-between gap-2 px-2 py-1 text-11 text-tertiary">
                 <span className="min-w-0 truncate">{calendarAccountLabel(account)}</span>
-                <button
-                  type="button"
+                <IconButton
+                  variant="error-outline"
+                  size="base"
+                  icon={Trash2}
                   onClick={() => onDisconnect(account)}
                   aria-label={`Disconnect ${calendarAccountLabel(account)}`}
                   title={`Disconnect ${calendarAccountLabel(account)}`}
-                  className="grid size-6 shrink-0 place-items-center rounded-md text-tertiary hover:bg-layer-2-hover hover:text-danger-primary"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
+                />
               </div>
               {accountSources.length === 0 && <div className="px-2 py-2 text-12 text-tertiary">Loading calendars…</div>}
               {accountSources.map((source) => {
@@ -1769,16 +1768,16 @@ function GoogleAccountsMenu({
                       <span className="min-w-0 flex-1 truncate text-13 text-primary">{googleSourceLabel(source)}</span>
                       {source.calendar.primary && <span className="text-11 text-tertiary">Primary</span>}
                     </div>
-                    <button
-                      type="button"
+                    <IconButton
+                      variant="ghost"
+                      size="base"
+                      icon={visible ? Eye : EyeOff}
+                      className="shrink-0"
                       onClick={() => onUpdateCalendarPrefs(source, { visible: !visible })}
                       aria-label={`${visible ? "Hide" : "Show"} ${googleSourceLabel(source)}`}
                       aria-pressed={visible}
                       title={`${visible ? "Hide" : "Show"} ${googleSourceLabel(source)}`}
-                      className="grid size-6 shrink-0 place-items-center rounded-md text-tertiary hover:bg-layer-2-hover hover:text-primary"
-                    >
-                      {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-                    </button>
+                    />
                   </div>
                 );
               })}
@@ -1934,8 +1933,9 @@ function EventDetailRow(props: { icon: ReactNode; label: string; children: React
   );
 }
 
-// Details and in-place editor for a Google Calendar event.
-function GoogleEventDetailsModal(props: {
+// Details and in-place editor for a Google Calendar event, presented as a
+// right-side drawer with the same design as the task peek-overview drawer.
+function GoogleEventDetailsDrawer(props: {
   event: TCalendarEventWithSource;
   canEdit: boolean;
   color: string;
@@ -1961,6 +1961,7 @@ function GoogleEventDetailsModal(props: {
   const [startTime, setStartTime] = useState(initialStart.time);
   const [endTime, setEndTime] = useState(initialEnd.time);
   const [isSaving, setIsSaving] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const plainDescription = htmlToPlainText(event.description);
 
   const resetEditor = () => {
@@ -2026,36 +2027,50 @@ function GoogleEventDetailsModal(props: {
     }
   };
 
-  const handleModalClose = () => {
+  const handleDrawerClose = () => {
     if (isEditing) resetEditor();
     onClose();
   };
 
-  return (
-    <ModalCore isOpen handleClose={handleModalClose} width={EModalWidth.XXL} className="overflow-hidden">
-      <div className="flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col">
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-subtle px-5 py-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-12 text-tertiary">
-              <LegendDot color={color} />
-              <span className="min-w-0 truncate">
-                {event.calendarName}
-                {event.accountEmail ? ` · ${event.accountEmail}` : ""}
-              </span>
-              {isEditing && <span className="rounded-md bg-layer-1 px-1.5 py-0.5 text-10 font-medium">Editing</span>}
-            </div>
-            <h2 className="mt-1 line-clamp-2 text-16 font-semibold break-words text-primary">
-              {event.title || "(no title)"}
-            </h2>
+  // Same close affordances as the task drawer: click away or press Escape.
+  usePeekOverviewOutsideClickDetector(drawerRef, handleDrawerClose, event.id, ["main-sidebar"]);
+  useKeypress("Escape", handleDrawerClose);
+
+  const portalContainer = document.getElementById("full-screen-portal");
+
+  const content = (
+    <div className="w-full text-body-sm-regular">
+      <div
+        ref={drawerRef}
+        data-open="true"
+        className="t-panel-slide absolute top-0 right-0 bottom-0 z-[25] flex w-full flex-col overflow-hidden rounded-lg border-l border-subtle bg-surface-1 transition-all duration-300 md:w-[50%]"
+        style={{
+          boxShadow:
+            "0px 4px 8px 0px rgba(0, 0, 0, 0.12), 0px 6px 12px 0px rgba(16, 24, 40, 0.12), 0px 1px 16px 0px rgba(16, 24, 40, 0.12)",
+        }}
+      >
+        {/* header — same slim strip as the task drawer */}
+        <div className="relative flex shrink-0 items-center justify-between gap-4 p-4">
+          <Tooltip tooltipContent="Close">
+            <button
+              type="button"
+              onClick={handleDrawerClose}
+              aria-label="Close event"
+              className="t-focus grid place-items-center rounded-sm"
+            >
+              <ChevronRight className="h-4 w-4 text-tertiary hover:text-secondary" />
+            </button>
+          </Tooltip>
+          <div className="flex min-w-0 items-center gap-2 text-12 text-tertiary">
+            <LegendDot color={color} />
+            <span className="min-w-0 truncate">
+              {event.calendarName}
+              {event.accountEmail ? ` · ${event.accountEmail}` : ""}
+            </span>
+            {isEditing && (
+              <span className="shrink-0 rounded-md bg-layer-1 px-1.5 py-0.5 text-10 font-medium">Editing</span>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={handleModalClose}
-            className="grid size-7 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-1 hover:text-primary"
-            aria-label="Close event"
-          >
-            <X className="size-4" />
-          </button>
         </div>
 
         {isEditing ? (
@@ -2066,7 +2081,7 @@ function GoogleEventDetailsModal(props: {
               void handleSave();
             }}
           >
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+            <div className="vertical-scrollbar scrollbar-md flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-8 py-5">
               <label className="block">
                 <span className="mb-1.5 block text-11 font-medium text-secondary">Title</span>
                 <input
@@ -2149,7 +2164,7 @@ function GoogleEventDetailsModal(props: {
                 />
               </label>
             </div>
-            <div className="flex shrink-0 justify-end gap-2 border-t border-subtle px-5 py-3">
+            <div className="flex shrink-0 justify-end gap-2 border-t border-subtle px-8 py-3">
               <Button variant="secondary" size="lg" type="button" onClick={handleCancelEdit} disabled={isSaving}>
                 Cancel
               </Button>
@@ -2165,7 +2180,8 @@ function GoogleEventDetailsModal(props: {
           </form>
         ) : (
           <>
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+            <div className="vertical-scrollbar scrollbar-md flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-8 py-5">
+              <h2 className="text-20 font-semibold break-words text-primary">{event.title || "(no title)"}</h2>
               <EventDetailRow icon={<Clock className="size-4" />} label="When">
                 {formatEventWhen(event, timezone)}
                 <span className="ml-1.5 text-12 text-tertiary">({timezoneOffsetLabel(timezone)})</span>
@@ -2190,11 +2206,11 @@ function GoogleEventDetailsModal(props: {
               )}
               {plainDescription && (
                 <EventDetailRow icon={<FileText className="size-4" />} label="Description">
-                  <div className="max-h-48 overflow-y-auto whitespace-pre-wrap text-secondary">{plainDescription}</div>
+                  <div className="whitespace-pre-wrap text-secondary">{plainDescription}</div>
                 </EventDetailRow>
               )}
             </div>
-            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-subtle px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-subtle px-8 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-2">
                 {canEdit && (
                   <Button
@@ -2252,8 +2268,10 @@ function GoogleEventDetailsModal(props: {
           </>
         )}
       </div>
-    </ModalCore>
+    </div>
   );
+
+  return portalContainer ? createPortal(content, portalContainer) : content;
 }
 
 function NewEventModal(props: {

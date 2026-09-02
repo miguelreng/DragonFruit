@@ -148,7 +148,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                   <div
                     className={cn(
                       SELECT_PORTAL_LAYER_CLASS,
-                      "my-1 min-w-48 overflow-y-scroll rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 py-2.5 text-13 whitespace-nowrap focus:outline-none",
+                      "my-1 min-w-48 overflow-y-scroll rounded-[18px] border-[0.5px] border-subtle-1 bg-surface-1 py-1.5 text-13 whitespace-nowrap focus:outline-none",
                       optionsClassName
                     )}
                     ref={setPopperElement}
@@ -166,7 +166,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                       />
                     </div>
                     <div
-                      className={cn("vertical-scrollbar mt-2 scrollbar-xs space-y-1 overflow-y-scroll px-2", {
+                      className={cn("vertical-scrollbar mt-1 scrollbar-xs space-y-px overflow-y-scroll px-2", {
                         "max-h-96": maxHeight === "2xl",
                         "max-h-80": maxHeight === "xl",
                         "max-h-60": maxHeight === "lg",
@@ -183,7 +183,7 @@ export function CustomSearchSelect(props: ICustomSearchSelectProps) {
                               value={option.value}
                               className={({ active }) =>
                                 cn(
-                                  "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1.5 select-none",
+                                  "flex w-full cursor-pointer items-center justify-between gap-2 truncate rounded-lg px-1 py-1 select-none",
                                   {
                                     "bg-layer-transparent-hover": active,
                                     "cursor-not-allowed text-placeholder opacity-60": option.disabled,

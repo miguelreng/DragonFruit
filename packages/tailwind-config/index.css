@@ -183,6 +183,15 @@ body {
   will-change: width, height;
 }
 
+/* The one focus treatment for every interactive control. `outline` (not `ring`)
+   so it paints outside the box without participating in layout or fighting a
+   variant's own box-shadow, and so `outline-offset` keeps it legible on filled
+   buttons. :focus-visible only — mouse/touch presses must not leave a ring. */
+.t-focus:focus-visible {
+  outline: 2px solid var(--border-color-accent-strong);
+  outline-offset: 2px;
+}
+
 .t-colors {
   transition:
     background-color var(--motion-control-dur) var(--motion-control-ease),

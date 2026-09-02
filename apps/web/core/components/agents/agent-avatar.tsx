@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { Avatar, type TAvatarSize } from "@plane/propel/avatar";
+import { Avatar, type TAvatarSize } from "@plane/ui";
 import { cn } from "@plane/utils";
 import { Sparkles } from "@/components/icons/lucide-shim";
 import { ATLAS_IDENTITY } from "@/constants/atlas";

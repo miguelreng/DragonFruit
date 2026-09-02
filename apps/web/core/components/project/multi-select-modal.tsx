@@ -7,7 +7,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { xor } from "lodash-es";
 import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
 import { Combobox } from "@headlessui/react";
 // plane ui
 import { useTranslation } from "@plane/i18n";
@@ -16,9 +15,6 @@ import { Logo } from "@plane/propel/emoji-icon-picker";
 import { SearchIcon, CloseIcon } from "@/components/icons/propel-shim";
 import { Checkbox, EModalPosition, EModalWidth, ModalCore } from "@plane/ui";
 import { cn } from "@plane/utils";
-// assets
-import darkProjectAsset from "@/app/assets/empty-state/search/project-dark.webp?url";
-import lightProjectAsset from "@/app/assets/empty-state/search/project-light.webp?url";
 // components
 import { SimpleEmptyState } from "@/components/empty-state/simple-empty-state-root";
 // hooks
@@ -41,7 +37,6 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
   // refs
   const moveButtonRef = useRef<HTMLButtonElement>(null);
   // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // store hooks
@@ -57,7 +52,6 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
     const projectQuery = `${project?.identifier} ${project?.name}`.toLowerCase();
     return projectQuery.includes(searchTerm.toLowerCase());
   });
-  const filteredProjectResolvedPath = resolvedTheme === "light" ? lightProjectAsset : darkProjectAsset;
 
   useEffect(() => {
     if (isOpen) setSelectedProjectIds(selectedProjectIdsProp);
@@ -131,7 +125,7 @@ export const ProjectMultiSelectModal = observer(function ProjectMultiSelectModal
               <SimpleEmptyState
                 title={t("workspace_projects.empty_state.filter.title")}
                 description={t("workspace_projects.empty_state.filter.description")}
-                assetPath={filteredProjectResolvedPath}
+                visual={{ type: "icon", name: "projects" }}
               />
             </div>
           ) : (

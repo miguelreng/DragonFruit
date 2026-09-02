@@ -5,6 +5,7 @@
  */
 
 import type { MutableRefObject } from "react";
+import { IconButton } from "@plane/propel/icon-button";
 import { useRef, useState } from "react";
 import type { LucideIcon } from "@/components/icons/lucide-shim";
 // plane helpers
@@ -96,15 +97,17 @@ export function LabelItemBlock(props: ILabelItemBlock) {
           </CustomMenu>
           {!isLabelGroup && (
             <div className="py-0.5">
-              <button
-                className="flex size-5 items-center justify-center rounded-lg hover:bg-layer-1"
+              <IconButton
+                variant="ghost"
+                size="sm"
+                icon={CloseIcon}
+                aria-label="Remove label"
+                iconClassName="flex-shrink-0 text-tertiary"
                 onClick={() => {
                   handleLabelDelete(label);
                 }}
                 data-ph-element={PROJECT_SETTINGS_TRACKER_ELEMENTS.LABELS_DELETE_BUTTON}
-              >
-                <CloseIcon className="size-3.5 flex-shrink-0 text-tertiary" />
-              </button>
+              />
             </div>
           )}
         </div>

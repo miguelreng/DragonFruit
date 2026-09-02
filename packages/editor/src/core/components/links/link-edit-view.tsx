@@ -149,7 +149,7 @@ export function LinkEditView({ viewProps }: LinkEditViewProps) {
       <div className="bg-strong mb-1 h-[1px] w-full gap-2" />
       <div className="flex items-center gap-2 text-13 text-secondary">
         <Link2Off size={14} className="inline-block" />
-        <button onClick={removeLink} className="cursor-pointer transition-colors hover:text-placeholder">
+        <button type="button" onClick={removeLink} className="cursor-pointer transition-colors hover:text-placeholder">
           Remove Link
         </button>
       </div>

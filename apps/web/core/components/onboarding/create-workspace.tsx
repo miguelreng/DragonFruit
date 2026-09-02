@@ -15,7 +15,8 @@ import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IUser, IWorkspace, TOnboardingSteps } from "@plane/types";
 // ui
-import { CustomSelect, Input, Spinner } from "@plane/ui";
+import { CustomSelect, Input } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 import { validateWorkspaceName, validateSlug } from "@plane/utils";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";

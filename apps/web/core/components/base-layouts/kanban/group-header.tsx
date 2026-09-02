@@ -8,7 +8,7 @@ import type { IGroupHeaderProps } from "@plane/types";
 
 export function GroupHeader({ group, itemCount, onToggleGroup }: IGroupHeaderProps) {
   return (
-    <button
+    <button type="button"
       onClick={() => onToggleGroup(group.id)}
       className="flex w-full items-center gap-2 text-13 font-medium text-secondary"
     >

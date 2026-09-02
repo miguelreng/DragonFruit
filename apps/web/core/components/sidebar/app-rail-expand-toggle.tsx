@@ -8,6 +8,7 @@ import { Sidebar } from "@solar-icons/react/ssr";
 import { cn } from "@plane/utils";
 // hooks
 import { useAppRailPreferences } from "@/hooks/use-navigation-preferences";
+import { IconButton } from "@plane/propel/icon-button";
 
 type Props = {
   // Trailing vertical divider, used in the page header to set the toggle apart
@@ -32,14 +33,13 @@ export const AppRailExpandToggle = (props: Props) => {
 
   return (
     <div className={cn("hidden items-center gap-2 md:flex", className)}>
-      <button
-        type="button"
+      <IconButton
+        variant="ghost"
+        size="xl"
+        icon={Sidebar}
         onClick={() => updateDisplayMode("icon_with_label")}
-        className="grid size-8 shrink-0 place-items-center rounded-lg text-icon-tertiary hover:bg-layer-transparent-hover hover:text-icon-secondary dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/90 [&_svg]:size-4 [&_svg]:text-current"
         aria-label="Expand app rail"
-      >
-        <Sidebar className="size-4" weight="Outline" />
-      </button>
+      />
       {withDivider && <div className="h-5 w-px bg-layer-3" />}
     </div>
   );

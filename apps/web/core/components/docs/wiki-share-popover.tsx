@@ -16,6 +16,7 @@ import { Copy, ExternalLink, Settings } from "@/components/icons/lucide-shim";
 import { GlobeIcon } from "@/components/icons/propel-shim";
 import { buildPublicPagePath, buildPublicPageUrl, getPublicPageSlug } from "@/helpers/page-public";
 import { ProjectPageService } from "@/services/page/project-page.service";
+import { IconButton } from "@plane/propel/icon-button";
 
 const pageService = new ProjectPageService();
 
@@ -106,15 +107,14 @@ export function WikiSharePopover({ workspaceSlug, folder, onOpenSettings, onChan
                     <div className="flex h-8 min-w-0 flex-1 items-center rounded-lg border border-subtle bg-layer-1 px-2">
                       <span className="truncate text-12 text-secondary">{publicPath}</span>
                     </div>
-                    <button
-                      type="button"
+                    <IconButton
+                      variant="secondary"
+                      size="xl"
+                      icon={Copy}
                       onClick={copyLink}
-                      className="grid size-8 shrink-0 place-items-center rounded-lg border border-subtle text-tertiary hover:bg-layer-1 hover:text-primary"
                       aria-label="Copy wiki link"
                       title="Copy wiki link"
-                    >
-                      <Copy className="size-3.5" />
-                    </button>
+                    />
                   </div>
                   <div className="flex items-center gap-1.5">
                     <a

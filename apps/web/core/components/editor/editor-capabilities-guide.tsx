@@ -8,6 +8,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { HelpCircle, Maximize2, Minimize2 } from "@/components/icons/lucide-shim";
 import { Tooltip } from "@plane/propel/tooltip";
 import { cn } from "@plane/utils";
+import { IconButton } from "@plane/propel/icon-button";
 
 /**
  * KEEP THIS CURRENT: whenever a new editor capability ships (slash command,
@@ -180,18 +181,13 @@ export function EditorCapabilitiesGuide(props: Props = {}) {
   return (
     <div ref={rootRef} className="relative">
       <Tooltip tooltipContent="What this editor can do" position="bottom">
-        <button
-          type="button"
+        <IconButton
+          variant="ghost"
+          size="base"
+          icon={HelpCircle}
           onClick={() => setIsOpen((open) => !open)}
           aria-label="What this editor can do"
-          className={cn(
-            "grid size-6 flex-shrink-0 place-items-center rounded-lg text-secondary transition-colors hover:bg-layer-1 hover:text-primary",
-            buttonClassName,
-            isOpen && "bg-layer-1 text-primary"
-          )}
-        >
-          <HelpCircle className="size-3.5" />
-        </button>
+        />
       </Tooltip>
       <div
         data-state={isOpen ? "open" : "closed"}
@@ -213,15 +209,15 @@ export function EditorCapabilitiesGuide(props: Props = {}) {
         <div className="flex items-center justify-between gap-2 px-4 pt-4">
           <div className="text-13 font-semibold text-primary">What this editor can do</div>
           <Tooltip tooltipContent={isExpanded ? "Collapse" : "Expand"} position="bottom">
-            <button
-              type="button"
+            <IconButton
+              variant="ghost"
+              size="base"
+              icon={isExpanded ? Minimize2 : Maximize2}
+              className="shrink-0"
               onClick={() => setIsExpanded((expanded) => !expanded)}
               aria-label={isExpanded ? "Collapse the guide" : "Expand the guide"}
               tabIndex={isOpen ? 0 : -1}
-              className="grid size-6 shrink-0 place-items-center rounded-lg text-tertiary transition-colors hover:bg-layer-1 hover:text-primary"
-            >
-              {isExpanded ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
-            </button>
+            />
           </Tooltip>
         </div>
         <div

@@ -6,7 +6,6 @@
 
 import { useCallback } from "react";
 import { observer } from "mobx-react";
-import { useTheme } from "next-themes";
 // plane imports
 import { EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
@@ -14,9 +13,6 @@ import type { EViewAccess, TViewFilterProps } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 import { Header, EHeaderVariant } from "@plane/ui";
 import { calculateTotalFilters } from "@plane/utils";
-// assets
-import darkViewsAsset from "@/app/assets/empty-state/disabled-feature/views-dark.webp?url";
-import lightViewsAsset from "@/app/assets/empty-state/disabled-feature/views-light.webp?url";
 // components
 import { PageHead } from "@/components/core/page-title";
 import { DetailedEmptyState } from "@/components/empty-state/detailed-empty-state-root";
@@ -33,8 +29,6 @@ function ProjectViewsPage({ params }: Route.ComponentProps) {
   // router
   const router = useAppRouter();
   const { workspaceSlug, projectId } = params;
-  // theme hook
-  const { resolvedTheme } = useTheme();
   // plane hooks
   const { t } = useTranslation();
   // store
@@ -45,7 +39,6 @@ function ProjectViewsPage({ params }: Route.ComponentProps) {
   const project = getProjectById(projectId);
   const pageTitle = project?.name ? `${project?.name} - Views` : undefined;
   const canPerformEmptyStateActions = allowPermissions([EUserProjectRoles.ADMIN], EUserPermissionsLevel.PROJECT);
-  const resolvedPath = resolvedTheme === "light" ? lightViewsAsset : darkViewsAsset;
 
   const handleRemoveFilter = useCallback(
     (key: keyof TViewFilterProps, value: string | EViewAccess | null) => {
@@ -73,7 +66,7 @@ function ProjectViewsPage({ params }: Route.ComponentProps) {
         <DetailedEmptyState
           title={t("disabled_project.empty_state.view.title")}
           description={t("disabled_project.empty_state.view.description")}
-          assetPath={resolvedPath}
+          visual={{ type: "icon", name: "views" }}
           primaryButton={{
             text: t("disabled_project.empty_state.view.primary_button.text"),
             onClick: () => {

@@ -22,6 +22,7 @@ import { API_TOKENS_LIST } from "@/constants/fetch-keys";
 // local
 import type { Route } from "./+types/page";
 import { MCPWorkspaceSettingsHeader } from "./header";
+import { IconButton } from "@plane/propel/icon-button";
 
 const apiTokenService = new APITokenService();
 
@@ -74,15 +75,14 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
       >
         <code style={{ color: TERMINAL_GREEN, background: "transparent" }}>{code}</code>
       </pre>
-      <button
-        type="button"
+      <IconButton
+        variant="ghost"
+        size="base"
+        icon={Copy}
         onClick={handleCopy}
-        className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
         style={{ color: TERMINAL_GREEN }}
         aria-label="Copy"
-      >
-        <Copy className="size-3" />
-      </button>
+      />
     </div>
   );
 }

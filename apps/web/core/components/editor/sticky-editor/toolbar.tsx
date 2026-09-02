@@ -102,7 +102,9 @@ export function StickyEditorToolbar(props: Props) {
                       <button
                         type="button"
                         onClick={() => executeCommand(item)}
-                        className={cn("grid aspect-square place-items-center rounded-xs p-0.5 text-primary/50", {})}
+                        aria-label={item.name}
+                        aria-pressed={isItemActive}
+                        className={cn("t-focus grid aspect-square place-items-center rounded-xs p-0.5 text-primary/50", {})}
                       >
                         <item.icon
                           className={cn("h-3.5 w-3.5", {

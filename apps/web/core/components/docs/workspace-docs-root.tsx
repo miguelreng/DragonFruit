@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 import { Collapse } from "@/components/common/collapse";
+import { IconButton } from "@plane/propel/icon-button";
 
 import {
   useCallback,
@@ -1953,18 +1954,16 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
       {options.map(({ value, Icon, label }) => {
         const isActive = mode === value;
         return (
-          <button
+          <IconButton
+            variant="ghost"
+            size="base"
+            icon={Icon}
             key={value}
-            type="button"
+            className={cn({ "bg-layer-1 text-primary": isActive })}
             aria-label={label}
             aria-pressed={isActive}
             onClick={() => onChange(value)}
-            className={cn("t-press grid size-6 place-items-center rounded-lg text-tertiary hover:text-primary", {
-              "bg-layer-1 text-primary": isActive,
-            })}
-          >
-            <Icon className="size-3.5" />
-          </button>
+          />
         );
       })}
     </div>
@@ -2012,7 +2011,7 @@ function CardStyleToggle({ style, onChange }: CardStyleToggleProps) {
             title={label}
             aria-pressed={isActive}
             onClick={() => onChange(value)}
-            className={cn("t-press grid size-6 place-items-center rounded-lg text-tertiary hover:text-primary", {
+            className={cn("t-press t-focus grid size-6 place-items-center rounded-lg text-tertiary hover:text-primary", {
               "bg-layer-1 text-primary": isActive,
             })}
           >
@@ -2055,16 +2054,12 @@ function DocFavoriteButton({
   className?: string;
 }) {
   return (
-    <button
-      type="button"
+    <IconButton
+      variant="ghost"
+      size="base"
+      icon={Star}
       aria-label={isFavorite ? "Remove favorite" : "Add to favorites"}
       title={isFavorite ? "Remove favorite" : "Add to favorites"}
-      className={cn(
-        "grid size-6 place-items-center rounded-lg text-tertiary transition-[color,background-color,opacity]",
-        "focus-visible:ring-accent-primary/40 hover:bg-layer-2 hover:text-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:outline-none",
-        isFavorite && "text-amber-500",
-        className
-      )}
       onPointerDown={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -2074,9 +2069,7 @@ function DocFavoriteButton({
         event.stopPropagation();
         onToggle();
       }}
-    >
-      <Star weight={isFavorite ? "Bold" : undefined} className="size-4" />
-    </button>
+    />
   );
 }
 
@@ -2705,13 +2698,17 @@ function DocCard({
           onToggle={onToggleFavorite}
           className={cn(
             "shadow-sm bg-layer-2 hover:bg-layer-3",
-            !isFavorite && cardStyle === "paper" && "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+            // Keep a favorited doc's star visible at rest; everything else is hover chrome.
+            !isFavorite && "opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
           )}
         />
         {actionsMenu(
-          cardStyle === "paper"
-            ? "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary"
-            : "grid size-6 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-2 hover:text-primary"
+          cn(
+            cardStyle === "paper"
+              ? "shadow-sm grid size-6 place-items-center rounded-lg bg-layer-2 text-tertiary hover:bg-layer-3 hover:text-primary"
+              : "grid size-6 shrink-0 place-items-center rounded-lg text-tertiary hover:bg-layer-2 hover:text-primary",
+            cardStyle === "tile" && "opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+          )
         )}
       </div>
     ) : null;

@@ -6,6 +6,7 @@
 
 import { observer } from "mobx-react";
 import useSWR from "swr";
+import { useTranslation } from "@plane/i18n";
 import type { TIssue } from "@plane/types";
 // components
 // hooks
@@ -21,6 +22,7 @@ export type TIssueParentSiblings = {
 
 export const IssueParentSiblings = observer(function IssueParentSiblings(props: TIssueParentSiblings) {
   const { workspaceSlug, currentIssue, parentIssue } = props;
+  const { t } = useTranslation();
   // hooks
   const {
     fetchSubIssues,
@@ -37,25 +39,18 @@ export const IssueParentSiblings = observer(function IssueParentSiblings(props: 
   );
 
   const subIssueIds = (parentIssue && subIssuesByIssueId(parentIssue.id)) || undefined;
+  // the current work item is a child of the same parent — it is not its own sibling
+  const siblingIds = (subIssueIds ?? []).filter((issueId) => issueId !== currentIssue.id);
+
+  if (isLoading) return <div className="px-2 py-1 text-left text-13 text-tertiary">{t("common.loading")}</div>;
+
+  if (siblingIds.length === 0) return <div className="px-2 py-1 text-left text-13 text-tertiary">No sibling tasks</div>;
 
   return (
-    <div className="my-1">
-      {isLoading ? (
-        <div className="flex items-center gap-2 px-1 py-1 text-left text-11 whitespace-nowrap text-secondary">
-          Loading
-        </div>
-      ) : subIssueIds && subIssueIds.length > 0 ? (
-        subIssueIds.map(
-          (issueId) =>
-            currentIssue.id != issueId && (
-              <IssueParentSiblingItem key={issueId} workspaceSlug={workspaceSlug} issueId={issueId} />
-            )
-        )
-      ) : (
-        <div className="flex items-center gap-2 px-1 py-1 text-left text-11 whitespace-nowrap text-secondary">
-          No sibling tasks
-        </div>
-      )}
+    <div className="max-h-32 overflow-y-auto">
+      {siblingIds.map((issueId) => (
+        <IssueParentSiblingItem key={issueId} workspaceSlug={workspaceSlug} issueId={issueId} />
+      ))}
     </div>
   );
 });

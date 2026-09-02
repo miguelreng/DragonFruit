@@ -8,9 +8,41 @@ import useSWR from "swr";
 import type { IState, TBaseIssue, TIssuesResponse } from "@plane/types";
 import { UserService } from "@/services/user.service";
 
-export const MY_TASKS_PAGE_SIZE = 50;
+export const MY_TASKS_PAGE_SIZE = 100;
+/** Safety stop so a very large assignee list can't fan out into unbounded requests. */
+const MY_TASKS_MAX_PAGES = 10;
+/** Only open work belongs on a todo list — let the server drop done/cancelled. */
+const OPEN_STATE_GROUPS = "backlog,unstarted,started";
 
 const userService = new UserService();
+
+/**
+ * Walk every page of the user's open assigned work. The endpoint is offset
+ * paginated, so a single request would silently truncate the list — tasks in
+ * quieter projects fell off the end and looked like they were missing.
+ */
+async function fetchMyTasks(slug: string, userId: string): Promise<TIssuesResponse | null> {
+  const results: TBaseIssue[] = [];
+  let page: TIssuesResponse | null = null;
+  let cursor: string | undefined;
+
+  for (let i = 0; i < MY_TASKS_MAX_PAGES; i++) {
+    // Sequential by necessity — each request needs the previous page's cursor.
+    // oxlint-disable-next-line no-await-in-loop
+    page = await userService.getUserProfileIssues(slug, userId, {
+      assignees: userId,
+      state_group: OPEN_STATE_GROUPS,
+      per_page: MY_TASKS_PAGE_SIZE,
+      ...(cursor ? { cursor } : {}),
+    });
+    if (!page) break;
+    if (Array.isArray(page.results)) results.push(...(page.results as TBaseIssue[]));
+    if (!page.next_page_results || !page.next_cursor) break;
+    cursor = page.next_cursor;
+  }
+
+  return page ? { ...page, results } : null;
+}
 
 /**
  * Shared SWR for a user's assigned work items. Keyed so the home widget and
@@ -19,9 +51,7 @@ const userService = new UserService();
 export function useMyTasksData(slug: string | undefined, userId: string | undefined) {
   return useSWR<TIssuesResponse | null>(
     slug && userId ? `HOME_MY_TASKS_${slug}_${userId}` : null,
-    slug && userId
-      ? () => userService.getUserProfileIssues(slug, userId, { assignees: userId, per_page: MY_TASKS_PAGE_SIZE })
-      : null,
+    slug && userId ? () => fetchMyTasks(slug, userId) : null,
     { revalidateOnFocus: false }
   );
 }

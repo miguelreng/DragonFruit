@@ -110,6 +110,7 @@ export const RoleSetupStep = observer(function RoleSetupStep({ handleStepChange 
 
                 return (
                   <button
+                    type="button"
                     key={role.id}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -128,11 +129,12 @@ export const RoleSetupStep = observer(function RoleSetupStep({ handleStepChange 
                     </div>
                     {isSelected && (
                       <>
-                        <button
-                          className={`border-blue-500 flex size-4 items-center justify-center rounded-lg border-2 bg-accent-primary`}
+                        <span
+                          aria-hidden="true"
+                          className="flex size-4 items-center justify-center rounded-lg border-2 border-accent-strong bg-accent-primary"
                         >
                           <CheckIcon className="h-3 w-3 text-on-color" />
-                        </button>
+                        </span>
                       </>
                     )}
                   </button>

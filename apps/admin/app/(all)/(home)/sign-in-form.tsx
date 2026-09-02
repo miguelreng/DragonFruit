@@ -12,7 +12,8 @@ import type { EAdminAuthErrorCodes, TAdminAuthErrorInfo } from "@plane/constants
 import { API_BASE_URL } from "@plane/constants";
 import { Button } from "@plane/propel/button";
 import { AuthService } from "@plane/services";
-import { Input, Spinner } from "@plane/ui";
+import { Input } from "@plane/ui";
+import { Spinner } from "@plane/propel/spinners";
 // components
 import { Banner } from "@/components/common/banner";
 // local components
