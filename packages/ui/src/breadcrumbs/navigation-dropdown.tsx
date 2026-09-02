@@ -78,7 +78,7 @@ export function BreadcrumbNavigationDropdown(props: TBreadcrumbNavigationDropdow
             {content}
           </span>
         ) : (
-          <button onClick={handleClick} className={className}>
+          <button type="button" onClick={handleClick} className={cn("t-focus", className)}>
             {content}
           </button>
         )}
