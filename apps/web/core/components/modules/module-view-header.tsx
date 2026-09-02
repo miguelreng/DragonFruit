@@ -111,6 +111,7 @@ export const ModuleViewHeader = observer(function ModuleViewHeader() {
               inputRef.current?.focus();
             }}
             icon={SearchIcon}
+          aria-label="Search modules"
           />
         )}
         <div

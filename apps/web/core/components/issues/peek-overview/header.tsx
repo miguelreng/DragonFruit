@@ -289,7 +289,7 @@ export const IssuePeekOverviewHeader = observer(function IssuePeekOverviewHeader
             </Tooltip>
           )}
           <Tooltip tooltipContent={t("common.actions.copy_link")} isMobile={isMobile}>
-            <IconButton variant="secondary" size="lg" onClick={handleCopyText} icon={CopyLinkIcon} />
+            <IconButton variant="secondary" size="lg" onClick={handleCopyText} icon={CopyLinkIcon} aria-label="Copy link" />
           </Tooltip>
           {issueDetails && (
             <WorkItemDetailQuickActions

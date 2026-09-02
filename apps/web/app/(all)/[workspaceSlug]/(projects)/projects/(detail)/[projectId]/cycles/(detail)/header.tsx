@@ -255,6 +255,7 @@ export const CycleIssuesHeader = observer(function CycleIssuesHeader() {
               variant="tertiary"
               size="lg"
               icon={PanelRight}
+              aria-label="Toggle sidebar"
               onClick={toggleSidebar}
               className={cn({
                 "bg-accent-subtle text-accent-primary": !isSidebarCollapsed,

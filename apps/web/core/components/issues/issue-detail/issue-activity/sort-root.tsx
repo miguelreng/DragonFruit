@@ -16,7 +16,7 @@ export type TActivitySortRoot = {
 };
 export const ActivitySortRoot = memo(function ActivitySortRoot(props: TActivitySortRoot) {
   const SortIcon = props.sortOrder === E_SORT_ORDER.ASC ? ArrowUpWideNarrow : ArrowDownWideNarrow;
-  return <IconButton variant="tertiary" icon={SortIcon} onClick={props.toggleSort} />;
+  return <IconButton variant="tertiary" icon={SortIcon} onClick={props.toggleSort} aria-label="Sort activity" />;
 });
 
 ActivitySortRoot.displayName = "ActivitySortRoot";

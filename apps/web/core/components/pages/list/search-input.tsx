@@ -51,6 +51,7 @@ export function PageSearchInput(props: Props) {
             inputRef.current?.focus();
           }}
           icon={SearchIcon}
+          aria-label="Search docs"
         />
       )}
       <div

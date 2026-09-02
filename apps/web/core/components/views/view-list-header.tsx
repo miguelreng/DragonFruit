@@ -66,6 +66,7 @@ export const ViewListHeader = observer(function ViewListHeader() {
               inputRef.current?.focus();
             }}
             icon={SearchIcon}
+          aria-label="Search views"
           />
         )}
         <div

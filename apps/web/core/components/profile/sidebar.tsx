@@ -100,6 +100,7 @@ export const ProfileSidebar = observer(function ProfileSidebar(props: TProfileSi
                 <IconButton
                   variant="secondary"
                   icon={EditIcon}
+                  aria-label="Edit profile"
                   onClick={() => router.push(`/${workspaceSlug}/settings/account/general`)}
                 />
               </div>

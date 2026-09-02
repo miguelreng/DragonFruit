@@ -65,6 +65,7 @@ export const MyTasksSearch = observer(function MyTasksSearch() {
             setTimeout(() => inputRef.current?.focus(), 0);
           }}
           icon={SearchIcon}
+          aria-label="Search tasks"
         />
       )}
       <div

@@ -30,6 +30,7 @@ export const NavbarTheme = observer(function NavbarTheme() {
       variant="ghost"
       size="lg"
       icon={appTheme === "light" ? Moon : Sun}
+      aria-label={appTheme === "light" ? "Switch to dark theme" : "Switch to light theme"}
       className="relative"
       onClick={handleTheme}
     />

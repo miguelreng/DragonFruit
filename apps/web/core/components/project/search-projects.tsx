@@ -50,6 +50,7 @@ export const ProjectSearch = observer(function ProjectSearch() {
             inputRef.current?.focus();
           }}
           icon={SearchIcon}
+          aria-label="Search projects"
         />
       )}
       <div

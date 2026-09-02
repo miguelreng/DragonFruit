@@ -135,7 +135,7 @@ export const ModuleQuickActions = observer(function ModuleQuickActions(props: Pr
       )}
       <ContextMenu parentRef={parentRef} items={CONTEXT_MENU_ITEMS} />
       <CustomMenu
-        customButton={<IconButton variant="tertiary" size="lg" icon={MoreHorizontal} />}
+        customButton={<IconButton variant="tertiary" size="lg" icon={MoreHorizontal} aria-label="Module options" />}
         placement="bottom-end"
         closeOnSelect
         buttonClassName={customClassName}

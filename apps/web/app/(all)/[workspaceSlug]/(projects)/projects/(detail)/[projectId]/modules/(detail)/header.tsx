@@ -251,6 +251,7 @@ export const ModuleIssuesHeader = observer(function ModuleIssuesHeader() {
             variant="tertiary"
             size="lg"
             icon={PanelRight}
+            aria-label="Toggle sidebar"
             onClick={toggleSidebar}
             className={cn({
               "bg-accent-subtle text-accent-primary": !isSidebarCollapsed,

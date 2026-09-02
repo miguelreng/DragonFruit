@@ -84,7 +84,7 @@ export const CommentQuickActions = observer(function CommentQuickActions(props: 
   );
 
   return (
-    <CustomMenu customButton={<IconButton icon={MoreHorizontal} variant="ghost" size="sm" />} closeOnSelect>
+    <CustomMenu customButton={<IconButton icon={MoreHorizontal} variant="ghost" size="sm" aria-label="Comment options" />} closeOnSelect>
       {MENU_ITEMS.map((item) => {
         if (item.shouldRender === false) return null;
 

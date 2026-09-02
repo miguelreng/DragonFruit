@@ -38,7 +38,7 @@ export const SettingsMobileNav = observer(function SettingsMobileNav(props: Prop
             <HamburgerContent className="max-h-100 rounded-lg border border-subtle pb-3" />
           </div>
         )}
-        <IconButton variant="secondary" className="group z-50 shrink-0" icon={Menu} onClick={() => toggleSidebar()} />
+        <IconButton variant="secondary" className="group z-50 shrink-0" icon={Menu} aria-label="Open navigation" onClick={() => toggleSidebar()} />
       </div>
       {/* path */}
       <div className="flex items-center gap-2">

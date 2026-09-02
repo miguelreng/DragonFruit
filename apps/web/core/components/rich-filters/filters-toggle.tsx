@@ -82,6 +82,7 @@ export const FiltersToggle = observer(function FiltersToggle<P extends TFilterPr
       size="lg"
       variant="secondary"
       icon={FilterIcon}
+      aria-label="Toggle filters"
       onClick={handleToggleFilter}
       className={buttonClassName}
       iconClassName={iconClassName}

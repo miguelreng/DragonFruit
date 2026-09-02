@@ -59,6 +59,7 @@ export const NotificationSidebarHeaderOptions = observer(function NotificationSi
           size="base"
           variant="ghost"
           icon={loader === ENotificationLoader.MARK_ALL_AS_READY ? Spinner : CheckCheck}
+          aria-label="Mark all as read"
           onClick={() => {
             handleMarkAllNotificationsAsRead();
           }}
@@ -71,6 +72,7 @@ export const NotificationSidebarHeaderOptions = observer(function NotificationSi
           size="base"
           variant="ghost"
           icon={RefreshCw}
+          aria-label="Refresh notifications"
           className={loader === ENotificationLoader.MUTATION_LOADER ? "animate-spin" : ""}
           onClick={refreshNotifications}
         />

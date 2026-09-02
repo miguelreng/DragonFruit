@@ -60,6 +60,7 @@ export const StickySearch = observer(function StickySearch() {
           size="lg"
           className="-mr-2"
           icon={SearchIcon}
+          aria-label="Search stickies"
           onClick={() => {
             setIsSearchOpen(true);
             inputRef.current?.focus();
