@@ -37,6 +37,17 @@ from .project.bookmark import (
     ProjectBookmarkViewSet,
     WorkspaceProjectBookmarkViewSet,
 )
+from .project.context_source import (
+    ProjectContextPackEndpoint,
+    ProjectContextGoogleDriveCallbackEndpoint,
+    ProjectContextGoogleDriveFolderEndpoint,
+    ProjectContextGoogleDriveStartEndpoint,
+    ProjectContextSourceDetailEndpoint,
+    ProjectContextSourceEndpoint,
+    ProjectContextSourceFileEndpoint,
+    ProjectContextSourceManualIngestEndpoint,
+    ProjectContextSourceRefreshEndpoint,
+)
 
 from .user.base import (
     UserEndpoint,
@@ -202,6 +213,7 @@ from .page.base import (
 )
 from .page.version import PageVersionEndpoint
 from .page.capture import CapturedChatIngestEndpoint, CapturedPageIngestEndpoint
+from .page.scan import ScannedNoteCreateEndpoint, ScannedNoteTranscribeEndpoint
 from .page.comment import PageBlockCommentEndpoint, PageBlockCommentDetailEndpoint
 from .page.template import (
     PageTemplateListEndpoint,

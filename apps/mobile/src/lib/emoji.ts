@@ -1,7 +1,7 @@
 /**
  * Project / page logos store emoji as a "-"-joined string of decimal Unicode
  * code points (e.g. "128512" or "128104-8205-128105" for sequences). The web
- * app reconstructs these via @plane/propel; the mobile app is isolated, so we
+ * app reconstructs these via @dragonfruit/propel; the mobile app is isolated, so we
  * keep a tiny standalone port here.
  */
 

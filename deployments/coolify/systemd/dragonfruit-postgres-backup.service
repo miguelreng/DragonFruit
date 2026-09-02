@@ -1,0 +1,17 @@
+[Unit]
+Description=Verified DragonFruit PostgreSQL backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+Environment=POSTGRES_CONTAINER=vwjltvybvuv73fbpzd2xt0ar
+Environment=BACKUP_DIR=/var/backups/dragonfruit/postgres
+Environment=RETENTION_DAYS=7
+ExecStart=/usr/local/sbin/dragonfruit-postgres-backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

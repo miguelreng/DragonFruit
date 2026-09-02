@@ -16,6 +16,7 @@ import dj_database_url
 from kombu import Queue
 
 # Django imports
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management.utils import get_random_secret_key
 from corsheaders.defaults import default_headers
 
@@ -57,9 +58,7 @@ for _cidr in _webhook_allowed_ips_raw.split(","):
 # Example: "silo,silo.namespace.svc.cluster.local,internal-api.lan"
 _webhook_allowed_hosts_raw = os.environ.get("WEBHOOK_ALLOWED_HOSTS", "")
 WEBHOOK_ALLOWED_HOSTS = [
-    _host.strip().rstrip(".").lower()
-    for _host in _webhook_allowed_hosts_raw.split(",")
-    if _host.strip()
+    _host.strip().rstrip(".").lower() for _host in _webhook_allowed_hosts_raw.split(",") if _host.strip()
 ]
 
 # Webhook disallowed domains — comma-separated hostnames. Webhooks targeting
@@ -68,9 +67,7 @@ WEBHOOK_ALLOWED_HOSTS = [
 # for self-hosted deployments; set to e.g. "plane.so" to block specific domains.
 _webhook_disallowed_domains_raw = os.environ.get("WEBHOOK_DISALLOWED_DOMAINS", "")
 WEBHOOK_DISALLOWED_DOMAINS = [
-    _d.strip().rstrip(".").lower()
-    for _d in _webhook_disallowed_domains_raw.split(",")
-    if _d.strip()
+    _d.strip().rstrip(".").lower() for _d in _webhook_disallowed_domains_raw.split(",") if _d.strip()
 ]
 
 # Optional hook to trigger landing-site static rebuilds when public docs change.
@@ -82,15 +79,12 @@ LANDING_DEPLOY_WEBHOOK_COOLDOWN_SECONDS = int(os.environ.get("LANDING_DEPLOY_WEB
 
 # Optional selector used when dispatching essay illustration generation prompts to
 # the workspace agent webhook. Can be either the agent UUID or display name.
-ESSAY_ILLUSTRATION_AGENT_SELECTOR = os.environ.get(
-    "ESSAY_ILLUSTRATION_AGENT_SELECTOR", ""
-).strip()
+ESSAY_ILLUSTRATION_AGENT_SELECTOR = os.environ.get("ESSAY_ILLUSTRATION_AGENT_SELECTOR", "").strip()
 
 # Optional project filter for essay illustration generation. Only pages that belong
 # to this project will be eligible for first-publish generation.
 ESSAY_ILLUSTRATION_PROJECT_ID = (
-    os.environ.get("ESSAY_ILLUSTRATION_PROJECT_ID", "")
-    or os.environ.get("DRAGONFRUIT_ESSAYS_PROJECT_ID", "")
+    os.environ.get("ESSAY_ILLUSTRATION_PROJECT_ID", "") or os.environ.get("DRAGONFRUIT_ESSAYS_PROJECT_ID", "")
 ).strip()
 
 # Allowed Hosts
@@ -339,10 +333,33 @@ if AMQP_URL:
 else:
     CELERY_BROKER_URL = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/{RABBITMQ_VHOST}"
 
+
+def _positive_celery_setting(name: str, default: int) -> int:
+    raw_value = os.environ.get(name, str(default))
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise ImproperlyConfigured(f"{name} must be a positive integer") from exc
+    if value < 1:
+        raise ImproperlyConfigured(f"{name} must be a positive integer")
+    return value
+
+
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["application/json"]
+# Apply the same safety limits even when an operator invokes ``celery worker``
+# directly instead of using docker-entrypoint-worker.sh.
+CELERY_WORKER_CONCURRENCY = _positive_celery_setting("CELERY_CONCURRENCY", 2)
+CELERY_WORKER_PREFETCH_MULTIPLIER = _positive_celery_setting("CELERY_PREFETCH_MULTIPLIER", 1)
+CELERY_WORKER_MAX_TASKS_PER_CHILD = _positive_celery_setting("CELERY_MAX_TASKS_PER_CHILD", 100)
+CELERY_WORKER_MAX_MEMORY_PER_CHILD = _positive_celery_setting("CELERY_MAX_MEMORY_PER_CHILD_KB", 400000)
+AGENT_TASK_SOFT_TIME_LIMIT = _positive_celery_setting("AGENT_TASK_SOFT_TIME_LIMIT", 840)
+AGENT_TASK_TIME_LIMIT = _positive_celery_setting("AGENT_TASK_TIME_LIMIT", 900)
+AGENT_RUN_STALE_MINUTES = _positive_celery_setting("AGENT_RUN_STALE_MINUTES", 20)
+if AGENT_TASK_TIME_LIMIT <= AGENT_TASK_SOFT_TIME_LIMIT:
+    raise ImproperlyConfigured("AGENT_TASK_TIME_LIMIT must be greater than AGENT_TASK_SOFT_TIME_LIMIT")
 
 # Keep the historical ``celery`` queue as the default so existing messages are
 # drained after an upgrade. Transactional email and request logging use
@@ -352,6 +369,8 @@ CELERY_TASK_QUEUES = (
     Queue("celery"),
     Queue("emails"),
     Queue("logs"),
+    Queue("agents"),
+    Queue("exports"),
 )
 CELERY_TASK_ROUTES = {
     "plane.bgtasks.logger_task.process_logs": {"queue": "logs"},
@@ -366,6 +385,21 @@ CELERY_TASK_ROUTES = {
     "plane.bgtasks.user_email_update_task.send_email_update_magic_code": {"queue": "emails"},
     "plane.bgtasks.webhook_task.send_webhook_deactivation_email": {"queue": "emails"},
     "plane.bgtasks.workspace_invitation_task.workspace_invitation": {"queue": "emails"},
+    # Long-running LLM/tool loops scale independently from request-adjacent
+    # background work. A slow model provider must not delay email or logs.
+    "plane.bgtasks.agent_dispatch_task.dispatch_agent_event": {"queue": "agents"},
+    "plane.bgtasks.agent_dispatch_task.resume_agent_run": {"queue": "agents"},
+    "plane.bgtasks.agent_dispatch_task.dispatch_agent_for_page_comment": {"queue": "agents"},
+    "plane.bgtasks.workflow_task.run_workflow": {"queue": "agents"},
+    "plane.bgtasks.auto_tag_bookmark_task.auto_tag_bookmark_task": {"queue": "agents"},
+    # Exports can materialize large querysets and files in memory. Isolating
+    # them lets the worker pool use a different memory budget and concurrency.
+    "plane.bgtasks.export_task.issue_export_task": {"queue": "exports"},
+    "plane.bgtasks.analytic_plot_export.analytic_export_task": {"queue": "exports"},
+    "plane.bgtasks.analytic_plot_export.export_analytics_to_csv_email": {"queue": "exports"},
+    "plane.bgtasks.dummy_data_task.create_dummy_data": {"queue": "exports"},
+    "plane.bgtasks.workspace_seed_task.workspace_seed": {"queue": "exports"},
+    "plane.bgtasks.copy_s3_object.copy_s3_objects_of_description_and_assets": {"queue": "exports"},
 }
 
 
@@ -391,18 +425,26 @@ CELERY_IMPORTS = (
     "plane.license.bgtasks.tracer",
     # management tasks
     "plane.bgtasks.dummy_data_task",
+    "plane.bgtasks.workspace_seed_task",
     # issue version tasks
     "plane.bgtasks.issue_version_sync",
     "plane.bgtasks.issue_description_version_sync",
     # agent dispatch (issue + page comment variants registered from the same module)
     "plane.bgtasks.agent_dispatch_task",
+    "plane.bgtasks.auto_tag_bookmark_task",
     # workflow graph engine (run_workflow walker)
     "plane.bgtasks.workflow_task",
+    # isolated export/bulk worker pool
+    "plane.bgtasks.export_task",
+    "plane.bgtasks.analytic_plot_export",
+    "plane.bgtasks.copy_s3_object",
     # landing page rebuild trigger for public essays
     "plane.bgtasks.landing_deploy_task",
 )
 
 FILE_SIZE_LIMIT = int(os.environ.get("FILE_SIZE_LIMIT", 5242880))
+ASSET_BULK_MAX_ITEMS = int(os.environ.get("ASSET_BULK_MAX_ITEMS", "100"))
+EXPORT_MAX_PENDING_PER_USER = int(os.environ.get("EXPORT_MAX_PENDING_PER_USER", "3"))
 
 # Unsplash Access key
 UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY")

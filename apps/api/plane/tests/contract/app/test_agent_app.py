@@ -1072,6 +1072,82 @@ class TestAgentResumeAPI:
         assert called_with.get("human_response") == "Here is the info"
 
     @pytest.mark.django_db
+    def test_run_agent_respects_atomic_concurrency_cap(
+        self, workspace, create_bot_user
+    ):
+        from plane.bgtasks.agent_dispatch_task import run_agent_on_issue
+        from plane.db.models import AgentRun
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        agent.max_concurrent_runs = 1
+        agent.save(update_fields=["max_concurrent_runs", "updated_at"])
+        AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="running",
+        )
+
+        run = run_agent_on_issue(agent, issue, "assigned")
+
+        assert run is None
+        assert AgentRun.objects.filter(agent=agent, status="running").count() == 1
+
+    @pytest.mark.django_db
+    def test_respond_endpoint_hides_run_from_unrelated_member(
+        self, workspace, create_user, create_bot_user
+    ):
+        from rest_framework.test import APIClient
+
+        from plane.db.models import AgentRun, User
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        issue.created_by = create_user
+        issue.save(update_fields=["created_by", "updated_at"])
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="needs_input",
+            pending_request={"kind": "approval", "message": "Approve?", "tool": "change_state"},
+            tool_calls=[],
+        )
+
+        unrelated_user = User.objects.create(
+            email="unrelated-responder@plane.so",
+            username="unrelated-responder",
+        )
+        WorkspaceMember.objects.create(workspace=workspace, member=unrelated_user, role=15)
+        unrelated_client = APIClient()
+        unrelated_client.force_authenticate(user=unrelated_user)
+
+        url = f"/api/workspaces/{workspace.slug}/agent-runs/{run.id}/respond/"
+        response = unrelated_client.post(url, {"approved": True}, format="json")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_respond_endpoint_rejects_non_boolean_approval(
+        self, session_client, workspace, create_bot_user
+    ):
+        from plane.db.models import AgentRun
+
+        agent, issue = _make_agent_and_issue(workspace, create_bot_user)
+        run = AgentRun.objects.create(
+            agent=agent,
+            issue=issue,
+            trigger_event="assigned",
+            status="needs_input",
+            pending_request={"kind": "approval", "message": "Approve?", "tool": "change_state"},
+            tool_calls=[],
+        )
+
+        url = f"/api/workspaces/{workspace.slug}/agent-runs/{run.id}/respond/"
+        response = session_client.post(url, {"approved": "false"}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
     def test_respond_endpoint_returns_409_for_non_paused_run(
         self, session_client, workspace, create_bot_user
     ):

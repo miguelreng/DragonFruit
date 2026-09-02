@@ -4,6 +4,7 @@
 
 from .base import BaseSerializer
 from .agent import AgentChatMessageSerializer, AgentChatSessionSerializer, AgentRunSerializer, AgentSerializer
+from .project_context_source import ProjectContextSourceSerializer, ProjectSourceFileSerializer
 from .user import (
     UserSerializer,
     UserLiteSerializer,

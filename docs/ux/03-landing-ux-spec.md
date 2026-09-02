@@ -12,9 +12,14 @@
 
 ## Design system (locked)
 
-- **Type:** Sorts Mill Goudy 400 for hero H1 + section H2s (the "calm editorial" voice); Figtree for UI, cards, body. Hero H1 is a **single line**, viewport-tracked (`clamp(40px, 6.6vw, 84px)`), wrapping only ≤700px.
-- **Color:** paper `#fffef9` / canvas `#f7f8f3` / ink `#171914` / muted `#667064` / accent magenta `#b30f78` (CTAs, "New", numbers) / green `#486c4a` (capability kickers). Hairline borders `rgba(23,25,20,.12)`, radius 8px.
+> **Governing skill:** `.claude/skills/landing-page-design` (elayadesign/ai-design-skills) — consult it for every visual/copy decision on this page. Documented deviations below are founder decisions and win over the skill per its own conflict clause.
+
+- **Type:** Sorts Mill Goudy 400 for hero H1 + section H2s (the "calm editorial" voice); Figtree for UI, cards, body. Hero H1 is a **single line**, viewport-tracked (`clamp(36px, 6.6vw, 72px)` — ends snapped to the type scale), wrapping only ≤700px. Display sizes land on Tailwind scale steps; hero heading carries the skill's light-theme text gradient (ink → `#666`).
+- **Color:** paper `#fffef9` / canvas `#f7f8f3` (flat — no background gradients) / ink `#171914` / muted `#667064` / accent magenta `#b30f78` (CTAs, "New", numbers) / green `#486c4a` (capability kickers). Hairline borders `rgba(23,25,20,.12)`, radius 8px.
 - **Layout:** single 1240px column, hairline-ruled sections, centered narrative sections, ledger-style strips.
+- **Motion:** custom bezier `cubic-bezier(0.32, 0.72, 0, 1)` everywhere; below-the-fold elements reveal via IntersectionObserver (fade-up + blur, 800ms, sibling stagger); the tagline section reveals word-by-word on a rAF-throttled scroll listener. All motion collapses under `prefers-reduced-motion`.
+- **Buttons:** main CTAs 16px semibold, 8/12px padding; header CTA 14px. Focus-visible ring (accent) on all interactive elements.
+- **Documented deviations from the skill (founder-locked):** serif display face (Sorts Mill Goudy) + Figtree pairing instead of the skill's font list; one-line poster hero instead of the 680px two-line hero; standard hairline topbar instead of the fluid island nav; SOT-canonical copy (e.g. "Open-source. Self-hostable.") keeps its hyphens.
 
 ## Section map — the scroll IS the story
 
@@ -55,6 +60,10 @@ H2 `The gap between idea and work is where momentum dies.` — three cards: cont
 ### 6 · Atlas
 
 H2 `Hand off the busywork. Keep the credit.` + sub opening `Give Atlas the raw idea.` Four verb cards = the SB7 plan. Rule: verbs stay humble (drafts, surfaces, waits) — no autonomy theater.
+
+### 6.5 · Tagline reveal (between Atlas and What's inside)
+
+Large serif statement, word-by-word scroll activation (skill B11): `Most ideas die in the gap between thinking and doing. Yours get a teammate who walks them to done.` Rule: it restates the villain + turn in the brand voice; if the one-liner in [02-brand-story.md](02-brand-story.md) changes, this line changes with it.
 
 ### 7 · What's inside
 
@@ -107,6 +116,13 @@ Events (add via lightweight analytics, respect DNT): `hero_cta_click`, `pricing_
 - [ ] `/self-host` subpage for ICP 2 (compose file above the fold), linked from §10.
 - [ ] SEO comparison pages: "open-source Notion AI alternative", "self-hosted AI project management", "ClickUp Brain alternative".
 - [ ] OG image refresh with new H1.
+
+## Skill-compliance backlog (landing-page-design skill)
+
+- [ ] Full spacing + type-scale audit (every value onto the skill's tokens — body copy sizes still off-scale in places).
+- [ ] Decide: adopt the skill's fluid island nav, or keep the hairline topbar (currently a documented deviation).
+- [ ] Copy de-hyphenation pass on subpages (/atlas, /pricing, /use-cases, /open-source) and `lib/landing.ts`.
+- [ ] FAQ depth: skill wants 6–12 questions; we have 5 — add self-host ops, data export, and Atlas-limits questions.
 
 ## Do-not list
 

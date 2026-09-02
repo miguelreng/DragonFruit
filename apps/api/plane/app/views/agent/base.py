@@ -1002,7 +1002,10 @@ class AgentRunRespondEndpoint(BaseAPIView):
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug, run_id):
+        from django.db.models import Q
+
         from plane.bgtasks.agent_dispatch_task import resume_agent_run
+        from plane.db.models import IssueAssignee, WorkspaceMember
 
         run = (
             AgentRun.objects.filter(
@@ -1016,6 +1019,34 @@ class AgentRunRespondEndpoint(BaseAPIView):
         if run is None:
             return Response({"error": "run not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        is_workspace_admin = WorkspaceMember.objects.filter(
+            workspace__slug=slug,
+            member=request.user,
+            role=ROLE.ADMIN.value,
+            is_active=True,
+        ).exists()
+        can_respond = is_workspace_admin
+        if run.issue_id and not can_respond:
+            can_respond = Issue.objects.filter(
+                Q(pk=run.issue_id, created_by=request.user)
+                | Q(
+                    pk=run.issue_id,
+                    id__in=IssueAssignee.objects.filter(
+                        assignee=request.user,
+                        assignee__is_bot=False,
+                        deleted_at__isnull=True,
+                    ).values_list("issue_id", flat=True),
+                ),
+                workspace__slug=slug,
+                deleted_at__isnull=True,
+            ).exists()
+
+        # Do not disclose whether a run exists to unrelated workspace members.
+        # Page-comment runs currently have no participant FK, so only workspace
+        # admins may resume those until that relationship is modeled.
+        if not can_respond:
+            return Response({"error": "run not found"}, status=status.HTTP_404_NOT_FOUND)
+
         if run.status != "needs_input":
             return Response(
                 {"error": f"run is not waiting for input (status={run.status})"},
@@ -1026,7 +1057,12 @@ class AgentRunRespondEndpoint(BaseAPIView):
         approved_raw = request.data.get("approved")
         approved: bool | None = None
         if approved_raw is not None:
-            approved = bool(approved_raw)
+            if not isinstance(approved_raw, bool):
+                return Response(
+                    {"error": "approved must be a boolean"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            approved = approved_raw
 
         resume_agent_run.delay(str(run.id), human_response=human_response, approved=approved)
 

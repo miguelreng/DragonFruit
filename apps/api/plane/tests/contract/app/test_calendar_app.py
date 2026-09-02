@@ -9,7 +9,7 @@ import requests
 from django.urls import reverse
 from rest_framework import status
 
-from plane.db.models import Page, Project, ProjectMember, ProjectPage, UserCalendarAccount
+from plane.db.models import Issue, Page, Project, ProjectMember, ProjectPage, State, User, UserCalendarAccount
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 
 
@@ -754,3 +754,106 @@ class TestCalendarAppEndpoint:
         account.refresh_from_db()
         assert decrypt_data(account.access_token_encrypted) == "refreshed-access-token"
         assert decrypt_data(account.refresh_token_encrypted) == "rotated-refresh-token"
+
+
+@pytest.mark.contract
+class TestMyCalendarTasksProjectScope:
+    def _project(self, workspace, name, identifier):
+        return Project.objects.create(name=name, identifier=identifier, workspace=workspace)
+
+    def _state(self, workspace, project, name="Todo", group="unstarted"):
+        return State.objects.create(name=name, color="#000000", group=group, project=project, workspace=workspace)
+
+    def _url(self, slug, **params):
+        params.setdefault("from", "2026-06-01T00:00:00Z")
+        params.setdefault("to", "2026-06-30T00:00:00Z")
+        return f"/api/workspaces/{slug}/my-calendar-tasks/", params
+
+    @pytest.mark.django_db
+    def test_project_id_returns_all_dated_tasks_in_that_project_not_just_mine(
+        self, session_client, workspace, create_user
+    ):
+        other_user = User.objects.create(
+            email="teammate@plane.so", username="teammate", first_name="Team", last_name="Mate"
+        )
+
+        project = self._project(workspace, "Alpha", "ALP")
+        ProjectMember.objects.create(project=project, member=create_user, role=20, is_active=True)
+        ProjectMember.objects.create(project=project, member=other_user, role=20, is_active=True)
+        state = self._state(workspace, project)
+
+        # Assigned to nobody-related-to-me, created by the other member — the
+        # workspace-wide feed would exclude this, but the project-scoped one
+        # must include it since the requester is an active project member.
+        Issue.objects.create(
+            name="Teammate's task",
+            project=project,
+            workspace=workspace,
+            state=state,
+            created_by=other_user,
+            target_date="2026-06-15",
+        )
+
+        url, params = self._url(workspace.slug, project_id=str(project.id))
+        response = session_client.get(url, params)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [t["title"] for t in response.data["tasks"]] == ["Teammate's task"]
+
+    @pytest.mark.django_db
+    def test_project_id_does_not_expose_a_project_the_user_is_not_a_member_of(
+        self, session_client, workspace, create_user
+    ):
+        project = self._project(workspace, "Closed", "CLS")
+        state = self._state(workspace, project)
+        Issue.objects.create(
+            name="Hidden task", project=project, workspace=workspace, state=state, target_date="2026-06-15"
+        )
+
+        url, params = self._url(workspace.slug, project_id=str(project.id))
+        response = session_client.get(url, params)
+
+        # No membership row for `create_user` on this project: the workspace
+        # membership filter on the base queryset excludes every one of its
+        # issues, so the scoped feed comes back empty rather than leaking tasks.
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["tasks"] == []
+
+    @pytest.mark.django_db
+    def test_project_id_rejects_malformed_uuid(self, session_client, workspace, create_user):
+        url, params = self._url(workspace.slug, project_id="not-a-uuid")
+        response = session_client.get(url, params)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @pytest.mark.django_db
+    def test_without_project_id_preserves_assigned_or_created_by_me_scoping(
+        self, session_client, workspace, create_user
+    ):
+        other_user = User.objects.create(
+            email="teammate2@plane.so", username="teammate2", first_name="Team", last_name="Mate"
+        )
+
+        project = self._project(workspace, "Beta", "BET")
+        ProjectMember.objects.create(project=project, member=create_user, role=20, is_active=True)
+        ProjectMember.objects.create(project=project, member=other_user, role=20, is_active=True)
+        state = self._state(workspace, project)
+
+        mine = Issue.objects.create(
+            name="Mine", project=project, workspace=workspace, state=state, target_date="2026-06-15"
+        )
+        not_mine = Issue.objects.create(
+            name="Not mine", project=project, workspace=workspace, state=state, target_date="2026-06-15"
+        )
+        # `BaseModel.save()` overwrites `created_by` from the request-scoped
+        # `get_current_user()`, which is None outside a request — so passing
+        # `created_by=` to `objects.create()` is silently discarded. Write it
+        # through the queryset, which does not go through `save()`.
+        Issue.objects.filter(pk=mine.pk).update(created_by=create_user)
+        Issue.objects.filter(pk=not_mine.pk).update(created_by=other_user)
+
+        url, params = self._url(workspace.slug)
+        response = session_client.get(url, params)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [t["title"] for t in response.data["tasks"]] == ["Mine"]

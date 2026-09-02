@@ -9,6 +9,7 @@ from django.utils import timezone
 from unittest.mock import patch
 
 from plane.db.models import (
+    DeployBoard,
     Project,
     ProjectMember,
     ProjectUserProperty,
@@ -16,6 +17,24 @@ from plane.db.models import (
     WorkspaceMember,
     User,
 )
+
+
+@pytest.mark.contract
+class TestProjectCalendarPublishing:
+    @pytest.mark.django_db
+    def test_publish_project_uses_calendar_view_props(self, session_client, workspace, create_user):
+        project = Project.objects.create(name="Public Calendar", identifier="PCAL", workspace=workspace)
+        ProjectMember.objects.create(project=project, member=create_user, role=20, is_active=True)
+
+        response = session_client.post(
+            f"/api/workspaces/{workspace.slug}/projects/{project.id}/project-deploy-boards/",
+            {"view_props": {"calendar": True}},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        deploy_board = DeployBoard.objects.get(project=project, entity_name="project")
+        assert deploy_board.view_props == {"calendar": True}
 
 
 class TestProjectBase:

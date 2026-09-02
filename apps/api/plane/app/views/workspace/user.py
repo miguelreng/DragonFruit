@@ -12,6 +12,7 @@ from dateutil.relativedelta import relativedelta
 from django.db.models import (
     Case,
     Count,
+    Exists,
     F,
     Func,
     IntegerField,
@@ -43,6 +44,7 @@ from plane.db.models import (
     CycleIssue,
     Issue,
     IssueActivity,
+    IssueAssignee,
     FileAsset,
     IssueLink,
     IssueSubscriber,
@@ -136,14 +138,25 @@ class WorkspaceUserProfileIssuesEndpoint(BaseAPIView):
         filters = issue_filters(request.query_params, "GET")
 
         order_by_param = request.GET.get("order_by", "-created_at")
+        # Work is visible when the requesting user is a member of its project, or when
+        # the work is assigned to them directly — being the assignee is enough to know
+        # the task exists, even in a project they were never added to (or have left).
+        # Exists() keeps both checks out of the JOIN so no issue is returned twice.
+        is_project_member = Exists(
+            ProjectMember.objects.filter(
+                project_id=OuterRef("project_id"), member=request.user, is_active=True
+            )
+        )
+        is_assigned_to_me = Exists(
+            IssueAssignee.objects.filter(issue_id=OuterRef("id"), assignee=request.user)
+        )
         issue_queryset = Issue.issue_objects.filter(
+            Q(is_project_member) | Q(is_assigned_to_me),
             id__in=Issue.issue_objects.filter(
                 Q(assignees__in=[user_id]) | Q(created_by_id=user_id) | Q(issue_subscribers__subscriber_id=user_id),
                 workspace__slug=slug,
             ).values_list("id", flat=True),
             workspace__slug=slug,
-            project__project_projectmember__member=request.user,
-            project__project_projectmember__is_active=True,
         )
 
         # Apply filtering from filterset

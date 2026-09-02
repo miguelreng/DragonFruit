@@ -197,7 +197,12 @@ Same recipe with Root Directory `apps/admin`, Framework `Next.js`, domain `admin
 
 ### `apps/space`
 
-Same recipe with Root Directory `apps/space`, Framework `Next.js`, domain `space.yourdomain.com`.
+Same recipe with Root Directory `apps/space`, Framework `React Router`, domain `space.yourdomain.com`. The repository
+enables Vercel's official React Router preset automatically for Vercel builds.
+
+For the DragonFruit production domains, follow
+[`docs/public-content-domain.md`](./docs/public-content-domain.md) to serve published documents, wikis, project views,
+and calendars through `dragonfruit.page`.
 
 > **Heads-up on monorepo builds**: Vercel's `pnpm install` honors the workspace catalog and builds the dependent packages first. If a build mysteriously fails on `@plane/editor` or `@plane/ui`, it's usually because the workspace root's `pnpm-workspace.yaml` is missing from the deploy — make sure **Root Directory** is `apps/web` (not the monorepo root), and Vercel will walk up to find it automatically.
 

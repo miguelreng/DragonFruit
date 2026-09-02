@@ -1,9 +1,36 @@
 # PRD: Brief as Atlas's Memory
 
-**Status:** Draft
+**Status:** Partially implemented; remaining work is consolidated in [Plan 032: Work That Remembers](../plans/ai-native/032-work-that-remembers.md)
 **Author:** Miguel Rengifo
-**Last updated:** 2026-06-27
+**Last updated:** 2026-07-30
 **Related:** Atlas agent runtime, Docs/Pages, Project Brief
+
+---
+
+## Implementation update — 2026-07-30
+
+Shipped in the current repository:
+
+- durable `Page.is_brief` identity and backfill;
+- Workspace and Project Brief lookup;
+- Workspace Brief baseline + Project Brief override injection for issue and page-comment runs;
+- bounded Brief context with a full-read marker;
+- scoped `search_docs` and `read_doc` tools;
+- canonical Project Brief create/update through Atlas chat;
+- contract coverage for Brief lookup, injection, truncation, and update.
+
+Still required:
+
+- a clear Workspace Brief editing surface;
+- visible effective-context inspection;
+- a usable memory review/correction UI;
+- structured provenance;
+- suggestion-based, evidence-backed context updates;
+- safe accept/edit/reject application to collaborative Docs;
+- run-level context snapshots;
+- native/external surface parity and context-quality evaluation.
+
+Plan 032 is the implementation authority for this remaining scope. This document remains the historical product rationale and initial architecture.
 
 ---
 

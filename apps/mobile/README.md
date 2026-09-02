@@ -144,5 +144,5 @@ widget target + App Group entitlement) and the runtime sync
 
 - **Styling**: NativeWind (Tailwind v3 under the hood — distinct from the web
   app's Tailwind v4). Brand tokens live in `tailwind.config.js`.
-- **Types**: response shapes are local for now; widen from `@plane/types` as
+- **Types**: response shapes are local for now; widen from `@dragonfruit/types` as
   richer features land (M2+).

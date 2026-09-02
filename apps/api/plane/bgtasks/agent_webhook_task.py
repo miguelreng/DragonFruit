@@ -22,15 +22,36 @@ just logs failures.
 """
 
 import logging
+from urllib.parse import urlparse
 
 import requests
 from celery import shared_task
+from django.conf import settings
 
+from plane.utils.ip_address import validate_url
 
 logger = logging.getLogger(__name__)
 
 
 _DISPATCH_TIMEOUT_SECONDS = 5
+
+
+def _validate_destination(url: str) -> None:
+    """Re-resolve immediately before sending to prevent DNS rebinding."""
+    validate_url(
+        url,
+        allowed_ips=settings.WEBHOOK_ALLOWED_IPS,
+        allowed_hosts=settings.WEBHOOK_ALLOWED_HOSTS,
+    )
+
+    hostname = (urlparse(url).hostname or "").rstrip(".").lower()
+    if hostname in settings.WEBHOOK_ALLOWED_HOSTS:
+        return
+    if any(
+        hostname == domain or hostname.endswith("." + domain)
+        for domain in settings.WEBHOOK_DISALLOWED_DOMAINS
+    ):
+        raise ValueError("URL domain or its subdomain is not allowed")
 
 
 @shared_task(
@@ -53,6 +74,15 @@ def dispatch_agent_webhook(self, url: str, body: bytes, headers: dict, dispatch_
     in `body` and `headers`; this function intentionally knows nothing
     about agents.
     """
+    try:
+        _validate_destination(url)
+    except ValueError:
+        logger.warning(
+            "agent_webhook dispatch_id=%s blocked an invalid or internal destination",
+            dispatch_id,
+        )
+        return
+
     try:
         resp = requests.post(url, data=body, headers=headers, timeout=_DISPATCH_TIMEOUT_SECONDS)
         if resp.status_code >= 400:

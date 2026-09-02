@@ -208,7 +208,9 @@ class AgentChatSessionSerializer(serializers.ModelSerializer):
     # view, not here, so the list query stays cheap.
     agent_name = serializers.CharField(source="agent.name", read_only=True)
     agent_avatar_url = serializers.URLField(source="agent.avatar_url", read_only=True)
+    context_project = serializers.UUIDField(source="context_project_id", read_only=True, allow_null=True)
     context_project_name = serializers.CharField(source="context_project.name", read_only=True)
+    context_page = serializers.UUIDField(source="context_page_id", read_only=True, allow_null=True)
     context_page_name = serializers.CharField(source="context_page.name", read_only=True)
     display_title = serializers.SerializerMethodField()
 

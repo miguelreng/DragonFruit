@@ -8,7 +8,9 @@ import json
 import secrets
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -16,8 +18,29 @@ from plane.app.permissions import allow_permission, ROLE
 from plane.bgtasks.agent_webhook_task import dispatch_agent_webhook
 from plane.db.models import Workspace, WorkspaceAgentWebhook
 from plane.license.utils.encryption import decrypt_data, encrypt_data
+from plane.utils.ip_address import validate_url
 
 from ..base import BaseAPIView
+
+
+def _validate_agent_webhook_url(url: str, request_host: str | None = None) -> None:
+    """Reject internal, self-referential, and explicitly blocked destinations."""
+    validate_url(
+        url,
+        allowed_ips=settings.WEBHOOK_ALLOWED_IPS,
+        allowed_hosts=settings.WEBHOOK_ALLOWED_HOSTS,
+    )
+
+    hostname = (urlparse(url).hostname or "").rstrip(".").lower()
+    if hostname in settings.WEBHOOK_ALLOWED_HOSTS:
+        return
+
+    disallowed_domains = list(settings.WEBHOOK_DISALLOWED_DOMAINS)
+    if request_host:
+        disallowed_domains.append(request_host.split(":")[0].rstrip(".").lower())
+
+    if any(hostname == domain or hostname.endswith("." + domain) for domain in disallowed_domains):
+        raise ValueError("URL domain or its subdomain is not allowed")
 
 
 def _serialize(webhook: WorkspaceAgentWebhook) -> dict:
@@ -52,9 +75,11 @@ class WorkspaceAgentWebhookEndpoint(BaseAPIView):
         cycle it. The plaintext secret is returned exactly once — store it.
         """
         url = (request.data.get("url") or "").strip()
-        if not url.startswith(("http://", "https://")):
+        try:
+            _validate_agent_webhook_url(url, request.get_host())
+        except ValueError:
             return Response(
-                {"error": "url must be a valid http(s) URL"},
+                {"error": "Invalid or disallowed webhook URL."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

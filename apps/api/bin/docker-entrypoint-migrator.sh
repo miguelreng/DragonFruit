@@ -1,6 +1,9 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-python manage.py wait_for_db $1
+echo "[migrator] waiting for PostgreSQL"
+python manage.py wait_for_db
 
-python manage.py migrate $1
+echo "[migrator] applying migrations"
+python manage.py migrate --noinput
+echo "[migrator] migrations complete"

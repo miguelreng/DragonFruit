@@ -75,6 +75,7 @@ from .user import Account, Profile, User, BotTypeEnum
 from .view import IssueView
 from .webhook import Webhook, WebhookLog
 from .agent import Agent, AgentAutomation, AgentChatMessage, AgentChatSession, AgentMemory, AgentRun
+from .project_context import ProjectContextConnection, ProjectContextSource, ProjectSourceFile, ProjectSourceRevision
 from .agent_webhook import WorkspaceAgentWebhook
 from .workflow import (
     Workflow,

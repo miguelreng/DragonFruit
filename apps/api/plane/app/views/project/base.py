@@ -555,16 +555,20 @@ class DeployBoardViewSet(BaseViewSet):
         reactions = request.data.get("is_reactions_enabled", False)
         intake = request.data.get("intake", None)
         votes = request.data.get("is_votes_enabled", False)
-        views = request.data.get(
-            "views",
-            {
-                "list": True,
-                "kanban": True,
-                "calendar": True,
-                "gantt": True,
-                "spreadsheet": True,
-            },
-        )
+        views = request.data.get("view_props")
+        if views is None:
+            views = request.data.get(
+                "views",
+                {
+                    "list": True,
+                    "kanban": True,
+                    "calendar": True,
+                    "gantt": True,
+                    "spreadsheet": True,
+                },
+            )
+        if not isinstance(views, dict):
+            return Response({"error": "view_props must be an object"}, status=status.HTTP_400_BAD_REQUEST)
 
         project_deploy_board, _ = DeployBoard.objects.get_or_create(
             entity_name="project", entity_identifier=project_id, project_id=project_id

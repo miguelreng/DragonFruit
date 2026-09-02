@@ -122,6 +122,11 @@ full/reopen, no text selection during drag, and no horizontal page overflow.
 - Formatting and the global Web typecheck pass.
 - Responsive signed-in smoke remains open because the local app cannot leave
   its loading screen without the local API/auth stack.
+- A later authenticated production smoke covered 768, 1024, 1280, and 1470 px.
+  It triggered this plan's content-width STOP condition: the docked panel leaves
+  the body editor at approximately 440 px on 1024 and only 134 px at 768 exact.
+  The resize mechanics remain valid; Plan 052 corrects the budget by switching
+  to overlay when the remaining editor width is below 600 px.
 
 ## Done criteria
 

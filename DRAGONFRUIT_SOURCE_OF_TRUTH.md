@@ -15,7 +15,7 @@
 - [ ] **Lock the pricing numbers.** Pro/Business prices are illustrative (§1.5) — confirm the real numbers before Stripe setup.
 - [ ] **Confirm the hosting plan for DragonFruit Cloud** (where `app.dragonfruit.sh` runs; current topology = Vercel web + Coolify API).
 - [ ] **Decide on the business entity** for taking payments (Stripe needs a legal entity / bank account).
-- [ ] **Confirm: is Atlas allowed to create projects/tasks?** Verify whether the agent has `create_issue`/`create_project` tools — this decides whether Atlas can build the Part 3 project itself or you do it manually (see PRD-4 open question).
+- [ ] **Decide whether Atlas may create projects.** Atlas chat can create Tasks and Docs inside an existing project, but project creation remains manual unless an explicitly approved tool is added (see PRD-4).
 
 ## Do this week (quick wins, unblock selling)
 
@@ -42,14 +42,20 @@
 
 ## 1.1 What DragonFruit is
 
-DragonFruit is an open-source (AGPL-3.0) **tasks + docs workspace with one built-in AI teammate, Atlas.** It's a fork of [Plane](https://github.com/makeplane/plane) with a Craft-inspired docs experience and a real server-side agent runtime.
+DragonFruit is an open-source (AGPL-3.0) **calm home for work that remembers**: ideas, Tasks, Docs, Sheets, decisions, and project context, with one built-in AI teammate, Atlas. It's a fork of [Plane](https://github.com/makeplane/plane) with a Craft-inspired docs experience and a real server-side agent runtime.
 
-**Thesis:** _The open-source, beautiful tasks + docs workspace with Atlas, your one AI teammate. Free to self-host; monetized as a hosted Cloud, with bring-your-own-key economics._
+**Customer thesis:** _A quiet place where ideas become work. Start anywhere; your context stays here._
+
+**Business thesis:** _DragonFruit is the trusted, AI-native system of record and execution layer beneath interchangeable AI interfaces. It is free to self-host and monetized through hosted Cloud, recurring workflows, governance, and optional managed model usage._
+
+> Story and business proposal: [docs/strategy/ai-native-story-and-business-proposal.md](docs/strategy/ai-native-story-and-business-proposal.md)
 
 ## 1.2 Product principles (non-negotiable)
 
 - **Simple but powerful.** The product is **tasks + docs**. No cycles, no views, no sprint machinery. Simplicity is the product.
 - **One Atlas.** Atlas is a single, fixed AI teammate — one name, one personality, one avatar, like Jarvis. Users do **not** create or name their own agents. "Hire an AI teammate" is marketing language for _meeting Atlas_, never a feature.
+- **Start anywhere; work stays here.** Users may begin in DragonFruit or an authorized external AI surface. DragonFruit remains the home of the work, permissions, approvals, and history.
+- **Memory must be legible.** Canonical context is visible, correctable, sourced, and user-owned. Hidden model memory is never the moat.
 - **Bring your own key (BYOK).** Users supply their LLM key → near-zero COGS → high margin. Managed "Atlas Cloud" exists for those who'd rather pay per use.
 - **Open source as funnel.** AGPL forces the code open; the moat is hosting + Atlas Cloud + brand + execution, **not** code secrecy. We compete on trust, polish, and the agent — not on hiding source.
 
@@ -57,11 +63,11 @@ DragonFruit is an open-source (AGPL-3.0) **tasks + docs workspace with one built
 
 **Primary job:**
 
-> _When I have work and ideas scattered everywhere and not enough hands, I want a simple workspace with one capable AI teammate that actually does the busywork, so I can move faster and focus on what only I can do — without hiring people or wrestling with bloated tools._
+> _When my ideas and work move between chats, meetings, Docs, and Tasks, I want one quiet place that keeps the context and follows the work through, so I can move faster without re-explaining the project or becoming its admin layer._
 
 **By ICP:**
 
-- **AI-forward teams:** _the AI should be embedded in the tracker doing real tasks (with my approval), not in a disconnected chat window._
+- **AI-forward teams:** _I want the AI I already use to safely act on the same project context and work my team shares, with DragonFruit keeping the record and asking for approval._
 - **Privacy / self-host teams:** _I want AI leverage without giving up control of my data or costs._
 - **Creators / beginners (TikTok audience):** _I want the AI magic without the learning curve — one workspace, one AI that "just does it."_
 
@@ -77,49 +83,57 @@ DragonFruit is an open-source (AGPL-3.0) **tasks + docs workspace with one built
 
 ## 1.5 Business model & pricing
 
-Three lanes:
+Four lanes:
 
 - **Open source (self-host, free):** full product, AGPL. Funnel + trust.
-- **DragonFruit Cloud (hosted SaaS):** primary revenue, per seat. BYOK keeps COGS near zero.
+- **DragonFruit Cloud (hosted SaaS):** primary revenue. Test workspace-base pricing with included seats against the existing per-seat proposal.
+- **Recurring workflows:** paid value tied to sustained shared context, approvals, and follow-through rather than chat volume.
 - **Atlas Cloud (managed LLM metering):** usage upside for users who don't want BYOK.
 
-| Plan            | Price (illustrative)           | Includes                                                                                                                              |
-| --------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Free**        | $0                             | 1 user, tasks + docs, **no Atlas**                                                                                                    |
-| **Pro**         | ~$10–12 / user / mo            | Unlimited members, **full Atlas** (automations, MCP connectors, memory, multi-step tool use), mac app, integrations, priority support |
-| **Business**    | ~$20–24 / user / mo            | + SSO/SAML, audit logs, SLA                                                                                                           |
-| **Atlas Cloud** | usage (cost × ~1.3–1.5 markup) | Managed LLM — no key to manage; metered per token                                                                                     |
+| Plan            | Price (illustrative; validate) | Includes                                                                                                                                                    |
+| --------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free**        | $0                             | 1 user, Tasks + Docs, and enough Atlas actions to experience the core loop                                                                                  |
+| **Pro**         | TBD                            | Shared context, recurring workflows, approvals, MCP/external AI access, mac app, integrations, and priority support; test workspace-base vs per-seat pricing |
+| **Business**    | TBD                            | + SSO/SAML, governance, audit controls, SLA                                                                                                                 |
+| **Atlas Cloud** | usage (cost × ~1.3–1.5 markup) | Managed LLM — no key to manage; metered per token with caps and alerts                                                                                       |
 
 **COGS note:** Cost of Goods Sold = direct cost to serve a customer. With BYOK, the user pays inference, so COGS ≈ hosting only → ~85–90%+ gross margin.
 
-## 1.6 Moat / stickiness (lock-in)
+**Packaging decision gate:** do not implement a permanent “Free = no Atlas” paywall or final seat enforcement until the limited-Atlas activation and workspace-base pricing experiments are reviewed.
 
-- **Data gravity** — tasks + docs + history accumulate; switching cost rises.
-- **Atlas memory** — Atlas learns the team's context (`AgentMemory` exists in schema). A team that's trained Atlas won't restart elsewhere. _Strongest moat._
-- **Integrations / MCP connectors** — every connected tool ties them in.
-- **Surface ubiquity** — web + mac menu-bar app + mobile + Chrome extension.
-- **Automations** — once their workflow lives in DragonFruit, the tool is their process.
+## 1.6 Moat / durable advantage
+
+- **Context gravity** — Briefs, decisions, Tasks, Docs, history, and source relationships compound into a user-owned project memory.
+- **Trusted execution** — permissions, approvals, idempotency, attribution, and recovery make actions dependable across AI interfaces.
+- **Recurring workflows** — planning, follow-up, and reporting become a repeatable operating loop rather than isolated prompts.
+- **Interoperable surfaces** — web, Mac, mobile, browser, API, and MCP all act on the same canonical workspace.
+- **Ownership** — AGPL, self-hosting, export, and BYOK reduce model and platform dependency.
 
 ## 1.7 Go-to-market
 
 - **OSS-led PLG:** self-host repo + one-click deploy → GitHub stars → "upgrade to Cloud to skip ops."
-- **Lead with Atlas, not "Plane fork."** Demo a result, not a chatbot.
+- **Lead with the weekly loop, not a chatbot.** Demo messy input becoming an approved plan, followed work, and a useful report.
+- **Distribute through existing AI surfaces:** users can discover and use DragonFruit from the AI interface already open while DragonFruit retains the workspace relationship.
 - **TikTok engine (@rengi.mp4):** free CAC. See content plan §1.9.
 - **Communities:** HN / r/selfhosted / Lobsters — where AGPL + self-host + BYOK is a feature.
 
 ## 1.8 Positioning copy (single source — keep these in sync)
 
-> Full narrative system (StoryBrand BrandScript, voice, vocabulary): [docs/ux/02-brand-story.md](docs/ux/02-brand-story.md) · Landing implementation spec: [docs/ux/03-landing-ux-spec.md](docs/ux/03-landing-ux-spec.md)
+> Strategic narrative and business proposal: [docs/strategy/ai-native-story-and-business-proposal.md](docs/strategy/ai-native-story-and-business-proposal.md) · Full narrative system: [docs/ux/02-brand-story.md](docs/ux/02-brand-story.md) · Landing implementation spec: [docs/ux/03-landing-ux-spec.md](docs/ux/03-landing-ux-spec.md)
 
 **Homepage headline:**
 
-> **Where ideas become work.**
-> Badge above: _Atlas™ drafts. You approve._
-> Sub: DragonFruit™ is the calm workspace — tasks, docs, and sheets — where Atlas, your AI teammate, turns raw notes into drafts, plans, and shipped tasks.
+> Eyebrow: _Start anywhere. Your context stays here._
 >
-> (Same line as the app login tagline — one brand sentence everywhere. Narrative frame: _from idea to work, calmly._)
+> **A quiet place where ideas become work.**
+>
+> Sub: DragonFruit™ keeps your ideas, Docs, Tasks, and project context together. Atlas™, your AI teammate, helps move the work forward—and asks before anything important changes.
+>
+> Trust line: _Open-source. Self-hostable. Bring your own AI key._
+>
+> Narrative frame: _your work has a home; it remembers what matters and keeps moving._
 
-**Alternates:** _Your workspace, plus one AI teammate who actually does the work._ / _Turn messy ideas into shipped work._ / _Hand off the busywork. Keep the credit._ / _Notion-simple. With Jarvis._
+**Supporting lines:** _A quiet place where your work keeps its context._ / _Start anywhere. Your work stays together._ / _Your work, with its memory intact._ / _Atlas remembers the project—not just the prompt._ / _Bring the mess. Keep the meaning. Move the work._
 
 **TikTok hook (spoken, first 3s):** _"I gave my to-do list an AI teammate — watch it do my actual work."_
 
@@ -212,21 +226,23 @@ Atlas and premium capabilities are currently available to everyone; nothing dist
 
 ### Goal
 
-Server-side enforcement that Free = solo tasks + docs (no Atlas) and Pro+ = full Atlas, so the paywall is real and tamper-resistant.
+Server-side enforcement of a configurable Free Atlas allowance and Pro+ capabilities, so every user can experience the differentiated core loop while paid workflow, collaboration, and governance limits remain tamper-resistant.
 
 ### Functional requirements
 
 1. A single authority `plan_allows(workspace, feature) -> bool`, sourced from `WorkspaceSubscription`.
-2. Gated features: `atlas` (all agent endpoints), `automations`, `mcp_connectors`, `sso`, `audit_logs`.
+2. Entitlements/limits: `atlas_actions`, `recurring_workflows`, `external_ai_connections`, `managed_model_usage`, `sso`, `audit_controls`.
 3. Enforcement is **server-side** on the relevant API endpoints (not just hidden in UI).
 4. UI reads the same plan state to show upgrade prompts / paywalls on gated surfaces.
 5. Free tier: hard-block adding a 2nd human member (1 user).
+6. Free Atlas allowance and Pro packaging are configuration, not hard-coded constants, until the activation/pricing experiments conclude.
 
 ### Acceptance criteria
 
-- [ ] Atlas endpoints return a clear "upgrade required" error on Free.
-- [ ] UI shows an upgrade CTA instead of the gated feature on Free.
-- [ ] Downgrading from Pro disables Atlas immediately at period end.
+- [ ] A Free workspace can complete the configured number of Atlas actions and see remaining allowance.
+- [ ] Exhausted allowances return a clear upgrade response without losing drafted user input.
+- [ ] UI shows an upgrade CTA at the limit and explains which paid capability is required.
+- [ ] Downgrading from Pro applies the configured Free limits at period end without deleting context or workflow history.
 - [ ] Gating cannot be bypassed by calling the API directly.
 
 ### Dependencies
@@ -290,9 +306,35 @@ Make Atlas feel like one consistent teammate everywhere, with a strong first-run
 - [ ] Atlas identity is identical across all surfaces and not user-editable.
 - [ ] Risky agent actions surface an approval card before executing.
 
-### Open question (verify before building Part 3)
+### Current creation boundary
 
-Does Atlas's tool set include **project/task creation**? Confirmed tools today: `change_state`, `post_comment`, `search_issues`, `list_attachments`, `plan_next_steps`, `record_step`. If `create_issue` / `create_project` are **not** exposed, Part 3's "let Atlas build the project" requires adding those tools first — otherwise the project is created manually from Part 3.
+Atlas chat currently includes `create_task`, `create_document`, and canonical Project Brief update tools. The issue/page-comment runtime has a narrower action set, and no general Atlas surface creates projects. Any “let Atlas build the project” flow must either begin from an existing project through chat or add an explicitly approved project-creation tool; otherwise project creation remains manual.
+
+---
+
+## PRD-5 — Work from Anywhere
+
+Make DragonFruit safely usable from authorized external AI clients while DragonFruit remains the system of record, permission authority, approval engine, and activity ledger.
+
+Full PRD and implementation plan: [plans/ai-native/031-work-from-anywhere.md](plans/ai-native/031-work-from-anywhere.md)
+
+## PRD-6 — Work That Remembers
+
+Turn Workspace Brief, Project Brief, source Docs, and Atlas memory into a visible, sourced, correctable context hierarchy shared by native and authorized external surfaces.
+
+Full PRD and implementation plan: [plans/ai-native/032-work-that-remembers.md](plans/ai-native/032-work-that-remembers.md)
+
+## PRD-7 — Recurring Operating Loop
+
+Productize one repeatable outcome: collect loose inputs, draft the week, obtain approval, execute accepted actions, follow blockers, and produce a linked progress report.
+
+Full PRD and implementation plan: [plans/ai-native/033-recurring-operating-loop.md](plans/ai-native/033-recurring-operating-loop.md)
+
+## PRD-8 — Project Context Sources
+
+Let a project safely attach a bounded external folder—starting with a user-selected Google Drive folder—so Atlas can continue work from shared instructions, plans, and Claude/Codex handoffs. Source files are evidence with provenance and refresh state; only a reviewed proposal may change canonical context.
+
+Full PRD and implementation plan: [plans/ai-native/053-project-context-sources.md](plans/ai-native/053-project-context-sources.md)
 
 ---
 
@@ -308,7 +350,9 @@ Does Atlas's tool set include **project/task creation**? Confirmed tools today: 
 - [ ] **Design `WorkspaceSubscription` model** in a new `billing/` app — `monetization` `product` `phase-1` — Human
 - [ ] **Stripe Checkout + Billing Portal integration** — `monetization` `phase-1` — Human
 - [ ] **Idempotent Stripe webhook handler** — `monetization` `blocker` `phase-1` — Human
-- [ ] **`plan_allows()` feature-gating; Free = no Atlas** — `monetization` `product` `blocker` `phase-2` — Human
+- [ ] **Run limited-Atlas vs no-Atlas activation test; lock entitlement configuration** — `monetization` `product` `blocker` `phase-1` — Human
+- [ ] **Test workspace-base vs per-seat packaging before seat enforcement** — `monetization` `product` `blocker` `phase-1` — Human
+- [ ] **`plan_allows()` entitlement and usage-limit enforcement** — `monetization` `product` `blocker` `phase-2` — Human
 - [ ] **Seat enforcement + upgrade CTA** — `monetization` `product` `phase-2` — Human
 - [ ] **In-app paywall/upgrade UI** — `monetization` `gtm` `phase-2` — Human
 - [ ] **14-day Pro trial + auto-downgrade** — `monetization` `phase-2` — Human
@@ -328,8 +372,19 @@ Does Atlas's tool set include **project/task creation**? Confirmed tools today: 
 - [ ] **Fixed Atlas identity across web/mobile/mac** — `product` `phase-2` — Human
 - [ ] **Approval-gate UX polish** — `product` `phase-2` — Human
 - [ ] **Seeded onboarding demo project** — `product` `gtm` `phase-2` — Human
-- [ ] **Verify Atlas has create_issue/create_project tools** (see PRD-4 open question) — `product` `blocker` `phase-1` — Human
+- [ ] **Decide whether to add an explicitly approved Atlas project-creation tool** — `product` `phase-1` — Human
 - [ ] **Atlas: write canonical Atlas intro + capability copy** — `content` `product` `quick-win` `phase-1` — Atlas
+
+## Module: AIN — AI-Native Work System (implements PRD-5, PRD-6, PRD-7, PRD-8)
+
+- [ ] **Run the paid four-week weekly-loop concierge cohort** — `product` `monetization` `blocker` `phase-1` — Human
+- [ ] **Run the five-workspace assisted external-MCP pilot** — `product` `gtm` `phase-1` — Human
+- [ ] **Ship Workspace Brief + context inspector + correction UX** — `product` `phase-2` — Human
+- [ ] **Validate a compact Drive-folder context pack + Claude/Codex handoff convention with three workspaces** — `product` `phase-1` — Human
+- [ ] **Ship read-only Drive project sources with provenance, source boundaries, and refresh state** — `product` `infra` `phase-2` — Human
+- [ ] **Ship OAuth-authorized MCP and complete safe tool actions** — `product` `infra` `phase-2` — Human
+- [ ] **Build the recurring operating loop only after its payment/retention gate passes** — `product` `monetization` `blocker` `phase-3` — Human
+- [ ] **Instrument successful delegated workflows per active workspace/week** — `product` `gtm` `phase-1` — Human
 
 ## Module: PKG — Cloud Launch & Packaging
 

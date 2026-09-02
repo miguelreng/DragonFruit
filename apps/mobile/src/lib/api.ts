@@ -3,9 +3,10 @@
  * carries the API token in the `X-Api-Key` header (the backend's
  * APIKeyAuthentication header name). Kept deliberately small — as features land
  * we layer typed helpers on top of `apiFetch`, and pull richer response shapes
- * from `@plane/types`.
+ * from `@dragonfruit/types`.
  */
 import { API_URL } from "./config";
+import type { ScanImagePayload } from "./scan-image";
 import { getToken } from "./secure-store";
 
 export class ApiError extends Error {
@@ -22,6 +23,9 @@ export class ApiError extends Error {
 
 const REQUEST_TIMEOUT_MS = 25_000;
 const ACTION_REQUEST_TIMEOUT_MS = 90_000;
+/** A vision model reading six handwritten pages runs well past the action
+ *  budget, and the server gives up at 150s — sit just outside that. */
+const SCAN_REQUEST_TIMEOUT_MS = 180_000;
 
 type ApiFetchInit = RequestInit & { timeoutMs?: number };
 
@@ -101,7 +105,7 @@ async function apiList<T>(path: string): Promise<T[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Typed endpoints used by M1. Local shapes for now; widen from @plane/types
+// Typed endpoints used by M1. Local shapes for now; widen from @dragonfruit/types
 // once shared types are wired in M2+.
 // ---------------------------------------------------------------------------
 
@@ -132,7 +136,7 @@ export function getWorkspaces(): Promise<Workspace[]> {
   return apiList<Workspace>("/workspaces/");
 }
 
-/** Emoji/icon logo shape shared by projects, pages, etc. (mirrors @plane/types TLogoProps). */
+/** Emoji/icon logo shape shared by projects, pages, etc. (mirrors @dragonfruit/types TLogoProps). */
 export type LogoProps = {
   in_use?: "emoji" | "icon";
   emoji?: { value?: string; url?: string };
@@ -185,7 +189,7 @@ export type IssueListItem = {
   label_ids?: string[];
 };
 
-export type Label = { id: string; name: string; color: string | null };
+export type Label = { id: string; name: string; color: string | null; project_id: string | null };
 
 export type IssueDetail = IssueListItem & {
   description_html: string;
@@ -741,6 +745,67 @@ export function sendAgentMessage(
             voice_duration_seconds: options.voiceDurationSeconds ?? 0,
           }
         : {}),
+    }),
+  });
+}
+
+export type ScannedNoteTranscription = {
+  title: string;
+  language: string;
+  description_html: string;
+  pages_read: number;
+  /** The raw text after the `/` written on the paper, even when it matched nothing. */
+  project_marker: string;
+  detected_project: { id: string; name: string; identifier: string } | null;
+  detected_labels: string[];
+  warnings: string[];
+};
+
+export type ScannedNoteDoc = {
+  id: string;
+  name: string;
+  created: boolean;
+  workspace_slug: string;
+  project_id: string;
+  url: string;
+  web_url: string;
+  labels_applied: { id: string; name: string; created: boolean }[];
+  labels_skipped: string[];
+};
+
+/** Photos in, doc draft out. Creates nothing — the user confirms first. */
+export function transcribeScannedNote(
+  workspaceSlug: string,
+  images: ScanImagePayload[]
+): Promise<ScannedNoteTranscription> {
+  return apiFetch<ScannedNoteTranscription>(`/workspaces/${workspaceSlug}/scanned-notes/transcribe/`, {
+    method: "POST",
+    timeoutMs: SCAN_REQUEST_TIMEOUT_MS,
+    body: JSON.stringify({ images }),
+  });
+}
+
+/** Persist a confirmed draft. `clientRequestId` must survive retries so a
+ *  network failure after a successful write updates rather than duplicates. */
+export function createScannedNoteDoc(
+  workspaceSlug: string,
+  input: {
+    projectId: string;
+    title: string;
+    descriptionHtml: string;
+    labels: string[];
+    clientRequestId: string;
+  }
+): Promise<ScannedNoteDoc> {
+  return apiFetch<ScannedNoteDoc>(`/workspaces/${workspaceSlug}/scanned-notes/`, {
+    method: "POST",
+    timeoutMs: ACTION_REQUEST_TIMEOUT_MS,
+    body: JSON.stringify({
+      project_id: input.projectId,
+      title: input.title,
+      description_html: input.descriptionHtml,
+      labels: input.labels,
+      client_request_id: input.clientRequestId,
     }),
   });
 }

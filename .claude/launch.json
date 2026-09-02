@@ -4,8 +4,38 @@
     {
       "name": "web (main React Router app)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter=web", "dev"],
+      "runtimeArgs": [
+        "--filter=web",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "web-3009 (prod-proxy verify)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && pnpm exec react-router dev --port 3009"
+      ],
+      "port": 3009
+    },
+    {
+      "name": "web-3011 (prod-proxy verify alt)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && pnpm exec react-router dev --port 3011"
+      ],
+      "port": 3011
+    },
+    {
+      "name": "web-3013 (prod-proxy verify alt2)",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && pnpm exec react-router dev --port 3013"
+      ],
+      "port": 3013
     },
     {
       "name": "web-local-api (folders verify)",
@@ -46,43 +76,64 @@
     {
       "name": "landing (Astro marketing site)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter=landing", "dev"],
+      "runtimeArgs": [
+        "--filter=landing",
+        "dev"
+      ],
       "port": 3003
     },
     {
       "name": "admin (instance admin UI)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter=admin", "dev"],
+      "runtimeArgs": [
+        "--filter=admin",
+        "dev"
+      ],
       "port": 3001
     },
     {
       "name": "space (public publishing app)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter=space", "dev"],
+      "runtimeArgs": [
+        "--filter=space",
+        "dev"
+      ],
       "port": 3002
     },
     {
-      "name": "live (HocusPocus realtime collab — needs Redis)",
+      "name": "live (HocusPocus realtime collab \u2014 needs Redis)",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd apps/live && PORT=3100 pnpm dev"],
+      "runtimeArgs": [
+        "-c",
+        "cd apps/live && PORT=3100 pnpm dev"
+      ],
       "port": 3100
     },
     {
-      "name": "api (Django backend — needs Postgres + Redis)",
+      "name": "api (Django backend \u2014 needs Postgres + Redis)",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd apps/api && python manage.py runserver 0.0.0.0:8000 --settings=plane.settings.local"],
+      "runtimeArgs": [
+        "-c",
+        "cd apps/api && python manage.py runserver 0.0.0.0:8000 --settings=plane.settings.local"
+      ],
       "port": 8000
     },
     {
       "name": "newtab-art-preview (temp static harness)",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd /tmp/ntpreview && python3 -m http.server 8743"],
+      "runtimeArgs": [
+        "-c",
+        "cd /tmp/ntpreview && python3 -m http.server 8743"
+      ],
       "port": 8743
     },
     {
-      "name": "propel-storybook (component gallery)",
+      "name": "design-system (cat\u00e1logo \u00fanico)",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd packages/propel && COREPACK_INTEGRITY_KEYS=0 pnpm storybook --no-open"],
+      "runtimeArgs": [
+        "-c",
+        "cd packages/ui && COREPACK_INTEGRITY_KEYS=0 pnpm storybook --no-open"
+      ],
       "port": 6006
     }
   ]

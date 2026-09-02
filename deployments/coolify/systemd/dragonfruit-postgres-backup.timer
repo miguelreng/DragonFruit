@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the DragonFruit PostgreSQL backup every day
+
+[Timer]
+OnCalendar=*-*-* 07:15:00 UTC
+Persistent=true
+RandomizedDelaySec=15m
+Unit=dragonfruit-postgres-backup.service
+
+[Install]
+WantedBy=timers.target

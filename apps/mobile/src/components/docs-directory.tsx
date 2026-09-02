@@ -18,10 +18,19 @@ import { useReducedMotion } from "react-native-reanimated";
 import { AppIcon } from "@/components/app-icon";
 import { FilterPills } from "@/components/filter-pills";
 import { PressableScale } from "@/components/pressable-scale";
+import { ScanCapture } from "@/components/scan-capture";
 import { ScrollFade } from "@/components/scroll-fade";
 import { getPages, getProjects, type PageListItem, type Project } from "@/lib/api";
 import { selectionHaptic } from "@/lib/haptics";
-import { ArrowLeft01Icon, File01Icon, Folder01Icon, GlobeIcon, Pdf01Icon, Search01Icon } from "@/lib/icons";
+import {
+  ArrowLeft01Icon,
+  CameraIcon,
+  File01Icon,
+  Folder01Icon,
+  GlobeIcon,
+  Pdf01Icon,
+  Search01Icon,
+} from "@/lib/icons";
 import { colors, font, radius, spacing } from "@/lib/theme";
 import { useApiList } from "@/lib/use-api-list";
 
@@ -43,6 +52,7 @@ export function DocsDirectory({ workspaceSlug, projectId }: { workspaceSlug: str
   const [navigationStack, setNavigationStack] = useState<BreadcrumbEntry[]>([]);
   const [query, setQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
   const { width } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = useState(width);
   // The docs rail can briefly report the full swipe-rail width while the hub is
@@ -210,6 +220,18 @@ export function DocsDirectory({ workspaceSlug, projectId }: { workspaceSlug: str
           <Text style={styles.dirTitle} numberOfLines={1}>
             {query ? "Search docs" : (currentFolderName ?? "Docs")}
           </Text>
+          <PressableScale
+            onPress={() => {
+              selectionHaptic();
+              setScanOpen(true);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Scan a notebook page into a doc"
+          >
+            <View style={styles.scanBtn}>
+              <AppIcon icon={CameraIcon} size={19} color={colors.ink} strokeWidth={1.8} />
+            </View>
+          </PressableScale>
         </View>
         <View style={styles.searchField}>
           <AppIcon icon={Search01Icon} size={17} color={colors.textTertiary} />
@@ -363,6 +385,14 @@ export function DocsDirectory({ workspaceSlug, projectId }: { workspaceSlug: str
           />
         </ScrollFade>
       )}
+
+      {scanOpen ? (
+        <ScanCapture
+          workspaceSlug={workspaceSlug}
+          onClose={() => setScanOpen(false)}
+          onCreated={onRefresh}
+        />
+      ) : null}
     </View>
   );
 }
@@ -378,6 +408,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.canvas,
   },
   dirTitleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  scanBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   backBtn: {
     width: 44,
     height: 44,

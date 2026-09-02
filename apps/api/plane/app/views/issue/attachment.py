@@ -20,13 +20,18 @@ from rest_framework.parsers import MultiPartParser, FormParser
 # Module imports
 from .. import BaseAPIView
 from plane.app.serializers import IssueAttachmentSerializer
-from plane.db.models import FileAsset, Workspace
+from plane.db.models import FileAsset, Issue, Workspace
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.app.permissions import allow_permission, ROLE
 from plane.settings.storage import S3Storage
 from plane.utils.path_validator import sanitize_filename
-from plane.bgtasks.storage_metadata_task import get_asset_object_metadata
 from plane.utils.host import base_host
+from plane.throttles.resource import AssetUploadRateThrottle
+from plane.utils.asset_upload import (
+    AssetUploadValidationError,
+    normalize_asset_size,
+    verify_uploaded_asset,
+)
 
 
 class IssueAttachmentEndpoint(BaseAPIView):
@@ -95,12 +100,16 @@ class IssueAttachmentEndpoint(BaseAPIView):
 class IssueAttachmentV2Endpoint(BaseAPIView):
     serializer_class = IssueAttachmentSerializer
     model = FileAsset
+    throttle_classes = [AssetUploadRateThrottle]
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def post(self, request, slug, project_id, issue_id):
         name = sanitize_filename(request.data.get("name")) or "unnamed"
         type = request.data.get("type", False)
-        size = int(request.data.get("size", settings.FILE_SIZE_LIMIT))
+        try:
+            size_limit = normalize_asset_size(request.data.get("size", settings.FILE_SIZE_LIMIT))
+        except AssetUploadValidationError as exc:
+            return Response({"error": str(exc), "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
         if not type or type not in settings.ATTACHMENT_MIME_TYPES:
             return Response(
@@ -108,14 +117,11 @@ class IssueAttachmentV2Endpoint(BaseAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Get the workspace
-        workspace = Workspace.objects.get(slug=slug)
+        issue = Issue.objects.get(id=issue_id, workspace__slug=slug, project_id=project_id)
+        workspace = issue.workspace
 
         # asset key
         asset_key = f"{workspace.id}/{uuid.uuid4().hex}-{name}"
-
-        # Get the size limit
-        size_limit = min(size, settings.FILE_SIZE_LIMIT)
 
         # Create a File Asset
         asset = FileAsset.objects.create(
@@ -207,11 +213,21 @@ class IssueAttachmentV2Endpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
     def patch(self, request, slug, project_id, issue_id, pk):
-        issue_attachment = FileAsset.objects.get(pk=pk, workspace__slug=slug, project_id=project_id)
+        issue_attachment = FileAsset.objects.get(
+            pk=pk,
+            workspace__slug=slug,
+            project_id=project_id,
+            issue_id=issue_id,
+        )
         serializer = IssueAttachmentSerializer(issue_attachment)
 
         # Send this activity only if the attachment is not uploaded before
         if not issue_attachment.is_uploaded:
+            try:
+                metadata = verify_uploaded_asset(issue_attachment, request=request)
+            except AssetUploadValidationError as exc:
+                return Response({"error": str(exc), "status": False}, status=status.HTTP_400_BAD_REQUEST)
+
             issue_activity.delay(
                 type="attachment.activity.created",
                 requested_data=None,
@@ -227,11 +243,8 @@ class IssueAttachmentV2Endpoint(BaseAPIView):
             # Update the attachment
             issue_attachment.is_uploaded = True
             issue_attachment.created_by = request.user
-
-        # Get the storage metadata
-        if not issue_attachment.storage_metadata:
-            get_asset_object_metadata.delay(str(issue_attachment.id))
-        issue_attachment.save()
+            issue_attachment.storage_metadata = metadata
+            issue_attachment.save(update_fields=["is_uploaded", "created_by", "storage_metadata"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

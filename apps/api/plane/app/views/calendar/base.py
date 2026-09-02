@@ -19,6 +19,7 @@ import base64
 import json
 import os
 import tempfile
+import uuid
 from datetime import datetime, timedelta, timezone
 from string import Template
 from urllib.parse import quote, urlencode
@@ -1416,6 +1417,11 @@ class MyCalendarTasksEndpoint(BaseAPIView):
     Pulled across every project in the workspace where the user is a member.
     Each entry is shaped for the Schedule-X frontend — title, start, end,
     project, state, and the URL slug needed to link back.
+
+    An optional `project_id` narrows the feed to a single project's calendar
+    (e.g. the per-project calendar page): when present, every dated task in
+    that project is returned — not just tasks assigned to or created by the
+    requesting user — as long as they're an active member of that project.
     """
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
@@ -1432,14 +1438,16 @@ class MyCalendarTasksEndpoint(BaseAPIView):
             return Response({"error": "from/to must be ISO-8601"}, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
+        project_id = (request.query_params.get("project_id") or "").strip()
+        if project_id:
+            try:
+                uuid.UUID(project_id)
+            except ValueError:
+                return Response({"error": "project_id must be a valid UUID"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # A task lands on the calendar if either its target_date or start_date
-        # intersects the visible range. Assigned-to-me OR created-by-me, scoped
-        # to projects the user is an active member of.
         issues = (
             Issue.issue_objects.filter(workspace__slug=slug)
             .filter(project__project_projectmember__member=user, project__project_projectmember__is_active=True)
-            .filter(Q(assignees=user) | Q(created_by=user))
             # Google Calendar events are already overlaid live on the calendar, so
             # imported copies (external_source="google_calendar") would be stale
             # duplicates that linger after the source event is deleted. Keep them
@@ -1453,6 +1461,14 @@ class MyCalendarTasksEndpoint(BaseAPIView):
             .distinct()
             .order_by("target_date", "start_date")
         )
+
+        if project_id:
+            # Scoped to one project: every dated task in it, not just mine —
+            # membership in the filter above already gates access.
+            issues = issues.filter(project_id=project_id)
+        else:
+            # Workspace-wide feed: assigned-to-me OR created-by-me only.
+            issues = issues.filter(Q(assignees=user) | Q(created_by=user))
 
         tasks = []
         for issue in issues:

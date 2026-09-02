@@ -14,6 +14,7 @@
 
 ## Status
 
+- **Implementation status**: DONE in commit `a2560e6a07` (`feat(pages): live editor presence and version history reliability`); release regression closure is tracked in Plan 034.
 - **Priority**: P1
 - **Effort**: M–L (roughly 4–7 engineering days including migration, tests, and three-surface QA)
 - **Risk**: MED–HIGH — version capture and restore touch user content, asynchronous saves, and multiple page body formats

@@ -186,6 +186,7 @@ class LLMProvider:
         system_prompt: str,
         user_prompt,
         request_timeout: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ) -> LLMRunResult:
         """One-shot generate — no tool loop. Useful for tests and for
         simple "summarise / draft" features that don't need tool use.
@@ -204,6 +205,7 @@ class LLMProvider:
             tools=[],
             max_iterations=1,
             request_timeout=request_timeout,
+            max_tokens=max_tokens,
         )
 
     # ----------------------------------------------------------------- #
@@ -220,6 +222,7 @@ class LLMProvider:
         is_cancelled: Optional[Callable[[], bool]] = None,
         on_tool_call: Optional[Callable[[Dict[str, Any]], None]] = None,
         request_timeout: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ) -> LLMRunResult:
         """Drive a multi-turn tool-use loop.
 
@@ -235,6 +238,9 @@ class LLMProvider:
         - `on_tool_call` (optional) is invoked after each tool call is
           executed and appended to `result.tool_calls`. Callers can use
           it for incremental persistence so a long run remains resumable.
+        - `max_tokens` (optional) caps the output length per turn. Left
+          unset the provider's own default applies — which is only 4096
+          on Anthropic, short enough to truncate a long transcription.
         """
         import litellm  # local import — heavy module, only load when used
 
@@ -248,6 +254,7 @@ class LLMProvider:
         ]
 
         result = LLMRunResult()
+        last_assistant_content = ""
 
         for iteration in range(max_iters):
             if is_cancelled and is_cancelled():
@@ -269,6 +276,8 @@ class LLMProvider:
                 }
                 if request_timeout is not None:
                     completion_kwargs["timeout"] = request_timeout
+                if max_tokens is not None:
+                    completion_kwargs["max_tokens"] = max_tokens
                 completion = litellm.completion(**completion_kwargs)
             except Exception:  # noqa: BLE001 — surface any provider error
                 logger.exception("llm call failed model=%s", self.model)
@@ -284,6 +293,7 @@ class LLMProvider:
             choice = completion.choices[0]
             message = choice.message
             assistant_content = getattr(message, "content", None) or ""
+            last_assistant_content = assistant_content
             tool_calls = getattr(message, "tool_calls", None) or []
 
             # Append assistant turn to history regardless of whether it
@@ -349,35 +359,11 @@ class LLMProvider:
                     }
                 )
 
-        # Fell off the loop without a terminating text message — the model was
-        # still calling tools when it hit the iteration cap. Force ONE final
-        # tool-less turn so it synthesizes an answer from the tool output it
-        # already gathered, instead of returning an empty reply.
+        # Fell off the loop without a terminating text message. Do not make an
+        # extra synthesis request here: max_iterations is a hard cap on model
+        # calls, which protects both capacity and spend under runaway tool use.
         result.stopped_reason = "max_iterations"
-        try:
-            messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        "You've reached the tool-use limit. Give your best final answer now "
-                        "in plain text, using the information already gathered above. "
-                        "Do not call any tools."
-                    ),
-                }
-            )
-            final_kwargs: Dict[str, Any] = {
-                "model": self._litellm_model(),
-                "api_key": self.api_key,
-                "api_base": self.api_base_url,
-                "messages": messages,
-            }
-            if request_timeout is not None:
-                final_kwargs["timeout"] = request_timeout
-            final_completion = litellm.completion(**final_kwargs)
-            _accumulate_usage(result, final_completion)
-            result.final_text = getattr(final_completion.choices[0].message, "content", None) or ""
-        except Exception:  # noqa: BLE001 — best-effort; empty final_text falls through
-            logger.exception("llm final synthesis call failed model=%s", self.model)
+        result.final_text = last_assistant_content
         return result
 
     # ----------------------------------------------------------------- #
@@ -498,6 +484,7 @@ class LLMProvider:
             {"role": "user", "content": user_prompt},
         ]
         result = LLMRunResult()
+        last_assistant_content = ""
 
         def _stream_turn(turn_messages, turn_tools):
             """Run one streaming completion. Yields ("delta", text) as tokens
@@ -556,6 +543,7 @@ class LLMProvider:
             _accumulate_usage(result, rebuilt)
             message = rebuilt.choices[0].message
             assistant_content = getattr(message, "content", None) or ""
+            last_assistant_content = assistant_content
             tool_calls = getattr(message, "tool_calls", None) or []
 
             assistant_entry: Dict[str, Any] = {"role": "assistant", "content": assistant_content}
@@ -628,31 +616,11 @@ class LLMProvider:
                     }
                 )
 
-        # Hit the iteration cap mid-tool-use: force ONE final tool-less turn so
-        # the model synthesizes an answer (streamed) instead of returning empty.
+        # max_iterations is a hard cap on model calls, including streaming
+        # calls. Returning the last assistant content avoids a hidden extra
+        # request when a tool loop runs away.
         result.stopped_reason = "max_iterations"
-        try:
-            messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        "You've reached the tool-use limit. Give your best final answer now "
-                        "in plain text, using the information already gathered above. "
-                        "Do not call any tools."
-                    ),
-                }
-            )
-            rebuilt = None
-            for kind, val in _stream_turn(messages, None):
-                if kind == "delta":
-                    yield ("delta", val)
-                else:  # "_rebuilt"
-                    rebuilt = val
-            if rebuilt is not None:
-                _accumulate_usage(result, rebuilt)
-                result.final_text = getattr(rebuilt.choices[0].message, "content", None) or ""
-        except Exception:  # noqa: BLE001 — best-effort; empty final_text falls through
-            logger.exception("llm final synthesis stream failed model=%s", self.model)
+        result.final_text = last_assistant_content
         yield ("result", result)
 
 

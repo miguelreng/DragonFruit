@@ -3,6 +3,7 @@
 # See the LICENSE file for details.
 
 # Third Party imports
+from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -10,6 +11,7 @@ from plane.app.permissions import allow_permission, ROLE
 from plane.app.serializers import ExporterHistorySerializer
 from plane.bgtasks.export_task import issue_export_task
 from plane.db.models import ExporterHistory, Project, Workspace
+from plane.throttles.resource import ExportRateThrottle
 
 # Module imports
 from .. import BaseAPIView
@@ -18,11 +20,24 @@ from .. import BaseAPIView
 class ExportIssuesEndpoint(BaseAPIView):
     model = ExporterHistory
     serializer_class = ExporterHistorySerializer
+    throttle_classes = [ExportRateThrottle]
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def post(self, request, slug):
         # Get the workspace
         workspace = Workspace.objects.get(slug=slug)
+
+        pending_exports = ExporterHistory.objects.filter(
+            workspace=workspace,
+            initiated_by=request.user,
+            type="issue_exports",
+            status__in=("queued", "processing"),
+        ).count()
+        if pending_exports >= settings.EXPORT_MAX_PENDING_PER_USER:
+            return Response(
+                {"error": "Too many exports are already queued or processing."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
 
         provider = request.data.get("provider", False)
         multiple = request.data.get("multiple", False)
@@ -66,9 +81,13 @@ class ExportIssuesEndpoint(BaseAPIView):
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request, slug):
-        exporter_history = ExporterHistory.objects.filter(workspace__slug=slug, type="issue_exports").select_related(
-            "workspace", "initiated_by"
-        )
+        # Export URLs are authorization-bearing presigned links. Keep each
+        # user's history private even when multiple members share a workspace.
+        exporter_history = ExporterHistory.objects.filter(
+            workspace__slug=slug,
+            type="issue_exports",
+            initiated_by=request.user,
+        ).select_related("workspace", "initiated_by")
 
         if request.GET.get("per_page", False) and request.GET.get("cursor", False):
             return self.paginate(

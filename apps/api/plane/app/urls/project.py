@@ -24,10 +24,64 @@ from plane.app.views import (
     ProjectMemberPreferenceEndpoint,
     ProjectBookmarkViewSet,
     ProjectBookmarkCommentViewSet,
+    ProjectContextPackEndpoint,
+    ProjectContextGoogleDriveCallbackEndpoint,
+    ProjectContextGoogleDriveFolderEndpoint,
+    ProjectContextGoogleDriveStartEndpoint,
+    ProjectContextSourceDetailEndpoint,
+    ProjectContextSourceEndpoint,
+    ProjectContextSourceFileEndpoint,
+    ProjectContextSourceManualIngestEndpoint,
+    ProjectContextSourceRefreshEndpoint,
 )
 
 
 urlpatterns = [
+    path(
+        "users/me/project-context-connections/google/callback/",
+        ProjectContextGoogleDriveCallbackEndpoint.as_view(),
+        name="project-context-google-drive-callback",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/context-sources/google/start/",
+        ProjectContextGoogleDriveStartEndpoint.as_view(),
+        name="project-context-google-drive-start",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/context-sources/google/connections/<uuid:connection_id>/folders/",
+        ProjectContextGoogleDriveFolderEndpoint.as_view(),
+        name="project-context-google-drive-folders",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/context-sources/",
+        ProjectContextSourceEndpoint.as_view(),
+        name="project-context-sources",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/context-sources/<uuid:source_id>/",
+        ProjectContextSourceDetailEndpoint.as_view(),
+        name="project-context-source-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/context-sources/<uuid:source_id>/files/",
+        ProjectContextSourceFileEndpoint.as_view(),
+        name="project-context-source-files",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/context-sources/<uuid:source_id>/manual-ingest/",
+        ProjectContextSourceManualIngestEndpoint.as_view(),
+        name="project-context-source-manual-ingest",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/context-sources/<uuid:source_id>/refresh/",
+        ProjectContextSourceRefreshEndpoint.as_view(),
+        name="project-context-source-refresh",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/context-pack/",
+        ProjectContextPackEndpoint.as_view(),
+        name="project-context-pack",
+    ),
     path(
         "workspaces/<str:slug>/projects/",
         ProjectViewSet.as_view({"get": "list", "post": "create"}),

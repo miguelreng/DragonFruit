@@ -3,10 +3,14 @@
 # See the LICENSE file for details.
 
 # Python imports
+import hashlib
+import hmac
+import json
 import logging
 import time
 
 # Django imports
+from django.conf import settings
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -111,6 +115,30 @@ class APITokenLogMiddleware:
         except UnicodeDecodeError:
             return "[Could not decode content]"
 
+    def _token_fingerprint(self, api_key: str) -> str:
+        """Return a stable identifier without persisting the live credential."""
+        digest = hmac.new(
+            settings.SECRET_KEY.encode("utf-8"),
+            api_key.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        return f"hmac-sha256:{digest}"
+
+    def _safe_headers(self, request) -> str:
+        """Serialize request headers after removing reusable credentials."""
+        sensitive_headers = {
+            "authorization",
+            "cookie",
+            "proxy-authorization",
+            "x-api-key",
+            "x-csrftoken",
+        }
+        headers = {
+            key: "[REDACTED]" if key.lower() in sensitive_headers else value
+            for key, value in request.headers.items()
+        }
+        return json.dumps(headers, separators=(",", ":"), sort_keys=True)
+
     def process_request(self, request, response, request_body):
         api_key_header = "X-Api-Key"
         api_key = request.headers.get(api_key_header)
@@ -121,13 +149,16 @@ class APITokenLogMiddleware:
 
         try:
             log_data = {
-                "token_identifier": api_key,
+                "token_identifier": self._token_fingerprint(api_key),
                 "path": request.path,
                 "method": request.method,
                 "query_params": request.META.get("QUERY_STRING", ""),
-                "headers": str(request.headers),
-                "body": self._safe_decode_body(request_body) if request_body else None,
-                "response_body": self._safe_decode_body(response.content) if response.content else None,
+                "headers": self._safe_headers(request),
+                # Request and response bodies routinely contain passwords,
+                # tokens, private document content, and provider payloads.
+                # Operational API logs only need metadata and status.
+                "body": None,
+                "response_body": None,
                 "response_code": response.status_code,
                 "ip_address": get_client_ip(request=request),
                 "user_agent": request.META.get("HTTP_USER_AGENT", None),

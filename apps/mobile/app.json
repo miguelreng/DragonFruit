@@ -13,7 +13,9 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "Allow DragonFruit to listen while you record a command or meeting note.",
-        "NSSpeechRecognitionUsageDescription": "Allow DragonFruit to turn your speech into text."
+        "NSSpeechRecognitionUsageDescription": "Allow DragonFruit to turn your speech into text.",
+        "NSCameraUsageDescription": "Allow DragonFruit to photograph your notebook pages and turn them into docs.",
+        "NSPhotoLibraryUsageDescription": "Allow DragonFruit to use photos of your notebook pages and turn them into docs."
       }
     },
     "android": {
@@ -34,6 +36,13 @@
       "expo-secure-store",
       "expo-font",
       "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow DragonFruit to photograph your notebook pages and turn them into docs.",
+          "photosPermission": "Allow DragonFruit to use photos of your notebook pages and turn them into docs."
+        }
+      ],
       "expo-background-task",
       [
         "expo-speech-recognition",

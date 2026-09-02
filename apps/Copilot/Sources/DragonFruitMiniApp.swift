@@ -12,7 +12,6 @@ struct DragonFruitMiniApp: App {
     @StateObject private var cursorBuddyController = CursorBuddyOverlayController()
     @StateObject private var atlasChatController = AtlasChatOverlayController()
     @StateObject private var atlasIslandController = AtlasIslandOverlayController()
-    @StateObject private var agentInbox = AgentInboxStore()
 
     // Drives Sparkle auto-updates in release builds. Debug builds skip Sparkle
     // so an unavailable appcast cannot show native updater error dialogs.
@@ -38,7 +37,6 @@ struct DragonFruitMiniApp: App {
             MeetingPopoverView(
                 store: store,
                 pomodoro: pomodoro,
-                agentInbox: agentInbox,
                 updater: updaterController?.updater
             )
             .frame(width: 360)
@@ -47,10 +45,6 @@ struct DragonFruitMiniApp: App {
                 cursorBuddyController.bind(to: store)
                 atlasChatController.bind(to: store)
                 atlasIslandController.bind(to: store, pomodoro: pomodoro)
-                agentInbox.startPolling(
-                    makeClient: { try store.makeClientPublic() },
-                    workspaceSlug: { store.selectedWorkspaceSlug }
-                )
             }
         } label: {
             Label {

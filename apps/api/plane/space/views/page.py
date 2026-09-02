@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from .base import BaseAPIView
 from plane.db.models import DeployBoard, Issue, IssueView, Page, Project, Sticky, WorkspaceMember
+from plane.utils.host import base_host
 from plane.utils.issue_filters import issue_filters
 
 
@@ -23,7 +24,7 @@ def _public_page_owner_payload(page):
     }
 
 
-def _public_page_mentions(page):
+def _public_page_mentions(page, request):
     """Resolve mention-component ids in the page body to display labels.
 
     description_html serializes mentions as empty custom elements, so the
@@ -33,6 +34,7 @@ def _public_page_mentions(page):
     soup = BeautifulSoup(page.description_html or "", "html.parser")
     user_ids = set()
     issue_ids = set()
+    calendar_project_ids = set()
     for node in soup.find_all("mention-component"):
         entity_name = node.get("entity_name")
         entity_id = node.get("entity_identifier")
@@ -42,6 +44,8 @@ def _public_page_mentions(page):
             user_ids.add(entity_id)
         elif entity_name == "issue":
             issue_ids.add(entity_id)
+        elif entity_name == "calendar":
+            calendar_project_ids.add(entity_id)
 
     users = {}
     if user_ids:
@@ -55,7 +59,16 @@ def _public_page_mentions(page):
         for issue in Issue.issue_objects.filter(workspace=page.workspace, id__in=issue_ids).select_related("project"):
             issues[str(issue.id)] = f"{issue.project.identifier}-{issue.sequence_id} {issue.name}"
 
-    return {"users": users, "issues": issues}
+    calendars = {}
+    if calendar_project_ids:
+        app_base_url = base_host(request, is_app=True)
+        for project in Project.objects.filter(workspace=page.workspace, id__in=calendar_project_ids):
+            calendars[str(project.id)] = {
+                "label": f"{project.name} calendar",
+                "href": f"{app_base_url}/{page.workspace.slug}/projects/{project.id}/calendar",
+            }
+
+    return {"users": users, "issues": issues, "calendars": calendars}
 
 
 def _extract_doc_embed_refs(description_html):
@@ -168,7 +181,7 @@ def _resolve_public_embed(ref):
     return _unavailable_embed(ref)
 
 
-def _public_wiki_docs(folder):
+def _public_wiki_docs(folder, request):
     """Child docs of a published wiki folder, in reader order.
 
     Publishing the folder is the explicit act that exposes its docs, so every
@@ -197,7 +210,7 @@ def _public_wiki_docs(folder):
             "id": str(page.id),
             "name": page.name,
             "description_html": page.description_html,
-            "mentions": _public_page_mentions(page),
+            "mentions": _public_page_mentions(page, request),
             "updated_at": page.updated_at,
         }
         for page in children

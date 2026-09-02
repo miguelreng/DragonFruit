@@ -8,7 +8,7 @@ const proofItems = [
   ["Creators", "Ideas, scripts, research, launches"],
   ["Tech teams", "Specs, triage, docs, decisions"],
   ["Creative studios", "Client work, campaigns, handoffs"],
-  ["Self-host builders", "Open source, BYOK, visible control"],
+  ["Self hosters", "Open source, BYOK, visible control"],
 ];
 
 const problemCards = [
@@ -33,13 +33,13 @@ const featureCards = [
   {
     meta: "Tasks",
     title: "Tasks without the machinery.",
-    body: "States, owners, due dates, and per-project custom fields. No sprints, no story points, no setup tax.",
+    body: "States, owners, due dates, and custom fields per project. No sprints, no story points, no setup tax.",
     isNew: false,
   },
   {
     meta: "Docs",
     title: "Docs that stay organized.",
-    body: "A calm collaborative editor with folders, templates, and doc-to-doc mentions that keep context linked.",
+    body: "A calm collaborative editor with folders, templates, and mentions between docs that keep context linked.",
     isNew: false,
   },
   {
@@ -104,7 +104,7 @@ const solutionCards = [
   {
     meta: "Draft",
     title: "Make the first version instantly useful.",
-    body: "Ask Atlas for a project brief, task list, summary, follow-up plan, or launch doc without starting from a blank page.",
+    body: "Ask Atlas for a project brief, task list, summary, next steps, or launch doc without starting from a blank page.",
   },
   {
     meta: "Triage",
@@ -262,7 +262,7 @@ const faqs = [
     <section class="reference-proof" aria-labelledby="proof-title">
       <div class="reference-proof-heading">
         <p class="meta">Built for the work between thinking and shipping</p>
-        <h2 id="proof-title">One workspace for creators, tech teams, creative studios, and self-host builders.</h2>
+        <h2 id="proof-title">One workspace for creators, tech teams, creative studios, and self hosters.</h2>
       </div>
       <div class="proof-strip" aria-label="DragonFruit audiences">
         {proofItems.map(([label, body]) => (
@@ -316,6 +316,12 @@ const faqs = [
       </div>
     </section>
 
+    <section class="landing-tagline" aria-label="DragonFruit in one line">
+      <p data-tagline>
+        Most ideas die in the gap between thinking and doing. Yours get a teammate who walks them to done.
+      </p>
+    </section>
+
     <section class="landing-section feature-section" id="features" aria-labelledby="features-title">
       <div class="landing-section-heading is-centered">
         <p class="meta">What's inside</p>
@@ -365,8 +371,8 @@ const faqs = [
       </div>
 
       <p class="switch-note">
-        One-time import instead of a fragile two-way sync — your old tool stays untouched while you settle in. Once
-        everything lands, Atlas triages the pile: owners, states, duplicates, and the real next steps.
+        You import once — there is no fragile sync to babysit, and your old tool stays untouched while you settle in.
+        Once everything lands, Atlas triages the pile: owners, states, duplicates, and the real next steps.
       </p>
     </section>
 
@@ -445,6 +451,74 @@ const faqs = [
       video.addEventListener('loadeddata', showVideo, { once: true });
       window.setTimeout(showVideo, 900);
 
+    })();
+  </script>
+
+  <script is:inline>
+    (() => {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // B11 tagline reveal: words activate one at a time, in reading order,
+      // driven by a single rAF-throttled scroll listener.
+      const tagline = document.querySelector('[data-tagline]');
+      if (tagline) {
+        const words = tagline.textContent.trim().split(/\s+/);
+        tagline.textContent = '';
+        const spans = words.map((word, i) => {
+          const span = document.createElement('span');
+          span.className = 'tl-w';
+          span.textContent = word;
+          tagline.appendChild(span);
+          if (i < words.length - 1) tagline.appendChild(document.createTextNode(' '));
+          return span;
+        });
+
+        if (reduced) {
+          spans.forEach((s) => s.classList.add('on'));
+        } else {
+          let ticking = false;
+          const update = () => {
+            ticking = false;
+            const rect = tagline.getBoundingClientRect();
+            const trigger = window.innerHeight * 0.82;
+            const travel = rect.height + window.innerHeight * 0.22;
+            const progress = Math.min(1, Math.max(0, (trigger - rect.top) / travel));
+            const active = Math.round(progress * spans.length);
+            spans.forEach((s, i) => s.classList.toggle('on', i < active));
+          };
+          const onScroll = () => {
+            if (!ticking) {
+              ticking = true;
+              requestAnimationFrame(update);
+            }
+          };
+          window.addEventListener('scroll', onScroll, { passive: true });
+          update();
+        }
+      }
+
+      // B7 scroll interpolation: below-the-fold elements fade up on entry.
+      if (reduced || !('IntersectionObserver' in window)) return;
+      const targets = document.querySelectorAll(
+        '.landing-section-heading, .reference-proof-heading, .proof-strip article, .problem-card, .solution-card, .feature-card, .switch-strip article, .switch-note, .pricing-card, .landing-open-source > *, .faq-list, .landing-final > *'
+      );
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.classList.add('is-in');
+            io.unobserve(entry.target);
+          }
+        },
+        { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+      );
+      targets.forEach((el) => {
+        const siblings = Array.from(el.parentElement.children);
+        const index = Math.min(siblings.indexOf(el), 5);
+        el.style.setProperty('--reveal-delay', `${index * 70}ms`);
+        el.classList.add('reveal');
+        io.observe(el);
+      });
     })();
   </script>
 </BaseLayout>

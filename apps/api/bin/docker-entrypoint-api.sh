@@ -28,17 +28,26 @@ python manage.py wait_for_db || {
 }
 log "✓ wait_for_db"
 
-# Coolify runs the API as a single service, so there is no separate migrator
-# container to release a `wait_for_migrations` gate. Apply migrations in this
-# process before Gunicorn starts instead. A migration failure is fatal: serving
-# new application code against an older schema only turns the boot error into
-# runtime 500s on affected endpoints.
-log "→ migrate (required)"
-python manage.py migrate --noinput || {
-  log "✗ migrate failed — exiting so the API cannot serve against a stale schema"
-  exit 1
-}
-log "✓ migrate"
+# Keep migrations enabled for legacy single-service deployments. Multi-replica
+# production must set RUN_MIGRATIONS=0 and execute docker-entrypoint-migrator.sh
+# exactly once as the release phase before rolling out API replicas.
+case "${RUN_MIGRATIONS:-1}" in
+  1|true|TRUE|yes|YES)
+    log "→ migrate (required)"
+    python manage.py migrate --noinput || {
+      log "✗ migrate failed — exiting so the API cannot serve against a stale schema"
+      exit 1
+    }
+    log "✓ migrate"
+    ;;
+  0|false|FALSE|no|NO)
+    log "→ migrate skipped (dedicated release migrator required)"
+    ;;
+  *)
+    log "✗ RUN_MIGRATIONS must be 0/1, true/false, or yes/no"
+    exit 64
+    ;;
+esac
 
 # Machine signature for instance registration
 HOSTNAME=$(hostname 2>/dev/null || echo "unknown")

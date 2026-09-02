@@ -22,6 +22,8 @@ from plane.app.views import (
     WorkspaceOrphanPageDestroyEndpoint,
     CapturedChatIngestEndpoint,
     CapturedPageIngestEndpoint,
+    ScannedNoteCreateEndpoint,
+    ScannedNoteTranscribeEndpoint,
 )
 
 urlpatterns = [
@@ -144,5 +146,17 @@ urlpatterns = [
         "workspaces/<str:slug>/pages/<uuid:page_id>/save-as-template/",
         PageSaveAsTemplateEndpoint.as_view(),
         name="page-save-as-template",
+    ),
+    # Scan-to-doc. Workspace-level on purpose: the target project isn't known
+    # until the vision model reads the /marker off the photographed page.
+    path(
+        "workspaces/<str:slug>/scanned-notes/transcribe/",
+        ScannedNoteTranscribeEndpoint.as_view(),
+        name="workspace-scanned-note-transcribe",
+    ),
+    path(
+        "workspaces/<str:slug>/scanned-notes/",
+        ScannedNoteCreateEndpoint.as_view(),
+        name="workspace-scanned-notes",
     ),
 ]
